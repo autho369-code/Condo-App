@@ -66,6 +66,7 @@ Additional user-provided reference screens define important product bones:
 - Automated vendor document reminder settings: document types, last-paid date, expiration date, bulk request documents, and reminder/task links for expiring compliance documents.
 - Bank accounts: accounting tabs for receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics; account-name and bank filters; bank account table with masked account numbers, last reconciliation date, payments-enabled state, auto-reconciliation state, pagination, and task/report links for new bank account, new bank deposit, bank feed, reconcile, close period, online payments, bank linking, check register, deposit register, trust account balance, and bank-account-by-association reporting.
 - New bank account: bank information, account name, bank name, description, routing number, account number, account type, positive-pay checkbox, bank address, bank account legal entity information, account ownership information with authorized-owner rows, accounting GL mapping, check print information, company return address, notes, and attachments.
+- New bank deposit: bank account selector, unit/association selector, search action for undeposited receipts, deposit detail entry, and warning/empty state when there are no checks or cash payments available for the selected bank-account/scope combination.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -210,6 +211,19 @@ New bank account setup should be a sectioned workspace with clear validation, ma
 - Supporting records: notes, document upload, bank letters, authorization forms, voided checks, and attachments.
 
 The UI should never display a full routing or account number after initial entry. After save, account identifiers should be masked and any subsequent edits should use a secure re-entry or tokenized update flow.
+
+### New Bank Deposit Flow
+
+New bank deposit should start with a compact scope picker before showing deposit details:
+
+- Bank account selector limited to accounts visible under RLS and eligible for deposits.
+- Unit or association selector with an all-units option where appropriate.
+- Search action that loads undeposited checks, cash payments, or eligible receipts for the selected bank account and scope.
+- Empty state explaining when no checks or cash payments are available and linking back to receivables, payment search, or bank account detail.
+- Deposit worksheet with deposit date, memo/reference, selected receipt rows, amount totals, adjustment lines where supported, and attachment upload.
+- Confirmation summary before creating the deposit, including bank account, association/property scope, selected receipts, and total amount.
+
+Creating a bank deposit is a financially consequential action. The UI should allow preview and worksheet edits freely, then require explicit confirmation before persisting the final deposit.
 
 Bank account setup, online payment enablement, bank linking, bank-feed authorization, and period close actions can affect financial data or external processors. The UI must show a confirmation step with exact account, association/property scope, and consequence summary before completing these actions.
 
