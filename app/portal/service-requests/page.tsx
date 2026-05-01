@@ -55,7 +55,7 @@ export default async function ServiceRequestsList({
 
       {submitted && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed — usually within one business day.
+          Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed â€” usually within one business day.
         </div>
       )}
 
@@ -90,13 +90,13 @@ export default async function ServiceRequestsList({
                         <div className="line-clamp-2 text-sm text-gray-900">{firstLine}</div>
                         {wo && (
                           <div className="mt-0.5 text-xs text-gray-500">
-                            → Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
+                            â†’ Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
                           </div>
                         )}
                       </TD>
                       <TD className="whitespace-nowrap text-sm">
-                        {assoc?.name ? <span className="text-gray-500">{assoc.name} · </span> : null}
-                        Unit {r.units?.unit_number ?? '—'}
+                        {assoc?.name ? <span className="text-gray-500">{assoc.name} Â· </span> : null}
+                        Unit {r.units?.unit_number ?? 'â€”'}
                       </TD>
                       <TD>
                         <span className={`rounded px-2 py-0.5 text-xs capitalize ${PRIORITY_BADGE[r.priority] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -111,7 +111,7 @@ export default async function ServiceRequestsList({
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.created_on ?? r.created_at)}</TD>
                       <TD>
                         {isOpen && !wo && (
-                          <form action={cancelServiceRequest.bind(null, r.id)}>
+                          <form action={cancelServiceRequest.bind(null, r.id) as any}>
                             <button type="submit" className="text-xs text-red-600 hover:underline">
                               Cancel
                             </button>
@@ -127,7 +127,7 @@ export default async function ServiceRequestsList({
             <div className="py-8 text-center">
               <p className="text-sm text-gray-500">You haven&apos;t submitted any service requests yet.</p>
               <Link href="/portal/service-requests/new" className="mt-2 inline-block text-sm text-brand-600 hover:underline">
-                Submit your first request →
+                Submit your first request â†’
               </Link>
             </div>
           )}

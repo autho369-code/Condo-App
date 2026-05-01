@@ -64,7 +64,7 @@ export default async function NewServiceRequest() {
         <Card>
           <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
           <CardBody>
-            <form action={submitServiceRequest} className="space-y-6">
+            <form action={submitServiceRequest as any} className="space-y-6">
               {/* --- Unit picker --- */}
               <div>
                 <Label htmlFor="unit_id">Unit</Label>

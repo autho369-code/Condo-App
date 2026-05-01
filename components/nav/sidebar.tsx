@@ -7,10 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
   { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Communication Center', href: '/communication-center' },
   { label: 'Calendar', children: [
     { label: 'Association Calendar', href: '/calendar' },
     { label: 'New Event', href: '/calendar/new' },
   ]},
+  { label: 'Automation Center', href: '/automation-center' },
   { label: 'Associations', href: '/associations' },
   { label: 'People', children: [
     { label: 'Owners', href: '/owners' },
@@ -37,17 +39,18 @@ const NAV = [
     { label: 'Inventory', href: '/inventory' },
     { label: 'Fixed Assets', href: '/fixed-assets' },
   ]},
+  { label: 'Violations', href: '/violations' },
   { label: 'Reporting', children: [
     { label: 'Reports', href: '/reports' },
-    { label: 'Scheduled Reports', href: '/reports/scheduled' },
-    { label: 'Metrics', href: '/reports/metrics' },
+    { label: 'Scheduled Reports', href: '/scheduled-reports' },
+    { label: 'Metrics', href: '/metrics' },
     { label: 'Surveys', href: '/surveys' },
-    { label: 'Compliance / Violations', href: '/violations' },
   ]},
   { label: 'Communication', children: [
     { label: 'Letters', href: '/letters' },
     { label: 'Forms', href: '/forms' },
-    { label: 'Inbox', href: '/sms' },
+    { label: 'Inbox', href: '/inbox' },
+    { label: 'Send Email', href: '/send-email' },
   ]},
 ]
 
@@ -97,8 +100,8 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
   return (
     <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
       <div className="border-b border-gray-200 px-4 py-3 flex-shrink-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{portfolioName ?? 'Stellar Property Group'}</div>
-        <div className="text-xs text-gray-400 mt-0.5">Property Manager</div>
+        <div className="text-sm font-semibold text-gray-900 truncate">{portfolioName ?? 'ManageOps'}</div>
+        <div className="text-xs text-gray-400 mt-0.5">Operations workspace</div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-1">

@@ -51,7 +51,7 @@ export default async function NewBillPage() {
       <Card>
         <CardHeader><CardTitle>Bill details</CardTitle></CardHeader>
         <CardBody>
-          <form action={createBill} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={createBill as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input type="hidden" name="portfolio_id" value={me.portfolio?.id ?? ''} />
 
             {/* VENDOR */}

@@ -39,7 +39,7 @@ export default async function NewBankAccountPage({
         Adds a bank account record to your portfolio. Assign it to an association to use for that HOA&apos;s receivables and payables.
       </p>
 
-      <form action={createBankAccount} className="space-y-5 rounded border border-gray-200 bg-white p-5">
+      <form action={createBankAccount as unknown as (formData: FormData) => Promise<void>} className="space-y-5 rounded border border-gray-200 bg-white p-5">
         {return_to && <input type="hidden" name="return_to" value={return_to} />}
 
         {/* -------- Basic -------- */}

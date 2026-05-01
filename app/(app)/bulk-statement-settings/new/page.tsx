@@ -36,7 +36,7 @@ export default async function BulkStatementSettingsPage() {
         </p>
       </div>
 
-      <form action={updateBulkStatementSettings} className="space-y-4">
+      <form action={updateBulkStatementSettings as any} className="space-y-4">
         <Card>
           <div className="space-y-5 px-6 py-5">
             {/* -------- Update Settings for (scope picker) -------- */}

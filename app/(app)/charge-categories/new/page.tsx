@@ -24,7 +24,7 @@ export default async function NewChargeCategory() {
 
       <Card>
         <CardBody>
-          <form action={createChargeCategory} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={createChargeCategory as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input type="hidden" name="portfolio_id" value={me.portfolio?.id ?? ''} />
 
             <div className="md:col-span-2">

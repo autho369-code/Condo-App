@@ -93,7 +93,7 @@ export default async function NewUnitPage({
               Units live under buildings. {contextAssociation ? (<>This association (<strong>{contextAssociation.name}</strong>) has no buildings yet.</>) : 'No buildings found in your portfolio yet.'}
             </p>
             {contextAssociation ? (
-              <form action={createBuilding} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+              <form action={createBuilding as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
                 <input type="hidden" name="association_id" value={contextAssociation.id} />
                 <div className="md:col-span-2">
                   <Label htmlFor="b_name">Building name <span className="text-red-500">*</span></Label>
@@ -116,7 +116,7 @@ export default async function NewUnitPage({
         </Section>
       ) : (
         <Section title="Unit details">
-          <form action={createUnit} className="space-y-6 px-5 py-5">
+          <form action={createUnit as any} className="space-y-6 px-5 py-5">
             {/* --- Location --- */}
             {preBuilding ? (
               <input type="hidden" name="building_id" value={(preBuilding as any).id} />

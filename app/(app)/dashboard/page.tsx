@@ -85,7 +85,7 @@ export default async function DashboardPage({
       {/* Header with association filter */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">
-          Dashboard{activeAssoc ? <span className="ml-2 text-base font-normal text-gray-500">· {activeAssoc.name}</span> : null}
+          Dashboard{activeAssoc ? <span className="ml-2 text-base font-normal text-gray-500">Â· {activeAssoc.name}</span> : null}
         </h1>
         <form action="/dashboard" method="get" className="flex items-center gap-2">
           <select
@@ -102,12 +102,12 @@ export default async function DashboardPage({
         </form>
       </div>
 
-      {/* ============== DUE REMINDERS — pops to top when any event's reminder window is open ============== */}
+      {/* ============== DUE REMINDERS â€” pops to top when any event's reminder window is open ============== */}
       {dueReminders && dueReminders.length > 0 && (
         <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
-            <span>🔔</span>
-            <span>{dueReminders.length} reminder{dueReminders.length === 1 ? '' : 's'} — events coming due</span>
+            <span>ðŸ””</span>
+            <span>{dueReminders.length} reminder{dueReminders.length === 1 ? '' : 's'} â€” events coming due</span>
           </div>
           <ul className="space-y-2">
             {dueReminders.map((r: any) => {
@@ -118,15 +118,15 @@ export default async function DashboardPage({
                     <div className="font-medium text-gray-900">{r.title}</div>
                     <div className="text-xs text-gray-600">
                       {r.association_name ?? 'Portfolio-wide'}
-                      {r.location ? ` · ${r.location}` : ''}
-                      {' · '}
+                      {r.location ? ` Â· ${r.location}` : ''}
+                      {' Â· '}
                       <strong className={daysOut <= 3 ? 'text-red-700' : 'text-amber-800'}>
                         {daysOut <= 0 ? 'Due today' : `Due in ${daysOut} day${daysOut === 1 ? '' : 's'}`}
                       </strong>
                       {' '}({new Date(r.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
                     </div>
                   </div>
-                  <form action={acknowledgeReminder.bind(null, r.event_id)}>
+                  <form action={acknowledgeReminder.bind(null, r.event_id) as any}>
                     <button type="submit" className="rounded border border-amber-400 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100">
                       Dismiss
                     </button>
@@ -140,8 +140,8 @@ export default async function DashboardPage({
 
       {/* ============== Association Calendar at top ============== */}
       <Panel
-        title={activeAssoc ? `${activeAssoc.name} — Upcoming events` : 'Upcoming events (all associations)'}
-        right={<Link href={assocFilter ? `/calendar?assoc=${assocFilter}` : '/calendar'} className="text-xs text-blue-700 hover:underline">Open calendar →</Link>}
+        title={activeAssoc ? `${activeAssoc.name} â€” Upcoming events` : 'Upcoming events (all associations)'}
+        right={<Link href={assocFilter ? `/calendar?assoc=${assocFilter}` : '/calendar'} className="text-xs text-blue-700 hover:underline">Open calendar â†’</Link>}
       >
         {(events ?? []).length === 0 ? (
           <p className="px-5 py-6 text-center text-sm text-gray-500">
@@ -163,7 +163,7 @@ export default async function DashboardPage({
                 <tr key={e.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="whitespace-nowrap px-4 py-2">
                     {new Date(e.start_datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    {!e.all_day && <> · {new Date(e.start_datetime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</>}
+                    {!e.all_day && <> Â· {new Date(e.start_datetime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</>}
                   </td>
                   <td className="px-4 py-2">
                     <span className={`mr-2 rounded border px-1.5 py-0.5 text-[11px] ${eventBadge(e.event_type)}`}>{eventLabel(e.event_type)}</span>
@@ -174,7 +174,7 @@ export default async function DashboardPage({
                       ? <Link href={`/calendar?assoc=${e.associations.id}`} className="text-blue-700 hover:underline">{e.associations.name}</Link>
                       : <span className="text-gray-400">Portfolio-wide</span>}
                   </td>
-                  <td className="px-4 py-2 text-gray-600">{e.location ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-600">{e.location ?? 'â€”'}</td>
                 </tr>
               ))}
             </tbody>
@@ -187,8 +187,8 @@ export default async function DashboardPage({
       {/* Online Payments */}
       <Panel title="Online Payments">
         <div className="grid grid-cols-2 gap-6 px-5 py-4">
-          <Stat big="—" label="Payments Collected Online" sub="Historical ratio" href={`/reports/ar_aging${assocFilter ? `?association=${assocFilter}` : ''}`} />
-          <Stat big="—" label="Units Paid Online" sub="Recurring-autopay %" href="/portal/autopay" />
+          <Stat big="â€”" label="Payments Collected Online" sub="Historical ratio" href={`/reports/ar_aging${assocFilter ? `?association=${assocFilter}` : ''}`} />
+          <Stat big="â€”" label="Units Paid Online" sub="Recurring-autopay %" href="/portal/autopay" />
         </div>
       </Panel>
 
@@ -223,7 +223,7 @@ export default async function DashboardPage({
             <ul className="divide-y divide-gray-100 rounded border border-gray-200">
               {(overdueInsurance ?? []).map((a: any) => (
                 <li key={a.id} className="flex items-start gap-2 px-3 py-2 text-sm">
-                  <span className="mt-0.5 text-amber-600">⚠</span>
+                  <span className="mt-0.5 text-amber-600">âš </span>
                   <div className="flex-1">
                     <span className="text-gray-700">Liability insurance for </span>
                     <Link href={`/associations/${a.id}`} className="text-blue-700 hover:underline">{a.name}</Link>
@@ -241,8 +241,8 @@ export default async function DashboardPage({
       {/* Delinquencies */}
       <Panel title="Delinquencies">
         <div className="grid grid-cols-3 divide-x divide-gray-100">
-          <DelinqCell n={stats.delinquency_0_30}   label="0–60 Days"  tone="neutral" />
-          <DelinqCell n={stats.delinquency_31_60}  label="61–90 Days" tone="amber" />
+          <DelinqCell n={stats.delinquency_0_30}   label="0â€“60 Days"  tone="neutral" />
+          <DelinqCell n={stats.delinquency_31_60}  label="61â€“90 Days" tone="amber" />
           <DelinqCell n={stats.delinquency_61_plus} label="91+ Days"  tone="red" />
         </div>
         <div className="border-t border-gray-100 px-5 py-2 text-xs">
@@ -290,7 +290,7 @@ export default async function DashboardPage({
               {approvals.map((a: any) => (
                 <tr key={a.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-5 py-2 font-medium">{a.request_type}</td>
-                  <td className="px-4 py-2 text-gray-700">{a.associations?.name ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-700">{a.associations?.name ?? 'â€”'}</td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-600">{date(a.requested_at)}</td>
                   <td className="px-4 py-2"><span className={`rounded px-2 py-0.5 text-xs capitalize ${a.status === 'approved' ? 'bg-green-100 text-green-700' : a.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>{a.status}</span></td>
                 </tr>
@@ -348,7 +348,7 @@ async function computePortfolioStats(supabase: any, portfolioId: string | null |
 }
 
 async function computeAssocStats(supabase: any, assocId: string): Promise<Stats> {
-  // Work orders — count by status for this association
+  // Work orders â€” count by status for this association
   const { data: wos } = await supabase.from('work_orders').select('status').eq('association_id', assocId).is('archived_at', null);
   const woBy = (s: string) => (wos ?? []).filter((r: any) => r.status === s).length;
 
@@ -356,14 +356,14 @@ async function computeAssocStats(supabase: any, assocId: string): Promise<Stats>
   const { count: pendingBills } = await supabase.from('bills').select('*', { count: 'exact', head: true })
     .eq('association_id', assocId).eq('status', 'pending_approval').is('archived_at', null);
 
-  // Delinquencies — from aged_receivables (already has aging bucket + association_id)
+  // Delinquencies â€” from aged_receivables (already has aging bucket + association_id)
   const { data: aged } = await supabase.from('aged_receivables').select('aging_bucket').eq('association_id', assocId);
   const delinqBy = (b: string | string[]) => {
     const buckets = Array.isArray(b) ? b : [b];
     return (aged ?? []).filter((r: any) => buckets.includes(r.aging_bucket)).length;
   };
 
-  // Portal adoption — owners who have an occupancy in this association
+  // Portal adoption â€” owners who have an occupancy in this association
   const { data: occs } = await supabase.from('occupancies')
     .select('owner_id, owners!owner_id(portal_activated, email)')
     .eq('association_id', assocId)
@@ -398,7 +398,7 @@ function Panel({ title, children, right }: { title: string; children: React.Reac
   return (
     <details open className="overflow-hidden rounded border border-gray-200 bg-white">
       <summary className="flex cursor-pointer select-none items-center justify-between border-b border-gray-100 bg-white px-5 py-3 [&::-webkit-details-marker]:hidden">
-        <div className="flex items-center gap-2"><span className="text-gray-500">▾</span><h2 className="text-sm font-semibold text-gray-900">{title}</h2></div>
+        <div className="flex items-center gap-2"><span className="text-gray-500">â–¾</span><h2 className="text-sm font-semibold text-gray-900">{title}</h2></div>
         {right}
       </summary>
       <div>{children}</div>
@@ -412,7 +412,7 @@ function Stat({ big, label, sub, href }: { big: string; label: string; sub?: str
       <div className="text-2xl font-semibold">{big}</div>
       <div className="text-sm text-gray-700">{label}</div>
       {sub && <div className="text-xs text-gray-500">{sub}</div>}
-      {href && <Link href={href} className="mt-1 inline-block text-xs text-blue-700 hover:underline">View history →</Link>}
+      {href && <Link href={href} className="mt-1 inline-block text-xs text-blue-700 hover:underline">View history â†’</Link>}
     </div>
   );
 }

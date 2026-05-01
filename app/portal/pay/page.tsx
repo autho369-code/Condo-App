@@ -58,7 +58,7 @@ export default async function PayPage() {
             </p>
           </CardHeader>
           <CardBody>
-            <form action={createOwnerCheckoutSession} className="space-y-5">
+            <form action={createOwnerCheckoutSession as any} className="space-y-5">
               <input type="hidden" name="unit_id" value={defaultUnit.unit_id} />
 
               {/* Amount */}

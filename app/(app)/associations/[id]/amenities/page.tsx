@@ -150,10 +150,10 @@ export default async function AmenitiesTab({
       {showCreate && (
         <Section
           title="Create Amenity"
-          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">×</Link>}
+          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">Ã—</Link>}
           padded
         >
-          <form action={createAmenity} className="space-y-4">
+          <form action={createAmenity as any} className="space-y-4">
             <FormRow label="Title" required>
               <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </FormRow>
@@ -225,7 +225,7 @@ export default async function AmenitiesTab({
             <div className="flex items-center gap-2 pt-2">
               <Button type="submit" size="sm">Create</Button>
               <Link href={`/associations/${id}/amenities`}>
-                <Button type="button" size="sm" variant="outline">Cancel</Button>
+                <Button type="button" size="sm" variant="secondary">Cancel</Button>
               </Link>
             </div>
           </form>
@@ -251,15 +251,15 @@ function FormRow({
 }
 
 function formatHours(opens: string | null, closes: string | null): string {
-  if (!opens && !closes) return '—';
+  if (!opens && !closes) return 'â€”';
   const fmt = (t: string | null) => {
-    if (!t) return '—';
+    if (!t) return 'â€”';
     const [h, m] = t.split(':').map(Number);
     const hr12 = h % 12 || 12;
     const ampm = h < 12 ? 'AM' : 'PM';
     return `${hr12}:${String(m).padStart(2, '0')} ${ampm}`;
   };
-  return `${fmt(opens)} – ${fmt(closes)}`;
+  return `${fmt(opens)} â€“ ${fmt(closes)}`;
 }
 
 function sanitizeBasicHtml(html: string): string {

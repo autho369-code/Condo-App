@@ -37,7 +37,7 @@ export default async function PortfoliosPage() {
       <Card>
         <CardHeader><CardTitle>Provision new portfolio</CardTitle></CardHeader>
         <CardBody>
-          <form action={provisionPortfolio} className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <form action={provisionPortfolio as any} className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <div className="col-span-2 md:col-span-1">
               <Label htmlFor="name">Company name</Label>
               <Input id="name" name="name" required />

@@ -17,7 +17,7 @@ export default async function NewOwnerPage() {
       <h1 className="text-2xl font-semibold text-gray-900">New owner</h1>
       <p className="text-sm text-gray-500">Add the owner record first. You&apos;ll link them to a unit afterwards.</p>
 
-      <form action={createOwner} className="space-y-6 rounded border border-gray-200 bg-white p-5">
+      <form action={createOwner as any} className="space-y-6 rounded border border-gray-200 bg-white p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="first_name">First name <span className="text-red-500">*</span></Label>

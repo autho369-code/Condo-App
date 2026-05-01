@@ -71,7 +71,7 @@ export default async function AutopayPage() {
                       : 'bg-gray-100 text-gray-700'}`}>{m.status}</span></TD>
                     <TD className="text-right">
                       {m.status !== 'canceled' && (
-                        <form action={cancel.bind(null, m.id)}>
+                        <form action={cancel.bind(null, m.id) as any}>
                           <button type="submit" className="text-xs text-red-600 hover:underline">Cancel autopay</button>
                         </form>
                       )}
@@ -96,17 +96,17 @@ export default async function AutopayPage() {
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4 text-sm">
               You don&apos;t have any saved bank accounts yet. Make a one-time ACH payment first via
               <Link href="/portal/pay" className="ml-1 text-brand-600 hover:underline">Pay assessment</Link>
-              and choose &quot;Save for autopay&quot; at checkout — your bank will be saved here automatically.
+              and choose &quot;Save for autopay&quot; at checkout â€” your bank will be saved here automatically.
             </div>
           ) : (
-            <form action={enroll} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <form action={enroll as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="unit_id">Unit</Label>
                 <select id="unit_id" name="unit_id" required
                   className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                   {(units ?? []).map((u: any) => (
                     <option key={u.unit_id} value={u.unit_id}>
-                      {u.association_name} · Unit {u.unit_number}
+                      {u.association_name} Â· Unit {u.unit_number}
                     </option>
                   ))}
                 </select>

@@ -63,7 +63,7 @@ export default async function SendEmailPage({
             className="text-gray-400 hover:text-gray-600" aria-label="Close">×</Link>
         </div>
 
-        <form action={sendEmail} className="space-y-5 px-6 py-5">
+        <form action={sendEmail as any} className="space-y-5 px-6 py-5">
           {sp.return_to && <input type="hidden" name="return_to" value={sp.return_to} />}
 
           {/* From */}

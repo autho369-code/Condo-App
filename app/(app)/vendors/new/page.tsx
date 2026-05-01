@@ -53,7 +53,7 @@ export default async function NewVendorPage() {
       }
     >
       <Section title="Vendor details">
-        <form action={createVendor} className="space-y-6 px-5 py-5">
+        <form action={createVendor as any} className="space-y-6 px-5 py-5">
           {/* --- Basic --- */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">

@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <p className="text-sm text-gray-500">Enter your email and password.</p>
       </CardHeader>
       <CardBody>
-        <form action={loginWithPassword} className="space-y-4">
+        <form action={loginWithPassword as any} className="space-y-4">
           <input type="hidden" name="next" value={next ?? '/dashboard'} />
           <div>
             <Label htmlFor="email">Email</Label>

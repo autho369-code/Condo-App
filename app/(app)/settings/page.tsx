@@ -45,7 +45,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Portfolio policy</CardTitle></CardHeader>
         <CardBody>
-          <form action={updatePolicy} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={updatePolicy as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <Label htmlFor="company_name">Company name</Label>
               <Input id="company_name" name="company_name" defaultValue={portfolio?.company_name ?? ''} />
@@ -144,7 +144,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Invite a staff member</CardTitle></CardHeader>
         <CardBody>
-          <form action={inviteStaff} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <form action={inviteStaff as any} className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <input type="hidden" name="portfolio_id" value={portfolioId} />
             <div className="md:col-span-2">
               <Label htmlFor="email">Email</Label>

@@ -60,7 +60,7 @@ export default async function NewBuildingPage({
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
 
-      <form action={createBuilding} className="space-y-4">
+      <form action={createBuilding as any} className="space-y-4">
         <input type="hidden" name="association_id" value={assoc.id} />
 
         {/* ============================================================

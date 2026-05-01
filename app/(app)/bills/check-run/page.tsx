@@ -42,7 +42,7 @@ export default async function CheckRunPage() {
       </div>
       <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
 
-      <form action={writeChecks} className="space-y-6">
+      <form action={writeChecks as any} className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Run settings</CardTitle></CardHeader>
           <CardBody>

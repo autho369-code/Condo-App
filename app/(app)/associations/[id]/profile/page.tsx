@@ -50,7 +50,7 @@ export default async function AssociationProfileTab({
           <AssociationTabs associationId={id} active="profile" />
           <WorkspaceHeader
             title={assoc.name}
-            actions={<Button size="sm" variant="outline">Edit</Button>}
+            actions={<Button size="sm" variant="secondary">Edit</Button>}
           />
         </>
       }

@@ -32,7 +32,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
             eyebrow={
               <>
                 <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-                {' · '}
+                {' Â· '}
                 <Link href="/reports/runs" className="hover:text-brand-600">Run history</Link>
               </>
             }
@@ -44,7 +44,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
                   <Button>Download {run.output_format?.toUpperCase()}</Button>
                 </a>
               ) : isInFlight ? (
-                <form action={cancelReportRun.bind(null, run.id)}>
+                <form action={cancelReportRun.bind(null, run.id) as any}>
                   <Button type="submit" variant="secondary" size="sm">Cancel run</Button>
                 </form>
               ) : null
@@ -114,7 +114,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
             {run.status === 'queued' && 'Waiting for the report worker to pick up this job.'}
             {run.status === 'running' && 'The report worker is generating your output.'}
             {run.status === 'succeeded' && `Completed in ${formatDuration(run.duration_ms)}. Output ready to download.`}
-            {run.status === 'failed' && 'This run failed — see the error below.'}
+            {run.status === 'failed' && 'This run failed â€” see the error below.'}
             {run.status === 'cancelled' && 'Cancelled before completion.'}
           </p>
         </div>
@@ -151,7 +151,7 @@ function BigStatusPill({ status }: { status: string }) {
 }
 
 function formatDuration(ms: number | null) {
-  if (!ms) return '—';
+  if (!ms) return 'â€”';
   if (ms < 1000) return `${ms} ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)} s`;
@@ -159,7 +159,7 @@ function formatDuration(ms: number | null) {
 }
 
 function formatBytes(bytes: number | null) {
-  if (!bytes) return '—';
+  if (!bytes) return 'â€”';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`;

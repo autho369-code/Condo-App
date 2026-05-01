@@ -62,7 +62,7 @@ export default async function ArchitecturalReviewsTab({
       }
       rail={rail}
     >
-      <form action={saveSettings} className="max-w-3xl space-y-5">
+      <form action={saveSettings as any} className="max-w-3xl space-y-5">
         <Section padded>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="online_requests_disabled" defaultChecked={settings?.online_requests_disabled ?? false} />
@@ -74,7 +74,7 @@ export default async function ArchitecturalReviewsTab({
           <div className="mb-3">
             <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
             <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">— Select a committee —</option>
+              <option value="">â€” Select a committee â€”</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}

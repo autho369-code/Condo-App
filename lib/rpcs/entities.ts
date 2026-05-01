@@ -595,7 +595,7 @@ export async function updateBulkStatementSettings(formData: FormData) {
   let query = supabase.from('associations').update(patch).is('archived_at', null);
   if (associationIds.length > 0) query = query.in('id', associationIds);
 
-  const { error, count } = await query.select('id', { count: 'exact' });
+  const { error, count } = await (query as any).select('id', { count: 'exact' });
   if (error) return { error: error.message };
 
   revalidatePath('/associations');

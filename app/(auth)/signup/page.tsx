@@ -12,7 +12,7 @@ export default function SignupPage() {
         <p className="text-sm text-gray-500">If you were invited, use the email address that received the invitation.</p>
       </CardHeader>
       <CardBody>
-        <form action={signupWithPassword} className="space-y-4">
+        <form action={signupWithPassword as any} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required />

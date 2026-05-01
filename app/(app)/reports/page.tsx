@@ -97,7 +97,7 @@ export default async function ReportsIndex({
   ]);
 
   const allDefs = (defs ?? []) as Def[];
-  const savedRows = (saved ?? []) as Saved[];
+  const savedRows = (saved ?? []) as unknown as Saved[];
 
   // Search filter (applies to definitions only — AppFolio filters saved with its own logic)
   const term = q.trim().toLowerCase();

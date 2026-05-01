@@ -30,7 +30,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
         <h1 className="text-2xl font-semibold">{cat.name}</h1>
         <div className="flex gap-2">
           {!cat.is_system && (
-            <form action={archive}>
+            <form action={archive as any}>
               <Button type="submit" variant="danger">Archive</Button>
             </form>
           )}
@@ -40,13 +40,13 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
 
       {cat.is_system && (
         <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
-          This is a system-seeded category. You can rename, re-amount, and re-wire it — but it can&apos;t be archived because other parts of the system reference its code ({cat.code}).
+          This is a system-seeded category. You can rename, re-amount, and re-wire it â€” but it can&apos;t be archived because other parts of the system reference its code ({cat.code}).
         </div>
       )}
 
       <Card>
         <CardBody>
-          <form action={update} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={update as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" defaultValue={cat.name} required />
@@ -90,9 +90,9 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
               <Label htmlFor="gl_account_id">Income GL account</Label>
               <select id="gl_account_id" name="gl_account_id" defaultValue={cat.gl_account_id ?? ''}
                 className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="">—</option>
+                <option value="">â€”</option>
                 {(gls ?? []).map((g: any) => (
-                  <option key={g.id} value={g.id}>{g.number} — {g.name}</option>
+                  <option key={g.id} value={g.id}>{g.number} â€” {g.name}</option>
                 ))}
               </select>
             </div>
