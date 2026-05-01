@@ -44,6 +44,12 @@ Supabase project `termxngysvotnfbzbgrv` already contains report and compliance d
 
 Recent local history indicates prior work leaned toward an AppFolio replica. This spec supersedes that visual direction.
 
+Additional user-provided reference screens define important product bones:
+
+- Violations list: association filter, escalation filter, bulk actions, follow-up completion, collection marking, downloadable violation list, inspection date, association, unit, rule, state, recent activity, escalation, next follow-up, pagination, task links, and compliance navigation.
+- New association/property setup: property identity, address, description, manager details, rental information, lease settings, owner/trustee rows, accounting setup, management fees, additional fees, late-fee policy, budget variance thresholds, maintenance information, property groups, bank accounts, photos, notes, and attachments.
+- Homeowner directory: people tabs, alphabet filtering, name/association/unit/phone columns, pagination, task links for changing homeowner, moving in homeowner, adding vendors, emailing homeowners, and homeowner-specific reports such as dues roll, delinquency, directory, and ledger.
+
 ## Product Principles
 
 ### Command Before Catalog
@@ -106,6 +112,42 @@ Core sections:
 - Financial exceptions: delinquency movement, unreconciled bank accounts, aged payables, unpaid balances by month.
 
 The command center should link directly into filtered report workspaces or violation detail workflows.
+
+## Associations And Onboarding
+
+Association setup is one of the product's foundational data-entry workflows. The redesigned app should avoid a long, brittle form while preserving the full business coverage of the reference flow.
+
+### New Association Flow
+
+Use a modern multi-section setup workspace with save progress, validation, and section status. The flow should support:
+
+- Property identity: property type, property name, address lines, city, state, ZIP, county, status, description, property group, and amenities.
+- Property information: manager assignment, site manager details, year built, unit count, maintenance contacts, and owner/portal-facing instructions.
+- Rental and lease settings: payment frequency, lease templates, additional templates, lease and renewal fee rules, and association-specific rental policies.
+- Owners/trustees or board contacts where applicable: row-based entry with percent allocation, contact details, and role metadata.
+- Accounting setup: payment type, reserve requirements, vendor 1099 payer, owner payout basis, bank account mapping, operating account, reserve account, and lockbox information.
+- Management fees: start month/year, fee type, management fee percentage/amount, minimum and maximum management fee.
+- Additional fees: lease fee, renewal fee, and additional association-level fee rows.
+- Late-fee policy: fee type, fixed amount or percentage, eligible charges, grace period, recurring assessment timing, and optional schedule settings.
+- Budget controls: variance threshold by amount and/or percentage.
+- Maintenance information: maintenance limits, insurance expiration, preauthorized entry rules, maintenance instructions, emergency contact details, and online request settings.
+- Assets and supporting data: photos, notes, and attachments.
+
+The implementation should group these into progressive sections instead of a single scrolling page: Basics, Contacts, Accounting, Fees, Policies, Maintenance, and Files. Each section should be independently understandable, saveable, and validated.
+
+### Association Detail
+
+Association detail should connect setup data to daily work:
+
+- Overview with profile, location, contacts, managers, financial setup, and active warnings.
+- Units and owners attached to the association.
+- Board/committee contacts.
+- Budget and financial reports.
+- Violations and architectural reviews.
+- Work orders and maintenance settings.
+- Bank accounts, fees, policies, documents, notes, and attachments.
+
+Association detail should link directly into association-scoped report runs.
 
 ## Reports Workspace
 
@@ -271,10 +313,13 @@ The violations center should be comprehensive and visible in the main navigation
 The list should support:
 
 - Filters: association, unit, owner, violation type, status, priority, due date, hearing date, fine status.
+- Escalation filter for rows that need escalation or follow-up.
 - Saved views: Open, Notice Due, Hearing Pending, Fined, Cured, Closed, Overdue.
 - KPI strip: open violations, overdue notices, pending hearings, fines outstanding, cured this month.
-- Table columns: violation, association, unit, owner, rule/type, status, due date, fine, last action, next step.
-- Bulk actions where appropriate: generate notices, assign follow-up, export report.
+- Table columns: inspection date, association, unit, rule/type, state/status, most recent activity, escalation flag, next follow-up, owner, fine, last action, next step.
+- Bulk actions where appropriate: generate notices, complete follow-up, mark collected, assign follow-up, export/download violation list, and add selected rows to a violation report.
+- Pagination and row-density controls for large violation sets.
+- Compliance subnavigation for violations, architectural reviews, and related compliance views.
 
 ### Violation Detail
 
@@ -288,6 +333,21 @@ Detail pages should include:
 - Related reports and exports.
 - Actions: send notice draft, record hearing, assess fine, mark cured, close, reopen.
 
+### New Violation Flow
+
+The new violation workflow should support:
+
+- Association, unit, and owner selection with scoped search.
+- Rule/type selection.
+- Inspection date, due date, follow-up date, escalation flag, and priority.
+- Status/state selection with sensible defaults.
+- Evidence upload for photos and attachments.
+- Notes and owner-facing message draft.
+- Optional fine amount and collection settings.
+- Save as draft, create violation, and create-and-send-notice actions.
+
+Sending or emailing notices to owners is an external communication action and should remain a draft/review step unless the user explicitly confirms sending.
+
 ### Violation Reporting
 
 Violation reporting should be integrated with the report workspace:
@@ -300,6 +360,33 @@ Violation reporting should be integrated with the report workspace:
 - Owner Violation History report.
 
 If these are not all present in `report_definitions`, add them as report-definition seeds in a separate schema/data task before wiring those report views.
+
+## People And Homeowners
+
+The people module should treat homeowners, owners, vendors, and related contacts as operational directories with report and task entry points.
+
+### Homeowner Directory
+
+The homeowner directory should support:
+
+- Tabs or segmented views for Homeowners, Owners, Vendors, and related people groups where appropriate.
+- Alphabet filtering, search, association filter, unit filter, and status filter.
+- Table columns for homeowner/owner name, association, unit, phone, email, portal status, and balance or risk summary where available.
+- Pagination for large owner lists.
+- Right-side contextual tasks such as change homeowner, move in homeowner, create homeowner, create vendor, email homeowners, and open homeowner reports.
+- Direct report links for dues roll, homeowner delinquency, homeowner directory, and homeowner ledger.
+
+### New Homeowner Flow
+
+The new homeowner flow should support:
+
+- Person identity: first name, last name, display name, phone numbers, emails, preferred communication, electronic consent, and portal activation state.
+- Address: mailing address plus association/unit context.
+- Ownership links: association, unit, primary owner flag, share percentage, start date, and optional end date.
+- Notes, documents, and communication preferences.
+- Post-create actions: open owner ledger, send portal invite draft, create recurring charges, or run owner-scoped reports.
+
+Owner and homeowner pages should link directly to owner-scoped report runs, especially Owner Ledger, Homeowner Directory, Delinquency, Dues Roll, Charge Detail, and violation history.
 
 ## Data Flow
 
@@ -323,6 +410,14 @@ Report run flow:
 5. Server fetches preview data and summary metrics for the selected scope.
 6. If the user runs, saves, schedules, exports, or adds to a board packet, the selected scope is stored in the relevant `parameters` jsonb field.
 7. The report output header always includes report name, selected scope, date range, run timestamp, and user-visible portfolio/association/owner labels.
+
+Association and homeowner onboarding flow:
+
+1. User opens New Association or New Homeowner from command search, task links, or module actions.
+2. UI renders a sectioned setup workspace with required fields and progress status.
+3. Server validates required relationships such as portfolio, association, unit, owner, and bank account visibility under RLS.
+4. Server actions create or update the record and revalidate the relevant directory/detail pages.
+5. After save, the UI offers next actions such as open detail page, run scoped report, add units, add owner, configure fees, or upload documents.
 
 ## Error Handling
 
@@ -356,7 +451,8 @@ The first implementation slice should include:
 2. Command center dashboard structure and summary panels.
 3. Reports library and one reusable report workspace pattern with association and owner scoped runs.
 4. Violations list and violation detail redesign.
-5. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, and focus panel.
+5. Association setup and homeowner directory/onboarding design foundations, with routes and sectioned UI patterns aligned to existing Supabase tables.
+6. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, and file/evidence panel.
 
 This slice should not attempt to finish every report calculation or every violation action. It should establish the product architecture and polished UX pattern, then wire the highest-value existing data.
 
@@ -375,6 +471,8 @@ Use focused verification for the first slice:
 - Report workspace handles loading, empty, and populated states.
 - Violations list shows existing violation rows and status filters.
 - Violation detail renders a valid record and handles missing/not-found state.
+- New association UI preserves the required setup sections from the reference workflow.
+- Homeowner directory supports alphabet filtering, association/unit context, and owner-scoped report links.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
 
