@@ -70,6 +70,7 @@ Additional user-provided reference screens define important product bones:
 - Bank feed: account information selector, last-change/linking status, education panel for importing bank transactions, matching transactions to records, transaction rules, auto-add workflows, direct connection behavior, and task links back to Reconcile.
 - Bank reconciliation adjustment: bank account context, Account/Adjustments/Set Up Checks tabs, amount, adjustment date, description, warning that bank adjustments do not affect GL balances, save/cancel actions, history, notes, and attachments.
 - Bank reconciliation summary: account-to-reconcile selector, beginning balance, ending balance, beginning/ending statement dates, reconciliation summary cards for ending balance, cleared balance, adjusted cash balance, over/under difference, deposits and credits table, checks and payments table, row clearing checkboxes, search and view toggles, cleared/uncleared totals, save, and reconcile actions.
+- Bank account activity report: bank account and date filters, transaction table with date, payee, transaction type, check/deposit number, cleared state, cash in, cash out, running balance, and description; customizable report toolbar with view tour, report search, filters, print/export/share-style actions, column chooser, row grouping, and value/summary configuration.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -221,6 +222,20 @@ Reconciliation should be a guided accounting workflow with supporting adjustment
 - Save draft and final Reconcile actions, with the final action disabled or clearly warned until the difference is acceptable.
 
 Saving a bank adjustment, completing reconciliation, setting up checks, or changing reconciliation period state is financially consequential. The UI should allow draft/preview calculation first, then require explicit confirmation with the bank account, date, amount, period, and GL impact before persisting.
+
+### Bank Account Activity Report
+
+Bank account activity should be available both as a report and as a bank-account detail tab:
+
+- Filters for bank account, occurred-on date range, association/property scope, transaction type, cleared state, amount range, payee, check/deposit number, and description search.
+- Table columns for date, payee, transaction type, check/deposit number, cleared state, cash in, cash out, running balance, and description.
+- Clickable transaction amounts and identifiers that drill into the source record such as payment, deposit, check, ACH, journal entry, bank transfer, or adjustment.
+- Running balance calculation scoped to the selected bank account and date range, with clear explanation when the report starts after the first account transaction.
+- Customization panel for visible columns, row grouping, value/summary fields, sorting, and saved report views.
+- Toolbar actions for filters, customize, print/export, save view, schedule, and add to board/accounting packet where supported.
+- Empty, loading, and permission states that do not leak restricted bank-account details.
+
+The redesigned report should feel like an accounting analysis workspace: dense, fast, column-customizable, and directly connected to reconciliation and transaction drill-downs.
 
 ### New Bank Account Flow
 
@@ -810,6 +825,7 @@ Use focused verification for the first slice:
 - Owner form and vendor form flows stop at preview/draft before sending unless explicitly confirmed.
 - Bank account registry supports account/bank filters, masked account numbers, last reconciliation status, payments-enabled status, auto-reconciliation status, and task/report links.
 - Bank linking, online payment enablement, reconciliation completion, bank transfer, deposit, and close-period flows require explicit confirmation before financially consequential changes.
+- Bank account activity report supports bank/date filters, customizable columns, running balance, transaction drill-downs, grouping, summary values, and export/print actions.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
 
