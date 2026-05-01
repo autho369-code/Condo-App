@@ -44,6 +44,7 @@ Supabase project `termxngysvotnfbzbgrv` already contains report and compliance d
 - `payment_methods`, `autopay_mandates`, and `payment_processor_configs`: available for tokenized owner ACH and autopay setup.
 - `owners.portal_activated`, `owners.portal_login_last_at`, `user_invitations`, and `profiles`: available for portal activation tracking and invitation workflows.
 - `document_templates`, `documents`, `email_queue`, and `management_agreements`: available for owner packets, agreement documents, outbound drafts, and agreement records.
+- `vendors`, `vendor_compliance`, `form_templates`, `documents`, and `payable_bills`: available for vendor directory, vendor onboarding, compliance tracking, vendor forms, and payables context.
 
 Recent local history indicates prior work leaned toward an AppFolio replica. This spec supersedes that visual direction.
 
@@ -57,6 +58,9 @@ Additional user-provided reference screens define important product bones:
 - Owner portal activation: lease/form/info tabs, activation state, last activation link timestamp, and bulk actions such as send activation link.
 - Send owner packets: date range, recipient scope, subject, body, attachment/report inclusion, portal delivery, and email delivery.
 - New management agreement: step-based agreement flow for owner/association/property choice, agreement signature, and template/addendum selection.
+- Send owner form: choose owner/association/property, choose template, choose recipients, include optional property detail, preview form, and continue to template/signature step.
+- Vendor directory: vendor filter, trade filter, name/address/trade/phone/email columns, pagination, task links, and vendor reports.
+- New vendor setup: vendor identity, vendor type/trade, contact methods, address, request vendor-portal information, federal tax, accounting defaults, payment type, bank details, compliance expirations, notes, and attachments.
 
 ## Product Principles
 
@@ -457,6 +461,22 @@ Required behavior:
 
 Sending owner packets by email or portal notification is an outbound communication and should require explicit confirmation before the send/enqueue step.
 
+### Owner Forms
+
+Sending owner forms should be a step-based workflow backed by `form_templates`, `document_templates`, `documents`, and `email_queue`.
+
+Required behavior:
+
+- Step 1: choose owner, association, property, or unit context.
+- Step 2: choose form template.
+- Step 3: preview generated form and recipient details.
+- Support optional property-detail inclusion when a form requires association or unit context.
+- Save a form draft before delivery.
+- Track generated documents through `documents` where a persistent file is created.
+- Use `email_queue` only after the user explicitly confirms sending.
+
+Sending an owner form is an outbound owner communication and should require explicit confirmation before the send/enqueue step.
+
 ### Management Agreements
 
 New management agreement should be a step-based workflow:
@@ -469,6 +489,47 @@ New management agreement should be a step-based workflow:
 - Support draft, active, signed, expired, terminated, and archived states where the existing enum allows.
 
 Sending a management agreement for signature is a legal/contractual communication and should require explicit confirmation before sending.
+
+## Vendors
+
+Vendors should be treated as a core people/payables/compliance workflow alongside owners.
+
+### Vendor Directory
+
+The vendor directory should support:
+
+- Search by vendor name, contact, address, trade, and email.
+- Trade filter and status/compliance filters.
+- Table columns for name, address, trade, phone, email, portal activation, compliance status, and payables state where available.
+- Pagination and row-density controls.
+- Right-side contextual tasks such as new vendor, send vendor form, vendor ACH/payment setup, vendor ledger/report, vendor 1099 detail, and vendor 1099 summary.
+- Direct links to vendor-scoped reports such as Vendor Directory, Vendor Ledger if available, Vendor 1099 Detail, Vendor 1099 Summary, Vendor Performance, Purchase Order Detail, and Bill Detail.
+
+### New Vendor Flow
+
+The new vendor setup workflow should preserve the reference coverage while using a modern sectioned workspace:
+
+- Details: salutation, first name, last name, company name, vendor type, vendor trade, tags, duplicate-vendor detection, and eligibility for work orders.
+- Contact: multiple phone numbers, multiple emails, address, and tax/mailing address toggle.
+- Vendor portal request: whether to ask the vendor to provide missing profile data, business details, W-9/tax information, insurance, licenses, and related documents.
+- Federal tax: taxpayer name, taxpayer ID, send 1099 flag, and 1099 reporting preferences.
+- Accounting information: check consolidation, check stub breakdown, hold payments, email e-check receipt, payment terms, default check memo, default GL account, work-order adjustment, and adjustment type.
+- Payment type: printable check, e-check, ACH, or other supported modes.
+- Bank account information: routing number, account number, account type, savings/checking flag, and autopay/payment metadata where supported.
+- Compliance: workers compensation, liability insurance, EPA certification, auto insurance, state license, and contract expiration dates.
+- Notes and attachments.
+
+Vendor bank details are sensitive financial data. They should be tokenized or masked where possible, and the UI should never display full account/routing numbers after entry.
+
+### Vendor Forms
+
+Vendor forms should mirror owner forms with vendor-specific recipients and templates:
+
+- Choose vendor and form template.
+- Include requested vendor profile fields or compliance documents.
+- Preview message and attachments.
+- Save as draft.
+- Send only after explicit confirmation.
 
 ## Data Flow
 
@@ -509,6 +570,14 @@ Owner financial and communication flow:
 4. Server actions persist non-sensitive drafts or metadata using existing tables where possible.
 5. The final send, enqueue, portal invitation, ACH transmission, or autopay authorization step asks for explicit action-time confirmation.
 
+Vendor and form flow:
+
+1. User opens vendor directory, new vendor, owner form, or vendor form from People, Tasks, command search, or a related owner/vendor detail page.
+2. UI loads vendor, owner, association, form-template, document, compliance, and payables context under RLS.
+3. UI supports form/template selection, preview, and draft creation without sending.
+4. Server actions persist vendor records, compliance metadata, non-sensitive payment metadata, notes, and attachments.
+5. The final form send, vendor portal request, ACH/payment transmission, or email enqueue step asks for explicit action-time confirmation.
+
 ## Error Handling
 
 Use explicit states rather than silent failures:
@@ -521,6 +590,8 @@ Use explicit states rather than silent failures:
 - Missing configuration: show setup action for scheduled reports, notices, exports, or board packets.
 - Sensitive financial setup: show tokenization/processor state and never echo full bank account or routing data after entry.
 - Outbound owner communications: show draft, recipients, delivery method, and final confirmation state.
+- Vendor compliance gaps: show missing insurance/license/tax requirements as actionable warnings rather than blocking the whole vendor record.
+- Owner/vendor forms: show template availability, required merge fields, missing recipient data, and preview errors before send.
 
 ## Accessibility And Responsiveness
 
@@ -545,7 +616,8 @@ The first implementation slice should include:
 4. Violations list and violation detail redesign.
 5. Association setup and homeowner directory/onboarding design foundations, with routes and sectioned UI patterns aligned to existing Supabase tables.
 6. Owner ACH setup, owner portal activation, owner packet, and management agreement design foundations with safe draft/preview states.
-7. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, and stepper.
+7. Vendor directory, new vendor setup, owner form, and vendor form design foundations with safe draft/preview states.
+8. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, compliance panel, and stepper.
 
 This slice should not attempt to finish every report calculation or every violation action. It should establish the product architecture and polished UX pattern, then wire the highest-value existing data.
 
@@ -570,6 +642,9 @@ Use focused verification for the first slice:
 - Owner ACH UI masks payment details and does not store raw bank account data.
 - Portal activation and owner packet flows stop at draft/preview before sending unless explicitly confirmed.
 - Management agreement workflow creates or previews agreement records without sending for signature unless explicitly confirmed.
+- Vendor directory supports search, trade filtering, pagination, and vendor-scoped report/task links.
+- New vendor UI preserves details, contact, portal request, tax, accounting, payment, compliance, notes, and attachments sections.
+- Owner form and vendor form flows stop at preview/draft before sending unless explicitly confirmed.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
 
