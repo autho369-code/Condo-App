@@ -1,484 +1,371 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { MetricStrip } from '@/components/operations/metric-strip';
+import { Button } from '@/components/ui/button';
+import { requireStaff } from '@/lib/auth/me';
+import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
-import { acknowledgeReminder } from '@/lib/rpcs/calendar';
-import { money, date } from '@/lib/utils';
+import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+type DashboardSearchParams = Promise<{ assoc?: string }>;
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ assoc?: string }>;
+  searchParams: DashboardSearchParams;
 }) {
-  const me = await requireAuth();
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
   const sp = await searchParams;
   const assocFilter = sp.assoc ?? '';
-  const supabase = await createClient();
 
-  if (me.is_resident || me.is_board) redirect('/portal');
   if (me.is_full_access_staff && me.portfolio?.id) {
-    const { count } = await supabase.from('associations')
-      .select('*', { count: 'exact', head: true })
+    const { count } = await db
+      .from('associations')
+      .select('id', { count: 'exact', head: true })
       .eq('portfolio_id', me.portfolio.id);
     if ((count ?? 0) === 0) redirect('/onboard');
   }
 
-  // ---- Association list for the top-right filter ----
-  const { data: associations } = await supabase
-    .from('associations').select('id, name').is('archived_at', null).order('name');
-
-  const activeAssoc = assocFilter ? (associations ?? []).find((a: any) => a.id === assocFilter) : null;
-
-  // ---- Due reminders (pop to top of dashboard) ----
-  let dueQ = supabase.from('v_due_reminders')
-    .select('event_id, title, start_datetime, reminder_days_before, association_name, calendar_scope, location, association_id')
-    .order('start_datetime', { ascending: true });
-  if (assocFilter) dueQ = dueQ.eq('association_id', assocFilter);
-  const { data: dueReminders } = await dueQ;
-
-  // ---- Upcoming calendar events (NEW section at the top) ----
-  const now = new Date();
-  const horizon = new Date(now.getTime() + 30 * 86400000); // next 30 days
-  let evQ = supabase.from('calendar_events')
-    .select('id, title, event_type, start_datetime, end_datetime, all_day, location, associations(id, name)')
+  const { data: associations } = await db
+    .from('associations')
+    .select('id, name')
     .is('archived_at', null)
-    .gte('start_datetime', now.toISOString())
-    .lte('start_datetime', horizon.toISOString())
-    .order('start_datetime', { ascending: true })
-    .limit(12);
+    .order('name');
+
+  const activeAssoc = assocFilter ? (associations ?? []).find((association: any) => association.id === assocFilter) : null;
+  const today = new Date();
+  const todayIso = today.toISOString();
+  const todayDate = todayIso.slice(0, 10);
+
+  const openViolationsQuery = db
+    .from('violations')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .not('status', 'in', '("closed","resolved")');
+  const overdueViolationsQuery = db
+    .from('violations')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .not('status', 'in', '("closed","resolved")')
+    .lt('due_date', todayDate);
+  const pendingBillsQuery = db
+    .from('payable_bills')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .eq('status', 'pending_approval');
+  const unreconciledAccountsQuery = db
+    .from('bank_accounts')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .is('last_reconciliation_date', null);
+  const reportsDueQuery = db
+    .from('scheduled_reports')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .eq('active', true)
+    .lte('next_run_at', todayIso);
+  const openWorkOrdersQuery = db
+    .from('work_orders')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .not('status', 'in', '("completed","closed","cancelled")');
+
   if (assocFilter) {
-    // Show this association's events + portfolio-wide events
-    evQ = evQ.or(`association_id.eq.${assocFilter},association_id.is.null`);
+    openViolationsQuery.eq('association_id', assocFilter);
+    overdueViolationsQuery.eq('association_id', assocFilter);
+    pendingBillsQuery.eq('association_id', assocFilter);
+    unreconciledAccountsQuery.eq('association_id', assocFilter);
+    openWorkOrdersQuery.eq('association_id', assocFilter);
   }
-  const { data: events } = await evQ;
 
-  // ---- Stats: when a specific association is chosen, compute from underlying
-  // tables; when "All associations", reuse v_dashboard_summary. ----
-  const stats = assocFilter
-    ? await computeAssocStats(supabase, assocFilter)
-    : await computePortfolioStats(supabase, me.portfolio?.id);
+  const [
+    { count: openViolations },
+    { count: overdueViolations },
+    { count: pendingBills },
+    { count: unreconciledBankAccounts },
+    { count: scheduledReportsDue },
+    { count: openWorkOrders },
+    { data: focusViolations },
+    { data: focusWorkOrders },
+    { data: focusBills },
+    { data: focusReports },
+  ] = await Promise.all([
+    openViolationsQuery,
+    overdueViolationsQuery,
+    pendingBillsQuery,
+    unreconciledAccountsQuery,
+    reportsDueQuery,
+    openWorkOrdersQuery,
+    buildViolationQueue(db, assocFilter, todayDate),
+    buildWorkOrderQueue(db, assocFilter),
+    buildBillQueue(db, assocFilter),
+    buildReportQueue(db, todayIso),
+  ]);
 
-  // ---- Approvals & insurance feeds ----
-  let approvalsQ = supabase.from('approval_requests')
-    .select('id, request_type, status, requested_at, associations(name), vendors(name)')
-    .is('archived_at', null)
-    .order('requested_at', { ascending: false })
-    .limit(10);
-  if (assocFilter) approvalsQ = approvalsQ.eq('association_id', assocFilter);
-  const { data: approvals } = await approvalsQ;
+  const commandMetrics = buildCommandMetrics({
+    openViolations: openViolations ?? 0,
+    overdueViolations: overdueViolations ?? 0,
+    pendingBills: pendingBills ?? 0,
+    unreconciledBankAccounts: unreconciledBankAccounts ?? 0,
+    scheduledReportsDue: scheduledReportsDue ?? 0,
+    openWorkOrders: openWorkOrders ?? 0,
+  });
 
-  let insQ = supabase.from('associations')
-    .select('id, name, insurance_expiration')
-    .not('insurance_expiration', 'is', null)
-    .lte('insurance_expiration', new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10))
-    .limit(10);
-  if (assocFilter) insQ = insQ.eq('id', assocFilter);
-  const { data: overdueInsurance } = await insQ;
+  const linkedMetrics = commandMetrics.map((metric) => ({
+    label: metric.label,
+    value: (
+      <Link href={metric.href} className="hover:text-brand-700 hover:underline">
+        {metric.value}
+      </Link>
+    ),
+    sublabel: (
+      <Link href={metric.href} className="text-blue-700 hover:underline">
+        Open list
+      </Link>
+    ),
+  }));
 
-  const portalTotal = stats.portal_activated + stats.portal_not_activated + stats.portal_no_email;
-  const pct = (n: number) => portalTotal ? Math.round((n / portalTotal) * 100) : 0;
+  const focusItems = [
+    ...(focusViolations ?? []).map((item: any) => ({
+      key: `violation-${item.id}`,
+      label: item.title,
+      detail: `${item.associations?.name ?? 'Association'} - due ${date(item.due_date)}`,
+      href: '/violations?status=overdue',
+      tone: 'red' as const,
+      type: 'Violation',
+    })),
+    ...(focusBills ?? []).map((item: any) => ({
+      key: `bill-${item.id}`,
+      label: item.vendors?.name ?? item.memo ?? 'Bill awaiting approval',
+      detail: `${item.associations?.name ?? 'Portfolio'} - due ${date(item.due_date)}`,
+      href: '/bills?status=pending_approval',
+      tone: 'amber' as const,
+      type: 'Bill',
+    })),
+    ...(focusWorkOrders ?? []).map((item: any) => ({
+      key: `work-order-${item.id}`,
+      label: item.title,
+      detail: `${item.associations?.name ?? 'Association'} - ${formatStatus(item.status)}`,
+      href: `/work-orders/${item.id}`,
+      tone: item.priority === 'emergency' ? 'red' as const : 'blue' as const,
+      type: 'Work order',
+    })),
+    ...(focusReports ?? []).map((item: any) => ({
+      key: `report-${item.id}`,
+      label: item.name,
+      detail: `Next run ${date(item.next_run_at)} - ${formatStatus(item.delivery_channel)}`,
+      href: '/scheduled-reports',
+      tone: 'slate' as const,
+      type: 'Report',
+    })),
+  ].slice(0, 10);
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-      {/* Header with association filter */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Dashboard{activeAssoc ? <span className="ml-2 text-base font-normal text-gray-500">Â· {activeAssoc.name}</span> : null}
-        </h1>
-        <form action="/dashboard" method="get" className="flex items-center gap-2">
-          <select
-            name="assoc"
-            defaultValue={assocFilter}
-            className="h-9 rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">All associations</option>
-            {(associations ?? []).map((a: any) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-          <button type="submit" className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50">Apply</button>
-        </form>
-      </div>
-
-      {/* ============== DUE REMINDERS â€” pops to top when any event's reminder window is open ============== */}
-      {dueReminders && dueReminders.length > 0 && (
-        <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
-            <span>ðŸ””</span>
-            <span>{dueReminders.length} reminder{dueReminders.length === 1 ? '' : 's'} â€” events coming due</span>
-          </div>
-          <ul className="space-y-2">
-            {dueReminders.map((r: any) => {
-              const daysOut = Math.ceil((new Date(r.start_datetime).getTime() - Date.now()) / 86_400_000);
-              return (
-                <li key={r.event_id} className="flex items-start justify-between gap-3 rounded border border-amber-300 bg-white px-3 py-2 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900">{r.title}</div>
-                    <div className="text-xs text-gray-600">
-                      {r.association_name ?? 'Portfolio-wide'}
-                      {r.location ? ` Â· ${r.location}` : ''}
-                      {' Â· '}
-                      <strong className={daysOut <= 3 ? 'text-red-700' : 'text-amber-800'}>
-                        {daysOut <= 0 ? 'Due today' : `Due in ${daysOut} day${daysOut === 1 ? '' : 's'}`}
-                      </strong>
-                      {' '}({new Date(r.start_datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
-                    </div>
-                  </div>
-                  <form action={acknowledgeReminder.bind(null, r.event_id) as any}>
-                    <button type="submit" className="rounded border border-amber-400 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100">
-                      Dismiss
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* ============== Association Calendar at top ============== */}
-      <Panel
-        title={activeAssoc ? `${activeAssoc.name} â€” Upcoming events` : 'Upcoming events (all associations)'}
-        right={<Link href={assocFilter ? `/calendar?assoc=${assocFilter}` : '/calendar'} className="text-xs text-blue-700 hover:underline">Open calendar â†’</Link>}
-      >
-        {(events ?? []).length === 0 ? (
-          <p className="px-5 py-6 text-center text-sm text-gray-500">
-            No events in the next 30 days.{' '}
-            <Link href={`/calendar/new${assocFilter ? `?assoc=${assocFilter}` : ''}`} className="text-blue-700 hover:underline">+ New event</Link>
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
-              <tr>
-                <th className="px-4 py-2 text-left font-semibold">When</th>
-                <th className="px-4 py-2 text-left font-semibold">Activity</th>
-                <th className="px-4 py-2 text-left font-semibold">Association</th>
-                <th className="px-4 py-2 text-left font-semibold">Where</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(events ?? []).map((e: any) => (
-                <tr key={e.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-2">
-                    {new Date(e.start_datetime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    {!e.all_day && <> Â· {new Date(e.start_datetime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</>}
-                  </td>
-                  <td className="px-4 py-2">
-                    <span className={`mr-2 rounded border px-1.5 py-0.5 text-[11px] ${eventBadge(e.event_type)}`}>{eventLabel(e.event_type)}</span>
-                    <span className="font-medium text-gray-900">{e.title}</span>
-                  </td>
-                  <td className="px-4 py-2 text-gray-700">
-                    {e.associations?.name
-                      ? <Link href={`/calendar?assoc=${e.associations.id}`} className="text-blue-700 hover:underline">{e.associations.name}</Link>
-                      : <span className="text-gray-400">Portfolio-wide</span>}
-                  </td>
-                  <td className="px-4 py-2 text-gray-600">{e.location ?? 'â€”'}</td>
-                </tr>
+    <DataWorkspace
+      title={activeAssoc ? `${activeAssoc.name} command center` : 'Command center'}
+      description="A staff-first operating view for exceptions, approvals, reconciliations, report runs, and maintenance work across the portfolio."
+      actions={
+        <>
+          <form action="/dashboard" method="get" className="flex items-center gap-2">
+            <select
+              name="assoc"
+              defaultValue={assocFilter}
+              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="">All associations</option>
+              {(associations ?? []).map((association: any) => (
+                <option key={association.id} value={association.id}>{association.name}</option>
               ))}
-            </tbody>
-          </table>
-        )}
-      </Panel>
+            </select>
+            <Button type="submit" variant="secondary">Apply</Button>
+          </form>
+          <Link href="/work-orders/new"><Button>New work order</Button></Link>
+        </>
+      }
+      rail={<CommandRail />}
+    >
+      <div className="space-y-6">
+        <MetricStrip metrics={linkedMetrics} />
 
-      {/* ============== Rest of the dashboard (scoped when association selected) ============== */}
-
-      {/* Online Payments */}
-      <Panel title="Online Payments">
-        <div className="grid grid-cols-2 gap-6 px-5 py-4">
-          <Stat big="â€”" label="Payments Collected Online" sub="Historical ratio" href={`/reports/ar_aging${assocFilter ? `?association=${assocFilter}` : ''}`} />
-          <Stat big="â€”" label="Units Paid Online" sub="Recurring-autopay %" href="/portal/autopay" />
-        </div>
-      </Panel>
-
-      {/* Online Portal Adoption */}
-      <Panel title="Online Portal Adoption">
-        <div className="grid grid-cols-3 divide-x divide-gray-100">
-          <PortalTile label="Activated" n={stats.portal_activated} pct={pct(stats.portal_activated)} tone="green" linkHref="/owners?portal=active" />
-          <PortalTile label="Not activated" n={stats.portal_not_activated} pct={pct(stats.portal_not_activated)} tone="amber" linkLabel="Send Activation Emails" linkHref="/owners?portal=not_activated" />
-          <PortalTile label="No email" n={stats.portal_no_email} pct={pct(stats.portal_no_email)} tone="red" linkLabel="View Owners" linkHref="/owners?portal=no_email" />
-        </div>
-      </Panel>
-
-      {/* Notifications */}
-      <Panel title="Notifications">
-        <div className="grid grid-cols-2 divide-x divide-gray-100 border-b border-gray-100">
-          <NotifStat n={stats.wo_completed} label="Done in the last 7 days" href={`/work-orders?tab=completed${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-          <NotifStat n={0} label="Overdue" tone="red" />
-        </div>
-        <div className="grid grid-cols-2 divide-x divide-gray-100 border-b border-gray-100">
-          <div className="px-5 py-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Bills</div>
-            <NotifRow n={stats.pending_approvals} label="Pending approval" href="/bills?status=pending_approval" />
+        <section className="rounded border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-950">Focus queue</h2>
+              <p className="mt-1 text-xs text-gray-500">Highest leverage items needing staff attention.</p>
+            </div>
+            <Link href="/inbox" className="text-sm font-medium text-blue-700 hover:underline">Open inbox</Link>
           </div>
-          <div className="px-5 py-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Purchase Orders</div>
-            <NotifRow n={0} label="Pending approval" href="/purchase-orders" />
-          </div>
-        </div>
-        <div className="px-5 py-3">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Notifications Feed</div>
-          {(overdueInsurance ?? []).length > 0 ? (
-            <ul className="divide-y divide-gray-100 rounded border border-gray-200">
-              {(overdueInsurance ?? []).map((a: any) => (
-                <li key={a.id} className="flex items-start gap-2 px-3 py-2 text-sm">
-                  <span className="mt-0.5 text-amber-600">âš </span>
-                  <div className="flex-1">
-                    <span className="text-gray-700">Liability insurance for </span>
-                    <Link href={`/associations/${a.id}`} className="text-blue-700 hover:underline">{a.name}</Link>
-                    <span className="text-gray-700"> expires on {date(a.insurance_expiration)}</span>
-                  </div>
+          {focusItems.length > 0 ? (
+            <ul className="divide-y divide-gray-100">
+              {focusItems.map((item) => (
+                <li key={item.key}>
+                  <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>{item.type}</span>
+                        <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
+                    </div>
+                    <span className="shrink-0 text-sm text-blue-700">Review</span>
+                  </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="py-3 text-center text-xs text-gray-500">No insurance expirations in the next 60 days.</p>
+            <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
           )}
-        </div>
-      </Panel>
+        </section>
 
-      {/* Delinquencies */}
-      <Panel title="Delinquencies">
-        <div className="grid grid-cols-3 divide-x divide-gray-100">
-          <DelinqCell n={stats.delinquency_0_30}   label="0â€“60 Days"  tone="neutral" />
-          <DelinqCell n={stats.delinquency_31_60}  label="61â€“90 Days" tone="amber" />
-          <DelinqCell n={stats.delinquency_61_plus} label="91+ Days"  tone="red" />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <ShortcutPanel
+            title="Tasks"
+            links={[
+              { label: 'Approve bills', href: '/bills?status=pending_approval', count: pendingBills ?? 0 },
+              { label: 'Assign open work', href: '/work-orders?tab=unassigned', count: openWorkOrders ?? 0 },
+              { label: 'Send violation notices', href: '/violations?status=open', count: openViolations ?? 0 },
+            ]}
+          />
+          <ShortcutPanel
+            title="Finance"
+            links={[
+              { label: 'Reconcile accounts', href: '/bank-accounts?filter=unreconciled', count: unreconciledBankAccounts ?? 0 },
+              { label: 'Run checks', href: '/bills/check-run' },
+              { label: 'Review receivables', href: '/reports/ar_aging' },
+            ]}
+          />
+          <ShortcutPanel
+            title="Reports"
+            links={[
+              { label: 'Scheduled reports', href: '/scheduled-reports', count: scheduledReportsDue ?? 0 },
+              { label: 'Open work orders', href: '/reports/open_work_orders' },
+              { label: 'Violation log', href: '/reports/violation_log' },
+            ]}
+          />
         </div>
-        <div className="border-t border-gray-100 px-5 py-2 text-xs">
-          <Link href={`/reports/ar_aging${assocFilter ? `?association=${assocFilter}` : ''}`} className="text-blue-700 hover:underline">View All Delinquencies</Link>
+      </div>
+    </DataWorkspace>
+  );
+}
+
+function buildViolationQueue(db: any, assocFilter: string, todayDate: string) {
+  let query = db
+    .from('violations')
+    .select('id, title, status, due_date, associations(name)')
+    .is('archived_at', null)
+    .not('status', 'in', '("closed","resolved")')
+    .lt('due_date', todayDate)
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .limit(4);
+  if (assocFilter) query = query.eq('association_id', assocFilter);
+  return query;
+}
+
+function buildWorkOrderQueue(db: any, assocFilter: string) {
+  let query = db
+    .from('work_orders')
+    .select('id, title, status, priority, associations(name)')
+    .is('archived_at', null)
+    .not('status', 'in', '("completed","closed","cancelled")')
+    .order('priority', { ascending: false })
+    .order('scheduled_date', { ascending: true, nullsFirst: false })
+    .limit(4);
+  if (assocFilter) query = query.eq('association_id', assocFilter);
+  return query;
+}
+
+function buildBillQueue(db: any, assocFilter: string) {
+  let query = db
+    .from('payable_bills')
+    .select('id, due_date, memo, associations(name), vendors(name)')
+    .is('archived_at', null)
+    .eq('status', 'pending_approval')
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .limit(4);
+  if (assocFilter) query = query.eq('association_id', assocFilter);
+  return query;
+}
+
+function buildReportQueue(db: any, todayIso: string) {
+  return db
+    .from('scheduled_reports')
+    .select('id, name, next_run_at, delivery_channel')
+    .is('archived_at', null)
+    .eq('active', true)
+    .lte('next_run_at', todayIso)
+    .order('next_run_at', { ascending: true, nullsFirst: false })
+    .limit(4);
+}
+
+function CommandRail() {
+  return (
+    <div className="space-y-5">
+      <section>
+        <h2 className="text-sm font-semibold text-gray-950">Quick actions</h2>
+        <div className="mt-3 grid gap-2">
+          <RailLink href="/bills/new" label="Enter bill" />
+          <RailLink href="/calendar/new?type=board_meeting" label="Schedule hearing" />
+          <RailLink href="/scheduled-reports" label="Manage report runs" />
+          <RailLink href="/bank-transfers" label="Review transfers" />
         </div>
-      </Panel>
-
-      {/* Maintenance */}
-      <Panel title="Maintenance">
-        <div className="grid grid-cols-2 gap-8 px-5 py-5">
-          <div>
-            <div className="mb-2 text-sm font-semibold">Work Orders</div>
-            <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-8 border-blue-400">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.wo_total}</div>
-                <div className="text-xs text-gray-500">TOTAL</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <ul className="space-y-2 text-sm">
-              <WoRow n={stats.wo_new}         label="New"          href={`/work-orders?tab=open${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-              <WoRow n={stats.wo_assigned}    label="Assigned"     href={`/work-orders?tab=open${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-              <WoRow n={stats.wo_scheduled}   label="Scheduled"    href={`/work-orders?tab=scheduled${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-              <WoRow n={stats.wo_in_progress} label="In progress"  href={`/work-orders?tab=open${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-              <WoRow n={stats.wo_completed}   label="Completed"    href={`/work-orders?tab=completed${assocFilter ? `&assoc=${assocFilter}` : ''}`} />
-            </ul>
-          </div>
-        </div>
-      </Panel>
-
-      {/* Association Approvals */}
-      <Panel title="Association Approvals">
-        {approvals && approvals.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
-              <tr>
-                <th className="px-5 py-2 text-left font-semibold">Approval Name</th>
-                <th className="px-4 py-2 text-left font-semibold">Association</th>
-                <th className="px-4 py-2 text-left font-semibold">Requested</th>
-                <th className="px-4 py-2 text-left font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {approvals.map((a: any) => (
-                <tr key={a.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-2 font-medium">{a.request_type}</td>
-                  <td className="px-4 py-2 text-gray-700">{a.associations?.name ?? 'â€”'}</td>
-                  <td className="whitespace-nowrap px-4 py-2 text-gray-600">{date(a.requested_at)}</td>
-                  <td className="px-4 py-2"><span className={`rounded px-2 py-0.5 text-xs capitalize ${a.status === 'approved' ? 'bg-green-100 text-green-700' : a.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>{a.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="px-5 py-6 text-center text-sm text-gray-500">No approvals requested.</p>
-        )}
-      </Panel>
-
-      <Panel title="Upcoming Income Recertifications">
-        <p className="px-5 py-6 text-center text-sm text-gray-500">There are no upcoming income recertifications at this time.</p>
-      </Panel>
-
-      <Panel title="Vendor Online Payables">
-        <div className="px-5 py-4 text-xs text-blue-900">
-          You are currently not set up to take advantage of AppFolio Payments for vendors. <Link href="/settings" className="font-semibold hover:underline">Click here</Link> to learn more.
-        </div>
-      </Panel>
+      </section>
+      <section className="border-t border-gray-200 pt-5">
+        <h2 className="text-sm font-semibold text-gray-950">Operating rhythm</h2>
+        <ul className="mt-3 space-y-3 text-sm text-gray-600">
+          <li>Morning: clear overdue violations and approval queues.</li>
+          <li>Midday: assign maintenance and reconcile bank exceptions.</li>
+          <li>Close: confirm scheduled reports and next-run dates.</li>
+        </ul>
+      </section>
     </div>
   );
 }
 
-// ============================================================================
-// Stat fetchers
-// ============================================================================
-
-type Stats = {
-  wo_total: number; wo_new: number; wo_assigned: number; wo_scheduled: number;
-  wo_in_progress: number; wo_completed: number;
-  pending_approvals: number;
-  delinquency_0_30: number; delinquency_31_60: number; delinquency_61_plus: number;
-  portal_activated: number; portal_not_activated: number; portal_no_email: number;
-};
-
-async function computePortfolioStats(supabase: any, portfolioId: string | null | undefined): Promise<Stats> {
-  const { data: s } = await supabase.from('v_dashboard_summary').select('*')
-    .eq('portfolio_id', portfolioId ?? '00000000-0000-0000-0000-000000000000').maybeSingle();
-  return {
-    wo_total:           Number(s?.wo_total ?? 0),
-    wo_new:             Number(s?.wo_new ?? 0),
-    wo_assigned:        Number(s?.wo_assigned ?? 0),
-    wo_scheduled:       Number(s?.wo_scheduled ?? 0),
-    wo_in_progress:     Number(s?.wo_in_progress ?? 0),
-    wo_completed:       Number(s?.wo_completed ?? 0),
-    pending_approvals:  Number(s?.pending_approvals ?? 0),
-    delinquency_0_30:   Number(s?.delinquency_0_30 ?? 0),
-    delinquency_31_60:  Number(s?.delinquency_31_60 ?? 0),
-    delinquency_61_plus: Number(s?.delinquency_61_plus ?? 0),
-    portal_activated:     Number(s?.portal_activated_count ?? 0),
-    portal_not_activated: Number(s?.portal_not_activated_count ?? 0),
-    portal_no_email:      Number(s?.portal_no_email_count ?? 0),
-  };
-}
-
-async function computeAssocStats(supabase: any, assocId: string): Promise<Stats> {
-  // Work orders â€” count by status for this association
-  const { data: wos } = await supabase.from('work_orders').select('status').eq('association_id', assocId).is('archived_at', null);
-  const woBy = (s: string) => (wos ?? []).filter((r: any) => r.status === s).length;
-
-  // Bills pending approval for this association
-  const { count: pendingBills } = await supabase.from('bills').select('*', { count: 'exact', head: true })
-    .eq('association_id', assocId).eq('status', 'pending_approval').is('archived_at', null);
-
-  // Delinquencies â€” from aged_receivables (already has aging bucket + association_id)
-  const { data: aged } = await supabase.from('aged_receivables').select('aging_bucket').eq('association_id', assocId);
-  const delinqBy = (b: string | string[]) => {
-    const buckets = Array.isArray(b) ? b : [b];
-    return (aged ?? []).filter((r: any) => buckets.includes(r.aging_bucket)).length;
-  };
-
-  // Portal adoption â€” owners who have an occupancy in this association
-  const { data: occs } = await supabase.from('occupancies')
-    .select('owner_id, owners!owner_id(portal_activated, email)')
-    .eq('association_id', assocId)
-    .eq('status', 'current');
-  const owners = (occs ?? []).map((o: any) => o.owners).filter(Boolean);
-  const portal_activated     = owners.filter((o: any) => o.portal_activated).length;
-  const portal_no_email      = owners.filter((o: any) => !o.email).length;
-  const portal_not_activated = owners.length - portal_activated - portal_no_email;
-
-  return {
-    wo_total:           (wos ?? []).filter((r: any) => !['completed', 'closed', 'cancelled'].includes(r.status)).length,
-    wo_new:             woBy('new'),
-    wo_assigned:        woBy('assigned'),
-    wo_scheduled:       woBy('scheduled'),
-    wo_in_progress:     woBy('in_progress'),
-    wo_completed:       woBy('completed') + woBy('closed'),
-    pending_approvals:  pendingBills ?? 0,
-    delinquency_0_30:   delinqBy(['current', '1-30']),
-    delinquency_31_60:  delinqBy(['31-60', '61-90']),
-    delinquency_61_plus: delinqBy(['90+']),
-    portal_activated,
-    portal_not_activated,
-    portal_no_email,
-  };
-}
-
-// ============================================================================
-// Presentational helpers
-// ============================================================================
-
-function Panel({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+function RailLink({ href, label }: { href: string; label: string }) {
   return (
-    <details open className="overflow-hidden rounded border border-gray-200 bg-white">
-      <summary className="flex cursor-pointer select-none items-center justify-between border-b border-gray-100 bg-white px-5 py-3 [&::-webkit-details-marker]:hidden">
-        <div className="flex items-center gap-2"><span className="text-gray-500">â–¾</span><h2 className="text-sm font-semibold text-gray-900">{title}</h2></div>
-        {right}
-      </summary>
-      <div>{children}</div>
-    </details>
+    <Link href={href} className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
+      {label}
+    </Link>
   );
 }
 
-function Stat({ big, label, sub, href }: { big: string; label: string; sub?: string; href?: string }) {
-  return (
-    <div>
-      <div className="text-2xl font-semibold">{big}</div>
-      <div className="text-sm text-gray-700">{label}</div>
-      {sub && <div className="text-xs text-gray-500">{sub}</div>}
-      {href && <Link href={href} className="mt-1 inline-block text-xs text-blue-700 hover:underline">View history â†’</Link>}
-    </div>
-  );
-}
-
-function PortalTile({ label, n, pct, tone, linkLabel = 'View', linkHref }: {
-  label: string; n: number; pct: number; tone: 'green' | 'amber' | 'red'; linkLabel?: string; linkHref: string;
+function ShortcutPanel({
+  title,
+  links,
+}: {
+  title: string;
+  links: Array<{ label: string; href: string; count?: number }>;
 }) {
-  const bg = tone === 'green' ? 'bg-green-50' : tone === 'amber' ? 'bg-amber-50' : 'bg-red-50';
-  const pctColor = tone === 'green' ? 'text-green-700' : tone === 'amber' ? 'text-amber-700' : 'text-red-700';
   return (
-    <div className={bg + ' px-5 py-4'}>
-      <div className={`text-3xl font-bold tabular-nums ${pctColor}`}>{pct}%</div>
-      <div className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-gray-600">{label}</div>
-      <div className="mt-1 text-xs text-gray-600">{n} owner{n === 1 ? '' : 's'}</div>
-      <Link href={linkHref} className="mt-2 inline-block text-xs text-blue-700 hover:underline">{linkLabel}</Link>
-    </div>
+    <section className="rounded border border-gray-200 bg-white p-4">
+      <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
+      <div className="mt-3 space-y-2">
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} className="flex items-center justify-between rounded px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-950">
+            <span>{link.label}</span>
+            {typeof link.count === 'number' && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">{link.count}</span>}
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
-function NotifStat({ n, label, tone = 'blue', href }: { n: number | string; label: string; tone?: 'blue' | 'red'; href?: string }) {
-  const color = tone === 'red' ? 'text-red-700' : 'text-blue-700';
-  const content = (
-    <div className="px-5 py-3">
-      <div className={`text-2xl font-bold tabular-nums ${color}`}>{n}</div>
-      <div className="text-xs text-gray-600">{label}</div>
-    </div>
-  );
-  return href ? <Link href={href} className="hover:bg-gray-50">{content}</Link> : content;
-}
-
-function NotifRow({ n, label, href }: { n: number; label: string; href?: string }) {
-  const inner = <span className="mt-1 flex items-center gap-2 text-sm text-gray-700"><span className="tabular-nums font-semibold">{n}</span><span>{label}</span></span>;
-  return href ? <Link href={href} className="hover:text-blue-700">{inner}</Link> : inner;
-}
-
-function DelinqCell({ n, label, tone }: { n: number; label: string; tone: 'neutral' | 'amber' | 'red' }) {
-  const color = tone === 'neutral' ? 'text-gray-900' : tone === 'amber' ? 'text-amber-700' : 'text-red-700';
-  return <div className="px-5 py-4"><div className={`text-2xl font-bold tabular-nums ${color}`}>{n}</div><div className="text-xs text-gray-500">{label}</div></div>;
-}
-
-function WoRow({ n, label, href }: { n: number | string; label: string; href?: string }) {
-  const inner = <li className="flex items-center justify-between rounded px-2 py-1 hover:bg-gray-50"><span className="tabular-nums font-semibold text-gray-900">{n}</span><span className="text-gray-700">{label}</span></li>;
-  return href ? <Link href={href}>{inner}</Link> : inner;
-}
-
-function eventLabel(t: string): string {
-  const m: Record<string, string> = {
-    elevator_reservation: 'Elevator', move_in: 'Move-in', move_out: 'Move-out',
-    water_shutoff: 'Water shutoff', vendor_work: 'Vendor',
-    common_area_reservation: 'Common area', board_meeting: 'Board mtg',
-    inspection: 'Inspection', maintenance: 'Maintenance', meetings: 'Meeting',
-    announcements: 'Announce', social_events: 'Social', administrative: 'Admin', other: 'Other',
+function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate') {
+  const classes = {
+    red: 'bg-red-100 text-red-700',
+    amber: 'bg-amber-100 text-amber-800',
+    blue: 'bg-blue-100 text-blue-700',
+    slate: 'bg-slate-100 text-slate-700',
   };
-  return m[t] ?? t;
+  return classes[tone];
 }
 
-function eventBadge(t: string): string {
-  const m: Record<string, string> = {
-    elevator_reservation:    'bg-purple-50 text-purple-700 border-purple-200',
-    move_in:                 'bg-green-50 text-green-700 border-green-200',
-    move_out:                'bg-amber-50 text-amber-700 border-amber-200',
-    water_shutoff:           'bg-red-50 text-red-700 border-red-200',
-    vendor_work:             'bg-blue-50 text-blue-700 border-blue-200',
-    common_area_reservation: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    board_meeting:           'bg-slate-50 text-slate-700 border-slate-200',
-    inspection:              'bg-cyan-50 text-cyan-700 border-cyan-200',
-  };
-  return m[t] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+function formatStatus(status: string | null | undefined) {
+  return status ? status.replace(/_/g, ' ') : 'not set';
 }
