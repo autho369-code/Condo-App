@@ -67,6 +67,7 @@ Additional user-provided reference screens define important product bones:
 - Bank accounts: accounting tabs for receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics; account-name and bank filters; bank account table with masked account numbers, last reconciliation date, payments-enabled state, auto-reconciliation state, pagination, and task/report links for new bank account, new bank deposit, bank feed, reconcile, close period, online payments, bank linking, check register, deposit register, trust account balance, and bank-account-by-association reporting.
 - New bank account: bank information, account name, bank name, description, routing number, account number, account type, positive-pay checkbox, bank address, bank account legal entity information, account ownership information with authorized-owner rows, accounting GL mapping, check print information, company return address, notes, and attachments.
 - New bank deposit: bank account selector, unit/association selector, search action for undeposited receipts, deposit detail entry, and warning/empty state when there are no checks or cash payments available for the selected bank-account/scope combination.
+- Bank feed: account information selector, last-change/linking status, education panel for importing bank transactions, matching transactions to records, transaction rules, auto-add workflows, direct connection behavior, and task links back to Reconcile.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -224,6 +225,22 @@ New bank deposit should start with a compact scope picker before showing deposit
 - Confirmation summary before creating the deposit, including bank account, association/property scope, selected receipts, and total amount.
 
 Creating a bank deposit is a financially consequential action. The UI should allow preview and worksheet edits freely, then require explicit confirmation before persisting the final deposit.
+
+### Bank Feed Flow
+
+Bank feed should be a focused setup and monitoring workspace:
+
+- Account selector that shows eligible bank accounts and current feed/linking status.
+- Last change, last sync, provider, and connection health summary where available.
+- Setup state for linking a bank account to a provider such as Plaid or another approved bank integration.
+- Imported transaction queue with date, description, amount, source account, match state, suggested match, and confidence where available.
+- Matching tools for linking imported bank transactions to existing payments, deposits, checks, bills, journal entries, or transfers.
+- Transaction rules for recurring descriptions, categories, GL accounts, vendors/owners, and auto-add behavior.
+- Auto-add review queue for transactions that can be created automatically but still need audit visibility.
+- Exceptions for duplicates, stale links, sync failures, unsupported accounts, and transactions that cannot be matched.
+- Links into Reconcile, Bank Account detail, Deposit Register, Check Register, and Bank Reconciliation report.
+
+Starting or reauthorizing a bank feed transmits sensitive bank-link authorization to an external provider. The app must require explicit confirmation at action time and show the account, provider, data access scope, and revocation path before opening or completing that link flow.
 
 Bank account setup, online payment enablement, bank linking, bank-feed authorization, and period close actions can affect financial data or external processors. The UI must show a confirmation step with exact account, association/property scope, and consequence summary before completing these actions.
 
