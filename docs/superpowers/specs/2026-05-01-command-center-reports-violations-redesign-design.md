@@ -14,6 +14,7 @@ The approved design direction is a premium, dense, modern operations UI inspired
 
 - Replace the current AppFolio-like visual direction with a distinct modern app shell.
 - Make reports a core workflow for managers, accountants, boards, and executives.
+- Support 100% of the active report catalog available in Supabase, not only a small featured subset.
 - Build a comprehensive violations center for enforcement, compliance, and reporting.
 - Convert the dashboard into an action-oriented command center.
 - Use existing Supabase schema and seeded product structure where possible.
@@ -110,6 +111,82 @@ The command center should link directly into filtered report workspaces or viola
 
 Reports are the core of the business. The reports module should replace long report link directories with a modern workspace.
 
+### Full Report Coverage
+
+The reports module must expose every active report in `report_definitions`. This means the app should provide 100% report catalog coverage from Supabase while using an original, modern UI. The goal is functional report parity and complete business coverage, not copying AppFolio's visual presentation.
+
+The active Supabase catalog currently contains 47 reports:
+
+Accounting reports:
+
+- A/P Aging
+- A/R Aging
+- Aged Payables Summary
+- Bank Reconciliation
+- Bill Detail
+- Charge Detail
+- Check Register
+- Deposit Register
+- Expense Register
+- General Ledger
+- Income Register
+- Journal Entry Register
+- Owner 1099 Detail
+- Owner 1099 Summary
+- Trial Balance
+- Vendor 1099 Detail
+- Vendor 1099 Summary
+
+Association reports:
+
+- Annual Budget Comparative
+- Assessment Roll
+- Balance Sheet
+- Budget vs Actual
+- Cash Flow Statement
+- Delinquency Report
+- Dues Roll
+- Fund Balance Sheet
+- Income Statement
+- Owner Ledger
+- Owner Vehicle Info
+- Reserve Fund Analysis
+- Unpaid Balances by Month
+
+Property and unit reports:
+
+- Property Directory
+- Unit Availability
+- Unit Turn Report
+
+Maintenance reports:
+
+- Maintenance History
+- Open Work Orders
+- Project Directory
+- Purchase Order Detail
+- Vendor Performance
+- Work Order Report
+
+People reports:
+
+- Owner Directory
+- Vendor Directory
+
+Communication reports:
+
+- Letter History
+- Survey Results
+
+Compliance reports:
+
+- Data Diagnostics Summary
+- Email Delivery Errors
+- User Roles and Permissions
+- Violation Log
+
+Every report in this catalog must have a library entry, category placement, searchable metadata, scope handling, supported output formats, and a detail workspace route. Reports whose calculations are not fully implemented yet should still have a visible workspace with a clear implementation state, expected inputs, and blocked-output messaging rather than disappearing from the product.
+
 ### Report Library
 
 The report library should show report categories from `report_definitions`, including:
@@ -131,6 +208,7 @@ Library UX:
 - Saved views.
 - Scheduled reports.
 - Report builder entry point for admins or power users.
+- Coverage indicator showing active report count and any report workspaces not yet fully wired to calculations.
 
 ### Report Detail Workspace
 
@@ -167,6 +245,8 @@ First-slice report scopes:
 - Association-level: A/R Aging, Delinquency Report, Dues Roll, Income Statement, Balance Sheet, Budget vs Actual, Open Work Orders, Violation Log.
 - Owner-level: Owner Ledger, Owner Violation History, Unpaid Balances, Charge Detail, Payment History if available from existing payment tables.
 - Portfolio-level: report library, scheduled report overview, saved reports, diagnostic summaries.
+
+The first slice should create the generic routing, library, metadata display, filtering shell, and workspace frame for all 47 active reports. It should fully wire data previews for the highest-value reports listed above first, while all remaining active reports remain visible and identifiable as report workspaces with their Supabase metadata and supported output formats.
 
 ## Board Packet Workflow
 
@@ -287,6 +367,8 @@ Use focused verification for the first slice:
 - TypeScript and Next.js build should pass.
 - Navigation renders by role without crashing.
 - Reports page shows category/library data from existing report definitions.
+- Reports page shows all active report definitions from Supabase.
+- Report catalog count in the UI matches the active `report_definitions` count.
 - Reports can be filtered and run for a selected association.
 - Owner-scoped reports only show units linked to the selected owner.
 - Saved and scheduled report payloads preserve association and owner parameters.
