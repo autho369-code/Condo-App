@@ -41,6 +41,9 @@ Supabase project `termxngysvotnfbzbgrv` already contains report and compliance d
 - `violation_updates` and `violation_followup_steps`: available for lifecycle detail.
 - `notices`, `notice_recipients`, `documents`, `email_queue`: available for future notice generation and communication audit trails.
 - `work_orders`, `approval_requests`, `payable_bills`, `charges`, `payments`, `bank_accounts`, `data_diagnostics`, and related tables: available for command-center and report context.
+- `payment_methods`, `autopay_mandates`, and `payment_processor_configs`: available for tokenized owner ACH and autopay setup.
+- `owners.portal_activated`, `owners.portal_login_last_at`, `user_invitations`, and `profiles`: available for portal activation tracking and invitation workflows.
+- `document_templates`, `documents`, `email_queue`, and `management_agreements`: available for owner packets, agreement documents, outbound drafts, and agreement records.
 
 Recent local history indicates prior work leaned toward an AppFolio replica. This spec supersedes that visual direction.
 
@@ -49,6 +52,11 @@ Additional user-provided reference screens define important product bones:
 - Violations list: association filter, escalation filter, bulk actions, follow-up completion, collection marking, downloadable violation list, inspection date, association, unit, rule, state, recent activity, escalation, next follow-up, pagination, task links, and compliance navigation.
 - New association/property setup: property identity, address, description, manager details, rental information, lease settings, owner/trustee rows, accounting setup, management fees, additional fees, late-fee policy, budget variance thresholds, maintenance information, property groups, bank accounts, photos, notes, and attachments.
 - Homeowner directory: people tabs, alphabet filtering, name/association/unit/phone columns, pagination, task links for changing homeowner, moving in homeowner, adding vendors, emailing homeowners, and homeowner-specific reports such as dues roll, delinquency, directory, and ledger.
+- New owner setup: owner identity, contact methods, mailing address, federal tax fields, accounting defaults, bank account details, owner statement options, owner packet preferences, and maintenance/contact instructions.
+- Owner ACH setup: owner, routing suffix, account suffix, and account type listing for ACH-capable owners.
+- Owner portal activation: lease/form/info tabs, activation state, last activation link timestamp, and bulk actions such as send activation link.
+- Send owner packets: date range, recipient scope, subject, body, attachment/report inclusion, portal delivery, and email delivery.
+- New management agreement: step-based agreement flow for owner/association/property choice, agreement signature, and template/addendum selection.
 
 ## Product Principles
 
@@ -388,6 +396,80 @@ The new homeowner flow should support:
 
 Owner and homeowner pages should link directly to owner-scoped report runs, especially Owner Ledger, Homeowner Directory, Delinquency, Dues Roll, Charge Detail, and violation history.
 
+### New Owner Flow
+
+The owner setup workflow should preserve the full reference coverage while presenting it as a modern sectioned workspace:
+
+- Owner information: salutation, first name, last name, company name, tax name, tags, and duplicate-owner detection.
+- Contact: multiple phone numbers, multiple emails, mailing address, alternate address, and personal address toggle.
+- Federal tax: taxpayer ID name, taxpayer ID, 1099 eligibility, owner consolidation options, and 1099 mailing preference.
+- Accounting information: contribution/check handling, default distribution method, hold-payment flag, default bank account linkage, and custom owner account number.
+- Bank account information: owner ACH eligibility, bank routing number, bank account number, account type, verification state, and default payment method.
+- Owner statement information: show transaction detail, show unpaid bills detail, show transaction notes, show invoices, generate management fee from statements, consolidated owner statement controls, and owner-facing memo text.
+- Owner packet: send email toggle, include ACH/vendor options, include owner/account documents, GL account selection, included reports, and additional report rows.
+- Maintenance information: owner-specific maintenance instructions and contact preferences.
+
+Sensitive payment fields such as bank routing and account numbers should only be handled through a tokenization flow. The app should store processor tokens, last four digits, bank name, account type, verification status, and mandate metadata, not raw bank account numbers.
+
+### Owner ACH And Autopay
+
+Owner ACH setup should use `payment_methods` and `autopay_mandates` as the core model.
+
+Required owner ACH behavior:
+
+- List owners with masked routing/account identifiers, account type, verification state, and autopay status.
+- Filter by association, owner, ACH status, verification status, and account type.
+- Add ACH method through a tokenized processor flow.
+- Display last four digits, bank name, account type, default method flag, and verification status.
+- Create or update autopay mandates with owner, association, unit, payment method, maximum authorized amount, frequency, day of month, start date, end date, mandate signature timestamp, and status.
+- Show failure count, last failure reason, pause/cancel state, next run date, and last run date.
+
+Typing bank details into a processor form, transmitting ACH setup, or authorizing an autopay mandate is sensitive financial data transmission and requires explicit confirmation at action time.
+
+### Owner Portal Activation
+
+Owner portal activation should be an operational queue, not a tiny utility page.
+
+Required behavior:
+
+- Segment by lease, form, and info views where relevant to the owner portal activation workflow.
+- Show owner, email, association/unit context, activation state, and last activation link timestamp.
+- Support search, association filter, activation-state filter, and bulk selection.
+- Actions: bulk activate draft, send activation link draft, resend link draft, mark activation issue, and open owner record.
+- Use `owners.portal_activated`, `owners.portal_login_last_at`, `user_invitations`, and `profiles` where possible.
+
+Sending portal activation links is an outbound communication and should require explicit confirmation before the send/enqueue step.
+
+### Owner Packets
+
+Owner packet sending should become a polished communication workflow backed by report outputs and document templates.
+
+Required behavior:
+
+- Select date range, association/owner/unit scope, and recipient group.
+- Compose subject and body.
+- Include owner-facing reports such as owner ledger, unpaid balances, statements, dues roll, and other selected report outputs.
+- Include documents and attachments from `documents` or generated report artifacts.
+- Choose delivery mode: owner portal only, email only, or both where supported.
+- Preview packet contents before sending.
+- Save packet draft for review.
+- Track sent packet rows through `email_queue`, document records, or a future packet-specific table if needed.
+
+Sending owner packets by email or portal notification is an outbound communication and should require explicit confirmation before the send/enqueue step.
+
+### Management Agreements
+
+New management agreement should be a step-based workflow:
+
+- Step 1: choose owner, association, or property context.
+- Step 2: choose agreement template and signature requirements.
+- Step 3: choose template/addenda and review terms.
+- Agreement fields should map to `management_agreements`: portfolio, association, owner, name, status, start date, end date, auto-renewal, renewal term, fee schedule, termination notice days, terms, document URL, signed timestamp, signed owner, signed manager, notes, and archived state.
+- Link agreement records to association/owner detail pages and reports.
+- Support draft, active, signed, expired, terminated, and archived states where the existing enum allows.
+
+Sending a management agreement for signature is a legal/contractual communication and should require explicit confirmation before sending.
+
 ## Data Flow
 
 All authenticated app pages should continue using Supabase server-side data fetching under RLS. The frontend should query as the logged-in user unless a server-only admin action is explicitly required.
@@ -419,6 +501,14 @@ Association and homeowner onboarding flow:
 4. Server actions create or update the record and revalidate the relevant directory/detail pages.
 5. After save, the UI offers next actions such as open detail page, run scoped report, add units, add owner, configure fees, or upload documents.
 
+Owner financial and communication flow:
+
+1. User opens owner ACH, portal activation, owner packet, or management agreement from People, Tasks, command search, or owner detail.
+2. UI loads the owner, association, unit, payment, document, and template context under RLS.
+3. UI supports draft creation and preview without transmitting sensitive data or sending communications.
+4. Server actions persist non-sensitive drafts or metadata using existing tables where possible.
+5. The final send, enqueue, portal invitation, ACH transmission, or autopay authorization step asks for explicit action-time confirmation.
+
 ## Error Handling
 
 Use explicit states rather than silent failures:
@@ -429,6 +519,8 @@ Use explicit states rather than silent failures:
 - Report run failure: show status, timestamp, and retry action.
 - Mutation failure: inline error near the action plus preserved form state.
 - Missing configuration: show setup action for scheduled reports, notices, exports, or board packets.
+- Sensitive financial setup: show tokenization/processor state and never echo full bank account or routing data after entry.
+- Outbound owner communications: show draft, recipients, delivery method, and final confirmation state.
 
 ## Accessibility And Responsiveness
 
@@ -452,7 +544,8 @@ The first implementation slice should include:
 3. Reports library and one reusable report workspace pattern with association and owner scoped runs.
 4. Violations list and violation detail redesign.
 5. Association setup and homeowner directory/onboarding design foundations, with routes and sectioned UI patterns aligned to existing Supabase tables.
-6. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, and file/evidence panel.
+6. Owner ACH setup, owner portal activation, owner packet, and management agreement design foundations with safe draft/preview states.
+7. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, and stepper.
 
 This slice should not attempt to finish every report calculation or every violation action. It should establish the product architecture and polished UX pattern, then wire the highest-value existing data.
 
@@ -473,6 +566,10 @@ Use focused verification for the first slice:
 - Violation detail renders a valid record and handles missing/not-found state.
 - New association UI preserves the required setup sections from the reference workflow.
 - Homeowner directory supports alphabet filtering, association/unit context, and owner-scoped report links.
+- New owner UI preserves owner identity, contact, tax, accounting, ACH, statement, packet, and maintenance sections.
+- Owner ACH UI masks payment details and does not store raw bank account data.
+- Portal activation and owner packet flows stop at draft/preview before sending unless explicitly confirmed.
+- Management agreement workflow creates or previews agreement records without sending for signature unless explicitly confirmed.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
 
