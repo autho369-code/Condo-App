@@ -1,297 +1,247 @@
-// New Association — the legal / financial entity (HOA / Condo corporation).
-//
-// See PROJECT_HANDOFF.md §0. Association = legal and financial governance.
-// Physical-asset fields (address, year built, site manager, amenities,
-// maintenance info) are NOT here — they belong on the Building.
-//
-// After saving, the user is redirected to /buildings/new?association=<id>
-// to add the first physical property under this legal entity.
 import Link from 'next/link';
-import { requirePortfolioAdmin } from '@/lib/auth/me';
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff, me } from '@/lib/auth/me';
+import { Section } from '@/components/workspace/shell';
 import { Button } from '@/components/ui/button';
-import { createAssociation } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
-export default async function NewAssociationPage() {
-  const me = await requirePortfolioAdmin();
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
+];
+
+export default async function NewPropertyPage() {
+  await requireStaff();
   const supabase = await createClient();
 
-  // If the user has no assigned portfolio (platform operator or half-provisioned
-  // staff), load the portfolios they can see via RLS so they can pick one.
-  let portfolioOptions: Array<{ id: string; company_name: string }> = [];
-  if (!me.portfolio?.id) {
-    const { data } = await supabase.from('portfolios').select('id, company_name').order('company_name');
-    portfolioOptions = data ?? [];
-  }
-  const needsPortfolioPicker = !me.portfolio?.id && portfolioOptions.length > 1;
-  const autoPortfolioId = !me.portfolio?.id && portfolioOptions.length === 1 ? portfolioOptions[0].id : null;
+  const [
+    { data: glAccounts },
+    { data: bankAccounts },
+    { data: propertyGroups },
+    { data: feeSchedules },
+    { data: ownersList },
+  ] = await Promise.all([
+    supabase.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    supabase.from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
+    supabase.from('property_groups').select('id, name').order('name'),
+    supabase.from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
+    supabase.from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
+  ]);
 
-  // No portfolio visible at all? The user is unprovisioned — surface a clear message
-  // rather than a crash.
-  if (!me.portfolio?.id && portfolioOptions.length === 0) {
-    return (
-      <div className="mx-auto max-w-2xl px-8 py-10">
-        <h1 className="mb-2 text-2xl font-semibold text-gray-900">No portfolio assigned</h1>
-        <p className="text-sm text-gray-600">
-          Your account isn&apos;t linked to a portfolio yet, so you can&apos;t create associations.
-          Ask a platform operator to assign you to one (or to add you to <code>platform_operators</code>), then try again.
-        </p>
-        <div className="mt-4">
-          <Link href="/dashboard" className="text-sm text-blue-700 hover:underline">← Back to Dashboard</Link>
-        </div>
-      </div>
-    );
+  const cashGLAccounts = (glAccounts ?? []).filter((g: any) => {
+    const t = String(g.account_type ?? '').toLowerCase();
+    return t === 'asset' || t === 'bank' || t === 'cash';
+  });
+
+  async function createProperty(formData: FormData) {
+    'use server';
+    const supabase = await createClient();
+    const m = await me();
+
+    const name = String(formData.get('name') ?? '').trim();
+    const address = String(formData.get('address') ?? '').trim();
+    if (!name) throw new Error('Property Name is required.');
+    if (!address) throw new Error('Address is required.');
+    if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
+
+    const { data: assoc, error: aErr } = await supabase
+      .from('associations')
+      .insert({
+        portfolio_id: m.portfolio.id,
+        name,
+        property_type: (formData.get('property_type') as string) || null,
+        address,
+        address_line_2: (formData.get('address_line_2') as string) || null,
+        city: (formData.get('city') as string) || null,
+        state: (formData.get('state') as string) || null,
+        zip: (formData.get('zip') as string) || null,
+        county: (formData.get('county') as string) || null,
+        description: (formData.get('description') as string) || null,
+        site_manager_first_name: (formData.get('site_manager_first_name') as string) || null,
+        site_manager_last_name: (formData.get('site_manager_last_name') as string) || null,
+        site_manager_phone: (formData.get('site_manager_phone') as string) || null,
+        year_built: numOrNull(formData.get('year_built')),
+        management_start_date: (formData.get('management_start_date') as string) || null,
+        nsf_fee_amount_override: numOrNull(formData.get('nsf_fee_amount_override')),
+        reserve_funds: numOrNull(formData.get('reserve_funds')),
+        payment_frequency: (formData.get('payment_frequency') as string) || 'net_income',
+        vendor_1099_payer: (formData.get('vendor_1099_payer') as string) || null,
+        fiscal_year_start: yearEndMonthToStartMonth(formData.get('fiscal_year_end')),
+        basis_for_owner_packets: (formData.get('basis_for_owner_packets') as string) || null,
+        management_fee_schedule_id: (formData.get('management_fee_schedule_id') as string) || null,
+        lease_fee_type: (formData.get('lease_fee_type') as string) || null,
+        lease_fee_pct: numOrNull(formData.get('lease_fee_pct')),
+        renewal_fee_type: (formData.get('renewal_fee_type') as string) || null,
+        renewal_fee_pct: numOrNull(formData.get('renewal_fee_pct')),
+        late_fee_type: (formData.get('late_fee_type') as string) || 'flat',
+        late_fee_amount_override: numOrNull(formData.get('late_fee_amount_override')),
+        late_fee_eligible_charges: (formData.get('late_fee_eligible_charges') as string) || 'every_charge',
+        late_fee_grace_days_override: numOrNull(formData.get('late_fee_grace_days_override')),
+        late_fee_grace_day_of_following_month: numOrNull(formData.get('late_fee_grace_day_of_following_month')),
+        budget_variance_threshold_amount: numOrNull(formData.get('budget_variance_threshold_amount')),
+        budget_variance_threshold_op: (formData.get('budget_variance_threshold_op') as string) || null,
+        budget_variance_threshold_pct: numOrNull(formData.get('budget_variance_threshold_pct')),
+        maintenance_limit: numOrNull(formData.get('maintenance_limit')),
+        insurance_expiration: (formData.get('insurance_expiration') as string) || null,
+        home_warranty_covered: formData.get('home_warranty_covered') === 'on',
+        unit_entry_pre_authorized: formData.get('unit_entry_pre_authorized') === 'on',
+        maintenance_notes: (formData.get('maintenance_notes') as string) || null,
+        online_maintenance_request_instructions: (formData.get('online_maintenance_request_instructions') as string) || null,
+        property_group_id: (formData.get('property_group_id') as string) || null,
+        operating_bank_account_id: (formData.get('operating_bank_account_id') as string) || null,
+      })
+      .select('id')
+      .single();
+
+    if (aErr) throw new Error(`Could not create property: ${aErr.message}`);
+    const newId = assoc!.id;
+
+    revalidatePath('/associations');
+    redirect(`/associations/${newId}/units`);
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-6">
-      <h1 className="mb-1 text-2xl font-semibold text-gray-900">New Association</h1>
-      <p className="mb-4 text-sm text-gray-500">
-        Create the legal / financial entity first. After saving, you&apos;ll add the physical
-        property (building, address, site manager, maintenance info) as a separate step.
-      </p>
+    <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
+      <h1 className="text-2xl font-semibold text-gray-900">New Property</h1>
 
-      <form action={createAssociation} className="space-y-4">
+      <form action={createProperty} className="mt-6 space-y-5">
 
-        {/* Portfolio target — hidden when the user has exactly one portfolio in
-            scope; a picker when they can choose between several. */}
-        {autoPortfolioId && <input type="hidden" name="portfolio_id" value={autoPortfolioId} />}
-        {needsPortfolioPicker && (
-          <Card>
-            <CardTitle>Portfolio</CardTitle>
-            <div className="space-y-3 px-5 py-4">
-              <Row label="Target Portfolio" required help="Which portfolio should this association belong to?">
-                <select name="portfolio_id" required defaultValue="" className={input()}>
-                  <option value="">— Select —</option>
-                  {portfolioOptions.map((p) => (
-                    <option key={p.id} value={p.id}>{p.company_name}</option>
-                  ))}
-                </select>
-              </Row>
-            </div>
-          </Card>
-        )}
-
-        {/* ============================================================
-            LEGAL ENTITY
-           ============================================================ */}
-        <Card>
-          <CardTitle>Legal Entity</CardTitle>
-          <div className="space-y-4 px-5 py-4">
-            <Row label="Association Name" required help="The display name used across the portal.">
-              <input name="name" required placeholder="Brandon Shores Condominium Association" className={input()} />
-            </Row>
-            <Row label="Legal Name" help="The registered name of the corporation, if different from the display name.">
-              <input name="legal_name" placeholder="Same as above if blank" className={input()} />
-            </Row>
-            <Row label="Tax ID (EIN)" help="Federal Employer Identification Number.">
-              <input name="tax_id" placeholder="12-3456789" className={`${input()} max-w-xs`} />
-            </Row>
-          </div>
-        </Card>
-
-        {/* ============================================================
-            FINANCIAL / REPORTING
-           ============================================================ */}
-        <Card>
-          <CardTitle>Financial &amp; Reporting</CardTitle>
-          <div className="space-y-4 px-5 py-4">
-            <Row label="Fiscal Year Start" required help="The month your fiscal year begins. December for calendar-year HOAs.">
-              <select name="fiscal_year_start" defaultValue="1" className={input()}>
-                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        <Section title="Property Name and Address" padded>
+          <FormRow label="Property Type" required>
+            <select name="property_type" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+              <option value="">— Select —</option>
+              <option value="condominium">Condominium</option>
+              <option value="townhome">Townhome</option>
+              <option value="single_family">Single Family</option>
+              <option value="duplex">Duplex</option>
+              <option value="multi_family">Multi Family</option>
+              <option value="hoa">HOA</option>
+            </select>
+          </FormRow>
+          <FormRow label="Property Name">
+            <input type="text" name="name" required className="w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="Address" required>
+            <input type="text" name="address" required placeholder="Address 1" className="mb-2 w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="address_line_2" placeholder="Address 2" className="w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="">
+            <div className="grid max-w-lg grid-cols-[1fr_120px_140px] gap-2">
+              <input type="text" name="city" placeholder="City" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <select name="state" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                <option value="">State</option>
+                {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-            </Row>
-            <Row label="Reserve Funds" help="Opening reserve balance.">
-              <MoneyInput name="reserve_funds" defaultValue="0.00" />
-            </Row>
-            <Row label="Vendor 1099 Payer">
-              <select name="vendor_1099_payer" defaultValue="use_management_company" className={input()}>
-                <option value="use_management_company">Use Management Company</option>
-                <option value="use_owner">Use Owner</option>
-              </select>
-            </Row>
-            <Row label="Basis for Owner Payouts">
-              <select name="owner_payout_basis" defaultValue="cash" className={input()}>
-                <option value="cash">Cash</option>
-                <option value="accrual">Accrual</option>
-              </select>
-            </Row>
-          </div>
-        </Card>
-
-        {/* ============================================================
-            FEE POLICY
-           ============================================================ */}
-        <Card>
-          <CardTitle>Fee Policy</CardTitle>
-          <div className="space-y-4 px-5 py-4">
-            <Row label="NSF Fee">
-              <MoneyInput name="nsf_fee_amount_override" defaultValue="25.00" />
-            </Row>
-
-            <div className="border-t border-gray-100 pt-4">
-              <div className="mb-3 text-sm font-semibold text-gray-800">Late Fee</div>
-              <div className="space-y-3">
-                <Row label="Late Fee Type" required>
-                  <RadioGroup name="late_fee_type" defaultValue="flat" options={[
-                    { value: 'flat',    label: 'Flat' },
-                    { value: 'percent', label: 'Percent' },
-                  ]} />
-                </Row>
-                <Row label="Base Late Fee" required>
-                  <MoneyInput name="late_fee_amount_override" defaultValue="0.00" />
-                </Row>
-                <Row label="Eligible Charges" required>
-                  <select name="late_fee_eligible_charges" defaultValue="all_charges" className={input()}>
-                    <option value="all_charges">Every charge</option>
-                    <option value="dues_only">Dues only</option>
-                    <option value="assessments_only">Assessments only</option>
-                  </select>
-                </Row>
-                <Row label="Grace Period (days)" required help="Number of days after due date before the late fee posts.">
-                  <input name="late_fee_grace_days_override" type="number" min="0" defaultValue="5" className={`${input()} max-w-[120px]`} />
-                </Row>
-              </div>
+              <input type="text" name="zip" placeholder="Zip" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-          </div>
-        </Card>
+          </FormRow>
+          <FormRow label="County">
+            <input type="text" name="county" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+        </Section>
 
-        {/* ============================================================
-            BUDGET VARIANCE THRESHOLD
-           ============================================================ */}
-        <Card>
-          <CardTitle>Budget Variance Threshold</CardTitle>
-          <div className="space-y-3 px-5 py-4">
-            <p className="text-sm text-gray-500">
-              Enables color coding on the Variance / Financials page when actual vs. budget
-              exceeds these thresholds.
-            </p>
-            <div className="grid grid-cols-12 gap-3">
-              <label className="col-span-4">
-                <div className="mb-1 text-xs text-gray-500">Amount ($)</div>
-                <MoneyInput name="budget_variance_threshold_amount" />
-              </label>
-              <label className="col-span-4">
-                <div className="mb-1 text-xs text-gray-500">And/Or</div>
-                <select name="budget_variance_threshold_op" defaultValue="or" className={input()}>
-                  <option value="and">And</option>
-                  <option value="or">Or</option>
-                </select>
-              </label>
-              <label className="col-span-4">
-                <div className="mb-1 text-xs text-gray-500">Percentage (%)</div>
-                <PercentInput name="budget_variance_threshold_pct" />
-              </label>
+        <Section title="Property Information" padded>
+          <FormRow label="Description">
+            <textarea name="description" rows={3} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="Site Manager">
+            <div className="mb-2 grid max-w-md grid-cols-2 gap-2">
+              <input type="text" name="site_manager_first_name" placeholder="First Name" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" name="site_manager_last_name" placeholder="Last Name" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-          </div>
-        </Card>
+            <input type="tel" name="site_manager_phone" placeholder="Phone Number" className="w-full max-w-xs rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="Year Built">
+            <input type="number" name="year_built" min="1800" max={new Date().getFullYear() + 1} className="w-32 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="Management Start Date">
+            <input type="date" name="management_start_date" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+        </Section>
 
-        <div className="rounded border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-gray-800">
-          <strong>Next:</strong> after saving, you&apos;ll be sent to the <em>New Property</em> page to
-          create the first physical building (address, year built, site manager, amenities,
-          maintenance info) under this association.
-        </div>
+        <Section title="Maintenance Information" padded>
+          <FormRow label="Maintenance Limit">
+            <CurrencyInput name="maintenance_limit" defaultValue="0.00" />
+          </FormRow>
+          <FormRow label="Insurance Expiration">
+            <input type="date" name="insurance_expiration" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+          <FormRow label="Maintenance Notes">
+            <textarea name="maintenance_notes" rows={3} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          </FormRow>
+        </Section>
 
-        <div className="flex items-center gap-3 pt-2">
-          <Button type="submit" size="lg">Save &amp; Continue to Property</Button>
-          <Link href="/associations" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+        <Section title="Bank Accounts" padded>
+          <FormRow label="Operating Bank Account">
+            <select name="operating_bank_account_id" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+              <option value="">— Select —</option>
+              {(bankAccounts ?? []).map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `(${b.bank_name})` : ''}</option>
+              ))}
+            </select>
+          </FormRow>
+        </Section>
+
+        <div className="flex items-center gap-2 pt-2">
+          <Button type="submit" size="sm">Save</Button>
+          <Link href="/associations">
+            <Button type="button" size="sm" variant="outline">Cancel</Button>
+          </Link>
         </div>
       </form>
     </div>
   );
 }
 
-// ============================================================================
-// Presentational helpers
-// ============================================================================
-
-function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded border border-gray-200 bg-white">{children}</section>;
-}
-function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-900">{children}</h2>;
-}
-function Row({
-  label,
-  required,
-  help,
-  children,
+function FormRow({
+  label, required, children,
 }: {
-  label: string;
-  required?: boolean;
-  help?: string;
-  children: React.ReactNode;
+  label: string; required?: boolean; children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-12 items-start gap-4">
-      <label className="col-span-4 pt-2 text-right text-sm text-gray-700">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-        {help && (
-          <span title={help} className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-white">
-            ?
-          </span>
-        )}
+    <div className="mb-3 grid grid-cols-[200px_1fr] items-start gap-x-3 gap-y-1">
+      <label className="pt-1.5 text-sm text-gray-600">
+        {label}{label && required && <span className="ml-0.5 text-red-600">*</span>}
       </label>
-      <div className="col-span-8">{children}</div>
+      <div>{children}</div>
     </div>
   );
 }
-function RadioGroup({
-  name,
-  defaultValue,
-  options,
-}: {
-  name: string;
-  defaultValue: string;
-  options: { value: string; label: string }[];
-}) {
+
+function CurrencyInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-4 text-sm">
-      {options.map((o) => (
-        <label key={o.value} className="flex items-center gap-2">
-          <input type="radio" name={name} value={o.value} defaultChecked={o.value === defaultValue} className="h-4 w-4" />
-          {o.label}
-        </label>
-      ))}
-    </div>
-  );
-}
-function MoneyInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
-  return (
-    <div className="relative max-w-[180px]">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-gray-500">$</span>
       <input
-        name={name}
         type="number"
         step="0.01"
         min="0"
-        defaultValue={defaultValue ?? ''}
-        className={`${input()} pl-6`}
+        name={name}
+        defaultValue={defaultValue}
+        className="w-40 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
     </div>
   );
 }
-function PercentInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
-  return (
-    <div className="relative max-w-[140px]">
-      <input
-        name={name}
-        type="number"
-        step="0.01"
-        min="0"
-        max="100"
-        defaultValue={defaultValue ?? ''}
-        className={`${input()} pr-8`}
-      />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">%</span>
-    </div>
-  );
+
+function numOrNull(v: FormDataEntryValue | null): number | null {
+  if (v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
 }
-function input(extra = '') {
-  return `h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${extra}`;
+
+function yearEndMonthToStartMonth(v: FormDataEntryValue | null): number | null {
+  const n = numOrNull(v);
+  if (n == null) return null;
+  return (n % 12) + 1;
 }
