@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 function ChevronDown({ open }: { open: boolean }) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+      aria-hidden="true"
       style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
       <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
@@ -66,15 +67,18 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
           )
           const isOpen = open[s.label]
           const isActive = s.children.some((i: any) => active(i.href))
+          const submenuId = `sidebar-submenu-${s.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
           return (
             <div key={s.label}>
               <button onClick={() => toggle(s.label)}
+                aria-expanded={!!isOpen}
+                aria-controls={submenuId}
                 className={"flex w-full items-center justify-between px-4 py-2 text-sm " + (isActive ? 'text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50')}>
                 <span>{s.label}</span>
                 <ChevronDown open={isOpen} />
               </button>
               {isOpen && (
-                <div className="border-l-2 border-gray-100 ml-4 bg-gray-50">
+                <div id={submenuId} className="border-l-2 border-gray-100 ml-4 bg-gray-50">
                   {s.children.map((c: any) => (
                     <Link key={c.href} href={c.href}
                       className={"block px-4 py-1.5 text-sm " + (active(c.href) ? 'text-blue-700 font-medium bg-blue-50' : 'text-gray-600 hover:bg-gray-100')}>
