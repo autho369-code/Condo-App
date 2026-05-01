@@ -3,20 +3,34 @@ import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { normalizeViolationStatusFilter } from '@/lib/violations/filters';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ViolationsPage() {
+export default async function ViolationsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   await requireStaff();
+  const { status } = await searchParams;
+  const activeStatus = normalizeViolationStatusFilter(status);
+  const todayDate = new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
   const db = supabase as any;
-  const { data: violations } = await db
+  let query = db
     .from('violations')
     .select('id, title, violation_type, status, date_observed, due_date, cure_deadline, hearing_required, hearing_at, notice_sent_at, fine_amount, governing_document_reference, associations(name), units(unit_number), owners(full_name)')
     .is('archived_at', null)
-    .order('date_observed', { ascending: false })
-    .limit(200);
+    .order('date_observed', { ascending: false });
+
+  if (activeStatus === 'open') {
+    query = query.not('status', 'in', '("closed","resolved")');
+  }
+  if (activeStatus === 'overdue') {
+    query = query
+      .not('status', 'in', '("closed","resolved")')
+      .lt('due_date', todayDate);
+  }
+
+  const { data: violations } = await query.limit(200);
 
   const rows = violations ?? [];
   const open = rows.filter((violation: any) => !['closed', 'resolved'].includes(violation.status)).length;
@@ -27,7 +41,9 @@ export default async function ViolationsPage() {
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Violations</div>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-900">Compliance and violation tracking</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-gray-900">
+            {activeStatus === 'overdue' ? 'Overdue violations' : activeStatus === 'open' ? 'Open violations' : 'Compliance and violation tracking'}
+          </h1>
           <p className="mt-1 max-w-3xl text-sm text-gray-500">
             Track notices, cure deadlines, hearings, fines, board decisions, disputes, attachments, and owner-facing history for Illinois association due-process workflows.
           </p>

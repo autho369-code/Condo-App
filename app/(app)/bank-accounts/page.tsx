@@ -6,17 +6,20 @@ import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BankAccountsPage() {
+export default async function BankAccountsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   await requireStaff();
+  const { filter } = await searchParams;
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  let query = supabase
     .from('bank_accounts')
     .select('id, name, bank_name, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations(name)')
     .is('archived_at', null)
     .order('name');
+  if (filter === 'unreconciled') query = query.is('last_reconciliation_date', null);
+  const { data: rows } = await query;
 
   return (
-    <ModulePage title="Bank Accounts" description="Operating, reserve, and trust bank accounts used across your associations." newHref="/bank-accounts/new" newLabel="+ New Bank Account">
+    <ModulePage title={filter === 'unreconciled' ? 'Unreconciled Bank Accounts' : 'Bank Accounts'} description="Operating, reserve, and trust bank accounts used across your associations." newHref="/bank-accounts/new" newLabel="+ New Bank Account">
       {rows && rows.length > 0 ? (
         <Table>
           <THead><TR><TH>Name</TH><TH>Bank</TH><TH>Type</TH><TH>Association</TH><TH>Last reconciled</TH><TH>Flags</TH></TR></THead>
