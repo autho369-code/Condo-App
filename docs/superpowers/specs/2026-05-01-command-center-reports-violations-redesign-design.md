@@ -65,6 +65,7 @@ Additional user-provided reference screens define important product bones:
 - Request vendor W-9s: tax year, payments-in-year threshold, needs-1099 filter, TIN-populated filter, bulk request documents, request status, and vendor tax/payment rows.
 - Automated vendor document reminder settings: document types, last-paid date, expiration date, bulk request documents, and reminder/task links for expiring compliance documents.
 - Bank accounts: accounting tabs for receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics; account-name and bank filters; bank account table with masked account numbers, last reconciliation date, payments-enabled state, auto-reconciliation state, pagination, and task/report links for new bank account, new bank deposit, bank feed, reconcile, close period, online payments, bank linking, check register, deposit register, trust account balance, and bank-account-by-association reporting.
+- New bank account: bank information, account name, bank name, description, routing number, account number, account type, positive-pay checkbox, bank address, bank account legal entity information, account ownership information with authorized-owner rows, accounting GL mapping, check print information, company return address, notes, and attachments.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -196,6 +197,19 @@ Bank account detail should connect setup data to daily accounting work:
 - Bank feed: linked/unlinked state, provider state, last sync time, sync errors, and manual refresh/request state.
 - Period controls: current accounting period, close-period action, and warnings for unreconciled items or open deposits/payments.
 - Related reports: bank reconciliation, check register, deposit register, trust account balance, cash flow statement, general ledger, and bank-account-by-association.
+
+### New Bank Account Flow
+
+New bank account setup should be a sectioned workspace with clear validation, masking, and save progress. The flow should support:
+
+- Bank information: account name, bank name, description, routing number, account number, account type, positive-pay setting, and bank address.
+- Legal entity information: whether the bank account belongs to an individual or legal entity, entity type, business name, taxpayer identity status, legal address, and related compliance metadata where available.
+- Account ownership: one or more authorized owners/signers with owner name, last name, date of birth, address, and add/remove owner rows.
+- Accounting information: operating account/GL mapping, starting balance or starting transaction reference, and association/property account mapping.
+- Check print information: starting check number, company name, company return address toggle, return address fields, and check-print configuration.
+- Supporting records: notes, document upload, bank letters, authorization forms, voided checks, and attachments.
+
+The UI should never display a full routing or account number after initial entry. After save, account identifiers should be masked and any subsequent edits should use a secure re-entry or tokenized update flow.
 
 Bank account setup, online payment enablement, bank linking, bank-feed authorization, and period close actions can affect financial data or external processors. The UI must show a confirmation step with exact account, association/property scope, and consequence summary before completing these actions.
 
