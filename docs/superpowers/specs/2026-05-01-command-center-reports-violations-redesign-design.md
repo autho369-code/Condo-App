@@ -68,6 +68,7 @@ Additional user-provided reference screens define important product bones:
 - New bank account: bank information, account name, bank name, description, routing number, account number, account type, positive-pay checkbox, bank address, bank account legal entity information, account ownership information with authorized-owner rows, accounting GL mapping, check print information, company return address, notes, and attachments.
 - New bank deposit: bank account selector, unit/association selector, search action for undeposited receipts, deposit detail entry, and warning/empty state when there are no checks or cash payments available for the selected bank-account/scope combination.
 - Bank feed: account information selector, last-change/linking status, education panel for importing bank transactions, matching transactions to records, transaction rules, auto-add workflows, direct connection behavior, and task links back to Reconcile.
+- Bank reconciliation adjustment: bank account context, Account/Adjustments/Set Up Checks tabs, amount, adjustment date, description, warning that bank adjustments do not affect GL balances, save/cancel actions, history, notes, and attachments.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -199,6 +200,21 @@ Bank account detail should connect setup data to daily accounting work:
 - Bank feed: linked/unlinked state, provider state, last sync time, sync errors, and manual refresh/request state.
 - Period controls: current accounting period, close-period action, and warnings for unreconciled items or open deposits/payments.
 - Related reports: bank reconciliation, check register, deposit register, trust account balance, cash flow statement, general ledger, and bank-account-by-association.
+
+### Reconciliation And Adjustments
+
+Reconciliation should be a guided accounting workflow with supporting adjustment tools:
+
+- Account context at the top of the workspace, including bank account name, masked account number, reconciliation period, and current statement balance where available.
+- Tabs or segmented views for Account, Adjustments, Set Up Checks, transaction matching, exceptions, and reconciliation history.
+- Transaction matching from checks, deposits, payments, journal entries, bank transfers, and imported bank-feed transactions.
+- Difference summary that explains cleared balance, statement balance, outstanding deposits, outstanding checks, adjustments, and remaining difference.
+- Bank adjustment form with amount, adjustment date, description, history, notes, attachments, and clear explanation of whether the adjustment affects GL balances.
+- Notes and attachments for bank statements, reconciliation workpapers, exception evidence, and internal review comments.
+- Review/approval state where reconciliation completion needs manager approval.
+- Links to Bank Reconciliation, Check Register, Deposit Register, General Ledger, and Trust Account Balance reports scoped to the selected account and period.
+
+Saving a bank adjustment, completing reconciliation, setting up checks, or changing reconciliation period state is financially consequential. The UI should allow draft/preview calculation first, then require explicit confirmation with the bank account, date, amount, period, and GL impact before persisting.
 
 ### New Bank Account Flow
 
