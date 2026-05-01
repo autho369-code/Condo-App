@@ -8,3 +8,4 @@ out
 *.log
 .DS_Store
 lib/types/database.ts
+.superpowers/
