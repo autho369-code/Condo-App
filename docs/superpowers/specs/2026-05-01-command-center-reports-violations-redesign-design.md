@@ -64,6 +64,7 @@ Additional user-provided reference screens define important product bones:
 - Vendor ACH setup: vendor list with paid-by-ACH, masked routing/account numbers, account type, and task link for vendor bank account information.
 - Request vendor W-9s: tax year, payments-in-year threshold, needs-1099 filter, TIN-populated filter, bulk request documents, request status, and vendor tax/payment rows.
 - Automated vendor document reminder settings: document types, last-paid date, expiration date, bulk request documents, and reminder/task links for expiring compliance documents.
+- Bank accounts: accounting tabs for receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics; account-name and bank filters; bank account table with masked account numbers, last reconciliation date, payments-enabled state, auto-reconciliation state, pagination, and task/report links for new bank account, new bank deposit, bank feed, reconcile, close period, online payments, bank linking, check register, deposit register, trust account balance, and bank-account-by-association reporting.
 
 ## Product Principles
 
@@ -163,6 +164,33 @@ Association detail should connect setup data to daily work:
 - Bank accounts, fees, policies, documents, notes, and attachments.
 
 Association detail should link directly into association-scoped report runs.
+
+## Accounting And Banking
+
+Accounting should be a modern operations workspace, not just report links. It should organize receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics as first-class pages under Accounting.
+
+### Bank Accounts
+
+The bank account registry should support:
+
+- Search and filtering by account name, bank, association/property, payments-enabled status, auto-reconciliation status, reconciliation date, and bank-feed state.
+- Table columns for account name, bank, masked account number, last reconciliation date, payments enabled, auto-reconciliation, bank-feed status, and association/property coverage.
+- Safe display of account identifiers using masked account numbers or last four digits only.
+- Right-side contextual tasks for new bank account, new bank deposit, bank feed setup, reconcile, close accounting period, enable bank accounts for online payments, and link with bank.
+- Right-side accounting report links for Check Register, Deposit Register, Trust Account Balance, and Bank Account by Association.
+- Row actions that open account detail, reconciliation history, deposits/checks, online payment configuration, bank-feed status, and related reports scoped to that bank account.
+- Pagination and saved views for large account lists.
+
+Bank account detail should connect setup data to daily accounting work:
+
+- Identity: account name, bank, masked account number, account type, association/property mapping, and GL account mapping.
+- Reconciliation: last reconciliation date, unreconciled item count, next suggested reconciliation period, reconciliation history, and exceptions.
+- Payments: whether online payments are enabled, processor configuration state, allowed payment methods, deposit account mapping, and lockbox/payment-provider metadata where available.
+- Bank feed: linked/unlinked state, provider state, last sync time, sync errors, and manual refresh/request state.
+- Period controls: current accounting period, close-period action, and warnings for unreconciled items or open deposits/payments.
+- Related reports: bank reconciliation, check register, deposit register, trust account balance, cash flow statement, general ledger, and bank-account-by-association.
+
+Bank account setup, online payment enablement, bank linking, bank-feed authorization, and period close actions can affect financial data or external processors. The UI must show a confirmation step with exact account, association/property scope, and consequence summary before completing these actions.
 
 ## Reports Workspace
 
@@ -626,6 +654,14 @@ Vendor, form, and compliance flow:
 4. Server actions persist vendor records, compliance metadata, non-sensitive payment metadata, notes, and attachments.
 5. The final form send, vendor portal request, ACH/payment transmission, email enqueue, document reminder activation, or scheduled reminder step asks for explicit action-time confirmation.
 
+Accounting and banking flow:
+
+1. User opens Accounting, Bank Accounts, Reconcile, Bank Feed, Deposits, Payables, Receivables, Journal Entries, Bank Transfers, GL Accounts, or Diagnostics from Accounting, Tasks, command search, an association detail page, or a report link.
+2. UI loads bank accounts, association/property mappings, GL accounts, payment processor configuration, bank-feed state, reconciliation summaries, and relevant accounting report definitions under RLS.
+3. Bank account lists show masked account identifiers, reconciliation state, payments-enabled state, and bank-feed state without exposing full account numbers.
+4. Server actions persist non-sensitive bank-account metadata and reconciliation workflow state using existing tables where possible.
+5. Financially consequential actions such as bank linking, online payment enablement, bank-feed authorization, bank deposits, reconciliations, transfers, and period close require explicit action-time confirmation with the affected account and association/property scope.
+
 ## Error Handling
 
 Use explicit states rather than silent failures:
@@ -640,6 +676,7 @@ Use explicit states rather than silent failures:
 - Outbound owner communications: show draft, recipients, delivery method, and final confirmation state.
 - Vendor compliance gaps: show missing insurance/license/tax requirements as actionable warnings rather than blocking the whole vendor record.
 - Owner/vendor forms: show template availability, required merge fields, missing recipient data, and preview errors before send.
+- Bank/accounting actions: show reconciliation warnings, bank-feed errors, processor setup gaps, period-close blockers, and exact financial scope before confirmation.
 
 ## Accessibility And Responsiveness
 
@@ -665,7 +702,8 @@ The first implementation slice should include:
 5. Association setup and homeowner directory/onboarding design foundations, with routes and sectioned UI patterns aligned to existing Supabase tables.
 6. Owner ACH setup, owner portal activation, owner packet, and management agreement design foundations with safe draft/preview states.
 7. Vendor directory, new vendor setup, vendor ACH setup, W-9 requests, automated document reminders, owner form, and vendor form design foundations with safe draft/preview states.
-8. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, compliance panel, and stepper.
+8. Accounting bank account registry and banking workflow design foundations for reconciliation, deposits, bank feeds, online payments, bank linking, and period controls.
+9. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, compliance panel, reconciliation panel, and stepper.
 
 This slice should not attempt to finish every report calculation or every violation action. It should establish the product architecture and polished UX pattern, then wire the highest-value existing data.
 
@@ -696,6 +734,8 @@ Use focused verification for the first slice:
 - W-9 request workflow filters by tax year, payment threshold, 1099 need, TIN status, and request status.
 - Automated document reminder workflow filters by document type, last paid date, and expiration date.
 - Owner form and vendor form flows stop at preview/draft before sending unless explicitly confirmed.
+- Bank account registry supports account/bank filters, masked account numbers, last reconciliation status, payments-enabled status, auto-reconciliation status, and task/report links.
+- Bank linking, online payment enablement, reconciliation completion, bank transfer, deposit, and close-period flows require explicit confirmation before financially consequential changes.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
 
