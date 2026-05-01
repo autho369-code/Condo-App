@@ -69,6 +69,7 @@ Additional user-provided reference screens define important product bones:
 - New bank deposit: bank account selector, unit/association selector, search action for undeposited receipts, deposit detail entry, and warning/empty state when there are no checks or cash payments available for the selected bank-account/scope combination.
 - Bank feed: account information selector, last-change/linking status, education panel for importing bank transactions, matching transactions to records, transaction rules, auto-add workflows, direct connection behavior, and task links back to Reconcile.
 - Bank reconciliation adjustment: bank account context, Account/Adjustments/Set Up Checks tabs, amount, adjustment date, description, warning that bank adjustments do not affect GL balances, save/cancel actions, history, notes, and attachments.
+- Bank reconciliation summary: account-to-reconcile selector, beginning balance, ending balance, beginning/ending statement dates, reconciliation summary cards for ending balance, cleared balance, adjusted cash balance, over/under difference, deposits and credits table, checks and payments table, row clearing checkboxes, search and view toggles, cleared/uncleared totals, save, and reconcile actions.
 
 Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
 
@@ -206,13 +207,18 @@ Bank account detail should connect setup data to daily accounting work:
 Reconciliation should be a guided accounting workflow with supporting adjustment tools:
 
 - Account context at the top of the workspace, including bank account name, masked account number, reconciliation period, and current statement balance where available.
+- Account information panel with account-to-reconcile selector, beginning balance, required ending balance, beginning statement date, and required ending statement date.
+- Reconciliation summary cards for ending balance, cleared balance, adjusted cash balance, and any over/under difference, with a drill-down or view-details action.
 - Tabs or segmented views for Account, Adjustments, Set Up Checks, transaction matching, exceptions, and reconciliation history.
 - Transaction matching from checks, deposits, payments, journal entries, bank transfers, and imported bank-feed transactions.
 - Difference summary that explains cleared balance, statement balance, outstanding deposits, outstanding checks, adjustments, and remaining difference.
+- Deposits and other credits table with clear checkbox, date, deposit number, description, amount, search, view toggles, cleared totals, and uncleared totals.
+- Checks and other payments table with clear checkbox, date, check number/payment identifier, description, amount, search, view toggles, cleared totals, and uncleared totals.
 - Bank adjustment form with amount, adjustment date, description, history, notes, attachments, and clear explanation of whether the adjustment affects GL balances.
 - Notes and attachments for bank statements, reconciliation workpapers, exception evidence, and internal review comments.
 - Review/approval state where reconciliation completion needs manager approval.
 - Links to Bank Reconciliation, Check Register, Deposit Register, General Ledger, and Trust Account Balance reports scoped to the selected account and period.
+- Save draft and final Reconcile actions, with the final action disabled or clearly warned until the difference is acceptable.
 
 Saving a bank adjustment, completing reconciliation, setting up checks, or changing reconciliation period state is financially consequential. The UI should allow draft/preview calculation first, then require explicit confirmation with the bank account, date, amount, period, and GL impact before persisting.
 
