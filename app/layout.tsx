@@ -1,15 +1,14 @@
-import type { Metadata } from 'next';
 import './globals.css';
 
-export const metadata: Metadata = {
-  title: 'condo-app — HOA management',
-  description: 'Property management for condos, HOAs, and community associations',
+export const metadata = {
+  title: 'ManageOps',
+  description: 'Property management platform',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
