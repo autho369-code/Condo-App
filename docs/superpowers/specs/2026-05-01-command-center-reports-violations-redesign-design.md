@@ -34,6 +34,8 @@ The app is a Next.js 15 App Router project with Supabase Auth, RLS-scoped data f
 Supabase project `termxngysvotnfbzbgrv` already contains report and compliance data primitives:
 
 - `report_definitions`: 47 rows across accounting, association, property/unit, maintenance, people, communication, and compliance categories.
+- `report_definitions.parameter_schema` and `report_definitions.default_filters`: available to define report inputs such as association, owner, unit, date range, status, and output format.
+- `report_runs.parameters`, `saved_reports.parameters`, and `scheduled_reports.parameters`: available to persist the exact scope used when running, saving, or scheduling a report.
 - `violations`: 6 rows.
 - `violation_updates` and `violation_followup_steps`: available for lifecycle detail.
 - `notices`, `notice_recipients`, `documents`, `email_queue`: available for future notice generation and communication audit trails.
@@ -50,6 +52,10 @@ Every main surface should answer "what needs attention now?" before it presents 
 ### Reports Are Workspaces
 
 Reports should not be static links. A report opens into a workspace with filters, summary metrics, preview rows, saved views, export actions, scheduling, and board-packet actions.
+
+### Scope Is Explicit
+
+Every report run must clearly state what it is scoped to. At minimum the reporting engine should support portfolio-wide, association-specific, owner-specific, and unit-specific report scopes. The selected scope should travel through filters, preview data, saved reports, scheduled reports, exports, and board packets.
 
 ### Compliance Is A Lifecycle
 
@@ -119,6 +125,7 @@ Library UX:
 
 - Search by report name, description, category, or output column.
 - Category tabs or segmented filters.
+- Scope picker for portfolio, association, owner, and unit before or during report launch.
 - Favorite reports.
 - Recently run reports.
 - Saved views.
@@ -138,6 +145,28 @@ When a report opens, it should provide:
 - Empty, loading, error, and permission states.
 
 Reports should remain server-driven where possible, with client interactivity only for filter controls, local table interactions, and output actions.
+
+### Association And Owner Report Runs
+
+Running reports by association and by owner is part of the core product, not a follow-up enhancement.
+
+Required scoped report behavior:
+
+- Association selector should search `associations` by name, city, status, and portfolio.
+- Owner selector should search `owners` by name, email, phone, and linked units.
+- Unit selector should search `units` by unit number and association context.
+- Selecting an association should constrain owner and unit choices to that association where the report supports it.
+- Selecting an owner should show their linked units through `unit_owners` and allow owner-ledger-style reports to run for all owned units or one selected unit.
+- Report run parameters should persist the selected scope in `report_runs.parameters`.
+- Saved report parameters should persist reusable association/owner scopes in `saved_reports.parameters`.
+- Scheduled report parameters should persist recurring association/owner scopes in `scheduled_reports.parameters`.
+- Exports and board packets should display the selected scope in the header so a PDF or CSV can be traced back to the correct association or owner.
+
+First-slice report scopes:
+
+- Association-level: A/R Aging, Delinquency Report, Dues Roll, Income Statement, Balance Sheet, Budget vs Actual, Open Work Orders, Violation Log.
+- Owner-level: Owner Ledger, Owner Violation History, Unpaid Balances, Charge Detail, Payment History if available from existing payment tables.
+- Portfolio-level: report library, scheduled report overview, saved reports, diagnostic summaries.
 
 ## Board Packet Workflow
 
@@ -205,6 +234,16 @@ Recommended flow:
 5. Mutations call `revalidatePath` for affected pages.
 6. Supabase RLS enforces tenant and role boundaries.
 
+Report run flow:
+
+1. User opens a report from the library or a command-center link.
+2. UI reads the report definition and renders filter controls from `parameter_schema`.
+3. User selects portfolio, association, owner, unit, date range, status, and report-specific filters.
+4. Server validates that the requested association, owner, or unit is visible to the logged-in user under RLS.
+5. Server fetches preview data and summary metrics for the selected scope.
+6. If the user runs, saves, schedules, exports, or adds to a board packet, the selected scope is stored in the relevant `parameters` jsonb field.
+7. The report output header always includes report name, selected scope, date range, run timestamp, and user-visible portfolio/association/owner labels.
+
 ## Error Handling
 
 Use explicit states rather than silent failures:
@@ -235,7 +274,7 @@ The first implementation slice should include:
 
 1. Redesigned app shell and navigation foundation.
 2. Command center dashboard structure and summary panels.
-3. Reports library and one reusable report workspace pattern.
+3. Reports library and one reusable report workspace pattern with association and owner scoped runs.
 4. Violations list and violation detail redesign.
 5. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, and focus panel.
 
@@ -248,6 +287,9 @@ Use focused verification for the first slice:
 - TypeScript and Next.js build should pass.
 - Navigation renders by role without crashing.
 - Reports page shows category/library data from existing report definitions.
+- Reports can be filtered and run for a selected association.
+- Owner-scoped reports only show units linked to the selected owner.
+- Saved and scheduled report payloads preserve association and owner parameters.
 - Report workspace handles loading, empty, and populated states.
 - Violations list shows existing violation rows and status filters.
 - Violation detail renders a valid record and handles missing/not-found state.
