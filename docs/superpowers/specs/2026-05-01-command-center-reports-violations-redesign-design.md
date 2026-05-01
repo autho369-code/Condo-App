@@ -66,6 +66,13 @@ Additional user-provided reference screens define important product bones:
 - Automated vendor document reminder settings: document types, last-paid date, expiration date, bulk request documents, and reminder/task links for expiring compliance documents.
 - Bank accounts: accounting tabs for receivables, payables, bank accounts, journal entries, bank transfers, GL accounts, and diagnostics; account-name and bank filters; bank account table with masked account numbers, last reconciliation date, payments-enabled state, auto-reconciliation state, pagination, and task/report links for new bank account, new bank deposit, bank feed, reconcile, close period, online payments, bank linking, check register, deposit register, trust account balance, and bank-account-by-association reporting.
 
+Public AppFolio product-positioning references reinforce the competitive bar without changing the non-copying requirement:
+
+- The product story emphasizes one unified platform and unified data across property operations, accounting, residents, owners, vendors, and investors.
+- Accounting and reporting are positioned around a single source of truth, flexible reports, drill-downs, online payments, bank feeds, auto bank reconciliation, eCheck, CAM tracking, late fees, and extended data access.
+- Workflow automation is positioned around standardized processes, status reporting, workflow templates, trigger-based automations, audit logs, custom roles, two-factor security, and data exports.
+- The redesign should compete on operational clarity, speed, role-aware workflows, scoped reporting, auditability, and safe automation rather than copying the AppFolio interface.
+
 ## Product Principles
 
 ### Command Before Catalog
