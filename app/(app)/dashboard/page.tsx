@@ -184,7 +184,7 @@ export default async function DashboardPage({
             </select>
             <Button type="submit" variant="secondary">Apply</Button>
           </form>
-          <Link href="/work-orders/new"><Button>New work order</Button></Link>
+          <Link href="/work-orders"><Button>Open work orders</Button></Link>
         </>
       }
       rail={<CommandRail />}
