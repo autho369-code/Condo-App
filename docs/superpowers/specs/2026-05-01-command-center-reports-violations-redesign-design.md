@@ -61,6 +61,9 @@ Additional user-provided reference screens define important product bones:
 - Send owner form: choose owner/association/property, choose template, choose recipients, include optional property detail, preview form, and continue to template/signature step.
 - Vendor directory: vendor filter, trade filter, name/address/trade/phone/email columns, pagination, task links, and vendor reports.
 - New vendor setup: vendor identity, vendor type/trade, contact methods, address, request vendor-portal information, federal tax, accounting defaults, payment type, bank details, compliance expirations, notes, and attachments.
+- Vendor ACH setup: vendor list with paid-by-ACH, masked routing/account numbers, account type, and task link for vendor bank account information.
+- Request vendor W-9s: tax year, payments-in-year threshold, needs-1099 filter, TIN-populated filter, bulk request documents, request status, and vendor tax/payment rows.
+- Automated vendor document reminder settings: document types, last-paid date, expiration date, bulk request documents, and reminder/task links for expiring compliance documents.
 
 ## Product Principles
 
@@ -505,6 +508,21 @@ The vendor directory should support:
 - Right-side contextual tasks such as new vendor, send vendor form, vendor ACH/payment setup, vendor ledger/report, vendor 1099 detail, and vendor 1099 summary.
 - Direct links to vendor-scoped reports such as Vendor Directory, Vendor Ledger if available, Vendor 1099 Detail, Vendor 1099 Summary, Vendor Performance, Purchase Order Detail, and Bill Detail.
 
+### Vendor ACH And Payments
+
+Vendor ACH setup should be a dedicated payable-readiness queue.
+
+Required behavior:
+
+- List vendors with paid-by-ACH status, masked routing suffix, masked account suffix, account type, verification state, and payment hold state.
+- Filter by vendor, trade, ACH status, verification status, payment type, and compliance status.
+- Link each row to vendor detail and vendor payment settings.
+- Support safe editing of vendor payment metadata through tokenized or masked entry where possible.
+- Show payable impact such as open bills, last paid date, and payment terms where available.
+- Use `vendors.payment_type`, `vendors.bank_routing_number`, `vendors.bank_account_number`, `vendors.savings_account`, `vendors.hold_payments`, `vendors.email_echeck_receipt`, and related payables fields where they already exist.
+
+Vendor bank routing/account data is sensitive financial data. The UI should mask stored values, avoid displaying full numbers after entry, and require explicit confirmation before any ACH setup or payment-method transmission.
+
 ### New Vendor Flow
 
 The new vendor setup workflow should preserve the reference coverage while using a modern sectioned workspace:
@@ -530,6 +548,36 @@ Vendor forms should mirror owner forms with vendor-specific recipients and templ
 - Preview message and attachments.
 - Save as draft.
 - Send only after explicit confirmation.
+
+### Vendor W-9 Requests
+
+The W-9 request workflow should help staff find vendors who need tax documentation.
+
+Required behavior:
+
+- Filters: tax year, payments in year threshold, marked as needing 1099, TIN populated, request status, and vendor search.
+- Table columns: vendor name, email, payments in year, needs 1099, TIN status, request status, and last request date.
+- Bulk actions: request documents, mark reviewed, export list, and open vendor detail.
+- Request preview: recipients, subject/body, requested documents, due date, and selected vendor count.
+- Use `vendors.taxpayer_name`, `vendors.taxpayer_id`, `vendors.tax_account_number`, `vendors.send_1099`, `payable_bills`, `documents`, `form_templates`, `document_templates`, and `email_queue` where possible.
+
+Requesting W-9s sends vendor communications and should require explicit confirmation before email enqueue.
+
+### Automated Vendor Document Reminders
+
+Automated document reminder settings should manage expiring compliance documents and recent-vendor payment activity.
+
+Required behavior:
+
+- Filters: document type, last paid date, expiration date, association, vendor, trade, and compliance status.
+- Document types should include liability insurance, workers compensation, EPA certification, auto insurance, state license, contract, W-9, and other configured vendor documents.
+- Table columns: vendor, email, last paid date, selected document expiration, compliance status, and request/reminder state.
+- Bulk actions: request documents, schedule reminder, mark no longer needed, and export list.
+- Use `vendor_compliance` expiration fields for known document dates.
+- Use `documents` for uploaded files and `email_queue` for confirmed outbound reminders.
+- Surface vendor compliance gaps in the command center and vendor directory.
+
+Automated reminders should support draft/scheduled states first. Enabling an automation that sends future emails should require explicit confirmation because it creates future outbound communications.
 
 ## Data Flow
 
@@ -570,13 +618,13 @@ Owner financial and communication flow:
 4. Server actions persist non-sensitive drafts or metadata using existing tables where possible.
 5. The final send, enqueue, portal invitation, ACH transmission, or autopay authorization step asks for explicit action-time confirmation.
 
-Vendor and form flow:
+Vendor, form, and compliance flow:
 
-1. User opens vendor directory, new vendor, owner form, or vendor form from People, Tasks, command search, or a related owner/vendor detail page.
+1. User opens vendor directory, new vendor, vendor ACH setup, W-9 request, automated document reminders, owner form, or vendor form from People, Tasks, command search, or a related owner/vendor detail page.
 2. UI loads vendor, owner, association, form-template, document, compliance, and payables context under RLS.
 3. UI supports form/template selection, preview, and draft creation without sending.
 4. Server actions persist vendor records, compliance metadata, non-sensitive payment metadata, notes, and attachments.
-5. The final form send, vendor portal request, ACH/payment transmission, or email enqueue step asks for explicit action-time confirmation.
+5. The final form send, vendor portal request, ACH/payment transmission, email enqueue, document reminder activation, or scheduled reminder step asks for explicit action-time confirmation.
 
 ## Error Handling
 
@@ -616,7 +664,7 @@ The first implementation slice should include:
 4. Violations list and violation detail redesign.
 5. Association setup and homeowner directory/onboarding design foundations, with routes and sectioned UI patterns aligned to existing Supabase tables.
 6. Owner ACH setup, owner portal activation, owner packet, and management agreement design foundations with safe draft/preview states.
-7. Vendor directory, new vendor setup, owner form, and vendor form design foundations with safe draft/preview states.
+7. Vendor directory, new vendor setup, vendor ACH setup, W-9 requests, automated document reminders, owner form, and vendor form design foundations with safe draft/preview states.
 8. Shared UI primitives needed for dense operations pages: metric strip, status chip, action toolbar, filter bar, workspace table, empty state, focus panel, sectioned setup workspace, file/evidence panel, tokenized-payment panel, communication preview panel, compliance panel, and stepper.
 
 This slice should not attempt to finish every report calculation or every violation action. It should establish the product architecture and polished UX pattern, then wire the highest-value existing data.
@@ -644,6 +692,9 @@ Use focused verification for the first slice:
 - Management agreement workflow creates or previews agreement records without sending for signature unless explicitly confirmed.
 - Vendor directory supports search, trade filtering, pagination, and vendor-scoped report/task links.
 - New vendor UI preserves details, contact, portal request, tax, accounting, payment, compliance, notes, and attachments sections.
+- Vendor ACH setup masks payment details and does not expose full bank routing/account numbers after entry.
+- W-9 request workflow filters by tax year, payment threshold, 1099 need, TIN status, and request status.
+- Automated document reminder workflow filters by document type, last paid date, and expiration date.
 - Owner form and vendor form flows stop at preview/draft before sending unless explicitly confirmed.
 - Command center links route to the correct filtered reports and violation views.
 - Visual verification in the browser at desktop and narrower widths.
