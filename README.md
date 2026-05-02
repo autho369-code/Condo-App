@@ -52,6 +52,18 @@ npm run dev
 
 Open http://localhost:3000 → it redirects to `/login`.
 
+## Deploy to Vercel without the CLI
+
+This repo is ready for Vercel dashboard deployment. You do not need to install the Vercel CLI.
+
+1. Import `autho369-code/Condo-App` in the Vercel dashboard.
+2. Select the Next.js framework preset.
+3. Use `npm ci` for install and `npm run build` for build.
+4. Add the Supabase and Stripe environment variables from `.env.local.example`.
+5. Do not set `LOCAL_PREVIEW_MODE` in Vercel.
+
+Full steps are in `docs/deployment/vercel.md`.
+
 ## Auth flow
 
 1. `/login` calls `loginWithPassword` Server Action → `supabase.auth.signInWithPassword`.
