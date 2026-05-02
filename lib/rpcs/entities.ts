@@ -535,7 +535,7 @@ export async function createVendor(formData: FormData) {
   if (error || !v) return { error: error?.message ?? 'Failed to create vendor' };
 
   revalidatePath('/vendors');
-  redirect(`/vendors/${v.id}`);
+  redirect('/vendors');
 }
 
 export async function updateVendor(id: string, formData: FormData) {

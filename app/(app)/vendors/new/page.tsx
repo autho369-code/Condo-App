@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { requireStaff } from '@/lib/auth/me';
-import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
-import { Input, Label } from '@/components/ui/input';
+
+import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
+import { Input, Label } from '@/components/ui/input';
+import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
+import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,152 +22,95 @@ export default async function NewVendorPage() {
   await requireStaff();
 
   return (
-    <Workspace
-      header={
-        <WorkspaceHeader
-          eyebrow={<Link href="/vendors" className="hover:text-brand-600">Vendors</Link>}
-          title="New vendor"
-          subtitle="Any contractor, utility, or service provider you&apos;ll pay."
-        />
-      }
+    <DataWorkspace
+      title="New Vendor"
+      description="Create the vendor record, capture tax/payment defaults, and route follow-up bank or document requests."
+      actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
       rail={
-        <>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">About 1099s</div>
-          <p className="text-xs text-gray-700">
-            Flag <strong>Send 1099</strong> on any vendor you&apos;ll pay $600+ in a year for services. Our 1099 reports pull from this flag.
-          </p>
-          <p className="mt-2 text-xs text-gray-700">
-            Utilities and corporations are usually exempt — don&apos;t flag them.
-          </p>
-
-          <div className="mt-6 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Good to know</div>
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li className="rounded border border-gray-200 p-3">
-              <div className="font-medium">Default GL account</div>
-              <div className="mt-0.5 text-xs text-gray-500">Set on the vendor detail page. Auto-fills on new bills.</div>
-            </li>
-            <li className="rounded border border-gray-200 p-3">
-              <div className="font-medium">ACH setup</div>
-              <div className="mt-0.5 text-xs text-gray-500">Collect bank info later — the detail form lets you enter it securely.</div>
-            </li>
-          </ul>
-        </>
+        <div className="space-y-4">
+          <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
+            Add the core vendor first. ACH, W-9, and compliance requests can be staged immediately after the record exists.
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
+            <div className="mt-2 space-y-2">
+              {vendorWorkflowCards.map((card) => (
+                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
+              ))}
+            </div>
+          </div>
+        </div>
       }
     >
-      <Section title="Vendor details">
-        <form action={createVendor as any} className="space-y-6 px-5 py-5">
-          {/* --- Basic --- */}
+      <form action={createVendor as any} className="max-w-5xl space-y-6 rounded border border-gray-200 bg-white p-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
+            <Input id="name" name="name" required placeholder="e.g. Acme Plumbing Inc." />
+          </div>
+          <div>
+            <Label htmlFor="vendor_type">Vendor type</Label>
+            <select id="vendor_type" name="vendor_type" defaultValue="general" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              {VENDOR_TYPES.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="trade">Trade</Label>
+            <select id="trade" name="trade" defaultValue="other" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              {TRADES.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact and remit-to address</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
+            <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
+            <div><Label htmlFor="address_state">State</Label><Input id="address_state" name="address_state" maxLength={2} className="uppercase" /></div>
+            <div><Label htmlFor="address_zip">ZIP</Label><Input id="address_zip" name="address_zip" /></div>
+          </div>
+        </section>
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax and 1099</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <Label htmlFor="name">Vendor name <span className="text-red-500">*</span></Label>
-              <Input id="name" name="name" required placeholder="e.g. Acme Plumbing Inc." />
-            </div>
+            <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9" /></div>
+            <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" placeholder="EIN or SSN" /></div>
+            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <input type="checkbox" name="send_1099" className="mt-1" />
+              <span><span className="block text-sm font-medium text-gray-900">Send 1099 at year-end</span><span className="block text-xs text-gray-500">Use for service vendors paid at or above the filing threshold.</span></span>
+            </label>
+            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <input type="checkbox" name="is_utility" className="mt-1" />
+              <span><span className="block text-sm font-medium text-gray-900">Utility vendor</span><span className="block text-xs text-gray-500">Utility vendors are tracked separately in reports.</span></span>
+            </label>
+          </div>
+        </section>
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Payment defaults</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="vendor_type">Vendor type</Label>
-              <select id="vendor_type" name="vendor_type" defaultValue="general"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                {VENDOR_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+              <Label htmlFor="payment_type">Preferred payment method</Label>
+              <select id="payment_type" name="payment_type" defaultValue="check" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                {PAYMENT_TYPES.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ').toUpperCase()}</option>)}
               </select>
             </div>
-            <div>
-              <Label htmlFor="trade">Trade</Label>
-              <select id="trade" name="trade" defaultValue="other"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                {TRADES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
-              </select>
-            </div>
+            <div><Label htmlFor="payment_terms">Payment terms</Label><Input id="payment_terms" name="payment_terms" placeholder="Net 30, due on receipt..." /></div>
           </div>
+        </section>
 
-          {/* --- Address --- */}
-          <div className="border-t border-gray-100 pt-5">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Remit-to address (prints on checks)</div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div className="md:col-span-4">
-                <Label htmlFor="address_street">Street</Label>
-                <Input id="address_street" name="address_street" />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="address_city">City</Label>
-                <Input id="address_city" name="address_city" />
-              </div>
-              <div>
-                <Label htmlFor="address_state">State</Label>
-                <Input id="address_state" name="address_state" maxLength={2} className="uppercase" />
-              </div>
-              <div>
-                <Label htmlFor="address_zip">ZIP</Label>
-                <Input id="address_zip" name="address_zip" />
-              </div>
-            </div>
-          </div>
+        <section className="border-t border-gray-100 pt-5">
+          <Label htmlFor="notes">Internal notes</Label>
+          <textarea id="notes" name="notes" rows={3} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Scheduler, after-hours number, access instructions..." />
+        </section>
 
-          {/* --- Tax --- */}
-          <div className="border-t border-gray-100 pt-5">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax & 1099</div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="taxpayer_name">Taxpayer name</Label>
-                <Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9 (may differ from business name)" />
-              </div>
-              <div>
-                <Label htmlFor="taxpayer_id">Taxpayer ID (EIN or SSN)</Label>
-                <Input id="taxpayer_id" name="taxpayer_id" placeholder="XX-XXXXXXX" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 cursor-pointer">
-                  <input type="checkbox" name="send_1099" className="mt-0.5" />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Send 1099 at year-end</div>
-                    <div className="text-xs text-gray-500">Required for any vendor paid $600+/year for services (not goods, not utilities).</div>
-                  </div>
-                </label>
-              </div>
-              <div className="md:col-span-2">
-                <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 cursor-pointer">
-                  <input type="checkbox" name="is_utility" className="mt-0.5" />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Is a utility</div>
-                    <div className="text-xs text-gray-500">Utilities are exempt from 1099 and show up in utility-specific reports.</div>
-                  </div>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* --- Payment --- */}
-          <div className="border-t border-gray-100 pt-5">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Payment</div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="payment_type">Preferred payment method</Label>
-                <select id="payment_type" name="payment_type" defaultValue="check"
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  {PAYMENT_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="payment_terms">Payment terms</Label>
-                <Input id="payment_terms" name="payment_terms" placeholder="e.g. Net 30, Due on receipt" />
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              For ACH, you can add bank details on the vendor detail page once the record is created.
-            </p>
-          </div>
-
-          <div className="border-t border-gray-100 pt-5">
-            <Label htmlFor="notes">Internal notes</Label>
-            <textarea id="notes" name="notes" rows={2}
-              placeholder="e.g. After-hours number, preferred scheduler, key pickup instructions…"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-
-          <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-            <Link href="/vendors" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-            <Button type="submit" size="lg">Create vendor</Button>
-          </div>
-        </form>
-      </Section>
-    </Workspace>
+        <div className="flex items-center justify-between border-t border-gray-100 pt-5">
+          <Link href="/vendors" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Button type="submit" size="lg">Create vendor</Button>
+        </div>
+      </form>
+    </DataWorkspace>
   );
 }
