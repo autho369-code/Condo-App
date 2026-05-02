@@ -7,7 +7,6 @@ out
 .vercel
 *.log
 .DS_Store
-lib/types/database.ts
 .superpowers/
 .worktrees/
 supabase/.temp/
