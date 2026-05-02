@@ -14,15 +14,20 @@
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
+import { isStripePaymentsConfigured } from '@/lib/payments/config';
 import { redirect } from 'next/navigation';
 
 function stripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not configured');
+  if (!isStripePaymentsConfigured(key)) throw new Error('STRIPE_SECRET_KEY is not configured');
   return new Stripe(key, { apiVersion: '2024-12-18.acacia' as any });
 }
 
 export async function createOwnerCheckoutSession(formData: FormData) {
+  if (!isStripePaymentsConfigured()) {
+    return { error: 'Online payments are not available yet.' };
+  }
+
   const me = await getMe();
   if (!me.auth_user_id || !me.owner_id || !me.portfolio) {
     return { error: 'You must be logged in as a owner.' };

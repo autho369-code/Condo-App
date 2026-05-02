@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { createOwnerCheckoutSession } from '@/lib/rpcs/checkout';
+import { isStripePaymentsConfigured } from '@/lib/payments/config';
 import { money } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function PayPage() {
   const me = await requireAuth();
   const supabase = await createClient();
+  const paymentsEnabled = isStripePaymentsConfigured();
 
   // The resident's unit summary(ies). RLS filters to their own unit(s).
   const { data: units } = await (supabase as any)
@@ -58,6 +60,29 @@ export default async function PayPage() {
             </p>
           </CardHeader>
           <CardBody>
+            {!paymentsEnabled ? (
+              <div className="space-y-5">
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+                  <div className="text-sm font-semibold text-amber-950">Online payments coming soon</div>
+                  <p className="mt-1 text-sm text-amber-900">
+                    Stripe checkout is being configured for {me.portfolio?.company_name ?? 'this portal'}.
+                    For now, please use your current payment instructions or contact management before submitting a payment.
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                  <div className="font-medium text-gray-900">Balance shown for reference</div>
+                  <p className="mt-1">
+                    Your portal balance remains visible here, and online ACH/card options will appear once the processor is enabled.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Link href="/portal"><Button variant="secondary" type="button">Back to portal</Button></Link>
+                  <Link href="/portal/ledger"><Button type="button">View ledger</Button></Link>
+                </div>
+              </div>
+            ) : (
             <form action={createOwnerCheckoutSession as any} className="space-y-5">
               <input type="hidden" name="unit_id" value={defaultUnit.unit_id} />
 
@@ -133,6 +158,7 @@ export default async function PayPage() {
                 Powered by Stripe. Your payment info never touches our servers.
               </p>
             </form>
+            )}
           </CardBody>
         </Card>
       )}

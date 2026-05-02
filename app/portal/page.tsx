@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody, Stat } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/utils';
+import { isStripePaymentsConfigured } from '@/lib/payments/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function PortalHome() {
     outstanding: (acc.outstanding ?? 0) + Number(u.outstanding_balance ?? 0),
     credit:      (acc.credit ?? 0)      + Number(u.unapplied_credit ?? 0),
   }), {});
+  const paymentsEnabled = isStripePaymentsConfigured();
 
   return (
     <div className="space-y-8">
@@ -54,7 +56,11 @@ export default async function PortalHome() {
 
       {Number(total.outstanding) > 0 && (
         <div className="flex gap-3">
-          <Link href="/portal/pay"><Button size="lg">Pay {money(total.outstanding)}</Button></Link>
+          <Link href="/portal/pay">
+            <Button size="lg" variant={paymentsEnabled ? 'primary' : 'secondary'}>
+              {paymentsEnabled ? `Pay ${money(total.outstanding)}` : 'Payment setup pending'}
+            </Button>
+          </Link>
           <Link href="/portal/ledger"><Button size="lg" variant="secondary">View ledger</Button></Link>
         </div>
       )}
