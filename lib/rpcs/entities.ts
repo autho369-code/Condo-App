@@ -178,8 +178,14 @@ export async function createBankAccount(formData: FormData) {
     account_number:  str(formData, 'account_number'),
     account_type:    str(formData, 'account_type') ?? 'checking',
     gl_account_id:   str(formData, 'gl_account_id'),
+    entity_name:     str(formData, 'entity_name'),
+    entity_address:  str(formData, 'entity_address'),
+    company_name:    str(formData, 'company_name'),
+    company_address: str(formData, 'company_address'),
+    check_signature: str(formData, 'check_signature'),
     payments_enabled: formData.get('payments_enabled') === 'on',
     auto_reconciliation: formData.get('auto_reconciliation') === 'on',
+    use_printable_deposit_slip: formData.get('use_printable_deposit_slip') === 'on',
     next_check_number: intn(formData, 'next_check_number'),
   };
 
