@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
-import { getLoginModeConfig, getLoginNext, loginModes, type LoginModeId } from '@/lib/auth/login-modes';
+import { getLoginModeConfig, getLoginNext, getVisibleLoginModes, type LoginModeId } from '@/lib/auth/login-modes';
 
 export default async function LoginPage({
   searchParams,
@@ -14,14 +14,17 @@ export default async function LoginPage({
   const mode = getLoginModeConfig(params.mode);
   const next = getLoginNext(params);
   const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true';
-  const modes = Object.values(loginModes);
+  const modes = getVisibleLoginModes(params.mode);
+  const isAdminMode = mode.id === 'admin';
 
   return (
     <div className="space-y-6">
       <header className="text-center">
         <div className="text-xl font-semibold text-brand-600">Portier</div>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">Portier Login Instructions</h1>
-        <p className="mt-2 text-sm text-gray-500">Choose the workspace that matches your account.</p>
+        <p className="mt-2 text-sm text-gray-500">
+          {isAdminMode ? 'Restricted platform access.' : 'Choose the workspace that matches your account.'}
+        </p>
       </header>
 
       <Card className="overflow-hidden rounded-md shadow-sm">
@@ -39,7 +42,7 @@ export default async function LoginPage({
             >
               <div>
                 <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
-                {item.id === 'admin' && <p className="mt-1 text-xs font-medium text-brand-600">Superadmin access</p>}
+                {item.id === 'admin' && <p className="mt-1 text-xs font-medium text-brand-600">Restricted access</p>}
               </div>
               <div className="space-y-3">
                 <p className="max-w-xl text-sm leading-6 text-gray-600">{item.description}</p>
@@ -82,9 +85,11 @@ export default async function LoginPage({
             Continue to local preview
           </Link>
         )}
-        <p className="text-xs leading-5 text-gray-500">
-          Superadmin sign-in uses the Admin option. Your Supabase Auth account must also be active in the platform operators table.
-        </p>
+        {isAdminMode && (
+          <p className="text-xs leading-5 text-gray-500">
+            Platform access requires an active platform operator record in Supabase.
+          </p>
+        )}
       </div>
     </div>
   );

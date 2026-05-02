@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { getLoginModeConfig, getLoginNext, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
+import {
+  getLoginModeConfig,
+  getLoginNext,
+  getVisibleLoginModes,
+  normalizeLoginMode,
+  safeInternalNext,
+} from '@/lib/auth/login-modes';
 
 describe('login mode routing', () => {
   it('defaults unknown modes to manager sign in', () => {
@@ -20,5 +26,11 @@ describe('login mode routing', () => {
     expect(safeInternalNext('https://bad.example/dashboard')).toBeNull();
     expect(safeInternalNext('//bad.example/dashboard')).toBeNull();
     expect(getLoginNext({ mode: 'admin', next: 'https://bad.example/dashboard' })).toBe('/platform/portfolios');
+  });
+
+  it('hides admin sign in from public login choices', () => {
+    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner']);
+    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner']);
+    expect(getVisibleLoginModes('admin').map((mode) => mode.id)).toEqual(['admin']);
   });
 });

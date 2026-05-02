@@ -61,3 +61,9 @@ export function getLoginModeConfig(value?: FormDataEntryValue | string | string[
 export function getLoginNext(params: { mode?: string | string[] | null; next?: string | string[] | null }) {
   return safeInternalNext(params.next) ?? getLoginModeConfig(params.mode).defaultNext;
 }
+
+export function getVisibleLoginModes(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig[] {
+  const mode = normalizeLoginMode(value);
+  if (mode === 'admin') return [loginModes.admin];
+  return [loginModes.manager, loginModes.owner];
+}
