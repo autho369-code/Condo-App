@@ -23,6 +23,9 @@ export async function queueReport(formData: FormData) {
   for (const [k, v] of formData.entries()) {
     if (k.startsWith('param_') && v) params[k.slice(6)] = v;
   }
+  if (!params.scope) {
+    return { error: 'Report scope is required' };
+  }
 
   const { data, error } = await supabase.rpc('queue_report_run', {
     p_definition_id: definitionId,

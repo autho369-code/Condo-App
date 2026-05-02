@@ -1,74 +1,21 @@
-// Reports index — matches AppFolio's categorized flat-grid layout.
-// Reads: public.report_definitions (all 48 active reports) + public.saved_reports
-// (per-portfolio presets, with pinned = "favorite"). RLS scopes both.
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { MetricStrip } from '@/components/operations/metric-strip';
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
-import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/context-panel';
+import { filterReports, groupReports, type ReportDefinition } from '@/lib/reports/catalog';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-// ---------------------------------------------------------------------------
-// AppFolio's UI groups → our report_definitions.slug values.
-// Our DB category enum has 7 values but AppFolio presents 8 display groups,
-// so we map at the UI layer. Any slug not listed here falls through to "Other".
-// ---------------------------------------------------------------------------
-const UI_GROUPS: Array<{ title: string; slugs: string[] }> = [
-  {
-    title: 'Accounting Reports',
-    slugs: [
-      'balance_sheet', 'income_statement', 'cash_flow', 'general_ledger', 'trial_balance',
-      'annual_budget_comparative', 'budget_vs_actual', 'fund_balance_sheet',
-      'reserve_fund_analysis', 'bank_reconciliation',
-    ],
-  },
-  {
-    title: 'Association Reports',
-    slugs: [
-      'assessment_roll', 'delinquency', 'dues_roll', 'owner_ledger',
-      'owner_vehicle_info', 'owner_directory',
-    ],
-  },
-  {
-    title: 'Diagnostic Reports',
-    slugs: ['data_diagnostics_summary', 'email_delivery_errors', 'users_and_permissions', 'violation_log'],
-  },
-  {
-    title: 'Maintenance Reports',
-    slugs: ['open_work_orders', 'maintenance_history', 'work_order_report',
-            'vendor_performance', 'project_directory', 'purchase_order_detail'],
-  },
-  {
-    title: 'Property And Unit Reports',
-    slugs: ['property_directory', 'unit_availability', 'unit_turn_report', 'vendor_directory'],
-  },
-  {
-    title: 'Tax Reports',
-    slugs: ['owner_1099_detail', 'owner_1099_summary', 'vendor_1099_detail', 'vendor_1099_summary'],
-  },
-  {
-    title: 'Transaction Reports',
-    slugs: [
-      'ap_aging', 'ar_aging', 'aged_payables_summary', 'bill_detail', 'charge_detail',
-      'check_register', 'deposit_register', 'expense_register', 'income_register',
-      'journal_entry_register', 'unpaid_balances_by_month',
-    ],
-  },
-  {
-    title: 'Communication Reports',
-    slugs: ['letter_history', 'survey_results'],
-  },
-];
-
-type Def = { id: string; slug: string; name: string; description: string | null; category: string };
-type Saved = {
+type SavedReport = {
   id: string;
   name: string;
   pinned: boolean;
   last_run_at: string | null;
   run_count: number | null;
   created_at: string;
-  definition_id: string;
   report_definitions: { slug: string; name: string } | null;
   profiles: { full_name: string | null } | null;
 };
@@ -81,221 +28,159 @@ export default async function ReportsIndex({
   const { q = '' } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: defs }, { data: saved }] = await Promise.all([
+  const [{ data: defs }, { data: saved }, { count: activeCount }, { count: scheduledCount }] = await Promise.all([
     supabase.from('report_definitions')
-      .select('id, slug, name, description, category')
+      .select('id, slug, name, description, category, active')
       .eq('active', true)
       .order('name'),
     supabase.from('saved_reports')
       .select(`
-        id, name, pinned, last_run_at, run_count, created_at, definition_id,
+        id, name, pinned, last_run_at, run_count, created_at,
         report_definitions(slug, name),
         profiles(full_name)
       `)
       .order('pinned', { ascending: false })
       .order('created_at', { ascending: false }),
+    supabase.from('report_definitions')
+      .select('id', { count: 'exact', head: true })
+      .eq('active', true),
+    supabase.from('scheduled_reports')
+      .select('id', { count: 'exact', head: true })
+      .is('archived_at', null)
+      .eq('active', true),
   ]);
 
-  const allDefs = (defs ?? []) as Def[];
-  const savedRows = (saved ?? []) as unknown as Saved[];
-
-  // Search filter (applies to definitions only — AppFolio filters saved with its own logic)
-  const term = q.trim().toLowerCase();
-  const match = (d: Def) =>
-    !term ||
-    d.name.toLowerCase().includes(term) ||
-    (d.description ?? '').toLowerCase().includes(term) ||
-    d.slug.toLowerCase().includes(term);
-
-  // Group definitions by UI group
-  const bySlug = new Map(allDefs.map((d) => [d.slug, d]));
-  const groups = UI_GROUPS.map((g) => ({
-    title: g.title,
-    items: g.slugs.map((s) => bySlug.get(s)).filter((d): d is Def => !!d && match(d)),
-  })).filter((g) => g.items.length > 0);
-
-  // Anything in DB that didn't match a UI group lands in "Other"
-  const usedSlugs = new Set(UI_GROUPS.flatMap((g) => g.slugs));
-  const orphans = allDefs.filter((d) => !usedSlugs.has(d.slug) && match(d));
-  if (orphans.length > 0) groups.push({ title: 'Other Reports', items: orphans });
-
-  // Favorites: saved reports where pinned = true (sorted first already)
-  const favorites = savedRows.filter((s) => s.pinned);
+  const definitions = (defs ?? []) as ReportDefinition[];
+  const visibleDefinitions = filterReports(definitions, q);
+  const groups = groupReports(visibleDefinitions);
+  const savedRows = (saved ?? []) as unknown as SavedReport[];
+  const favorites = savedRows.filter((report) => report.pinned);
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 overflow-y-auto">
-      {/* Top bar */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-5xl px-8 py-5">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-            <Link
-              href="/reports/builder"
-              className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Report Builder
-            </Link>
-          </div>
-        </div>
-      </div>
+    <DataWorkspace
+      title="Reports"
+      description="Run association, owner, unit, banking, compliance, maintenance, and accounting reports from one scoped workspace."
+      actions={
+        <form action="/reports" method="get" className="flex min-w-80 items-center gap-2">
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Search reports"
+            className="h-10 min-w-64 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          <Button type="submit" variant="secondary">Search</Button>
+        </form>
+      }
+      rail={<ReportsRail scheduledCount={scheduledCount ?? 0} />}
+    >
+      <div className="space-y-6">
+        <MetricStrip
+          metrics={[
+            { label: 'Active catalog', value: activeCount ?? definitions.length, sublabel: 'Available report definitions' },
+            { label: 'Visible results', value: visibleDefinitions.length, sublabel: q ? `Filtered by "${q}"` : 'Current catalog view' },
+            { label: 'Saved reports', value: savedRows.length, sublabel: `${favorites.length} pinned favorites` },
+            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/scheduled-reports" className="text-blue-700 hover:underline">Manage schedule</Link> },
+          ]}
+        />
 
-      {/* Search */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-5xl px-8 py-4">
-          <form action="/reports" method="get" className="relative">
-            <input
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Search reports by name, description, or column"
-              className="h-10 w-full rounded border border-gray-300 bg-white pl-4 pr-10 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-gray-400 hover:bg-gray-100"
-              aria-label="Search"
-            >
-              <SearchIcon />
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-        {/* Favorites */}
         {favorites.length > 0 && (
-          <Section title="Favorite Reports" count={favorites.length} defaultOpen>
-            <SavedGrid rows={favorites} compact />
-          </Section>
+          <ReportSection title="Pinned saved reports" count={favorites.length}>
+            <SavedReports rows={favorites} />
+          </ReportSection>
         )}
 
-        {/* Category sections */}
-        {groups.map((g) => (
-          <Section key={g.title} title={g.title} count={g.items.length} defaultOpen={!!term}>
-            <div className="grid grid-cols-1 gap-x-8 gap-y-0 px-4 py-2 sm:grid-cols-2 md:grid-cols-3">
-              {g.items.map((d) => (
-                <ReportRow key={d.id} def={d} />
+        {groups.map((group) => (
+          <ReportSection key={group.category} title={group.title} count={group.items.length}>
+            <div className="grid gap-2 p-4 md:grid-cols-2 xl:grid-cols-3">
+              {group.items.map((definition) => (
+                <Link
+                  key={definition.id}
+                  href={`/reports/${definition.slug}`}
+                  className="rounded border border-gray-200 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
+                >
+                  <div className="font-medium text-blue-700">{definition.name}</div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{definition.description ?? 'Scoped report workspace'}</p>
+                </Link>
               ))}
             </div>
-          </Section>
+          </ReportSection>
         ))}
 
-        {/* Saved Reports */}
         {savedRows.length > 0 && (
-          <Section title="Saved Reports" count={savedRows.length} defaultOpen>
-            <SavedGrid rows={savedRows} />
-          </Section>
+          <ReportSection title="Saved reports" count={savedRows.length}>
+            <SavedReports rows={savedRows} />
+          </ReportSection>
         )}
 
         {groups.length === 0 && favorites.length === 0 && (
-          <div className="rounded border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
-            No reports match &quot;{q}&quot;.
+          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+            No reports match "{q}".
           </div>
         )}
       </div>
-      </div>
+    </DataWorkspace>
+  );
+}
 
-      <ContextPanel>
-        <PanelSection title="Tasks">
-          <PanelLink href="/reports/runs">Run history</PanelLink>
-          <PanelLink href="/scheduled-reports">Scheduled reports</PanelLink>
-          <PanelLink href="/reports/ar_aging">A/R Aging (live)</PanelLink>
-        </PanelSection>
-        <PanelSection title="Jump to category">
-          <PanelLink href="/reports?q=accounting">Accounting</PanelLink>
-          <PanelLink href="/reports?q=association">Association</PanelLink>
-          <PanelLink href="/reports?q=maintenance">Maintenance</PanelLink>
-          <PanelLink href="/reports?q=tax">Tax</PanelLink>
-          <PanelLink href="/reports?q=transaction">Transaction</PanelLink>
-        </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="#">Scheduling a report</PanelLink>
-          <PanelLink href="#">Saving a report preset</PanelLink>
-          <PanelLink href="#">Report builder basics</PanelLink>
-        </PanelSection>
-      </ContextPanel>
+function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
+  return (
+    <div className="space-y-5">
+      <section>
+        <h2 className="text-sm font-semibold text-gray-950">Report operations</h2>
+        <div className="mt-3 grid gap-2">
+          <RailLink href="/reports/runs" label="Run history" />
+          <RailLink href="/scheduled-reports" label={`Scheduled reports (${scheduledCount})`} />
+          <RailLink href="/reports/ar_aging" label="A/R aging live view" />
+          <RailLink href="/reports/bank_reconciliation" label="Bank reconciliation" />
+        </div>
+      </section>
+      <section className="border-t border-gray-200 pt-5">
+        <h2 className="text-sm font-semibold text-gray-950">Scope discipline</h2>
+        <p className="mt-2 text-sm leading-6 text-gray-600">
+          Every run captures portfolio, association, owner, or unit scope plus dates so saved and scheduled reports can be reproduced.
+        </p>
+      </section>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Collapsible section — uses <details> so no client JS is needed.
-// ---------------------------------------------------------------------------
-function Section({
-  title, count, defaultOpen = false, children,
+function ReportSection({
+  title,
+  count,
+  children,
 }: {
-  title: string; count: number; defaultOpen?: boolean; children: React.ReactNode;
+  title: string;
+  count: number;
+  children: ReactNode;
 }) {
   return (
-    <details
-      {...(defaultOpen ? { open: true } : {})}
-      className="rounded border border-gray-200 bg-white [&[open]_.chev]:rotate-90"
-    >
-      <summary className="flex cursor-pointer select-none items-center gap-2 border-b border-transparent px-4 py-3 [&::-webkit-details-marker]:hidden [details[open]>&]:border-gray-100">
-        <span className="chev inline-block text-gray-500 transition-transform">▸</span>
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-        <span className="text-xs tabular-nums text-gray-400">({count})</span>
-      </summary>
-      <div>{children}</div>
-    </details>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Single report row in the category grid.
-// Matches AppFolio: blue link + star (non-functional visual) + chevron.
-// ---------------------------------------------------------------------------
-function ReportRow({ def }: { def: Def }) {
-  return (
-    <div className="group flex items-center justify-between py-1.5 text-sm">
-      <Link
-        href={`/reports/${def.slug}`}
-        title={def.description ?? undefined}
-        className="min-w-0 flex-1 truncate text-blue-700 hover:underline"
-      >
-        {def.name}
-      </Link>
-      <div className="ml-2 flex shrink-0 items-center gap-1 text-gray-300">
-        <StarIcon className="hover:text-amber-400" />
-        <ChevronIcon className="hover:text-gray-600" />
+    <section className="rounded border border-gray-200 bg-white">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
+        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">{count}</span>
       </div>
-    </div>
+      {children}
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Saved reports list — uses different row style that matches AppFolio's
-// "Copy of X | Created by: Y" format.
-// ---------------------------------------------------------------------------
-function SavedGrid({ rows, compact = false }: { rows: Saved[]; compact?: boolean }) {
+function SavedReports({ rows }: { rows: SavedReport[] }) {
   return (
     <div className="divide-y divide-gray-100">
-      {rows.map((s) => {
-        const slug = s.report_definitions?.slug ?? '';
-        const displayName = s.name || s.report_definitions?.name || 'Untitled';
+      {rows.map((report) => {
+        const slug = report.report_definitions?.slug;
         return (
-          <div key={s.id} className={'flex items-center justify-between px-4 ' + (compact ? 'py-1.5' : 'py-2')}>
-            <Link
-              href={slug ? `/reports/${slug}?saved=${s.id}` : '#'}
-              className="min-w-0 flex-1 truncate text-sm text-blue-700 hover:underline"
-            >
-              {displayName}
-            </Link>
-            <div className="ml-4 flex shrink-0 items-center gap-4">
-              <span className="whitespace-nowrap text-xs text-gray-500">
-                Created by: <span className="text-gray-700">{s.profiles?.full_name ?? 'Unknown'}</span>
-              </span>
-              {s.last_run_at && (
-                <span className="hidden whitespace-nowrap text-xs text-gray-400 md:inline">
-                  Last run {date(s.last_run_at)}
-                </span>
-              )}
-              <div className="flex items-center gap-1 text-gray-300">
-                <StarIcon filled={s.pinned} className={s.pinned ? 'text-amber-400' : 'hover:text-amber-400'} />
-                <ChevronIcon className="hover:text-gray-600" />
-              </div>
+          <div key={report.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="min-w-0">
+              <Link href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'} className="truncate text-sm font-medium text-blue-700 hover:underline">
+                {report.name || report.report_definitions?.name || 'Untitled report'}
+              </Link>
+              <p className="mt-1 text-xs text-gray-500">
+                Created by {report.profiles?.full_name ?? 'Unknown'}{report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
+              </p>
             </div>
+            <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{report.run_count ?? 0} runs</span>
           </div>
         );
       })}
@@ -303,28 +188,10 @@ function SavedGrid({ rows, compact = false }: { rows: Saved[]; compact?: boolean
   );
 }
 
-// ---------------------------------------------------------------------------
-// Inline SVGs (no icon lib dependency).
-// ---------------------------------------------------------------------------
-function StarIcon({ filled = false, className = '' }: { filled?: boolean; className?: string }) {
+function RailLink({ href, label }: { href: string; label: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-    </svg>
-  );
-}
-function ChevronIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="7" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
+    <Link href={href} className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
+      {label}
+    </Link>
   );
 }
