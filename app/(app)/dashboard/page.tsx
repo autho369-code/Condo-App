@@ -23,7 +23,7 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const assocFilter = sp.assoc ?? '';
 
-  if (me.is_full_access_staff && me.portfolio?.id) {
+  if (me.is_full_access_staff && me.portfolio?.id && process.env.LOCAL_PREVIEW_MODE !== 'true') {
     const { count } = await db
       .from('associations')
       .select('id', { count: 'exact', head: true })

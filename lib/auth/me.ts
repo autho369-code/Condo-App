@@ -22,11 +22,41 @@ export interface MeResult {
   resident_unit_ids: string[];
 }
 
+function localPreviewEnabled() {
+  return process.env.LOCAL_PREVIEW_MODE === 'true';
+}
+
+function localPreviewMe(): MeResult {
+  return {
+    auth_user_id: 'local-preview',
+    email: 'preview@manageops.local',
+    profile: { full_name: 'Local Preview' },
+    portfolio: { id: 'local-preview', name: 'ManageOps Preview', company_name: 'ManageOps Preview' },
+    role_name: 'Platform Operator',
+    is_platform_operator: true,
+    is_full_access_staff: true,
+    is_finance_staff: true,
+    is_staff: true,
+    is_board: false,
+    is_resident: false,
+    owner_id: null,
+    vendor_id: null,
+    board_association_ids: [],
+    resident_association_ids: [],
+    resident_unit_ids: [],
+  };
+}
+
 export async function getMe(): Promise<MeResult> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('me');
-  if (error) throw error;
-  return data as MeResult;
+  if (error) {
+    if (localPreviewEnabled()) return localPreviewMe();
+    throw error;
+  }
+  const me = data as MeResult;
+  if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
+  return me;
 }
 
 /** Guard helpers — throw redirect if user doesn't have access. */
