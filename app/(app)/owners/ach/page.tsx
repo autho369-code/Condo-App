@@ -22,16 +22,16 @@ export default async function OwnerAchPage({
   const supabase = await createClient();
 
   const [{ data: owners }, { data: paymentMethods }, { data: mandates }] = await Promise.all([
-    supabase
+    (supabase as any)
       .from('owners')
       .select('id, full_name, email, portal_activated, archived_at')
       .is('archived_at', null)
       .order('full_name'),
-    supabase
+    (supabase as any)
       .from('payment_methods')
       .select('id, owner_id, method_type, bank_name, account_type, last_four, is_default, is_verified, verified_at, archived_at')
       .is('archived_at', null),
-    supabase
+    (supabase as any)
       .from('autopay_mandates')
       .select('id, owner_id, status, frequency, next_run_date, failure_count, last_failure_reason'),
   ]);
@@ -47,7 +47,7 @@ export default async function OwnerAchPage({
     if (!mandateByOwner.has((mandate as any).owner_id)) mandateByOwner.set((mandate as any).owner_id, mandate);
   }
 
-  let rows = (owners ?? []).map((owner: any) => ({
+  let rows: any[] = (owners ?? []).map((owner: any) => ({
     owner,
     methods: methodsByOwner.get(owner.id) ?? [],
     mandate: mandateByOwner.get(owner.id),

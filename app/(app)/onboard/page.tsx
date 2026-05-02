@@ -13,7 +13,7 @@ async function createAssociation(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const me = await (await import('@/lib/auth/me')).requirePortfolioAdmin();
-  const { error } = await supabase.from('associations').insert({
+  const { error } = await (supabase as any).from('associations').insert({
     portfolio_id: me.portfolio.id,
     name:    formData.get('name') as string,
     address: formData.get('address') as string,
@@ -38,11 +38,11 @@ export default async function OnboardPage() {
   const supabase = await createClient();
 
   const [{ count: associationCount }, { count: unitCount }, { count: ownerCount }, { count: staffCount }, { data: subscription }] = await Promise.all([
-    supabase.from('associations').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
-    supabase.from('units').select('*', { count: 'exact', head: true }),
-    supabase.from('owners').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id).eq('hoa_role', 'manager'),
-    supabase.from('subscriptions').select('*').eq('portfolio_id', me.portfolio.id).maybeSingle(),
+    (supabase as any).from('associations').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
+    (supabase as any).from('units').select('*', { count: 'exact', head: true }),
+    (supabase as any).from('owners').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
+    (supabase as any).from('profiles').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id).eq('hoa_role', 'manager'),
+    (supabase as any).from('subscriptions').select('*').eq('portfolio_id', me.portfolio.id).maybeSingle(),
   ]);
 
   // Step status

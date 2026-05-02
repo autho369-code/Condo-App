@@ -30,7 +30,7 @@ export default async function ReportView({
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const { data: def } = await supabase
+  const { data: def } = await (supabase as any)
     .from('report_definitions')
     .select('id, slug, name, category, description, output_formats')
     .eq('slug', slug)
@@ -40,12 +40,12 @@ export default async function ReportView({
   if (!def) notFound();
 
   const [{ data: runs }, { data: associations }] = await Promise.all([
-    supabase.from('report_runs')
+    (supabase as any).from('report_runs')
       .select('id, status, output_format, output_url, row_count, duration_ms, created_at')
       .eq('definition_id', def.id)
       .order('created_at', { ascending: false })
       .limit(10),
-    supabase.from('associations')
+    (supabase as any).from('associations')
       .select('id, name, created_at')
       .is('archived_at', null)
       .order('name'),
@@ -121,7 +121,7 @@ async function ARAgingView({
 }) {
   const supabase = await createClient();
 
-  let q = supabase.from('aged_receivables').select('*').order('due_date');
+  let q = (supabase as any).from('aged_receivables').select('*').order('due_date');
   if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
   const { data: rows } = await q;
   const assocs = associations;

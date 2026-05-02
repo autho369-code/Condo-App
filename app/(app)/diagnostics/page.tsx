@@ -12,10 +12,10 @@ export default async function DiagnosticsPage() {
   const supabase = await createClient();
 
   const [{ count: invalidPhone }, { count: noOwner }, { count: noEmail }, { data: summary }] = await Promise.all([
-    supabase.from('owners').select('*', { count: 'exact', head: true }).or('phone.is.null,phone.eq.'),
-    supabase.from('units').select('*', { count: 'exact', head: true }).not('id', 'in', '(SELECT unit_id FROM occupancies WHERE status=\'current\')'),
-    supabase.from('owners').select('*', { count: 'exact', head: true }).or('email.is.null,email.eq.'),
-    supabase.from('v_dashboard_summary').select('open_diagnostics, portal_not_activated_count, insurance_expirations_60d').eq('portfolio_id', me.portfolio?.id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
+    (supabase as any).from('owners').select('*', { count: 'exact', head: true }).or('phone.is.null,phone.eq.'),
+    (supabase as any).from('units').select('*', { count: 'exact', head: true }).not('id', 'in', '(SELECT unit_id FROM occupancies WHERE status=\'current\')'),
+    (supabase as any).from('owners').select('*', { count: 'exact', head: true }).or('email.is.null,email.eq.'),
+    (supabase as any).from('v_dashboard_summary').select('open_diagnostics, portal_not_activated_count, insurance_expirations_60d').eq('portfolio_id', me.portfolio?.id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
   ]);
 
   const tiles = [

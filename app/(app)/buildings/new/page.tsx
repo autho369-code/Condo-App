@@ -42,8 +42,8 @@ export default async function NewBuildingPage({
   const supabase = await createClient();
 
   const [{ data: assoc }, { data: propertyGroups }] = await Promise.all([
-    supabase.from('associations').select('id, name').eq('id', associationId).maybeSingle(),
-    supabase.from('property_groups').select('id, name').order('name'),
+    (supabase as any).from('associations').select('id, name').eq('id', associationId).maybeSingle(),
+    (supabase as any).from('property_groups').select('id, name').order('name'),
   ]);
 
   if (!assoc) redirect('/associations');

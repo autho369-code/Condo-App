@@ -12,7 +12,7 @@ export default async function PortalHome() {
   const supabase = await createClient();
 
   // The resident's own unit summary (RLS filters to their unit only)
-  const { data: units } = await supabase.from('v_unit_account_summary').select('*');
+  const { data: units } = await (supabase as any).from('v_unit_account_summary').select('*');
 
   const total = (units ?? []).reduce((acc: any, u: any) => ({
     outstanding: (acc.outstanding ?? 0) + Number(u.outstanding_balance ?? 0),

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function ReportRunsHistory() {
   const supabase = await createClient();
 
-  const { data: runs } = await supabase
+  const { data: runs } = await (supabase as any)
     .from('report_runs')
     .select(`
       id, status, output_format, output_url, output_size_bytes, row_count,

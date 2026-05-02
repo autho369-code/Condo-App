@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function LettersPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('document_templates')
     .select('id, name, letter_type, template_category, active')
     .is('archived_at', null)

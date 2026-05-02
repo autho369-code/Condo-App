@@ -32,7 +32,7 @@ export default async function ServiceRequestsList({
   const { submitted } = await searchParams;
   const supabase = await createClient();
 
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('service_requests')
     .select(`
       id, number, description, priority, status, source, created_on, created_at,

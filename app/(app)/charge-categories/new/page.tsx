@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export default async function NewChargeCategory() {
   const me = await requireStaff();
   const supabase = await createClient();
-  const { data: gls } = await supabase.from('gl_accounts')
+  const { data: gls } = await (supabase as any).from('gl_accounts')
     .select('id, number, name, account_type').eq('active', true).order('number');
 
   return (

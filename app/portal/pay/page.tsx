@@ -14,7 +14,7 @@ export default async function PayPage() {
   const supabase = await createClient();
 
   // The resident's unit summary(ies). RLS filters to their own unit(s).
-  const { data: units } = await supabase
+  const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('*')
     .order('association_name');

@@ -22,12 +22,12 @@ export default async function VendorW9Page({
   const supabase = await createClient();
 
   const [{ data: vendors }, { data: requests }] = await Promise.all([
-    supabase
+    (supabase as any)
       .from('vendors')
       .select('id, name, email_echeck_receipt, send_1099, taxpayer_name, taxpayer_id, is_utility, archived_at')
       .is('archived_at', null)
       .order('name'),
-    supabase
+    (supabase as any)
       .from('document_requests')
       .select('id, vendor_id, name, doc_type, status, requested_at, due_date')
       .not('vendor_id', 'is', null)
@@ -41,7 +41,7 @@ export default async function VendorW9Page({
     if (!latestByVendor.has(vendorId) && String((request as any).doc_type).toLowerCase().includes('w')) latestByVendor.set(vendorId, request);
   }
 
-  let rows = (vendors ?? []).map((vendor: any) => ({ vendor, latest: latestByVendor.get(vendor.id) }));
+  let rows: any[] = (vendors ?? []).map((vendor: any) => ({ vendor, latest: latestByVendor.get(vendor.id) }));
   if (sp.vendor) rows = rows.filter((row) => row.vendor.id === sp.vendor);
   if (q) rows = rows.filter((row) => [row.vendor.name, row.vendor.taxpayer_name, row.latest?.status].some((value) => value?.toLowerCase().includes(q)));
 

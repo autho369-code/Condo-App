@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function InspectionsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('inspections')
     .select('id, inspection_type, scheduled_date, completed_date, status, associations(name), units(unit_number)')
     .is('archived_at', null)

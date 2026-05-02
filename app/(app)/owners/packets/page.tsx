@@ -22,8 +22,8 @@ export default async function OwnerPacketsPage({
   const supabase = await createClient();
 
   const [{ data: owners }, { data: requests }] = await Promise.all([
-    supabase.from('owners').select('id, full_name, email, portal_activated, archived_at').is('archived_at', null).order('full_name'),
-    supabase
+    (supabase as any).from('owners').select('id, full_name, email, portal_activated, archived_at').is('archived_at', null).order('full_name'),
+    (supabase as any)
       .from('document_requests')
       .select('id, owner_id, name, doc_type, status, requested_at, due_date')
       .not('owner_id', 'is', null)
@@ -37,7 +37,7 @@ export default async function OwnerPacketsPage({
     requestsByOwner.set(ownerId, [...(requestsByOwner.get(ownerId) ?? []), request]);
   }
 
-  let rows = (owners ?? []).map((owner: any) => ({ owner, requests: requestsByOwner.get(owner.id) ?? [] }));
+  let rows: any[] = (owners ?? []).map((owner: any) => ({ owner, requests: requestsByOwner.get(owner.id) ?? [] }));
   if (sp.owner) rows = rows.filter((row) => row.owner.id === sp.owner);
   if (q) rows = rows.filter((row) => [row.owner.full_name, row.owner.email].some((value) => value?.toLowerCase().includes(q)));
 

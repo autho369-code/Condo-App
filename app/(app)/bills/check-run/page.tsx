@@ -16,8 +16,8 @@ export default async function CheckRunPage() {
   const supabase = await createClient();
 
   const [{ data: queue }, { data: banks }] = await Promise.all([
-    supabase.from('v_check_writing_queue').select('*'),
-    supabase.from('bank_accounts')
+    (supabase as any).from('v_check_writing_queue').select('*'),
+    (supabase as any).from('bank_accounts')
       .select('id, name, bank_name, next_check_number')
       .is('archived_at', null)
       .order('name'),

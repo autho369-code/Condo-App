@@ -30,9 +30,9 @@ export default async function VendorCompliancePage({
   const supabase = await createClient();
 
   const [{ data: vendors }, { data: documents }, { data: requests }] = await Promise.all([
-    supabase.from('vendors').select('id, name, trade, archived_at').is('archived_at', null).order('name'),
-    supabase.from('documents').select('id, entity_id, entity_type, doc_type, file_name, expires_at, uploaded_at').eq('entity_type', 'vendor').order('expires_at', { ascending: true }),
-    supabase.from('document_requests').select('id, vendor_id, name, doc_type, status, requested_at, due_date').not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
+    (supabase as any).from('vendors').select('id, name, trade, archived_at').is('archived_at', null).order('name'),
+    (supabase as any).from('documents').select('id, entity_id, entity_type, doc_type, file_name, expires_at, uploaded_at').eq('entity_type', 'vendor').order('expires_at', { ascending: true }),
+    (supabase as any).from('document_requests').select('id, vendor_id, name, doc_type, status, requested_at, due_date').not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
   ]);
 
   const docsByVendor = new Map<string, any[]>();
@@ -46,7 +46,7 @@ export default async function VendorCompliancePage({
     requestsByVendor.set(vendorId, [...(requestsByVendor.get(vendorId) ?? []), request]);
   }
 
-  let rows = (vendors ?? []).map((vendor: any) => ({
+  let rows: any[] = (vendors ?? []).map((vendor: any) => ({
     vendor,
     docs: docsByVendor.get(vendor.id) ?? [],
     requests: requestsByVendor.get(vendor.id) ?? [],

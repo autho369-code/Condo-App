@@ -6,8 +6,11 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { Button } from '@/components/ui/button';
+import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
+
+type AmenityInsert = Database['public']['Tables']['association_amenities']['Insert'];
 
 export default async function AmenitiesTab({
   params,
@@ -23,11 +26,11 @@ export default async function AmenitiesTab({
 
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: amenities } = await supabase
+  const { data: amenities } = await (supabase as any)
     .from('association_amenities')
     .select('id, name, image_url, description_html, opens_at, closes_at, allow_reservations, pricing_mode, price_amount, reserve_method, reservation_email, reservation_url, archived_at')
     .eq('association_id', id)
@@ -45,23 +48,25 @@ export default async function AmenitiesTab({
     const priceRaw = String(formData.get('price_amount') ?? '').trim();
     const reserveMethod = (formData.get('reserve_method') as string) || null;
 
-    const { error } = await supabase.from('association_amenities').insert({
+    const payload: AmenityInsert = {
       association_id: id,
       name,
       description_html: (formData.get('description_html') as string) || null,
       opens_at: (formData.get('opens_at') as string) || null,
       closes_at: (formData.get('closes_at') as string) || null,
       allow_reservations: allowReservations,
-      pricing_mode: allowReservations ? pricingMode : null,
+      pricing_mode: allowReservations ? pricingMode as AmenityInsert['pricing_mode'] : null,
       price_amount: allowReservations && priceRaw ? Number(priceRaw) : null,
-      reserve_method: allowReservations ? reserveMethod : null,
+      reserve_method: allowReservations ? reserveMethod as AmenityInsert['reserve_method'] : null,
       reservation_email:
         allowReservations && reserveMethod === 'email'
           ? (formData.get('reservation_email') as string) || null : null,
       reservation_url:
         allowReservations && reserveMethod === 'platform_link'
           ? (formData.get('reservation_url') as string) || null : null,
-    });
+    };
+
+    const { error } = await (supabase as any).from('association_amenities').insert(payload);
 
     if (error) throw new Error(error.message);
     revalidatePath(`/associations/${id}/amenities`);

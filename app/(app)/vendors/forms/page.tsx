@@ -24,7 +24,7 @@ export default async function VendorFormsPage({
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: vendors } = await supabase
+  const { data: vendors } = await (supabase as any)
     .from('vendors')
     .select('id, name, trade, archived_at')
     .is('archived_at', null)

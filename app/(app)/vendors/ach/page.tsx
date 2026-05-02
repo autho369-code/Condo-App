@@ -21,13 +21,13 @@ export default async function VendorAchPage({
   const q = (sp.q ?? '').trim().toLowerCase();
   const supabase = await createClient();
 
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('vendors')
     .select('id, name, trade, payment_type, bank_routing_number, bank_account_number, savings_account, is_auto_pay, auto_pay_setup_at, auto_pay_notes, hold_payments, archived_at')
     .is('archived_at', null)
     .order('name');
 
-  let rows = data ?? [];
+  let rows: any[] = data ?? [];
   if (sp.vendor) rows = rows.filter((vendor: any) => vendor.id === sp.vendor);
   if (q) rows = rows.filter((vendor: any) => [vendor.name, vendor.trade, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)));
 

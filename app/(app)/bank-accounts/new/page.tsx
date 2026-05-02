@@ -19,8 +19,8 @@ export default async function NewBankAccountPage({
   const supabase = await createClient();
 
   const [{ data: associations }, { data: glAccounts }] = await Promise.all([
-    supabase.from('associations').select('id, name').is('archived_at', null).order('name'),
-    supabase.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
+    (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
   ]);
 
   const cashGLs = (glAccounts ?? []).filter((account: any) =>

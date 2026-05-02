@@ -13,7 +13,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: run } = await supabase
+  const { data: run } = await (supabase as any)
     .from('report_runs')
     .select('*, report_definitions(id, slug, name, category, description)')
     .eq('id', id)

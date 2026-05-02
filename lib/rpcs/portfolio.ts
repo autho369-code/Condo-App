@@ -8,7 +8,7 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
   const reminderDays = (formData.get('reminder_days') as string || '14,7,1,-7,-30')
     .split(',').map((s) => parseInt(s.trim())).filter((n) => !Number.isNaN(n));
 
-  const { error } = await supabase.from('portfolios').update({
+  const { error } = await (supabase as any).from('portfolios').update({
     company_name:                     formData.get('company_name') as string,
     phone_number:                     (formData.get('phone_number') as string) || null,
     texting_phone_number:             (formData.get('texting_phone_number') as string) || null,

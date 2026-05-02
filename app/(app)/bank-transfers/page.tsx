@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function BankTransfersPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('bank_transfers')
     .select(`id, amount, transfer_date, reference_number, memo,
              from:from_bank_account_id(name), to:to_bank_account_id(name)`)

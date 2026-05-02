@@ -65,12 +65,12 @@ export default async function OwnersPage({
   const supabase = await createClient();
 
   const [{ data: owners }, { data: occupancies }] = await Promise.all([
-    supabase
+    (supabase as any)
       .from('owners')
       .select('id, full_name, first_name, last_name, email, phone, phone_numbers, preferred_comm, portal_activated, portal_login_last_at, electronic_consent, archived_at')
       .is('archived_at', null)
       .order('last_name', { ascending: true }),
-    supabase
+    (supabase as any)
       .from('occupancies')
       .select(`
         id,

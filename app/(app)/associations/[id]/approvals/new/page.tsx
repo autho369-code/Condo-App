@@ -17,18 +17,18 @@ export default async function NewApprovalPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name, portfolio_id').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: members } = await supabase
+  const { data: members } = await (supabase as any)
     .from('board_members')
     .select('id, full_name, role')
     .eq('association_id', id)
     .eq('active', true)
     .order('role');
 
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
     .select('default_board_member_ids, default_voting_scheme, signatures_required')
     .eq('association_id', id)
@@ -66,7 +66,7 @@ export default async function NewApprovalPage({
       default:                            requiredVotes = Math.floor(boardMemberIds.length / 2) + 1;
     }
 
-    const { error } = await supabase.from('approval_requests').insert({
+    const { error } = await (supabase as any).from('approval_requests').insert({
       portfolio_id: assoc!.portfolio_id,
       association_id: id,
       request_type: 'expense',

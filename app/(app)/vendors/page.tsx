@@ -23,14 +23,14 @@ export default async function VendorsPage({
   const trade = sp.trade ?? 'all';
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('vendors')
     .select('id, name, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, archived_at')
     .is('archived_at', null)
     .order('name');
 
   const allRows = data ?? [];
-  const trades = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean))).sort();
+  const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort();
   let rows = allRows;
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
   if (q) {

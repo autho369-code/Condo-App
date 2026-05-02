@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function RecurringWOPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('recurring_work_orders')
     .select('id, title, trade, priority, frequency, interval_count, next_due_date, auto_generate, associations(name), units(unit_number), vendors(name)')
     .is('archived_at', null)

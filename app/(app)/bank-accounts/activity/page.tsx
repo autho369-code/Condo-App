@@ -18,7 +18,7 @@ export default async function BankActivityPage({
   await requireStaff();
   const { bank_account_id = '', from = '', to = '' } = await searchParams;
   const supabase = await createClient();
-  const { data: accounts } = await supabase
+  const { data: accounts } = await (supabase as any)
     .from('bank_accounts')
     .select('id, name, bank_name')
     .is('archived_at', null)

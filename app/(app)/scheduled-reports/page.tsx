@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function ScheduledReportsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('scheduled_reports')
     .select('id, name, frequency, day_of_week, day_of_month, hour_utc, next_run_at, last_run_at, output_format, delivery_channel, active, report_definitions(name)')
     .is('archived_at', null)

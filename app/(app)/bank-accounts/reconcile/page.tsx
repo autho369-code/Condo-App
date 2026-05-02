@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function BankReconcilePage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: accounts } = await supabase.from('bank_accounts').select('id, name').is('archived_at', null).order('name');
+  const { data: accounts } = await (supabase as any).from('bank_accounts').select('id, name').is('archived_at', null).order('name');
 
   return (
     <DataWorkspace

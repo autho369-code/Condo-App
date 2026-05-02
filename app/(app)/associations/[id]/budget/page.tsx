@@ -8,6 +8,12 @@ export const dynamic = 'force-dynamic';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const;
 
+type BudgetRow = {
+  acct: any;
+  monthly: number[];
+  prior: number;
+};
+
 export default async function BudgetTab({
   params,
   searchParams,
@@ -22,24 +28,24 @@ export default async function BudgetTab({
 
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name, address').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: accounts } = await supabase
+  const { data: accounts } = await (supabase as any)
     .from('gl_accounts')
     .select('id, number, name, account_type')
     .or(`association_id.eq.${id},association_id.is.null`)
     .eq('active', true)
     .order('number');
 
-  const { data: lines } = await supabase
+  const { data: lines } = await (supabase as any)
     .from('budget_lines')
     .select('gl_account_id, fiscal_year, monthly_amounts, category')
     .eq('association_id', id)
     .eq('fiscal_year', fiscalYear);
 
-  const { data: priorActuals } = await supabase
+  const { data: priorActuals } = await (supabase as any)
     .from('budget_line_totals')
     .select('gl_account_id, annual_total')
     .eq('association_id', id)
@@ -60,8 +66,8 @@ export default async function BudgetTab({
     return (l.monthly_amounts as any[]).map((n) => Number(n) || 0);
   };
 
-  const incomeRows = incomeAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
-  const expenseRows = expenseAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
+  const incomeRows: BudgetRow[] = incomeAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
+  const expenseRows: BudgetRow[] = expenseAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
 
   const incomeAnnualBudget = incomeRows.reduce((s, r) => s + r.monthly.reduce((x, y) => x + y, 0), 0);
   const incomeAnnualPrior  = incomeRows.reduce((s, r) => s + r.prior, 0);

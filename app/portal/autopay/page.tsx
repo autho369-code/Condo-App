@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 async function enroll(formData: FormData) {
   'use server';
   const supabase = await createClient();
-  const { error } = await supabase.rpc('enroll_autopay', {
+  const { error } = await (supabase as any).rpc('enroll_autopay', {
     p_unit_id:                formData.get('unit_id') as string,
     p_payment_method_id:      formData.get('payment_method_id') as string,
     p_authorized_max_cents:   Math.round(parseFloat(formData.get('max_amount') as string) * 100),
@@ -26,7 +26,7 @@ async function enroll(formData: FormData) {
 async function cancel(mandateId: string) {
   'use server';
   const supabase = await createClient();
-  await supabase.rpc('cancel_autopay', { p_mandate_id: mandateId, p_reason: 'user requested' });
+  await (supabase as any).rpc('cancel_autopay', { p_mandate_id: mandateId, p_reason: 'user requested' });
   revalidatePath('/portal/autopay');
 }
 
@@ -35,9 +35,9 @@ export default async function AutopayPage() {
   const supabase = await createClient();
 
   const [{ data: mandates }, { data: methods }, { data: units }] = await Promise.all([
-    supabase.from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
-    supabase.from('payment_methods').select('id, brand, last_four, method_type, bank_name, is_default').eq('owner_id', me.owner_id ?? '').is('archived_at', null),
-    supabase.from('v_unit_account_summary').select('*'),
+    (supabase as any).from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
+    (supabase as any).from('payment_methods').select('id, brand, last_four, method_type, bank_name, is_default').eq('owner_id', me.owner_id ?? '').is('archived_at', null),
+    (supabase as any).from('v_unit_account_summary').select('*'),
   ]);
 
   return (

@@ -9,8 +9,8 @@ export default async function NewBankDepositPage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: accounts }, { data: associations }] = await Promise.all([
-    supabase.from('bank_accounts').select('id, name').is('archived_at', null).order('name'),
-    supabase.from('associations').select('id, name').is('archived_at', null).order('name'),
+    (supabase as any).from('bank_accounts').select('id, name').is('archived_at', null).order('name'),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
 
   return (

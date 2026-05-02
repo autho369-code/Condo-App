@@ -31,11 +31,11 @@ export default async function NewPropertyPage() {
     { data: feeSchedules },
     { data: ownersList },
   ] = await Promise.all([
-    supabase.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
-    supabase.from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
-    supabase.from('property_groups').select('id, name').order('name'),
-    supabase.from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
-    supabase.from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
+    (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    (supabase as any).from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
+    (supabase as any).from('property_groups').select('id, name').order('name'),
+    (supabase as any).from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
+    (supabase as any).from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
   ]);
 
   const cashGLAccounts = (glAccounts ?? []).filter((g: any) => {
@@ -54,7 +54,7 @@ export default async function NewPropertyPage() {
     if (!address) throw new Error('Address is required.');
     if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
 
-    const { data: assoc, error: aErr } = await supabase
+    const { data: assoc, error: aErr } = await (supabase as any)
       .from('associations')
       .insert({
         portfolio_id: m.portfolio.id,

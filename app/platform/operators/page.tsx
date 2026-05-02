@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function OperatorsPage() {
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('platform_operators')
     .select('id, email, full_name, role, active, created_at')
     .order('created_at');

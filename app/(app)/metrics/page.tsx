@@ -9,7 +9,7 @@ export default async function MetricsPage() {
   const me = await requireStaff();
   const supabase = await createClient();
 
-  const { data: summary } = await supabase
+  const { data: summary } = await (supabase as any)
     .from('v_dashboard_summary')
     .select('*')
     .eq('portfolio_id', me.portfolio?.id ?? '00000000-0000-0000-0000-000000000000')

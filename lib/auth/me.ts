@@ -24,7 +24,7 @@ export interface MeResult {
 
 export async function getMe(): Promise<MeResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('me');
+  const { data, error } = await (supabase as any).rpc('me');
   if (error) throw error;
   return data as MeResult;
 }

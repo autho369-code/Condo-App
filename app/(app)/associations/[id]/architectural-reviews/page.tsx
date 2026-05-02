@@ -16,17 +16,17 @@ export default async function ArchitecturalReviewsTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from('architectural_review_settings')
     .select('*')
     .eq('association_id', id)
     .maybeSingle();
 
-  const { data: committees } = await supabase
+  const { data: committees } = await (supabase as any)
     .from('committees')
     .select('id, name')
     .eq('association_id', id)
@@ -37,7 +37,7 @@ export default async function ArchitecturalReviewsTab({
     'use server';
     const supabase = await createClient();
 
-    await supabase.from('architectural_review_settings').upsert({
+    await (supabase as any).from('architectural_review_settings').upsert({
       association_id: id,
       online_requests_disabled: formData.get('online_requests_disabled') === 'on',
       default_committee_id: (formData.get('default_committee_id') as string) || null,

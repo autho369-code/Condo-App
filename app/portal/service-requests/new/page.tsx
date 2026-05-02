@@ -30,11 +30,11 @@ export default async function NewServiceRequest() {
 
   // Get the owner's units with association context.
   // RLS on v_unit_account_summary already filters to units the user belongs to.
-  const { data: units } = await supabase
+  const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_name');
 
-  const unitOptions = units ?? [];
+  const unitOptions: any[] = units ?? [];
 
   return (
     <div className="space-y-6">

@@ -23,14 +23,14 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
     { data: unit }, { data: summary }, { data: schedule },
     { data: balances }, { data: payments }, { data: categories },
   ] = await Promise.all([
-    supabase.from('units')
+    (supabase as any).from('units')
       .select('id, unit_number, bedrooms, bathrooms, sqft, buildings(name, association_id, associations(name))')
       .eq('id', unitId).maybeSingle(),
-    supabase.from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
-    supabase.from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
-    supabase.from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
-    supabase.from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
-    supabase.from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
+    (supabase as any).from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
+    (supabase as any).from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
+    (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
+    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
+    (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
   ]);
 
   if (!unit) notFound();

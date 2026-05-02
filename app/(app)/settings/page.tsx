@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 async function inviteStaff(formData: FormData) {
   'use server';
   const supabase = await (await import('@/lib/supabase/server')).createClient();
-  const { error } = await supabase.rpc('invite_staff', {
+  const { error } = await (supabase as any).rpc('invite_staff', {
     p_portfolio_id: formData.get('portfolio_id') as string,
     p_email: formData.get('email') as string,
     p_role_name: (formData.get('role_name') as string) || 'Property Manager',
@@ -29,9 +29,9 @@ export default async function SettingsPage() {
   const portfolioId = me.portfolio?.id as string;
 
   const [{ data: portfolio }, { data: team }, { data: invites }] = await Promise.all([
-    supabase.from('portfolios').select('*').eq('id', portfolioId).single(),
-    supabase.from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
-    supabase.from('v_pending_invitations').select('*'),
+    (supabase as any).from('portfolios').select('*').eq('id', portfolioId).single(),
+    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
+    (supabase as any).from('v_pending_invitations').select('*'),
   ]);
 
   const updatePolicy = updatePortfolioPolicy.bind(null, portfolioId);

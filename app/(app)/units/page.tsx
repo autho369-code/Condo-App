@@ -10,7 +10,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
   const { assoc, filter } = await searchParams;
   const supabase = await createClient();
 
-  let q = supabase.from('v_unit_account_summary').select('*');
+  let q = (supabase as any).from('v_unit_account_summary').select('*');
   if (assoc) q = q.eq('association_id', assoc);
   const { data: rows } = await q.order('association_name').order('unit_number');
 
@@ -18,7 +18,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
   const filtered = filter === 'balance' ? all.filter((u) => Number(u.outstanding_balance ?? 0) > 0)
                  : filter === 'credit'  ? all.filter((u) => Number(u.unapplied_credit ?? 0) > 0)
                  : all;
-  const { data: assocs } = await supabase.from('associations').select('id, name').is('archived_at', null).order('name');
+  const { data: assocs } = await (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name');
   const outstanding = filtered.reduce((s, u) => s + Number(u.outstanding_balance ?? 0), 0);
 
   return (

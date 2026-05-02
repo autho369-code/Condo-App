@@ -54,7 +54,7 @@ export async function createAssociation(formData: FormData) {
   //   3. the only portfolio visible via RLS — auto-select if exactly one
   let portfolioId: string | null = str(formData, 'portfolio_id') ?? me.portfolio?.id ?? null;
   if (!portfolioId) {
-    const { data: visible } = await supabase.from('portfolios').select('id').limit(2);
+    const { data: visible } = await (supabase as any).from('portfolios').select('id').limit(2);
     if ((visible ?? []).length === 1) portfolioId = visible![0].id;
   }
   if (!portfolioId) {
@@ -96,7 +96,7 @@ export async function createAssociation(formData: FormData) {
     if (clean[k] === null) delete clean[k];
   }
 
-  const { data: assoc, error } = await supabase.from('associations').insert(clean).select('id').single();
+  const { data: assoc, error } = await (supabase as any).from('associations').insert(clean).select('id').single();
   if (error || !assoc) return { error: error?.message ?? 'Failed to create association' };
 
   revalidatePath('/associations');
@@ -145,7 +145,7 @@ export async function updateAssociation(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
 
-  const { error } = await supabase.from('associations').update(patch).eq('id', id);
+  const { error } = await (supabase as any).from('associations').update(patch).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath(`/associations/${id}`);
   revalidatePath('/associations');
@@ -154,7 +154,7 @@ export async function updateAssociation(id: string, formData: FormData) {
 export async function archiveAssociation(id: string) {
   await requirePortfolioAdmin();
   const supabase = await createClient();
-  const { error } = await supabase.from('associations').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await (supabase as any).from('associations').update({ archived_at: new Date().toISOString() }).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/associations');
   redirect('/associations');
@@ -189,7 +189,7 @@ export async function createBankAccount(formData: FormData) {
     next_check_number: intn(formData, 'next_check_number'),
   };
 
-  const { data: bank, error } = await supabase
+  const { data: bank, error } = await (supabase as any)
     .from('bank_accounts').insert(payload).select('id').single();
   if (error || !bank) return { error: error?.message ?? 'Failed to create bank account' };
 
@@ -229,7 +229,7 @@ export async function createBuilding(formData: FormData) {
     : [];
 
   // Is there already a primary building for this association?
-  const { data: existingPrimary } = await supabase
+  const { data: existingPrimary } = await (supabase as any)
     .from('buildings')
     .select('id')
     .eq('association_id', associationId)
@@ -275,7 +275,7 @@ export async function createBuilding(formData: FormData) {
     if (payload[k] === null) delete payload[k];
   }
 
-  const { data: b, error } = await supabase.from('buildings').insert(payload).select('id').single();
+  const { data: b, error } = await (supabase as any).from('buildings').insert(payload).select('id').single();
   if (error || !b) return { error: error?.message ?? 'Failed to create building' };
 
   revalidatePath(`/associations/${associationId}`);
@@ -327,7 +327,7 @@ export async function updateBuilding(id: string, formData: FormData) {
 
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
 
-  const { data: b, error } = await supabase
+  const { data: b, error } = await (supabase as any)
     .from('buildings')
     .update(patch)
     .eq('id', id)
@@ -361,7 +361,7 @@ export async function createUnit(formData: FormData) {
     notes:        str(formData, 'notes'),
   };
 
-  const { data: unit, error } = await supabase.from('units').insert(payload).select('id, building_id, buildings(association_id)').single();
+  const { data: unit, error } = await (supabase as any).from('units').insert(payload).select('id, building_id, buildings(association_id)').single();
   if (error || !unit) return { error: error?.message ?? 'Failed to create unit' };
 
   const assocId = (unit.buildings as any)?.association_id;
@@ -385,7 +385,7 @@ export async function updateUnit(id: string, formData: FormData) {
     notes:          str(formData, 'notes'),
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await supabase.from('units').update(patch).eq('id', id);
+  const { error } = await (supabase as any).from('units').update(patch).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath(`/units/${id}`);
   revalidatePath('/units');
@@ -420,7 +420,7 @@ export async function createOwner(formData: FormData) {
     created_by:     me.auth_user_id,
   };
 
-  const { data: owner, error } = await supabase.from('owners').insert(payload).select('id').single();
+  const { data: owner, error } = await (supabase as any).from('owners').insert(payload).select('id').single();
   if (error || !owner) return { error: error?.message ?? 'Failed to create owner' };
 
   revalidatePath('/owners');
@@ -444,7 +444,7 @@ export async function updateOwner(id: string, formData: FormData) {
     notes:          str(formData, 'notes'),
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await supabase.from('owners').update(patch).eq('id', id);
+  const { error } = await (supabase as any).from('owners').update(patch).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath(`/owners/${id}`);
   revalidatePath('/owners');
@@ -462,7 +462,7 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
   const unitId = req(formData, 'unit_id');
 
   // Resolve association_id from the unit (never trust the client)
-  const { data: unit, error: unitErr } = await supabase
+  const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
     .select('id, buildings!inner(association_id)')
     .eq('id', unitId)
@@ -484,7 +484,7 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
     share_pct:       num(formData, 'share_pct') ?? 100,
   };
 
-  const { error } = await supabase.from('occupancies').insert(payload);
+  const { error } = await (supabase as any).from('occupancies').insert(payload);
   if (error) return { error: error.message };
 
   revalidatePath(`/owners/${ownerId}`);
@@ -496,7 +496,7 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
 export async function endOccupancy(occupancyId: string, ownerId: string) {
   await requireStaff();
   const supabase = await createClient();
-  const { error } = await supabase.from('occupancies').update({
+  const { error } = await (supabase as any).from('occupancies').update({
     status:        'past',
     move_out_date: new Date().toISOString().slice(0, 10),
   }).eq('id', occupancyId);
@@ -531,7 +531,7 @@ export async function createVendor(formData: FormData) {
     created_by:     me.auth_user_id,
   };
 
-  const { data: v, error } = await supabase.from('vendors').insert(payload).select('id').single();
+  const { data: v, error } = await (supabase as any).from('vendors').insert(payload).select('id').single();
   if (error || !v) return { error: error?.message ?? 'Failed to create vendor' };
 
   revalidatePath('/vendors');
@@ -558,7 +558,7 @@ export async function updateVendor(id: string, formData: FormData) {
     notes:         str(formData, 'notes'),
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await supabase.from('vendors').update(patch).eq('id', id);
+  const { error } = await (supabase as any).from('vendors').update(patch).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath(`/vendors/${id}`);
   revalidatePath('/vendors');
@@ -598,7 +598,7 @@ export async function updateBulkStatementSettings(formData: FormData) {
     include_payment_coupon_on_statement:          formData.get('include_payment_coupon_on_statement') === 'on',
   };
 
-  let query = supabase.from('associations').update(patch).is('archived_at', null);
+  let query = (supabase as any).from('associations').update(patch).is('archived_at', null);
   if (associationIds.length > 0) query = query.in('id', associationIds);
 
   const { error, count } = await (query as any).select('id', { count: 'exact' });

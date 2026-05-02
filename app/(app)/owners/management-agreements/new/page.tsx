@@ -12,8 +12,8 @@ export default async function NewManagementAgreementPage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: owners }, { data: associations }] = await Promise.all([
-    supabase.from('owners').select('id, full_name, email, archived_at').is('archived_at', null).order('full_name').limit(500),
-    supabase.from('associations').select('id, name, archived_at').is('archived_at', null).order('name').limit(500),
+    (supabase as any).from('owners').select('id, full_name, email, archived_at').is('archived_at', null).order('full_name').limit(500),
+    (supabase as any).from('associations').select('id, name, archived_at').is('archived_at', null).order('name').limit(500),
   ]);
 
   return (

@@ -38,7 +38,7 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   const amount_cents = Math.round(amount_dollars * 100);
 
   // 1) Resolve convenience fee via DB helper — respects portfolio policy
-  const { data: feeCalc } = await supabase.rpc('calculate_convenience_fee', {
+  const { data: feeCalc } = await (supabase as any).rpc('calculate_convenience_fee', {
     p_portfolio_id: me.portfolio.id,
     p_amount_cents: amount_cents,
     p_method: method,
@@ -50,7 +50,7 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   const feeLabel   = (feeCalc as any)?.label ?? 'Processing fee';
 
   // 2) Create our payment_intents row first
-  const { data: pi, error: piErr } = await supabase.from('payment_intents').insert({
+  const { data: pi, error: piErr } = await (supabase as any).from('payment_intents').insert({
     unit_id,
     owner_id: me.owner_id,
     amount: amount_dollars,
@@ -114,7 +114,7 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   });
 
   // 4) Stamp session id back on our row
-  await supabase.from('payment_intents').update({
+  await (supabase as any).from('payment_intents').update({
     stripe_checkout_session_id: session.id,
   }).eq('id', pi.id);
 
@@ -125,7 +125,7 @@ export async function createOwnerCheckoutSession(formData: FormData) {
 
 export async function cancelPendingPaymentIntent(paymentIntentId: string) {
   const supabase = await createClient();
-  await supabase.from('payment_intents')
+  await (supabase as any).from('payment_intents')
     .update({ status: 'canceled', updated_at: new Date().toISOString() })
     .eq('id', paymentIntentId)
     .eq('status', 'pending');

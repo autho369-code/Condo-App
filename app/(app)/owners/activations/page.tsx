@@ -22,12 +22,12 @@ export default async function OwnerActivationsPage({
   const supabase = await createClient();
 
   const [{ data: owners }, { data: invitations }] = await Promise.all([
-    supabase
+    (supabase as any)
       .from('owners')
       .select('id, full_name, email, portal_activated, portal_login_last_at, archived_at')
       .is('archived_at', null)
       .order('full_name'),
-    supabase
+    (supabase as any)
       .from('user_invitations')
       .select('id, email, full_name, status, created_at, expires_at, used_at, message')
       .order('created_at', { ascending: false })
@@ -40,7 +40,7 @@ export default async function OwnerActivationsPage({
     if (email && !invitationByEmail.has(email)) invitationByEmail.set(email, invitation);
   }
 
-  let rows = (owners ?? []).map((owner: any) => ({
+  let rows: any[] = (owners ?? []).map((owner: any) => ({
     owner,
     invitation: invitationByEmail.get(owner.email?.toLowerCase()),
   }));

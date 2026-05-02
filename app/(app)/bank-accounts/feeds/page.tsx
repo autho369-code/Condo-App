@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function BankFeedsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: accounts } = await supabase
+  const { data: accounts } = await (supabase as any)
     .from('bank_accounts')
     .select('id, name, bank_name, auto_reconciliation, last_reconciliation_date')
     .is('archived_at', null)

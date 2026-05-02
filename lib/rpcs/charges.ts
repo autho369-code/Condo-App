@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 
 export async function createChargeCategory(formData: FormData) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('charge_categories').insert({
+  const { data, error } = await (supabase as any).from('charge_categories').insert({
     portfolio_id:       formData.get('portfolio_id') as string,
     association_id:     (formData.get('association_id') as string) || null,
     name:               formData.get('name') as string,
@@ -28,7 +28,7 @@ export async function createChargeCategory(formData: FormData) {
 
 export async function updateChargeCategory(id: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from('charge_categories').update({
+  const { error } = await (supabase as any).from('charge_categories').update({
     name:              formData.get('name') as string,
     code:              (formData.get('code') as string)?.toUpperCase() || null,
     description:       (formData.get('description') as string) || null,
@@ -47,7 +47,7 @@ export async function updateChargeCategory(id: string, formData: FormData) {
 
 export async function archiveChargeCategory(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from('charge_categories')
+  const { error } = await (supabase as any).from('charge_categories')
     .update({ archived_at: new Date().toISOString(), active: false }).eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/charge-categories');
@@ -65,7 +65,7 @@ export async function subscribeUnitToCharge(formData: FormData) {
   const start_date         = (formData.get('start_date') as string) || null;
   const memo               = (formData.get('memo') as string) || null;
 
-  const { error } = await supabase.rpc('subscribe_unit_to_charge', {
+  const { error } = await (supabase as any).rpc('subscribe_unit_to_charge', {
     p_unit_id:            unit_id,
     p_charge_category_id: charge_category_id,
     p_amount:             amount,
@@ -79,7 +79,7 @@ export async function subscribeUnitToCharge(formData: FormData) {
 
 export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from('unit_recurring_charges')
+  const { error } = await (supabase as any).from('unit_recurring_charges')
     .update({ active: false, end_date: new Date().toISOString().slice(0,10) })
     .eq('id', subscriptionId);
   if (error) return { error: error.message };
@@ -88,7 +88,7 @@ export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
 
 export async function updateUnitSubscription(id: string, unitId: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from('unit_recurring_charges').update({
+  const { error } = await (supabase as any).from('unit_recurring_charges').update({
     amount:    parseFloat(formData.get('amount') as string),
     frequency: (formData.get('frequency') as any) || 'monthly',
     memo:      (formData.get('memo') as string) || null,
@@ -108,7 +108,7 @@ export async function postAdHocCharge(formData: FormData) {
   const description        = formData.get('description') as string;
   const due_date           = (formData.get('due_date') as string) || null;
 
-  const { error } = await supabase.rpc('post_ad_hoc_charge', {
+  const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
     p_unit_id:             unit_id,
     p_charge_category_id:  charge_category_id,
     p_amount:              amount,
@@ -129,7 +129,7 @@ export async function recordReceipt(formData: FormData) {
   const notes        = (formData.get('notes') as string) || null;
 
   // auto_apply_new_payment trigger handles application automatically
-  const { error } = await supabase.from('payments').insert({
+  const { error } = await (supabase as any).from('payments').insert({
     unit_id, amount, payment_date, method, reference, notes,
   });
   if (error) return { error: error.message };
@@ -138,7 +138,7 @@ export async function recordReceipt(formData: FormData) {
 
 export async function unapplyPayment(paymentId: string, unitId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.rpc('unapply_payment', {
+  const { error } = await (supabase as any).rpc('unapply_payment', {
     p_payment_id: paymentId,
     p_charge_id:  null,
   });

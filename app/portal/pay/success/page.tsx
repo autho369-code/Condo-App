@@ -15,7 +15,7 @@ export default async function PaySuccess({ searchParams }: { searchParams: Promi
   // Stripe webhook updates our row when it fires checkout.session.completed.
   // If the user lands here before the webhook arrives, show "processing".
   const { data: pi } = session_id
-    ? await supabase.from('payment_intents').select('*').eq('stripe_checkout_session_id', session_id).maybeSingle()
+    ? await (supabase as any).from('payment_intents').select('*').eq('stripe_checkout_session_id', session_id).maybeSingle()
     : { data: null };
 
   return (

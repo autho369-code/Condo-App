@@ -14,7 +14,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: b } = await supabase
+  const { data: b } = await (supabase as any)
     .from('payable_bills')
     .select('*, vendors(name, address_street, address_city, address_state, address_zip, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name, bank_name)')
     .eq('id', id)

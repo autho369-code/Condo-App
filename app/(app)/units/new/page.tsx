@@ -22,15 +22,15 @@ export default async function NewUnitPage({
   const supabase = await createClient();
 
   // Load data according to context
-  const { data: associations } = await supabase
+  const { data: associations } = await (supabase as any)
     .from('associations')
     .select('id, name')
     .is('archived_at', null)
     .order('name');
 
   const buildingsQuery = associationId
-    ? supabase.from('buildings').select('id, name, association_id, associations(name)').eq('association_id', associationId)
-    : supabase.from('buildings').select('id, name, association_id, associations(name)');
+    ? (supabase as any).from('buildings').select('id, name, association_id, associations(name)').eq('association_id', associationId)
+    : (supabase as any).from('buildings').select('id, name, association_id, associations(name)');
   const { data: buildings } = await buildingsQuery.is('archived_at', null).order('name');
 
   // If ?building= was specified, pre-resolve it to avoid showing the picker

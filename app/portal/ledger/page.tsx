@@ -10,12 +10,12 @@ export default async function LedgerPage() {
   const supabase = await createClient();
 
   // RLS scopes charges + payments to the resident's own unit
-  const { data: charges } = await supabase
+  const { data: charges } = await (supabase as any)
     .from('v_charge_balances')
     .select('*')
     .order('due_date', { ascending: false });
 
-  const { data: payments } = await supabase
+  const { data: payments } = await (supabase as any)
     .from('payments')
     .select('id, amount, payment_date, method, reference, notes')
     .order('payment_date', { ascending: false });

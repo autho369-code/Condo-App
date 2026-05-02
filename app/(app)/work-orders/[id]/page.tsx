@@ -60,15 +60,15 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
     { data: estimates },
     { data: vendors },
   ] = await Promise.all([
-    supabase.from('work_orders').select(`
+    (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
       units(unit_number, buildings(association_id, associations(name))),
       service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
-    supabase.from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
-    supabase.from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
-    supabase.from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
-    supabase.from('vendors').select('id, name, trade').is('archived_at', null).order('name'),
+    (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
+    (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
+    (supabase as any).from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
+    (supabase as any).from('vendors').select('id, name, trade').is('archived_at', null).order('name'),
   ]);
   if (!wo) notFound();
 

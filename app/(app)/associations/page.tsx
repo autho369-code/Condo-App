@@ -26,7 +26,7 @@ export default function AssociationsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('associations')
         .select('id, name, address, city, state, zip, unit_count')
         .is('archived_at', null)

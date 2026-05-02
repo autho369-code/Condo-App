@@ -22,7 +22,7 @@ export async function createBill(formData: FormData) {
   if (!vendor_id || !amount || amount <= 0)
     return { error: 'Vendor and a positive amount are required.' };
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('payable_bills')
     .insert({
       portfolio_id, vendor_id, association_id, gl_account_id, bank_account_id,
@@ -39,7 +39,7 @@ export async function createBill(formData: FormData) {
 
 export async function approveBill(billId: string) {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('payable_bills')
     .update({ status: 'approved', approved_at: new Date().toISOString() })
     .eq('id', billId);
@@ -50,7 +50,7 @@ export async function approveBill(billId: string) {
 
 export async function voidBill(billId: string) {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('payable_bills')
     .update({ status: 'void' })
     .eq('id', billId);
@@ -70,7 +70,7 @@ export async function writeChecks(formData: FormData) {
     return { error: 'Select a bank account, starting check number, and at least one bill.' };
   }
 
-  const { data, error } = await supabase.rpc('record_check_run', {
+  const { data, error } = await (supabase as any).rpc('record_check_run', {
     p_bank_account_id: bank_account_id,
     p_bill_ids: bill_ids,
     p_starting_check_number: starting_check_number,

@@ -13,9 +13,9 @@ export default async function NewViolationPage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: associations }, { data: units }, { data: owners }] = await Promise.all([
-    supabase.from('associations').select('id, name').is('archived_at', null).order('name'),
-    supabase.from('units').select('id, unit_number').is('archived_at', null).order('unit_number').limit(500),
-    supabase.from('owners').select('id, full_name').is('archived_at', null).order('full_name').limit(500),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
+    (supabase as any).from('units').select('id, unit_number').is('archived_at', null).order('unit_number').limit(500),
+    (supabase as any).from('owners').select('id, full_name').is('archived_at', null).order('full_name').limit(500),
   ]);
 
   return (

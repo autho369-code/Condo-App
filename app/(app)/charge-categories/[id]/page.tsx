@@ -15,8 +15,8 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
   const supabase = await createClient();
 
   const [{ data: cat }, { data: gls }] = await Promise.all([
-    supabase.from('charge_categories').select('*').eq('id', id).maybeSingle(),
-    supabase.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    (supabase as any).from('charge_categories').select('*').eq('id', id).maybeSingle(),
+    (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
   ]);
   if (!cat) notFound();
 

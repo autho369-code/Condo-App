@@ -17,11 +17,11 @@ export default async function CommitteesTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: committees } = await supabase
+  const { data: committees } = await (supabase as any)
     .from('committees')
     .select(`
       id, name, description,

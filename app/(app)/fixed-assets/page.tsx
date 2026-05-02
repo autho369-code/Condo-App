@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function FixedAssetsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('fixed_assets')
     .select('id, name, asset_type, purchase_date, purchase_price, accumulated_depreciation, useful_life_years, status, associations(name)')
     .is('archived_at', null)

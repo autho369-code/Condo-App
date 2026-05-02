@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function CompliancePage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('violations')
     .select('id, title, violation_type, status, date_observed, due_date, fine_amount, associations(name), units(unit_number), owners(full_name)')
     .is('archived_at', null)

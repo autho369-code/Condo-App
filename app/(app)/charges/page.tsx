@@ -9,7 +9,7 @@ export default async function ChargesPage() {
   await requireStaff();
   const supabase = await createClient();
   // aged_receivables = one row per open charge (balance_due > 0)
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('aged_receivables')
     .select('*')
     .order('due_date');

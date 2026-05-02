@@ -37,7 +37,7 @@ export async function sendEmail(formData: FormData) {
   const recipients: Array<{ email: string; name: string; source: string }> = [];
 
   if (recipientType === 'owners' || recipientType === 'both') {
-    const { data: occs } = await supabase
+    const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('owners!owner_id(id, email, full_name)')
       .eq('association_id', associationId)
@@ -49,7 +49,7 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (recipientType === 'tenants' || recipientType === 'both') {
-    const { data: occs } = await supabase
+    const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('owners!owner_id(id, email, full_name)')
       .eq('association_id', associationId)
@@ -61,7 +61,7 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (recipientType === 'board') {
-    const { data: bm } = await supabase
+    const { data: bm } = await (supabase as any)
       .from('board_members')
       .select('email, full_name')
       .eq('association_id', associationId)

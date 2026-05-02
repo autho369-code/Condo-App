@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function SurveysPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('surveys')
     .select('id, name, survey_type, active, created_at')
     .is('archived_at', null)

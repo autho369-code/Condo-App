@@ -25,7 +25,7 @@ export default async function OwnerFormsPage({
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: owners } = await supabase
+  const { data: owners } = await (supabase as any)
     .from('owners')
     .select('id, full_name, email, archived_at')
     .is('archived_at', null)

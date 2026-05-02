@@ -26,21 +26,21 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
     { data: violations },
     { data: units },
   ] = await Promise.all([
-    supabase.from('owners')
+    (supabase as any).from('owners')
       .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at')
       .eq('id', id).is('archived_at', null).maybeSingle(),
-    supabase.from('occupancies')
+    (supabase as any).from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
-    supabase.from('service_requests')
+    (supabase as any).from('service_requests')
       .select('id, number, description, priority, status, created_at, units(unit_number)')
       .eq('homeowner_id', id).is('archived_at', null).order('created_at', { ascending: false }).limit(10),
-    supabase.from('violations')
+    (supabase as any).from('violations')
       .select('id, title, status, date_observed, fine_amount, associations(name)')
       .eq('owner_id', id).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),
     // All active units for the "Link to unit" dropdown
-    supabase.from('units')
+    (supabase as any).from('units')
       .select('id, unit_number, buildings(name, associations(name))')
       .is('archived_at', null)
       .order('unit_number'),

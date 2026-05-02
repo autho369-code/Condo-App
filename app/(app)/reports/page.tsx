@@ -29,11 +29,11 @@ export default async function ReportsIndex({
   const supabase = await createClient();
 
   const [{ data: defs }, { data: saved }, { count: activeCount }, { count: scheduledCount }] = await Promise.all([
-    supabase.from('report_definitions')
+    (supabase as any).from('report_definitions')
       .select('id, slug, name, description, category, active')
       .eq('active', true)
       .order('name'),
-    supabase.from('saved_reports')
+    (supabase as any).from('saved_reports')
       .select(`
         id, name, pinned, last_run_at, run_count, created_at,
         report_definitions(slug, name),
@@ -41,10 +41,10 @@ export default async function ReportsIndex({
       `)
       .order('pinned', { ascending: false })
       .order('created_at', { ascending: false }),
-    supabase.from('report_definitions')
+    (supabase as any).from('report_definitions')
       .select('id', { count: 'exact', head: true })
       .eq('active', true),
-    supabase.from('scheduled_reports')
+    (supabase as any).from('scheduled_reports')
       .select('id', { count: 'exact', head: true })
       .is('archived_at', null)
       .eq('active', true),
