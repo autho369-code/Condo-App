@@ -1,12 +1,30 @@
 # Command Center Operations Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a modern property-management operations UI that covers reports, violations, people, vendors, and banking foundations with Supabase-backed data and safe confirmation rules.
 
 **Architecture:** Keep the existing Next.js App Router structure and evolve it module-by-module. Add focused data helpers under `lib/operations`, `lib/reports`, `lib/banking`, and `lib/people`, and add shared dense-workspace components under `components/operations` so pages stay small.
 
 **Tech Stack:** Next.js 15, React 19, TypeScript, Tailwind CSS, Supabase SSR client, server actions, Vitest, React Testing Library.
+
+## Completion Record
+
+**Status:** Implemented and pushed.
+
+**Branch:** `codex/operations-redesign-impl`
+
+**Pull request:** https://github.com/autho369-code/Condo-App/pull/1
+
+**Local frontend:** http://localhost:53106
+
+**Verification:**
+- `npm test` passed: 8 files, 14 tests.
+- `npm run build` passed with `.env.local` loaded.
+- Local production server is running with `next start --port 53106`.
+- Smoke routes checked: `/login`, `/dashboard`, `/reports`, `/owners`, `/vendors`, `/violations`, `/bank-accounts`.
+
+**Remaining product work:** deepen real production workflows beyond the current safe draft/preview shells, continue AppFolio report parity expansion, and perform authenticated browser QA after signing in.
 
 ---
 
@@ -67,7 +85,7 @@
 - Create: `tests/setup.ts`
 - Create: `tests/fixtures/operations.ts`
 
-- [ ] **Step 1: Add test dependencies and scripts**
+- [x] **Step 1: Add test dependencies and scripts**
 
 Update `package.json` scripts and devDependencies:
 
@@ -92,13 +110,13 @@ Update `package.json` scripts and devDependencies:
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 Run: `npm install`
 
 Expected: `package-lock.json` updates and `npm` exits with code 0.
 
-- [ ] **Step 3: Add Vitest config**
+- [x] **Step 3: Add Vitest config**
 
 Create `vitest.config.ts`:
 
@@ -122,7 +140,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Add DOM setup**
+- [x] **Step 4: Add DOM setup**
 
 Create `tests/setup.ts`:
 
@@ -130,7 +148,7 @@ Create `tests/setup.ts`:
 import '@testing-library/jest-dom/vitest';
 ```
 
-- [ ] **Step 5: Add fixtures**
+- [x] **Step 5: Add fixtures**
 
 Create `tests/fixtures/operations.ts`:
 
@@ -165,13 +183,13 @@ export const reportDefinitions = [
 ];
 ```
 
-- [ ] **Step 6: Verify empty test suite works**
+- [x] **Step 6: Verify empty test suite works**
 
 Run: `npm test -- --passWithNoTests`
 
 Expected: PASS with no test files found or zero tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -189,7 +207,7 @@ git commit -m "test: add vitest harness"
 - Create: `components/operations/data-workspace.tsx`
 - Test: `tests/operations/components.test.tsx`
 
-- [ ] **Step 1: Write component tests**
+- [x] **Step 1: Write component tests**
 
 Create `tests/operations/components.test.tsx`:
 
@@ -215,13 +233,13 @@ describe('operations primitives', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/operations/components.test.tsx`
 
 Expected: FAIL because `components/operations/status-chip.tsx` does not exist.
 
-- [ ] **Step 3: Implement `StatusChip`**
+- [x] **Step 3: Implement `StatusChip`**
 
 Create `components/operations/status-chip.tsx`:
 
@@ -247,7 +265,7 @@ export function StatusChip({ tone = 'neutral', children }: { tone?: Tone; childr
 }
 ```
 
-- [ ] **Step 4: Implement `MetricStrip`**
+- [x] **Step 4: Implement `MetricStrip`**
 
 Create `components/operations/metric-strip.tsx`:
 
@@ -275,7 +293,7 @@ export function MetricStrip({ metrics }: { metrics: Metric[] }) {
 }
 ```
 
-- [ ] **Step 5: Implement `FilterBar`**
+- [x] **Step 5: Implement `FilterBar`**
 
 Create `components/operations/filter-bar.tsx`:
 
@@ -315,7 +333,7 @@ export function FilterBar({
 }
 ```
 
-- [ ] **Step 6: Implement `DataWorkspace`**
+- [x] **Step 6: Implement `DataWorkspace`**
 
 Create `components/operations/data-workspace.tsx`:
 
@@ -353,13 +371,13 @@ export function DataWorkspace({
 }
 ```
 
-- [ ] **Step 7: Verify tests**
+- [x] **Step 7: Verify tests**
 
 Run: `npm test -- tests/operations/components.test.tsx`
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -376,7 +394,7 @@ git commit -m "feat: add operations ui primitives"
 - Modify: `components/workspace/context-panel.tsx`
 - Test: `tests/navigation/modules.test.ts`
 
-- [ ] **Step 1: Write navigation test**
+- [x] **Step 1: Write navigation test**
 
 Create `tests/navigation/modules.test.ts`:
 
@@ -398,13 +416,13 @@ describe('appModules', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/navigation/modules.test.ts`
 
 Expected: FAIL because `lib/navigation/modules.ts` does not exist.
 
-- [ ] **Step 3: Add module definition**
+- [x] **Step 3: Add module definition**
 
 Create `lib/navigation/modules.ts`:
 
@@ -449,7 +467,7 @@ export const appModules: AppModule[] = [
 ];
 ```
 
-- [ ] **Step 4: Update sidebar**
+- [x] **Step 4: Update sidebar**
 
 Modify `components/nav/sidebar.tsx` to import `appModules` and render links from the array. Preserve the existing visual brand and active-state logic.
 
@@ -471,19 +489,19 @@ import { appModules } from '@/lib/navigation/modules';
 </nav>
 ```
 
-- [ ] **Step 5: Verify navigation test**
+- [x] **Step 5: Verify navigation test**
 
 Run: `npm test -- tests/navigation/modules.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Verify build**
+- [x] **Step 6: Verify build**
 
 Run: `npm run build`
 
 Expected: build completes without TypeScript errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -499,7 +517,7 @@ git commit -m "feat: define operations navigation"
 - Modify: `app/(app)/dashboard/page.tsx`
 - Test: `tests/operations/command-center.test.ts`
 
-- [ ] **Step 1: Write aggregation tests**
+- [x] **Step 1: Write aggregation tests**
 
 Create `tests/operations/command-center.test.ts`:
 
@@ -531,13 +549,13 @@ describe('buildCommandMetrics', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/operations/command-center.test.ts`
 
 Expected: FAIL because `lib/operations/command-center.ts` does not exist.
 
-- [ ] **Step 3: Implement command helper**
+- [x] **Step 3: Implement command helper**
 
 Create `lib/operations/command-center.ts`:
 
@@ -563,7 +581,7 @@ export function buildCommandMetrics(counts: CommandCounts) {
 }
 ```
 
-- [ ] **Step 4: Update dashboard page**
+- [x] **Step 4: Update dashboard page**
 
 Modify `app/(app)/dashboard/page.tsx` to query counts with Supabase and render `DataWorkspace` plus `MetricStrip`. Use existing `requireStaff()` before queries. Use `count: 'exact', head: true` queries for count-only panels.
 
@@ -577,19 +595,19 @@ const { count: openViolations } = await supabase
   .not('status', 'in', '("closed","resolved")');
 ```
 
-- [ ] **Step 5: Verify tests**
+- [x] **Step 5: Verify tests**
 
 Run: `npm test -- tests/operations/command-center.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Verify build**
+- [x] **Step 6: Verify build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -608,7 +626,7 @@ git commit -m "feat: add command center metrics"
 - Modify: `lib/rpcs/reports.ts`
 - Test: `tests/reports/catalog.test.ts`
 
-- [ ] **Step 1: Write report helper tests**
+- [x] **Step 1: Write report helper tests**
 
 Create `tests/reports/catalog.test.ts`:
 
@@ -642,13 +660,13 @@ describe('report catalog helpers', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/reports/catalog.test.ts`
 
 Expected: FAIL because `lib/reports/catalog.ts` does not exist.
 
-- [ ] **Step 3: Implement report helpers**
+- [x] **Step 3: Implement report helpers**
 
 Create `lib/reports/catalog.ts`:
 
@@ -707,7 +725,7 @@ export function serializeReportParams(input: ReportScopeInput) {
 }
 ```
 
-- [ ] **Step 4: Re-export params helper**
+- [x] **Step 4: Re-export params helper**
 
 Create `lib/reports/report-params.ts`:
 
@@ -716,7 +734,7 @@ export { serializeReportParams } from './catalog';
 export type { ReportScopeInput } from './catalog';
 ```
 
-- [ ] **Step 5: Update report pages**
+- [x] **Step 5: Update report pages**
 
 Modify `app/(app)/reports/page.tsx` to call `groupReports(defs ?? [])` and render categories using `DataWorkspace`. Keep fetching all active `report_definitions`; add a visible catalog count that must match the active count.
 
@@ -734,7 +752,7 @@ Modify `app/(app)/reports/[slug]/page.tsx` so the filter form includes:
 <input type="date" name="param_date_to" />
 ```
 
-- [ ] **Step 6: Preserve scope in queued report runs**
+- [x] **Step 6: Preserve scope in queued report runs**
 
 Modify `lib/rpcs/reports.ts` so `queueReport` copies all `param_` values into `parameters` and rejects a missing `param_scope` with a useful error:
 
@@ -744,19 +762,19 @@ if (!params.scope) {
 }
 ```
 
-- [ ] **Step 7: Verify tests**
+- [x] **Step 7: Verify tests**
 
 Run: `npm test -- tests/reports/catalog.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 8: Verify build**
+- [x] **Step 8: Verify build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Run:
 
@@ -779,7 +797,7 @@ git commit -m "feat: add scoped reports workspace"
 - Create: `app/(app)/bank-accounts/adjustments/new/page.tsx`
 - Test: `tests/banking/bank-format.test.ts`
 
-- [ ] **Step 1: Write banking helper tests**
+- [x] **Step 1: Write banking helper tests**
 
 Create `tests/banking/bank-format.test.ts`:
 
@@ -803,13 +821,13 @@ describe('bank formatting helpers', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/banking/bank-format.test.ts`
 
 Expected: FAIL because `lib/banking/bank-format.ts` does not exist.
 
-- [ ] **Step 3: Implement bank helpers**
+- [x] **Step 3: Implement bank helpers**
 
 Create `lib/banking/bank-format.ts`:
 
@@ -839,7 +857,7 @@ export function buildActivityRows(rows: ActivityInput[], openingBalance = 0) {
 }
 ```
 
-- [ ] **Step 4: Add activity data helper**
+- [x] **Step 4: Add activity data helper**
 
 Create `lib/banking/activity.ts`:
 
@@ -863,7 +881,7 @@ export function toActivityRows(rows: BankActivitySourceRow[], openingBalance = 0
 }
 ```
 
-- [ ] **Step 5: Update bank account registry**
+- [x] **Step 5: Update bank account registry**
 
 Modify `app/(app)/bank-accounts/page.tsx` to:
 
@@ -873,11 +891,11 @@ Modify `app/(app)/bank-accounts/page.tsx` to:
 - Show payments enabled and auto reconciliation with `StatusChip`.
 - Add right rail links for New Bank Account, New Bank Deposit, Bank Feed, Reconcile, Bank Account Activity, Check Register, Deposit Register, and Bank Reconciliation.
 
-- [ ] **Step 6: Update new bank account page**
+- [x] **Step 6: Update new bank account page**
 
 Modify `app/(app)/bank-accounts/new/page.tsx` into sections named Bank Information, Legal Entity, Ownership, Accounting, Check Printing, Notes, and Attachments. Keep `createBankAccount` as the server action for the first pass and add copy that account identifiers are masked after save.
 
-- [ ] **Step 7: Add banking workspace shells**
+- [x] **Step 7: Add banking workspace shells**
 
 Create these pages with `DataWorkspace`, `FilterBar`, `MetricStrip`, and no external transmission:
 
@@ -887,19 +905,19 @@ Create these pages with `DataWorkspace`, `FilterBar`, `MetricStrip`, and no exte
 - `app/(app)/bank-accounts/reconcile/page.tsx`: statement inputs, ending/cleared/adjusted cards, deposits/credits table, checks/payments table, save and reconcile buttons.
 - `app/(app)/bank-accounts/adjustments/new/page.tsx`: amount, adjustment date, description, GL-impact warning, history, notes, attachments.
 
-- [ ] **Step 8: Verify tests**
+- [x] **Step 8: Verify tests**
 
 Run: `npm test -- tests/banking/bank-format.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 9: Verify build**
+- [x] **Step 9: Verify build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 Run:
 
@@ -917,7 +935,7 @@ git commit -m "feat: add banking operations workspaces"
 - Create: `app/(app)/violations/[id]/page.tsx`
 - Test: `tests/violations/filters.test.ts`
 
-- [ ] **Step 1: Write filter test**
+- [x] **Step 1: Write filter test**
 
 Create `tests/violations/filters.test.ts`:
 
@@ -936,13 +954,13 @@ describe('buildViolationFilterSummary', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/violations/filters.test.ts`
 
 Expected: FAIL because `lib/violations/queries.ts` does not exist.
 
-- [ ] **Step 3: Implement violation helper**
+- [x] **Step 3: Implement violation helper**
 
 Create `lib/violations/queries.ts`:
 
@@ -962,11 +980,11 @@ export function buildViolationFilterSummary(filters: ViolationFilters) {
 }
 ```
 
-- [ ] **Step 4: Update violations list**
+- [x] **Step 4: Update violations list**
 
 Modify `app/(app)/violations/page.tsx` to use `DataWorkspace`, `MetricStrip`, `FilterBar`, and `ContextPanel`. Include filters for association, status, escalation, rule/type, unit/owner search, and date observed. Keep existing Supabase query columns and add links to `/violations/[id]`.
 
-- [ ] **Step 5: Add new violation page**
+- [x] **Step 5: Add new violation page**
 
 Create `app/(app)/violations/new/page.tsx` with a sectioned form:
 
@@ -978,23 +996,23 @@ Create `app/(app)/violations/new/page.tsx` with a sectioned form:
 - Evidence/attachments shell.
 - Draft notice preview shell with no send action.
 
-- [ ] **Step 6: Add violation detail page**
+- [x] **Step 6: Add violation detail page**
 
 Create `app/(app)/violations/[id]/page.tsx` that loads one violation, its association/unit/owner, `violation_updates`, and related documents. Render timeline, evidence, notice status, follow-up steps, and actions that stop at draft/preview.
 
-- [ ] **Step 7: Verify tests**
+- [x] **Step 7: Verify tests**
 
 Run: `npm test -- tests/violations/filters.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 8: Verify build**
+- [x] **Step 8: Verify build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Run:
 
@@ -1022,7 +1040,7 @@ git commit -m "feat: add violations center"
 - Create: `app/(app)/vendors/forms/page.tsx`
 - Test: `tests/workflows/safe-actions.test.ts`
 
-- [ ] **Step 1: Write safe-action tests**
+- [x] **Step 1: Write safe-action tests**
 
 Create `tests/workflows/safe-actions.test.ts`:
 
@@ -1044,13 +1062,13 @@ describe('safe workflow rules', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npm test -- tests/workflows/safe-actions.test.ts`
 
 Expected: FAIL because workflow helpers do not exist.
 
-- [ ] **Step 3: Implement owner workflow helper**
+- [x] **Step 3: Implement owner workflow helper**
 
 Create `lib/people/owner-workflows.ts`:
 
@@ -1077,7 +1095,7 @@ export function requiresConfirmation(action: OwnerWorkflowAction) {
 }
 ```
 
-- [ ] **Step 4: Implement vendor workflow helper**
+- [x] **Step 4: Implement vendor workflow helper**
 
 Create `lib/vendors/workflows.ts`:
 
@@ -1101,7 +1119,7 @@ export function requiresVendorConfirmation(action: VendorWorkflowAction) {
 }
 ```
 
-- [ ] **Step 5: Add owner workflow pages**
+- [x] **Step 5: Add owner workflow pages**
 
 Create the owner workflow pages using `DataWorkspace`, `FilterBar`, and `ContextPanel`:
 
@@ -1111,7 +1129,7 @@ Create the owner workflow pages using `DataWorkspace`, `FilterBar`, and `Context
 - `app/(app)/owners/forms/page.tsx`: draft workspace for owner, association/property, template, recipient, and preview.
 - `app/(app)/owners/management-agreements/new/page.tsx`: stepper for owner/property, signature/template, and addendum preview.
 
-- [ ] **Step 6: Add vendor workflow pages**
+- [x] **Step 6: Add vendor workflow pages**
 
 Create the vendor workflow pages:
 
@@ -1120,23 +1138,23 @@ Create the vendor workflow pages:
 - `app/(app)/vendors/compliance/page.tsx`: document reminder filters for document type, last paid, expiration, trade, and compliance state.
 - `app/(app)/vendors/forms/page.tsx`: draft vendor form workspace.
 
-- [ ] **Step 7: Update directories**
+- [x] **Step 7: Update directories**
 
 Modify `app/(app)/owners/page.tsx` and `app/(app)/vendors/page.tsx` to add task links to the new workflow pages, scoped reports, and filters.
 
-- [ ] **Step 8: Verify tests**
+- [x] **Step 8: Verify tests**
 
 Run: `npm test -- tests/workflows/safe-actions.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 9: Verify build**
+- [x] **Step 9: Verify build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 Run:
 
@@ -1150,25 +1168,25 @@ git commit -m "feat: add owner and vendor workflow foundations"
 **Files:**
 - Modify only files needed to fix issues found by verification.
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npm test`
 
 Expected: all tests pass.
 
-- [ ] **Step 2: Run production build**
+- [x] **Step 2: Run production build**
 
 Run: `npm run build`
 
 Expected: build completes without TypeScript or Next.js route errors.
 
-- [ ] **Step 3: Start dev server**
+- [x] **Step 3: Start dev server**
 
 Run: `npm run dev`
 
 Expected: local server starts and prints a localhost URL.
 
-- [ ] **Step 4: Browser check desktop**
+- [x] **Step 4: Browser check desktop**
 
 Open the app in the in-app browser. Verify these routes render without overlapping text at desktop width:
 
@@ -1182,11 +1200,11 @@ Open the app in the in-app browser. Verify these routes render without overlappi
 - `/owners/ach`
 - `/vendors/w9`
 
-- [ ] **Step 5: Browser check narrow width**
+- [x] **Step 5: Browser check narrow width**
 
 Resize or use browser tooling for a narrow viewport. Verify navigation collapses or remains usable and dense tables do not overlap core controls.
 
-- [ ] **Step 6: Commit verification fixes**
+- [x] **Step 6: Commit verification fixes**
 
 If verification required fixes, run:
 
