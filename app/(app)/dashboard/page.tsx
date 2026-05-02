@@ -46,12 +46,12 @@ export default async function DashboardPage({
     .from('violations')
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
-    .not('status', 'in', '("closed","resolved")');
+    .not('status', 'in', '("closed","cured")');
   const overdueViolationsQuery = db
     .from('violations')
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
-    .not('status', 'in', '("closed","resolved")')
+    .not('status', 'in', '("closed","cured")')
     .lt('due_date', todayDate);
   const pendingBillsQuery = db
     .from('payable_bills')
@@ -258,7 +258,7 @@ function buildViolationQueue(db: any, assocFilter: string, todayDate: string) {
     .from('violations')
     .select('id, title, status, due_date, associations(name)')
     .is('archived_at', null)
-    .not('status', 'in', '("closed","resolved")')
+    .not('status', 'in', '("closed","cured")')
     .lt('due_date', todayDate)
     .order('due_date', { ascending: true, nullsFirst: false })
     .limit(4);
