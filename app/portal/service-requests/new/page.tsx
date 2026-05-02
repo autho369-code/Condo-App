@@ -30,11 +30,11 @@ export default async function NewServiceRequest() {
 
   // Get the owner's units with association context.
   // RLS on v_unit_account_summary already filters to units the user belongs to.
-  const { data: units } = await supabase
+  const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_name');
 
-  const unitOptions = units ?? [];
+  const unitOptions: any[] = units ?? [];
 
   return (
     <div className="space-y-6">
@@ -64,7 +64,7 @@ export default async function NewServiceRequest() {
         <Card>
           <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
           <CardBody>
-            <form action={submitServiceRequest} className="space-y-6">
+            <form action={submitServiceRequest as any} className="space-y-6">
               {/* --- Unit picker --- */}
               <div>
                 <Label htmlFor="unit_id">Unit</Label>

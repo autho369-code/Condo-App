@@ -23,6 +23,7 @@ const req = (f: FormData, k: string) => {
 export async function sendEmail(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
+  const db = supabase as any;
 
   const associationId = req(formData, 'association_id');
   const recipientType = req(formData, 'recipient_type'); // owners | tenants | both | board
@@ -36,7 +37,7 @@ export async function sendEmail(formData: FormData) {
   const recipients: Array<{ email: string; name: string; source: string }> = [];
 
   if (recipientType === 'owners' || recipientType === 'both') {
-    const { data: occs } = await supabase
+    const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('owners!owner_id(id, email, full_name)')
       .eq('association_id', associationId)
@@ -48,7 +49,7 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (recipientType === 'tenants' || recipientType === 'both') {
-    const { data: occs } = await supabase
+    const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('owners!owner_id(id, email, full_name)')
       .eq('association_id', associationId)
@@ -60,7 +61,7 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (recipientType === 'board') {
-    const { data: bm } = await supabase
+    const { data: bm } = await (supabase as any)
       .from('board_members')
       .select('email, full_name')
       .eq('association_id', associationId)
@@ -93,7 +94,22 @@ export async function sendEmail(formData: FormData) {
     return { error: `No recipients found for ${recipientType} at this association. Make sure owners/tenants have email addresses on file.` };
   }
 
-  // Queue one notices row per recipient so individual delivery status is tracked
+  // Queue one row per recipient so individual delivery status is tracked.
+  // communication_messages is the new operations hub; notices remains supported
+  // for any legacy sender worker that still consumes it.
+  const communicationRows = unique.map((r) => ({
+    portfolio_id:    me.portfolio?.id,
+    association_id:  associationId,
+    channel:         'email',
+    status:          'draft',
+    recipient_group: recipientType,
+    recipient_name:  r.name,
+    recipient_email: r.email,
+    subject,
+    body: cc ? body + `\n\n---\nCc: ${cc}` : body,
+    created_by:      me.auth_user_id,
+  }));
+
   const rows = unique.map((r) => ({
     association_id: associationId,
     notice_type:    'general',
@@ -107,12 +123,15 @@ export async function sendEmail(formData: FormData) {
     created_by:     me.auth_user_id,
   }));
 
-  const { error, count } = await supabase.from('notices').insert(rows, { count: 'exact' });
-  if (error) return { error: error.message };
+  const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
+  if (communicationError) return { error: communicationError.message };
+
+  await db.from('notices').insert(rows);
 
   // Bounce back to where we came from, or to association detail if not provided
   const returnTo = str(formData, 'return_to');
   revalidatePath('/calendar');
+  revalidatePath('/communication-center');
   if (returnTo && returnTo.startsWith('/')) redirect(returnTo);
   redirect(`/associations/${associationId}?emailed=${count ?? rows.length}`);
 }

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function ReportRunsHistory() {
   const supabase = await createClient();
 
-  const { data: runs } = await supabase
+  const { data: runs } = await (supabase as any)
     .from('report_runs')
     .select(`
       id, status, output_format, output_url, output_size_bytes, row_count,
@@ -84,7 +84,7 @@ export default async function ReportRunsHistory() {
                     </td>
                     <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
                     <td className="px-4 py-2"><StatusPill status={r.status} /></td>
-                    <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
                     <td className="px-4 py-2 text-right text-gray-600">{formatDuration(r.duration_ms)}</td>
                     <td className="px-4 py-2 text-gray-600">{date(r.started_at ?? r.created_at)}</td>
                     <td className="whitespace-nowrap px-5 py-2 text-right">
@@ -92,7 +92,7 @@ export default async function ReportRunsHistory() {
                         <a href={r.output_url} target="_blank" rel="noopener" className="text-xs text-brand-600 hover:underline">Download</a>
                       )}
                       {(r.status === 'queued' || r.status === 'running') && (
-                        <form action={cancelReportRun.bind(null, r.id)} className="inline">
+                        <form action={cancelReportRun.bind(null, r.id) as any} className="inline">
                           <button type="submit" className="text-xs text-red-600 hover:underline">Cancel</button>
                         </form>
                       )}
@@ -105,7 +105,7 @@ export default async function ReportRunsHistory() {
         ) : (
           <div className="px-5 py-8 text-center">
             <p className="text-sm text-gray-500">No runs yet.</p>
-            <Link href="/reports" className="mt-2 inline-block text-sm text-brand-600 hover:underline">Run your first report →</Link>
+            <Link href="/reports" className="mt-2 inline-block text-sm text-brand-600 hover:underline">Run your first report â†’</Link>
           </div>
         )}
       </Section>
@@ -125,7 +125,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function formatDuration(ms: number | null) {
-  if (!ms) return '—';
+  if (!ms) return 'â€”';
   if (ms < 1000) return `${ms} ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)} s`;

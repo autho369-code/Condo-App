@@ -12,7 +12,7 @@ export default async function ChargeCategoriesPage() {
   const me = await requireStaff();
   const supabase = await createClient();
 
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('charge_categories')
     .select('id, name, code, default_amount, default_frequency, is_assessment, is_fee, is_system, active, archived_at, sort_order')
     .eq('portfolio_id', me.portfolio?.id)

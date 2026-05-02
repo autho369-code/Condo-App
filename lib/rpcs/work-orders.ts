@@ -12,10 +12,10 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
     patch.completed_date = null;
   }
 
-  const { error: e1 } = await supabase.from('work_orders').update(patch).eq('id', workOrderId);
+  const { error: e1 } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
   if (e1) return { error: e1.message };
 
-  await supabase.from('work_order_updates').insert({
+  await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: note || `Status changed to ${newStatus}`,
     new_status: newStatus,
@@ -51,10 +51,10 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
   // Drop null-out of required fields — title can't be null
   if (!patch.title) delete patch.title;
 
-  const { error } = await supabase.from('work_orders').update(patch).eq('id', workOrderId);
+  const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
   if (error) return { error: error.message };
 
-  await supabase.from('work_order_updates').insert({
+  await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: 'Work order details updated',
   });
@@ -70,15 +70,15 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
   if (!vendorId) return { error: 'Vendor is required' };
 
   // Look up vendor name for the activity log
-  const { data: vendor } = await supabase.from('vendors').select('name').eq('id', vendorId).maybeSingle();
+  const { data: vendor } = await (supabase as any).from('vendors').select('name').eq('id', vendorId).maybeSingle();
 
   const patch: Record<string, unknown> = { vendor_id: vendorId };
   if (bumpStatus) patch.status = 'assigned';
 
-  const { error } = await supabase.from('work_orders').update(patch).eq('id', workOrderId);
+  const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
   if (error) return { error: error.message };
 
-  await supabase.from('work_order_updates').insert({
+  await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: note || `Assigned to vendor${vendor?.name ? ': ' + vendor.name : ''}`,
     new_status: bumpStatus ? 'assigned' : null,
@@ -89,9 +89,9 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
 
 export async function unassignVendor(workOrderId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from('work_orders').update({ vendor_id: null }).eq('id', workOrderId);
+  const { error } = await (supabase as any).from('work_orders').update({ vendor_id: null }).eq('id', workOrderId);
   if (error) return { error: error.message };
-  await supabase.from('work_order_updates').insert({
+  await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: 'Vendor unassigned',
   });
@@ -100,7 +100,7 @@ export async function unassignVendor(workOrderId: string) {
 
 export async function addLaborEntry(workOrderId: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from('work_order_labor_entries').insert({
+  const { error } = await (supabase as any).from('work_order_labor_entries').insert({
     work_order_id: workOrderId,
     tech_name:     formData.get('tech_name') as string,
     date_worked:   formData.get('date_worked') as string,
@@ -114,7 +114,7 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
 
 export async function addEstimate(workOrderId: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from('work_order_estimates').insert({
+  const { error } = await (supabase as any).from('work_order_estimates').insert({
     work_order_id: workOrderId,
     vendor_id:     (formData.get('vendor_id') as string) || null,
     amount:        parseFloat(formData.get('amount') as string),
@@ -126,7 +126,7 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
 
 export async function approveEstimate(estimateId: string, workOrderId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from('work_order_estimates')
+  const { error } = await (supabase as any).from('work_order_estimates')
     .update({ approved_at: new Date().toISOString() })
     .eq('id', estimateId);
   if (error) return { error: error.message };
@@ -135,7 +135,7 @@ export async function approveEstimate(estimateId: string, workOrderId: string) {
 
 export async function addNote(workOrderId: string, formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.from('work_order_updates').insert({
+  const { error } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: formData.get('note') as string,
   });
@@ -150,7 +150,7 @@ export async function addNote(workOrderId: string, formData: FormData) {
 export async function createWorkOrderFromServiceRequest(serviceRequestId: string, formData: FormData) {
   const supabase = await createClient();
 
-  const { data: sr, error: srErr } = await supabase.from('service_requests')
+  const { data: sr, error: srErr } = await (supabase as any).from('service_requests')
     .select('id, portfolio_id, association_id, unit_id, description, priority')
     .eq('id', serviceRequestId).maybeSingle();
   if (srErr || !sr) return { error: srErr?.message ?? 'Service request not found' };
@@ -161,7 +161,7 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
   const vendorId = (formData.get('vendor_id') as string) || null;
   const scheduledDate = (formData.get('scheduled_date') as string) || null;
 
-  const { data: wo, error } = await supabase.from('work_orders').insert({
+  const { data: wo, error } = await (supabase as any).from('work_orders').insert({
     portfolio_id:       sr.portfolio_id,
     association_id:     sr.association_id,
     unit_id:            sr.unit_id,
@@ -177,7 +177,7 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
   }).select('id').single();
   if (error || !wo) return { error: error?.message ?? 'Failed to create work order' };
 
-  await supabase.from('work_order_updates').insert({
+  await (supabase as any).from('work_order_updates').insert({
     work_order_id: wo.id,
     note: `Work order created from service request #${serviceRequestId.slice(0, 8)}`,
     new_status: vendorId ? 'assigned' : 'new',

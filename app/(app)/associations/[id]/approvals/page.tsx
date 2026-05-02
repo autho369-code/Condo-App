@@ -17,11 +17,11 @@ export default async function ApprovalsTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('approval_requests')
     .select('id, title, status, amount, due_date, voting_scheme, requested_at, votes_for, votes_against, votes_abstain, required_votes')
     .eq('association_id', id)

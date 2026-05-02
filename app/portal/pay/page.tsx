@@ -14,7 +14,7 @@ export default async function PayPage() {
   const supabase = await createClient();
 
   // The resident's unit summary(ies). RLS filters to their own unit(s).
-  const { data: units } = await supabase
+  const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('*')
     .order('association_name');
@@ -58,7 +58,7 @@ export default async function PayPage() {
             </p>
           </CardHeader>
           <CardBody>
-            <form action={createOwnerCheckoutSession} className="space-y-5">
+            <form action={createOwnerCheckoutSession as any} className="space-y-5">
               <input type="hidden" name="unit_id" value={defaultUnit.unit_id} />
 
               {/* Amount */}

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff, me } from '@/lib/auth/me';
+import { getMe, requireStaff } from '@/lib/auth/me';
 import { Section } from '@/components/workspace/shell';
 import { Button } from '@/components/ui/button';
 
@@ -31,11 +31,11 @@ export default async function NewPropertyPage() {
     { data: feeSchedules },
     { data: ownersList },
   ] = await Promise.all([
-    supabase.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
-    supabase.from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
-    supabase.from('property_groups').select('id, name').order('name'),
-    supabase.from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
-    supabase.from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
+    (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    (supabase as any).from('bank_accounts').select('id, name, bank_name, account_type').is('archived_at', null).order('name'),
+    (supabase as any).from('property_groups').select('id, name').order('name'),
+    (supabase as any).from('management_fee_schedules').select('id, name, fee_type, percentage, amount').is('archived_at', null).order('name'),
+    (supabase as any).from('owners').select('id, full_name').is('archived_at', null).order('full_name'),
   ]);
 
   const cashGLAccounts = (glAccounts ?? []).filter((g: any) => {
@@ -46,7 +46,7 @@ export default async function NewPropertyPage() {
   async function createProperty(formData: FormData) {
     'use server';
     const supabase = await createClient();
-    const m = await me();
+    const m = await getMe();
 
     const name = String(formData.get('name') ?? '').trim();
     const address = String(formData.get('address') ?? '').trim();
@@ -54,7 +54,7 @@ export default async function NewPropertyPage() {
     if (!address) throw new Error('Address is required.');
     if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
 
-    const { data: assoc, error: aErr } = await supabase
+    const { data: assoc, error: aErr } = await (supabase as any)
       .from('associations')
       .insert({
         portfolio_id: m.portfolio.id,
@@ -114,7 +114,7 @@ export default async function NewPropertyPage() {
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
       <h1 className="text-2xl font-semibold text-gray-900">New Property</h1>
 
-      <form action={createProperty} className="mt-6 space-y-5">
+      <form action={createProperty as any} className="mt-6 space-y-5">
 
         <Section title="Property Name and Address" padded>
           <FormRow label="Property Type" required>
@@ -195,7 +195,7 @@ export default async function NewPropertyPage() {
         <div className="flex items-center gap-2 pt-2">
           <Button type="submit" size="sm">Save</Button>
           <Link href="/associations">
-            <Button type="button" size="sm" variant="outline">Cancel</Button>
+            <Button type="button" size="sm" variant="secondary">Cancel</Button>
           </Link>
         </div>
       </form>

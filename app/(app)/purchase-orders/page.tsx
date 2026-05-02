@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function PurchaseOrdersPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('purchase_orders')
     .select('id, number, status, po_total, po_billed, created_at, vendors(name), associations(name), work_orders(id, title)')
     .is('archived_at', null)

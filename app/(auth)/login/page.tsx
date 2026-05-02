@@ -6,6 +6,7 @@ import { loginWithPassword } from '@/lib/auth/actions';
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next, error } = await searchParams;
+  const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true';
   return (
     <Card>
       <CardHeader>
@@ -13,7 +14,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <p className="text-sm text-gray-500">Enter your email and password.</p>
       </CardHeader>
       <CardBody>
-        <form action={loginWithPassword} className="space-y-4">
+        {localPreview && (
+          <Link
+            href="/dashboard"
+            className="mb-4 flex h-10 w-full items-center justify-center rounded bg-gray-950 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Continue to local preview
+          </Link>
+        )}
+        <form action={loginWithPassword as any} className="space-y-4">
           <input type="hidden" name="next" value={next ?? '/dashboard'} />
           <div>
             <Label htmlFor="email">Email</Label>

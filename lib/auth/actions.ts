@@ -39,7 +39,7 @@ export async function logout() {
 
 export async function acceptInvitation(token: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('accept_invitation', { p_token: token });
+  const { data, error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
   if (error) return { error: error.message };
   revalidatePath('/', 'layout');
   return { success: true, result: data };

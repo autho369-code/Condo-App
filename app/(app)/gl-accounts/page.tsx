@@ -20,7 +20,7 @@ const RANGES: Array<{ from: number; to: number; label: string }> = [
 export default async function GLAccountsPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('gl_accounts')
     .select('id, number, name, account_type, fund_account, include_on_cash_flow, subject_to_management_fees, active')
     .eq('active', true)

@@ -23,14 +23,14 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
     { data: unit }, { data: summary }, { data: schedule },
     { data: balances }, { data: payments }, { data: categories },
   ] = await Promise.all([
-    supabase.from('units')
+    (supabase as any).from('units')
       .select('id, unit_number, bedrooms, bathrooms, sqft, buildings(name, association_id, associations(name))')
       .eq('id', unitId).maybeSingle(),
-    supabase.from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
-    supabase.from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
-    supabase.from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
-    supabase.from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
-    supabase.from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
+    (supabase as any).from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
+    (supabase as any).from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
+    (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
+    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
+    (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
   ]);
 
   if (!unit) notFound();
@@ -42,12 +42,12 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               <Link href="/units" className="hover:text-brand-600">Units</Link>
-              {' · '}
+              {' Ã‚Â· '}
               <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
             </div>
             <h1 className="mt-1 text-xl font-semibold text-gray-900">Unit {unit.unit_number}</h1>
             <div className="mt-1 text-sm text-gray-500">
-              {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` · ${unit.bathrooms} ba` : ''}{unit.sqft ? ` · ${unit.sqft} sqft` : ''}
+              {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` Ã‚Â· ${unit.bathrooms} ba` : ''}{unit.sqft ? ` Ã‚Â· ${unit.sqft} sqft` : ''}
             </div>
           </div>
         </div>
@@ -83,9 +83,9 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                     <TD className="text-right">{money(s.amount)}</TD>
                     <TD className="capitalize">{s.frequency}</TD>
                     <TD>{date(s.next_post_date)}</TD>
-                    <TD className="text-gray-600 text-sm">{s.memo ?? '—'}</TD>
+                    <TD className="text-gray-600 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
                     <TD className="text-right">
-                      <form action={unsubscribeUnit.bind(null, s.recurring_charge_id, unitId)}>
+                      <form action={unsubscribeUnit.bind(null, s.recurring_charge_id, unitId) as any}>
                         <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
                       </form>
                     </TD>
@@ -98,13 +98,13 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
           )}
 
           {/* Subscribe form */}
-          <form action={subscribeUnitToCharge} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-5">
+          <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
             <div className="md:col-span-2">
               <Label htmlFor="charge_category_id">Add subscription</Label>
               <select id="charge_category_id" name="charge_category_id" required
                 className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="">Choose a category…</option>
+                <option value="">Choose a categoryÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name} ({money(c.default_amount)} / {c.default_frequency})</option>
                 ))}
@@ -162,13 +162,13 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
       <Card>
         <CardHeader><CardTitle>Post a one-off charge</CardTitle></CardHeader>
         <CardBody>
-          <form action={postAdHocCharge} className="grid grid-cols-1 gap-3 md:grid-cols-5">
+          <form action={postAdHocCharge as any} className="grid grid-cols-1 gap-3 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
             <div>
               <Label htmlFor="adhoc_cat">Category</Label>
               <select id="adhoc_cat" name="charge_category_id" required
                 className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="">Choose…</option>
+                <option value="">ChooseÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -202,10 +202,10 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                 <TR key={p.id}>
                   <TD>{date(p.payment_date)}</TD>
                   <TD className="uppercase">{p.method}</TD>
-                  <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
+                  <TD className="text-gray-600">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
                   <TD className="text-right text-green-600">{money(p.amount)}</TD>
                   <TD className="text-right">
-                    <form action={unapplyPayment.bind(null, p.id, unitId)}>
+                    <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
                       <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
                     </form>
                   </TD>
@@ -214,7 +214,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </tbody>
           </Table>
 
-          <form action={recordReceipt} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-5">
+          <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
             <div>
               <Label htmlFor="pay_date">Date</Label>

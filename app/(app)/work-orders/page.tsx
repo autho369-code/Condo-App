@@ -18,7 +18,7 @@ const TABS = [
 export default async function WorkOrdersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'open' } = await searchParams;
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('work_orders')
     .select('id, number, title, status, priority, scheduled_date, vendor_id, vendors(name), units(unit_number), associations(name)')
     .is('archived_at', null)

@@ -13,7 +13,7 @@ async function createAssociation(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const me = await (await import('@/lib/auth/me')).requirePortfolioAdmin();
-  const { error } = await supabase.from('associations').insert({
+  const { error } = await (supabase as any).from('associations').insert({
     portfolio_id: me.portfolio.id,
     name:    formData.get('name') as string,
     address: formData.get('address') as string,
@@ -38,11 +38,11 @@ export default async function OnboardPage() {
   const supabase = await createClient();
 
   const [{ count: associationCount }, { count: unitCount }, { count: ownerCount }, { count: staffCount }, { data: subscription }] = await Promise.all([
-    supabase.from('associations').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
-    supabase.from('units').select('*', { count: 'exact', head: true }),
-    supabase.from('owners').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id).eq('hoa_role', 'manager'),
-    supabase.from('subscriptions').select('*').eq('portfolio_id', me.portfolio.id).maybeSingle(),
+    (supabase as any).from('associations').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
+    (supabase as any).from('units').select('*', { count: 'exact', head: true }),
+    (supabase as any).from('owners').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
+    (supabase as any).from('profiles').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id).eq('hoa_role', 'manager'),
+    (supabase as any).from('subscriptions').select('*').eq('portfolio_id', me.portfolio.id).maybeSingle(),
   ]);
 
   // Step status
@@ -88,7 +88,7 @@ export default async function OnboardPage() {
             <p className="text-sm text-gray-600">Great — you have {associationCount} association{(associationCount ?? 0) === 1 ? '' : 's'} set up.
               <Link href="/associations" className="ml-1 text-brand-600 hover:underline">Manage</Link></p>
           ) : (
-            <form action={createAssociation} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <form action={createAssociation as any} className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
                 <Label htmlFor="name">Association name</Label>
                 <Input id="name" name="name" required placeholder="e.g. Granville Courts Condominium Association" />
@@ -155,7 +155,7 @@ export default async function OnboardPage() {
             <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary">Sign up for Stripe →</Button>
             </a>
-            <form action={finishOnboarding}>
+            <form action={finishOnboarding as any}>
               <Button type="submit">I&apos;m set — go to dashboard</Button>
             </form>
           </div>

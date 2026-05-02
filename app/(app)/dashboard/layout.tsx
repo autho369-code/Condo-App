@@ -1,4 +1,4 @@
-import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/context-panel';
+import { ContextPanel, PanelSection, PanelLink, PanelDropdown } from '@/components/workspace/context-panel';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,6 +6,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 overflow-y-auto">{children}</div>
       <ContextPanel>
         <PanelSection title="Setup">
+          <PanelDropdown title="Quick actions" defaultOpen>
+            <PanelLink href="/bills/new">Enter bill</PanelLink>
+            <PanelLink href="/calendar/new?type=board_meeting">Schedule hearing</PanelLink>
+            <PanelLink href="/scheduled-reports">Manage report runs</PanelLink>
+            <PanelLink href="/bank-transfers">Review transfers</PanelLink>
+          </PanelDropdown>
           <PanelLink href="/settings">Connect Stripe &amp; insurance</PanelLink>
           <PanelLink href="/onboard">Onboarding checklist</PanelLink>
         </PanelSection>

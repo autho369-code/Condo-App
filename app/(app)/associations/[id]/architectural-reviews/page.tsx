@@ -16,17 +16,17 @@ export default async function ArchitecturalReviewsTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from('architectural_review_settings')
     .select('*')
     .eq('association_id', id)
     .maybeSingle();
 
-  const { data: committees } = await supabase
+  const { data: committees } = await (supabase as any)
     .from('committees')
     .select('id, name')
     .eq('association_id', id)
@@ -37,7 +37,7 @@ export default async function ArchitecturalReviewsTab({
     'use server';
     const supabase = await createClient();
 
-    await supabase.from('architectural_review_settings').upsert({
+    await (supabase as any).from('architectural_review_settings').upsert({
       association_id: id,
       online_requests_disabled: formData.get('online_requests_disabled') === 'on',
       default_committee_id: (formData.get('default_committee_id') as string) || null,
@@ -62,7 +62,7 @@ export default async function ArchitecturalReviewsTab({
       }
       rail={rail}
     >
-      <form action={saveSettings} className="max-w-3xl space-y-5">
+      <form action={saveSettings as any} className="max-w-3xl space-y-5">
         <Section padded>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="online_requests_disabled" defaultChecked={settings?.online_requests_disabled ?? false} />
@@ -74,7 +74,7 @@ export default async function ArchitecturalReviewsTab({
           <div className="mb-3">
             <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
             <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">— Select a committee —</option>
+              <option value="">â€” Select a committee â€”</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}

@@ -30,7 +30,7 @@ export async function submitServiceRequest(formData: FormData) {
   const supabase = await createClient();
 
   // Resolve association + portfolio from the unit — never trust the client for these
-  const { data: unit, error: unitErr } = await supabase
+  const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
     .select('id, buildings!inner(association_id, associations!inner(portfolio_id))')
     .eq('id', unitId)
@@ -41,7 +41,7 @@ export async function submitServiceRequest(formData: FormData) {
 
   const fullDescription = access ? `${description}\n\nAccess notes: ${access}` : description;
 
-  const { data: sr, error } = await supabase.from('service_requests').insert({
+  const { data: sr, error } = await (supabase as any).from('service_requests').insert({
     portfolio_id:          portfolioId,
     association_id:        associationId,
     unit_id:               unitId,
@@ -65,7 +65,7 @@ export async function submitServiceRequest(formData: FormData) {
 /** Resident cancels one of their own open requests. RLS enforces ownership. */
 export async function cancelServiceRequest(serviceRequestId: string) {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('service_requests')
     .update({ status: 'cancelled' })
     .eq('id', serviceRequestId);

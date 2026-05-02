@@ -61,13 +61,13 @@ export default async function PrintChecksPage({
 
   const supabase = await createClient();
 
-  const { data: seed } = await supabase
+  const { data: seed } = await (supabase as any)
     .from('payable_bills')
     .select('paid_at, bank_account_id')
     .eq('id', seedBillId)
     .maybeSingle();
 
-  const { data: checks } = await supabase
+  const { data: checks } = await (supabase as any)
     .from('payable_bills')
     .select(`
       id, bill_number, amount, memo, paid_at, bill_date, due_date,

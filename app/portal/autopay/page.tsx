@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 async function enroll(formData: FormData) {
   'use server';
   const supabase = await createClient();
-  const { error } = await supabase.rpc('enroll_autopay', {
+  const { error } = await (supabase as any).rpc('enroll_autopay', {
     p_unit_id:                formData.get('unit_id') as string,
     p_payment_method_id:      formData.get('payment_method_id') as string,
     p_authorized_max_cents:   Math.round(parseFloat(formData.get('max_amount') as string) * 100),
@@ -26,7 +26,7 @@ async function enroll(formData: FormData) {
 async function cancel(mandateId: string) {
   'use server';
   const supabase = await createClient();
-  await supabase.rpc('cancel_autopay', { p_mandate_id: mandateId, p_reason: 'user requested' });
+  await (supabase as any).rpc('cancel_autopay', { p_mandate_id: mandateId, p_reason: 'user requested' });
   revalidatePath('/portal/autopay');
 }
 
@@ -35,9 +35,9 @@ export default async function AutopayPage() {
   const supabase = await createClient();
 
   const [{ data: mandates }, { data: methods }, { data: units }] = await Promise.all([
-    supabase.from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
-    supabase.from('payment_methods').select('id, brand, last_four, method_type, bank_name, is_default').eq('owner_id', me.owner_id ?? '').is('archived_at', null),
-    supabase.from('v_unit_account_summary').select('*'),
+    (supabase as any).from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
+    (supabase as any).from('payment_methods').select('id, brand, last_four, method_type, bank_name, is_default').eq('owner_id', me.owner_id ?? '').is('archived_at', null),
+    (supabase as any).from('v_unit_account_summary').select('*'),
   ]);
 
   return (
@@ -71,7 +71,7 @@ export default async function AutopayPage() {
                       : 'bg-gray-100 text-gray-700'}`}>{m.status}</span></TD>
                     <TD className="text-right">
                       {m.status !== 'canceled' && (
-                        <form action={cancel.bind(null, m.id)}>
+                        <form action={cancel.bind(null, m.id) as any}>
                           <button type="submit" className="text-xs text-red-600 hover:underline">Cancel autopay</button>
                         </form>
                       )}
@@ -96,17 +96,17 @@ export default async function AutopayPage() {
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4 text-sm">
               You don&apos;t have any saved bank accounts yet. Make a one-time ACH payment first via
               <Link href="/portal/pay" className="ml-1 text-brand-600 hover:underline">Pay assessment</Link>
-              and choose &quot;Save for autopay&quot; at checkout — your bank will be saved here automatically.
+              and choose &quot;Save for autopay&quot; at checkout â€” your bank will be saved here automatically.
             </div>
           ) : (
-            <form action={enroll} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <form action={enroll as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="unit_id">Unit</Label>
                 <select id="unit_id" name="unit_id" required
                   className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                   {(units ?? []).map((u: any) => (
                     <option key={u.unit_id} value={u.unit_id}>
-                      {u.association_name} · Unit {u.unit_number}
+                      {u.association_name} Â· Unit {u.unit_number}
                     </option>
                   ))}
                 </select>

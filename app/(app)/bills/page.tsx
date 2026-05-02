@@ -17,9 +17,9 @@ const TABS = [
 export default async function BillsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status = 'approved' } = await searchParams;
   const supabase = await createClient();
-  const { data: allCounts } = await supabase.from('payable_bills').select('status').is('archived_at', null);
+  const { data: allCounts } = await (supabase as any).from('payable_bills').select('status').is('archived_at', null);
 
-  let q = supabase.from('payable_bills')
+  let q = (supabase as any).from('payable_bills')
     .select('id, bill_number, due_date, amount, memo, status, paid_at, vendors(name, payment_type), associations(name)')
     .is('archived_at', null)
     .order('due_date', { ascending: true, nullsFirst: false });

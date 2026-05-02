@@ -16,7 +16,7 @@ export default async function AssociationProfileTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations')
     .select(`
       id, name, address, address_line_2, city, state, zip,
@@ -28,17 +28,17 @@ export default async function AssociationProfileTab({
   if (aErr || !assoc) notFound();
 
   // Roll-up counts in parallel
-  const buildingsRes = await supabase.from('buildings').select('id').eq('association_id', id);
+  const buildingsRes = await (supabase as any).from('buildings').select('id').eq('association_id', id);
   const buildingIds = (buildingsRes.data ?? []).map((b: any) => b.id);
 
   const [unitsRes, boardRes, committeesRes, amenitiesRes, approvalsRes] = await Promise.all([
     buildingIds.length
-      ? supabase.from('units').select('id', { count: 'exact', head: true }).in('building_id', buildingIds).is('archived_at', null)
+      ? (supabase as any).from('units').select('id', { count: 'exact', head: true }).in('building_id', buildingIds).is('archived_at', null)
       : Promise.resolve({ count: 0 }),
-    supabase.from('board_members').select('id', { count: 'exact', head: true }).eq('association_id', id).eq('active', true),
-    supabase.from('committees').select('id', { count: 'exact', head: true }).eq('association_id', id).is('archived_at', null),
-    supabase.from('association_amenities').select('id', { count: 'exact', head: true }).eq('association_id', id).is('archived_at', null),
-    supabase.from('approval_requests').select('id', { count: 'exact', head: true }).eq('association_id', id).eq('status', 'pending'),
+    (supabase as any).from('board_members').select('id', { count: 'exact', head: true }).eq('association_id', id).eq('active', true),
+    (supabase as any).from('committees').select('id', { count: 'exact', head: true }).eq('association_id', id).is('archived_at', null),
+    (supabase as any).from('association_amenities').select('id', { count: 'exact', head: true }).eq('association_id', id).is('archived_at', null),
+    (supabase as any).from('approval_requests').select('id', { count: 'exact', head: true }).eq('association_id', id).eq('status', 'pending'),
   ]);
 
   const rail = null;
@@ -50,7 +50,7 @@ export default async function AssociationProfileTab({
           <AssociationTabs associationId={id} active="profile" />
           <WorkspaceHeader
             title={assoc.name}
-            actions={<Button size="sm" variant="outline">Edit</Button>}
+            actions={<Button size="sm" variant="secondary">Edit</Button>}
           />
         </>
       }

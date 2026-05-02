@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function JournalEntriesPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('journal_entries')
     .select('id, entry_date, reference_number, memo, source_type, posted, posted_at')
     .order('entry_date', { ascending: false })

@@ -16,14 +16,14 @@ export default async function BoardTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations')
     .select('id, name')
     .eq('id', id)
     .maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: members } = await supabase
+  const { data: members } = await (supabase as any)
     .from('board_members')
     .select('id, full_name, role, term_start, term_end, signature_on_file, phone, email, active')
     .eq('association_id', id)
@@ -33,7 +33,7 @@ export default async function BoardTab({
   const current = (members ?? []).filter((m: any) => m.active);
   const past = (members ?? []).filter((m: any) => !m.active);
 
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
     .select('signatures_required, default_board_member_ids, default_voting_scheme, sends_bills_to_board, bills_threshold')
     .eq('association_id', id)

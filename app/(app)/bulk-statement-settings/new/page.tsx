@@ -14,7 +14,7 @@ export default async function BulkStatementSettingsPage() {
   const supabase = await createClient();
 
   // Pull live associations so the user can pick a subset. RLS scopes to their portfolio.
-  const { data: assocs } = await supabase
+  const { data: assocs } = await (supabase as any)
     .from('associations')
     .select('id, name, address, city, state, use_enhanced_statement')
     .is('archived_at', null)
@@ -36,7 +36,7 @@ export default async function BulkStatementSettingsPage() {
         </p>
       </div>
 
-      <form action={updateBulkStatementSettings} className="space-y-4">
+      <form action={updateBulkStatementSettings as any} className="space-y-4">
         <Card>
           <div className="space-y-5 px-6 py-5">
             {/* -------- Update Settings for (scope picker) -------- */}

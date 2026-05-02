@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 async function provisionPortfolio(formData: FormData) {
   'use server';
   const supabase = await createClient();
-  const { error } = await supabase.rpc('provision_portfolio', {
+  const { error } = await (supabase as any).rpc('provision_portfolio', {
     p_company_name: formData.get('name') as string,
     p_first_admin_email: formData.get('email') as string,
     p_first_admin_name: (formData.get('admin_name') as string) || null,
@@ -25,7 +25,7 @@ async function provisionPortfolio(formData: FormData) {
 
 export default async function PortfoliosPage() {
   const supabase = await createClient();
-  const { data: rows } = await supabase.from('v_portfolio_health').select('*').order('company_name');
+  const { data: rows } = await (supabase as any).from('v_portfolio_health').select('*').order('company_name');
 
   return (
     <div className="space-y-8">
@@ -37,7 +37,7 @@ export default async function PortfoliosPage() {
       <Card>
         <CardHeader><CardTitle>Provision new portfolio</CardTitle></CardHeader>
         <CardBody>
-          <form action={provisionPortfolio} className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <form action={provisionPortfolio as any} className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <div className="col-span-2 md:col-span-1">
               <Label htmlFor="name">Company name</Label>
               <Input id="name" name="name" required />

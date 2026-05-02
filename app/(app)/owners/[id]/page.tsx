@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 function formatName(first?: string | null, last?: string | null, full?: string | null) {
   if (last && first) return `${last}, ${first}`;
-  return full ?? [last, first].filter(Boolean).join(', ') ?? '—';
+  return full ?? [last, first].filter(Boolean).join(', ') ?? 'â€”';
 }
 
 export default async function OwnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,21 +26,21 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
     { data: violations },
     { data: units },
   ] = await Promise.all([
-    supabase.from('owners')
+    (supabase as any).from('owners')
       .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at')
       .eq('id', id).is('archived_at', null).maybeSingle(),
-    supabase.from('occupancies')
+    (supabase as any).from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
-    supabase.from('service_requests')
+    (supabase as any).from('service_requests')
       .select('id, number, description, priority, status, created_at, units(unit_number)')
       .eq('homeowner_id', id).is('archived_at', null).order('created_at', { ascending: false }).limit(10),
-    supabase.from('violations')
+    (supabase as any).from('violations')
       .select('id, title, status, date_observed, fine_amount, associations(name)')
       .eq('owner_id', id).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),
     // All active units for the "Link to unit" dropdown
-    supabase.from('units')
+    (supabase as any).from('units')
       .select('id, unit_number, buildings(name, associations(name))')
       .is('archived_at', null)
       .order('unit_number'),
@@ -57,7 +57,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
       {/* Breadcrumb */}
       <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-        <Link href="/owners" className="hover:text-brand-600">Owners</Link> · {displayName}
+        <Link href="/owners" className="hover:text-brand-600">Owners</Link> Â· {displayName}
       </nav>
 
       {/* Header */}
@@ -81,7 +81,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
           <div>
             <dt className="text-xs uppercase tracking-wider text-gray-500">Email</dt>
             <dd className="mt-0.5">
-              {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : '—'}
+              {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : 'â€”'}
             </dd>
           </div>
           <div>
@@ -94,18 +94,18 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                       {p.type && <span className="ml-1 text-xs text-gray-500">({p.type})</span>}
                     </div>
                   ))
-                : owner.phone ? <a href={`tel:${owner.phone}`} className="text-blue-700 hover:underline">{owner.phone}</a> : '—'}
+                : owner.phone ? <a href={`tel:${owner.phone}`} className="text-blue-700 hover:underline">{owner.phone}</a> : 'â€”'}
             </dd>
           </div>
           <div className="col-span-2">
             <dt className="text-xs uppercase tracking-wider text-gray-500">Mailing address</dt>
             <dd className="mt-0.5">
-              {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || '—'}
+              {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || 'â€”'}
             </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wider text-gray-500">Preferred comm</dt>
-            <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? '—'}</dd>
+            <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? 'â€”'}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wider text-gray-500">Added</dt>
@@ -122,7 +122,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
         {/* Inline edit */}
         <details className="border-t border-gray-100 px-5 py-4">
           <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">Edit contact</summary>
-          <form action={updateOwner.bind(null, id)} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={updateOwner.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="first_name">First name</Label>
               <Input id="first_name" name="first_name" defaultValue={owner.first_name ?? ''} />
@@ -169,9 +169,9 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
         </details>
       </Section>
 
-      {/* Occupancies — unit links */}
+      {/* Occupancies â€” unit links */}
       <Section title="Units owned / occupied"
-        right={<span className="text-xs text-gray-500">{currentOccs.length} current · {pastOccs.length} past</span>}>
+        right={<span className="text-xs text-gray-500">{currentOccs.length} current Â· {pastOccs.length} past</span>}>
         {(occs ?? []).length === 0 ? (
           <p className="px-5 py-6 text-center text-sm text-gray-500">Not yet linked to any units. Use the form below.</p>
         ) : (
@@ -191,13 +191,13 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
               {(occs ?? []).map((o: any) => (
                 <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-2">
-                    <Link href={`/units/${o.units?.id}`} className="font-medium text-blue-700 hover:underline">Unit {o.units?.unit_number ?? '—'}</Link>
+                    <Link href={`/units/${o.units?.id}`} className="font-medium text-blue-700 hover:underline">Unit {o.units?.unit_number ?? 'â€”'}</Link>
                     {o.is_primary && <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">primary</span>}
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? 'â€”'}</td>
                   <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : 'â€”'}</td>
                   <td className="px-4 py-2">
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${
                       o.status === 'current' ? 'bg-green-100 text-green-700' :
@@ -207,7 +207,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                   </td>
                   <td className="px-4 py-2 text-right">
                     {o.status === 'current' && (
-                      <form action={endOccupancy.bind(null, o.id, id)}>
+                      <form action={endOccupancy.bind(null, o.id, id) as any}>
                         <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
                       </form>
                     )}
@@ -220,15 +220,15 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
 
         <details className="border-t border-gray-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
           <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">+ Link to a unit</summary>
-          <form action={linkOccupancy.bind(null, id)} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <form action={linkOccupancy.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="md:col-span-3">
               <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
               <select id="unit_id" name="unit_id" required
                 className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
-                <option value="">Choose a unit…</option>
+                <option value="">Choose a unitâ€¦</option>
                 {(units ?? []).map((u: any) => (
                   <option key={u.id} value={u.id}>
-                    {u.buildings?.associations?.name} · Unit {u.unit_number}
+                    {u.buildings?.associations?.name} Â· Unit {u.unit_number}
                     {u.buildings?.name ? ` (${u.buildings.name})` : ''}
                   </option>
                 ))}
@@ -292,7 +292,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                     }`}>{s.status}</span>
                   </div>
                   <div className="truncate text-xs text-gray-500">{(s.description ?? '').split('\n')[0]}</div>
-                  <div className="text-xs text-gray-400">Unit {s.units?.unit_number} · {date(s.created_at)}</div>
+                  <div className="text-xs text-gray-400">Unit {s.units?.unit_number} Â· {date(s.created_at)}</div>
                 </li>
               ))}
             </ul>
@@ -308,7 +308,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                     <span className="font-medium">{v.title}</span>
                     {v.fine_amount != null && <span className="text-xs tabular-nums text-gray-700">{money(v.fine_amount)}</span>}
                   </div>
-                  <div className="text-xs text-gray-500">{v.associations?.name} · {date(v.date_observed)}</div>
+                  <div className="text-xs text-gray-500">{v.associations?.name} Â· {date(v.date_observed)}</div>
                 </li>
               ))}
             </ul>

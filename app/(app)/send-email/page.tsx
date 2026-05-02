@@ -22,8 +22,8 @@ export default async function SendEmailPage({
   const supabase = await createClient();
 
   const [{ data: associations }, { data: profile }] = await Promise.all([
-    supabase.from('associations').select('id, name').is('archived_at', null).order('name'),
-    supabase.from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
+    (supabase as any).from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
   ]);
 
   const fromEmail = profile?.email ?? me.email ?? 'no-reply@condo-app.example';
@@ -34,17 +34,17 @@ export default async function SendEmailPage({
   let ownerCount = 0, tenantCount = 0, boardCount = 0;
   if (preAssoc) {
     const [ownC, tenC, brdC] = await Promise.all([
-      supabase.from('occupancies')
+      (supabase as any).from('occupancies')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
         .eq('occupancy_type', 'owner')
         .eq('status', 'current'),
-      supabase.from('occupancies')
+      (supabase as any).from('occupancies')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
         .eq('occupancy_type', 'tenant')
         .eq('status', 'current'),
-      supabase.from('board_members')
+      (supabase as any).from('board_members')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
         .eq('active', true),
@@ -63,7 +63,7 @@ export default async function SendEmailPage({
             className="text-gray-400 hover:text-gray-600" aria-label="Close">×</Link>
         </div>
 
-        <form action={sendEmail} className="space-y-5 px-6 py-5">
+        <form action={sendEmail as any} className="space-y-5 px-6 py-5">
           {sp.return_to && <input type="hidden" name="return_to" value={sp.return_to} />}
 
           {/* From */}

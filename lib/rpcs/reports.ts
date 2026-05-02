@@ -23,8 +23,11 @@ export async function queueReport(formData: FormData) {
   for (const [k, v] of formData.entries()) {
     if (k.startsWith('param_') && v) params[k.slice(6)] = v;
   }
+  if (!params.scope) {
+    return { error: 'Report scope is required' };
+  }
 
-  const { data, error } = await supabase.rpc('queue_report_run', {
+  const { data, error } = await (supabase as any).rpc('queue_report_run', {
     p_definition_id: definitionId,
     p_parameters: params,
     p_output_format: outputFormat,
@@ -41,7 +44,7 @@ export async function queueReport(formData: FormData) {
  */
 export async function cancelReportRun(runId: string) {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('report_runs')
     .update({ status: 'cancelled', finished_at: new Date().toISOString() })
     .eq('id', runId)

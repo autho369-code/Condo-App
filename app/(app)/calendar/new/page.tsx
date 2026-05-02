@@ -1,25 +1,12 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
-import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input, Label } from '@/components/ui/input';
+import { EVENT_TYPES, DEFAULT_REMINDERS, REMINDER_ACTIONS, eventTypeLabel, reminderLabel } from '@/lib/operations/calendar';
 import { createCalendarEvent } from '@/lib/rpcs/calendar';
-import { defaultMaintenanceInstructions } from '@/lib/calendar/templates';
+import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-
-const ACTIVITY_TYPES: Array<{ value: string; label: string; notifyByDefault: boolean }> = [
-  { value: 'elevator_reservation',    label: 'Elevator reservation',    notifyByDefault: true  },
-  { value: 'move_in',                 label: 'Move-in',                 notifyByDefault: true  },
-  { value: 'move_out',                label: 'Move-out',                notifyByDefault: true  },
-  { value: 'water_shutoff',           label: 'Water shutoff',           notifyByDefault: true  },
-  { value: 'vendor_work',             label: 'Vendor working on property', notifyByDefault: true },
-  { value: 'common_area_reservation', label: 'Common-area reservation', notifyByDefault: true  },
-  { value: 'board_meeting',           label: 'Board meeting',           notifyByDefault: false },
-  { value: 'inspection',              label: 'Inspection',              notifyByDefault: true  },
-  { value: 'announcements',           label: 'Announcement',            notifyByDefault: false },
-  { value: 'other',                   label: 'Other (blank — describe below)', notifyByDefault: false },
-];
 
 export default async function NewCalendarEventPage({
   searchParams,
@@ -27,225 +14,191 @@ export default async function NewCalendarEventPage({
   searchParams: Promise<{ assoc?: string; type?: string; start?: string; scope?: string; title?: string }>;
 }) {
   await requireStaff();
-  const { assoc, type, start, scope: scopeParam, title: titleParam } = await searchParams;
-  const scope = scopeParam === 'annual' ? 'annual' : 'daily';
-  // start = "YYYY-MM-DD" from a day-cell click → prefill start at 09:00 local
-  const defaultStart = start ? `${start}T09:00` : '';
+  const sp = await searchParams;
   const supabase = await createClient();
+  const db = supabase as any;
+  const eventType = EVENT_TYPES.some((type) => type.value === sp.type) ? sp.type! : 'water_shutoff';
+  const defaultStart = sp.start ? `${sp.start}T09:00` : '';
 
-  const { data: associations } = await supabase
-    .from('associations')
-    .select('id, name, maintenance_contact_name, maintenance_contact_email, maintenance_contact_phone')
-    .is('archived_at', null)
-    .order('name');
+  const [{ data: associations }, { data: vendors }, { data: owners }] = await Promise.all([
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('vendors').select('id, name, email, phone').is('archived_at', null).order('name').limit(200),
+    db.from('owners').select('id, full_name, email, phone').is('archived_at', null).order('full_name').limit(200),
+  ]);
 
-  const preType  = ACTIVITY_TYPES.find((t) => t.value === type) ?? null;
-  const preAssoc = assoc ? (associations ?? []).find((a: any) => a.id === assoc) : null;
-
-  // Pre-fill the instructions based on activity type. User can edit before saving.
-  const defaultInstructions = preType ? defaultMaintenanceInstructions(preType.value) : '';
+  const reminders = DEFAULT_REMINDERS[eventType as keyof typeof DEFAULT_REMINDERS] ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-6 space-y-4">
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-        <Link href="/calendar" className="hover:text-brand-600">Calendar</Link> · New event
-      </nav>
-      <h1 className="text-2xl font-semibold text-gray-900">New calendar event</h1>
-      <p className="text-sm text-gray-500">
-        Pick an activity, fill in the description, and optionally email maintenance with the specific instructions they need
-        (pads on elevator, COI check, water-shutoff notice, etc.).
-      </p>
-
-      <form action={createCalendarEvent} className="space-y-5 rounded border border-gray-200 bg-white p-5">
-        {/* Hidden scope — determines which calendar (daily vs annual) this event lives on */}
-        <input type="hidden" name="calendar_scope" value={scope} />
-
-        {scope === 'annual' && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            <strong>Property / annual preventive event.</strong> Lives on the Property calendar.
-            Use for fire pump tests, fire panel checks, extinguisher recerts, standpipe, elevator
-            inspections, plumbing line cleaning, roof inspections, etc. Set an advance reminder
-            below so the manager is notified before it's due.
-          </div>
-        )}
-
-        {/* Scope */}
+    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-8 py-6">
+      <div className="mb-6 flex items-start justify-between gap-6">
         <div>
-          <Label htmlFor="association_id">Association</Label>
-          <select
-            id="association_id"
-            name="association_id"
-            defaultValue={assoc ?? ''}
-            className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">All associations (portfolio-wide)</option>
-            {(associations ?? []).map((a: any) => (
-              <option key={a.id} value={a.id}>
-                {a.name}{a.maintenance_contact_email ? '' : ' — no maintenance email on file'}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-gray-500">
-            Pick the association so maintenance notifications go to the right person.
-            {preAssoc?.maintenance_contact_email
-              ? <> Currently notifies <strong>{preAssoc.maintenance_contact_email}</strong>.</>
-              : preAssoc ? <> This association has <strong>no maintenance email on file</strong> — <Link href={`/associations/${preAssoc.id}`} className="text-blue-700 hover:underline">add one here</Link>.</> : null}
+          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <Link href="/calendar" className="hover:text-brand-600">Calendar</Link>
+            <span className="mx-2">/</span>
+            New Event
+          </nav>
+          <h1 className="text-2xl font-semibold text-gray-900">Create association calendar event</h1>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500">
+            Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
           </p>
         </div>
+        <Link href="/calendar">
+          <Button type="button" variant="secondary">Cancel</Button>
+        </Link>
+      </div>
 
-        {/* Activity type */}
-        <div>
-          <Label htmlFor="event_type">Activity type</Label>
-          <select
-            id="event_type"
-            name="event_type"
-            defaultValue={preType?.value ?? ''}
-            className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">— choose —</option>
-            {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <p className="mt-1 text-xs text-gray-500">Don&apos;t see it? Pick <strong>Other</strong> and type it in.</p>
-        </div>
+      <form action={createCalendarEvent as any} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
+        <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />
 
-        {/* Title */}
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input id="title" name="title" required defaultValue={titleParam ?? ''} placeholder={preType ? `e.g. ${preType.label} — Unit 3B` : 'Short label that shows on the calendar'} />
-        </div>
-
-        {/* When */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="start_datetime">Starts</Label>
-            <Input id="start_datetime" name="start_datetime" type="datetime-local" required defaultValue={defaultStart} />
-          </div>
-          <div>
-            <Label htmlFor="end_datetime">Ends (optional)</Label>
-            <Input id="end_datetime" name="end_datetime" type="datetime-local" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="all_day" />
-              All day
-            </label>
-          </div>
-        </div>
-
-        {/* Location */}
-        <div>
-          <Label htmlFor="location">Location</Label>
-          <Input id="location" name="location" placeholder="e.g. Lobby, Unit 3B, Roof, Pool deck" />
-        </div>
-
-        {/* Description (resident-facing) */}
-        <div>
-          <Label htmlFor="description">Description (shown on calendar)</Label>
-          <textarea
-            id="description" name="description" rows={3}
-            placeholder="Short note that appears on the event card for anyone who can see it."
-            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-
-        {/* Advance reminder — required for annual events, optional for daily */}
-        <div>
-          <Label htmlFor="reminder_days_before">
-            Advance reminder {scope === 'annual' ? <span className="text-red-500">*</span> : <span className="text-gray-400">(optional)</span>}
-          </Label>
-          <div className="flex items-center gap-2">
-            <input
-              id="reminder_days_before"
-              name="reminder_days_before"
-              type="number"
-              min={1}
-              max={30}
-              defaultValue={scope === 'annual' ? 14 : ''}
-              required={scope === 'annual'}
-              className="h-10 w-24 rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <span className="text-sm text-gray-600">days before the event</span>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">
-            A banner will show on the dashboard starting {scope === 'annual' ? '14 days' : 'N days'} before this event.
-            Manager can dismiss it once. Range: 1–30 days.
-          </p>
-        </div>
-
-        {/* Maintenance notification — email + SMS, each per-association */}
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-4">
-          <div className="mb-2 text-sm font-semibold text-gray-900">Notify maintenance</div>
-          <p className="mb-3 text-xs text-gray-600">
-            Each association has its own maintenance contact on file. The message below goes to that association&apos;s
-            person only — different association, different recipient.
-          </p>
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className="flex cursor-pointer items-start gap-2 rounded border border-gray-200 bg-white p-3">
-              <input
-                type="checkbox"
-                name="notify_maintenance"
-                defaultChecked={preType?.notifyByDefault ?? false}
-                className="mt-0.5"
-              />
-              <div className="flex-1 text-sm">
-                <div className="font-medium text-gray-900">Email</div>
-                <div className="mt-0.5 text-xs text-gray-500">
-                  {preAssoc?.maintenance_contact_email ? preAssoc.maintenance_contact_email : 'association email on file'}
-                </div>
+        <div className="space-y-6">
+          <section className="rounded-lg border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Event details</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <Label htmlFor="association_id">Association</Label>
+                <select id="association_id" name="association_id" required defaultValue={sp.assoc ?? ''} className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  <option value="">Select association</option>
+                  {(associations ?? []).map((association: any) => (
+                    <option key={association.id} value={association.id}>{association.name}</option>
+                  ))}
+                </select>
               </div>
-            </label>
 
-            <label className="flex cursor-pointer items-start gap-2 rounded border border-gray-200 bg-white p-3">
-              <input
-                type="checkbox"
-                name="notify_sms"
-                defaultChecked={false}
-                className="mt-0.5"
-              />
-              <div className="flex-1 text-sm">
-                <div className="font-medium text-gray-900">Text (SMS)</div>
-                <div className="mt-0.5 text-xs text-gray-500">
-                  {preAssoc?.maintenance_contact_phone ? preAssoc.maintenance_contact_phone : 'association phone on file'}
-                </div>
+              <div>
+                <Label htmlFor="event_type">Event type</Label>
+                <select id="event_type" name="event_type" defaultValue={eventType} className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  {EVENT_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
               </div>
-            </label>
-          </div>
 
-          <div className="mt-4">
-            <Label htmlFor="maintenance_instructions">Instructions to maintenance</Label>
-            <textarea
-              id="maintenance_instructions"
-              name="maintenance_instructions"
-              rows={4}
-              defaultValue={defaultInstructions}
-              placeholder="Be specific — what to prepare, when, and who to coordinate with."
-              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Pre-filled with a template for this activity type. Edit freely.
-              {preAssoc && !preAssoc.maintenance_contact_email && !preAssoc.maintenance_contact_phone && (
-                <> <Link href={`/associations/${preAssoc.id}`} className="text-amber-700 hover:underline">This association has no maintenance contacts on file — add them →</Link></>
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input id="title" name="title" required defaultValue={sp.title ?? eventTypeLabel(eventType)} />
+              </div>
+
+              <div>
+                <Label htmlFor="start_datetime">Start date/time</Label>
+                <Input id="start_datetime" name="start_datetime" type="datetime-local" required defaultValue={defaultStart} />
+              </div>
+
+              <div>
+                <Label htmlFor="end_datetime">End date/time</Label>
+                <Input id="end_datetime" name="end_datetime" type="datetime-local" />
+              </div>
+
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" name="location" placeholder="Lobby, roof, Unit 3B, west riser" />
+              </div>
+
+              <div>
+                <Label htmlFor="unit_id">Building / unit</Label>
+                <Input id="unit_id" name="unit_id" placeholder="Optional unit id for now" />
+              </div>
+
+              <div>
+                <Label htmlFor="vendor_id">Vendor</Label>
+                <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  <option value="">Not applicable</option>
+                  {(vendors ?? []).map((vendor: any) => (
+                    <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="owner_id">Owner / resident</Label>
+                <select id="owner_id" name="owner_id" defaultValue="" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  <option value="">Not applicable</option>
+                  {(owners ?? []).map((owner: any) => (
+                    <option key={owner.id} value={owner.id}>{owner.full_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="all_day" />
+                All day
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Notice and internal instructions</h2>
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label htmlFor="description">Short calendar description</Label>
+                <textarea id="description" name="description" rows={3} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+              </div>
+
+              <div>
+                <Label htmlFor="public_notice_text">Public notice text</Label>
+                <textarea id="public_notice_text" name="public_notice_text" rows={5} placeholder="Leave blank and the system will draft one from the event details." className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+              </div>
+
+              <div>
+                <Label htmlFor="maintenance_instructions">Vendor / maintenance confirmation notes</Label>
+                <textarea id="maintenance_instructions" name="maintenance_instructions" rows={4} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+              </div>
+
+              <div>
+                <Label htmlFor="internal_notes">Internal notes</Label>
+                <textarea id="internal_notes" name="internal_notes" rows={4} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-6">
+          <section className="rounded-lg border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Default reminders</h2>
+            <div className="mt-3 space-y-2">
+              {reminders.length ? reminders.map((minutes) => (
+                <label key={minutes} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                  <input type="checkbox" name="reminder_minutes" value={minutes} defaultChecked />
+                  {reminderLabel(minutes)}
+                </label>
+              )) : (
+                <p className="text-sm text-gray-500">No default reminders. Add this event, then customize reminders in Automation Center.</p>
               )}
-            </p>
-          </div>
-        </div>
+            </div>
+          </section>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-          <Link href={`/calendar${assoc ? `?assoc=${assoc}` : ''}`} className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <section className="rounded-lg border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Automation actions</h2>
+            <div className="mt-3 space-y-2">
+              {REMINDER_ACTIONS.map((action) => (
+                <label key={action.value} className="flex items-start gap-2 text-sm text-gray-700">
+                  <input type="checkbox" name={action.value} defaultChecked={['create_email_draft', 'create_follow_up_task'].includes(action.value)} className="mt-1" />
+                  <span>{action.label}</span>
+                </label>
+              ))}
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="notify_sms" className="mt-1" />
+                <span>Also prepare SMS text where phone numbers exist</span>
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Recipient groups</h2>
+            <div className="mt-3 space-y-2">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_management" defaultChecked /> Management office</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_board" /> Board</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_vendor" /> Vendor</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_residents" defaultChecked /> Affected owners/residents</label>
+            </div>
+          </section>
+
           <div className="flex gap-2">
-            <button
-              type="submit"
-              name="add_another"
-              value="1"
-              className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Save &amp; add another
+            <Button type="submit" className="flex-1">Create event</Button>
+            <button type="submit" name="add_another" value="1" className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Add another
             </button>
-            <Button type="submit">Save event</Button>
           </div>
-        </div>
+        </aside>
       </form>
     </div>
   );

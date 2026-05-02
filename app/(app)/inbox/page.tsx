@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function InboxPage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  const { data: rows } = await (supabase as any)
     .from('sms_messages')
     .select('id, direction, body, from_number, to_number, status, sent_at, read_at, sms_conversations(id)')
     .order('sent_at', { ascending: false })

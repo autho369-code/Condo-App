@@ -17,18 +17,18 @@ export default async function NewApprovalPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name, portfolio_id').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: members } = await supabase
+  const { data: members } = await (supabase as any)
     .from('board_members')
     .select('id, full_name, role')
     .eq('association_id', id)
     .eq('active', true)
     .order('role');
 
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
     .select('default_board_member_ids, default_voting_scheme, signatures_required')
     .eq('association_id', id)
@@ -66,7 +66,7 @@ export default async function NewApprovalPage({
       default:                            requiredVotes = Math.floor(boardMemberIds.length / 2) + 1;
     }
 
-    const { error } = await supabase.from('approval_requests').insert({
+    const { error } = await (supabase as any).from('approval_requests').insert({
       portfolio_id: assoc!.portfolio_id,
       association_id: id,
       request_type: 'expense',
@@ -98,7 +98,7 @@ export default async function NewApprovalPage({
       }
       rail={rail}
     >
-      <form action={createApproval} className="max-w-3xl space-y-5">
+      <form action={createApproval as any} className="max-w-3xl space-y-5">
         <Section title="Details" padded>
           <FormRow label="Name" required>
             <input type="text" name="name" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
@@ -149,14 +149,14 @@ export default async function NewApprovalPage({
           </FormRow>
 
           <div className="my-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-gray-700">
-            <span className="mr-1 text-blue-600">ⓘ</span>
+            <span className="mr-1 text-blue-600">â“˜</span>
             Clicking &quot;Send for Approval&quot; will email this new approval to your selected board members.
           </div>
 
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm">Send for Approval</Button>
             <Link href={`/associations/${id}/approvals`}>
-              <Button type="button" size="sm" variant="outline">Cancel</Button>
+              <Button type="button" size="sm" variant="secondary">Cancel</Button>
             </Link>
           </div>
         </Section>
@@ -164,7 +164,7 @@ export default async function NewApprovalPage({
         <Section title="Attachments" padded>
           <div className="rounded border-2 border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
             Drag Files Here&nbsp;&nbsp;or&nbsp;&nbsp;
-            <Button type="button" size="sm" variant="outline" disabled>Choose Files to Add</Button>
+            <Button type="button" size="sm" variant="secondary" disabled>Choose Files to Add</Button>
             <div className="mt-1 text-xs text-gray-400">Attachment upload pending Storage bucket wiring</div>
           </div>
         </Section>

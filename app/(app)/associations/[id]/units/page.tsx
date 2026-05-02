@@ -33,14 +33,14 @@ export default async function AssociationUnitsTab({
 
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations')
     .select('id, name')
     .eq('id', id)
     .maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: units } = await supabase
+  const { data: units } = await (supabase as any)
     .from('units')
     .select(`
       id, unit_number, ownership_pct,
@@ -53,7 +53,7 @@ export default async function AssociationUnitsTab({
   const unitIds = (units ?? []).map((u: any) => u.id);
 
   const { data: occs } = unitIds.length > 0
-    ? await supabase
+    ? await (supabase as any)
         .from('occupancies')
         .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
         .in('unit_id', unitIds)
@@ -62,7 +62,7 @@ export default async function AssociationUnitsTab({
 
   const ownerIds = Array.from(new Set((occs ?? []).map((o: any) => o.owner_id).filter(Boolean)));
   const { data: owners } = ownerIds.length > 0
-    ? await supabase.from('owners').select('id, full_name').in('id', ownerIds)
+    ? await (supabase as any).from('owners').select('id, full_name').in('id', ownerIds)
     : { data: [] as any[] };
 
   const ownerById = new Map<string, { id: string; full_name: string }>();

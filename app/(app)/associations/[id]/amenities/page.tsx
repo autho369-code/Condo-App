@@ -6,8 +6,11 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { Button } from '@/components/ui/button';
+import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
+
+type AmenityInsert = Database['public']['Tables']['association_amenities']['Insert'];
 
 export default async function AmenitiesTab({
   params,
@@ -23,11 +26,11 @@ export default async function AmenitiesTab({
 
   const supabase = await createClient();
 
-  const { data: assoc, error: aErr } = await supabase
+  const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
 
-  const { data: amenities } = await supabase
+  const { data: amenities } = await (supabase as any)
     .from('association_amenities')
     .select('id, name, image_url, description_html, opens_at, closes_at, allow_reservations, pricing_mode, price_amount, reserve_method, reservation_email, reservation_url, archived_at')
     .eq('association_id', id)
@@ -45,23 +48,25 @@ export default async function AmenitiesTab({
     const priceRaw = String(formData.get('price_amount') ?? '').trim();
     const reserveMethod = (formData.get('reserve_method') as string) || null;
 
-    const { error } = await supabase.from('association_amenities').insert({
+    const payload: AmenityInsert = {
       association_id: id,
       name,
       description_html: (formData.get('description_html') as string) || null,
       opens_at: (formData.get('opens_at') as string) || null,
       closes_at: (formData.get('closes_at') as string) || null,
       allow_reservations: allowReservations,
-      pricing_mode: allowReservations ? pricingMode : null,
+      pricing_mode: allowReservations ? pricingMode as AmenityInsert['pricing_mode'] : null,
       price_amount: allowReservations && priceRaw ? Number(priceRaw) : null,
-      reserve_method: allowReservations ? reserveMethod : null,
+      reserve_method: allowReservations ? reserveMethod as AmenityInsert['reserve_method'] : null,
       reservation_email:
         allowReservations && reserveMethod === 'email'
           ? (formData.get('reservation_email') as string) || null : null,
       reservation_url:
         allowReservations && reserveMethod === 'platform_link'
           ? (formData.get('reservation_url') as string) || null : null,
-    });
+    };
+
+    const { error } = await (supabase as any).from('association_amenities').insert(payload);
 
     if (error) throw new Error(error.message);
     revalidatePath(`/associations/${id}/amenities`);
@@ -150,10 +155,10 @@ export default async function AmenitiesTab({
       {showCreate && (
         <Section
           title="Create Amenity"
-          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">×</Link>}
+          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">Ã—</Link>}
           padded
         >
-          <form action={createAmenity} className="space-y-4">
+          <form action={createAmenity as any} className="space-y-4">
             <FormRow label="Title" required>
               <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </FormRow>
@@ -225,7 +230,7 @@ export default async function AmenitiesTab({
             <div className="flex items-center gap-2 pt-2">
               <Button type="submit" size="sm">Create</Button>
               <Link href={`/associations/${id}/amenities`}>
-                <Button type="button" size="sm" variant="outline">Cancel</Button>
+                <Button type="button" size="sm" variant="secondary">Cancel</Button>
               </Link>
             </div>
           </form>
@@ -251,15 +256,15 @@ function FormRow({
 }
 
 function formatHours(opens: string | null, closes: string | null): string {
-  if (!opens && !closes) return '—';
+  if (!opens && !closes) return 'â€”';
   const fmt = (t: string | null) => {
-    if (!t) return '—';
+    if (!t) return 'â€”';
     const [h, m] = t.split(':').map(Number);
     const hr12 = h % 12 || 12;
     const ampm = h < 12 ? 'AM' : 'PM';
     return `${hr12}:${String(m).padStart(2, '0')} ${ampm}`;
   };
-  return `${fmt(opens)} – ${fmt(closes)}`;
+  return `${fmt(opens)} â€“ ${fmt(closes)}`;
 }
 
 function sanitizeBasicHtml(html: string): string {

@@ -14,20 +14,20 @@ export default async function NewBillPage() {
 
   // All the dropdown sources are filtered by RLS to the user's portfolio
   const [{ data: vendors }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
-    supabase.from('vendors')
+    (supabase as any).from('vendors')
       .select('id, name, trade, payment_type')
       .is('archived_at', null)
       .order('name'),
-    supabase.from('associations')
+    (supabase as any).from('associations')
       .select('id, name')
       .is('archived_at', null)
       .order('name'),
-    supabase.from('gl_accounts')
+    (supabase as any).from('gl_accounts')
       .select('id, number, name, account_type')
       .eq('active', true)
       .in('account_type', ['expense','cost_of_goods_sold','other_expense'])
       .order('number'),
-    supabase.from('bank_accounts')
+    (supabase as any).from('bank_accounts')
       .select('id, name, bank_name')
       .is('archived_at', null)
       .order('name'),
@@ -51,7 +51,7 @@ export default async function NewBillPage() {
       <Card>
         <CardHeader><CardTitle>Bill details</CardTitle></CardHeader>
         <CardBody>
-          <form action={createBill} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={createBill as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input type="hidden" name="portfolio_id" value={me.portfolio?.id ?? ''} />
 
             {/* VENDOR */}

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export default async function NewChargeCategory() {
   const me = await requireStaff();
   const supabase = await createClient();
-  const { data: gls } = await supabase.from('gl_accounts')
+  const { data: gls } = await (supabase as any).from('gl_accounts')
     .select('id, number, name, account_type').eq('active', true).order('number');
 
   return (
@@ -24,7 +24,7 @@ export default async function NewChargeCategory() {
 
       <Card>
         <CardBody>
-          <form action={createChargeCategory} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form action={createChargeCategory as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input type="hidden" name="portfolio_id" value={me.portfolio?.id ?? ''} />
 
             <div className="md:col-span-2">

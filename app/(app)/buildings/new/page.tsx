@@ -42,8 +42,8 @@ export default async function NewBuildingPage({
   const supabase = await createClient();
 
   const [{ data: assoc }, { data: propertyGroups }] = await Promise.all([
-    supabase.from('associations').select('id, name').eq('id', associationId).maybeSingle(),
-    supabase.from('property_groups').select('id, name').order('name'),
+    (supabase as any).from('associations').select('id, name').eq('id', associationId).maybeSingle(),
+    (supabase as any).from('property_groups').select('id, name').order('name'),
   ]);
 
   if (!assoc) redirect('/associations');
@@ -60,7 +60,7 @@ export default async function NewBuildingPage({
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
 
-      <form action={createBuilding} className="space-y-4">
+      <form action={createBuilding as any} className="space-y-4">
         <input type="hidden" name="association_id" value={assoc.id} />
 
         {/* ============================================================

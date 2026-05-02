@@ -24,13 +24,13 @@ export default async function ReportView({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string }>;
+  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const { data: def } = await supabase
+  const { data: def } = await (supabase as any)
     .from('report_definitions')
     .select('id, slug, name, category, description, output_formats')
     .eq('slug', slug)
@@ -40,12 +40,12 @@ export default async function ReportView({
   if (!def) notFound();
 
   const [{ data: runs }, { data: associations }] = await Promise.all([
-    supabase.from('report_runs')
+    (supabase as any).from('report_runs')
       .select('id, status, output_format, output_url, row_count, duration_ms, created_at')
       .eq('definition_id', def.id)
       .order('created_at', { ascending: false })
       .limit(10),
-    supabase.from('associations')
+    (supabase as any).from('associations')
       .select('id, name, created_at')
       .is('archived_at', null)
       .order('name'),
@@ -61,6 +61,7 @@ export default async function ReportView({
     period,
     selectedAssociation: sp.association ?? '',
     selectedPreset: sp.preset ?? 'this_month',
+    selectedScope: sp.scope ?? 'association',
   };
 
   if (def.slug === 'ar_aging') {
@@ -110,17 +111,17 @@ function computePeriod(preset: string, customFrom?: string, customTo?: string): 
 }
 
 // ============================================================================
-// LIVE VIEW — A/R Aging (renders aged_receivables inline)
+// LIVE VIEW â€” A/R Aging (renders aged_receivables inline)
 // ============================================================================
 async function ARAgingView({
-  def, runs, associations, period, selectedAssociation, selectedPreset,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string;
 }) {
   const supabase = await createClient();
 
-  let q = supabase.from('aged_receivables').select('*').order('due_date');
+  let q = (supabase as any).from('aged_receivables').select('*').order('due_date');
   if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
   const { data: rows } = await q;
   const assocs = associations;
@@ -144,9 +145,9 @@ async function ARAgingView({
           eyebrow={
             <>
               <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-              {' · '}
+              {' Â· '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
-              {' · '}
+              {' Â· '}
               <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
             </>
           }
@@ -154,7 +155,7 @@ async function ARAgingView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} isLive />}
+      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="grid grid-cols-5 gap-3">
         {BUCKETS.map((b) => (
@@ -243,13 +244,13 @@ function BucketPill({ bucket }: { bucket: string }) {
 }
 
 // ============================================================================
-// QUEUED REPORT VIEW — Run form + recent runs for this definition
+// QUEUED REPORT VIEW â€” Run form + recent runs for this definition
 // ============================================================================
 function QueuedReportView({
-  def, runs, associations, period, selectedAssociation, selectedPreset,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string;
 }) {
   return (
     <Workspace
@@ -258,7 +259,7 @@ function QueuedReportView({
           eyebrow={
             <>
               <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-              {' · '}
+              {' Â· '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
             </>
           }
@@ -266,7 +267,7 @@ function QueuedReportView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} />}
+      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} />}
     >
       <Section title="About this report">
         <div className="px-5 py-4 text-sm leading-6 text-gray-700">
@@ -304,7 +305,7 @@ function QueuedReportView({
                   <td className="px-5 py-2 text-gray-700">{date(r.created_at)}</td>
                   <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
                   <td className="px-4 py-2"><RunPill status={r.status} /></td>
-                  <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
                   <td className="px-5 py-2 text-right">
                     <Link href={`/reports/runs/${r.id}`} className="text-xs text-brand-600 hover:underline">
                       {r.status === 'succeeded' ? 'Download' : 'Open'}
@@ -321,13 +322,13 @@ function QueuedReportView({
 }
 
 // ============================================================================
-// RIGHT RAIL — Run form + quick stats
+// RIGHT RAIL â€” Run form + quick stats
 // ============================================================================
 function RightRail({
-  def, runs, associations, period, selectedAssociation, selectedPreset, isLive,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; isLive?: boolean;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean;
 }) {
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
@@ -345,6 +346,7 @@ function RightRail({
   const presetHref = (k: string) => {
     const p = new URLSearchParams();
     p.set('preset', k);
+    p.set('scope', selectedScope);
     if (selectedAssociation) p.set('association', selectedAssociation);
     return `?${p.toString()}`;
   };
@@ -355,25 +357,56 @@ function RightRail({
         {isLive ? 'Export snapshot' : 'Run this report'}
       </div>
 
-      <form action={queueReport} className="space-y-3">
+      <form action={queueReport as any} className="space-y-3">
         <input type="hidden" name="definition_id" value={def.id} />
 
-        {/* Association — required; each report tied to one association */}
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Scope</label>
+          <select
+            name="param_scope"
+            defaultValue={selectedScope}
+            className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          >
+            <option value="portfolio">Portfolio</option>
+            <option value="association">Association</option>
+            <option value="owner">Owner</option>
+            <option value="unit">Unit</option>
+          </select>
+        </div>
+
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">
-            Association <span className="text-red-500">*</span>
+            Association
           </label>
           <select
             name="param_association_id"
-            required
             defaultValue={selectedAssociation}
             className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
-            <option value="">Select…</option>
+            <option value="">Selectâ€¦</option>
             {associations.map((a: any) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="mb-0.5 block text-[11px] text-gray-500">Owner ID</label>
+            <input
+              name="param_owner_id"
+              placeholder="Optional"
+              className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-0.5 block text-[11px] text-gray-500">Unit ID</label>
+            <input
+              name="param_unit_id"
+              placeholder="Optional"
+              className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+            />
+          </div>
         </div>
 
         {/* Period presets */}
@@ -400,7 +433,7 @@ function RightRail({
               <label className="mb-0.5 block text-[11px] text-gray-500">From</label>
               <input
                 type="date"
-                name="param_period_from"
+                name="param_date_from"
                 defaultValue={period.from}
                 className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
               />
@@ -409,14 +442,14 @@ function RightRail({
               <label className="mb-0.5 block text-[11px] text-gray-500">To</label>
               <input
                 type="date"
-                name="param_period_to"
+                name="param_date_to"
                 defaultValue={period.to}
                 className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
               />
             </div>
           </div>
           <p className="mt-1 text-[11px] text-gray-500">
-            {period.label}: {period.from} → {period.to}
+            {period.label}: {period.from} â†’ {period.to}
           </p>
         </div>
 
@@ -442,7 +475,7 @@ function RightRail({
       {inFlight && (
         <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
           A run is currently <strong>{inFlight.status}</strong>.
-          <Link href={`/reports/runs/${inFlight.id}`} className="ml-1 font-semibold hover:underline">View →</Link>
+          <Link href={`/reports/runs/${inFlight.id}`} className="ml-1 font-semibold hover:underline">View â†’</Link>
         </div>
       )}
 
@@ -456,7 +489,7 @@ function RightRail({
             {lastSuccess.output_url && (
               <a href={lastSuccess.output_url} target="_blank" rel="noopener"
                 className="mt-2 inline-block text-brand-600 hover:underline">
-                Download →
+                Download â†’
               </a>
             )}
           </div>
