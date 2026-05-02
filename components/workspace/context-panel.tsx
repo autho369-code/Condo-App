@@ -51,3 +51,26 @@ export function PanelLink({ href, children }: { href: string; children: React.Re
     </li>
   );
 }
+
+export function PanelDropdown({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <li>
+      <details className="rounded border border-gray-200 bg-white" open={defaultOpen}>
+        <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-gray-800">
+          {title}
+        </summary>
+        <div className="border-t border-gray-100 px-3 py-2">
+          <ul className="space-y-1.5">{children}</ul>
+        </div>
+      </details>
+    </li>
+  );
+}

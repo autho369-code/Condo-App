@@ -187,7 +187,6 @@ export default async function DashboardPage({
           <Link href="/work-orders"><Button>Open work orders</Button></Link>
         </>
       }
-      rail={<CommandRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={linkedMetrics} />
@@ -221,33 +220,6 @@ export default async function DashboardPage({
             <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
           )}
         </section>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ShortcutPanel
-            title="Tasks"
-            links={[
-              { label: 'Approve bills', href: '/bills?status=pending_approval', count: pendingBills ?? 0 },
-              { label: 'Assign open work', href: '/work-orders?tab=unassigned', count: openWorkOrders ?? 0 },
-              { label: 'Send violation notices', href: '/violations?status=open', count: openViolations ?? 0 },
-            ]}
-          />
-          <ShortcutPanel
-            title="Finance"
-            links={[
-              { label: 'Reconcile accounts', href: '/bank-accounts?filter=unreconciled', count: unreconciledBankAccounts ?? 0 },
-              { label: 'Run checks', href: '/bills/check-run' },
-              { label: 'Review receivables', href: '/reports/ar_aging' },
-            ]}
-          />
-          <ShortcutPanel
-            title="Reports"
-            links={[
-              { label: 'Scheduled reports', href: '/scheduled-reports', count: scheduledReportsDue ?? 0 },
-              { label: 'Open work orders', href: '/reports/open_work_orders' },
-              { label: 'Violation log', href: '/reports/violation_log' },
-            ]}
-          />
-        </div>
       </div>
     </DataWorkspace>
   );
@@ -300,60 +272,6 @@ function buildReportQueue(db: any, todayIso: string) {
     .lte('next_run_at', todayIso)
     .order('next_run_at', { ascending: true, nullsFirst: false })
     .limit(4);
-}
-
-function CommandRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Quick actions</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bills/new" label="Enter bill" />
-          <RailLink href="/calendar/new?type=board_meeting" label="Schedule hearing" />
-          <RailLink href="/scheduled-reports" label="Manage report runs" />
-          <RailLink href="/bank-transfers" label="Review transfers" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Operating rhythm</h2>
-        <ul className="mt-3 space-y-3 text-sm text-gray-600">
-          <li>Morning: clear overdue violations and approval queues.</li>
-          <li>Midday: assign maintenance and reconcile bank exceptions.</li>
-          <li>Close: confirm scheduled reports and next-run dates.</li>
-        </ul>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link href={href} className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
-      {label}
-    </Link>
-  );
-}
-
-function ShortcutPanel({
-  title,
-  links,
-}: {
-  title: string;
-  links: Array<{ label: string; href: string; count?: number }>;
-}) {
-  return (
-    <section className="rounded border border-gray-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-      <div className="mt-3 space-y-2">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className="flex items-center justify-between rounded px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-950">
-            <span>{link.label}</span>
-            {typeof link.count === 'number' && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">{link.count}</span>}
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate') {
