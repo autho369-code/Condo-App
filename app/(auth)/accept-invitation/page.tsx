@@ -8,7 +8,7 @@ export default async function AcceptInvitationPage({
   searchParams,
 }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;
-  if (!token) return <Card><CardBody>No invitation token provided.</CardBody></Card>;
+  if (!token) return <Card className="mx-auto max-w-sm"><CardBody>No invitation token provided.</CardBody></Card>;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -16,7 +16,7 @@ export default async function AcceptInvitationPage({
   // If not logged in, send them to signup/login first — they need an auth user to accept
   if (!user) {
     return (
-      <Card>
+      <Card className="mx-auto max-w-sm">
         <CardHeader><CardTitle>Accept invitation</CardTitle></CardHeader>
         <CardBody>
           <p className="mb-4 text-sm text-gray-700">You need to sign in first so we can attach the invitation to your account.</p>
@@ -38,7 +38,7 @@ export default async function AcceptInvitationPage({
 
   if (result.error) {
     return (
-      <Card>
+      <Card className="mx-auto max-w-sm">
         <CardHeader><CardTitle>Invitation problem</CardTitle></CardHeader>
         <CardBody>
           <p className="text-sm text-red-600">{result.error}</p>
@@ -49,7 +49,7 @@ export default async function AcceptInvitationPage({
   }
 
   return (
-    <Card>
+    <Card className="mx-auto max-w-sm">
       <CardHeader><CardTitle>You&apos;re in</CardTitle></CardHeader>
       <CardBody>
         <p className="mb-4 text-sm text-gray-700">Your invitation was accepted and your account is ready.</p>

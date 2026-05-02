@@ -2,15 +2,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
-  const next = (formData.get('next') as string) || '/dashboard';
+  const mode = normalizeLoginMode(formData.get('mode'));
+  const next = safeInternalNext(formData.get('next')) ?? '/dashboard';
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  if (error) redirect(`/login?mode=${mode}&error=${encodeURIComponent(error.message)}`);
 
   revalidatePath('/', 'layout');
   redirect(next);

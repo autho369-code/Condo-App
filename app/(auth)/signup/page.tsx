@@ -6,7 +6,7 @@ import { signupWithPassword } from '@/lib/auth/actions';
 
 export default function SignupPage() {
   return (
-    <Card>
+    <Card className="mx-auto max-w-sm">
       <CardHeader>
         <CardTitle className="text-lg">Create your account</CardTitle>
         <p className="text-sm text-gray-500">If you were invited, use the email address that received the invitation.</p>
