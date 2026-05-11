@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { ManageOpsLogo } from '@/components/brand/manageops-logo';
 import { currentTenant } from '@/lib/tenant/server';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const tenant = await currentTenant();
 

@@ -94,3 +94,6 @@ export function ManageOpsLogo({
     </span>
   );
 }
+
+// Brand-renamed alias — use either name; they resolve to the same component.
+export const PortierLogo = ManageOpsLogo;

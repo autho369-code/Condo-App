@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { PortierLogo } from '@/components/brand/manageops-logo';
 import { Button } from '@/components/ui/button';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

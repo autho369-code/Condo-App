@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { acceptInvitation } from '@/lib/auth/actions';
 import { createClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Editorial accept-invitation flow.
  *  - missing token  → polite empty state
