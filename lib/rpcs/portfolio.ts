@@ -27,3 +27,45 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
   if (error) return { error: error.message };
   revalidatePath('/settings');
 }
+
+/**
+ * Update brand identity (logo URL, address, contact, website, brand emails).
+ * Called from /settings/branding by portfolio admins. RLS scopes the row.
+ */
+export async function updatePortfolioBranding(portfolioId: string, formData: FormData) {
+  'use server';
+  const supabase = await createClient();
+
+  const updates: Record<string, any> = {
+    company_name:       (formData.get('company_name')       as string)?.trim() || null,
+    address_street:     (formData.get('address_street')     as string)?.trim() || null,
+    address_city:       (formData.get('address_city')       as string)?.trim() || null,
+    address_state:      (formData.get('address_state')      as string)?.trim() || null,
+    address_zip:        (formData.get('address_zip')        as string)?.trim() || null,
+    phone_number:       (formData.get('phone_number')       as string)?.trim() || null,
+    brand_email:        ((formData.get('brand_email')       as string) ?? '').trim().toLowerCase() || null,
+    billing_email_from: ((formData.get('billing_email_from') as string) ?? '').trim().toLowerCase() || null,
+    website:            (formData.get('website')            as string)?.trim() || null,
+  };
+
+  // logo_url + favicon_url come from client-side upload components — only update
+  // when the hidden field is populated, or when an explicit clear flag was set.
+  const logoUrl = (formData.get('logo_url') as string)?.trim();
+  if (logoUrl) updates.logo_url = logoUrl;
+  if (formData.get('clear_logo') === '1') updates.logo_url = null;
+
+  const faviconUrl = (formData.get('favicon_url') as string)?.trim();
+  if (faviconUrl) updates.favicon_url = faviconUrl;
+  if (formData.get('clear_favicon') === '1') updates.favicon_url = null;
+
+  const { error } = await (supabase as any)
+    .from('portfolios')
+    .update(updates)
+    .eq('id', portfolioId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/settings');
+  revalidatePath('/settings/branding');
+  // Branding shows on auth + portal layouts too — bust the layout cache
+  revalidatePath('/', 'layout');
+}

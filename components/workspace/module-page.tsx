@@ -1,38 +1,49 @@
-// Shared shell for module list pages so every page looks consistent.
+// Shared shell for module list pages so every page reads as part of the
+// same editorial system.
 import Link from 'next/link';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 
 export function ModulePage({
-  title, description, newHref, newLabel, children, breadcrumb,
+  title, description, newHref, newLabel, children, breadcrumb, eyebrow,
 }: {
   title: string;
   description?: string;
   newHref?: string;
   newLabel?: string;
   breadcrumb?: { href: string; label: string }[];
+  eyebrow?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
-      <div className="space-y-6">
+    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-8">
+      <div className="space-y-7">
         {breadcrumb && (
-          <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <nav className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-500">
             {breadcrumb.map((b, i) => (
               <span key={b.href}>
-                {i > 0 && <span className="mx-1">/</span>}
-                <Link href={b.href} className="hover:text-brand-600">{b.label}</Link>
+                {i > 0 && <span className="mx-2 text-ink-300">/</span>}
+                <Link href={b.href} className="hover:text-champagne-700 transition-colors">
+                  {b.label}
+                </Link>
               </span>
             ))}
           </nav>
         )}
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-            {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+        <div className="flex items-end justify-between gap-6 border-b border-ink-100 pb-7">
+          <div className="max-w-2xl">
+            {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
+            <h1 className="font-display text-4xl tracking-editorial text-ink-900">{title}</h1>
+            {description && (
+              <p className="mt-3 text-[15px] text-ink-500 leading-relaxed">{description}</p>
+            )}
           </div>
           {newHref && (
-            <Link href={newHref}><Button size="sm">{newLabel ?? '+ New'}</Button></Link>
+            <Link href={newHref}>
+              <Button size="md" variant="primary">
+                {newLabel ?? '+ New'}
+              </Button>
+            </Link>
           )}
         </div>
         {children}
@@ -50,20 +61,20 @@ export function ComingSoon({
   roadmapPhase?: string;
 }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-800">Coming soon</div>
-      {reason && <p className="text-sm text-amber-900">{reason}</p>}
-      <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+    <div className="rounded-lg border border-champagne-300 bg-champagne-50/60 p-7 shadow-soft-sm">
+      <div className="eyebrow mb-2 text-champagne-700">In development</div>
+      {reason && <p className="font-display text-lg tracking-editorial text-ink-900">{reason}</p>}
+      <dl className="mt-5 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
         {supabaseTable && (
           <div>
-            <dt className="text-amber-700">Backing table</dt>
-            <dd className="mt-0.5 font-mono text-amber-900">{supabaseTable}</dd>
+            <dt className="text-ink-500 uppercase tracking-[0.12em]">Backing table</dt>
+            <dd className="mt-1 font-mono text-ink-800">{supabaseTable}</dd>
           </div>
         )}
         {roadmapPhase && (
           <div>
-            <dt className="text-amber-700">Roadmap</dt>
-            <dd className="mt-0.5 text-amber-900">{roadmapPhase}</dd>
+            <dt className="text-ink-500 uppercase tracking-[0.12em]">Roadmap</dt>
+            <dd className="mt-1 text-ink-800">{roadmapPhase}</dd>
           </div>
         )}
       </dl>

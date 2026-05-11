@@ -48,25 +48,25 @@ export default async function BankAccountsPage({
         <MetricStrip
           metrics={[
             { label: 'Accounts', value: accounts.length, sublabel: 'Visible in current view' },
-            { label: 'Unreconciled', value: unreconciled, sublabel: <Link href="/bank-accounts?filter=unreconciled" className="text-blue-700 hover:underline">Open queue</Link> },
+            { label: 'Unreconciled', value: unreconciled, sublabel: <Link href="/bank-accounts?filter=unreconciled" className="text-champagne-700 hover:underline">Open queue</Link> },
             { label: 'Payments enabled', value: paymentsEnabled, sublabel: 'Online payment targets' },
             { label: 'Auto reconciliation', value: autoRec, sublabel: 'Feed-assisted accounts' },
           ]}
         />
 
         <FilterBar action="/bank-accounts" searchDefault={q} searchPlaceholder="Search account name">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-ink-500">
             Bank
             <input
               name="bank"
               defaultValue={bank}
               placeholder="Bank name"
-              className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case text-gray-900"
+              className="mt-1 h-9 rounded border border-ink-200 px-3 text-sm normal-case text-ink-900"
             />
           </label>
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-ink-500">
             Queue
-            <select name="filter" defaultValue={filter} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
+            <select name="filter" defaultValue={filter} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
               <option value="">All accounts</option>
               <option value="unreconciled">Unreconciled only</option>
             </select>
@@ -90,13 +90,13 @@ export default async function BankAccountsPage({
               {accounts.map((account: any) => (
                 <TR key={account.id}>
                   <TD>
-                    <div className="font-medium text-gray-900">{account.name}</div>
-                    <div className="text-xs capitalize text-gray-500">{account.account_type?.replace(/_/g, ' ')}</div>
+                    <div className="font-medium text-ink-900">{account.name}</div>
+                    <div className="text-xs capitalize text-ink-500">{account.account_type?.replace(/_/g, ' ')}</div>
                   </TD>
-                  <TD className="text-sm text-gray-700">{account.bank_name ?? 'Not provided'}</TD>
-                  <TD className="text-sm text-gray-600">{account.associations?.name ?? 'Portfolio-level'}</TD>
-                  <TD className="text-sm text-gray-600">{date(account.last_reconciliation_date)}</TD>
-                  <TD className="text-xs text-gray-600">
+                  <TD className="text-sm text-ink-700">{account.bank_name ?? 'Not provided'}</TD>
+                  <TD className="text-sm text-ink-600">{account.associations?.name ?? 'Portfolio-level'}</TD>
+                  <TD className="text-sm text-ink-600">{date(account.last_reconciliation_date)}</TD>
+                  <TD className="text-xs text-ink-600">
                     <div>Acct {maskBankNumber(account.account_number)}</div>
                     <div>Routing {maskBankNumber(account.routing_number)}</div>
                   </TD>
@@ -107,7 +107,7 @@ export default async function BankAccountsPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <p className="rounded border border-dashed border-ink-200 bg-white px-6 py-12 text-center text-sm text-ink-500">
             No bank accounts match this view.
           </p>
         )}
@@ -120,7 +120,7 @@ function BankRail() {
   return (
     <div className="space-y-5">
       <section>
-        <h2 className="text-sm font-semibold text-gray-950">Banking tasks</h2>
+        <h2 className="text-sm font-semibold text-ink-900">Banking tasks</h2>
         <div className="mt-3 grid gap-2">
           <RailLink href="/bank-accounts/new" label="New bank account" />
           <RailLink href="/bank-accounts/deposits/new" label="New bank deposit" />
@@ -129,8 +129,8 @@ function BankRail() {
           <RailLink href="/bank-accounts/adjustments/new" label="Bank adjustment" />
         </div>
       </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
+      <section className="border-t border-ink-100 pt-5">
+        <h2 className="text-sm font-semibold text-ink-900">Reports</h2>
         <div className="mt-3 grid gap-2">
           <RailLink href="/bank-accounts/activity" label="Bank account activity" />
           <RailLink href="/reports/check_register" label="Check register" />
@@ -144,7 +144,7 @@ function BankRail() {
 
 function RailLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
+    <Link href={href} className="rounded border border-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
       {label}
     </Link>
   );

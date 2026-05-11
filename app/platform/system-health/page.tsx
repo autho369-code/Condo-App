@@ -19,8 +19,8 @@ export default async function PlatformSystemHealthPage() {
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-950">System Health</h1>
-        <p className="mt-1 text-sm text-gray-500">Platform-level alerts and account health signals.</p>
+        <h1 className="font-display text-4xl tracking-editorial text-ink-900">System Health</h1>
+        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">Platform-level alerts and account health signals.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-4">
@@ -45,13 +45,13 @@ export default async function PlatformSystemHealthPage() {
             <tbody>
               {alerts.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-10 text-center text-gray-500">No platform health alerts right now.</TD>
+                  <TD colSpan={5} className="py-10 text-center text-ink-500">No platform health alerts right now.</TD>
                 </TR>
               ) : (
                 alerts.map((row) => (
-                  <TR key={row.portfolio_id} className="hover:bg-gray-50">
+                  <TR key={row.portfolio_id} className="hover:bg-cream-50">
                     <TD>
-                      <Link href={`/platform/portfolios/${row.portfolio_id}`} className="font-medium text-blue-700 hover:underline">
+                      <Link href={`/platform/portfolios/${row.portfolio_id}`} className="font-medium text-champagne-700 hover:underline">
                         {row.company_name ?? 'Unnamed client'}
                       </Link>
                     </TD>

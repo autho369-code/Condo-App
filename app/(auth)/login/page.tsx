@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Field } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
 import { getLoginModeConfig, getLoginNext, getVisibleLoginModes, type LoginModeId } from '@/lib/auth/login-modes';
@@ -18,76 +17,132 @@ export default async function LoginPage({
   const isAdminMode = mode.id === 'admin';
 
   return (
-    <div className="space-y-6">
-      <header className="text-center">
-        <div className="text-xl font-semibold text-brand-600">Portier</div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">Portier Login Instructions</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          {isAdminMode ? 'Restricted platform access.' : 'Choose the workspace that matches your account.'}
+    <div className="space-y-9">
+      {/* Editorial header */}
+      <header>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+          {isAdminMode ? 'Restricted · Platform' : 'Welcome back'}
+        </div>
+        <h1 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
+          Sign in to{' '}
+          <span className="italic text-champagne-700">your workspace.</span>
+        </h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-ink-500">
+          {isAdminMode
+            ? 'Platform access for Portier operators only.'
+            : 'Choose the workspace that matches your account, then enter your credentials.'}
         </p>
       </header>
 
-      <Card className="overflow-hidden rounded-md shadow-sm">
-        {modes.map((item, index) => {
-          const isActive = item.id === mode.id;
-          const href = `/login?mode=${item.id}`;
+      {/* Mode picker — pill row */}
+      {!isAdminMode && (
+        <div role="tablist" aria-label="Login mode" className="flex flex-wrap gap-2">
+          {modes
+            .filter((m) => m.id !== 'admin')
+            .map((item) => {
+              const isActive = item.id === mode.id;
+              return (
+                <Link
+                  key={item.id}
+                  href={`/login?mode=${item.id}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={
+                    'inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-all ' +
+                    (isActive
+                      ? 'border-ink-900 bg-ink-900 text-cream-50 shadow-soft-sm'
+                      : 'border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-cream-50')
+                  }
+                >
+                  {item.title}
+                </Link>
+              );
+            })}
+        </div>
+      )}
 
-          return (
-            <section
-              key={item.id}
-              className={
-                'grid gap-4 px-6 py-6 md:grid-cols-[220px_1fr] ' +
-                (index === modes.length - 1 ? '' : 'border-b border-gray-200')
-              }
-            >
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
-                {item.id === 'admin' && <p className="mt-1 text-xs font-medium text-brand-600">Restricted access</p>}
-              </div>
-              <div className="space-y-3">
-                <p className="max-w-xl text-sm leading-6 text-gray-600">{item.description}</p>
-                {!isActive ? (
-                  <Link href={href} className="inline-flex items-center text-sm font-medium text-brand-600 hover:underline">
-                    {item.title} Here
-                  </Link>
-                ) : (
-                  <form action={loginWithPassword as any} className="max-w-md space-y-4 rounded-md border border-blue-200 bg-blue-50/40 p-4">
-                    <input type="hidden" name="mode" value={mode.id} />
-                    <input type="hidden" name="next" value={next} />
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" type="email" required autoComplete="email" />
-                    </div>
-                    <div>
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" name="password" type="password" required autoComplete="current-password" />
-                    </div>
-                    {params.error && <p className="text-sm text-red-600">{params.error}</p>}
-                    <p className="text-xs leading-5 text-gray-600">{item.note}</p>
-                    <Button type="submit" className="w-full">{item.submitLabel}</Button>
-                    <div className="text-center text-sm text-gray-600">
-                      Need a new account? <Link href="/signup" className="text-brand-600 hover:underline">Request access</Link>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </Card>
+      {/* Mode description */}
+      <p className="text-sm leading-relaxed text-ink-600">{mode.description}</p>
 
-      <div className="space-y-3 text-center">
+      {/* Form */}
+      <form
+        action={loginWithPassword as any}
+        className="space-y-5 rounded-lg border border-ink-100 bg-white p-7 shadow-soft-sm"
+      >
+        <input type="hidden" name="mode" value={mode.id} />
+        <input type="hidden" name="next" value={next} />
+
+        <Field label="Email address">
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@company.com"
+          />
+        </Field>
+
+        <Field
+          label={
+            <span className="flex items-baseline justify-between gap-2">
+              <span>Password</span>
+              <Link
+                href="/forgot-password"
+                className="text-[11px] font-medium normal-case tracking-normal text-champagne-700 hover:text-champagne-600 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </span>
+          }
+        >
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+          />
+        </Field>
+
+        {params.error && (
+          <div className="rounded-md border border-bordeaux-300 bg-bordeaux-50 px-3.5 py-2.5 text-sm text-bordeaux-700">
+            {params.error}
+          </div>
+        )}
+
+        <p className="text-xs leading-relaxed text-ink-500">{mode.note}</p>
+
+        <Button type="submit" size="lg" variant="primary" className="w-full">
+          {mode.submitLabel}
+        </Button>
+      </form>
+
+      {/* Below-form actions */}
+      <div className="space-y-4 text-center">
+        <div className="text-sm text-ink-600">
+          New to Portier?{' '}
+          <Link
+            href="/request-access"
+            className="font-medium text-champagne-700 underline decoration-champagne-300 decoration-1 underline-offset-4 hover:decoration-champagne-500 transition-colors"
+          >
+            Request access →
+          </Link>
+        </div>
+
         {localPreview && (
           <Link
             href="/dashboard"
-            className="inline-flex h-9 items-center justify-center rounded bg-gray-950 px-4 text-sm font-medium text-white hover:bg-gray-800"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-ink-900 px-4 text-sm font-medium text-cream-50 hover:bg-ink-800 transition-colors"
           >
             Continue to local preview
           </Link>
         )}
+
         {isAdminMode && (
-          <p className="text-xs leading-5 text-gray-500">
-            Platform access requires an active platform operator record in Supabase.
+          <p className="text-[11px] uppercase tracking-[0.16em] text-ink-500">
+            Platform access requires an active operator record.
           </p>
         )}
       </div>

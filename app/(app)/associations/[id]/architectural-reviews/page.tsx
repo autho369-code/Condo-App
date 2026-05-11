@@ -75,8 +75,8 @@ export default async function ArchitecturalReviewsTab({
 
         <Section title="Board Approval Defaults" padded>
           <div className="mb-3">
-            <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
-            <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <label className="mb-1 block text-sm text-ink-600">Select Participants</label>
+            <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">- Select a committee -</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -96,8 +96,8 @@ export default async function ArchitecturalReviewsTab({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-600">Voting Scheme</label>
-            <select name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <label className="mb-1 block text-sm text-ink-600">Voting Scheme</label>
+            <select name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="majority_approval_required">Majority Approval Required</option>
               <option value="unanimous_approval_required">Unanimous Approval Required</option>
               <option value="any_one_approver">Any One Approver</option>
@@ -143,18 +143,18 @@ function RichTextSection({
   return (
     <Section
       title={title}
-      actions={<button type="button" className="text-sm text-blue-700 hover:underline">Preview</button>}
+      actions={<button type="button" className="text-sm text-champagne-700 hover:underline">Preview</button>}
       padded
     >
-      <p className="mb-2 text-sm text-gray-600">{help}</p>
+      <p className="mb-2 text-sm text-ink-600">{help}</p>
       <textarea
         name={name}
         defaultValue={defaultValue}
         rows={6}
-        className="block w-full resize-y rounded border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="block w-full resize-y rounded border border-ink-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         maxLength={500}
       />
-      <div className="mt-1 text-right text-xs text-gray-400">0/500</div>
+      <div className="mt-1 text-right text-xs text-ink-400">0/500</div>
     </Section>
   );
 }

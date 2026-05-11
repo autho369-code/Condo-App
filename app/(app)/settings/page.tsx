@@ -8,6 +8,7 @@ import { updatePortfolioPolicy } from '@/lib/rpcs/portfolio';
 import { revalidatePath } from 'next/cache';
 import { date } from '@/lib/utils';
 
+import { SettingsNav } from '@/components/settings/settings-nav';
 export const dynamic = 'force-dynamic';
 
 async function inviteStaff(formData: FormData) {
@@ -39,7 +40,15 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
       <div className="space-y-8">
-      <header><h1 className="text-2xl font-semibold">Settings</h1></header>
+      <header className="border-b border-ink-100 pb-7">
+        <div className="eyebrow">Settings</div>
+        <h1 className="mt-2 font-display text-4xl tracking-editorial text-ink-900">Policy & fees</h1>
+        <p className="mt-3 max-w-2xl text-[15px] text-ink-500 leading-relaxed">
+          Late fees, NSF charges, fiscal year, statement cadence, MFA, and online payment configuration. Visible to portfolio admins only.
+        </p>
+      </header>
+
+      <SettingsNav />
 
       {/* ======== PORTFOLIO POLICY ======== */}
       <Card>
@@ -59,8 +68,8 @@ export default async function SettingsPage() {
               <Input id="texting_phone_number" name="texting_phone_number" defaultValue={portfolio?.texting_phone_number ?? ''} />
             </div>
 
-            <div className="md:col-span-2 border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Late fee &amp; NSF</h3>
+            <div className="md:col-span-2 border-t border-ink-100 pt-4">
+              <h3 className="mb-3 text-sm font-semibold text-ink-700">Late fee &amp; NSF</h3>
             </div>
             <div>
               <Label htmlFor="late_fee_amount">Default late fee ($)</Label>
@@ -81,17 +90,17 @@ export default async function SettingsPage() {
               <Label htmlFor="reminder_days">Payment reminder schedule (days before/after due)</Label>
               <Input id="reminder_days" name="reminder_days"
                 defaultValue={(portfolio?.default_payment_reminder_days ?? [14,7,1,-7,-30]).join(', ')} />
-              <p className="mt-1 text-xs text-gray-500">Comma-separated. Positive = before due, negative = after due.</p>
+              <p className="mt-1 text-xs text-ink-500">Comma-separated. Positive = before due, negative = after due.</p>
             </div>
 
-            <div className="md:col-span-2 border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Fiscal year &amp; statements</h3>
+            <div className="md:col-span-2 border-t border-ink-100 pt-4">
+              <h3 className="mb-3 text-sm font-semibold text-ink-700">Fiscal year &amp; statements</h3>
             </div>
             <div>
               <Label htmlFor="fiscal_year_start_month">Fiscal year starts in month</Label>
               <select id="fiscal_year_start_month" name="fiscal_year_start_month"
                 defaultValue={portfolio?.fiscal_year_start_month ?? 1}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
                   <option key={i+1} value={i+1}>{i+1} — {m}</option>
                 ))}
@@ -103,8 +112,8 @@ export default async function SettingsPage() {
                 defaultValue={portfolio?.statement_generation_day ?? 1} />
             </div>
 
-            <div className="md:col-span-2 border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Security</h3>
+            <div className="md:col-span-2 border-t border-ink-100 pt-4">
+              <h3 className="mb-3 text-sm font-semibold text-ink-700">Security</h3>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="require_mfa_for_admins" defaultChecked={portfolio?.require_mfa_for_admins} />
@@ -115,14 +124,14 @@ export default async function SettingsPage() {
               Require MFA for all staff
             </label>
 
-            <div className="md:col-span-2 border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Online payment fees</h3>
+            <div className="md:col-span-2 border-t border-ink-100 pt-4">
+              <h3 className="mb-3 text-sm font-semibold text-ink-700">Online payment fees</h3>
             </div>
             <div>
               <Label htmlFor="convenience_fee_mode">Convenience fee mode</Label>
               <select id="convenience_fee_mode" name="convenience_fee_mode"
                 defaultValue={portfolio?.convenience_fee_mode ?? 'pass_through'}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="absorb">Absorb (management co pays)</option>
                 <option value="pass_through">Pass through to owner</option>
                 <option value="split">Split 50/50</option>
@@ -152,7 +161,7 @@ export default async function SettingsPage() {
             </div>
             <div>
               <Label htmlFor="role_name">Role</Label>
-              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" defaultValue="Property Manager">
+              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm" defaultValue="Property Manager">
                 <option>President</option><option>Property Manager</option><option>Accountant</option>
                 <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
               </select>

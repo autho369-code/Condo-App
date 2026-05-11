@@ -43,7 +43,7 @@ export default async function AutopayPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Autopay</h1>
+        <h1 className="font-display text-4xl tracking-editorial text-ink-900">Autopay</h1>
         <Link href="/portal"><Button variant="secondary">Back</Button></Link>
       </div>
 
@@ -68,7 +68,7 @@ export default async function AutopayPage() {
                     <TD><span className={`rounded px-2 py-0.5 text-xs ${
                       m.status === 'active' ? 'bg-green-100 text-green-700'
                       : m.status === 'paused' ? 'bg-amber-100 text-amber-800'
-                      : 'bg-gray-100 text-gray-700'}`}>{m.status}</span></TD>
+                      : 'bg-cream-100 text-ink-700'}`}>{m.status}</span></TD>
                     <TD className="text-right">
                       {m.status !== 'canceled' && (
                         <form action={cancel.bind(null, m.id) as any}>
@@ -81,7 +81,7 @@ export default async function AutopayPage() {
               </tbody>
             </Table>
           ) : (
-            <p className="text-sm text-gray-500">No autopay set up yet.</p>
+            <p className="text-sm text-ink-500">No autopay set up yet.</p>
           )}
         </CardBody>
       </Card>
@@ -89,7 +89,7 @@ export default async function AutopayPage() {
       <Card>
         <CardHeader>
           <CardTitle>Set up autopay</CardTitle>
-          <p className="text-sm text-gray-500">Pay your assessments automatically when they post. No more late fees.</p>
+          <p className="text-sm text-ink-500">Pay your assessments automatically when they post. No more late fees.</p>
         </CardHeader>
         <CardBody>
           {(!methods || methods.length === 0) ? (
@@ -103,7 +103,7 @@ export default async function AutopayPage() {
               <div>
                 <Label htmlFor="unit_id">Unit</Label>
                 <select id="unit_id" name="unit_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                   {(units ?? []).map((u: any) => (
                     <option key={u.unit_id} value={u.unit_id}>
                       {u.association_name} Â· Unit {u.unit_number}
@@ -114,7 +114,7 @@ export default async function AutopayPage() {
               <div>
                 <Label htmlFor="payment_method_id">Pay from</Label>
                 <select id="payment_method_id" name="payment_method_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                   {methods.map((m: any) => (
                     <option key={m.id} value={m.id}>
                       {m.method_type === 'bank_account_ach'
@@ -127,12 +127,12 @@ export default async function AutopayPage() {
               <div>
                 <Label htmlFor="max_amount">Max amount per charge ($)</Label>
                 <Input id="max_amount" name="max_amount" type="number" step="0.01" min="1" defaultValue="500" required />
-                <p className="mt-1 text-xs text-gray-500">Safety cap. Anything above this won&apos;t be auto-paid.</p>
+                <p className="mt-1 text-xs text-ink-500">Safety cap. Anything above this won&apos;t be auto-paid.</p>
               </div>
               <div>
                 <Label htmlFor="frequency">Schedule</Label>
                 <select id="frequency" name="frequency" defaultValue="on_charge_posted"
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                   <option value="on_charge_posted">When a new charge posts</option>
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
@@ -142,7 +142,7 @@ export default async function AutopayPage() {
               <div className="md:col-span-2 flex justify-end">
                 <Button type="submit">Enroll in autopay</Button>
               </div>
-              <p className="md:col-span-2 text-xs text-gray-500">
+              <p className="md:col-span-2 text-xs text-ink-500">
                 By enrolling you authorize {me.portfolio?.company_name ?? 'us'} to debit your selected payment method up to the maximum amount above for each posted assessment. You can cancel any time.
               </p>
             </form>

@@ -1,58 +1,128 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardSubtitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatusChip } from '@/components/operations/status-chip';
 import { money, date } from '@/lib/utils';
-import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaySuccess({ searchParams }: { searchParams: Promise<{ session_id?: string }> }) {
+const STATUS_TONE = {
+  succeeded: 'success' as const,
+  processing: 'warning' as const,
+  failed: 'danger' as const,
+  canceled: 'neutral' as const,
+};
+
+const STATUS_HEADLINE: Record<string, { eye: string; line: React.ReactNode }> = {
+  succeeded: {
+    eye: 'Payment confirmed',
+    line: <>Thank you — <span className="italic text-champagne-700">it's all settled.</span></>,
+  },
+  processing: {
+    eye: 'Payment processing',
+    line: <>We've received it. <span className="italic text-champagne-700">Posting shortly.</span></>,
+  },
+  failed: {
+    eye: 'Payment did not go through',
+    line: <>Something went sideways. <span className="italic text-bordeaux-700">Please try again.</span></>,
+  },
+};
+
+export default async function PaySuccess({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string }>;
+}) {
   await requireAuth();
   const { session_id } = await searchParams;
   const supabase = await createClient();
 
-  // Stripe webhook updates our row when it fires checkout.session.completed.
-  // If the user lands here before the webhook arrives, show "processing".
   const { data: pi } = session_id
-    ? await (supabase as any).from('payment_intents').select('*').eq('stripe_checkout_session_id', session_id).maybeSingle()
+    ? await (supabase as any)
+        .from('payment_intents')
+        .select('*')
+        .eq('stripe_checkout_session_id', session_id)
+        .maybeSingle()
     : { data: null };
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Thank you — payment received</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {pi ? (
-            <>
-              <p className="text-sm text-gray-600">Your payment has been {pi.status === 'succeeded' ? 'confirmed and applied to your account' : 'received and is being processed'}.</p>
-              <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <dt className="text-gray-500">Amount</dt><dd className="font-medium">{money(pi.amount)}</dd>
-                <dt className="text-gray-500">Status</dt>
-                <dd><span className={`rounded px-2 py-0.5 text-xs ${
-                  pi.status === 'succeeded'   ? 'bg-green-100 text-green-700'
-                  : pi.status === 'processing'? 'bg-amber-100 text-amber-800'
-                  : 'bg-gray-100 text-gray-700'
-                }`}>{pi.status}</span></dd>
-                <dt className="text-gray-500">Method</dt><dd className="uppercase">{pi.method}</dd>
-                <dt className="text-gray-500">Paid at</dt><dd>{pi.paid_at ? date(pi.paid_at) : '—'}</dd>
-                <dt className="text-gray-500">Confirmation #</dt>
-                <dd className="font-mono text-xs">{pi.stripe_payment_intent_id ?? pi.stripe_checkout_session_id ?? pi.id}</dd>
-              </dl>
-              <p className="mt-4 text-xs text-gray-500">A receipt has been emailed to you.</p>
-            </>
-          ) : (
-            <p className="text-sm text-gray-600">Your payment is being processed. Check your account balance in a few minutes.</p>
-          )}
+  const status = (pi?.status as keyof typeof STATUS_TONE) ?? 'processing';
+  const headline = STATUS_HEADLINE[status] ?? STATUS_HEADLINE.processing;
 
-          <div className="mt-6 flex gap-2">
-            <Link href="/portal"><Button>Back to portal</Button></Link>
-            <Link href="/portal/ledger"><Button variant="secondary">View ledger</Button></Link>
-          </div>
-        </CardBody>
-      </Card>
+  return (
+    <div className="space-y-9">
+      {/* Header */}
+      <header className="border-b border-ink-100 pb-7">
+        <div className="eyebrow">{headline.eye}</div>
+        <h1 className="mt-2 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
+          {headline.line}
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
+          {pi
+            ? status === 'succeeded'
+              ? 'Your payment has been confirmed and applied to your account. A receipt has been emailed to you.'
+              : status === 'processing'
+              ? "Stripe will confirm the transaction within a few minutes. We'll apply it to your balance the moment it clears."
+              : 'Your card was declined or the bank refused the transfer. No funds left your account. You can try a different payment method.'
+            : "Your payment is being processed. Refresh this page in a few minutes to see it confirmed, or check your account balance."}
+        </p>
+      </header>
+
+      {/* Receipt */}
+      {pi && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle>Receipt</CardTitle>
+              <StatusChip tone={STATUS_TONE[status] ?? 'neutral'}>{pi.status}</StatusChip>
+            </div>
+            <CardSubtitle>Keep this confirmation for your records.</CardSubtitle>
+          </CardHeader>
+          <CardBody className="px-0 py-0">
+            <dl className="divide-y divide-ink-100">
+              <ReceiptRow label="Amount paid" value={
+                <span className="font-display text-lg tracking-editorial text-ink-900 number-plate">
+                  {money(pi.amount)}
+                </span>
+              } />
+              <ReceiptRow label="Method" value={
+                <span className="uppercase text-[12px] tracking-[0.08em] font-medium text-ink-700">
+                  {pi.method ?? '—'}
+                </span>
+              } />
+              <ReceiptRow label="Posted" value={pi.paid_at ? date(pi.paid_at, 'long') : '—'} />
+              <ReceiptRow label="Confirmation" value={
+                <span className="font-mono text-[12px] text-ink-700 break-all">
+                  {pi.stripe_payment_intent_id ?? pi.stripe_checkout_session_id ?? pi.id}
+                </span>
+              } />
+            </dl>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* CTA */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-ink-100 pt-6">
+        <Link href="/portal">
+          <Button size="md" variant="primary">Back to portal</Button>
+        </Link>
+        <Link href="/portal/ledger">
+          <Button size="md" variant="outline">View ledger</Button>
+        </Link>
+        <Link href="/portal/statement">
+          <Button size="md" variant="outline">Printable statement</Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ReceiptRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-6 px-6 py-4">
+      <dt className="eyebrow">{label}</dt>
+      <dd className="text-right text-ink-900">{value}</dd>
     </div>
   );
 }

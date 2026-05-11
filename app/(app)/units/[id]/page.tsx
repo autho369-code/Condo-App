@@ -37,29 +37,29 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+      <div className="shrink-0 border-b border-ink-100 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">
               <Link href="/units" className="hover:text-brand-600">Units</Link>
               {' Ã‚Â· '}
-              <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
+              <span className="text-ink-400">{(unit.buildings as any)?.associations?.name}</span>
             </div>
-            <h1 className="mt-1 text-xl font-semibold text-gray-900">Unit {unit.unit_number}</h1>
-            <div className="mt-1 text-sm text-gray-500">
+            <h1 className="mt-1 text-xl font-semibold text-ink-900">Unit {unit.unit_number}</h1>
+            <div className="mt-1 text-sm text-ink-500">
               {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` Ã‚Â· ${unit.bathrooms} ba` : ''}{unit.sqft ? ` Ã‚Â· ${unit.sqft} sqft` : ''}
             </div>
           </div>
         </div>
       </div>
-      <div className="flex-1 space-y-6 overflow-y-auto bg-gray-50 px-8 py-6">
+      <div className="flex-1 space-y-6 overflow-y-auto bg-cream-50 px-8 py-6">
 
       {/* ======== ACCOUNT SUMMARY ======== */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Stat label="Total charged" value={money(summary?.total_charged ?? 0)} />
         <Stat label="Total paid" value={money(summary?.total_paid ?? 0)} />
         <Stat label="Outstanding"
-          value={<span className={Number(summary?.outstanding_balance) > 0 ? 'text-red-600' : 'text-green-600'}>
+          value={<span className={Number(summary?.outstanding_balance) > 0 ? 'text-bordeaux-600' : 'text-green-600'}>
             {money(summary?.outstanding_balance ?? 0)}
           </span>} />
         <Stat label="Credit on file"
@@ -83,10 +83,10 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                     <TD className="text-right">{money(s.amount)}</TD>
                     <TD className="capitalize">{s.frequency}</TD>
                     <TD>{date(s.next_post_date)}</TD>
-                    <TD className="text-gray-600 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
+                    <TD className="text-ink-600 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
                     <TD className="text-right">
                       <form action={unsubscribeUnit.bind(null, s.recurring_charge_id, unitId) as any}>
-                        <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
+                        <button type="submit" className="text-xs text-bordeaux-600 hover:underline">End</button>
                       </form>
                     </TD>
                   </TR>
@@ -94,16 +94,16 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
               </tbody>
             </Table>
           ) : (
-            <p className="text-sm text-gray-500">No active recurring charges.</p>
+            <p className="text-sm text-ink-500">No active recurring charges.</p>
           )}
 
           {/* Subscribe form */}
-          <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-5">
+          <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-ink-100 pt-4 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
             <div className="md:col-span-2">
               <Label htmlFor="charge_category_id">Add subscription</Label>
               <select id="charge_category_id" name="charge_category_id" required
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="">Choose a categoryÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name} ({money(c.default_amount)} / {c.default_frequency})</option>
@@ -116,7 +116,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </div>
             <div>
               <Label htmlFor="frequency">Frequency</Label>
-              <select id="frequency" name="frequency" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="frequency" name="frequency" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="">default</option><option>monthly</option><option>quarterly</option><option>annually</option>
               </select>
             </div>
@@ -145,7 +145,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                   <TD>{c.description}</TD>
                   <TD className="text-right">{money(c.charged_amount)}</TD>
                   <TD className="text-right text-green-600">{money(c.applied_amount)}</TD>
-                  <TD className={`text-right ${Number(c.balance_due) > 0 ? 'text-red-600 font-medium' : ''}`}>{money(c.balance_due)}</TD>
+                  <TD className={`text-right ${Number(c.balance_due) > 0 ? 'text-bordeaux-600 font-medium' : ''}`}>{money(c.balance_due)}</TD>
                   <TD><span className={`rounded px-2 py-0.5 text-xs ${
                     c.payment_status === 'paid' ? 'bg-green-100 text-green-700'
                     : c.payment_status === 'partial' ? 'bg-amber-100 text-amber-800'
@@ -167,7 +167,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             <div>
               <Label htmlFor="adhoc_cat">Category</Label>
               <select id="adhoc_cat" name="charge_category_id" required
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="">ChooseÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -202,11 +202,11 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                 <TR key={p.id}>
                   <TD>{date(p.payment_date)}</TD>
                   <TD className="uppercase">{p.method}</TD>
-                  <TD className="text-gray-600">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
+                  <TD className="text-ink-600">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
                   <TD className="text-right text-green-600">{money(p.amount)}</TD>
                   <TD className="text-right">
                     <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
-                      <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
+                      <button type="submit" className="text-xs text-bordeaux-600 hover:underline">Unapply</button>
                     </form>
                   </TD>
                 </TR>
@@ -214,7 +214,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </tbody>
           </Table>
 
-          <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-5">
+          <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-ink-100 pt-6 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
             <div>
               <Label htmlFor="pay_date">Date</Label>
@@ -226,7 +226,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </div>
             <div>
               <Label htmlFor="pay_method">Method</Label>
-              <select id="pay_method" name="method" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" required>
+              <select id="pay_method" name="method" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm" required>
                 <option value="check">check</option><option value="ach">ach</option>
                 <option value="card">card</option><option value="manual">manual</option><option value="other">other</option>
               </select>
@@ -239,7 +239,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest). Unapply above to redirect.</p>
+              <p className="mt-1 text-xs text-ink-500">Auto-applies to outstanding charges (late fees first, then oldest). Unapply above to redirect.</p>
             </div>
           </form>
         </CardBody>

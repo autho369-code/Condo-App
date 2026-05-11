@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function OwnersLayout({ children }: { children: React.ReactNode }) {
   await requireStaff();
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-cream-50">
       <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">

@@ -51,12 +51,12 @@ export default async function NewBuildingPage({
   return (
     <div className="mx-auto max-w-5xl px-8 py-6">
       <div className="mb-4">
-        <Link href={`/associations/${assoc.id}`} className="text-sm text-blue-700 hover:underline">
+        <Link href={`/associations/${assoc.id}`} className="text-sm text-champagne-700 hover:underline">
           ← {assoc.name}
         </Link>
       </div>
-      <h1 className="mb-1 text-2xl font-semibold text-gray-900">New Property</h1>
-      <p className="mb-4 text-sm text-gray-500">
+      <h1 className="mb-1 text-2xl font-semibold text-ink-900">New Property</h1>
+      <p className="mb-4 text-sm text-ink-500">
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
 
@@ -124,7 +124,7 @@ export default async function NewBuildingPage({
             <Row label="Amenities" help="Comma-separated: pool, gym, clubhouse">
               <input name="amenities" placeholder="pool, gym, clubhouse" className={input()} />
               <div className="mt-1 text-xs">
-                <Link href="/settings" className="text-blue-700 hover:underline">Manage Amenity Tags</Link>
+                <Link href="/settings" className="text-champagne-700 hover:underline">Manage Amenity Tags</Link>
               </div>
             </Row>
           </div>
@@ -172,9 +172,9 @@ export default async function NewBuildingPage({
           <CardTitle>Property Groups</CardTitle>
           <div className="space-y-3 px-5 py-4">
             {(propertyGroups ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-500">
                 No property groups defined. Create one in{' '}
-                <Link href="/settings" className="text-blue-700 hover:underline">Settings</Link>.
+                <Link href="/settings" className="text-champagne-700 hover:underline">Settings</Link>.
               </p>
             ) : (
               <select name="property_group_id" defaultValue="" className={input()}>
@@ -189,7 +189,7 @@ export default async function NewBuildingPage({
 
         <div className="flex items-center gap-3 pt-2">
           <Button type="submit" size="lg">Save Property</Button>
-          <Link href={`/associations/${assoc.id}`} className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href={`/associations/${assoc.id}`} className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
         </div>
       </form>
 
@@ -206,10 +206,10 @@ export default async function NewBuildingPage({
 // ============================================================================
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded border border-gray-200 bg-white">{children}</section>;
+  return <section className="overflow-hidden rounded border border-ink-100 bg-white">{children}</section>;
 }
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-900">{children}</h2>;
+  return <h2 className="border-b border-ink-100 px-5 py-3 text-sm font-semibold text-ink-900">{children}</h2>;
 }
 function Row({
   label,
@@ -224,7 +224,7 @@ function Row({
 }) {
   return (
     <div className="grid grid-cols-12 items-start gap-4">
-      <label className="col-span-4 pt-2 text-right text-sm text-gray-700">
+      <label className="col-span-4 pt-2 text-right text-sm text-ink-700">
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
         {help && (
@@ -240,7 +240,7 @@ function Row({
 function MoneyInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
   return (
     <div className="relative max-w-[180px]">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">$</span>
       <input
         name={name}
         type="number"
@@ -253,5 +253,5 @@ function MoneyInput({ name, defaultValue }: { name: string; defaultValue?: strin
   );
 }
 function input(extra = '') {
-  return `h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${extra}`;
+  return `h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${extra}`;
 }

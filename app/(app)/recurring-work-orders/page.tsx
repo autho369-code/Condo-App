@@ -24,19 +24,19 @@ export default async function RecurringWOPage() {
             {rows.map((r: any) => (
               <TR key={r.id}>
                 <TD className="font-medium">{r.title}</TD>
-                <TD className="text-sm text-gray-700">{r.associations?.name}{r.units?.unit_number ? ` · Unit ${r.units.unit_number}` : ''}</TD>
-                <TD className="text-sm text-gray-700">{r.vendors?.name ?? 'Unassigned'}</TD>
+                <TD className="text-sm text-ink-700">{r.associations?.name}{r.units?.unit_number ? ` · Unit ${r.units.unit_number}` : ''}</TD>
+                <TD className="text-sm text-ink-700">{r.vendors?.name ?? 'Unassigned'}</TD>
                 <TD className="text-sm capitalize">{r.interval_count > 1 ? `Every ${r.interval_count} ` : ''}{r.frequency?.replace(/_/g, ' ')}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(r.next_due_date)}</TD>
                 <TD>{r.auto_generate
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">auto</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">manual</span>}</TD>
+                  : <span className="rounded bg-cream-100 px-2 py-0.5 text-xs text-ink-600">manual</span>}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No recurring work orders defined.</p>
+        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No recurring work orders defined.</p>
       )}
     </ModulePage>
   );

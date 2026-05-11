@@ -52,7 +52,7 @@ export default async function CommitteesTab({
     >
       {(!committees || committees.length === 0) ? (
         <Section padded>
-          <p className="text-center text-sm italic text-gray-500">
+          <p className="text-center text-sm italic text-ink-500">
             No committees yet. Create one to get started.
           </p>
         </Section>
@@ -63,10 +63,10 @@ export default async function CommitteesTab({
             key={c.id}
             title={c.name}
             subtitle={c.description}
-            actions={<span className="text-xs text-gray-500">{activeMembers.length} member{activeMembers.length === 1 ? '' : 's'}</span>}
+            actions={<span className="text-xs text-ink-500">{activeMembers.length} member{activeMembers.length === 1 ? '' : 's'}</span>}
           >
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Name</th>
                   <th className="px-4 py-2 text-left font-semibold">Role</th>
@@ -76,18 +76,18 @@ export default async function CommitteesTab({
               </thead>
               <tbody>
                 {activeMembers.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">No members on this committee.</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-ink-500">No members on this committee.</td></tr>
                 ) : activeMembers.map((m: any) => (
-                  <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                  <tr key={m.id} className="border-b border-ink-100 last:border-b-0 hover:bg-cream-50">
                     <td className="px-4 py-3">
                       {m.owner ? (
-                        <Link href={`/owners/${m.owner.id}`} className="text-blue-700 hover:underline">{m.owner.full_name}</Link>
-                      ) : <span className="text-gray-400">—</span>}
+                        <Link href={`/owners/${m.owner.id}`} className="text-champagne-700 hover:underline">{m.owner.full_name}</Link>
+                      ) : <span className="text-ink-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{m.role || <span className="text-gray-400">Member</span>}</td>
-                    <td className="px-4 py-3 text-gray-700">{m.joined_at ? formatDate(m.joined_at) : <span className="text-gray-400">—</span>}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {m.owner?.email ? <a href={`mailto:${m.owner.email}`} className="text-blue-700 hover:underline">{m.owner.email}</a> : <span className="text-gray-400">—</span>}
+                    <td className="px-4 py-3 text-ink-700">{m.role || <span className="text-ink-400">Member</span>}</td>
+                    <td className="px-4 py-3 text-ink-700">{m.joined_at ? formatDate(m.joined_at) : <span className="text-ink-400">—</span>}</td>
+                    <td className="px-4 py-3 text-ink-700">
+                      {m.owner?.email ? <a href={`mailto:${m.owner.email}`} className="text-champagne-700 hover:underline">{m.owner.email}</a> : <span className="text-ink-400">—</span>}
                     </td>
                   </tr>
                 ))}

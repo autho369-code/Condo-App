@@ -22,7 +22,7 @@ export default async function NewViolationPage() {
     <DataWorkspace
       title="New violation"
       description="Draft a violation record with scope, rule, cure deadline, fine, and evidence preview before sending any notice."
-      actions={<Link href="/violations" className="text-sm font-medium text-gray-600 hover:text-gray-950">Cancel</Link>}
+      actions={<Link href="/violations" className="text-sm font-medium text-ink-600 hover:text-ink-900">Cancel</Link>}
       rail={<NoticePreview />}
     >
       <form className="space-y-5">
@@ -35,23 +35,23 @@ export default async function NewViolationPage() {
         </Section>
         <Section title="Rule and violation">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-medium text-gray-700">Rule/type<select className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">{typeOptions.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}</select></label>
-            <label className="text-sm font-medium text-gray-700">Title<input className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="Parking violation, noise complaint..." /></label>
+            <label className="text-sm font-medium text-ink-700">Rule/type<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{typeOptions.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}</select></label>
+            <label className="text-sm font-medium text-ink-700">Title<input className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="Parking violation, noise complaint..." /></label>
           </div>
-          <textarea className="mt-4 w-full rounded border border-gray-300 px-3 py-2 text-sm" rows={4} placeholder="Observation details and governing document reference" />
+          <textarea className="mt-4 w-full rounded border border-ink-200 px-3 py-2 text-sm" rows={4} placeholder="Observation details and governing document reference" />
         </Section>
         <Section title="Dates and escalation">
           <div className="grid gap-4 md:grid-cols-4">
-            <label className="text-sm font-medium text-gray-700">Observed<input type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-gray-700">Due date<input type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-gray-700">Hearing date<input type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-gray-700">Status<select className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"><option>open</option><option>notice_sent</option><option>hearing_pending</option><option>fined</option></select></label>
+            <label className="text-sm font-medium text-ink-700">Observed<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Due date<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Hearing date<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Status<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>open</option><option>notice_sent</option><option>hearing_pending</option><option>fined</option></select></label>
           </div>
         </Section>
         <Section title="Fine and evidence">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-medium text-gray-700">Fine amount<input className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="$0.00" /></label>
-            <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">Evidence and attachments will be added after the draft is saved.</div>
+            <label className="text-sm font-medium text-ink-700">Fine amount<input className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="$0.00" /></label>
+            <div className="rounded border border-dashed border-ink-200 bg-cream-50 px-4 py-6 text-center text-sm text-ink-500">Evidence and attachments will be added after the draft is saved.</div>
           </div>
         </Section>
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary">Preview notice</Button><Button type="button">Save draft</Button></div>
@@ -61,13 +61,13 @@ export default async function NewViolationPage() {
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="rounded border border-gray-200 bg-white p-5"><h2 className="text-sm font-semibold text-gray-950">{title}</h2><div className="mt-4">{children}</div></section>;
+  return <section className="rounded border border-ink-100 bg-white p-5"><h2 className="text-sm font-semibold text-ink-900">{title}</h2><div className="mt-4">{children}</div></section>;
 }
 
 function Select({ label, options }: { label: string; options: Array<{ value: string; label: string }> }) {
-  return <label className="text-sm font-medium text-gray-700">{label}<select className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"><option>Select {label.toLowerCase()}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+  return <label className="text-sm font-medium text-ink-700">{label}<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>Select {label.toLowerCase()}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }
 
 function NoticePreview() {
-  return <div className="space-y-3 text-sm text-gray-600"><h2 className="text-sm font-semibold text-gray-950">Draft notice preview</h2><p>No email, letter, or owner communication is sent from this screen. Preview first, then confirm outbound delivery from the saved record.</p></div>;
+  return <div className="space-y-3 text-sm text-ink-600"><h2 className="text-sm font-semibold text-ink-900">Draft notice preview</h2><p>No email, letter, or owner communication is sent from this screen. Preview first, then confirm outbound delivery from the saved record.</p></div>;
 }

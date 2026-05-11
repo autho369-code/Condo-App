@@ -134,9 +134,9 @@ export default async function AssociationUnitsTab({
       }
       rail={rail}
     >
-      <div className="overflow-hidden rounded border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded border border-ink-100 bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
             <tr>
               <th className="w-20 px-4 py-2 text-left font-semibold">Unit</th>
               <th className="px-4 py-2 text-left font-semibold">Homeowner</th>
@@ -147,21 +147,21 @@ export default async function AssociationUnitsTab({
           </thead>
           <tbody>
             {slice.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">No units in this association.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-ink-500">No units in this association.</td></tr>
             ) : slice.map((r) => (
-              <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+              <tr key={r.id} className="border-b border-ink-100 last:border-b-0 hover:bg-cream-50">
                 <td className="px-4 py-3">
-                  <Link href={`/units/${r.id}`} className="text-blue-700 hover:underline">{r.unit_number}</Link>
+                  <Link href={`/units/${r.id}`} className="text-champagne-700 hover:underline">{r.unit_number}</Link>
                 </td>
                 <td className="px-4 py-3">
-                  {r.homeowners ? <span className="text-blue-700">{r.homeowners}</span> : <span className="text-gray-400">—</span>}
+                  {r.homeowners ? <span className="text-champagne-700">{r.homeowners}</span> : <span className="text-ink-400">—</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{r.renter ?? '--'}</td>
-                <td className="px-4 py-3 tabular-nums text-gray-700">
+                <td className="px-4 py-3 text-ink-700">{r.renter ?? '--'}</td>
+                <td className="px-4 py-3 tabular-nums text-ink-700">
                   {r.ownership_pct != null ? `${r.ownership_pct.toFixed(6)}%` : '—'}
                 </td>
-                <td className="px-4 py-3 tabular-nums text-gray-700">
-                  {r.dues != null ? r.dues.toFixed(2) : <span className="text-gray-400">—</span>}
+                <td className="px-4 py-3 tabular-nums text-ink-700">
+                  {r.dues != null ? r.dues.toFixed(2) : <span className="text-ink-400">—</span>}
                 </td>
               </tr>
             ))}
@@ -169,7 +169,7 @@ export default async function AssociationUnitsTab({
         </table>
       </div>
 
-      <div className="mt-3 text-sm text-gray-600">
+      <div className="mt-3 text-sm text-ink-600">
         Displaying: <span className="tabular-nums">{total === 0 ? 0 : start + 1}</span>-<span className="tabular-nums">{end}</span> of <span className="tabular-nums">{total}</span>
       </div>
     </Workspace>

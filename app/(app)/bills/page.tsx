@@ -36,23 +36,23 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">Payables</nav>
+      <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">Payables</nav>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Payables</h1>
+        <h1 className="text-2xl font-semibold text-ink-900">Payables</h1>
         <div className="flex gap-2">
           <Link href="/bills/check-run"><Button variant="secondary">Run checks</Button></Link>
           <Link href="/bills/new"><Button>+ New bill</Button></Link>
         </div>
       </div>
-      <p className="text-sm text-gray-500">{rows?.length ?? 0} bills - {money(total)}</p>
+      <p className="text-sm text-ink-500">{rows?.length ?? 0} bills - {money(total)}</p>
 
-      <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+      <nav className="flex flex-wrap gap-1 border-b border-ink-100">
         {TABS.map((t) => {
           const active = t.key === status;
           return (
             <Link key={t.key} href={`/bills?status=${t.key}`}
-              className={`border-b-2 px-4 py-2 text-sm transition ${active ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
-              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${active ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'}`}>{count(t.key)}</span>
+              className={`border-b-2 px-4 py-2 text-sm transition ${active ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-ink-600 hover:text-ink-900'}`}>
+              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${active ? 'bg-brand-100 text-brand-700' : 'bg-cream-100 text-ink-500'}`}>{count(t.key)}</span>
             </Link>
           );
         })}
@@ -64,22 +64,22 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           <tbody>
             {rows.map((b: any) => (
               <TR key={b.id}>
-                <TD className="font-medium"><Link href={`/bills/${b.id}`} className="text-blue-700 hover:underline">{b.vendors?.name}</Link><span className="ml-1 text-xs text-gray-400">- {b.vendors?.payment_type}</span></TD>
-                <TD className="text-sm text-gray-700">{b.associations?.name ?? '-'}</TD>
-                <TD className="max-w-sm truncate text-sm text-gray-600" title={b.memo ?? ''}>{b.memo ?? '-'}</TD>
+                <TD className="font-medium"><Link href={`/bills/${b.id}`} className="text-champagne-700 hover:underline">{b.vendors?.name}</Link><span className="ml-1 text-xs text-ink-400">- {b.vendors?.payment_type}</span></TD>
+                <TD className="text-sm text-ink-700">{b.associations?.name ?? '-'}</TD>
+                <TD className="max-w-sm truncate text-sm text-ink-600" title={b.memo ?? ''}>{b.memo ?? '-'}</TD>
                 <TD className="text-right tabular-nums font-medium">{money(b.amount)}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(b.due_date)}</TD>
                 <TD><span className={`rounded px-2 py-0.5 text-xs ${
                   b.status === 'paid' ? 'bg-green-100 text-green-700' :
-                  b.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                  b.status === 'approved' ? 'bg-blue-100 text-champagne-700' :
                   b.status === 'pending_approval' ? 'bg-amber-100 text-amber-800' :
-                  b.status === 'void' ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-700'
+                  b.status === 'void' ? 'bg-cream-100 text-ink-500' : 'bg-cream-100 text-ink-700'
                 }`}>{b.status}</span></TD>
               </TR>
             ))}
           </tbody>
         </Table>
-      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No bills in this view.</p>}
+      ) : <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No bills in this view.</p>}
     </div>
   );
 }

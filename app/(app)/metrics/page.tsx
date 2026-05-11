@@ -34,15 +34,15 @@ export default async function MetricsPage() {
     <ModulePage title="Metrics" description="Portfolio-level operating metrics pulled live from v_dashboard_summary.">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded border border-gray-200 bg-white p-4">
-            <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{t.label}</div>
-            <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{t.value}</div>
+          <div key={t.label} className="rounded border border-ink-100 bg-white p-4">
+            <div className="text-xs font-medium uppercase tracking-wider text-ink-500">{t.label}</div>
+            <div className="mt-1 text-2xl font-semibold tabular-nums text-ink-900">{t.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="rounded border border-gray-200 bg-white px-5 py-4 text-sm">
-        <div className="font-medium text-gray-900">Go deeper</div>
+      <div className="rounded border border-ink-100 bg-white px-5 py-4 text-sm">
+        <div className="font-medium text-ink-900">Go deeper</div>
         <ul className="mt-2 space-y-1">
           <li><Link href="/dashboard" className="text-brand-600 hover:underline">Full dashboard →</Link></li>
           <li><Link href="/reports/ar_aging" className="text-brand-600 hover:underline">A/R Aging (live) →</Link></li>

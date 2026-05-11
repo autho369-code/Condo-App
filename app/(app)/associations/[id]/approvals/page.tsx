@@ -50,7 +50,7 @@ export default async function ApprovalsTab({
     >
       <Section>
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">Title</th>
               <th className="px-4 py-2 text-left font-semibold">Status</th>
@@ -63,27 +63,27 @@ export default async function ApprovalsTab({
           </thead>
           <tbody>
             {(!rows || rows.length === 0) ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No approval requests.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-ink-500">No approval requests.</td></tr>
             ) : rows.map((r: any) => (
-              <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+              <tr key={r.id} className="border-b border-ink-100 last:border-b-0 hover:bg-cream-50">
                 <td className="px-4 py-3">
-                  <Link href={`/associations/${id}/approvals/${r.id}`} className="text-blue-700 hover:underline">{r.title}</Link>
+                  <Link href={`/associations/${id}/approvals/${r.id}`} className="text-champagne-700 hover:underline">{r.title}</Link>
                 </td>
                 <td className="px-4 py-3"><StatusPill status={r.status} /></td>
-                <td className="px-4 py-3 tabular-nums text-gray-700">
-                  {r.amount != null ? `$${Number(r.amount).toFixed(2)}` : <span className="text-gray-400">—</span>}
+                <td className="px-4 py-3 tabular-nums text-ink-700">
+                  {r.amount != null ? `$${Number(r.amount).toFixed(2)}` : <span className="text-ink-400">—</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{r.due_date ? formatDate(r.due_date) : <span className="text-gray-400">—</span>}</td>
-                <td className="px-4 py-3 text-gray-700">{humanVotingScheme(r.voting_scheme)}</td>
-                <td className="px-4 py-3 tabular-nums text-gray-700">
+                <td className="px-4 py-3 text-ink-700">{r.due_date ? formatDate(r.due_date) : <span className="text-ink-400">—</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{humanVotingScheme(r.voting_scheme)}</td>
+                <td className="px-4 py-3 tabular-nums text-ink-700">
                   {r.votes_for}/{r.required_votes ?? '—'}
                   {(r.votes_against > 0 || r.votes_abstain > 0) && (
-                    <span className="ml-1 text-xs text-gray-500">
+                    <span className="ml-1 text-xs text-ink-500">
                       ({r.votes_against} no, {r.votes_abstain} abstain)
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{r.requested_at ? formatDate(r.requested_at) : <span className="text-gray-400">—</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{r.requested_at ? formatDate(r.requested_at) : <span className="text-ink-400">—</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -95,10 +95,10 @@ export default async function ApprovalsTab({
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    pending:   { cls: 'bg-amber-50 text-amber-800',  label: 'Pending' },
+    pending:   { cls: 'bg-champagne-50 text-amber-800',  label: 'Pending' },
     approved:  { cls: 'bg-green-50 text-green-800',  label: 'Approved' },
-    rejected:  { cls: 'bg-red-50 text-red-800',      label: 'Rejected' },
-    cancelled: { cls: 'bg-gray-100 text-gray-700',   label: 'Cancelled' },
+    rejected:  { cls: 'bg-bordeaux-50 text-red-800',      label: 'Rejected' },
+    cancelled: { cls: 'bg-cream-100 text-ink-700',   label: 'Cancelled' },
   };
   const s = map[status] ?? map.pending;
   return <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;

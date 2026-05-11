@@ -52,18 +52,18 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-gray-200 px-4 py-3">
-        <h2 className="text-base font-semibold text-gray-900">Reports</h2>
-        <p className="mt-0.5 text-xs text-gray-500">{items.length} available</p>
+      <div className="border-b border-ink-100 px-4 py-3">
+        <h2 className="text-base font-semibold text-ink-900">Reports</h2>
+        <p className="mt-0.5 text-xs text-ink-500">{items.length} available</p>
       </div>
 
-      <div className="border-b border-gray-100 px-3 py-2">
+      <div className="border-b border-ink-100 px-3 py-2">
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search reports…"
-          className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="h-9 w-full rounded-md border border-ink-200 bg-white px-3 text-sm placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
 
@@ -75,16 +75,16 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
             'mb-3 flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition',
             pathname?.startsWith('/reports/runs')
               ? 'bg-brand-50 text-brand-700'
-              : 'text-gray-700 hover:bg-gray-100',
+              : 'text-ink-700 hover:bg-cream-100',
           ].join(' ')}
         >
           <span>Run history</span>
-          <span className="text-xs text-gray-400">↗</span>
+          <span className="text-xs text-ink-400">↗</span>
         </Link>
 
         {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((cat) => (
           <div key={cat} className="mb-4">
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
               {CATEGORY_LABELS[cat] ?? cat}
             </div>
             <ul>
@@ -98,7 +98,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
                         'group flex items-center justify-between rounded-md px-3 py-1.5 text-sm transition',
                         isActive
                           ? 'bg-brand-600 text-white hover:bg-brand-600'
-                          : 'text-gray-700 hover:bg-gray-100',
+                          : 'text-ink-700 hover:bg-cream-100',
                       ].join(' ')}
                     >
                       <span className="truncate">{r.name}</span>
@@ -121,7 +121,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
         ))}
 
         {filtered.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-gray-500">No reports match &quot;{query}&quot;.</p>
+          <p className="px-3 py-4 text-center text-sm text-ink-500">No reports match &quot;{query}&quot;.</p>
         )}
       </nav>
     </div>

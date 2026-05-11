@@ -31,8 +31,8 @@ export default async function PlatformBillingPage() {
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-950">Billing</h1>
-        <p className="mt-1 text-sm text-gray-500">Subscription oversight. Stripe controls will be wired in the payment phase.</p>
+        <h1 className="font-display text-4xl tracking-editorial text-ink-900">Billing</h1>
+        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">Subscription oversight. Stripe controls will be wired in the payment phase.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -58,18 +58,18 @@ export default async function PlatformBillingPage() {
             <tbody>
               {(subscriptions ?? []).length === 0 ? (
                 <TR>
-                  <TD colSpan={7} className="py-10 text-center text-gray-500">No subscription records are visible.</TD>
+                  <TD colSpan={7} className="py-10 text-center text-ink-500">No subscription records are visible.</TD>
                 </TR>
               ) : (
                 (subscriptions ?? []).map((subscription: any) => {
                   const portfolio = portfolioById.get(subscription.portfolio_id) as any;
                   return (
-                    <TR key={subscription.id} className="hover:bg-gray-50">
+                    <TR key={subscription.id} className="hover:bg-cream-50">
                       <TD>
-                        <Link href={`/platform/portfolios/${subscription.portfolio_id}`} className="font-medium text-blue-700 hover:underline">
+                        <Link href={`/platform/portfolios/${subscription.portfolio_id}`} className="font-medium text-champagne-700 hover:underline">
                           {portfolio?.company_name ?? 'Unknown client'}
                         </Link>
-                        <div className="mt-1 text-xs text-gray-500">{subscription.billing_email ?? 'No billing email'}</div>
+                        <div className="mt-1 text-xs text-ink-500">{subscription.billing_email ?? 'No billing email'}</div>
                       </TD>
                       <TD className="uppercase">{subscription.tier ?? '-'}</TD>
                       <TD>{subscription.cancel_at_period_end ? `${subscription.status} - canceling` : subscription.status}</TD>

@@ -69,14 +69,14 @@ export default async function OwnerAchPage({
     <DataWorkspace
       title="Owner ACH Setup"
       description="Review owner payment methods, autopay mandates, verification status, and ACH readiness before enabling payment workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
       rail={
-        <div className="space-y-3 text-sm text-gray-700">
-          <div className="text-xs font-semibold uppercase text-gray-500">Confirmation rule</div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        <div className="space-y-3 text-sm text-ink-700">
+          <div className="text-xs font-semibold uppercase text-ink-500">Confirmation rule</div>
+          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
             ACH setup is a protected action. Use this screen to review readiness, then confirm changes through the payment processor flow.
           </div>
-          <Link href="/reports?slug=homeowner-ledger" className="block rounded border border-gray-200 p-3 hover:bg-gray-50">Run homeowner ledger report</Link>
+          <Link href="/reports?slug=homeowner-ledger" className="block rounded border border-ink-100 p-3 hover:bg-cream-50">Run homeowner ledger report</Link>
         </div>
       }
     >
@@ -106,35 +106,35 @@ export default async function OwnerAchPage({
             {rows.map(({ owner, methods, mandate }) => {
               const primary = methods.find((method: any) => method.is_default) ?? methods[0];
               return (
-                <TR key={owner.id} className="hover:bg-gray-50">
+                <TR key={owner.id} className="hover:bg-cream-50">
                   <TD>
-                    <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                    <Link href={`/owners/${owner.id}`} className="font-medium text-champagne-700 hover:underline">{owner.full_name}</Link>
+                    <div className="mt-1 text-xs text-ink-500">{owner.email}</div>
                   </TD>
                   <TD>
                     {primary ? (
                       <>
-                        <div className="font-medium text-gray-900">{primary.bank_name ?? primary.method_type}</div>
-                        <div className="mt-1 text-xs text-gray-500">{primary.account_type ?? 'bank'} ending {primary.last_four ?? '----'}</div>
+                        <div className="font-medium text-ink-900">{primary.bank_name ?? primary.method_type}</div>
+                        <div className="mt-1 text-xs text-ink-500">{primary.account_type ?? 'bank'} ending {primary.last_four ?? '----'}</div>
                       </>
                     ) : (
-                      <span className="text-gray-500">No payment method</span>
+                      <span className="text-ink-500">No payment method</span>
                     )}
                   </TD>
                   <TD>
                     <StatusChip tone={primary?.is_verified ? 'success' : primary ? 'warning' : 'neutral'}>
                       {primary?.is_verified ? 'Verified' : primary ? 'Needs verification' : 'Not started'}
                     </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Verified {date(primary?.verified_at)}</div>
+                    <div className="mt-1 text-xs text-ink-500">Verified {date(primary?.verified_at)}</div>
                   </TD>
                   <TD>
                     <StatusChip tone={mandate?.status === 'active' ? 'success' : mandate ? 'warning' : 'neutral'}>
                       {mandate?.status?.replace(/_/g, ' ') ?? 'No mandate'}
                     </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Next run {date(mandate?.next_run_date)}</div>
+                    <div className="mt-1 text-xs text-ink-500">Next run {date(mandate?.next_run_date)}</div>
                   </TD>
                   <TD>
-                    <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-blue-700 hover:underline">
+                    <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-champagne-700 hover:underline">
                       Prepare authorization
                     </Link>
                   </TD>

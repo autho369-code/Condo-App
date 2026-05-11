@@ -66,26 +66,26 @@ export default async function AssociationProfileTab({
 
       <Section title="Association Information" padded>
         <dl className="grid grid-cols-[180px_1fr] gap-y-2.5 text-sm">
-          <dt className="text-gray-500">Name</dt>
-          <dd className="text-gray-900">{assoc.name}</dd>
+          <dt className="text-ink-500">Name</dt>
+          <dd className="text-ink-900">{assoc.name}</dd>
 
-          <dt className="text-gray-500">Address</dt>
-          <dd className="text-gray-900">
-            {assoc.address || <span className="text-gray-400">—</span>}
+          <dt className="text-ink-500">Address</dt>
+          <dd className="text-ink-900">
+            {assoc.address || <span className="text-ink-400">—</span>}
             {assoc.address_line_2 ? `, ${assoc.address_line_2}` : ''}
             {(assoc.city || assoc.state || assoc.zip) && (
               <div>{[assoc.city, assoc.state].filter(Boolean).join(', ')} {assoc.zip ?? ''}</div>
             )}
           </dd>
 
-          <dt className="text-gray-500">Portfolio</dt>
-          <dd className="text-gray-900">{(assoc.portfolio as any)?.company_name ?? <span className="text-gray-400">—</span>}</dd>
+          <dt className="text-ink-500">Portfolio</dt>
+          <dd className="text-ink-900">{(assoc.portfolio as any)?.company_name ?? <span className="text-ink-400">—</span>}</dd>
 
-          <dt className="text-gray-500">Status</dt>
-          <dd className="capitalize text-gray-900">{assoc.status ?? 'active'}</dd>
+          <dt className="text-ink-500">Status</dt>
+          <dd className="capitalize text-ink-900">{assoc.status ?? 'active'}</dd>
 
-          <dt className="text-gray-500">Created</dt>
-          <dd className="text-gray-900">{assoc.created_at ? formatDate(assoc.created_at) : <span className="text-gray-400">—</span>}</dd>
+          <dt className="text-ink-500">Created</dt>
+          <dd className="text-ink-900">{assoc.created_at ? formatDate(assoc.created_at) : <span className="text-ink-400">—</span>}</dd>
         </dl>
       </Section>
     </Workspace>

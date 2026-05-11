@@ -150,7 +150,7 @@ export default async function OwnersPage({
       description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
       actions={
         <>
-          <Link href="/owners/forms" className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 hover:bg-gray-50">
+          <Link href="/owners/forms" className="inline-flex h-10 items-center rounded-md border border-ink-200 bg-white px-4 text-sm font-medium text-ink-900 hover:bg-cream-50">
             Send owner form
           </Link>
           <Link href="/owners/new">
@@ -161,29 +161,29 @@ export default async function OwnersPage({
       rail={
         <div className="space-y-4">
           <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Owner workflows</div>
+            <div className="text-xs font-semibold uppercase text-ink-500">Owner workflows</div>
             <div className="mt-2 space-y-2">
               {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
+                <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 hover:border-brand-300 hover:bg-brand-50">
+                  <div className="font-medium text-ink-900">{card.title}</div>
+                  <div className="mt-1 text-xs text-ink-500">{card.description}</div>
                 </Link>
               ))}
             </div>
           </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
             Outbound owner actions are staged as review-first workflows so activations, packets, and ACH changes require an explicit confirmation step.
           </div>
         </div>
       }
     >
       <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
+        <nav className="flex flex-wrap gap-5 border-b border-ink-100 text-sm">
           {tabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`border-b-2 px-1 pb-2 ${tab.active ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+              className={`border-b-2 px-1 pb-2 ${tab.active ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'}`}
             >
               {tab.label}
             </Link>
@@ -201,9 +201,9 @@ export default async function OwnersPage({
 
         <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
           {view !== 'homeowners' && <input type="hidden" name="view" value={view} />}
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-ink-500">
             Letter
-            <select name="letter" defaultValue={letter} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
+            <select name="letter" defaultValue={letter} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
               <option value="all">All</option>
               {LETTERS.map((item) => (
                 <option key={item} value={item} disabled={!availableLetters.has(item)}>
@@ -219,12 +219,12 @@ export default async function OwnersPage({
             <Link
               key={item}
               href={buildLetterHref(item)}
-              className={`rounded px-2 py-1 ${letter === item ? 'bg-blue-100 font-semibold text-blue-800' : availableLetters.has(item) ? 'text-blue-700 hover:bg-blue-50' : 'pointer-events-none text-gray-300'}`}
+              className={`rounded px-2 py-1 ${letter === item ? 'bg-blue-100 font-semibold text-blue-800' : availableLetters.has(item) ? 'text-champagne-700 hover:bg-champagne-50' : 'pointer-events-none text-gray-300'}`}
             >
               {item}
             </Link>
           ))}
-          <Link href={buildLetterHref('all')} className={`rounded px-2 py-1 ${letter === 'all' ? 'bg-blue-100 font-semibold text-blue-800' : 'text-blue-700 hover:bg-blue-50'}`}>
+          <Link href={buildLetterHref('all')} className={`rounded px-2 py-1 ${letter === 'all' ? 'bg-blue-100 font-semibold text-blue-800' : 'text-champagne-700 hover:bg-champagne-50'}`}>
             All
           </Link>
         </div>
@@ -242,22 +242,22 @@ export default async function OwnersPage({
           <tbody>
             {rows.length === 0 ? (
               <TR>
-                <TD colSpan={5} className="py-10 text-center text-gray-500">No owner records match this filter.</TD>
+                <TD colSpan={5} className="py-10 text-center text-ink-500">No owner records match this filter.</TD>
               </TR>
             ) : (
               rows.map((row) => (
-                <TR key={row.id} className="hover:bg-gray-50">
+                <TR key={row.id} className="hover:bg-cream-50">
                   <TD>
-                    <Link href={`/owners/${row.id}`} className="font-medium text-blue-700 hover:underline">{row.name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
+                    <Link href={`/owners/${row.id}`} className="font-medium text-champagne-700 hover:underline">{row.name}</Link>
+                    <div className="mt-1 text-xs text-ink-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
                   </TD>
                   <TD>
-                    <div className="text-gray-900">{row.email ?? 'No email on file'}</div>
-                    <div className="mt-1 text-xs text-gray-500">{row.phone ?? 'No phone'}</div>
+                    <div className="text-ink-900">{row.email ?? 'No email on file'}</div>
+                    <div className="mt-1 text-xs text-ink-500">{row.phone ?? 'No phone'}</div>
                   </TD>
                   <TD>
-                    <div className="font-medium text-gray-900">{row.associationName ?? 'No current association'}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="font-medium text-ink-900">{row.associationName ?? 'No current association'}</div>
+                    <div className="mt-1 text-xs text-ink-500">
                       {row.unitNumber ? `Unit ${row.unitNumber}` : 'No unit link'}
                       {row.associationAddress ? ` - ${row.associationAddress}` : ''}
                     </div>
@@ -269,13 +269,13 @@ export default async function OwnersPage({
                       </StatusChip>
                       {row.electronicConsent && <StatusChip tone="info">E-consent</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">Last login {date(row.portalLastLogin)}</div>
+                    <div className="mt-1 text-xs text-ink-500">Last login {date(row.portalLastLogin)}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/owners/activations?owner=${row.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">Activate</Link>
-                      <Link href={`/owners/packets?owner=${row.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">Packet</Link>
-                      <Link href={`/owners/ach?owner=${row.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">ACH</Link>
+                      <Link href={`/owners/activations?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Activate</Link>
+                      <Link href={`/owners/packets?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Packet</Link>
+                      <Link href={`/owners/ach?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">ACH</Link>
                     </div>
                   </TD>
                 </TR>

@@ -20,21 +20,21 @@ export default async function NewManagementAgreementPage() {
     <DataWorkspace
       title="New Management Agreement"
       description="Draft the owner and association agreement package, then route it through review and signature."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
-      rail={<div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">Agreement drafts should capture owner, association, fee schedule, management dates, and signature delivery method before any outbound send.</div>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
+      rail={<div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">Agreement drafts should capture owner, association, fee schedule, management dates, and signature delivery method before any outbound send.</div>}
     >
-      <form className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
+      <form className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="owner_id" name="owner_id" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="">Select owner</option>
               {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}</option>)}
             </select>
           </div>
           <div>
             <Label htmlFor="association_id">Association</Label>
-            <select id="association_id" name="association_id" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="association_id" name="association_id" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="">Select association</option>
               {(associations ?? []).map((association: any) => <option key={association.id} value={association.id}>{association.name}</option>)}
             </select>
@@ -53,7 +53,7 @@ export default async function NewManagementAgreementPage() {
           </div>
           <div>
             <Label htmlFor="delivery_method">Delivery method</Label>
-            <select id="delivery_method" name="delivery_method" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="delivery_method" name="delivery_method" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="email">Email signature request</option>
               <option value="portal">Owner portal</option>
               <option value="mail">Mail packet</option>
@@ -62,9 +62,9 @@ export default async function NewManagementAgreementPage() {
         </div>
         <div>
           <Label htmlFor="terms">Agreement notes</Label>
-          <textarea id="terms" name="terms" rows={5} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
+          <textarea id="terms" name="terms" rows={5} className="w-full rounded-md border border-ink-200 px-3 py-2 text-sm" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
         </div>
-        <div className="flex justify-end gap-2 border-t border-gray-100 pt-5">
+        <div className="flex justify-end gap-2 border-t border-ink-100 pt-5">
           <Button type="button" variant="secondary">Preview agreement</Button>
           <Button type="button">Stage agreement</Button>
         </div>

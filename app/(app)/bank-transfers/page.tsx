@@ -28,14 +28,14 @@ export default async function BankTransfersPage() {
                 <TD>{t.from?.name}</TD>
                 <TD>{t.to?.name}</TD>
                 <TD className="text-right tabular-nums font-medium">{money(t.amount)}</TD>
-                <TD className="font-mono text-xs text-gray-600">{t.reference_number ?? '—'}</TD>
-                <TD className="max-w-xs truncate text-sm text-gray-600">{t.memo ?? '—'}</TD>
+                <TD className="font-mono text-xs text-ink-600">{t.reference_number ?? '—'}</TD>
+                <TD className="max-w-xs truncate text-sm text-ink-600">{t.memo ?? '—'}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No transfers yet.</p>
+        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No transfers yet.</p>
       )}
     </ModulePage>
   );

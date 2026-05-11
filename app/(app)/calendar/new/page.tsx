@@ -32,13 +32,13 @@ export default async function NewCalendarEventPage({
     <div className="mx-auto h-full max-w-5xl overflow-y-auto px-8 py-6">
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
-          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
             <Link href="/calendar" className="hover:text-brand-600">Calendar</Link>
             <span className="mx-2">/</span>
             New Event
           </nav>
-          <h1 className="text-2xl font-semibold text-gray-900">Create association calendar event</h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
+          <h1 className="text-2xl font-semibold text-ink-900">Create association calendar event</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-500">
             Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
           </p>
         </div>
@@ -51,12 +51,12 @@ export default async function NewCalendarEventPage({
         <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />
 
         <div className="space-y-6">
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Event details</h2>
+          <section className="rounded-lg border border-ink-100 bg-white p-5">
+            <h2 className="text-sm font-semibold text-ink-900">Event details</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
                 <Label htmlFor="association_id">Association</Label>
-                <select id="association_id" name="association_id" required defaultValue={sp.assoc ?? ''} className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                <select id="association_id" name="association_id" required defaultValue={sp.assoc ?? ''} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                   <option value="">Select association</option>
                   {(associations ?? []).map((association: any) => (
                     <option key={association.id} value={association.id}>{association.name}</option>
@@ -66,7 +66,7 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="event_type">Event type</Label>
-                <select id="event_type" name="event_type" defaultValue={eventType} className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                <select id="event_type" name="event_type" defaultValue={eventType} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                   {EVENT_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
@@ -100,7 +100,7 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="vendor_id">Vendor</Label>
-                <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                   <option value="">Not applicable</option>
                   {(vendors ?? []).map((vendor: any) => (
                     <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
@@ -110,7 +110,7 @@ export default async function NewCalendarEventPage({
 
               <div>
                 <Label htmlFor="owner_id">Owner / resident</Label>
-                <select id="owner_id" name="owner_id" defaultValue="" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                <select id="owner_id" name="owner_id" defaultValue="" className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                   <option value="">Not applicable</option>
                   {(owners ?? []).map((owner: any) => (
                     <option key={owner.id} value={owner.id}>{owner.full_name}</option>
@@ -118,72 +118,72 @@ export default async function NewCalendarEventPage({
                 </select>
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2 text-sm text-ink-700">
                 <input type="checkbox" name="all_day" />
                 All day
               </label>
             </div>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Notice and internal instructions</h2>
+          <section className="rounded-lg border border-ink-100 bg-white p-5">
+            <h2 className="text-sm font-semibold text-ink-900">Notice and internal instructions</h2>
             <div className="mt-4 space-y-4">
               <div>
                 <Label htmlFor="description">Short calendar description</Label>
-                <textarea id="description" name="description" rows={3} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                <textarea id="description" name="description" rows={3} className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm" />
               </div>
 
               <div>
                 <Label htmlFor="public_notice_text">Public notice text</Label>
-                <textarea id="public_notice_text" name="public_notice_text" rows={5} placeholder="Leave blank and the system will draft one from the event details." className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                <textarea id="public_notice_text" name="public_notice_text" rows={5} placeholder="Leave blank and the system will draft one from the event details." className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm" />
               </div>
 
               <div>
                 <Label htmlFor="maintenance_instructions">Vendor / maintenance confirmation notes</Label>
-                <textarea id="maintenance_instructions" name="maintenance_instructions" rows={4} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                <textarea id="maintenance_instructions" name="maintenance_instructions" rows={4} className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm" />
               </div>
 
               <div>
                 <Label htmlFor="internal_notes">Internal notes</Label>
-                <textarea id="internal_notes" name="internal_notes" rows={4} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                <textarea id="internal_notes" name="internal_notes" rows={4} className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm" />
               </div>
             </div>
           </section>
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Default reminders</h2>
+          <section className="rounded-lg border border-ink-100 bg-white p-5">
+            <h2 className="text-sm font-semibold text-ink-900">Default reminders</h2>
             <div className="mt-3 space-y-2">
               {reminders.length ? reminders.map((minutes) => (
-                <label key={minutes} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                <label key={minutes} className="flex items-center gap-2 rounded border border-ink-100 px-3 py-2 text-sm">
                   <input type="checkbox" name="reminder_minutes" value={minutes} defaultChecked />
                   {reminderLabel(minutes)}
                 </label>
               )) : (
-                <p className="text-sm text-gray-500">No default reminders. Add this event, then customize reminders in Automation Center.</p>
+                <p className="text-sm text-ink-500">No default reminders. Add this event, then customize reminders in Automation Center.</p>
               )}
             </div>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Automation actions</h2>
+          <section className="rounded-lg border border-ink-100 bg-white p-5">
+            <h2 className="text-sm font-semibold text-ink-900">Automation actions</h2>
             <div className="mt-3 space-y-2">
               {REMINDER_ACTIONS.map((action) => (
-                <label key={action.value} className="flex items-start gap-2 text-sm text-gray-700">
+                <label key={action.value} className="flex items-start gap-2 text-sm text-ink-700">
                   <input type="checkbox" name={action.value} defaultChecked={['create_email_draft', 'create_follow_up_task'].includes(action.value)} className="mt-1" />
                   <span>{action.label}</span>
                 </label>
               ))}
-              <label className="flex items-start gap-2 text-sm text-gray-700">
+              <label className="flex items-start gap-2 text-sm text-ink-700">
                 <input type="checkbox" name="notify_sms" className="mt-1" />
                 <span>Also prepare SMS text where phone numbers exist</span>
               </label>
             </div>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Recipient groups</h2>
+          <section className="rounded-lg border border-ink-100 bg-white p-5">
+            <h2 className="text-sm font-semibold text-ink-900">Recipient groups</h2>
             <div className="mt-3 space-y-2">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_management" defaultChecked /> Management office</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_board" /> Board</label>
@@ -194,7 +194,7 @@ export default async function NewCalendarEventPage({
 
           <div className="flex gap-2">
             <Button type="submit" className="flex-1">Create event</Button>
-            <button type="submit" name="add_another" value="1" className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <button type="submit" name="add_another" value="1" className="rounded-md border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 hover:bg-cream-50">
               Add another
             </button>
           </div>

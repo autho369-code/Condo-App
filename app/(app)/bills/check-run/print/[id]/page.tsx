@@ -85,7 +85,7 @@ export default async function PrintChecksPage({
       <div className="no-print flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-2xl font-semibold">Check preview — {count ?? checks?.length ?? 0} check(s)</h1>
-          <p className="text-sm text-gray-500">Sized for #10 double-window envelopes. Tri-fold along the perforation lines.</p>
+          <p className="text-sm text-ink-500">Sized for #10 double-window envelopes. Tri-fold along the perforation lines.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/bills"><Button variant="secondary">Back</Button></Link>
@@ -127,7 +127,7 @@ export default async function PrintChecksPage({
                       <div key={i} className={i === 0 ? 'font-semibold' : ''}>{line}</div>
                     ))
                   ) : (
-                    <div className="italic text-gray-400">[vendor address missing]</div>
+                    <div className="italic text-ink-400">[vendor address missing]</div>
                   )}
                 </div>
 
@@ -206,7 +206,7 @@ export default async function PrintChecksPage({
         })}
 
         {!checks?.length && (
-          <div className="no-print rounded border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+          <div className="no-print rounded border border-ink-100 bg-white p-8 text-center text-sm text-ink-500">
             No checks found for this run.
           </div>
         )}

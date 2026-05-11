@@ -67,7 +67,7 @@ export default async function ReportsIndex({
             name="q"
             defaultValue={q}
             placeholder="Search reports"
-            className="h-10 min-w-64 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-10 min-w-64 rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <Button type="submit" variant="secondary">Search</Button>
         </form>
@@ -80,7 +80,7 @@ export default async function ReportsIndex({
             { label: 'Active catalog', value: activeCount ?? definitions.length, sublabel: 'Available report definitions' },
             { label: 'Visible results', value: visibleDefinitions.length, sublabel: q ? `Filtered by "${q}"` : 'Current catalog view' },
             { label: 'Saved reports', value: savedRows.length, sublabel: `${favorites.length} pinned favorites` },
-            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/scheduled-reports" className="text-blue-700 hover:underline">Manage schedule</Link> },
+            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/scheduled-reports" className="text-champagne-700 hover:underline">Manage schedule</Link> },
           ]}
         />
 
@@ -97,10 +97,10 @@ export default async function ReportsIndex({
                 <Link
                   key={definition.id}
                   href={`/reports/${definition.slug}`}
-                  className="rounded border border-gray-200 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
+                  className="rounded border border-ink-100 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
                 >
-                  <div className="font-medium text-blue-700">{definition.name}</div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{definition.description ?? 'Scoped report workspace'}</p>
+                  <div className="font-medium text-champagne-700">{definition.name}</div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-500">{definition.description ?? 'Scoped report workspace'}</p>
                 </Link>
               ))}
             </div>
@@ -114,7 +114,7 @@ export default async function ReportsIndex({
         )}
 
         {groups.length === 0 && favorites.length === 0 && (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <div className="rounded border border-dashed border-ink-200 bg-white px-6 py-12 text-center text-sm text-ink-500">
             No reports match &quot;{q}&quot;.
           </div>
         )}
@@ -127,7 +127,7 @@ function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
   return (
     <div className="space-y-5">
       <section>
-        <h2 className="text-sm font-semibold text-gray-950">Report operations</h2>
+        <h2 className="text-sm font-semibold text-ink-900">Report operations</h2>
         <div className="mt-3 grid gap-2">
           <RailLink href="/reports/runs" label="Run history" />
           <RailLink href="/scheduled-reports" label={`Scheduled reports (${scheduledCount})`} />
@@ -135,9 +135,9 @@ function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
           <RailLink href="/reports/bank_reconciliation" label="Bank reconciliation" />
         </div>
       </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Scope discipline</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-600">
+      <section className="border-t border-ink-100 pt-5">
+        <h2 className="text-sm font-semibold text-ink-900">Scope discipline</h2>
+        <p className="mt-2 text-sm leading-6 text-ink-600">
           Every run captures portfolio, association, owner, or unit scope plus dates so saved and scheduled reports can be reproduced.
         </p>
       </section>
@@ -155,10 +155,10 @@ function ReportSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded border border-gray-200 bg-white">
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">{count}</span>
+    <section className="rounded border border-ink-100 bg-white">
+      <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
+        <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
+        <span className="rounded bg-cream-100 px-2 py-0.5 text-xs font-medium tabular-nums text-ink-600">{count}</span>
       </div>
       {children}
     </section>
@@ -173,14 +173,14 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
         return (
           <div key={report.id} className="flex items-center justify-between gap-4 px-4 py-3">
             <div className="min-w-0">
-              <Link href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'} className="truncate text-sm font-medium text-blue-700 hover:underline">
+              <Link href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'} className="truncate text-sm font-medium text-champagne-700 hover:underline">
                 {report.name || report.report_definitions?.name || 'Untitled report'}
               </Link>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-500">
                 Created by {report.profiles?.full_name ?? 'Unknown'}{report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
               </p>
             </div>
-            <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{report.run_count ?? 0} runs</span>
+            <span className="shrink-0 rounded bg-cream-100 px-2 py-0.5 text-xs text-ink-600">{report.run_count ?? 0} runs</span>
           </div>
         );
       })}
@@ -190,7 +190,7 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
 
 function RailLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
+    <Link href={href} className="rounded border border-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
       {label}
     </Link>
   );

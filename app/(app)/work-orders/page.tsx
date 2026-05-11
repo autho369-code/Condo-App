@@ -31,20 +31,20 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">Work Orders</nav>
+      <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">Work Orders</nav>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Work Orders</h1>
+        <h1 className="text-2xl font-semibold text-ink-900">Work Orders</h1>
         <Link href="/work-orders/new"><Button>+ New work order</Button></Link>
       </div>
 
-      <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+      <nav className="flex flex-wrap gap-1 border-b border-ink-100">
         {TABS.map((t) => {
           const count = all.filter(t.filter).length;
           const isActive = t.key === tab;
           return (
             <Link key={t.key} href={`/work-orders?tab=${t.key}`}
-              className={`border-b-2 px-4 py-2 text-sm transition ${isActive ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
-              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${isActive ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+              className={`border-b-2 px-4 py-2 text-sm transition ${isActive ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-ink-600 hover:text-ink-900'}`}>
+              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${isActive ? 'bg-brand-100 text-brand-700' : 'bg-cream-100 text-ink-500'}`}>{count}</span>
             </Link>
           );
         })}
@@ -56,24 +56,24 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
           <tbody>
             {filtered.map((w: any) => (
               <TR key={w.id}>
-                <TD className="font-mono text-xs"><Link href={`/work-orders/${w.id}`} className="text-blue-700 hover:underline">{w.number ?? w.id.slice(0, 8)}</Link></TD>
-                <TD className="max-w-sm"><Link href={`/work-orders/${w.id}`} className="font-medium text-gray-900 hover:underline">{w.title}</Link></TD>
-                <TD className="text-sm text-gray-700">{w.associations?.name}{w.units?.unit_number ? ` · Unit ${w.units.unit_number}` : ''}</TD>
-                <TD className="text-sm text-gray-700">{w.vendors?.name ?? <span className="text-red-600">Unassigned</span>}</TD>
+                <TD className="font-mono text-xs"><Link href={`/work-orders/${w.id}`} className="text-champagne-700 hover:underline">{w.number ?? w.id.slice(0, 8)}</Link></TD>
+                <TD className="max-w-sm"><Link href={`/work-orders/${w.id}`} className="font-medium text-ink-900 hover:underline">{w.title}</Link></TD>
+                <TD className="text-sm text-ink-700">{w.associations?.name}{w.units?.unit_number ? ` · Unit ${w.units.unit_number}` : ''}</TD>
+                <TD className="text-sm text-ink-700">{w.vendors?.name ?? <span className="text-bordeaux-600">Unassigned</span>}</TD>
                 <TD><Priority p={w.priority} /></TD>
-                <TD className="text-sm capitalize text-gray-600">{w.status?.replace(/_/g, ' ')}</TD>
-                <TD className="whitespace-nowrap text-sm text-gray-600">{date(w.scheduled_date)}</TD>
+                <TD className="text-sm capitalize text-ink-600">{w.status?.replace(/_/g, ' ')}</TD>
+                <TD className="whitespace-nowrap text-sm text-ink-600">{date(w.scheduled_date)}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
-      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No work orders in this view.</p>}
+      ) : <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No work orders in this view.</p>}
     </div>
   );
 }
 
 function Priority({ p }: { p?: string | null }) {
-  const m: Record<string, string> = { emergency: 'bg-red-100 text-red-800', high: 'bg-orange-100 text-orange-800', normal: 'bg-gray-100 text-gray-700', low: 'bg-gray-100 text-gray-500' };
+  const m: Record<string, string> = { emergency: 'bg-red-100 text-red-800', high: 'bg-orange-100 text-orange-800', normal: 'bg-cream-100 text-ink-700', low: 'bg-cream-100 text-ink-500' };
   if (!p) return null;
   return <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize ${m[p] ?? m.normal}`}>{p}</span>;
 }

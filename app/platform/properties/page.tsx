@@ -25,8 +25,8 @@ export default async function PlatformPropertiesPage() {
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-950">Properties</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-display text-4xl tracking-editorial text-ink-900">Properties</h1>
+        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">
           Global property list across clients. Use client drilldown for owners, users, and billing context.
         </p>
       </header>
@@ -51,22 +51,22 @@ export default async function PlatformPropertiesPage() {
             <tbody>
               {(properties ?? []).length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-10 text-center text-gray-500">No properties are visible.</TD>
+                  <TD colSpan={4} className="py-10 text-center text-ink-500">No properties are visible.</TD>
                 </TR>
               ) : (
                 (properties ?? []).map((property: any) => {
                   const portfolio = portfolioById.get(property.portfolio_id) as any;
                   return (
-                    <TR key={property.id} className="hover:bg-gray-50">
+                    <TR key={property.id} className="hover:bg-cream-50">
                       <TD>
-                        <div className="font-medium text-gray-950">{property.name}</div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="font-medium text-ink-900">{property.name}</div>
+                        <div className="mt-1 text-xs text-ink-500">
                           {[property.address, property.city, property.state, property.zip].filter(Boolean).join(', ')}
                         </div>
                       </TD>
                       <TD>
                         {portfolio ? (
-                          <Link href={`/platform/portfolios/${property.portfolio_id}`} className="text-blue-700 hover:underline">
+                          <Link href={`/platform/portfolios/${property.portfolio_id}`} className="text-champagne-700 hover:underline">
                             {portfolio.company_name}
                           </Link>
                         ) : (

@@ -16,24 +16,24 @@ export default async function NewOwnerPage() {
     <DataWorkspace
       title="New Owner"
       description="Create the owner profile, then connect unit ownership, portal activation, ACH, and packet workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
       rail={
         <div className="space-y-4">
-          <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
+          <div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">
             Add a clean owner record first. Unit links, portal invites, and packets can be staged once the owner exists.
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
+            <div className="text-xs font-semibold uppercase text-ink-500">After save</div>
             <div className="mt-2 space-y-2">
               {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
+                <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 text-sm hover:bg-cream-50">{card.title}</Link>
               ))}
             </div>
           </div>
         </div>
       }
     >
-      <form action={createOwner as any} className="max-w-5xl space-y-6 rounded border border-gray-200 bg-white p-5">
+      <form action={createOwner as any} className="max-w-5xl space-y-6 rounded border border-ink-100 bg-white p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="first_name">First name <span className="text-red-500">*</span></Label>
@@ -53,8 +53,8 @@ export default async function NewOwnerPage() {
           </div>
         </div>
 
-        <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Mailing address</div>
+        <section className="border-t border-ink-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500">Mailing address</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
@@ -63,31 +63,31 @@ export default async function NewOwnerPage() {
           </div>
         </section>
 
-        <section className="border-t border-gray-100 pt-5">
+        <section className="border-t border-ink-100 pt-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="preferred_comm">Preferred communication</Label>
-              <select id="preferred_comm" name="preferred_comm" defaultValue="email" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="preferred_comm" name="preferred_comm" defaultValue="email" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="email">Email</option>
                 <option value="mail">Postal mail</option>
                 <option value="phone">Phone</option>
                 <option value="portal">Portal</option>
               </select>
             </div>
-            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <label className="flex items-start gap-3 rounded-md border border-ink-100 bg-cream-50 p-3">
               <input type="checkbox" name="electronic_consent_requested" className="mt-1" />
-              <span><span className="block text-sm font-medium text-gray-900">Request electronic consent after save</span><span className="block text-xs text-gray-500">Use the owner form workflow to stage the request.</span></span>
+              <span><span className="block text-sm font-medium text-ink-900">Request electronic consent after save</span><span className="block text-xs text-ink-500">Use the owner form workflow to stage the request.</span></span>
             </label>
           </div>
         </section>
 
-        <section className="border-t border-gray-100 pt-5">
+        <section className="border-t border-ink-100 pt-5">
           <Label htmlFor="notes">Internal notes</Label>
-          <textarea id="notes" name="notes" rows={3} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Language preference, accessibility needs, ownership context..." />
+          <textarea id="notes" name="notes" rows={3} className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm" placeholder="Language preference, accessibility needs, ownership context..." />
         </section>
 
-        <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-          <Link href="/owners" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+        <div className="flex items-center justify-between border-t border-ink-100 pt-5">
+          <Link href="/owners" className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
           <Button type="submit" size="lg">Create owner</Button>
         </div>
       </form>

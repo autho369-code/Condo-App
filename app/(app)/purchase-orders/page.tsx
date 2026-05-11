@@ -26,17 +26,17 @@ export default async function PurchaseOrdersPage() {
               <TR key={p.id}>
                 <TD className="font-mono text-xs">{p.number ?? p.id.slice(0, 8)}</TD>
                 <TD>{p.vendors?.name}</TD>
-                <TD className="text-sm text-gray-700">{p.associations?.name ?? '—'}</TD>
-                <TD className="text-xs text-gray-500">{p.work_orders?.title ?? '—'}</TD>
-                <TD><span className="rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700">{p.status}</span></TD>
+                <TD className="text-sm text-ink-700">{p.associations?.name ?? '—'}</TD>
+                <TD className="text-xs text-ink-500">{p.work_orders?.title ?? '—'}</TD>
+                <TD><span className="rounded bg-cream-100 px-2 py-0.5 text-xs capitalize text-ink-700">{p.status}</span></TD>
                 <TD className="text-right tabular-nums">{money(p.po_total)}</TD>
-                <TD className="text-right tabular-nums text-gray-600">{money(p.po_billed)}</TD>
+                <TD className="text-right tabular-nums text-ink-600">{money(p.po_billed)}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No purchase orders issued yet.</p>
+        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No purchase orders issued yet.</p>
       )}
     </ModulePage>
   );

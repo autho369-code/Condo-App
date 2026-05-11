@@ -23,7 +23,7 @@ export function AssociationTabs({
   active: AssociationTabSlug;
 }) {
   return (
-    <nav className="mb-5 flex gap-6 border-b border-gray-200">
+    <nav className="mb-5 flex gap-6 border-b border-ink-100">
       {TABS.map((tab) => {
         const href = `/associations/${associationId}/${tab.slug}`;
         const on = tab.slug === active;
@@ -34,7 +34,7 @@ export function AssociationTabs({
             className={`border-b-2 px-1 pb-2 text-sm whitespace-nowrap transition ${
               on
                 ? 'border-brand-600 font-semibold text-brand-700'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-ink-600 hover:text-ink-900'
             }`}
           >
             {tab.label}
