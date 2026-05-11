@@ -25,7 +25,7 @@ export default async function PayCancel({
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
           You closed the secure checkout before authorising the payment. Your
-          balance is unchanged. You're welcome to try a different method or come
+          balance is unchanged. You’re welcome to try a different method or come
           back later.
         </p>
       </header>

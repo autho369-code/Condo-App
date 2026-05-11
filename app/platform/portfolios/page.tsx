@@ -114,7 +114,7 @@ export default async function PortfoliosPage() {
         <CardHeader>
           <CardTitle>Provision client</CardTitle>
           <CardSubtitle>
-            Create the client shell, first manager admin, tier, seats, trial window — and the URL extension they'll use to sign in.
+            Create the client shell, first manager admin, tier, seats, trial window — and the URL extension they’ll use to sign in.
           </CardSubtitle>
         </CardHeader>
         <CardBody>

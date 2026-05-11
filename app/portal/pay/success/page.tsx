@@ -18,11 +18,11 @@ const STATUS_TONE = {
 const STATUS_HEADLINE: Record<string, { eye: string; line: React.ReactNode }> = {
   succeeded: {
     eye: 'Payment confirmed',
-    line: <>Thank you — <span className="italic text-champagne-700">it's all settled.</span></>,
+    line: <>Thank you — <span className="italic text-champagne-700">it’s all settled.</span></>,
   },
   processing: {
     eye: 'Payment processing',
-    line: <>We've received it. <span className="italic text-champagne-700">Posting shortly.</span></>,
+    line: <>We’ve received it. <span className="italic text-champagne-700">Posting shortly.</span></>,
   },
   failed: {
     eye: 'Payment did not go through',

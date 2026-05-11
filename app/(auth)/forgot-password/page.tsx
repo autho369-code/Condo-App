@@ -25,7 +25,7 @@ export default async function ForgotPasswordPage({
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-ink-500">
             If an account exists for <span className="text-ink-900 font-medium">{sent}</span>,
-            we've sent a password-reset link. It will be valid for one hour.
+            we’ve sent a password-reset link. It will be valid for one hour.
           </p>
         </header>
 
@@ -40,7 +40,7 @@ export default async function ForgotPasswordPage({
             <div className="text-sm leading-relaxed text-ink-700">
               <p>Open the email from <span className="font-medium text-ink-900">Portier</span> and follow the secure link to choose a new password.</p>
               <p className="mt-3 text-ink-500">
-                Didn't receive it? Check your spam folder, or{' '}
+                Didn’t receive it? Check your spam folder, or{' '}
                 <Link
                   href="/forgot-password"
                   className="font-medium text-champagne-700 underline decoration-champagne-300 underline-offset-4 hover:decoration-champagne-500 transition-colors"
@@ -73,12 +73,12 @@ export default async function ForgotPasswordPage({
           Forgot your password?
         </div>
         <h1 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
-          We'll send a{' '}
+          We’ll send a{' '}
           <span className="italic text-champagne-700">reset link.</span>
         </h1>
         <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-500">
           Enter the email address on your Portier account. If we recognise it,
-          we'll send a secure link valid for one hour.
+          we’ll send a secure link valid for one hour.
         </p>
       </header>
 
@@ -108,8 +108,8 @@ export default async function ForgotPasswordPage({
         </Button>
 
         <p className="text-[11px] leading-relaxed text-ink-500">
-          For your protection, we don't reveal whether an address is registered.
-          You'll see the same confirmation either way.
+          For your protection, we don’t reveal whether an address is registered.
+          You’ll see the same confirmation either way.
         </p>
       </form>
 

@@ -27,7 +27,7 @@ export default async function ResetPasswordPage({
             <span className="italic text-champagne-700">welcome back.</span>
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-500">
-            Your new password is in place. We've also signed out any other
+            Your new password is in place. We’ve also signed out any other
             devices that were open under your account, just to be sure.
           </p>
         </header>
@@ -41,7 +41,7 @@ export default async function ResetPasswordPage({
             </div>
             <div className="text-sm leading-relaxed text-ink-700">
               <p>
-                Step into your workspace whenever you'd like. The next time
+                Step into your workspace whenever you’d like. The next time
                 you sign in, use the new password.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
@@ -118,10 +118,10 @@ export default async function ResetPasswordPage({
         {/* Tasteful, non-prescriptive password tips */}
         <ul className="grid gap-1.5 rounded-md border border-ink-100 bg-cream-50 px-4 py-3 text-[12px] leading-relaxed text-ink-600">
           <li className="flex items-start gap-2">
-            <Dot /> A passphrase of three or four words you'd remember is hard to crack and easy to type.
+            <Dot /> A passphrase of three or four words you’d remember is hard to crack and easy to type.
           </li>
           <li className="flex items-start gap-2">
-            <Dot /> We never store your password in clear text — only a salted hash you can't reverse.
+            <Dot /> We never store your password in clear text — only a salted hash you can’t reverse.
           </li>
           <li className="flex items-start gap-2">
             <Dot /> Updating here signs you out of any other open sessions.

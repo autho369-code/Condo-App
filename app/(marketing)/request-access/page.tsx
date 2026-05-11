@@ -43,7 +43,7 @@ export default async function RequestAccessPage({
           <header className="text-center">
             <div className="eyebrow">Request received</div>
             <h1 className="mt-3 font-display text-5xl tracking-editorial text-ink-900 md:text-6xl">
-              We'll be in touch{' '}
+              We’ll be in touch{' '}
               <span className="italic text-champagne-700">shortly.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-600">
@@ -61,7 +61,7 @@ export default async function RequestAccessPage({
               </div>
               <div className="text-sm leading-relaxed text-ink-700">
                 <p>
-                  In the meantime, you're welcome to{' '}
+                  In the meantime, you’re welcome to{' '}
                   <Link href="/#features" className="underline decoration-champagne-300 decoration-1 underline-offset-4 hover:decoration-champagne-500 text-champagne-700 transition-colors">
                     review the platform overview
                   </Link>{' '}

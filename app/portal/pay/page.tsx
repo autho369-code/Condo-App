@@ -67,7 +67,7 @@ export default async function PayPage() {
               <span className="italic text-champagne-700">balance.</span>
             </h1>
             <p className="mt-3 text-[15px] text-ink-500 leading-relaxed">
-              Confirm the amount, choose a method, and we'll route you to a
+              Confirm the amount, choose a method, and we’ll route you to a
               secure checkout. The system applies your payment to the oldest
               open charges first.
             </p>
@@ -135,7 +135,7 @@ export default async function PayPage() {
                 <CardTitle>Online payments coming soon</CardTitle>
                 <CardSubtitle>
                   Stripe checkout is being configured for {me.portfolio?.company_name ?? 'this portal'}.
-                  Until then, please use your management company's existing payment instructions.
+                  Until then, please use your management company’s existing payment instructions.
                 </CardSubtitle>
               </CardHeader>
               <CardBody>
@@ -159,7 +159,7 @@ export default async function PayPage() {
                 <CardHeader>
                   <CardTitle>Amount</CardTitle>
                   <CardSubtitle>
-                    Defaults to your full outstanding balance. Adjust if you'd like to pay less.
+                    Defaults to your full outstanding balance. Adjust if you’d like to pay less.
                   </CardSubtitle>
                 </CardHeader>
                 <CardBody>
@@ -185,7 +185,7 @@ export default async function PayPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Payment method</CardTitle>
-                  <CardSubtitle>Pick how you'd like to pay. Both options are processed by Stripe.</CardSubtitle>
+                  <CardSubtitle>Pick how you’d like to pay. Both options are processed by Stripe.</CardSubtitle>
                 </CardHeader>
                 <CardBody>
                   <fieldset className="grid gap-3 md:grid-cols-2">
@@ -250,7 +250,7 @@ export default async function PayPage() {
               {/* Submit */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-7">
                 <p className="max-w-md text-xs text-ink-500 leading-relaxed">
-                  Your card / bank details are entered on Stripe's secure checkout — they never touch our servers.
+                  Your card / bank details are entered on Stripe’s secure checkout — they never touch our servers.
                 </p>
                 <div className="flex w-full items-center gap-3 sm:w-auto">
                   <Link href="/portal" className="hidden sm:inline-flex">

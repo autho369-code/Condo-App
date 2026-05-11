@@ -142,7 +142,7 @@ export function Copilot() {
                   </span>
                   <span className="font-display text-2xl tracking-editorial text-ink-900">Copilot</span>
                 </div>
-                <p className="mt-1 text-[12.5px] text-ink-500">An assistant that drafts, classifies, and summarises — grounded in your portfolio's data.</p>
+                <p className="mt-1 text-[12.5px] text-ink-500">An assistant that drafts, classifies, and summarises — grounded in your portfolio’s data.</p>
               </div>
               <button onClick={() => setOpen(false)} aria-label="Close" className="rounded-md p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition-colors">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
