@@ -163,7 +163,7 @@ export function CommandPalette({ items, triggers }: Props) {
         <div className="max-h-[60vh] overflow-y-auto py-2">
           {filtered.flat.length === 0 ? (
             <div className="px-5 py-10 text-center text-sm text-ink-500">
-              No matches for <span className="text-ink-700 font-medium">"{query}"</span>.
+              No matches for <span className="text-ink-700 font-medium">“{query}”</span>.
             </div>
           ) : (
             filtered.groups.map((g) => (
