@@ -4,8 +4,6 @@ import { resolveTenantFromHost, APEX_DOMAIN } from '@/lib/tenant/resolve';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/types/database';
 
-// Routes that the cross-tenant guard should leave alone — auth flows always
-// resolve correctly via the user's session, regardless of tenant URL.
 const GUARD_EXEMPT_PREFIXES = [
   '/login',
   '/signup',
@@ -18,7 +16,7 @@ const GUARD_EXEMPT_PREFIXES = [
 ];
 
 export async function middleware(request: NextRequest) {
-  // 1) Resolve the tenant for this host
+  // 1) Resolve the tenant for this host (returns null if service key absent)
   const host = request.headers.get('host');
   const tenant = await resolveTenantFromHost(host);
 
@@ -32,20 +30,26 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-portier-tenant-name', tenant.company_name);
   }
 
-  // 4) Cross-tenant URL guard ----------------------------------------------
-  // If the request landed on a tenant URL but the signed-in user belongs to
-  // a *different* tenant, redirect them to their own subdomain so they're
-  // not staring at an empty (RLS-filtered) workspace.
-  if (tenant && shouldEnforceTenantGuard(request)) {
-    const userPortfolioId = await getUserPortfolioId(request);
-    if (userPortfolioId && userPortfolioId !== tenant.portfolio_id) {
-      const correctSlug = await getPortfolioSlug(userPortfolioId);
-      if (correctSlug) {
-        const url = new URL(request.url);
-        url.host = `${correctSlug}.${APEX_DOMAIN}`;
-        url.searchParams.set('redirected_from', tenant.slug);
-        return NextResponse.redirect(url);
+  // 4) Cross-tenant URL guard — only when fully configured
+  if (
+    tenant &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    shouldEnforceTenantGuard(request)
+  ) {
+    try {
+      const userPortfolioId = await getUserPortfolioId(request);
+      if (userPortfolioId && userPortfolioId !== tenant.portfolio_id) {
+        const correctSlug = await getPortfolioSlug(userPortfolioId);
+        if (correctSlug) {
+          const url = new URL(request.url);
+          url.host = `${correctSlug}.${APEX_DOMAIN}`;
+          url.searchParams.set('redirected_from', tenant.slug);
+          return NextResponse.redirect(url);
+        }
       }
+    } catch (err) {
+      console.warn('[tenant-guard]', err);
+      // Fall through — the user just sees an empty workspace, but no crash.
     }
   }
 
@@ -57,41 +61,28 @@ function shouldEnforceTenantGuard(req: NextRequest): boolean {
   return !GUARD_EXEMPT_PREFIXES.some((p) => path.startsWith(p));
 }
 
-// --- helpers used by the guard ----------------------------------------------
-// We can't import the project-wide createClient() here (it touches `cookies()`
-// from `next/headers`, which middleware can't use), so we set up a lightweight
-// SSR client that reads cookies directly from the NextRequest.
-
-function makeRequestSupabase(request: NextRequest) {
-  return createServerClient<Database>(
+async function getUserPortfolioId(request: NextRequest): Promise<string | null> {
+  const supa = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() { return request.cookies.getAll(); },
-        // No-op writer — guard is read-only
         setAll() {},
       },
     },
   );
-}
-
-async function getUserPortfolioId(request: NextRequest): Promise<string | null> {
-  const supa = makeRequestSupabase(request);
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return null;
-  // Read the portfolio via the profile relation
   const { data: profile } = await (supa as any)
     .from('profiles')
     .select('portfolio_id')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .maybeSingle();
   return profile?.portfolio_id ?? null;
 }
 
 async function getPortfolioSlug(portfolioId: string): Promise<string | null> {
-  // Service role read — middleware can't call RPCs that require the user's
-  // session, but a slug lookup is portfolio-scoped and safe to read directly.
   const supa = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,

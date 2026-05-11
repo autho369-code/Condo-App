@@ -72,7 +72,7 @@ export function PaymentNotifier({ enabled }: Props) {
             });
           } else if (next?.status === 'failed') {
             toast.error(<>{money(next.amount)} payment failed</>, {
-              detail: next.failure_message ?? 'Bank declined the transfer.',
+              detail: next.failure_reason ?? 'Bank declined the transfer.',
               actionLabel: 'Open',
               onAction: () => router.push(`/charges?focus=${next.unit_id ?? ''}`),
               duration: 12000,
