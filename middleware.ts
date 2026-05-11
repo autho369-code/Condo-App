@@ -1,53 +1,125 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { updateSession } from '@/lib/supabase/middleware';
 import type { Database } from '@/lib/types/database';
 
 const APEX_DOMAIN = process.env.NEXT_PUBLIC_PORTIER_APEX_DOMAIN ?? 'portier369.com';
 const RESERVED_SUBDOMAINS = new Set(['www', 'app', 'api', 'admin', 'platform', 'auth', 'mail', 'smtp']);
 
-const GUARD_EXEMPT_PREFIXES = [
-  '/login', '/signup', '/request-access', '/forgot-password', '/reset-password',
-  '/accept-invitation', '/api/', '/_next/',
+const PUBLIC_PATHS = [
+  '/', '/pricing', '/features',
+  '/login', '/signup', '/request-access', '/accept-invitation',
+  '/forgot-password', '/reset-password',
+  '/api/auth/callback',
 ];
 
+/**
+ * Top-level middleware. Wrapped in try/catch so a failure in any branch
+ * just renders the page without tenant context — never returns 500.
+ *
+ * Two responsibilities:
+ *   1. Refresh the Supabase session cookie + auth gate (preserved from
+ *      the original middleware behaviour).
+ *   2. Resolve the tenant for this host and forward x-portier-tenant-*
+ *      headers so server components can render tenant branding.
+ */
 export async function middleware(request: NextRequest) {
-  // 1) Run Supabase auth refresh / public-path gate (existing behaviour)
-  const response = await updateSession(request);
+  // -- Stage 1: auth refresh + public-path gate ------------------------------
+  let response: NextResponse;
+  try {
+    response = await updateSessionSafe(request);
+  } catch (err) {
+    console.warn('[middleware] updateSession failed', err);
+    response = NextResponse.next({ request });
+  }
 
-  // 2) Resolve tenant for this host using anon-role lookup against the
-  //    public RPC. No service-role import, no transitive Node-only deps —
-  //    keeps the middleware bundle tiny and Edge-compatible.
-  const host = request.headers.get('host');
-  const tenant = await resolveTenant(request, host);
-
-  if (tenant) {
-    response.headers.set('x-portier-tenant-slug', tenant.slug);
-    response.headers.set('x-portier-tenant-id', tenant.portfolio_id);
-    response.headers.set('x-portier-tenant-name', tenant.company_name);
+  // -- Stage 2: tenant resolution (best-effort) ------------------------------
+  try {
+    const host = request.headers.get('host');
+    const tenant = await resolveTenant(request, host);
+    if (tenant) {
+      response.headers.set('x-portier-tenant-slug', tenant.slug);
+      response.headers.set('x-portier-tenant-id', tenant.portfolio_id);
+      response.headers.set('x-portier-tenant-name', tenant.company_name);
+    }
+  } catch (err) {
+    console.warn('[middleware] tenant resolution failed', err);
   }
 
   return response;
 }
 
+// =============================================================================
+// Stage 1 — Supabase session refresh + auth gate
+// =============================================================================
+async function updateSessionSafe(request: NextRequest): Promise<NextResponse> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    // Nothing we can do — let the page render so static assets still work
+    return NextResponse.next({ request });
+  }
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient<Database>(
+    supabaseUrl,
+    supabaseKey,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll(); },
+        setAll(items: Array<{ name: string; value: string; options?: any }>) {
+          items.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          items.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    },
+  );
+
+  // Refresh the user session — wrapped so a Supabase outage doesn't 500
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    console.warn('[middleware] auth.getUser failed', err);
+  }
+
+  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('next', request.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+  return response;
+}
+
+// =============================================================================
+// Stage 2 — Tenant resolution
+// =============================================================================
 async function resolveTenant(request: NextRequest, host: string | null) {
   if (!host) return null;
   const h = host.toLowerCase().split(':')[0];
+
+  // Apex / preview / localhost — nothing to resolve
   if (h === APEX_DOMAIN || h === `www.${APEX_DOMAIN}`) return null;
   if (h === 'localhost' || h.startsWith('localhost:')) return null;
   if (h.endsWith('.vercel.app')) return null;
 
-  // Quick subdomain shape check; full resolution happens in the RPC
+  // Subdomain shape check
   if (h.endsWith(`.${APEX_DOMAIN}`)) {
     const sub = h.slice(0, h.lastIndexOf(`.${APEX_DOMAIN}`));
     if (!sub || sub.includes('.') || RESERVED_SUBDOMAINS.has(sub)) return null;
   }
 
-  // Use the SSR client with anon key — same role the marketing pages use
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
   try {
     const supa = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseKey,
       {
         cookies: {
           getAll() { return request.cookies.getAll(); },
@@ -57,8 +129,8 @@ async function resolveTenant(request: NextRequest, host: string | null) {
     );
     const { data, error } = await (supa as any).rpc('resolve_portfolio_for_host', { p_host: host });
     if (error || !data) return null;
-    const row = (data as any[])[0];
-    if (!row) return null;
+    const row = Array.isArray(data) ? data[0] : (data as any);
+    if (!row || !row.id) return null;
     return {
       portfolio_id: row.id as string,
       slug:         row.slug as string,
