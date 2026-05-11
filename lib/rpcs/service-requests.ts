@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import type { Database } from '@/lib/types/database';
+
+type ServiceRequestPriority = Database['public']['Enums']['service_request_priority'];
 
 /**
  * Submit a new service request from the owner portal.
@@ -19,7 +22,7 @@ export async function submitServiceRequest(formData: FormData) {
 
   const unitId      = formData.get('unit_id') as string;
   const description = (formData.get('description') as string)?.trim();
-  const priority    = (formData.get('priority') as string) || 'normal';
+  const priority    = parseServiceRequestPriority(formData.get('priority'));
   const permission  = formData.get('permission_to_enter') === 'on';
   const access      = (formData.get('access_notes') as string)?.trim() || null;
 
@@ -60,6 +63,18 @@ export async function submitServiceRequest(formData: FormData) {
   revalidatePath('/portal/service-requests');
   revalidatePath('/portal');
   redirect(`/portal/service-requests?submitted=${sr.id}`);
+}
+
+function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceRequestPriority {
+  switch (value) {
+    case 'low':
+    case 'high':
+    case 'emergency':
+      return value;
+    case 'normal':
+    default:
+      return 'normal';
+  }
 }
 
 /** Resident cancels one of their own open requests. RLS enforces ownership. */

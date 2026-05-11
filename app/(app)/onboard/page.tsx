@@ -13,6 +13,7 @@ async function createAssociation(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const me = await (await import('@/lib/auth/me')).requirePortfolioAdmin();
+  if (!me.auth_user_id) return { error: 'Could not determine current user.' };
   const { error } = await (supabase as any).from('associations').insert({
     portfolio_id: me.portfolio.id,
     name:    formData.get('name') as string,

@@ -23,7 +23,7 @@ async function provisionPortfolio(formData: FormData) {
   const { error } = await (supabase as any).rpc('provision_portfolio', {
     p_company_name: formData.get('name') as string,
     p_first_admin_email: formData.get('email') as string,
-    p_first_admin_name: (formData.get('admin_name') as string) || null,
+    p_first_admin_name: (formData.get('admin_name') as string) || undefined,
     p_tier: (formData.get('tier') as any) || 'core',
     p_seats: parseInt(formData.get('seats') as string) || 5,
     p_trial_days: parseInt(formData.get('trial_days') as string) || 14,

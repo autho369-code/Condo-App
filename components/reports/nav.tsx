@@ -121,7 +121,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
         ))}
 
         {filtered.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-gray-500">No reports match "{query}".</p>
+          <p className="px-3 py-4 text-center text-sm text-gray-500">No reports match &quot;{query}&quot;.</p>
         )}
       </nav>
     </div>

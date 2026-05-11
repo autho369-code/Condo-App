@@ -174,7 +174,7 @@ function Metric({ label, value, tone = 'text-gray-900' }: { label: string; value
 function Prompt({ text }: { text: string }) {
   return (
     <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-      "{text}"
+      &quot;{text}&quot;
     </div>
   );
 }

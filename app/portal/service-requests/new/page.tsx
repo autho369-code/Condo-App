@@ -9,6 +9,17 @@ import { submitServiceRequest } from '@/lib/rpcs/service-requests';
 
 export const dynamic = 'force-dynamic';
 
+type UnitOption = {
+  unit_id: string | null;
+  unit_number: string | null;
+  association_id: string | null;
+};
+
+type AssociationOption = {
+  id: string;
+  name: string;
+};
+
 const PRIORITY_OPTIONS: Array<{ value: string; label: string; hint: string }> = [
   { value: 'low',       label: 'Low',       hint: 'Minor, can wait' },
   { value: 'normal',    label: 'Normal',    hint: 'Standard request' },
@@ -32,9 +43,18 @@ export default async function NewServiceRequest() {
   // RLS on v_unit_account_summary already filters to units the user belongs to.
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
-    .select('unit_id, unit_number, association_name');
+    .select('unit_id, unit_number, association_id');
 
-  const unitOptions: any[] = units ?? [];
+  const unitOptions = (units ?? []) as UnitOption[];
+  const associationIds: string[] = Array.from(
+    new Set(unitOptions.map((unit) => unit.association_id).filter((id): id is string => Boolean(id)))
+  );
+  const { data: associations } = associationIds.length
+    ? await (supabase as any).from('associations').select('id, name').in('id', associationIds)
+    : { data: [] };
+  const associationNameById = new Map<string, string>(
+    ((associations ?? []) as AssociationOption[]).map((association) => [association.id, association.name])
+  );
 
   return (
     <div className="space-y-6">
@@ -70,9 +90,9 @@ export default async function NewServiceRequest() {
                 <Label htmlFor="unit_id">Unit</Label>
                 {unitOptions.length === 1 ? (
                   <>
-                    <input type="hidden" name="unit_id" value={unitOptions[0].unit_id} />
+                    <input type="hidden" name="unit_id" value={unitOptions[0].unit_id ?? ''} />
                     <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                      {unitOptions[0].association_name} · Unit {unitOptions[0].unit_number}
+                      {formatUnitLabel(unitOptions[0], associationNameById)}
                     </div>
                   </>
                 ) : (
@@ -80,8 +100,8 @@ export default async function NewServiceRequest() {
                     className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="">Choose a unit…</option>
                     {unitOptions.map((u: any) => (
-                      <option key={u.unit_id} value={u.unit_id}>
-                        {u.association_name} · Unit {u.unit_number}
+                      <option key={u.unit_id} value={u.unit_id ?? ''}>
+                        {formatUnitLabel(u, associationNameById)}
                       </option>
                     ))}
                   </select>
@@ -166,4 +186,14 @@ export default async function NewServiceRequest() {
       </p>
     </div>
   );
+}
+
+function formatUnitLabel(
+  unit: { association_id: string | null; unit_number: string | null },
+  associationNameById: Map<string, string>
+): string {
+  const associationName = unit.association_id
+    ? associationNameById.get(unit.association_id) ?? 'Association'
+    : 'Association';
+  return `${associationName} - Unit ${unit.unit_number ?? '-'}`;
 }

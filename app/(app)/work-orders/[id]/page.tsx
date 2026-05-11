@@ -143,7 +143,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
                   <Select name="vendor_id" options={(vendors ?? []).map((v: any) => ({ value: v.id, label: `${v.name} (${v.trade})` }))} required />
                   <Input name="note" placeholder="Reassignment reason (optional)" />
                   <label className="flex items-center gap-2 text-xs text-gray-600">
-                    <input type="checkbox" name="bump_status" defaultChecked={wo.status === 'new'} /> set status to "assigned"
+                    <input type="checkbox" name="bump_status" defaultChecked={wo.status === 'new'} /> set status to &quot;assigned&quot;
                   </label>
                   <Button size="sm" type="submit" className="w-full">Reassign</Button>
                 </form>
@@ -157,7 +157,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
               <Select name="vendor_id" options={(vendors ?? []).map((v: any) => ({ value: v.id, label: `${v.name} (${v.trade})` }))} required />
               <Input name="note" placeholder="Dispatch note (optional)" />
               <label className="flex items-center gap-2 text-xs text-gray-600">
-                <input type="checkbox" name="bump_status" defaultChecked /> set status to "assigned"
+                <input type="checkbox" name="bump_status" defaultChecked /> set status to &quot;assigned&quot;
               </label>
               <Button type="submit" className="w-full">Assign vendor</Button>
             </form>

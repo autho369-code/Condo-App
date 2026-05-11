@@ -15,7 +15,7 @@ export async function queueReport(formData: FormData) {
   const supabase = await createClient();
 
   const definitionId = formData.get('definition_id') as string;
-  const outputFormat = (formData.get('output_format') as string) || 'csv';
+  const outputFormat = parseOutputFormat(formData.get('output_format'));
   if (!definitionId) return { error: 'definition_id required' };
 
   // Parameter fields can be added per-report as <input name="param_xxx"> in the form.
@@ -29,13 +29,26 @@ export async function queueReport(formData: FormData) {
 
   const { data, error } = await (supabase as any).rpc('queue_report_run', {
     p_definition_id: definitionId,
-    p_parameters: params,
+    p_parameters: params as any,
     p_output_format: outputFormat,
   });
   if (error) return { error: error.message };
 
   revalidatePath('/reports/runs');
   redirect(`/reports/runs/${(data as any).id}`);
+}
+
+function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'xlsx' | 'csv' | 'json' | 'html' {
+  switch (value) {
+    case 'pdf':
+    case 'xlsx':
+    case 'json':
+    case 'html':
+      return value;
+    case 'csv':
+    default:
+      return 'csv';
+  }
 }
 
 /**

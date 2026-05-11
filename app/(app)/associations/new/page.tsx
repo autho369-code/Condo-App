@@ -50,9 +50,13 @@ export default async function NewPropertyPage() {
 
     const name = String(formData.get('name') ?? '').trim();
     const address = String(formData.get('address') ?? '').trim();
+    const city = requiredString(formData, 'city', 'City');
+    const state = requiredString(formData, 'state', 'State');
+    const zip = requiredString(formData, 'zip', 'Zip');
     if (!name) throw new Error('Property Name is required.');
     if (!address) throw new Error('Address is required.');
     if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
+    if (!m.auth_user_id) throw new Error('Could not determine current user.');
 
     const { data: assoc, error: aErr } = await (supabase as any)
       .from('associations')
@@ -62,9 +66,10 @@ export default async function NewPropertyPage() {
         property_type: (formData.get('property_type') as string) || null,
         address,
         address_line_2: (formData.get('address_line_2') as string) || null,
-        city: (formData.get('city') as string) || null,
-        state: (formData.get('state') as string) || null,
-        zip: (formData.get('zip') as string) || null,
+        city,
+        state,
+        zip,
+        created_by: m.auth_user_id,
         county: (formData.get('county') as string) || null,
         description: (formData.get('description') as string) || null,
         site_manager_first_name: (formData.get('site_manager_first_name') as string) || null,
@@ -73,10 +78,10 @@ export default async function NewPropertyPage() {
         year_built: numOrNull(formData.get('year_built')),
         management_start_date: (formData.get('management_start_date') as string) || null,
         nsf_fee_amount_override: numOrNull(formData.get('nsf_fee_amount_override')),
-        reserve_funds: numOrNull(formData.get('reserve_funds')),
+        reserve_funds: numOrNull(formData.get('reserve_funds')) ?? 0,
         payment_frequency: (formData.get('payment_frequency') as string) || 'net_income',
         vendor_1099_payer: (formData.get('vendor_1099_payer') as string) || null,
-        fiscal_year_start: yearEndMonthToStartMonth(formData.get('fiscal_year_end')),
+        fiscal_year_start: yearEndMonthToStartMonth(formData.get('fiscal_year_end')) ?? 1,
         basis_for_owner_packets: (formData.get('basis_for_owner_packets') as string) || null,
         management_fee_schedule_id: (formData.get('management_fee_schedule_id') as string) || null,
         lease_fee_type: (formData.get('lease_fee_type') as string) || null,
@@ -238,6 +243,12 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
   if (v === null || v === '') return null;
   const n = Number(v);
   return Number.isNaN(n) ? null : n;
+}
+
+function requiredString(formData: FormData, key: string, label: string): string {
+  const value = String(formData.get(key) ?? '').trim();
+  if (!value) throw new Error(`${label} is required.`);
+  return value;
 }
 
 function yearEndMonthToStartMonth(v: FormDataEntryValue | null): number | null {

@@ -4,8 +4,11 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { Button } from '@/components/ui/button';
+import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
+
+type VotingScheme = Database['public']['Enums']['voting_scheme'];
 
 export default async function ArchitecturalReviewsTab({
   params,
@@ -42,7 +45,7 @@ export default async function ArchitecturalReviewsTab({
       online_requests_disabled: formData.get('online_requests_disabled') === 'on',
       default_committee_id: (formData.get('default_committee_id') as string) || null,
       default_approver_scope: (formData.get('default_approver_scope') as string) || 'all',
-      default_voting_scheme: (formData.get('default_voting_scheme') as string) || 'majority_approval_required',
+      default_voting_scheme: parseVotingScheme(formData.get('default_voting_scheme')),
       portal_homepage_html: (formData.get('portal_homepage_html') as string) || null,
       submission_form_html: (formData.get('submission_form_html') as string) || null,
       document_upload_html: (formData.get('document_upload_html') as string) || null,
@@ -74,7 +77,7 @@ export default async function ArchitecturalReviewsTab({
           <div className="mb-3">
             <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
             <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">â€” Select a committee â€”</option>
+              <option value="">- Select a committee -</option>
               {(committees ?? []).map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -154,4 +157,16 @@ function RichTextSection({
       <div className="mt-1 text-right text-xs text-gray-400">0/500</div>
     </Section>
   );
+}
+
+function parseVotingScheme(value: FormDataEntryValue | null): VotingScheme {
+  switch (value) {
+    case 'unanimous_approval_required':
+    case 'any_one_approver':
+    case 'percentage_required':
+      return value;
+    case 'majority_approval_required':
+    default:
+      return 'majority_approval_required';
+  }
 }

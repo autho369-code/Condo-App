@@ -5,8 +5,11 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { Button } from '@/components/ui/button';
+import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
+
+type VotingScheme = Database['public']['Enums']['voting_scheme'];
 
 export default async function NewApprovalPage({
   params,
@@ -20,6 +23,8 @@ export default async function NewApprovalPage({
   const { data: assoc, error: aErr } = await (supabase as any)
     .from('associations').select('id, name, portfolio_id').eq('id', id).maybeSingle();
   if (aErr || !assoc) notFound();
+  if (!assoc.portfolio_id) notFound();
+  const portfolioId = assoc.portfolio_id;
 
   const { data: members } = await (supabase as any)
     .from('board_members')
@@ -51,7 +56,7 @@ export default async function NewApprovalPage({
     const description = String(formData.get('description') ?? '').trim();
     const dueDate = String(formData.get('due_date') ?? '').trim();
     const amountRaw = String(formData.get('amount') ?? '').trim();
-    const votingScheme = String(formData.get('voting_scheme') ?? 'majority_approval_required');
+    const votingScheme = parseVotingScheme(formData.get('voting_scheme'));
     const boardMemberIds = formData.getAll('board_member_ids').map(String);
 
     if (!name || !description || !dueDate) {
@@ -67,7 +72,7 @@ export default async function NewApprovalPage({
     }
 
     const { error } = await (supabase as any).from('approval_requests').insert({
-      portfolio_id: assoc!.portfolio_id,
+      portfolio_id: portfolioId,
       association_id: id,
       request_type: 'expense',
       title: name,
@@ -191,4 +196,16 @@ function FormRow({
 function humanRole(role: string | null): string {
   if (!role) return '';
   return role.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
+function parseVotingScheme(value: FormDataEntryValue | null): VotingScheme {
+  switch (value) {
+    case 'unanimous_approval_required':
+    case 'any_one_approver':
+    case 'percentage_required':
+      return value;
+    case 'majority_approval_required':
+    default:
+      return 'majority_approval_required';
+  }
 }
