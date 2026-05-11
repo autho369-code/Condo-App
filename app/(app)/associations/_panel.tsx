@@ -193,7 +193,7 @@ export function AssociationsPanel() {
         <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
       </PanelSection>
       <PanelSection title="Statements">
-        <PanelLink href="/bulk-statement-settings">Bulk Update Statement Settings</PanelLink>
+        <PanelLink href="/bulk-statement-settings/new">Bulk Update Statement Settings</PanelLink>
       </PanelSection>
       <PanelSection title="Help Topics">
         <PanelLink href="/help/import-association">Import a New Association</PanelLink>

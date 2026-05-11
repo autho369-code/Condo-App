@@ -1,16 +1,19 @@
-import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/context-panel';
+import { ContextPanel, PanelSection, PanelLink, PanelDropdown } from '@/components/workspace/context-panel';
+import { SectionShell } from '@/components/workspace/section-shell';
 
 export default function SectionLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-full">
-      <div className="flex-1 overflow-hidden min-w-0">{children}</div>
+    <SectionShell
+      panel={
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="/vendors/new">New Vendor</PanelLink>
-          <PanelLink href="/vendors/ach">Vendor ACH Setup</PanelLink>
-          <PanelLink href="/vendors/w9">Request W-9</PanelLink>
-          <PanelLink href="/vendors/compliance">Request Documents</PanelLink>
-          <PanelLink href="/vendors/forms">Send Vendor Form</PanelLink>
+          <PanelDropdown title="Vendor tasks" defaultOpen>
+            <PanelLink href="/vendors/new">New Vendor</PanelLink>
+            <PanelLink href="/vendors/ach">Vendor ACH Setup</PanelLink>
+            <PanelLink href="/vendors/w9">Request W-9</PanelLink>
+            <PanelLink href="/vendors/compliance">Request Documents</PanelLink>
+            <PanelLink href="/vendors/forms">Send Vendor Form</PanelLink>
+          </PanelDropdown>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=vendor-directory">Vendor Directory</PanelLink>
@@ -21,6 +24,9 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/help/vendors">Managing Vendors</PanelLink>
         </PanelSection>
       </ContextPanel>
-    </div>
+      }
+    >
+      {children}
+    </SectionShell>
   );
 }

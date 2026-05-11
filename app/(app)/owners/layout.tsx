@@ -1,13 +1,14 @@
 import { requireStaff } from '@/lib/auth/me';
 import { ContextPanel, PanelLink, PanelSection } from '@/components/workspace/context-panel';
+import { SectionShell } from '@/components/workspace/section-shell';
 
 export const dynamic = 'force-dynamic';
 
 export default async function OwnersLayout({ children }: { children: React.ReactNode }) {
   await requireStaff();
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+    <SectionShell
+      panel={
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
           <PanelLink href="/owners/new">New Owner</PanelLink>
@@ -24,6 +25,9 @@ export default async function OwnersLayout({ children }: { children: React.React
           <PanelLink href="/reports?slug=homeowner-ledger">Owner Ledger</PanelLink>
         </PanelSection>
       </ContextPanel>
-    </div>
+      }
+    >
+      {children}
+    </SectionShell>
   );
 }

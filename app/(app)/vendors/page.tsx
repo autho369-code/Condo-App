@@ -4,7 +4,6 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -47,14 +46,6 @@ export default async function VendorsPage({
     <DataWorkspace
       title="Vendors"
       description="Manage contractors, utilities, W-9 readiness, ACH setup, compliance documents, and vendor forms."
-      actions={
-        <>
-          <Link href="/vendors/forms" className="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 hover:bg-gray-50">
-            Send vendor form
-          </Link>
-          <Link href="/vendors/new"><Button>New vendor</Button></Link>
-        </>
-      }
       rail={
         <div className="space-y-4">
           <div>
