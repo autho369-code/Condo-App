@@ -44,9 +44,9 @@ export default async function AmenitiesTab({
     if (!name) throw new Error('Title is required.');
 
     const allowReservations = formData.get('allow_reservations') === 'on';
-    const pricingMode = (formData.get('pricing_mode') as string) || null;
+    const pricingMode = parsePricingMode(formData.get('pricing_mode'));
     const priceRaw = String(formData.get('price_amount') ?? '').trim();
-    const reserveMethod = (formData.get('reserve_method') as string) || null;
+    const reserveMethod = parseReserveMethod(formData.get('reserve_method'));
 
     const payload: AmenityInsert = {
       association_id: id,
@@ -265,6 +265,14 @@ function formatHours(opens: string | null, closes: string | null): string {
     return `${hr12}:${String(m).padStart(2, '0')} ${ampm}`;
   };
   return `${fmt(opens)} â€“ ${fmt(closes)}`;
+}
+
+function parsePricingMode(value: FormDataEntryValue | null): 'flat' | 'hourly' | null {
+  return value === 'flat' || value === 'hourly' ? value : null;
+}
+
+function parseReserveMethod(value: FormDataEntryValue | null): 'email' | 'platform_link' | null {
+  return value === 'email' || value === 'platform_link' ? value : null;
 }
 
 function sanitizeBasicHtml(html: string): string {

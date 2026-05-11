@@ -11,12 +11,14 @@
     "start": "next start",
     "lint": "next lint",
     "types": "supabase gen types typescript --project-id termxngysvotnfbzbgrv --schema public > lib/types/database.ts",
+    "typecheck": "tsc --noEmit --incremental false",
+    "check:dashboard-text": "node scripts/check-dashboard-text.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
     "clsx": "^2.1.1",
     "next": "^15.1.0",
     "react": "^19.0.0",

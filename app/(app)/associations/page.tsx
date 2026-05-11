@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -21,7 +21,7 @@ export default function AssociationsPage() {
   const [loading, setLoading] = useState(true)
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function load() {
@@ -35,7 +35,7 @@ export default function AssociationsPage() {
       setLoading(false)
     }
     load()
-  }, [sortAsc])
+  }, [sortAsc, supabase])
 
   const totalPages = Math.ceil(associations.length / PAGE_SIZE)
   const paged = associations.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

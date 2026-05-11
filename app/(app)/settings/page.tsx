@@ -17,7 +17,7 @@ async function inviteStaff(formData: FormData) {
     p_portfolio_id: formData.get('portfolio_id') as string,
     p_email: formData.get('email') as string,
     p_role_name: (formData.get('role_name') as string) || 'Property Manager',
-    p_message: (formData.get('message') as string) || null,
+    p_message: (formData.get('message') as string) || undefined,
   });
   if (error) return { error: error.message };
   revalidatePath('/settings');

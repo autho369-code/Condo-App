@@ -62,8 +62,8 @@ export async function subscribeUnitToCharge(formData: FormData) {
   const charge_category_id = formData.get('charge_category_id') as string;
   const amount             = parseFloat(formData.get('amount') as string);
   const frequency          = (formData.get('frequency') as any) || null;
-  const start_date         = (formData.get('start_date') as string) || null;
-  const memo               = (formData.get('memo') as string) || null;
+  const start_date         = (formData.get('start_date') as string) || undefined;
+  const memo               = (formData.get('memo') as string) || undefined;
 
   const { error } = await (supabase as any).rpc('subscribe_unit_to_charge', {
     p_unit_id:            unit_id,
@@ -106,7 +106,7 @@ export async function postAdHocCharge(formData: FormData) {
   const charge_category_id = formData.get('charge_category_id') as string;
   const amount             = parseFloat(formData.get('amount') as string);
   const description        = formData.get('description') as string;
-  const due_date           = (formData.get('due_date') as string) || null;
+  const due_date           = (formData.get('due_date') as string) || undefined;
 
   const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
     p_unit_id:             unit_id,
@@ -140,7 +140,7 @@ export async function unapplyPayment(paymentId: string, unitId: string) {
   const supabase = await createClient();
   const { error } = await (supabase as any).rpc('unapply_payment', {
     p_payment_id: paymentId,
-    p_charge_id:  null,
+    p_charge_id:  undefined,
   });
   if (error) return { error: error.message };
   revalidatePath(`/units/${unitId}`);

@@ -402,6 +402,13 @@ export type Database = {
             foreignKeyName: "approval_requests_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "approval_requests_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -619,6 +626,13 @@ export type Database = {
             foreignKeyName: "architectural_review_settings_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: true
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "architectural_review_settings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: true
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -705,6 +719,13 @@ export type Database = {
             foreignKeyName: "assessment_periods_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "assessment_periods_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -775,6 +796,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_additional_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -910,6 +938,13 @@ export type Database = {
             foreignKeyName: "association_amenities_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_amenities_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -989,6 +1024,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_attachments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -1077,6 +1119,13 @@ export type Database = {
             foreignKeyName: "association_keys_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_keys_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -1144,6 +1193,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_lease_template_settings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -1224,6 +1280,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_managers_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -1324,6 +1387,13 @@ export type Database = {
             foreignKeyName: "association_notes_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_notes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -1391,6 +1461,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_renewal_options_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -1778,6 +1855,110 @@ export type Database = {
           },
         ]
       }
+      automation_tasks: {
+        Row: {
+          assigned_to: string | null
+          association_id: string | null
+          calendar_event_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          portfolio_id: string | null
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          association_id?: string | null
+          calendar_event_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          portfolio_id?: string | null
+          status?: string
+          task_type: string
+          title: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          association_id?: string | null
+          calendar_event_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          portfolio_id?: string | null
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "automation_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+        ]
+      }
       autopay_mandates: {
         Row: {
           association_id: string | null
@@ -1902,6 +2083,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "autopay_mandates_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -2092,6 +2280,13 @@ export type Database = {
             foreignKeyName: "ballots_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "ballots_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -2271,6 +2466,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -2472,6 +2674,13 @@ export type Database = {
             foreignKeyName: "board_approval_settings_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: true
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_approval_settings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: true
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -2569,6 +2778,13 @@ export type Database = {
             foreignKeyName: "board_members_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_members_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -2656,6 +2872,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "budget_lines_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -2802,6 +3025,13 @@ export type Database = {
             foreignKeyName: "buildings_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "buildings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -2814,12 +3044,118 @@ export type Database = {
           },
         ]
       }
+      calendar_event_reminders: {
+        Row: {
+          action: string
+          association_id: string | null
+          calendar_event_id: string | null
+          communication_message_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          offset_minutes: number
+          portfolio_id: string | null
+          recipient_group: string
+          remind_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          association_id?: string | null
+          calendar_event_id?: string | null
+          communication_message_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offset_minutes: number
+          portfolio_id?: string | null
+          recipient_group: string
+          remind_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          association_id?: string | null
+          calendar_event_id?: string | null
+          communication_message_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offset_minutes?: number
+          portfolio_id?: string | null
+          recipient_group?: string
+          remind_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_event_reminders_communication_message_id_fkey"
+            columns: ["communication_message_id"]
+            isOneToOne: false
+            referencedRelation: "communication_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           all_day: boolean
           archived_at: string | null
           association_id: string | null
           attendees: Json
+          building_id: string | null
           calendar_scope: Database["public"]["Enums"]["calendar_scope"]
           created_at: string
           created_by: string | null
@@ -2827,29 +3163,39 @@ export type Database = {
           end_datetime: string | null
           event_type: Database["public"]["Enums"]["event_type"]
           id: string
+          internal_notes: string | null
           location: string | null
           maintenance_instructions: string | null
           maintenance_notified_at: string | null
           maintenance_notify_error: string | null
+          notification_recipients: Json
           notify_maintenance: boolean
           notify_sms: boolean
+          operations_status: string
+          owner_id: string | null
           portfolio_id: string
+          public_notice_text: string | null
           recurrence_rule: string | null
           reminder_acknowledged_at: string | null
           reminder_acknowledged_by: string | null
           reminder_days_before: number | null
+          reminder_rules: Json
           reminder_triggered_at: string | null
+          resident_id: string | null
           sms_notified_at: string | null
           sms_notify_error: string | null
           start_datetime: string
           title: string
+          unit_id: string | null
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           all_day?: boolean
           archived_at?: string | null
           association_id?: string | null
           attendees?: Json
+          building_id?: string | null
           calendar_scope?: Database["public"]["Enums"]["calendar_scope"]
           created_at?: string
           created_by?: string | null
@@ -2857,29 +3203,39 @@ export type Database = {
           end_datetime?: string | null
           event_type?: Database["public"]["Enums"]["event_type"]
           id?: string
+          internal_notes?: string | null
           location?: string | null
           maintenance_instructions?: string | null
           maintenance_notified_at?: string | null
           maintenance_notify_error?: string | null
+          notification_recipients?: Json
           notify_maintenance?: boolean
           notify_sms?: boolean
+          operations_status?: string
+          owner_id?: string | null
           portfolio_id: string
+          public_notice_text?: string | null
           recurrence_rule?: string | null
           reminder_acknowledged_at?: string | null
           reminder_acknowledged_by?: string | null
           reminder_days_before?: number | null
+          reminder_rules?: Json
           reminder_triggered_at?: string | null
+          resident_id?: string | null
           sms_notified_at?: string | null
           sms_notify_error?: string | null
           start_datetime: string
           title: string
+          unit_id?: string | null
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           all_day?: boolean
           archived_at?: string | null
           association_id?: string | null
           attendees?: Json
+          building_id?: string | null
           calendar_scope?: Database["public"]["Enums"]["calendar_scope"]
           created_at?: string
           created_by?: string | null
@@ -2887,23 +3243,32 @@ export type Database = {
           end_datetime?: string | null
           event_type?: Database["public"]["Enums"]["event_type"]
           id?: string
+          internal_notes?: string | null
           location?: string | null
           maintenance_instructions?: string | null
           maintenance_notified_at?: string | null
           maintenance_notify_error?: string | null
+          notification_recipients?: Json
           notify_maintenance?: boolean
           notify_sms?: boolean
+          operations_status?: string
+          owner_id?: string | null
           portfolio_id?: string
+          public_notice_text?: string | null
           recurrence_rule?: string | null
           reminder_acknowledged_at?: string | null
           reminder_acknowledged_by?: string | null
           reminder_days_before?: number | null
+          reminder_rules?: Json
           reminder_triggered_at?: string | null
+          resident_id?: string | null
           sms_notified_at?: string | null
           sms_notify_error?: string | null
           start_datetime?: string
           title?: string
+          unit_id?: string | null
           updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -2932,6 +3297,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -3074,6 +3446,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "charge_categories_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -3346,11 +3725,137 @@ export type Database = {
             foreignKeyName: "committees_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "committees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
           {
             foreignKeyName: "committees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+        ]
+      }
+      communication_messages: {
+        Row: {
+          association_id: string | null
+          body: string
+          calendar_event_id: string | null
+          channel: Database["public"]["Enums"]["communication_channel"]
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          portfolio_id: string | null
+          provider_message_id: string | null
+          queued_at: string | null
+          recipient_email: string | null
+          recipient_group: string
+          recipient_name: string | null
+          recipient_phone: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["communication_status"]
+          subject: string | null
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          association_id?: string | null
+          body: string
+          calendar_event_id?: string | null
+          channel?: Database["public"]["Enums"]["communication_channel"]
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          portfolio_id?: string | null
+          provider_message_id?: string | null
+          queued_at?: string | null
+          recipient_email?: string | null
+          recipient_group?: string
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          subject?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          association_id?: string | null
+          body?: string
+          calendar_event_id?: string | null
+          channel?: Database["public"]["Enums"]["communication_channel"]
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          portfolio_id?: string | null
+          provider_message_id?: string | null
+          queued_at?: string | null
+          recipient_email?: string | null
+          recipient_group?: string
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          subject?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_messages_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "v_homeowner_ledgers"
@@ -3437,6 +3942,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communication_triggers_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -4070,6 +4582,13 @@ export type Database = {
             foreignKeyName: "dues_increases_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "dues_increases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -4183,6 +4702,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "email_queue_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -4342,6 +4868,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -4611,6 +5144,13 @@ export type Database = {
             foreignKeyName: "gl_accounts_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "gl_accounts_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -4742,6 +5282,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "income_recertifications_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -4979,6 +5526,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "inspections_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -5290,6 +5844,13 @@ export type Database = {
             foreignKeyName: "journal_lines_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "journal_lines_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -5496,6 +6057,13 @@ export type Database = {
             foreignKeyName: "lockbox_items_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lockbox_items_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -5533,6 +6101,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lockbox_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["payment_id"]
           },
           {
             foreignKeyName: "lockbox_items_payment_id_fkey"
@@ -5766,6 +6341,13 @@ export type Database = {
             foreignKeyName: "management_agreements_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_agreements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -5884,6 +6466,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fee_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -6097,6 +6686,13 @@ export type Database = {
             foreignKeyName: "notices_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "notices_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -6229,6 +6825,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "occupancies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -6466,6 +7069,13 @@ export type Database = {
             foreignKeyName: "payable_bill_line_items_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bill_line_items_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -6482,6 +7092,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payable_bills"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bill_line_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "payable_invoices_ledger"
+            referencedColumns: ["bill_id"]
           },
           {
             foreignKeyName: "payable_bill_line_items_bill_id_fkey"
@@ -6599,6 +7216,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -6735,6 +7359,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_applications_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["payment_id"]
           },
           {
             foreignKeyName: "payment_applications_payment_id_fkey"
@@ -7888,6 +8519,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -8039,6 +8677,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "recurring_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -8279,6 +8924,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "recurring_work_orders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -8620,6 +9272,13 @@ export type Database = {
             foreignKeyName: "report_snapshots_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "report_snapshots_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -8940,6 +9599,13 @@ export type Database = {
             foreignKeyName: "service_requests_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "service_requests_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -9154,6 +9820,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "sms_conversations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -9398,6 +10071,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -10879,6 +11559,13 @@ export type Database = {
             foreignKeyName: "violation_followup_steps_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_followup_steps_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -10952,18 +11639,27 @@ export type Database = {
           archived_at: string | null
           association_id: string
           attachments: Json
+          board_decision: string | null
           closed_at: string | null
+          communication_log: Json
           created_at: string
           created_by: string | null
+          cure_deadline: string | null
           cured_at: string | null
           date_observed: string
           description: string | null
+          dispute_status: string | null
           due_date: string | null
           fine_amount: number | null
           fine_assessed_at: string | null
+          governing_document_reference: string | null
+          hearing_at: string | null
           hearing_date: string | null
+          hearing_required: boolean
           id: string
+          notice_sent_at: string | null
           owner_id: string | null
+          owner_visible_history: Json
           reported_date: string | null
           status: Database["public"]["Enums"]["violation_status"]
           title: string
@@ -10975,18 +11671,27 @@ export type Database = {
           archived_at?: string | null
           association_id: string
           attachments?: Json
+          board_decision?: string | null
           closed_at?: string | null
+          communication_log?: Json
           created_at?: string
           created_by?: string | null
+          cure_deadline?: string | null
           cured_at?: string | null
           date_observed?: string
           description?: string | null
+          dispute_status?: string | null
           due_date?: string | null
           fine_amount?: number | null
           fine_assessed_at?: string | null
+          governing_document_reference?: string | null
+          hearing_at?: string | null
           hearing_date?: string | null
+          hearing_required?: boolean
           id?: string
+          notice_sent_at?: string | null
           owner_id?: string | null
+          owner_visible_history?: Json
           reported_date?: string | null
           status?: Database["public"]["Enums"]["violation_status"]
           title: string
@@ -10998,18 +11703,27 @@ export type Database = {
           archived_at?: string | null
           association_id?: string
           attachments?: Json
+          board_decision?: string | null
           closed_at?: string | null
+          communication_log?: Json
           created_at?: string
           created_by?: string | null
+          cure_deadline?: string | null
           cured_at?: string | null
           date_observed?: string
           description?: string | null
+          dispute_status?: string | null
           due_date?: string | null
           fine_amount?: number | null
           fine_assessed_at?: string | null
+          governing_document_reference?: string | null
+          hearing_at?: string | null
           hearing_date?: string | null
+          hearing_required?: boolean
           id?: string
+          notice_sent_at?: string | null
           owner_id?: string | null
+          owner_visible_history?: Json
           reported_date?: string | null
           status?: Database["public"]["Enums"]["violation_status"]
           title?: string
@@ -11044,6 +11758,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -11638,6 +12359,13 @@ export type Database = {
             foreignKeyName: "work_orders_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "work_orders_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -11897,6 +12625,13 @@ export type Database = {
             foreignKeyName: "budget_lines_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "budget_lines_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -11958,6 +12693,13 @@ export type Database = {
             foreignKeyName: "buildings_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "buildings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -11987,6 +12729,232 @@ export type Database = {
           total_amount: number | null
         }
         Relationships: []
+      }
+      payable_invoices_ledger: {
+        Row: {
+          amount: number | null
+          approval_required: boolean | null
+          approved_at: string | null
+          association_id: string | null
+          association_name: string | null
+          bank_account_id: string | null
+          bank_account_name: string | null
+          bank_name: string | null
+          bill_date: string | null
+          bill_id: string | null
+          bill_number: string | null
+          created_at: string | null
+          due_date: string | null
+          gl_account_id: string | null
+          gl_account_name: string | null
+          gl_account_number: number | null
+          memo: string | null
+          occurred_on: string | null
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payable_bill_status"] | null
+          status_label: string | null
+          task_label: string | null
+          updated_at: string | null
+          vendor_hold_payments: boolean | null
+          vendor_id: string | null
+          vendor_name: string | null
+          vendor_payment_type:
+            | Database["public"]["Enums"]["vendor_payment_type"]
+            | null
+          work_order_id: string | null
+          work_order_number: string | null
+          work_order_title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bills_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "v_insurance_expirations"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bills_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receivable_payments_ledger: {
+        Row: {
+          amount: number | null
+          application_count: number | null
+          applied_amount: number | null
+          association_id: string | null
+          association_name: string | null
+          bank_account_id: string | null
+          bank_account_name: string | null
+          bank_name: string | null
+          charge_id: string | null
+          created_at: string | null
+          method: string | null
+          notes: string | null
+          owner_id: string | null
+          owner_name: string | null
+          payment_date: string | null
+          payment_id: string | null
+          receipt_description: string | null
+          reference: string | null
+          unapplied_amount: number | null
+          unit_id: string | null
+          unit_number: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["charge_id"]
+          },
+          {
+            foreignKeyName: "payments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "v_charge_balances"
+            referencedColumns: ["charge_id"]
+          },
+          {
+            foreignKeyName: "payments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "payments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "payments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "payments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "unit_owners_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_owners_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
       }
       unit_balances: {
         Row: {
@@ -12025,6 +12993,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "buildings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -12228,6 +13203,13 @@ export type Database = {
             foreignKeyName: "payable_bills_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -12409,6 +13391,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -12724,6 +13713,13 @@ export type Database = {
             foreignKeyName: "buildings_association_id_fkey"
             columns: ["association_id"]
             isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "buildings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
             referencedRelation: "v_charges_by_category"
             referencedColumns: ["association_id"]
           },
@@ -12807,6 +13803,13 @@ export type Database = {
             columns: ["association_id"]
             isOneToOne: false
             referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "buildings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
             referencedColumns: ["association_id"]
           },
           {
@@ -13686,6 +14689,29 @@ export type Database = {
         | "treasurer"
         | "director"
       budget_category: "income" | "expense"
+      calendar_event_status:
+        | "draft"
+        | "scheduled"
+        | "notice_sent"
+        | "reminder_sent"
+        | "completed"
+        | "canceled"
+        | "awaiting_confirmation"
+        | "failed_notification"
+      calendar_event_type:
+        | "board_meeting"
+        | "annual_meeting_election"
+        | "vendor_service"
+        | "elevator_reservation"
+        | "move_in_move_out"
+        | "water_shutoff"
+        | "pest_control"
+        | "landscaping"
+        | "inspection"
+        | "insurance_expiration"
+        | "contract_renewal"
+        | "assessment_deadline"
+        | "custom_event"
       calendar_scope: "daily" | "annual"
       charge_type:
         | "assessment"
@@ -13697,6 +14723,7 @@ export type Database = {
         | "amenity_fee"
         | "other"
       communication_channel: "email" | "sms" | "letter" | "portal"
+      communication_status: "draft" | "queued" | "sent" | "failed" | "canceled"
       convenience_fee_mode: "absorb" | "pass_through" | "split" | "flat_addon"
       depreciation_method:
         | "straight_line"
@@ -13728,6 +14755,15 @@ export type Database = {
         | "common_area_reservation"
         | "board_meeting"
         | "inspection"
+        | "annual_meeting_election"
+        | "vendor_service"
+        | "move_in_move_out"
+        | "pest_control"
+        | "landscaping"
+        | "insurance_expiration"
+        | "contract_renewal"
+        | "assessment_deadline"
+        | "custom_event"
       export_scope: "portfolio_full" | "portfolio_finance" | "user_data"
       export_status: "pending" | "running" | "ready" | "failed" | "expired"
       gl_account_type:
@@ -14172,6 +15208,31 @@ export const Constants = {
         "director",
       ],
       budget_category: ["income", "expense"],
+      calendar_event_status: [
+        "draft",
+        "scheduled",
+        "notice_sent",
+        "reminder_sent",
+        "completed",
+        "canceled",
+        "awaiting_confirmation",
+        "failed_notification",
+      ],
+      calendar_event_type: [
+        "board_meeting",
+        "annual_meeting_election",
+        "vendor_service",
+        "elevator_reservation",
+        "move_in_move_out",
+        "water_shutoff",
+        "pest_control",
+        "landscaping",
+        "inspection",
+        "insurance_expiration",
+        "contract_renewal",
+        "assessment_deadline",
+        "custom_event",
+      ],
       calendar_scope: ["daily", "annual"],
       charge_type: [
         "assessment",
@@ -14184,6 +15245,7 @@ export const Constants = {
         "other",
       ],
       communication_channel: ["email", "sms", "letter", "portal"],
+      communication_status: ["draft", "queued", "sent", "failed", "canceled"],
       convenience_fee_mode: ["absorb", "pass_through", "split", "flat_addon"],
       depreciation_method: [
         "straight_line",
@@ -14217,6 +15279,15 @@ export const Constants = {
         "common_area_reservation",
         "board_meeting",
         "inspection",
+        "annual_meeting_election",
+        "vendor_service",
+        "move_in_move_out",
+        "pest_control",
+        "landscaping",
+        "insurance_expiration",
+        "contract_renewal",
+        "assessment_deadline",
+        "custom_event",
       ],
       export_scope: ["portfolio_full", "portfolio_finance", "user_data"],
       export_status: ["pending", "running", "ready", "failed", "expired"],

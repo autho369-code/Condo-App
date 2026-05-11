@@ -2,6 +2,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import type { Database } from '@/lib/types/database';
+
+type PayableBillStatus = Database['public']['Enums']['payable_bill_status'];
 
 export async function createBill(formData: FormData) {
   const supabase = await createClient();
@@ -16,7 +19,7 @@ export async function createBill(formData: FormData) {
   const due_date          = (formData.get('due_date') as string) || null;
   const amount            = parseFloat(formData.get('amount') as string);
   const memo              = (formData.get('memo') as string) || null;
-  const status            = (formData.get('status') as string) || 'draft';
+  const status            = parsePayableBillStatus(formData.get('status'));
   const approval_required = formData.get('approval_required') === 'on';
 
   if (!vendor_id || !amount || amount <= 0)
@@ -35,6 +38,19 @@ export async function createBill(formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath('/bills');
   redirect(`/bills/${data.id}`);
+}
+
+function parsePayableBillStatus(value: FormDataEntryValue | null): PayableBillStatus {
+  switch (value) {
+    case 'pending_approval':
+    case 'approved':
+    case 'paid':
+    case 'void':
+      return value;
+    case 'draft':
+    default:
+      return 'draft';
+  }
 }
 
 export async function approveBill(billId: string) {

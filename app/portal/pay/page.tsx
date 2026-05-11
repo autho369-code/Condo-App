@@ -10,6 +10,19 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
+type UnitAccountSummary = {
+  unit_id: string | null;
+  unit_number: string | null;
+  association_id: string | null;
+  outstanding_balance?: number | string | null;
+  unapplied_credit?: number | string | null;
+};
+
+type AssociationOption = {
+  id: string;
+  name: string;
+};
+
 export default async function PayPage() {
   const me = await requireAuth();
   const supabase = await createClient();
@@ -19,12 +32,23 @@ export default async function PayPage() {
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('*')
-    .order('association_name');
+    .order('association_id');
+
+  const unitOptions = (units ?? []) as UnitAccountSummary[];
+  const associationIds: string[] = Array.from(
+    new Set(unitOptions.map((unit) => unit.association_id).filter((id): id is string => Boolean(id)))
+  );
+  const { data: associations } = associationIds.length
+    ? await (supabase as any).from('associations').select('id, name').in('id', associationIds)
+    : { data: [] };
+  const associationNameById = new Map<string, string>(
+    ((associations ?? []) as AssociationOption[]).map((association) => [association.id, association.name])
+  );
 
   // Pick the first one with a balance as the default
   const defaultUnit =
-    (units ?? []).find((u: any) => Number(u.outstanding_balance) > 0) ??
-    (units ?? [])[0];
+    unitOptions.find((u) => Number(u.outstanding_balance) > 0) ??
+    unitOptions[0];
 
   const defaultAmount = Math.max(0, Number(defaultUnit?.outstanding_balance ?? 0));
 
@@ -50,7 +74,7 @@ export default async function PayPage() {
       {defaultUnit && (
         <Card>
           <CardHeader>
-            <CardTitle>{defaultUnit.association_name} · Unit {defaultUnit.unit_number}</CardTitle>
+            <CardTitle>{formatUnitLabel(defaultUnit, associationNameById)}</CardTitle>
             <p className="text-sm text-gray-500">Your current balance is
               <span className={`ml-1 font-semibold ${Number(defaultUnit.outstanding_balance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {money(defaultUnit.outstanding_balance)}
@@ -84,7 +108,7 @@ export default async function PayPage() {
               </div>
             ) : (
             <form action={createOwnerCheckoutSession as any} className="space-y-5">
-              <input type="hidden" name="unit_id" value={defaultUnit.unit_id} />
+              <input type="hidden" name="unit_id" value={defaultUnit.unit_id ?? ''} />
 
               {/* Amount */}
               <div>
@@ -107,8 +131,8 @@ export default async function PayPage() {
                     <div className="font-medium">Bank account (ACH / eCheck)</div>
                     <div className="text-xs text-gray-500">
                       {portfolioPolicy.mode === 'pass_through'
-                        ? 'No fee. Funds settle in 3–5 business days.'
-                        : 'Funds settle in 3–5 business days.'}
+                        ? 'No fee. Funds settle in 3-5 business days.'
+                        : 'Funds settle in 3-5 business days.'}
                     </div>
                   </div>
                 </label>
@@ -138,11 +162,11 @@ export default async function PayPage() {
               {(units ?? []).length > 1 && (
                 <div>
                   <Label htmlFor="unit_id_picker">Unit</Label>
-                  <select id="unit_id_picker" name="unit_id" defaultValue={defaultUnit.unit_id}
+                  <select id="unit_id_picker" name="unit_id" defaultValue={defaultUnit.unit_id ?? ''}
                     className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                     {units!.map((u: any) => (
-                      <option key={u.unit_id} value={u.unit_id}>
-                        {u.association_name} · Unit {u.unit_number} (balance {money(u.outstanding_balance)})
+                      <option key={u.unit_id} value={u.unit_id ?? ''}>
+                        {formatUnitLabel(u, associationNameById)} (balance {money(u.outstanding_balance)})
                       </option>
                     ))}
                   </select>
@@ -171,11 +195,21 @@ export default async function PayPage() {
                 <div className="font-medium">Set up autopay</div>
                 <div className="text-sm text-gray-500">Pay dues automatically via ACH each month. No more late fees.</div>
               </div>
-              <span className="text-brand-600">→</span>
+              <span className="text-brand-600">-&gt;</span>
             </div>
           </CardBody>
         </Card>
       </Link>
     </div>
   );
+}
+
+function formatUnitLabel(
+  unit: { association_id: string | null; unit_number: string | null },
+  associationNameById: Map<string, string>
+): string {
+  const associationName = unit.association_id
+    ? associationNameById.get(unit.association_id) ?? 'Association'
+    : 'Association';
+  return `${associationName} - Unit ${unit.unit_number ?? '-'}`;
 }

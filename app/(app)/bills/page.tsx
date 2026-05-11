@@ -3,10 +3,14 @@ import { createClient } from '@/lib/supabase/server';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
+import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
 
-const TABS = [
+type BillStatus = Database['public']['Enums']['payable_bill_status'];
+type BillStatusFilter = BillStatus | 'all';
+
+const TABS: Array<{ key: BillStatusFilter; label: string }> = [
   { key: 'pending_approval', label: 'Pending approval' },
   { key: 'approved',         label: 'Approved' },
   { key: 'draft',            label: 'Drafts' },
@@ -15,7 +19,8 @@ const TABS = [
 ];
 
 export default async function BillsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const { status = 'approved' } = await searchParams;
+  const { status: statusParam } = await searchParams;
+  const status = parseBillStatusFilter(statusParam);
   const supabase = await createClient();
   const { data: allCounts } = await (supabase as any).from('payable_bills').select('status').is('archived_at', null);
 
@@ -26,7 +31,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
   if (status !== 'all') q = q.eq('status', status);
   const { data: rows } = await q.limit(300);
 
-  const count = (s: string) => s === 'all' ? (allCounts ?? []).length : (allCounts ?? []).filter((r: any) => r.status === s).length;
+  const count = (s: BillStatusFilter) => s === 'all' ? (allCounts ?? []).length : (allCounts ?? []).filter((r: any) => r.status === s).length;
   const total = (rows ?? []).reduce((a: number, r: any) => a + Number(r.amount ?? 0), 0);
 
   return (
@@ -39,7 +44,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           <Link href="/bills/new"><Button>+ New bill</Button></Link>
         </div>
       </div>
-      <p className="text-sm text-gray-500">{rows?.length ?? 0} bills · {money(total)}</p>
+      <p className="text-sm text-gray-500">{rows?.length ?? 0} bills - {money(total)}</p>
 
       <nav className="flex flex-wrap gap-1 border-b border-gray-200">
         {TABS.map((t) => {
@@ -59,9 +64,9 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           <tbody>
             {rows.map((b: any) => (
               <TR key={b.id}>
-                <TD className="font-medium"><Link href={`/bills/${b.id}`} className="text-blue-700 hover:underline">{b.vendors?.name}</Link><span className="ml-1 text-xs text-gray-400">· {b.vendors?.payment_type}</span></TD>
-                <TD className="text-sm text-gray-700">{b.associations?.name ?? '—'}</TD>
-                <TD className="max-w-sm truncate text-sm text-gray-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
+                <TD className="font-medium"><Link href={`/bills/${b.id}`} className="text-blue-700 hover:underline">{b.vendors?.name}</Link><span className="ml-1 text-xs text-gray-400">- {b.vendors?.payment_type}</span></TD>
+                <TD className="text-sm text-gray-700">{b.associations?.name ?? '-'}</TD>
+                <TD className="max-w-sm truncate text-sm text-gray-600" title={b.memo ?? ''}>{b.memo ?? '-'}</TD>
                 <TD className="text-right tabular-nums font-medium">{money(b.amount)}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(b.due_date)}</TD>
                 <TD><span className={`rounded px-2 py-0.5 text-xs ${
@@ -77,4 +82,18 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
       ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No bills in this view.</p>}
     </div>
   );
+}
+
+function parseBillStatusFilter(value: string | undefined): BillStatusFilter {
+  switch (value) {
+    case 'pending_approval':
+    case 'approved':
+    case 'draft':
+    case 'paid':
+    case 'void':
+    case 'all':
+      return value;
+    default:
+      return 'approved';
+  }
 }
