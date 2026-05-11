@@ -10,22 +10,17 @@ const sans = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
+// Fraunces is a variable font. To use the SOFT and opsz axes (which give
+// the editorial softness), the weight axis must be 'variable' — every
+// weight from 100–900 is then available via plain CSS font-weight.
 const serif = Fraunces({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-serif',
-  weight: ['400', '500', '600'],
+  weight: 'variable',
   axes: ['SOFT', 'opsz'],
 });
 
-/**
- * Tenant-aware metadata + favicon.
- *
- * Next.js calls generateMetadata() at request time, so when a request arrives
- * at beacon.portier369.com the title becomes "Beacon Hill Management" and the
- * favicon swaps to the tenant's uploaded one. Apex (portier369.com) and
- * preview hosts continue to show the default Portier branding.
- */
 export async function generateMetadata() {
   const tenant = await currentTenant();
   if (tenant) {
