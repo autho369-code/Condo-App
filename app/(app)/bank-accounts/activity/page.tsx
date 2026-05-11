@@ -43,15 +43,15 @@ export default async function BankActivityPage({
         ]} />
 
         <FilterBar action="/bank-accounts/activity" searchName="bank_account_id" searchDefault={bank_account_id} searchPlaceholder="Bank account ID">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-ink-500">
             Account
-            <select name="bank_account_id" defaultValue={bank_account_id} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
+            <select name="bank_account_id" defaultValue={bank_account_id} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
               <option value="">All accounts</option>
               {(accounts ?? []).map((account: any) => <option key={account.id} value={account.id}>{account.name}</option>)}
             </select>
           </label>
-          <label className="text-xs font-medium uppercase text-gray-500">From<input type="date" name="from" defaultValue={from} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
-          <label className="text-xs font-medium uppercase text-gray-500">To<input type="date" name="to" defaultValue={to} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
+          <label className="text-xs font-medium uppercase text-ink-500">From<input type="date" name="from" defaultValue={from} className="mt-1 h-9 rounded border border-ink-200 px-3 text-sm normal-case" /></label>
+          <label className="text-xs font-medium uppercase text-ink-500">To<input type="date" name="to" defaultValue={to} className="mt-1 h-9 rounded border border-ink-200 px-3 text-sm normal-case" /></label>
         </FilterBar>
 
         <Table>
@@ -78,9 +78,9 @@ export default async function BankActivityPage({
 function BankReportRail() {
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-gray-950">Related reports</h2>
-      <Link href="/reports/check_register" className="block rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Check register</Link>
-      <Link href="/reports/deposit_register" className="block rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Deposit register</Link>
+      <h2 className="text-sm font-semibold text-ink-900">Related reports</h2>
+      <Link href="/reports/check_register" className="block rounded border border-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-cream-50">Check register</Link>
+      <Link href="/reports/deposit_register" className="block rounded border border-ink-100 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-cream-50">Deposit register</Link>
     </div>
   );
 }

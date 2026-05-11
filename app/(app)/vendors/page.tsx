@@ -49,26 +49,26 @@ export default async function VendorsPage({
       rail={
         <div className="space-y-4">
           <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Vendor workflows</div>
+            <div className="text-xs font-semibold uppercase text-ink-500">Vendor workflows</div>
             <div className="mt-2 space-y-2">
               {vendorWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
+                <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 hover:border-brand-300 hover:bg-brand-50">
+                  <div className="font-medium text-ink-900">{card.title}</div>
+                  <div className="mt-1 text-xs text-ink-500">{card.description}</div>
                 </Link>
               ))}
             </div>
           </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
             Vendor ACH, W-9, and document requests are review-first workflows so bank and outbound actions require confirmation.
           </div>
         </div>
       }
     >
       <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
-          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Homeowners</Link>
-          <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Owners</Link>
+        <nav className="flex flex-wrap gap-5 border-b border-ink-100 text-sm">
+          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-ink-500 hover:text-ink-900">Homeowners</Link>
+          <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-ink-500 hover:text-ink-900">Owners</Link>
           <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
         </nav>
 
@@ -82,9 +82,9 @@ export default async function VendorsPage({
         />
 
         <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-ink-500">
             Trade
-            <select name="trade" defaultValue={trade} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
+            <select name="trade" defaultValue={trade} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
               <option value="all">All trades</option>
               {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
             </select>
@@ -103,13 +103,13 @@ export default async function VendorsPage({
           </THead>
           <tbody>
             {rows.length === 0 ? (
-              <TR><TD colSpan={5} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
+              <TR><TD colSpan={5} className="py-10 text-center text-ink-500">No vendors match this filter.</TD></TR>
             ) : (
               rows.map((vendor: any) => (
-                <TR key={vendor.id} className="hover:bg-gray-50">
+                <TR key={vendor.id} className="hover:bg-cream-50">
                   <TD>
-                    <div className="font-medium text-gray-950">{vendor.name}</div>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
+                    <div className="font-medium text-ink-900">{vendor.name}</div>
+                    <div className="mt-1 text-xs text-ink-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
                   </TD>
                   <TD className="capitalize">{vendor.trade?.replace(/_/g, ' ') ?? 'other'}</TD>
                   <TD>
@@ -120,7 +120,7 @@ export default async function VendorsPage({
                       {vendor.is_auto_pay && <StatusChip tone="info">Auto-pay</StatusChip>}
                       {vendor.hold_payments && <StatusChip tone="danger">Hold</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.payment_terms ?? 'No terms'}</div>
+                    <div className="mt-1 text-xs text-ink-500">{vendor.payment_terms ?? 'No terms'}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">
@@ -131,9 +131,9 @@ export default async function VendorsPage({
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">ACH</Link>
-                      <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">W-9</Link>
-                      <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">Docs</Link>
+                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">ACH</Link>
+                      <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">W-9</Link>
+                      <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Docs</Link>
                     </div>
                   </TD>
                 </TR>

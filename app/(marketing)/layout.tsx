@@ -1,57 +1,83 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { PortierLogo } from '@/components/brand/manageops-logo';
+import { Button } from '@/components/ui/button';
+
+export const dynamic = 'force-dynamic';
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-gray-100">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded bg-brand-600 text-center font-bold leading-8 text-white">C</div>
-            <span className="text-lg font-semibold">condo-app</span>
+    <div className="min-h-screen bg-cream-50 text-ink-800">
+      <header className="sticky top-0 z-40 border-b border-ink-100/70 bg-cream-50/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link href="/">
+            <PortierLogo size="sm" />
           </Link>
-          <nav className="hidden items-center gap-6 text-sm md:flex">
-            <Link href="/#features" className="text-gray-700 hover:text-gray-900">Features</Link>
-            <Link href="/#pricing" className="text-gray-700 hover:text-gray-900">Pricing</Link>
-            <Link href="/#faq" className="text-gray-700 hover:text-gray-900">FAQ</Link>
+          <nav className="hidden items-center gap-9 text-sm md:flex">
+            <Link href="/#features" className="text-ink-700 hover:text-champagne-700 transition-colors">Platform</Link>
+            <Link href="/#pricing" className="text-ink-700 hover:text-champagne-700 transition-colors">Pricing</Link>
+            <Link href="/#faq" className="text-ink-700 hover:text-champagne-700 transition-colors">Questions</Link>
+            <Link href="/#contact" className="text-ink-700 hover:text-champagne-700 transition-colors">Contact</Link>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {user ? (
-              <Link href="/dashboard"
-                className="inline-flex h-9 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
-                Go to app →
+              <Link href="/dashboard">
+                <Button size="sm" variant="primary">Open workspace</Button>
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-gray-700 hover:text-gray-900">Sign in</Link>
-                <Link href="/signup"
-                  className="inline-flex h-9 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
-                  Start free
+                {/* Existing-customer sign-in is given a real button so it
+                    reads as a peer to the primary CTA, not a dim afterthought. */}
+                <Link href="/login">
+                  <Button size="sm" variant="outline">Sign in</Button>
+                </Link>
+                <Link href="/request-access">
+                  <Button size="sm" variant="primary">Request access</Button>
                 </Link>
               </>
             )}
           </div>
         </div>
       </header>
+
       <main>{children}</main>
-      <footer className="border-t border-gray-100 bg-gray-50">
-        <div className="mx-auto max-w-6xl px-6 py-10 text-sm text-gray-600">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded bg-brand-600 text-center text-xs font-bold leading-6 text-white">C</div>
-              <span className="font-semibold text-gray-800">condo-app</span>
-              <span>· HOA &amp; condo management, reimagined</span>
+
+      <footer className="border-t border-ink-100 bg-ink-gradient text-cream-200">
+        <div className="mx-auto max-w-7xl px-6 py-14">
+          <div className="grid gap-10 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <PortierLogo size="md" tone="light" />
+              <p className="mt-5 max-w-md text-sm leading-relaxed text-cream-300/90">
+                A premium operating platform for community managers. Accounting,
+                maintenance, and resident services — composed into a single,
+                quietly-luxurious workspace.
+              </p>
             </div>
-            <div className="flex gap-6">
-              <Link href="/#pricing">Pricing</Link>
-              <Link href="/login">Sign in</Link>
-              <a href="mailto:hello@condo-app.example">Contact</a>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-cream-400">Platform</div>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li><Link href="/#features" className="hover:text-champagne-200 transition-colors">Features</Link></li>
+                <li><Link href="/#pricing" className="hover:text-champagne-200 transition-colors">Pricing</Link></li>
+                <li><Link href="/login" className="hover:text-champagne-200 transition-colors">Sign in</Link></li>
+                <li><Link href="/request-access" className="hover:text-champagne-200 transition-colors">Request access</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-cream-400">Company</div>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li><a href="mailto:hello@portier369.com" className="hover:text-champagne-200 transition-colors">Contact</a></li>
+                <li><Link href="/legal/privacy" className="hover:text-champagne-200 transition-colors">Privacy</Link></li>
+                <li><Link href="/legal/terms" className="hover:text-champagne-200 transition-colors">Terms</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="mt-6 text-xs text-gray-400">© {new Date().getFullYear()} · Built for the next generation of community managers.</div>
+          <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-cream-400">
+            <span>© {new Date().getFullYear()} Portier, Property operations, refined.</span>
+            <span className="font-display italic text-cream-300">Refined operations, modernized.</span>
+          </div>
         </div>
       </footer>
     </div>

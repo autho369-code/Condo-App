@@ -35,8 +35,8 @@ export default async function PlatformOwnersPage() {
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-950">Owners</h1>
-        <p className="mt-1 text-sm text-gray-500">Owner directory by client and property. This is visibility, not daily owner operations.</p>
+        <h1 className="font-display text-4xl tracking-editorial text-ink-900">Owners</h1>
+        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">Owner directory by client and property. This is visibility, not daily owner operations.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -60,7 +60,7 @@ export default async function PlatformOwnersPage() {
             <tbody>
               {(owners ?? []).length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-10 text-center text-gray-500">No owners are visible.</TD>
+                  <TD colSpan={5} className="py-10 text-center text-ink-500">No owners are visible.</TD>
                 </TR>
               ) : (
                 (owners ?? []).map((owner: any) => {
@@ -68,14 +68,14 @@ export default async function PlatformOwnersPage() {
                   const association = occupancy?.units?.buildings?.associations;
                   const portfolioId = owner.portfolio_id ?? association?.portfolio_id;
                   return (
-                    <TR key={owner.id} className="hover:bg-gray-50">
+                    <TR key={owner.id} className="hover:bg-cream-50">
                       <TD>
-                        <div className="font-medium text-gray-950">{owner.full_name}</div>
-                        <div className="mt-1 text-xs text-gray-500">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
+                        <div className="font-medium text-ink-900">{owner.full_name}</div>
+                        <div className="mt-1 text-xs text-ink-500">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
                       </TD>
                       <TD>
                         {portfolioId ? (
-                          <Link href={`/platform/portfolios/${portfolioId}`} className="text-blue-700 hover:underline">
+                          <Link href={`/platform/portfolios/${portfolioId}`} className="text-champagne-700 hover:underline">
                             {portfolioById.get(portfolioId) ?? 'Unknown client'}
                           </Link>
                         ) : (
@@ -84,7 +84,7 @@ export default async function PlatformOwnersPage() {
                       </TD>
                       <TD>
                         <div>{association?.name ?? '-'}</div>
-                        <div className="mt-1 text-xs text-gray-500">{occupancy?.units?.unit_number ? `Unit ${occupancy.units.unit_number}` : 'No unit link'}</div>
+                        <div className="mt-1 text-xs text-ink-500">{occupancy?.units?.unit_number ? `Unit ${occupancy.units.unit_number}` : 'No unit link'}</div>
                       </TD>
                       <TD>{owner.portal_activated ? 'Active' : 'Not active'}</TD>
                       <TD>{date(owner.portal_login_last_at)}</TD>

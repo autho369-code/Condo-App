@@ -21,7 +21,7 @@ export default async function BankFeedsPage() {
     <DataWorkspace
       title="Bank feed"
       description="Monitor linked accounts, imported transaction readiness, and provider setup without starting external linking automatically."
-      rail={<p className="text-sm leading-6 text-gray-600">Provider linking should require staff confirmation before leaving the app.</p>}
+      rail={<p className="text-sm leading-6 text-ink-600">Provider linking should require staff confirmation before leaving the app.</p>}
     >
       <div className="space-y-6">
         <MetricStrip metrics={[
@@ -30,10 +30,10 @@ export default async function BankFeedsPage() {
           { label: 'Needs setup', value: (accounts?.length ?? 0) - linked },
           { label: 'Imported queue', value: 0, sublabel: 'No pending imports in this shell' },
         ]} />
-        <div className="rounded border border-gray-200 bg-white">
+        <div className="rounded border border-ink-100 bg-white">
           {(accounts ?? []).map((account: any) => (
-            <div key={account.id} className="flex items-center justify-between border-b border-gray-100 px-4 py-3 last:border-b-0">
-              <div><div className="font-medium text-gray-900">{account.name}</div><div className="text-xs text-gray-500">{account.bank_name ?? 'Bank not provided'}</div></div>
+            <div key={account.id} className="flex items-center justify-between border-b border-ink-100 px-4 py-3 last:border-b-0">
+              <div><div className="font-medium text-ink-900">{account.name}</div><div className="text-xs text-ink-500">{account.bank_name ?? 'Bank not provided'}</div></div>
               <StatusChip tone={account.auto_reconciliation ? 'success' : 'warning'}>{account.auto_reconciliation ? 'Linked' : 'Setup needed'}</StatusChip>
             </div>
           ))}

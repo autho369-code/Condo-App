@@ -6552,6 +6552,91 @@ export type Database = {
           },
         ]
       }
+      marketing_leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          converted_portfolio_id: string | null
+          created_at: string
+          current_platform: string | null
+          id: string
+          message: string | null
+          notes: string | null
+          portfolio_size: string | null
+          source_url: string | null
+          status: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          converted_portfolio_id?: string | null
+          created_at?: string
+          current_platform?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          portfolio_size?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          converted_portfolio_id?: string | null
+          created_at?: string
+          current_platform?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          portfolio_size?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
       notice_recipients: {
         Row: {
           created_at: string
@@ -8031,6 +8116,8 @@ export type Database = {
           address_zip: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -8041,25 +8128,30 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         Insert: {
           address_city?: string | null
@@ -8068,6 +8160,8 @@ export type Database = {
           address_zip?: string | null
           allowed_email_domains?: string[]
           archived_at?: string | null
+          billing_email_from?: string | null
+          brand_email?: string | null
           company_name: string
           convenience_fee_ach_fixed_cents?: number
           convenience_fee_ach_pct?: number
@@ -8078,25 +8172,30 @@ export type Database = {
           convenience_fee_mode?: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
           default_late_fee_amount?: number
           default_late_fee_grace_days?: number
           default_nsf_fee_amount?: number
           default_payment_reminder_days?: number[]
           entitlements?: string[]
+          favicon_url?: string | null
           fiscal_year_start_month?: number
           id?: string
+          logo_url?: string | null
           password_min_length?: number
           phone_number?: string | null
           profile_type?: Database["public"]["Enums"]["portfolio_profile_type"]
           require_mfa_for_admins?: boolean
           require_mfa_for_staff?: boolean
           session_timeout_minutes?: number
+          slug: string
           statement_generation_day?: number
           suspended_at?: string | null
           suspension_reason?: string | null
           texting_phone_number?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address_city?: string | null
@@ -8105,6 +8204,8 @@ export type Database = {
           address_zip?: string | null
           allowed_email_domains?: string[]
           archived_at?: string | null
+          billing_email_from?: string | null
+          brand_email?: string | null
           company_name?: string
           convenience_fee_ach_fixed_cents?: number
           convenience_fee_ach_pct?: number
@@ -8115,25 +8216,30 @@ export type Database = {
           convenience_fee_mode?: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
           default_late_fee_amount?: number
           default_late_fee_grace_days?: number
           default_nsf_fee_amount?: number
           default_payment_reminder_days?: number[]
           entitlements?: string[]
+          favicon_url?: string | null
           fiscal_year_start_month?: number
           id?: string
+          logo_url?: string | null
           password_min_length?: number
           phone_number?: string | null
           profile_type?: Database["public"]["Enums"]["portfolio_profile_type"]
           require_mfa_for_admins?: boolean
           require_mfa_for_staff?: boolean
           session_timeout_minutes?: number
+          slug?: string
           statement_generation_day?: number
           suspended_at?: string | null
           suspension_reason?: string | null
           texting_phone_number?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -14292,6 +14398,8 @@ export type Database = {
           address_zip: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -14302,25 +14410,30 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         SetofOptions: {
           from: "*"
@@ -14491,6 +14604,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_portfolio_for_host: {
+        Args: { p_host: string }
+        Returns: {
+          company_name: string
+          id: string
+          slug: string
+        }[]
+      }
       revoke_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
@@ -14567,6 +14688,8 @@ export type Database = {
           address_zip: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -14577,25 +14700,30 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         SetofOptions: {
           from: "*"

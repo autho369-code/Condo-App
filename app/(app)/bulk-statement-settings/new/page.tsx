@@ -24,7 +24,7 @@ export default async function BulkStatementSettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-6">
-      <h1 className="mb-4 text-2xl font-semibold text-gray-900">Bulk Update Statement Settings</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-ink-900">Bulk Update Statement Settings</h1>
 
       {/* Info banner — mirrors AppFolio's teal/green callout */}
       <div className="mb-4 flex items-start gap-3 rounded border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-gray-800">
@@ -43,15 +43,15 @@ export default async function BulkStatementSettingsPage() {
             <Row label="Update Settings for">
               <div className="space-y-2">
                 {associations.length === 0 ? (
-                  <p className="text-sm text-gray-500">No associations found. Create one first.</p>
+                  <p className="text-sm text-ink-500">No associations found. Create one first.</p>
                 ) : (
-                  <div className="max-h-48 overflow-y-auto rounded border border-gray-200 bg-white">
+                  <div className="max-h-48 overflow-y-auto rounded border border-ink-100 bg-white">
                     {associations.map((a: any) => (
-                      <label key={a.id} className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 hover:bg-gray-50">
+                      <label key={a.id} className="flex items-center gap-2 border-b border-ink-100 px-3 py-2 text-sm last:border-b-0 hover:bg-cream-50">
                         <input type="checkbox" name="association_ids" value={a.id} className="h-4 w-4" />
-                        <span className="text-gray-900">{a.name}</span>
+                        <span className="text-ink-900">{a.name}</span>
                         {(a.address || a.city) && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-ink-500">
                             — {[a.address, [a.city, a.state].filter(Boolean).join(', ')].filter(Boolean).join(' ')}
                           </span>
                         )}
@@ -59,7 +59,7 @@ export default async function BulkStatementSettingsPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">By default, all properties and associations will be updated.</p>
+                <p className="text-xs text-ink-500">By default, all properties and associations will be updated.</p>
               </div>
             </Row>
 
@@ -99,7 +99,7 @@ export default async function BulkStatementSettingsPage() {
               <select
                 name="charge_history_includes"
                 defaultValue="all_past_due_charges"
-                className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
                 <option value="all_past_due_charges">All Past Due Charges</option>
                 <option value="current_month_only">Current Month Only</option>
@@ -132,7 +132,7 @@ export default async function BulkStatementSettingsPage() {
 
         <div className="flex items-center gap-3 pt-2">
           <Button type="submit" size="lg">Update Settings</Button>
-          <Link href="/associations" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href="/associations" className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
         </div>
       </form>
     </div>
@@ -140,13 +140,13 @@ export default async function BulkStatementSettingsPage() {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded border border-gray-200 bg-white">{children}</section>;
+  return <section className="overflow-hidden rounded border border-ink-100 bg-white">{children}</section>;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-12 items-start gap-4">
-      <label className="col-span-4 pt-2 text-right text-sm text-gray-700">{label}</label>
+      <label className="col-span-4 pt-2 text-right text-sm text-ink-700">{label}</label>
       <div className="col-span-8">{children}</div>
     </div>
   );
@@ -165,7 +165,7 @@ function CheckboxRow({
 }) {
   return (
     <div className="grid grid-cols-12 items-start gap-4">
-      <div className="col-span-4 pt-0.5 text-right text-sm text-gray-700">
+      <div className="col-span-4 pt-0.5 text-right text-sm text-ink-700">
         {label}
         {help && (
           <span
@@ -178,7 +178,7 @@ function CheckboxRow({
         )}
       </div>
       <div className="col-span-8">
-        <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-gray-300" />
+        <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-ink-200" />
       </div>
     </div>
   );

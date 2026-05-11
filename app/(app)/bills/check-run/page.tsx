@@ -28,19 +28,19 @@ export default async function CheckRunPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+      <div className="shrink-0 border-b border-ink-100 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">
               <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
             </div>
-            <h1 className="mt-1 text-xl font-semibold text-gray-900">Check run</h1>
-            <p className="mt-1 text-sm text-gray-500">Select approved bills to pay in this check run.</p>
+            <h1 className="mt-1 text-xl font-semibold text-ink-900">Check run</h1>
+            <p className="mt-1 text-sm text-ink-500">Select approved bills to pay in this check run.</p>
           </div>
           <Link href="/bills"><Button variant="secondary" size="sm">Cancel</Button></Link>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
+      <div className="flex-1 overflow-y-auto bg-cream-50 px-8 py-6">
 
       <form action={writeChecks as any} className="space-y-6">
         <Card>
@@ -50,7 +50,7 @@ export default async function CheckRunPage() {
               <div>
                 <Label htmlFor="bank_account_id">Bank account</Label>
                 <select id="bank_account_id" name="bank_account_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                   {(banks ?? []).map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''} (next: {b.next_check_number ?? '—'})</option>
                   ))}
@@ -73,7 +73,7 @@ export default async function CheckRunPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Approved bills to pay</CardTitle>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-ink-600">
                 {queue?.length ?? 0} bills · <span className="font-semibold">{money(total)}</span>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default async function CheckRunPage() {
                     <TD><input type="checkbox" name="bill_ids" value={b.bill_id} defaultChecked /></TD>
                     <TD className="font-medium">{b.vendor_name}</TD>
                     <TD>{b.association_name ?? '—'}</TD>
-                    <TD className="max-w-sm truncate text-gray-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
+                    <TD className="max-w-sm truncate text-ink-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
                     <TD className="text-right">{money(b.amount)}</TD>
                     <TD>{date(b.due_date)}</TD>
                   </TR>
@@ -99,7 +99,7 @@ export default async function CheckRunPage() {
               </tbody>
             </Table>
             {!queue?.length && (
-              <div className="p-6 text-center text-sm text-gray-500">
+              <div className="p-6 text-center text-sm text-ink-500">
                 No approved, unpaid bills for vendors that pay by check.
               </div>
             )}

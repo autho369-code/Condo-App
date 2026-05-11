@@ -36,21 +36,21 @@ export default async function OwnerFormsPage({
     <DataWorkspace
       title="Send Owner Form"
       description="Stage owner communications and form packages with recipient, template, and delivery context before confirmation."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
       rail={
         <div className="space-y-2">
-          <div className="text-xs font-semibold uppercase text-gray-500">Related workflows</div>
+          <div className="text-xs font-semibold uppercase text-ink-500">Related workflows</div>
           {ownerWorkflowCards.map((card) => (
-            <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
+            <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 text-sm hover:bg-cream-50">{card.title}</Link>
           ))}
         </div>
       }
     >
-      <form className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
+      <form className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="">Select an owner</option>
               {(owners ?? []).map((owner: any) => (
                 <option key={owner.id} value={owner.id}>{owner.full_name} - {owner.email}</option>
@@ -59,20 +59,20 @@ export default async function OwnerFormsPage({
           </div>
           <div>
             <Label htmlFor="template">Template</Label>
-            <select id="template" name="template" defaultValue={sp.template ?? 'owner_intake'} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="template" name="template" defaultValue={sp.template ?? 'owner_intake'} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               {TEMPLATES.map((template) => <option key={template.value} value={template.value}>{template.label}</option>)}
             </select>
           </div>
         </div>
         <div>
           <Label htmlFor="subject">Subject</Label>
-          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm" defaultValue="Action requested from Stellar Property Management" />
+          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-ink-200 px-3 text-sm" defaultValue="Action requested from Stellar Property Management" />
         </div>
         <div>
           <Label htmlFor="message">Message</Label>
-          <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" defaultValue="Please review the attached owner form and complete any required fields. Contact our team if any information looks incorrect." />
+          <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-ink-200 px-3 py-2 text-sm" defaultValue="Please review the attached owner form and complete any required fields. Contact our team if any information looks incorrect." />
         </div>
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-sm text-amber-800">
           This composer is staged for review. Final delivery should require explicit confirmation and audit logging.
         </div>
         <div className="flex justify-end gap-2">

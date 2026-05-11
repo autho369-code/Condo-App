@@ -16,14 +16,14 @@ export default async function BankReconcilePage() {
     <DataWorkspace
       title="Bank reconciliation"
       description="Statement inputs, cleared balances, deposits, checks, notes, and attachments in one reconciliation workspace."
-      rail={<p className="text-sm leading-6 text-gray-600">Reconcile only after statement balance and cleared transactions match.</p>}
+      rail={<p className="text-sm leading-6 text-ink-600">Reconcile only after statement balance and cleared transactions match.</p>}
     >
       <div className="space-y-6">
-        <section className="rounded border border-gray-200 bg-white p-5">
+        <section className="rounded border border-ink-100 bg-white p-5">
           <div className="grid gap-4 md:grid-cols-4">
-            <label className="text-sm font-medium text-gray-700 md:col-span-2">Account<select className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">{(accounts ?? []).map((row: any) => <option key={row.id}>{row.name}</option>)}</select></label>
-            <label className="text-sm font-medium text-gray-700">Ending balance<input className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="$0.00" /></label>
-            <label className="text-sm font-medium text-gray-700">Statement date<input type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700 md:col-span-2">Account<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{(accounts ?? []).map((row: any) => <option key={row.id}>{row.name}</option>)}</select></label>
+            <label className="text-sm font-medium text-ink-700">Ending balance<input className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="$0.00" /></label>
+            <label className="text-sm font-medium text-ink-700">Statement date<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
           </div>
         </section>
         <MetricStrip metrics={[
@@ -42,9 +42,9 @@ export default async function BankReconcilePage() {
 
 function WorkspaceTable({ title }: { title: string }) {
   return (
-    <section className="rounded border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-950">{title}</div>
-      <div className="px-4 py-8 text-center text-sm text-gray-500">Transactions will appear after selecting an account and statement period.</div>
+    <section className="rounded border border-ink-100 bg-white">
+      <div className="border-b border-ink-100 px-4 py-3 text-sm font-semibold text-ink-900">{title}</div>
+      <div className="px-4 py-8 text-center text-sm text-ink-500">Transactions will appear after selecting an account and statement period.</div>
     </section>
   );
 }

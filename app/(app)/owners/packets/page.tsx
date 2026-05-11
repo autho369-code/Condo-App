@@ -48,7 +48,7 @@ export default async function OwnerPacketsPage({
       title="Send Owner Packets"
       description="Assemble packet-ready owners, confirm documents, and stage outbound owner packet delivery."
       actions={<Link href="/owners/forms?template=owner_packet" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Prepare packet</Link>}
-      rail={<div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">Packets should include association rules, payment setup, portal activation, emergency contacts, and any building-specific move instructions.</div>}
+      rail={<div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">Packets should include association rules, payment setup, portal activation, emergency contacts, and any building-specific move instructions.</div>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[
@@ -64,12 +64,12 @@ export default async function OwnerPacketsPage({
             {rows.map(({ owner, requests: ownerRequests }) => {
               const latest = ownerRequests[0];
               return (
-                <TR key={owner.id} className="hover:bg-gray-50">
-                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-gray-500">{owner.email}</div></TD>
+                <TR key={owner.id} className="hover:bg-cream-50">
+                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-champagne-700 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-ink-500">{owner.email}</div></TD>
                   <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Ready' : 'Activate first'}</StatusChip></TD>
                   <TD><StatusChip tone={ownerRequests.length ? 'info' : 'neutral'}>{ownerRequests.length} requests</StatusChip></TD>
-                  <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
-                  <TD><Link href={`/owners/forms?owner=${owner.id}&template=owner_packet`} className="text-sm font-medium text-blue-700 hover:underline">Preview packet</Link></TD>
+                  <TD><div className="text-ink-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-xs text-ink-500">{date(latest?.requested_at)}</div></TD>
+                  <TD><Link href={`/owners/forms?owner=${owner.id}&template=owner_packet`} className="text-sm font-medium text-champagne-700 hover:underline">Preview packet</Link></TD>
                 </TR>
               );
             })}

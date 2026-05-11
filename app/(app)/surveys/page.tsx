@@ -24,17 +24,17 @@ export default async function SurveysPage() {
             {rows.map((s: any) => (
               <TR key={s.id}>
                 <TD className="font-medium">{s.name}</TD>
-                <TD className="text-sm capitalize text-gray-700">{s.survey_type}</TD>
+                <TD className="text-sm capitalize text-ink-700">{s.survey_type}</TD>
                 <TD>{s.active
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">active</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">paused</span>}</TD>
+                  : <span className="rounded bg-cream-100 px-2 py-0.5 text-xs text-ink-600">paused</span>}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(s.created_at)}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No surveys configured.</p>
+        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No surveys configured.</p>
       )}
     </ModulePage>
   );

@@ -94,7 +94,7 @@ export default async function AmenitiesTab({
     >
       {(!amenities || amenities.length === 0) && !showCreate && (
         <Section padded>
-          <p className="text-center text-sm italic text-gray-500">
+          <p className="text-center text-sm italic text-ink-500">
             No amenities yet. Click &quot;+ Create Amenity&quot; to add one.
           </p>
         </Section>
@@ -104,24 +104,24 @@ export default async function AmenitiesTab({
         <Section key={a.id} padded>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="mb-1 text-base font-semibold text-gray-900">{a.name}</h3>
+              <h3 className="mb-1 text-base font-semibold text-ink-900">{a.name}</h3>
               {a.description_html && (
-                <div className="mb-2 text-sm text-gray-700 [&_p]:m-0" dangerouslySetInnerHTML={{ __html: sanitizeBasicHtml(a.description_html) }} />
+                <div className="mb-2 text-sm text-ink-700 [&_p]:m-0" dangerouslySetInnerHTML={{ __html: sanitizeBasicHtml(a.description_html) }} />
               )}
               <dl className="grid grid-cols-[140px_1fr] gap-y-1 text-sm">
                 {(a.opens_at || a.closes_at) && (
                   <>
-                    <dt className="text-gray-500">Hours</dt>
-                    <dd className="text-gray-900">{formatHours(a.opens_at, a.closes_at)}</dd>
+                    <dt className="text-ink-500">Hours</dt>
+                    <dd className="text-ink-900">{formatHours(a.opens_at, a.closes_at)}</dd>
                   </>
                 )}
-                <dt className="text-gray-500">Reservations</dt>
-                <dd className="text-gray-900">{a.allow_reservations ? 'Allowed' : 'Not allowed'}</dd>
+                <dt className="text-ink-500">Reservations</dt>
+                <dd className="text-ink-900">{a.allow_reservations ? 'Allowed' : 'Not allowed'}</dd>
 
                 {a.allow_reservations && a.pricing_mode && (
                   <>
-                    <dt className="text-gray-500">Pricing</dt>
-                    <dd className="text-gray-900">
+                    <dt className="text-ink-500">Pricing</dt>
+                    <dd className="text-ink-900">
                       {a.pricing_mode === 'flat' ? 'Flat rate: ' : 'Hourly: '}
                       ${Number(a.price_amount ?? 0).toFixed(2)}
                       {a.pricing_mode === 'hourly' ? '/hr' : ''}
@@ -131,22 +131,22 @@ export default async function AmenitiesTab({
 
                 {a.allow_reservations && a.reserve_method === 'email' && a.reservation_email && (
                   <>
-                    <dt className="text-gray-500">Reserve via</dt>
-                    <dd><a href={`mailto:${a.reservation_email}`} className="text-blue-700 hover:underline">{a.reservation_email}</a></dd>
+                    <dt className="text-ink-500">Reserve via</dt>
+                    <dd><a href={`mailto:${a.reservation_email}`} className="text-champagne-700 hover:underline">{a.reservation_email}</a></dd>
                   </>
                 )}
 
                 {a.allow_reservations && a.reserve_method === 'platform_link' && a.reservation_url && (
                   <>
-                    <dt className="text-gray-500">Reserve via</dt>
-                    <dd><a href={a.reservation_url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">{a.reservation_url}</a></dd>
+                    <dt className="text-ink-500">Reserve via</dt>
+                    <dd><a href={a.reservation_url} target="_blank" rel="noopener noreferrer" className="text-champagne-700 hover:underline">{a.reservation_url}</a></dd>
                   </>
                 )}
               </dl>
             </div>
             {a.image_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={a.image_url} alt={a.name} className="h-24 w-32 rounded border border-gray-200 object-cover" />
+              <img src={a.image_url} alt={a.name} className="h-24 w-32 rounded border border-ink-100 object-cover" />
             )}
           </div>
         </Section>
@@ -155,36 +155,36 @@ export default async function AmenitiesTab({
       {showCreate && (
         <Section
           title="Create Amenity"
-          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">Ã—</Link>}
+          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-ink-400 hover:text-ink-600">Ã—</Link>}
           padded
         >
           <form action={createAmenity as any} className="space-y-4">
             <FormRow label="Title" required>
-              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </FormRow>
 
             <FormRow label="Image">
               <input type="file" name="image" disabled className="text-sm" />
-              <div className="mt-1 text-xs text-gray-400">Image upload pending Storage bucket wiring</div>
+              <div className="mt-1 text-xs text-ink-400">Image upload pending Storage bucket wiring</div>
             </FormRow>
 
             <FormRow label="Description" required>
-              <textarea name="description_html" rows={4} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <textarea name="description_html" rows={4} className="w-full max-w-lg resize-y rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </FormRow>
 
-            <fieldset className="border-t border-gray-200 pt-4">
-              <legend className="mb-2 text-sm font-semibold text-gray-700">Hours of Operation</legend>
+            <fieldset className="border-t border-ink-100 pt-4">
+              <legend className="mb-2 text-sm font-semibold text-ink-700">Hours of Operation</legend>
               <div className="flex items-end gap-4">
                 <FormRow label="Opens">
-                  <input type="time" name="opens_at" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  <input type="time" name="opens_at" className="w-44 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </FormRow>
                 <FormRow label="Closes">
-                  <input type="time" name="closes_at" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  <input type="time" name="closes_at" className="w-44 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </FormRow>
               </div>
             </fieldset>
 
-            <fieldset className="border-t border-gray-200 pt-4">
+            <fieldset className="border-t border-ink-100 pt-4">
               <label className="mb-3 flex items-center gap-2 text-sm">
                 <input type="checkbox" name="allow_reservations" defaultChecked />
                 Allow Reservations
@@ -202,11 +202,11 @@ export default async function AmenitiesTab({
               </div>
 
               <div className="mb-4 flex items-center gap-1.5">
-                <span className="text-gray-500">$</span>
-                <input type="number" step="0.01" min="0" name="price_amount" defaultValue="0.00" className="w-40 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <span className="text-ink-500">$</span>
+                <input type="number" step="0.01" min="0" name="price_amount" defaultValue="0.00" className="w-40 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
 
-              <div className="mb-2 text-sm font-semibold text-gray-700">&quot;Reserve&quot; button in resident portal</div>
+              <div className="mb-2 text-sm font-semibold text-ink-700">&quot;Reserve&quot; button in resident portal</div>
               <div className="mb-3 flex flex-col gap-2 text-sm">
                 <label className="flex items-center gap-2">
                   <input type="radio" name="reserve_method" value="email" defaultChecked />
@@ -219,11 +219,11 @@ export default async function AmenitiesTab({
               </div>
 
               <FormRow label="Email Address">
-                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </FormRow>
 
               <FormRow label="Platform URL">
-                <input type="url" name="reservation_url" placeholder="https://..." className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <input type="url" name="reservation_url" placeholder="https://..." className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </FormRow>
             </fieldset>
 
@@ -247,8 +247,8 @@ function FormRow({
 }) {
   return (
     <div className="mb-3 grid grid-cols-[140px_1fr] items-start gap-x-3 gap-y-1">
-      <label className="pt-1.5 text-sm text-gray-600">
-        {label}{required && <span className="ml-0.5 text-red-600">*</span>}
+      <label className="pt-1.5 text-sm text-ink-600">
+        {label}{required && <span className="ml-0.5 text-bordeaux-600">*</span>}
       </label>
       <div>{children}</div>
     </div>

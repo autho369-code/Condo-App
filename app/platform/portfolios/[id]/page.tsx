@@ -92,16 +92,16 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
     <div className="space-y-7">
       <header className="space-y-2">
         <div className="text-sm">
-          <Link href="/platform/portfolios" className="text-blue-700 hover:underline">
+          <Link href="/platform/portfolios" className="text-champagne-700 hover:underline">
             Clients
           </Link>
           <span className="px-2 text-gray-300">/</span>
-          <span className="text-gray-500">{portfolio.company_name}</span>
+          <span className="text-ink-500">{portfolio.company_name}</span>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-950">{portfolio.company_name}</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="font-display text-4xl tracking-editorial text-ink-900">{portfolio.company_name}</h1>
+            <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">
               Client oversight: properties, owners, users, billing, and operational volume.
             </p>
           </div>
@@ -135,14 +135,14 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
               <tbody>
                 {(properties ?? []).length === 0 ? (
                   <TR>
-                    <TD colSpan={3} className="text-center text-gray-500">No properties found for this client.</TD>
+                    <TD colSpan={3} className="text-center text-ink-500">No properties found for this client.</TD>
                   </TR>
                 ) : (
                   (properties ?? []).map((property: any) => (
                     <TR key={property.id}>
                       <TD>
-                        <div className="font-medium text-gray-950">{property.name}</div>
-                        <div className="mt-1 text-xs text-gray-500">{[property.city, property.state].filter(Boolean).join(', ')}</div>
+                        <div className="font-medium text-ink-900">{property.name}</div>
+                        <div className="mt-1 text-xs text-ink-500">{[property.city, property.state].filter(Boolean).join(', ')}</div>
                       </TD>
                       <TD>{property.status ?? 'active'}</TD>
                       <TD className="text-right">{property.unit_count ?? 0}</TD>
@@ -160,26 +160,26 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
           </CardHeader>
           <CardBody className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Tier</span>
-              <span className="font-medium uppercase text-gray-950">{subscription?.tier ?? portfolio.tier ?? '-'}</span>
+              <span className="text-ink-500">Tier</span>
+              <span className="font-medium uppercase text-ink-900">{subscription?.tier ?? portfolio.tier ?? '-'}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Seats</span>
-              <span className="font-medium text-gray-950">{formatSeatUsage(subscription ?? health)}</span>
+              <span className="text-ink-500">Seats</span>
+              <span className="font-medium text-ink-900">{formatSeatUsage(subscription ?? health)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Billing email</span>
-              <span className="font-medium text-gray-950">{subscription?.billing_email ?? '-'}</span>
+              <span className="text-ink-500">Billing email</span>
+              <span className="font-medium text-ink-900">{subscription?.billing_email ?? '-'}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Trial ends</span>
-              <span className="font-medium text-gray-950">{date(subscription?.trial_ends_at)}</span>
+              <span className="text-ink-500">Trial ends</span>
+              <span className="font-medium text-ink-900">{date(subscription?.trial_ends_at)}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Period ends</span>
-              <span className="font-medium text-gray-950">{date(subscription?.current_period_end)}</span>
+              <span className="text-ink-500">Period ends</span>
+              <span className="font-medium text-ink-900">{date(subscription?.current_period_end)}</span>
             </div>
-            <div className="rounded border border-dashed border-gray-300 p-3 text-xs text-gray-500">
+            <div className="rounded border border-dashed border-ink-200 p-3 text-xs text-ink-500">
               Stripe billing is reserved here for the payment integration phase.
             </div>
           </CardBody>
@@ -193,13 +193,13 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
           </CardHeader>
           <CardBody className="space-y-3">
             {(owners ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">No owners found for this client.</p>
+              <p className="text-sm text-ink-500">No owners found for this client.</p>
             ) : (
               (owners ?? []).map((owner: any) => (
-                <div key={owner.id} className="flex justify-between gap-4 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                <div key={owner.id} className="flex justify-between gap-4 border-b border-ink-100 pb-3 last:border-0 last:pb-0">
                   <div>
-                    <div className="font-medium text-gray-950">{owner.full_name}</div>
-                    <div className="text-xs text-gray-500">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
+                    <div className="font-medium text-ink-900">{owner.full_name}</div>
+                    <div className="text-xs text-ink-500">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
                   </div>
                   <Badge className={owner.portal_activated ? 'bg-green-50 text-green-700 ring-green-200' : 'bg-amber-50 text-amber-700 ring-amber-200'}>
                     {owner.portal_activated ? 'portal active' : 'not active'}
@@ -216,15 +216,15 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
           </CardHeader>
           <CardBody className="space-y-3">
             {(users ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">No staff users found for this client.</p>
+              <p className="text-sm text-ink-500">No staff users found for this client.</p>
             ) : (
               (users ?? []).map((user: any) => (
-                <div key={user.id} className="flex justify-between gap-4 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                <div key={user.id} className="flex justify-between gap-4 border-b border-ink-100 pb-3 last:border-0 last:pb-0">
                   <div>
-                    <div className="font-medium text-gray-950">{user.full_name ?? user.display_name ?? user.email}</div>
-                    <div className="text-xs text-gray-500">Last login {date(user.last_login_at)}</div>
+                    <div className="font-medium text-ink-900">{user.full_name ?? user.display_name ?? user.email}</div>
+                    <div className="text-xs text-ink-500">Last login {date(user.last_login_at)}</div>
                   </div>
-                  <div className="text-right text-xs text-gray-500">
+                  <div className="text-right text-xs text-ink-500">
                     <div>{user.hoa_role ?? user.role ?? 'staff'}</div>
                     <div>{user.mfa_required ? 'MFA required' : 'MFA optional'}</div>
                   </div>

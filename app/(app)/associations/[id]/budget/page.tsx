@@ -94,7 +94,7 @@ export default async function BudgetTab({
       <Section>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: 1100 }}>
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
               <tr>
                 <th className="min-w-[220px] px-3 py-2 text-left font-semibold">GL Account</th>
                 <th className="min-w-[150px] px-3 py-2 text-left font-semibold">Calculation Method</th>
@@ -109,14 +109,14 @@ export default async function BudgetTab({
               <ParentRow label="EXPENSE" annualPrior={expenseAnnualPrior} annualBudget={expenseAnnualBudget} months={sumColumns(expenseRows.map((r) => r.monthly))} />
               {expenseRows.map((r: any) => <ChildRow key={r.acct.id} acct={r.acct} prior={r.prior} monthly={r.monthly} />)}
               {totalRows === 2 && (
-                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm italic text-gray-500">No GL accounts configured for this association.</td></tr>
+                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm italic text-ink-500">No GL accounts configured for this association.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </Section>
 
-      <div className="mt-3 text-sm text-gray-600">
+      <div className="mt-3 text-sm text-ink-600">
         Displaying: <span className="tabular-nums">{totalRows}</span> of <span className="tabular-nums">{totalRows}</span>
       </div>
     </Workspace>
@@ -136,12 +136,12 @@ function fmt(n: number): string {
 
 function ParentRow({ label, annualPrior, annualBudget, months }: { label: string; annualPrior: number; annualBudget: number; months: number[]; }) {
   return (
-    <tr className="border-b border-gray-100 bg-gray-50 font-semibold">
-      <td className="px-3 py-2 text-gray-900"><span className="mr-1 text-gray-400">▾</span>{label}</td>
+    <tr className="border-b border-ink-100 bg-cream-50 font-semibold">
+      <td className="px-3 py-2 text-ink-900"><span className="mr-1 text-ink-400">▾</span>{label}</td>
       <td className="px-3 py-2"></td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(annualPrior)}</td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(annualBudget)}</td>
-      {months.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(m)}</td>)}
+      <td className="px-3 py-2 text-right tabular-nums text-ink-900">{fmt(annualPrior)}</td>
+      <td className="px-3 py-2 text-right tabular-nums text-ink-900">{fmt(annualBudget)}</td>
+      {months.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-ink-900">{fmt(m)}</td>)}
     </tr>
   );
 }
@@ -150,12 +150,12 @@ function ChildRow({ acct, prior, monthly }: { acct: { id: string; number: number
   const annualBudget = monthly.reduce((s, n) => s + n, 0);
   const code = acct.number != null ? `${acct.number}: ${truncate(acct.name, 20)}` : truncate(acct.name, 22);
   return (
-    <tr className="border-b border-gray-100 last:border-b-0">
-      <td className="px-3 py-2 pl-8 text-gray-700">{code}</td>
-      <td className="px-3 py-2"><span className="text-xs italic text-gray-400">—</span></td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(prior)}</td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(annualBudget)}</td>
-      {monthly.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(m)}</td>)}
+    <tr className="border-b border-ink-100 last:border-b-0">
+      <td className="px-3 py-2 pl-8 text-ink-700">{code}</td>
+      <td className="px-3 py-2"><span className="text-xs italic text-ink-400">—</span></td>
+      <td className="px-3 py-2 text-right tabular-nums text-ink-700">{fmt(prior)}</td>
+      <td className="px-3 py-2 text-right tabular-nums text-ink-700">{fmt(annualBudget)}</td>
+      {monthly.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-ink-700">{fmt(m)}</td>)}
     </tr>
   );
 }

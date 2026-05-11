@@ -27,14 +27,14 @@ export default async function InspectionsPage() {
                 <TD className="font-medium capitalize">{i.inspection_type?.replace(/_/g, ' ') ?? '—'}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(i.scheduled_date)}</TD>
                 <TD className="whitespace-nowrap text-sm">{i.completed_date ? date(i.completed_date) : '—'}</TD>
-                <TD className="text-sm text-gray-700">{i.associations?.name}{i.units?.unit_number ? ` · Unit ${i.units.unit_number}` : ''}</TD>
-                <TD><span className="rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700">{i.status}</span></TD>
+                <TD className="text-sm text-ink-700">{i.associations?.name}{i.units?.unit_number ? ` · Unit ${i.units.unit_number}` : ''}</TD>
+                <TD><span className="rounded bg-cream-100 px-2 py-0.5 text-xs capitalize text-ink-700">{i.status}</span></TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No inspections scheduled.</p>
+        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No inspections scheduled.</p>
       )}
     </ModulePage>
   );

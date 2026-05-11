@@ -56,18 +56,18 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
       {/* Breadcrumb */}
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">
         <Link href="/owners" className="hover:text-brand-600">Owners</Link> Â· {displayName}
       </nav>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{displayName}</h1>
-          <div className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-semibold text-ink-900">{displayName}</h1>
+          <div className="mt-1 text-sm text-ink-500">
             {owner.portal_activated
               ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Portal active</span>
-              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">Portal not activated</span>}
+              : <span className="rounded bg-cream-100 px-2 py-0.5 text-xs text-ink-600">Portal not activated</span>}
             {owner.portal_login_last_at && (
               <span className="ml-2">Last login: {date(owner.portal_login_last_at)}</span>
             )}
@@ -79,49 +79,49 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
       <Section title="Contact">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-sm">
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Email</dt>
+            <dt className="text-xs uppercase tracking-wider text-ink-500">Email</dt>
             <dd className="mt-0.5">
-              {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : 'â€”'}
+              {owner.email ? <a href={`mailto:${owner.email}`} className="text-champagne-700 hover:underline">{owner.email}</a> : 'â€”'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Phone</dt>
+            <dt className="text-xs uppercase tracking-wider text-ink-500">Phone</dt>
             <dd className="mt-0.5">
               {phones.length > 0
                 ? phones.map((p: any, i: number) => (
                     <div key={i}>
-                      <a href={`tel:${p.number ?? p.value}`} className="text-blue-700 hover:underline">{p.number ?? p.value}</a>
-                      {p.type && <span className="ml-1 text-xs text-gray-500">({p.type})</span>}
+                      <a href={`tel:${p.number ?? p.value}`} className="text-champagne-700 hover:underline">{p.number ?? p.value}</a>
+                      {p.type && <span className="ml-1 text-xs text-ink-500">({p.type})</span>}
                     </div>
                   ))
-                : owner.phone ? <a href={`tel:${owner.phone}`} className="text-blue-700 hover:underline">{owner.phone}</a> : 'â€”'}
+                : owner.phone ? <a href={`tel:${owner.phone}`} className="text-champagne-700 hover:underline">{owner.phone}</a> : 'â€”'}
             </dd>
           </div>
           <div className="col-span-2">
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Mailing address</dt>
+            <dt className="text-xs uppercase tracking-wider text-ink-500">Mailing address</dt>
             <dd className="mt-0.5">
               {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || 'â€”'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Preferred comm</dt>
+            <dt className="text-xs uppercase tracking-wider text-ink-500">Preferred comm</dt>
             <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? 'â€”'}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Added</dt>
+            <dt className="text-xs uppercase tracking-wider text-ink-500">Added</dt>
             <dd className="mt-0.5">{date(owner.created_at)}</dd>
           </div>
           {owner.notes && (
             <div className="col-span-2">
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Notes</dt>
+              <dt className="text-xs uppercase tracking-wider text-ink-500">Notes</dt>
               <dd className="mt-0.5 whitespace-pre-wrap">{owner.notes}</dd>
             </div>
           )}
         </dl>
 
         {/* Inline edit */}
-        <details className="border-t border-gray-100 px-5 py-4">
-          <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">Edit contact</summary>
+        <details className="border-t border-ink-100 px-5 py-4">
+          <summary className="cursor-pointer select-none text-sm font-medium text-champagne-700 hover:underline">Edit contact</summary>
           <form action={updateOwner.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="first_name">First name</Label>
@@ -160,7 +160,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
             <div className="md:col-span-2">
               <Label htmlFor="notes">Notes</Label>
               <textarea id="notes" name="notes" rows={3} defaultValue={owner.notes ?? ''}
-                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm" />
             </div>
             <div className="md:col-span-2 flex justify-end">
               <Button type="submit">Save changes</Button>
@@ -171,12 +171,12 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
 
       {/* Occupancies â€” unit links */}
       <Section title="Units owned / occupied"
-        right={<span className="text-xs text-gray-500">{currentOccs.length} current Â· {pastOccs.length} past</span>}>
+        right={<span className="text-xs text-ink-500">{currentOccs.length} current Â· {pastOccs.length} past</span>}>
         {(occs ?? []).length === 0 ? (
-          <p className="px-5 py-6 text-center text-sm text-gray-500">Not yet linked to any units. Use the form below.</p>
+          <p className="px-5 py-6 text-center text-sm text-ink-500">Not yet linked to any units. Use the form below.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold">Unit</th>
                 <th className="px-4 py-2 text-left font-semibold">Association</th>
@@ -189,26 +189,26 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
             </thead>
             <tbody>
               {(occs ?? []).map((o: any) => (
-                <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50">
+                <tr key={o.id} className="border-t border-ink-100 hover:bg-cream-50">
                   <td className="px-4 py-2">
-                    <Link href={`/units/${o.units?.id}`} className="font-medium text-blue-700 hover:underline">Unit {o.units?.unit_number ?? 'â€”'}</Link>
-                    {o.is_primary && <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">primary</span>}
+                    <Link href={`/units/${o.units?.id}`} className="font-medium text-champagne-700 hover:underline">Unit {o.units?.unit_number ?? 'â€”'}</Link>
+                    {o.is_primary && <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-champagne-700">primary</span>}
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? 'â€”'}</td>
+                  <td className="px-4 py-2 text-ink-700">{o.units?.buildings?.associations?.name ?? 'â€”'}</td>
                   <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-ink-600">{date(o.move_in_date)}</td>
                   <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : 'â€”'}</td>
                   <td className="px-4 py-2">
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${
                       o.status === 'current' ? 'bg-green-100 text-green-700' :
-                      o.status === 'future'  ? 'bg-blue-100 text-blue-700'  :
-                      'bg-gray-100 text-gray-500'
+                      o.status === 'future'  ? 'bg-blue-100 text-champagne-700'  :
+                      'bg-cream-100 text-ink-500'
                     }`}>{o.status}</span>
                   </td>
                   <td className="px-4 py-2 text-right">
                     {o.status === 'current' && (
                       <form action={endOccupancy.bind(null, o.id, id) as any}>
-                        <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
+                        <button type="submit" className="text-xs text-bordeaux-600 hover:underline">End</button>
                       </form>
                     )}
                   </td>
@@ -218,13 +218,13 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
           </table>
         )}
 
-        <details className="border-t border-gray-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
-          <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">+ Link to a unit</summary>
+        <details className="border-t border-ink-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
+          <summary className="cursor-pointer select-none text-sm font-medium text-champagne-700 hover:underline">+ Link to a unit</summary>
           <form action={linkOccupancy.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="md:col-span-3">
               <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
               <select id="unit_id" name="unit_id" required
-                className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                 <option value="">Choose a unitâ€¦</option>
                 {(units ?? []).map((u: any) => (
                   <option key={u.id} value={u.id}>
@@ -237,7 +237,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
             <div>
               <Label htmlFor="occupancy_type">Type</Label>
               <select id="occupancy_type" name="occupancy_type" defaultValue="owner"
-                className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                 <option value="owner">Owner</option>
                 <option value="tenant">Tenant</option>
               </select>
@@ -253,7 +253,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
             <div>
               <Label htmlFor="dues_frequency">Dues frequency</Label>
               <select id="dues_frequency" name="dues_frequency" defaultValue="monthly"
-                className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="annual">Annual</option>
@@ -287,16 +287,16 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                     <span className="font-medium">SR {s.number ?? s.id.slice(0, 8)}</span>
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${
                       s.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      s.status === 'cancelled' ? 'bg-gray-100 text-gray-500' :
+                      s.status === 'cancelled' ? 'bg-cream-100 text-ink-500' :
                       'bg-amber-100 text-amber-800'
                     }`}>{s.status}</span>
                   </div>
-                  <div className="truncate text-xs text-gray-500">{(s.description ?? '').split('\n')[0]}</div>
-                  <div className="text-xs text-gray-400">Unit {s.units?.unit_number} Â· {date(s.created_at)}</div>
+                  <div className="truncate text-xs text-ink-500">{(s.description ?? '').split('\n')[0]}</div>
+                  <div className="text-xs text-ink-400">Unit {s.units?.unit_number} Â· {date(s.created_at)}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No service requests on file.</p>}
+          ) : <p className="px-4 py-6 text-center text-sm text-ink-500">No service requests on file.</p>}
         </Section>
 
         <Section title={`Violations (${violations?.length ?? 0})`}>
@@ -306,13 +306,13 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                 <li key={v.id} className="px-4 py-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{v.title}</span>
-                    {v.fine_amount != null && <span className="text-xs tabular-nums text-gray-700">{money(v.fine_amount)}</span>}
+                    {v.fine_amount != null && <span className="text-xs tabular-nums text-ink-700">{money(v.fine_amount)}</span>}
                   </div>
-                  <div className="text-xs text-gray-500">{v.associations?.name} Â· {date(v.date_observed)}</div>
+                  <div className="text-xs text-ink-500">{v.associations?.name} Â· {date(v.date_observed)}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No violations on file.</p>}
+          ) : <p className="px-4 py-6 text-center text-sm text-ink-500">No violations on file.</p>}
         </Section>
       </div>
     </div>
@@ -321,9 +321,9 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
 
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded border border-gray-200 bg-white">
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+    <section className="overflow-hidden rounded border border-ink-100 bg-white">
+      <div className="flex items-center justify-between border-b border-ink-100 px-5 py-3">
+        <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
         {right}
       </div>
       {children}

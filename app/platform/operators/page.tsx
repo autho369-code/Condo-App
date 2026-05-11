@@ -13,7 +13,7 @@ export default async function OperatorsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Platform operators</h1>
+      <h1 className="font-display text-4xl tracking-editorial text-ink-900">Platform operators</h1>
       <Table>
         <THead><TR><TH>Email</TH><TH>Name</TH><TH>Role</TH><TH>Active</TH><TH>Created</TH></TR></THead>
         <tbody>

@@ -8,6 +8,7 @@ export default async function OwnersLayout({ children }: { children: React.React
   await requireStaff();
   return (
     <SectionShell
+      className="bg-cream-50"
       panel={
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">

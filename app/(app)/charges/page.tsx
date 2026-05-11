@@ -29,10 +29,10 @@ export default async function ChargesPage() {
               <TD className="font-medium">{c.unit_number}</TD>
               <TD>{c.association_name}</TD>
               <TD>{c.description}</TD>
-              <TD className="text-right font-medium text-red-600">{money(c.balance_due)}</TD>
+              <TD className="text-right font-medium text-bordeaux-600">{money(c.balance_due)}</TD>
               <TD>{date(c.due_date)}</TD>
               <TD><span className={`rounded px-2 py-0.5 text-xs ${
-                c.aging_bucket === 'current' ? 'bg-gray-100 text-gray-700'
+                c.aging_bucket === 'current' ? 'bg-cream-100 text-ink-700'
                 : c.aging_bucket === '1_30'   ? 'bg-yellow-100 text-yellow-800'
                 : c.aging_bucket === '31_60'  ? 'bg-orange-100 text-orange-800'
                 : c.aging_bucket === '61_90'  ? 'bg-red-100 text-red-800'

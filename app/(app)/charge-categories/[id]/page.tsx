@@ -39,7 +39,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
       </div>
 
       {cat.is_system && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+        <div className="rounded-md bg-champagne-50 border border-amber-200 p-3 text-sm text-amber-900">
           This is a system-seeded category. You can rename, re-amount, and re-wire it â€” but it can&apos;t be archived because other parts of the system reference its code ({cat.code}).
         </div>
       )}
@@ -59,7 +59,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             <div>
               <Label htmlFor="default_amount">Default amount</Label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-gray-400">$</span>
+                <span className="absolute left-3 top-2.5 text-ink-400">$</span>
                 <Input id="default_amount" name="default_amount" type="number" step="0.01" min="0"
                   defaultValue={cat.default_amount} className="pl-6" />
               </div>
@@ -67,7 +67,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             <div>
               <Label htmlFor="default_frequency">Default frequency</Label>
               <select id="default_frequency" name="default_frequency" defaultValue={cat.default_frequency}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option>monthly</option><option>quarterly</option><option>annually</option>
                 <option>weekly</option><option>daily</option>
               </select>
@@ -75,7 +75,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             <div>
               <Label htmlFor="charge_type">Charge type</Label>
               <select id="charge_type" name="charge_type" defaultValue={cat.charge_type}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="assessment">assessment</option>
                 <option value="special_assessment">special_assessment</option>
                 <option value="late_fee">late_fee</option>
@@ -89,7 +89,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             <div>
               <Label htmlFor="gl_account_id">Income GL account</Label>
               <select id="gl_account_id" name="gl_account_id" defaultValue={cat.gl_account_id ?? ''}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
                 <option value="">â€”</option>
                 {(gls ?? []).map((g: any) => (
                   <option key={g.id} value={g.id}>{g.number} â€” {g.name}</option>
@@ -99,7 +99,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             <div className="md:col-span-2">
               <Label htmlFor="description">Description</Label>
               <textarea id="description" name="description" rows={2} defaultValue={cat.description ?? ''}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" />
+                className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm" />
             </div>
 
             <div className="md:col-span-2 flex gap-6 text-sm">

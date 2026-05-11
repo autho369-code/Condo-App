@@ -22,7 +22,19 @@ export default async function LedgerPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Account ledger</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-100 pb-7">
+        <div>
+          <div className="eyebrow">Resident</div>
+          <h1 className="mt-2 font-display text-4xl tracking-editorial text-ink-900">Account ledger</h1>
+          <p className="mt-2 text-[15px] text-ink-500">Charges and payments on your unit, oldest hidden behind newest.</p>
+        </div>
+        <a
+          href="/portal/statement"
+          className="inline-flex h-10 items-center rounded-md border border-ink-200 bg-white px-5 text-sm font-medium text-ink-800 hover:border-ink-300 hover:bg-cream-50 transition-colors"
+        >
+          View printable statement →
+        </a>
+      </div>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Charges</h2>

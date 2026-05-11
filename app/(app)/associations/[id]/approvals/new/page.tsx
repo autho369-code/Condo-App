@@ -106,28 +106,28 @@ export default async function NewApprovalPage({
       <form action={createApproval as any} className="max-w-3xl space-y-5">
         <Section title="Details" padded>
           <FormRow label="Name" required>
-            <input type="text" name="name" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="name" required className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
 
           <FormRow label="Amount">
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">$</span>
-              <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <span className="text-ink-500">$</span>
+              <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </FormRow>
 
           <FormRow label="Description" required>
-            <textarea name="description" required rows={4} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <textarea name="description" required rows={4} className="w-full max-w-lg resize-y rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
 
           <FormRow label="Due Date" required>
-            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="w-44 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
 
           <FormRow label="Board Members" required>
             <div className="flex flex-col gap-1.5">
               {(members ?? []).length === 0 ? (
-                <div className="text-sm italic text-gray-500">
+                <div className="text-sm italic text-ink-500">
                   No active board members. Add some on the Board of Directors tab.
                 </div>
               ) : (members ?? []).map((m: any) => (
@@ -138,14 +138,14 @@ export default async function NewApprovalPage({
                     value={m.id}
                     defaultChecked={initiallyChecked.has(m.id)}
                   />
-                  {m.full_name} <span className="text-gray-500">({humanRole(m.role)})</span>
+                  {m.full_name} <span className="text-ink-500">({humanRole(m.role)})</span>
                 </label>
               ))}
             </div>
           </FormRow>
 
           <FormRow label="Voting Scheme">
-            <select name="voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <select name="voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="majority_approval_required">Majority Approval Required</option>
               <option value="unanimous_approval_required">Unanimous Approval Required</option>
               <option value="any_one_approver">Any One Approver</option>
@@ -153,8 +153,8 @@ export default async function NewApprovalPage({
             </select>
           </FormRow>
 
-          <div className="my-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-gray-700">
-            <span className="mr-1 text-blue-600">â“˜</span>
+          <div className="my-4 rounded border border-blue-200 bg-champagne-50 px-3 py-2 text-sm text-ink-700">
+            <span className="mr-1 text-champagne-600">â“˜</span>
             Clicking &quot;Send for Approval&quot; will email this new approval to your selected board members.
           </div>
 
@@ -167,10 +167,10 @@ export default async function NewApprovalPage({
         </Section>
 
         <Section title="Attachments" padded>
-          <div className="rounded border-2 border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
+          <div className="rounded border-2 border-dashed border-ink-200 py-8 text-center text-sm text-ink-500">
             Drag Files Here&nbsp;&nbsp;or&nbsp;&nbsp;
             <Button type="button" size="sm" variant="secondary" disabled>Choose Files to Add</Button>
-            <div className="mt-1 text-xs text-gray-400">Attachment upload pending Storage bucket wiring</div>
+            <div className="mt-1 text-xs text-ink-400">Attachment upload pending Storage bucket wiring</div>
           </div>
         </Section>
       </form>
@@ -185,8 +185,8 @@ function FormRow({
 }) {
   return (
     <div className="mb-3 grid grid-cols-[140px_1fr] items-start gap-x-3 gap-y-1">
-      <label className="pt-1.5 text-sm text-gray-600">
-        {label}{required && <span className="ml-0.5 text-red-600">*</span>}
+      <label className="pt-1.5 text-sm text-ink-600">
+        {label}{required && <span className="ml-0.5 text-bordeaux-600">*</span>}
       </label>
       <div>{children}</div>
     </div>

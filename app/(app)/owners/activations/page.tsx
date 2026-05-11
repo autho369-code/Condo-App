@@ -62,10 +62,10 @@ export default async function OwnerActivationsPage({
       actions={<Link href="/owners/forms?template=portal_activation" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Prepare activation</Link>}
       rail={
         <div className="space-y-3 text-sm">
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
             Sending activation links is confirmation-gated. Use the prepare action to stage recipients and message copy.
           </div>
-          <Link href="/reports?slug=owner-directory" className="block rounded border border-gray-200 p-3 hover:bg-gray-50">Owner directory report</Link>
+          <Link href="/reports?slug=owner-directory" className="block rounded border border-ink-100 p-3 hover:bg-cream-50">Owner directory report</Link>
         </div>
       }
     >
@@ -91,19 +91,19 @@ export default async function OwnerActivationsPage({
           </THead>
           <tbody>
             {rows.map(({ owner, invitation }) => (
-              <TR key={owner.id} className="hover:bg-gray-50">
+              <TR key={owner.id} className="hover:bg-cream-50">
                 <TD>
-                  <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
-                  <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                  <Link href={`/owners/${owner.id}`} className="font-medium text-champagne-700 hover:underline">{owner.full_name}</Link>
+                  <div className="mt-1 text-xs text-ink-500">{owner.email}</div>
                 </TD>
                 <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Active' : 'Needs invite'}</StatusChip></TD>
                 <TD>
-                  <div className="capitalize text-gray-900">{invitation?.status?.replace(/_/g, ' ') ?? 'No invitation'}</div>
-                  <div className="mt-1 text-xs text-gray-500">Created {date(invitation?.created_at)} - Expires {date(invitation?.expires_at)}</div>
+                  <div className="capitalize text-ink-900">{invitation?.status?.replace(/_/g, ' ') ?? 'No invitation'}</div>
+                  <div className="mt-1 text-xs text-ink-500">Created {date(invitation?.created_at)} - Expires {date(invitation?.expires_at)}</div>
                 </TD>
                 <TD>{date(owner.portal_login_last_at)}</TD>
                 <TD>
-                  <Link href={`/owners/forms?owner=${owner.id}&template=portal_activation`} className="text-sm font-medium text-blue-700 hover:underline">
+                  <Link href={`/owners/forms?owner=${owner.id}&template=portal_activation`} className="text-sm font-medium text-champagne-700 hover:underline">
                     Stage activation
                   </Link>
                 </TD>

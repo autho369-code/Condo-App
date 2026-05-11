@@ -1,53 +1,99 @@
-// ManageOps brand mark + wordmark.
-// Pure SVG, no image asset required. Theme-able via Tailwind currentColor.
+// Portier brand mark — editorial monogram with champagne accent.
+// "Address-plate" badge: ink slab + serif "P" with a champagne accent dot
+// reading as a polished hardware finish.
 //
 // Usage:
-//   <ManageOpsLogo />            → mark + wordmark (default)
-//   <ManageOpsLogo markOnly />   → just the geometric mark
-//   <ManageOpsLogo size="sm" />  → smaller variant for footers
+//   <ManageOpsLogo />                  → mark + wordmark
+//   <ManageOpsLogo markOnly />         → just the badge
+//   <ManageOpsLogo size="sm" />        → footer / dense areas
+//   <ManageOpsLogo tone="dark" />      → for use on cream backgrounds
+//   <ManageOpsLogo tone="light" />     → for use on ink backgrounds
 import * as React from 'react';
 
 type Props = {
   markOnly?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  tone?: 'dark' | 'light';
   className?: string;
 };
 
-export function ManageOpsLogo({ markOnly = false, size = 'md', className = '' }: Props) {
-  const heights = { sm: 20, md: 28, lg: 36 } as const;
+export function ManageOpsLogo({
+  markOnly = false,
+  size = 'md',
+  tone = 'dark',
+  className = '',
+}: Props) {
+  const heights = { sm: 22, md: 30, lg: 40 } as const;
   const h = heights[size];
 
+  const wordColor = tone === 'light' ? 'text-cream-50' : 'text-ink-900';
+  const subColor  = tone === 'light' ? 'text-cream-300' : 'text-ink-500';
+  const plateBg   = tone === 'light' ? '#F8F4EC' : '#121110';
+  const plateInk  = tone === 'light' ? '#121110' : '#F8F4EC';
+
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="ManageOps">
+    <span className={`inline-flex items-center gap-3 ${className}`} aria-label="Portier">
       <svg
         height={h}
         width={h}
-        viewBox="0 0 32 32"
+        viewBox="0 0 40 40"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-hidden="true"
       >
-        <defs>
-          <linearGradient id="mo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#1d4ed8" />
-          </linearGradient>
-        </defs>
-        <rect x="2" y="2" width="28" height="28" rx="7" fill="url(#mo-grad)" />
-        {/* Stylized "M" — two upstrokes meeting at apex */}
-        <path
-          d="M9 22 L9 11 L13 11 L16 16 L19 11 L23 11 L23 22 L20 22 L20 15.5 L17 20 L15 20 L12 15.5 L12 22 Z"
-          fill="white"
+        {/* Address plate */}
+        <rect
+          x="1" y="1" width="38" height="38" rx="6"
+          fill={plateBg}
+          stroke="#A8884A" strokeOpacity="0.55" strokeWidth="0.75"
         />
+        {/* Hairline interior frame */}
+        <rect
+          x="3.5" y="3.5" width="33" height="33" rx="4"
+          fill="none"
+          stroke={plateInk} strokeOpacity="0.10" strokeWidth="0.5"
+        />
+        {/* Serif "P" — vertical stem with a stroked semi-circle */}
+        <path
+          d="M 14 11 L 14 29"
+          fill="none"
+          stroke={plateInk}
+          strokeWidth="3.4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 14 11.5 L 22 11.5 A 4.6 4.6 0 0 1 22 20.7 L 14 20.7"
+          fill="none"
+          stroke={plateInk}
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Champagne accent dot — like a brass period in the wordmark */}
+        <circle cx="29" cy="29" r="1.7" fill="#C2A361" />
       </svg>
       {!markOnly && (
-        <span
-          className="font-semibold tracking-tight text-gray-900"
-          style={{ fontSize: size === 'sm' ? '0.95rem' : size === 'lg' ? '1.4rem' : '1.15rem' }}
-        >
-          ManageOps
+        <span className="flex flex-col leading-none">
+          <span
+            className={`font-display ${wordColor}`}
+            style={{
+              fontSize: size === 'sm' ? '1.05rem' : size === 'lg' ? '1.55rem' : '1.25rem',
+              letterSpacing: '-0.025em',
+              fontWeight: 500,
+            }}
+          >
+            Portier<span className="text-champagne-500">.</span>
+          </span>
+          {size !== 'sm' && (
+            <span className={`mt-1 text-[10px] uppercase tracking-[0.22em] ${subColor}`}>
+              Property operations, refined.
+            </span>
+          )}
         </span>
       )}
     </span>
   );
 }
+
+// Brand-renamed alias — use either name; they resolve to the same component.
+export const PortierLogo = ManageOpsLogo;

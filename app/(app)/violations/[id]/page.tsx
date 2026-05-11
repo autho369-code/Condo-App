@@ -46,37 +46,37 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
           { label: 'Fine', value: violation.fine_amount ? money(violation.fine_amount) : '-' },
         ]} />
 
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-gray-950">Violation details</h2>
+        <section className="rounded border border-ink-100 bg-white p-5">
+          <h2 className="text-sm font-semibold text-ink-900">Violation details</h2>
           <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
             <Info label="Type" value={formatStatus(violation.violation_type)} />
             <Info label="Reported" value={date(violation.reported_date)} />
             <Info label="Hearing" value={date(violation.hearing_date)} />
             <Info label="Fine assessed" value={date(violation.fine_assessed_at)} />
           </div>
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{violation.description ?? 'No description provided.'}</p>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-ink-700">{violation.description ?? 'No description provided.'}</p>
         </section>
 
-        <section className="rounded border border-gray-200 bg-white">
-          <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-950">Timeline</h2></div>
+        <section className="rounded border border-ink-100 bg-white">
+          <div className="border-b border-ink-100 px-5 py-3"><h2 className="text-sm font-semibold text-ink-900">Timeline</h2></div>
           {(updates ?? []).length > 0 ? (
             <div className="divide-y divide-gray-100">
               {(updates ?? []).map((update: any) => (
                 <div key={update.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between text-xs text-gray-500"><span>{update.profiles?.full_name ?? 'Staff'}</span><span>{date(update.created_at)}</span></div>
-                  <p className="mt-2 text-sm text-gray-700">{update.note}</p>
+                  <div className="flex items-center justify-between text-xs text-ink-500"><span>{update.profiles?.full_name ?? 'Staff'}</span><span>{date(update.created_at)}</span></div>
+                  <p className="mt-2 text-sm text-ink-700">{update.note}</p>
                   {update.new_status && <div className="mt-2"><StatusChip tone="info">{formatStatus(update.new_status)}</StatusChip></div>}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="px-5 py-8 text-center text-sm text-gray-500">No updates recorded yet.</div>
+            <div className="px-5 py-8 text-center text-sm text-ink-500">No updates recorded yet.</div>
           )}
         </section>
 
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-gray-950">Evidence and documents</h2>
-          <p className="mt-2 text-sm text-gray-500">{attachmentCount} attachment records on file. Upload and outbound delivery controls should require confirmation.</p>
+        <section className="rounded border border-ink-100 bg-white p-5">
+          <h2 className="text-sm font-semibold text-ink-900">Evidence and documents</h2>
+          <p className="mt-2 text-sm text-ink-500">{attachmentCount} attachment records on file. Upload and outbound delivery controls should require confirmation.</p>
         </section>
       </div>
     </DataWorkspace>
@@ -84,11 +84,11 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
 }
 
 function DetailRail() {
-  return <div className="space-y-3 text-sm text-gray-600"><h2 className="text-sm font-semibold text-gray-950">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Violation log report</Link></div>;
+  return <div className="space-y-3 text-sm text-ink-600"><h2 className="text-sm font-semibold text-ink-900">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-ink-100 px-3 py-2 font-medium text-ink-700 hover:bg-cream-50">Violation log report</Link></div>;
 }
 
 function Info({ label, value }: { label: string; value: ReactNode }) {
-  return <div><div className="text-xs font-medium uppercase text-gray-500">{label}</div><div className="mt-1 text-gray-900">{value}</div></div>;
+  return <div><div className="text-xs font-medium uppercase text-ink-500">{label}</div><div className="mt-1 text-ink-900">{value}</div></div>;
 }
 
 function formatStatus(value: string | null | undefined) {

@@ -67,20 +67,20 @@ export default async function NewUnitPage({
       }
       rail={
         <>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Required</div>
-          <ul className="mb-5 space-y-1 text-sm text-gray-700">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">Required</div>
+          <ul className="mb-5 space-y-1 text-sm text-ink-700">
             <li>• Building</li>
             <li>• Unit number</li>
             <li>• Ownership percentage (for assessment math)</li>
           </ul>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Optional</div>
-          <ul className="space-y-1 text-sm text-gray-700">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">Optional</div>
+          <ul className="space-y-1 text-sm text-ink-700">
             <li>• Square footage</li>
             <li>• Bedrooms / bathrooms</li>
             <li>• Parking + storage</li>
             <li>• Internal notes</li>
           </ul>
-          <div className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+          <div className="mt-6 rounded-md border border-blue-200 bg-champagne-50 p-3 text-xs text-blue-900">
             <strong>Ownership %</strong> is used to split common-area charges like reserves and maintenance. Most condos use square-footage-weighted percentages — when in doubt, the declaration of CC&amp;R&apos;s will have the exact values.
           </div>
         </>
@@ -89,7 +89,7 @@ export default async function NewUnitPage({
       {needsBuilding ? (
         <Section title="You need a building first">
           <div className="px-5 py-5">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-ink-700">
               Units live under buildings. {contextAssociation ? (<>This association (<strong>{contextAssociation.name}</strong>) has no buildings yet.</>) : 'No buildings found in your portfolio yet.'}
             </p>
             {contextAssociation ? (
@@ -124,7 +124,7 @@ export default async function NewUnitPage({
               <div>
                 <Label htmlFor="building_id">Building <span className="text-red-500">*</span></Label>
                 <select id="building_id" name="building_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                   <option value="">Choose a building…</option>
                   {(buildings ?? []).map((b: any) => (
                     <option key={b.id} value={b.id}>
@@ -147,8 +147,8 @@ export default async function NewUnitPage({
             </div>
 
             {/* --- Size --- */}
-            <div className="border-t border-gray-100 pt-5">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Size & layout</div>
+            <div className="border-t border-ink-100 pt-5">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500">Size & layout</div>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>
                   <Label htmlFor="bedrooms">Bedrooms</Label>
@@ -170,8 +170,8 @@ export default async function NewUnitPage({
             </div>
 
             {/* --- Parking / storage --- */}
-            <div className="border-t border-gray-100 pt-5">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Parking & storage</div>
+            <div className="border-t border-ink-100 pt-5">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500">Parking & storage</div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="parking_spaces">Parking spaces</Label>
@@ -185,18 +185,18 @@ export default async function NewUnitPage({
             </div>
 
             {/* --- Notes --- */}
-            <div className="border-t border-gray-100 pt-5">
+            <div className="border-t border-ink-100 pt-5">
               <Label htmlFor="notes">Internal notes (optional)</Label>
               <textarea
                 id="notes" name="notes" rows={3}
                 placeholder="Anything staff should know — entry instructions, pet policy exception, etc."
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
 
             {/* --- Actions --- */}
-            <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-              <Link href={contextAssociation ? `/associations/${contextAssociation.id}` : '/units'} className="text-sm text-gray-600 hover:text-gray-900">
+            <div className="flex items-center justify-between border-t border-ink-100 pt-5">
+              <Link href={contextAssociation ? `/associations/${contextAssociation.id}` : '/units'} className="text-sm text-ink-600 hover:text-ink-900">
                 Cancel
               </Link>
               <Button type="submit" size="lg">Create unit</Button>
