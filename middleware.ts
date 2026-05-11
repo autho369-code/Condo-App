@@ -1,99 +1,72 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
-import { resolveTenantFromHost, APEX_DOMAIN } from '@/lib/tenant/resolve';
 import { createServerClient } from '@supabase/ssr';
+import { updateSession } from '@/lib/supabase/middleware';
 import type { Database } from '@/lib/types/database';
 
+const APEX_DOMAIN = process.env.NEXT_PUBLIC_PORTIER_APEX_DOMAIN ?? 'portier369.com';
+const RESERVED_SUBDOMAINS = new Set(['www', 'app', 'api', 'admin', 'platform', 'auth', 'mail', 'smtp']);
+
 const GUARD_EXEMPT_PREFIXES = [
-  '/login',
-  '/signup',
-  '/request-access',
-  '/forgot-password',
-  '/reset-password',
-  '/accept-invitation',
-  '/api/',
-  '/_next/',
+  '/login', '/signup', '/request-access', '/forgot-password', '/reset-password',
+  '/accept-invitation', '/api/', '/_next/',
 ];
 
 export async function middleware(request: NextRequest) {
-  // 1) Resolve the tenant for this host (returns null if service key absent)
-  const host = request.headers.get('host');
-  const tenant = await resolveTenantFromHost(host);
-
-  // 2) Run Supabase auth refresh / public-path gate
+  // 1) Run Supabase auth refresh / public-path gate (existing behaviour)
   const response = await updateSession(request);
 
-  // 3) Forward tenant headers to server components
+  // 2) Resolve tenant for this host using anon-role lookup against the
+  //    public RPC. No service-role import, no transitive Node-only deps —
+  //    keeps the middleware bundle tiny and Edge-compatible.
+  const host = request.headers.get('host');
+  const tenant = await resolveTenant(request, host);
+
   if (tenant) {
     response.headers.set('x-portier-tenant-slug', tenant.slug);
     response.headers.set('x-portier-tenant-id', tenant.portfolio_id);
     response.headers.set('x-portier-tenant-name', tenant.company_name);
   }
 
-  // 4) Cross-tenant URL guard — only when fully configured
-  if (
-    tenant &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY &&
-    shouldEnforceTenantGuard(request)
-  ) {
-    try {
-      const userPortfolioId = await getUserPortfolioId(request);
-      if (userPortfolioId && userPortfolioId !== tenant.portfolio_id) {
-        const correctSlug = await getPortfolioSlug(userPortfolioId);
-        if (correctSlug) {
-          const url = new URL(request.url);
-          url.host = `${correctSlug}.${APEX_DOMAIN}`;
-          url.searchParams.set('redirected_from', tenant.slug);
-          return NextResponse.redirect(url);
-        }
-      }
-    } catch (err) {
-      console.warn('[tenant-guard]', err);
-      // Fall through — the user just sees an empty workspace, but no crash.
-    }
-  }
-
   return response;
 }
 
-function shouldEnforceTenantGuard(req: NextRequest): boolean {
-  const path = req.nextUrl.pathname;
-  return !GUARD_EXEMPT_PREFIXES.some((p) => path.startsWith(p));
-}
+async function resolveTenant(request: NextRequest, host: string | null) {
+  if (!host) return null;
+  const h = host.toLowerCase().split(':')[0];
+  if (h === APEX_DOMAIN || h === `www.${APEX_DOMAIN}`) return null;
+  if (h === 'localhost' || h.startsWith('localhost:')) return null;
+  if (h.endsWith('.vercel.app')) return null;
 
-async function getUserPortfolioId(request: NextRequest): Promise<string | null> {
-  const supa = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll() {},
+  // Quick subdomain shape check; full resolution happens in the RPC
+  if (h.endsWith(`.${APEX_DOMAIN}`)) {
+    const sub = h.slice(0, h.lastIndexOf(`.${APEX_DOMAIN}`));
+    if (!sub || sub.includes('.') || RESERVED_SUBDOMAINS.has(sub)) return null;
+  }
+
+  // Use the SSR client with anon key — same role the marketing pages use
+  try {
+    const supa = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll(); },
+          setAll() {},
+        },
       },
-    },
-  );
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await (supa as any)
-    .from('profiles')
-    .select('portfolio_id')
-    .eq('id', user.id)
-    .maybeSingle();
-  return profile?.portfolio_id ?? null;
-}
-
-async function getPortfolioSlug(portfolioId: string): Promise<string | null> {
-  const supa = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll() { return []; }, setAll() {} } },
-  );
-  const { data } = await (supa as any)
-    .from('portfolios')
-    .select('slug')
-    .eq('id', portfolioId)
-    .maybeSingle();
-  return data?.slug ?? null;
+    );
+    const { data, error } = await (supa as any).rpc('resolve_portfolio_for_host', { p_host: host });
+    if (error || !data) return null;
+    const row = (data as any[])[0];
+    if (!row) return null;
+    return {
+      portfolio_id: row.id as string,
+      slug:         row.slug as string,
+      company_name: row.company_name as string,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export const config = {
