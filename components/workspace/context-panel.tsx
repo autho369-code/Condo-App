@@ -2,6 +2,26 @@
 import Link from 'next/link';
 import * as React from 'react';
 
+const PLACEHOLDER_HREFS = new Set([
+  '/assessments/update',
+  '/unit-types/new',
+  '/bank-transfers/new',
+  '/journal-entries/new',
+  '/charges/new',
+  '/fixed-assets/new',
+  '/forms/new',
+  '/gl-accounts/new',
+  '/inspections/new',
+  '/inventory/new',
+  '/letters/new',
+  '/projects/new',
+  '/purchase-orders/new',
+  '/recurring-work-orders/new',
+  '/scheduled-reports/new',
+  '/surveys/new',
+  '/unit-turns/new',
+]);
+
 export function ContextPanel({
   title = 'Tasks',
   children,
@@ -42,7 +62,26 @@ export function PanelSection({
   );
 }
 
-export function PanelLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function PanelLink({
+  href,
+  children,
+  status,
+}: {
+  href: string;
+  children: React.ReactNode;
+  status?: 'ready' | 'placeholder';
+}) {
+  const isPlaceholder = status === 'placeholder' || href === '#' || href.startsWith('/help/') || PLACEHOLDER_HREFS.has(href);
+  if (isPlaceholder) {
+    return (
+      <li>
+        <span className="block rounded border border-dashed border-amber-300 bg-amber-50 px-2 py-1.5 text-sm text-amber-900">
+          {children}
+          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
+        </span>
+      </li>
+    );
+  }
   return (
     <li>
       <Link href={href} className="block text-sm text-blue-700 hover:underline">

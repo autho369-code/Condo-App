@@ -46,7 +46,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               <span>· HOA &amp; condo management, reimagined</span>
             </div>
             <div className="flex gap-6">
-              <Link href="/pricing">Pricing</Link>
+              <Link href="/#pricing">Pricing</Link>
               <Link href="/login">Sign in</Link>
               <a href="mailto:hello@condo-app.example">Contact</a>
             </div>

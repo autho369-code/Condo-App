@@ -1,13 +1,15 @@
 import { requireStaff } from '@/lib/auth/me';
 import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/context-panel';
+import { SectionShell } from '@/components/workspace/section-shell';
 
 export const dynamic = 'force-dynamic';
 
 export default async function WorkOrdersLayout({ children }: { children: React.ReactNode }) {
   await requireStaff();
   return (
-    <div className="flex h-screen bg-[#faf6f1]">
-      <div className="flex-1 overflow-y-auto">{children}</div>
+    <SectionShell
+      className="bg-[#faf6f1]"
+      panel={
       <ContextPanel>
         <PanelSection title="Tasks">
           <PanelLink href="/work-orders/new">+ New work order</PanelLink>
@@ -27,6 +29,9 @@ export default async function WorkOrdersLayout({ children }: { children: React.R
           <PanelLink href="#">Converting a service request to a WO</PanelLink>
         </PanelSection>
       </ContextPanel>
-    </div>
+      }
+    >
+      {children}
+    </SectionShell>
   );
 }
