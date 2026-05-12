@@ -592,7 +592,7 @@ Right pane:
 Supabase wiring:
 
 - `journal_entries`
-- `journal_entry_lines`
+- `journal_lines`
 - `gl_accounts`
 - `associations`
 - `recurring_journal_entries`
@@ -634,7 +634,7 @@ Supabase wiring:
 
 - `gl_accounts`
 - `gl_account_permissions`
-- `journal_entry_lines`
+- `journal_lines`
 
 Status:
 

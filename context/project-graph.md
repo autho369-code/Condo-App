@@ -40,6 +40,11 @@ flowchart LR
 | Accounting Receipts | `/charges` | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts` | Initial UI aligned |
 | Accounting Bank Accounts | `/bank-accounts` | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Initial UI aligned |
 | Accounting Bank Transfers | `/bank-transfers` | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Initial UI aligned |
-| Accounting Journal Entries | `/journal-entries` | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations` | Initial UI aligned |
-| Accounting GL Accounts | `/gl-accounts` | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Initial UI aligned |
+| Accounting Journal Entries | `/journal-entries` | `journal_entries`, `journal_lines`, `gl_accounts`, `associations` | Initial UI aligned |
+| Accounting GL Accounts | `/gl-accounts` | `gl_accounts`, `gl_account_permissions`, `journal_lines` | Initial UI aligned |
 | Accounting Financial Diagnostics | `/diagnostics` | `financial_diagnostics`, `bank_accounts`, `gl_accounts`, `charges`, `payments`, `associations` | Initial UI aligned; source table review pending |
+| Homeowner Receipt | `/payments/new` | `payments`, `units`, `bank_accounts`, `gl_accounts` | Writes to Supabase |
+| Homeowner Charge | `/charges/new` | `charges` via `post_ad_hoc_charge`, `charge_categories`, `units` | Writes to Supabase |
+| Bank Transfer | `/bank-transfers/new` | `bank_transfers`, `bank_accounts` | Writes to Supabase |
+| New Journal Entry | `/journal-entries/new` | `journal_entries`, `journal_lines`, `gl_accounts`, `associations` | Writes to Supabase |
+| New GL Account | `/gl-accounts/new` | `gl_accounts`, `associations` | Writes to Supabase |

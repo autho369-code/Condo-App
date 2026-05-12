@@ -7,9 +7,9 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
           <PanelLink href="/gl-accounts/new">New GL Account</PanelLink>
-          <PanelLink href="/gl-account-maps/new">New GL Account Map</PanelLink>
-          <PanelLink href="/gl-accounts/permissions">Manage GL Account Permissions</PanelLink>
-          <PanelLink href="/gl-accounts/reactivate">Reactivate GL Account</PanelLink>
+          <PanelLink href="/gl-account-maps/new" status="placeholder">New GL Account Map</PanelLink>
+          <PanelLink href="/gl-accounts/permissions" status="placeholder">Manage GL Account Permissions</PanelLink>
+          <PanelLink href="/gl-accounts/reactivate" status="placeholder">Reactivate GL Account</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>

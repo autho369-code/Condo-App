@@ -22,7 +22,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `bank_transfers` | Keep | Inter-account transfer workflow. |
 | `gl_accounts` | Keep | Chart of accounts and accounting reports. |
 | `journal_entries` | Keep | Journal-entry history and posting workflows. |
-| `journal_entry_lines` | Keep | Journal-entry detail rows and general-ledger reporting. |
+| `journal_lines` | Keep | Journal-entry detail rows and general-ledger reporting. |
 | `payments` | Keep | Receipts and payment applications. |
 | `charges` | Keep | Homeowner charges, credits, and receivable balances. |
 
@@ -55,9 +55,14 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Accounting Receipts | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts`, `bank_accounts` | Initial UI aligned; deeper actions pending. |
 | Accounting Bank Accounts | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Existing route wired; initial UI aligned. |
 | Accounting Bank Transfers | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Existing route wired; initial UI aligned. |
-| Accounting Journal Entries | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations`, `recurring_journal_entries`, `journal_entry_batches` | Existing route wired; initial UI aligned. |
-| Accounting GL Accounts | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Existing route wired; initial UI aligned. |
+| Accounting Journal Entries | `journal_entries`, `journal_lines`, `gl_accounts`, `associations`, `recurring_journal_entries`, `journal_entry_batches` | Existing route wired; initial UI aligned. |
+| Accounting GL Accounts | `gl_accounts`, `gl_account_permissions`, `journal_lines` | Existing route wired; initial UI aligned. |
 | Accounting Financial Diagnostics | `financial_diagnostics`, `gl_accounts`, `bank_accounts`, `bank_reconciliations`, `owners`, `charges`, `payments`, `associations` | Initial UI aligned; accounting diagnostic source pending review. |
+| Homeowner Receipt | `payments`, `units`, `bank_accounts`, `gl_accounts` | `/payments/new` writes receipts into Supabase. |
+| Homeowner Charge | `charges`, `charge_categories`, `units` | `/charges/new` writes through existing `post_ad_hoc_charge` RPC. |
+| Bank Transfer | `bank_transfers`, `bank_accounts` | `/bank-transfers/new` writes transfers into Supabase. |
+| New Journal Entry | `journal_entries`, `journal_lines`, `gl_accounts`, `associations` | `/journal-entries/new` writes balanced two-line entries into Supabase. |
+| New GL Account | `gl_accounts`, `associations` | `/gl-accounts/new` writes chart accounts into Supabase. |
 
 ## Cleanup Rule
 

@@ -5,12 +5,8 @@ import * as React from 'react';
 const PLACEHOLDER_HREFS = new Set([
   '/assessments/update',
   '/unit-types/new',
-  '/bank-transfers/new',
-  '/journal-entries/new',
-  '/charges/new',
   '/fixed-assets/new',
   '/forms/new',
-  '/gl-accounts/new',
   '/inspections/new',
   '/inventory/new',
   '/letters/new',
