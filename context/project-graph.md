@@ -13,7 +13,13 @@ flowchart LR
   Supabase --> Associations["associations"]
   Supabase --> Units["units"]
   Supabase --> Owners["owners"]
-  Supabase --> Accounting["bank accounts / GL accounts"]
+  Supabase --> Accounting["accounting tables"]
+  Accounting --> BankAccounts["bank_accounts"]
+  Accounting --> Transfers["bank_transfers"]
+  Accounting --> GL["gl_accounts"]
+  Accounting --> Journals["journal_entries"]
+  Accounting --> Receivables["payments / charges"]
+  Accounting --> Diagnostics["financial_diagnostics"]
   Supabase --> Storage["uploads / storage"]
 
   Associations --> Units
@@ -31,3 +37,9 @@ flowchart LR
 | Vendors Directory | `/vendors` | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | Screenshot captured |
 | Send Email Homeowners | Modal / future route | `owners`, `email_queue`, `communication_messages` | Screenshot captured |
 | Move In Homeowner | Future route | `owners`, `occupancies`, `units`, `associations`, `documents` | Needs terminology decision |
+| Accounting Receipts | Future route / receivables | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts` | Screenshot captured |
+| Accounting Bank Accounts | `/bank-accounts` | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Wired, needs UI alignment |
+| Accounting Bank Transfers | `/bank-transfers` | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Wired, needs UI alignment |
+| Accounting Journal Entries | `/journal-entries` | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations` | Wired, needs UI alignment |
+| Accounting GL Accounts | `/gl-accounts` | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Wired, needs UI alignment |
+| Accounting Financial Diagnostics | `/diagnostics` | `financial_diagnostics`, `bank_accounts`, `gl_accounts`, `charges`, `payments`, `associations` | Needs table/view review |

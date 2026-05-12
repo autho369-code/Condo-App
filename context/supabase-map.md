@@ -18,6 +18,13 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `documents` | Keep | Needed for forms, owner packets, vendor document requests, and generated documents. |
 | `management_agreements` | Keep | Needed for owner/association management agreement workflows. |
 | `vendor_compliance` | Keep | Needed for vendor documents and compliance tracking. |
+| `bank_accounts` | Keep | Accounting bank-account directory and reconciliation workflows. |
+| `bank_transfers` | Keep | Inter-account transfer workflow. |
+| `gl_accounts` | Keep | Chart of accounts and accounting reports. |
+| `journal_entries` | Keep | Journal-entry history and posting workflows. |
+| `journal_entry_lines` | Keep | Journal-entry detail rows and general-ledger reporting. |
+| `payments` | Keep | Receipts and payment applications. |
+| `charges` | Keep | Homeowner charges, credits, and receivable balances. |
 
 ## Needs Review
 
@@ -28,6 +35,12 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `association_lease_template_settings` | Lease workflow excluded from Association setup. | Remove/deprecate after data dependency check. | Pending |
 | `association_renewal_options` | Renewal workflow excluded from Association setup. | Remove/deprecate after data dependency check. | Pending |
 | `report_data_property_directory` | Property terminology. | Rename/replace with association/unit directory report. | Pending |
+| `financial_diagnostics` | Needed by reference screenshot but current backing table/view must be confirmed. | Keep or create a view only after schema audit. | Pending |
+| `bank_reconciliations` | Needed for bank account and diagnostic screens, current schema must be confirmed. | Keep if present; otherwise map existing reconciliation source. | Pending |
+| `bank_feed_connections` | Needed for Bank Feed / Link With Bank tasks, current schema must be confirmed. | Keep if present; otherwise mark future integration. | Pending |
+| `gl_account_permissions` | Needed by GL account permissions task, current schema must be confirmed. | Keep if present; otherwise mark future workflow. | Pending |
+| `recurring_journal_entries` | Needed by journal-entry screenshot, current schema must be confirmed. | Keep if present; otherwise mark future workflow. | Pending |
+| `journal_entry_batches` | Needed by journal-entry batch upload screenshot, current schema must be confirmed. | Keep if present; otherwise mark future workflow. | Pending |
 
 ## Screen Wiring
 
@@ -39,6 +52,12 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Vendors Directory | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | UI simplified to screenshot structure; deeper actions pending. |
 | Send Email Homeowners Modal | `owners`, `email_queue`, `communication_messages` | Captured, not implemented. |
 | Move In Homeowner | `owners`, `occupancies`, `units`, `associations`, `documents` | Captured, terminology decision pending. |
+| Accounting Receipts | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts`, `bank_accounts` | Captured, implementation pending. |
+| Accounting Bank Accounts | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Existing route wired; UI alignment pending. |
+| Accounting Bank Transfers | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Existing route wired; UI alignment pending. |
+| Accounting Journal Entries | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations`, `recurring_journal_entries`, `journal_entry_batches` | Existing route wired; UI alignment pending. |
+| Accounting GL Accounts | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Existing route wired; UI alignment pending. |
+| Accounting Financial Diagnostics | `financial_diagnostics`, `gl_accounts`, `bank_accounts`, `bank_reconciliations`, `owners`, `charges`, `payments`, `associations` | Current route is data diagnostics; accounting diagnostic source pending review. |
 
 ## Cleanup Rule
 

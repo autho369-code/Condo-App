@@ -364,6 +364,328 @@ Status:
 - Approved from screenshot.
 - Not fully wired yet.
 
+## Accounting Shared Pattern
+
+Screenshots:
+
+- ![Receipts](screenshots/2026-05-12-accounting-receipts.png)
+- ![Bank Accounts](screenshots/2026-05-12-accounting-bank-accounts.png)
+- ![Bank Transfers](screenshots/2026-05-12-accounting-bank-transfers.png)
+- ![Journal Entries](screenshots/2026-05-12-accounting-journal-entries.png)
+- ![GL Accounts](screenshots/2026-05-12-accounting-gl-accounts.png)
+- ![Financial Diagnostics](screenshots/2026-05-12-accounting-financial-diagnostics.png)
+
+Layout:
+
+- Left pane: Accounting expanded with the current accounting item selected.
+- Center pane: accounting tabs across the top, then the selected accounting workflow.
+- Right pane: contextual Tasks / Reports / Help Topics only.
+
+Center accounting tabs:
+
+- Receivables
+- Payables
+- Bank Accounts
+- Journal Entries
+- Bank Transfers
+- GL Accounts
+- Diagnostics
+
+Design note:
+
+- These pages should stay plain and operational: compact filters, search boxes, tables, pagination, and forms.
+- Do not add dashboard metric strips or marketing-style descriptions to these accounting list screens.
+
+Status:
+
+- Approved reference batch saved locally.
+- UI comparison complete; implementation pending.
+
+## Accounting Receipts
+
+Screenshot:
+
+![Accounting Receipts](screenshots/2026-05-12-accounting-receipts.png)
+
+Center pane:
+
+- Receivables tab active.
+- Receivables subtabs:
+  - Receipts
+  - Charges
+  - Bank Deposits
+  - Homeowner Delinquencies
+  - Chargeback Insights
+- Title: Receipts.
+- Search box.
+- Table columns:
+  - Date
+  - Payer
+  - GL Account
+  - Association - Unit
+  - Amount
+  - Reference
+- Pagination.
+
+Right pane:
+
+- Homeowner Receipt
+- Vendor Receipt
+- Other Receipt
+- Subsidy Receipt
+- Homeowner Charge
+- Bulk Charges and Credits
+- Bulk Recurring Charges
+- Homeowner Credit
+- Apply Credits
+- Common Charge
+- Charge Late Fees
+- New Bank Deposit
+- Lockbox
+- Sign Up for Debt Collections
+- Resident Check Fee Settings
+
+Supabase wiring:
+
+- `payments`
+- `payment_applications`
+- `charges`
+- `owners`
+- `units`
+- `associations`
+- `gl_accounts`
+- `bank_accounts`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app needs route/workflow review.
+
+## Accounting Bank Accounts
+
+Screenshot:
+
+![Accounting Bank Accounts](screenshots/2026-05-12-accounting-bank-accounts.png)
+
+Center pane:
+
+- Bank Accounts tab active.
+- Title: Bank Accounts.
+- Filters:
+  - Account Name
+  - Bank
+  - More Filters
+  - Clear Filters
+- Table columns:
+  - Account Name
+  - Bank
+  - Account Number
+  - Last Reconciliation
+  - Payments Enabled
+  - Auto-Reconciliation
+- Pagination.
+
+Right pane:
+
+- New Bank Account
+- New Bank Deposit
+- Bank Feed
+- Reconcile
+- Close Accounting Period
+- Enable Bank Accounts for Online Payments
+- Link With Bank
+- Reports:
+  - Check Register
+  - Deposit Register
+  - Trust Account Balance
+  - Bank Account Association
+
+Supabase wiring:
+
+- `bank_accounts`
+- `associations`
+- `bank_reconciliations`
+- `bank_feed_connections`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app is wired but center pane has extra dashboard-style elements to remove in a later UI pass.
+
+## Accounting Bank Transfers
+
+Screenshot:
+
+![Accounting Bank Transfers](screenshots/2026-05-12-accounting-bank-transfers.png)
+
+Center pane:
+
+- Bank Transfers tab active.
+- Subtabs:
+  - Incomplete Transfers
+  - Completed Transfers
+- Title: Incomplete Transfers.
+- Actions:
+  - Transfer Individually
+  - Transfer as Group
+- Search by bank name and association name.
+- Transfer rows show:
+  - source bank account / association
+  - destination bank account / association
+  - created date
+  - amount
+  - incomplete status
+
+Right pane:
+
+- Reports:
+  - Bank Account Activity
+  - General Ledger
+
+Supabase wiring:
+
+- `bank_transfers`
+- `bank_accounts`
+- `associations`
+- `journal_entries`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app has a transfer table but needs incomplete/completed workflow shape.
+
+## Accounting Journal Entries
+
+Screenshot:
+
+![Accounting Journal Entries](screenshots/2026-05-12-accounting-journal-entries.png)
+
+Center pane:
+
+- Journal Entries tab active.
+- Subtabs:
+  - Journal Entry History
+  - Recurring Journal Entries
+  - Journal Entry Batches
+- Title: Journal Entries.
+- Filters:
+  - Property/Association search
+  - Show active/inactive associations
+  - GL Accounts
+  - Reference Number
+  - From / To dates
+- Results area.
+
+Right pane:
+
+- New Journal Entry
+- Post GPR
+- New Recurring Journal Entry
+- Upload Journal Entry Batch
+- View Journal Entry Batches
+- Manually Post Journal Entries
+- Reports:
+  - General Ledger
+  - Gross Potential Rent
+  - Journal Entry Register
+
+Supabase wiring:
+
+- `journal_entries`
+- `journal_entry_lines`
+- `gl_accounts`
+- `associations`
+- `recurring_journal_entries`
+- `journal_entry_batches`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app has a basic journal-entry table but not the reference filter workflow.
+
+## Accounting GL Accounts
+
+Screenshot:
+
+![Accounting GL Accounts](screenshots/2026-05-12-accounting-gl-accounts.png)
+
+Center pane:
+
+- GL Accounts tab active.
+- Title: Chart of Accounts.
+- Search box.
+- Flat table columns:
+  - GL Account
+  - Type
+
+Right pane:
+
+- Tasks:
+  - New GL Account
+  - New GL Account Map
+  - Manage GL Account Permissions
+  - Reactivate GL Account
+- Reports:
+  - General Ledger
+- Help Topics:
+  - Add or Edit GL Accounts
+
+Supabase wiring:
+
+- `gl_accounts`
+- `gl_account_permissions`
+- `journal_entry_lines`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app groups accounts by range; reference uses a flat chart list.
+
+## Accounting Financial Diagnostics
+
+Screenshot:
+
+![Accounting Financial Diagnostics](screenshots/2026-05-12-accounting-financial-diagnostics.png)
+
+Center pane:
+
+- Diagnostics tab active.
+- Title: Financial Diagnostics.
+- Filters:
+  - association/property search
+  - show all associations
+- Print action.
+- Diagnostic sections:
+  - Security Deposit Funds Mismatch
+  - Escrow Cash Account Balance Mismatch
+  - Non-Zero Security Clearing Account Balances
+  - Negative Balance on Additional Fee GL Accounts
+  - Positive Balance on Additional Fee GL Accounts
+  - Tenants and Homeowners With Unused Prepayments / Open Charges / Open Credits
+  - Prepayment Balance Mismatch
+  - Bank Account Reconciliation Lapses Over 60 Days
+
+Right pane:
+
+- Help Topics:
+  - Financial Diagnostics Help
+
+Supabase wiring:
+
+- `financial_diagnostics`
+- `gl_accounts`
+- `bank_accounts`
+- `bank_reconciliations`
+- `owners`
+- `charges`
+- `payments`
+- `associations`
+
+Status:
+
+- Captured from saved screenshot.
+- Current app shows data-quality diagnostic tiles; reference requires accounting diagnostic tables.
+
 ## Template
 
 ```markdown
