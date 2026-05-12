@@ -20,11 +20,13 @@ describe('platformModules', () => {
     const labels = platformModules.map((module) => module.label);
     expect(labels).toEqual([
       'Clients',
+      'Access requests',
       'Properties',
       'Owners',
       'Users',
+      'Operators',
       'Billing',
-      'System Health',
+      'System health',
     ]);
   });
 
