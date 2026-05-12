@@ -196,3 +196,78 @@ export async function applyCredits(formData: FormData) {
   revalidatePath('/credits/apply');
   redirect('/charges');
 }
+
+export async function createLockboxBatch(formData: FormData) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const amount = num(formData, 'check_amount');
+  const amountCents = Math.round(amount * 100);
+  const unitId = str(formData, 'unit_id');
+  const receivedAt = str(formData, 'received_at') ?? new Date().toISOString().slice(0, 10);
+  const bankAccountId = str(formData, 'bank_account_id');
+  const checkNumber = str(formData, 'check_number');
+  const providerBatchId = str(formData, 'provider_batch_id');
+
+  const { data: batch, error: batchError } = await (supabase as any)
+    .from('lockbox_batches')
+    .insert({
+      portfolio_id: me.portfolio?.id,
+      provider: required(str(formData, 'provider'), 'Provider'),
+      provider_batch_id: providerBatchId,
+      bank_account_id: bankAccountId,
+      batch_date: str(formData, 'batch_date') ?? receivedAt,
+      received_at: receivedAt,
+      deposit_reference: str(formData, 'deposit_reference'),
+      notes: str(formData, 'notes'),
+      total_amount_cents: amountCents,
+      total_items: amountCents > 0 ? 1 : 0,
+      status: 'received',
+    })
+    .select('id')
+    .single();
+
+  if (batchError) throw new Error(batchError.message);
+
+  let paymentId: string | null = null;
+  if (amountCents > 0 && unitId) {
+    const { data: payment, error: paymentError } = await (supabase as any)
+      .from('payments')
+      .insert({
+        unit_id: unitId,
+        amount,
+        payment_date: receivedAt,
+        method: 'lockbox',
+        reference: checkNumber ?? providerBatchId,
+        notes: str(formData, 'payer_name'),
+        bank_account_id: bankAccountId,
+      })
+      .select('id')
+      .single();
+
+    if (paymentError) throw new Error(paymentError.message);
+    paymentId = payment.id;
+  }
+
+  if (amountCents > 0) {
+    const { error: itemError } = await (supabase as any).from('lockbox_items').insert({
+      portfolio_id: me.portfolio?.id,
+      batch_id: batch.id,
+      association_id: str(formData, 'association_id'),
+      unit_id: unitId,
+      payer_name: str(formData, 'payer_name'),
+      check_number: checkNumber,
+      check_amount_cents: amountCents,
+      account_number_masked: str(formData, 'account_number_masked'),
+      routing_number: str(formData, 'routing_number'),
+      payment_id: paymentId,
+      manually_matched: Boolean(paymentId),
+      matched_confidence: paymentId ? 100 : null,
+    });
+
+    if (itemError) throw new Error(itemError.message);
+  }
+
+  revalidatePath('/lockbox');
+  revalidatePath('/charges');
+  redirect('/lockbox');
+}
