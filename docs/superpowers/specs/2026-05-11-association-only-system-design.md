@@ -107,6 +107,53 @@ The right pane changes based on the selected left navigation module. For New Ass
 
 The right pane should not duplicate the center form and should not hold required create-association fields.
 
+## Association Directory
+
+When the user selects **Associations** in the left navigation, the center work area should show the association directory.
+
+The center column should include:
+
+- Page label and title: "Associations".
+- Short instruction text: "Click on any row to view association information."
+- A table sorted by association name by default.
+- Primary columns:
+  - Name.
+  - Units.
+- Each association row should show:
+  - Association name as the primary link.
+  - Street address.
+  - City, state, and zip.
+  - Unit count.
+- Pagination with current range and total count, such as "Displaying: 1-10 of 28".
+- A "Show Hidden Associations" link or filter control.
+
+Clicking an association row should open that association's detail page in the center work area. It should not open a fourth pane.
+
+For the Associations directory, the right Tasks pane should include contextual groups aligned with the AppFolio HOA pattern:
+
+- Calendar:
+  - View Calendar.
+- Tasks:
+  - New Association.
+  - Meeting Sign-In.
+  - Violations Field Entry.
+  - Bulk Update Board Reports.
+- Reports:
+  - Homeowner Directory.
+  - Unit Directory.
+  - Renter Directory.
+  - Dues Roll.
+  - General Ledger.
+- Statements:
+  - Bulk Update Statement Settings.
+- Help Topics:
+  - Import a New Association.
+  - Managing HOAs.
+  - Managing Association Groups.
+  - Sending Homeowner Statements.
+
+The existing AppFolio label "New Property" must be translated to "New Association". The existing AppFolio label "Managing Property Groups" must be translated to "Managing Association Groups".
+
 ## Supabase Data Model Direction
 
 The `associations` table is the canonical root record for the managed community.
@@ -129,10 +176,22 @@ Expected schema direction:
 - Photos should be stored through the existing file/storage pattern if one exists. If no pattern exists, use Supabase Storage with RLS policies tied to the association access model.
 - Bank account and GL account selections should use existing accounting tables where possible rather than inventing placeholder data.
 - Import uploads should create or stage units and homeowners under the association.
+- The Associations directory should query `associations` plus a unit-count aggregate from the units table or a verified association summary view.
 
 All Supabase work must keep RLS enabled for exposed tables and must verify migrations against the current Supabase CLI or MCP documentation before implementation.
 
 ## Data Flow
+
+Association directory flow:
+
+1. User selects Associations in the left navigation.
+2. The page queries visible associations for the current organization.
+3. The page joins or aggregates unit counts.
+4. The center table renders name, address, city/state/zip, and unit count.
+5. Pagination and hidden-association filtering update the same center table.
+6. The right Tasks pane renders association-directory actions and reports.
+
+New Association flow:
 
 1. User opens New Association from the Associations module or right Tasks pane.
 2. The page loads accounting options, GL accounts, bank accounts, and upload constraints.
@@ -159,6 +218,8 @@ Partial failures should not silently discard successful work. If photos or sprea
 Implementation should include focused tests for:
 
 - No "New Property" or operational "Property" language on the New Association route.
+- Associations directory renders the approved table columns and right-pane task groups.
+- Association directory unit counts come from Supabase data, not static placeholder values.
 - New Association form renders the approved sections.
 - Rental and lease sections are absent.
 - The page keeps the three-pane layout without a fourth column.
@@ -171,12 +232,13 @@ Implementation should include focused tests for:
 Implementation should happen in a controlled sequence:
 
 1. Rename visible UI labels and routes to Association.
-2. Replace the current New Property/New Association form with the approved center form.
-3. Wire the form to existing Supabase data where available.
-4. Add or migrate schema fields only where the approved form requires them.
-5. Verify locally in the in-app browser at desktop width.
-6. Run automated tests and production build.
-7. Commit and push to `main` only after verification passes.
+2. Build the Associations directory from Supabase-backed association and unit data.
+3. Replace the current New Property/New Association form with the approved center form.
+4. Wire the form to existing Supabase data where available.
+5. Add or migrate schema fields only where the approved form requires them.
+6. Verify locally in the in-app browser at desktop width.
+7. Run automated tests and production build.
+8. Commit and push to `main` only after verification passes.
 
 ## Approval State
 
@@ -187,3 +249,4 @@ Approved design decisions:
 - Management fee, late fee policy, and images stay in the center form.
 - The page has one save/create action.
 - The application keeps the three-pane layout: left navigation, center work area, right Tasks pane.
+- The Associations directory is the first left-nav module pattern to copy from AppFolio and wire to Supabase.
