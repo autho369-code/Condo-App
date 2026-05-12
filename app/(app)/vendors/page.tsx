@@ -1,147 +1,157 @@
 import Link from 'next/link';
 
-import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
-import { MetricStrip } from '@/components/operations/metric-strip';
-import { StatusChip } from '@/components/operations/status-chip';
-import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
+
+const PAGE_SIZE = 20;
+
+function firstJsonValue(value: unknown) {
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0] as { value?: string; number?: string; email?: string };
+    return first.value ?? first.number ?? first.email ?? '';
+  }
+  if (typeof value === 'string') return value;
+  return '';
+}
+
+function buildHref(params: { q?: string; trade?: string; page?: number }) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.trade && params.trade !== 'all') search.set('trade', params.trade);
+  if (params.page && params.page > 1) search.set('page', String(params.page));
+  const query = search.toString();
+  return `/vendors${query ? `?${query}` : ''}`;
+}
 
 export default async function VendorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; trade?: string }>;
+  searchParams: Promise<{ q?: string; trade?: string; page?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
-  const q = (sp.q ?? '').trim().toLowerCase();
+  const q = (sp.q ?? '').trim();
+  const qLower = q.toLowerCase();
   const trade = sp.trade ?? 'all';
+  const page = Math.max(1, Number(sp.page ?? '1') || 1);
 
   const supabase = await createClient();
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, archived_at')
+    .select('id, name, trade, emails, phone_numbers, address_street, address_city, address_state, archived_at')
     .is('archived_at', null)
     .order('name');
 
   const allRows = data ?? [];
   const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort();
   let rows = allRows;
+
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
-  if (q) {
+  if (qLower) {
     rows = rows.filter((vendor: any) =>
-      [vendor.name, vendor.trade, vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
+      [vendor.name, vendor.trade, firstJsonValue(vendor.emails), firstJsonValue(vendor.phone_numbers), vendor.address_street].some((value) =>
+        value?.toLowerCase().includes(qLower),
+      ),
     );
   }
 
-  const achReady = allRows.filter((vendor: any) => vendor.bank_routing_number && vendor.bank_account_number).length;
-  const w9Needed = allRows.filter((vendor: any) => vendor.send_1099 && !vendor.taxpayer_id).length;
-  const paymentHold = allRows.filter((vendor: any) => vendor.hold_payments).length;
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <DataWorkspace
-      title="Vendors"
-      description="Manage contractors, utilities, W-9 readiness, ACH setup, compliance documents, and vendor forms."
-      rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-ink-500">Vendor workflows</div>
-            <div className="mt-2 space-y-2">
-              {vendorWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-ink-900">{card.title}</div>
-                  <div className="mt-1 text-xs text-ink-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
-            Vendor ACH, W-9, and document requests are review-first workflows so bank and outbound actions require confirmation.
-          </div>
+    <div className="px-8 py-6">
+      <nav className="mb-7 flex flex-wrap gap-5 text-sm">
+        <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">Homeowners</Link>
+        <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">Owners</Link>
+        <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
+      </nav>
+
+      <h1 className="mb-7 border-b border-ink-100 pb-3 text-3xl font-normal text-ink-900">Vendors</h1>
+
+      <form action="/vendors" className="mb-5 flex flex-wrap items-end gap-4">
+        <label className="text-sm text-ink-600">
+          Vendor
+          <input name="q" defaultValue={q} className="mt-2 h-10 w-72 border border-ink-300 bg-white px-3 text-sm text-ink-900" />
+        </label>
+        <label className="text-sm text-ink-600">
+          Trade
+          <select name="trade" defaultValue={trade} className="mt-2 h-10 w-80 border border-ink-300 bg-white px-3 text-sm text-ink-900">
+            <option value="all">All trades</option>
+            {trades.map((item) => (
+              <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="h-10 border border-ink-900 px-4 text-sm text-ink-900 hover:bg-cream-50">
+          More Filters...
+        </button>
+        <Link href="/vendors" className="inline-flex h-10 items-center rounded bg-ink-100 px-4 text-sm text-ink-400">
+          Clear Filters
+        </Link>
+      </form>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-ink-200 bg-[#dde1e5] text-left text-ink-900">
+            <th className="px-3 py-2 font-medium">Name ^</th>
+            <th className="px-3 py-2 font-medium">Address</th>
+            <th className="px-3 py-2 font-medium">Trades</th>
+            <th className="px-3 py-2 font-medium">Phone</th>
+            <th className="px-3 py-2 font-medium">Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pagedRows.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="border-b border-ink-100 px-3 py-10 text-center text-ink-500">
+                No vendors match this filter.
+              </td>
+            </tr>
+          ) : (
+            pagedRows.map((vendor: any, index: number) => (
+              <tr key={vendor.id} className={`border-b border-ink-100 hover:bg-cream-50 ${index % 2 === 1 ? 'bg-[#eef0f2]' : ''}`}>
+                <td className="px-3 py-2 align-top">
+                  <Link href={`/vendors?selected=${vendor.id}`} className="text-blue-700 hover:underline">{vendor.name}</Link>
+                </td>
+                <td className="px-3 py-2 align-top">
+                  {[vendor.address_street, vendor.address_city, vendor.address_state].filter(Boolean).join(' ')}
+                </td>
+                <td className="px-3 py-2 align-top capitalize">{vendor.trade?.replace(/_/g, ' ') ?? ''}</td>
+                <td className="px-3 py-2 align-top">{firstJsonValue(vendor.phone_numbers)}</td>
+                <td className="px-3 py-2 align-top">
+                  {firstJsonValue(vendor.emails) ? (
+                    <a href={`mailto:${firstJsonValue(vendor.emails)}`} className="text-blue-700 hover:underline">
+                      {firstJsonValue(vendor.emails)}
+                    </a>
+                  ) : ''}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      <div className="mt-7 flex items-center justify-between text-sm text-ink-700">
+        <span>
+          Displaying: {rows.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, rows.length)} of {rows.length}
+        </span>
+        <div className="flex items-center gap-2">
+          {safePage > 1 && <Link href={buildHref({ q, trade, page: safePage - 1 })} className="px-2 py-1 text-ink-700 hover:bg-cream-100">&lt;</Link>}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 5).map((item) => (
+            <Link
+              key={item}
+              href={buildHref({ q, trade, page: item })}
+              className={`rounded px-2 py-1 ${item === safePage ? 'bg-blue-100 text-blue-800' : 'text-ink-700 hover:bg-cream-100'}`}
+            >
+              {item}
+            </Link>
+          ))}
+          {safePage < totalPages && <Link href={buildHref({ q, trade, page: safePage + 1 })} className="px-2 py-1 text-ink-700 hover:bg-cream-100">&gt;</Link>}
         </div>
-      }
-    >
-      <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-ink-100 text-sm">
-          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-ink-500 hover:text-ink-900">Homeowners</Link>
-          <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-ink-500 hover:text-ink-900">Owners</Link>
-          <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
-        </nav>
-
-        <MetricStrip
-          metrics={[
-            { label: 'Active vendors', value: allRows.length },
-            { label: 'ACH ready', value: achReady },
-            { label: 'W-9 needed', value: w9Needed },
-            { label: 'Payment holds', value: paymentHold },
-          ]}
-        />
-
-        <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
-          <label className="text-xs font-medium uppercase text-ink-500">
-            Trade
-            <select name="trade" defaultValue={trade} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
-              <option value="all">All trades</option>
-              {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
-            </select>
-          </label>
-        </FilterBar>
-
-        <Table>
-          <THead>
-            <TR>
-              <TH>Name</TH>
-              <TH>Trade</TH>
-              <TH>Payment</TH>
-              <TH>Compliance</TH>
-              <TH>Workflows</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {rows.length === 0 ? (
-              <TR><TD colSpan={5} className="py-10 text-center text-ink-500">No vendors match this filter.</TD></TR>
-            ) : (
-              rows.map((vendor: any) => (
-                <TR key={vendor.id} className="hover:bg-cream-50">
-                  <TD>
-                    <div className="font-medium text-ink-900">{vendor.name}</div>
-                    <div className="mt-1 text-xs text-ink-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
-                  </TD>
-                  <TD className="capitalize">{vendor.trade?.replace(/_/g, ' ') ?? 'other'}</TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-1">
-                      <StatusChip tone={vendor.bank_routing_number && vendor.bank_account_number ? 'success' : 'neutral'}>
-                        {vendor.payment_type?.replace(/_/g, ' ') ?? 'check'}
-                      </StatusChip>
-                      {vendor.is_auto_pay && <StatusChip tone="info">Auto-pay</StatusChip>}
-                      {vendor.hold_payments && <StatusChip tone="danger">Hold</StatusChip>}
-                    </div>
-                    <div className="mt-1 text-xs text-ink-500">{vendor.payment_terms ?? 'No terms'}</div>
-                  </TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-1">
-                      {vendor.is_utility && <StatusChip tone="info">Utility</StatusChip>}
-                      {vendor.send_1099 && <StatusChip tone={vendor.taxpayer_id ? 'success' : 'warning'}>{vendor.taxpayer_id ? 'W-9 ready' : 'Need W-9'}</StatusChip>}
-                      {vendor.portal_activated && <StatusChip tone="success">Portal</StatusChip>}
-                    </div>
-                  </TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">ACH</Link>
-                      <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">W-9</Link>
-                      <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Docs</Link>
-                    </div>
-                  </TD>
-                </TR>
-              ))
-            )}
-          </tbody>
-        </Table>
       </div>
-    </DataWorkspace>
+    </div>
   );
 }

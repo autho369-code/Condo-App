@@ -12,12 +12,22 @@ export default async function OwnersLayout({ children }: { children: React.React
       panel={
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
+          <PanelLink href="/owners?change=homeowner">Change Homeowner</PanelLink>
+          <PanelLink href="/owners/new?flow=move-in">Move In Homeowner</PanelLink>
+          <PanelLink href="/vendors/new">New Vendor</PanelLink>
+          <PanelLink href="/send-email?audience=homeowners">Email All Homeowners</PanelLink>
           <PanelLink href="/owners/new">New Owner</PanelLink>
           <PanelLink href="/owners/activations">Owner Portal Activation</PanelLink>
           <PanelLink href="/owners/packets">Send Owner Packet</PanelLink>
           <PanelLink href="/owners/forms">Send Owner Form</PanelLink>
           <PanelLink href="/owners/ach">Owner ACH Setup</PanelLink>
           <PanelLink href="/owners/management-agreements/new">New Management Agreement</PanelLink>
+          <PanelLink href="/owners/management-agreements">Management Agreements</PanelLink>
+          <PanelLink href="/owners/portal-bulk-settings">Owner Portal Bulk Settings</PanelLink>
+        </PanelSection>
+        <PanelSection title="Letters">
+          <PanelLink href="/reports?slug=owner-statement-enhanced">Owner Statement (Enhanced)</PanelLink>
+          <PanelLink href="/reports?slug=owner-statement">Owner Statement</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>

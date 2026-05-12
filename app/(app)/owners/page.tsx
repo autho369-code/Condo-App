@@ -1,19 +1,12 @@
 import Link from 'next/link';
 
-import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
-import { MetricStrip } from '@/components/operations/metric-strip';
-import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
-import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const PAGE_SIZE = 20;
 
 type OwnerRow = {
   id: string;
@@ -21,10 +14,6 @@ type OwnerRow = {
   lastInitial: string;
   email: string | null;
   phone: string | null;
-  preferredComm: string;
-  portalActivated: boolean;
-  portalLastLogin: string | null;
-  electronicConsent: boolean;
   associationName: string | null;
   associationAddress: string | null;
   unitNumber: string | null;
@@ -51,23 +40,32 @@ function assocAddress(association: any) {
     .join(' ');
 }
 
+function buildHref(view: string, letter: string, page = 1) {
+  const params = new URLSearchParams();
+  if (view === 'directory') params.set('view', 'directory');
+  if (letter !== 'all') params.set('letter', letter);
+  if (page > 1) params.set('page', String(page));
+  const query = params.toString();
+  return `/owners${query ? `?${query}` : ''}`;
+}
+
 export default async function OwnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; letter?: string; q?: string }>;
+  searchParams: Promise<{ view?: string; letter?: string; page?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
-  const view = sp.view === 'directory' || sp.view === 'tenants' ? sp.view : 'homeowners';
+  const view = sp.view === 'directory' ? 'directory' : 'homeowners';
   const letter = sp.letter ?? 'all';
-  const q = (sp.q ?? '').trim().toLowerCase();
+  const page = Math.max(1, Number(sp.page ?? '1') || 1);
 
   const supabase = await createClient();
 
   const [{ data: owners }, { data: occupancies }] = await Promise.all([
     (supabase as any)
       .from('owners')
-      .select('id, full_name, first_name, last_name, email, phone, phone_numbers, preferred_comm, portal_activated, portal_login_last_at, electronic_consent, archived_at')
+      .select('id, full_name, first_name, last_name, email, phone, phone_numbers, archived_at')
       .is('archived_at', null)
       .order('last_name', { ascending: true }),
     (supabase as any)
@@ -98,10 +96,6 @@ export default async function OwnersPage({
       lastInitial: (owner.last_name?.[0] ?? owner.full_name?.[0] ?? '').toUpperCase(),
       email: owner.email,
       phone: firstPhone(owner.phone_numbers, owner.phone),
-      preferredComm: owner.preferred_comm ?? 'email',
-      portalActivated: Boolean(owner.portal_activated),
-      portalLastLogin: owner.portal_login_last_at,
-      electronicConsent: Boolean(owner.electronic_consent),
       associationName: association?.name ?? null,
       associationAddress: assocAddress(association),
       unitNumber: occupancy?.units?.unit_number ?? null,
@@ -110,180 +104,122 @@ export default async function OwnersPage({
   });
 
   if (view === 'homeowners') rows = rows.filter((row) => row.occupancyType === 'owner');
-  if (view === 'tenants') rows = rows.filter((row) => row.occupancyType === 'tenant');
   if (letter !== 'all') rows = rows.filter((row) => row.lastInitial === letter);
-  if (q) {
-    rows = rows.filter((row) =>
-      [row.name, row.email, row.phone, row.associationName, row.unitNumber].some((value) =>
-        value?.toLowerCase().includes(q),
-      ),
-    );
-  }
 
-  const baseRows = (owners ?? []) as any[];
-  const portalActive = baseRows.filter((owner) => owner.portal_activated).length;
-  const missingEmail = baseRows.filter((owner) => !owner.email).length;
-  const currentOwnerLinks = (occupancies ?? []).filter((occupancy: any) => occupancy.occupancy_type === 'owner').length;
-  const availableLetters = new Set(
-    baseRows.map((owner) => (owner.last_name?.[0] ?? owner.full_name?.[0] ?? '').toUpperCase()).filter(Boolean),
-  );
-
-  const tabs = [
-    { label: 'Homeowners', href: '/owners', active: view === 'homeowners' },
-    { label: 'Owners', href: '/owners?view=directory', active: view === 'directory' },
-    { label: 'Tenants', href: '/owners?view=tenants', active: view === 'tenants' },
-    { label: 'Vendors', href: '/vendors', active: false },
-  ];
-
-  const buildLetterHref = (item: string) => {
-    const params = new URLSearchParams();
-    if (view !== 'homeowners') params.set('view', view);
-    if (q) params.set('q', q);
-    if (item !== 'all') params.set('letter', item);
-    const query = params.toString();
-    return `/owners${query ? `?${query}` : ''}`;
-  };
+  const availableLetters = new Set(rows.map((row) => row.lastInitial).filter(Boolean));
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const title = view === 'directory' ? 'Owners' : 'Homeowners';
 
   return (
-    <DataWorkspace
-      title={view === 'tenants' ? 'Tenants' : view === 'directory' ? 'Owner Directory' : 'Homeowners'}
-      description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
-      actions={
-        <>
-          <Link href="/owners/forms" className="inline-flex h-10 items-center rounded-md border border-ink-200 bg-white px-4 text-sm font-medium text-ink-900 hover:bg-cream-50">
-            Send owner form
+    <div className="px-8 py-6">
+      <nav className="mb-7 flex flex-wrap gap-5 text-sm">
+        <Link href="/owners" className={`border-b-2 px-1 pb-2 ${view === 'homeowners' ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-ink-700 hover:text-ink-900'}`}>
+          Homeowners
+        </Link>
+        <Link href="/owners?view=directory" className={`border-b-2 px-1 pb-2 ${view === 'directory' ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-ink-700 hover:text-ink-900'}`}>
+          Owners
+        </Link>
+        <Link href="/vendors" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">
+          Vendors
+        </Link>
+      </nav>
+
+      <h1 className="mb-8 text-3xl font-normal text-ink-900">{title}</h1>
+
+      <div className="mb-4 flex flex-wrap justify-end gap-1 text-sm">
+        {LETTERS.map((item) => (
+          <Link
+            key={item}
+            href={buildHref(view, item)}
+            className={`px-2 py-1 ${letter === item ? 'border border-blue-200 bg-blue-100 text-blue-800' : availableLetters.has(item) ? 'text-blue-700 hover:underline' : 'pointer-events-none text-ink-300'}`}
+          >
+            {item}
           </Link>
-          <Link href="/owners/new">
-            <Button>New owner</Button>
-          </Link>
-        </>
-      }
-      rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-ink-500">Owner workflows</div>
-            <div className="mt-2 space-y-2">
-              {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-ink-100 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-ink-900">{card.title}</div>
-                  <div className="mt-1 text-xs text-ink-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
-            Outbound owner actions are staged as review-first workflows so activations, packets, and ACH changes require an explicit confirmation step.
-          </div>
-        </div>
-      }
-    >
-      <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-ink-100 text-sm">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`border-b-2 px-1 pb-2 ${tab.active ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'}`}
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
+        ))}
+        <Link href={buildHref(view, 'all')} className={`px-2 py-1 ${letter === 'all' ? 'border border-blue-200 bg-blue-100 text-blue-800' : 'text-blue-700 hover:underline'}`}>
+          All
+        </Link>
+      </div>
 
-        <MetricStrip
-          metrics={[
-            { label: 'People records', value: baseRows.length },
-            { label: 'Current owner links', value: currentOwnerLinks },
-            { label: 'Portal active', value: portalActive },
-            { label: 'Missing email', value: missingEmail },
-          ]}
-        />
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-ink-200 bg-[#dde1e5] text-left text-ink-900">
+            {view === 'directory' ? (
+              <>
+                <th className="px-3 py-2 font-medium">Name ^</th>
+                <th className="px-3 py-2 font-medium">Company</th>
+                <th className="px-3 py-2 font-medium">Phone</th>
+                <th className="px-3 py-2 font-medium">Email</th>
+              </>
+            ) : (
+              <>
+                <th className="px-3 py-2 font-medium">Name ^</th>
+                <th className="px-3 py-2 font-medium">Association</th>
+                <th className="px-3 py-2 font-medium">Unit</th>
+                <th className="px-3 py-2 font-medium">Phone</th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {pagedRows.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="border-b border-ink-100 px-3 py-10 text-center text-ink-500">
+                No records match this filter.
+              </td>
+            </tr>
+          ) : (
+            pagedRows.map((row) => (
+              <tr key={row.id} className="border-b border-ink-100 hover:bg-cream-50">
+                {view === 'directory' ? (
+                  <>
+                    <td className="px-3 py-3 align-top">
+                      <Link href={`/owners/${row.id}`} className="text-blue-700 hover:underline">{row.associationName ?? row.name}</Link>
+                    </td>
+                    <td className="px-3 py-3 align-top">{row.associationName ?? row.name}</td>
+                    <td className="px-3 py-3 align-top">{row.phone ?? ''}</td>
+                    <td className="px-3 py-3 align-top">
+                      {row.email ? <a href={`mailto:${row.email}`} className="text-blue-700 hover:underline">{row.email}</a> : ''}
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-3 py-3 align-top">
+                      <Link href={`/owners/${row.id}`} className="text-blue-700 hover:underline">{row.name}</Link>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <div>{row.associationName ?? ''}</div>
+                      {row.associationAddress && <div>{row.associationAddress}</div>}
+                    </td>
+                    <td className="px-3 py-3 align-top">{row.unitNumber ?? ''}</td>
+                    <td className="px-3 py-3 align-top">{row.phone ?? ''}</td>
+                  </>
+                )}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
 
-        <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
-          {view !== 'homeowners' && <input type="hidden" name="view" value={view} />}
-          <label className="text-xs font-medium uppercase text-ink-500">
-            Letter
-            <select name="letter" defaultValue={letter} className="mt-1 h-9 rounded border border-ink-200 bg-white px-3 text-sm normal-case text-ink-900">
-              <option value="all">All</option>
-              {LETTERS.map((item) => (
-                <option key={item} value={item} disabled={!availableLetters.has(item)}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-        </FilterBar>
-
-        <div className="flex flex-wrap gap-1 text-sm">
-          {LETTERS.map((item) => (
+      <div className="mt-7 flex items-center justify-between text-sm text-ink-700">
+        <span>
+          Displaying: {rows.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, rows.length)} of {rows.length}
+        </span>
+        <div className="flex items-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 5).map((item) => (
             <Link
               key={item}
-              href={buildLetterHref(item)}
-              className={`rounded px-2 py-1 ${letter === item ? 'bg-blue-100 font-semibold text-blue-800' : availableLetters.has(item) ? 'text-champagne-700 hover:bg-champagne-50' : 'pointer-events-none text-gray-300'}`}
+              href={buildHref(view, letter, item)}
+              className={`rounded px-2 py-1 ${item === safePage ? 'bg-blue-100 text-blue-800' : 'text-ink-700 hover:bg-cream-100'}`}
             >
               {item}
             </Link>
           ))}
-          <Link href={buildLetterHref('all')} className={`rounded px-2 py-1 ${letter === 'all' ? 'bg-blue-100 font-semibold text-blue-800' : 'text-champagne-700 hover:bg-champagne-50'}`}>
-            All
-          </Link>
+          {safePage < totalPages && <Link href={buildHref(view, letter, safePage + 1)} className="px-2 py-1 text-ink-700 hover:bg-cream-100">&gt;</Link>}
         </div>
-
-        <Table>
-          <THead>
-            <TR>
-              <TH>Name</TH>
-              <TH>Contact</TH>
-              <TH>Association / Unit</TH>
-              <TH>Portal</TH>
-              <TH>Workflows</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {rows.length === 0 ? (
-              <TR>
-                <TD colSpan={5} className="py-10 text-center text-ink-500">No owner records match this filter.</TD>
-              </TR>
-            ) : (
-              rows.map((row) => (
-                <TR key={row.id} className="hover:bg-cream-50">
-                  <TD>
-                    <Link href={`/owners/${row.id}`} className="font-medium text-champagne-700 hover:underline">{row.name}</Link>
-                    <div className="mt-1 text-xs text-ink-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
-                  </TD>
-                  <TD>
-                    <div className="text-ink-900">{row.email ?? 'No email on file'}</div>
-                    <div className="mt-1 text-xs text-ink-500">{row.phone ?? 'No phone'}</div>
-                  </TD>
-                  <TD>
-                    <div className="font-medium text-ink-900">{row.associationName ?? 'No current association'}</div>
-                    <div className="mt-1 text-xs text-ink-500">
-                      {row.unitNumber ? `Unit ${row.unitNumber}` : 'No unit link'}
-                      {row.associationAddress ? ` - ${row.associationAddress}` : ''}
-                    </div>
-                  </TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-1">
-                      <StatusChip tone={row.portalActivated ? 'success' : 'warning'}>
-                        {row.portalActivated ? 'Active' : 'Not active'}
-                      </StatusChip>
-                      {row.electronicConsent && <StatusChip tone="info">E-consent</StatusChip>}
-                    </div>
-                    <div className="mt-1 text-xs text-ink-500">Last login {date(row.portalLastLogin)}</div>
-                  </TD>
-                  <TD>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/owners/activations?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Activate</Link>
-                      <Link href={`/owners/packets?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">Packet</Link>
-                      <Link href={`/owners/ach?owner=${row.id}`} className="rounded border border-ink-100 px-2 py-1 text-ink-700 hover:bg-cream-50">ACH</Link>
-                    </div>
-                  </TD>
-                </TR>
-              ))
-            )}
-          </tbody>
-        </Table>
       </div>
-    </DataWorkspace>
+    </div>
   );
 }

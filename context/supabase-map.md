@@ -11,6 +11,13 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `associations` | Keep | Main HOA/condo association record. |
 | `units` | Keep | Units belong to associations. |
 | `owners` | Keep | Homeowners/owners connected to units and associations. |
+| `occupancies` | Keep | Connects owners/homeowners to units and current/past status. |
+| `vendors` | Keep | Vendor directory and vendor task workflows. |
+| `email_queue` | Keep | Needed for homeowner email workflows. |
+| `communication_messages` | Keep | Needed for communication history and outbound messages. |
+| `documents` | Keep | Needed for forms, owner packets, vendor document requests, and generated documents. |
+| `management_agreements` | Keep | Needed for owner/association management agreement workflows. |
+| `vendor_compliance` | Keep | Needed for vendor documents and compliance tracking. |
 
 ## Needs Review
 
@@ -21,6 +28,17 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `association_lease_template_settings` | Lease workflow excluded from Association setup. | Remove/deprecate after data dependency check. | Pending |
 | `association_renewal_options` | Renewal workflow excluded from Association setup. | Remove/deprecate after data dependency check. | Pending |
 | `report_data_property_directory` | Property terminology. | Rename/replace with association/unit directory report. | Pending |
+
+## Screen Wiring
+
+| Screen | Tables | Status |
+| --- | --- | --- |
+| Associations Directory | `associations`, `units` | Context mapped, implementation pending review. |
+| Homeowners Directory | `owners`, `occupancies`, `units`, `associations` | UI simplified to screenshot structure. |
+| Owners Directory | `owners`, `management_agreements`, `documents` | UI simplified to screenshot structure; deeper actions pending. |
+| Vendors Directory | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | UI simplified to screenshot structure; deeper actions pending. |
+| Send Email Homeowners Modal | `owners`, `email_queue`, `communication_messages` | Captured, not implemented. |
+| Move In Homeowner | `owners`, `occupancies`, `units`, `associations`, `documents` | Captured, terminology decision pending. |
 
 ## Cleanup Rule
 
