@@ -1,4 +1,4 @@
-// Editorial three-column workspace primitives. Used across Reports,
+// Editorial workspace primitives. Used across Reports,
 // Work Orders, Units, Bills, and the platform Dashboard.
 import * as React from 'react';
 import Link from 'next/link';
@@ -21,9 +21,14 @@ export function Workspace({
         <div className="flex-1 overflow-y-auto px-8 py-7">{children}</div>
       </div>
       {rail && (
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-ink-100 bg-white px-6 py-7">
-          {rail}
-        </aside>
+        <details className="mx-8 mb-7 rounded-lg border border-ink-100 bg-white shadow-soft-sm" open>
+          <summary className="cursor-pointer list-none border-b border-ink-100 px-6 py-4 font-display text-lg tracking-editorial text-ink-900">
+            Task menu
+          </summary>
+          <div className="grid gap-5 px-6 py-5 md:grid-cols-2 xl:grid-cols-3">
+            {rail}
+          </div>
+        </details>
       )}
     </div>
   );

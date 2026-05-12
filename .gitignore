@@ -10,4 +10,6 @@ out
 tsconfig.tsbuildinfo
 .superpowers/
 .worktrees/
+.gitnexus/
+.next-dev-logs/
 supabase/.temp/

@@ -17,7 +17,7 @@ type DashboardSearchParams = Promise<{ assoc?: string }>;
  * Structure (top → bottom):
  *   1. Operating tiles  — 6 KPI counts (existing v0 surface)
  *   2. Financial snapshot — pulled from v_dashboard_summary
- *   3. Focus queue + activity rail (two-column)
+ *   3. Focus queue + activity feed in the center column
  */
 export default async function DashboardPage({
   searchParams,
@@ -159,7 +159,6 @@ export default async function DashboardPage({
           }
         />
       }
-      rail={<ActivityRail items={recentActivity ?? []} />}
     >
       {/* ---- Operating tiles -------------------------------------------- */}
       <div className="mb-2 flex items-baseline justify-between">
@@ -286,6 +285,8 @@ export default async function DashboardPage({
           </div>
         )}
       </Section>
+
+      <ActivitySection items={recentActivity ?? []} />
     </Workspace>
   );
 }
@@ -330,45 +331,45 @@ function SnapshotMicro({
   );
 }
 
-function ActivityRail({ items }: { items: any[] }) {
+function ActivitySection({ items }: { items: any[] }) {
   return (
-    <div>
-      <div className="border-b border-ink-100 pb-4">
-        <div className="eyebrow">Activity</div>
-        <h2 className="mt-2 font-display text-xl tracking-editorial text-ink-900">Recent motion</h2>
-        <p className="mt-1.5 text-xs text-ink-500">Who did what — across the portfolio, in the last day.</p>
-      </div>
-
-      {items.length === 0 ? (
-        <p className="mt-7 text-center text-sm text-ink-500">No activity recorded yet.</p>
-      ) : (
-        <ol className="mt-6 space-y-5">
-          {items.map((ev) => (
-            <li key={ev.id} className="relative pl-5">
-              <span className="absolute left-0 top-2 h-1.5 w-1.5 rounded-full bg-champagne-500" />
-              <div className="text-[13px] text-ink-800 leading-snug">
-                <span className="font-medium text-ink-900">{titleizeAction(ev.action)}</span>
-                {ev.details && <span className="text-ink-700"> — {ev.details}</span>}
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-500">
-                <span>{ev.agent ?? 'system'}</span>
-                <span className="text-ink-300">·</span>
-                <span>{relativeTime(ev.created_at)}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <div className="mt-7 border-t border-ink-100 pt-4">
+    <Section
+      title="Recent motion"
+      subtitle="Who did what across the portfolio, in the last day."
+      actions={
         <Link
           href="/activity"
           className="text-xs font-semibold uppercase tracking-[0.14em] text-champagne-700 hover:text-champagne-800 transition-colors"
         >
           View full audit log →
         </Link>
-      </div>
-    </div>
+      }
+    >
+      {items.length === 0 ? (
+        <p className="px-6 py-10 text-center text-sm text-ink-500">No activity recorded yet.</p>
+      ) : (
+        <ol className="divide-y divide-ink-100">
+          {items.map((ev) => (
+            <li key={ev.id} className="px-6 py-4">
+              <div className="flex items-start gap-3">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-champagne-500" />
+                <div className="min-w-0">
+                  <div className="text-[13px] leading-snug text-ink-800">
+                    <span className="font-medium text-ink-900">{titleizeAction(ev.action)}</span>
+                    {ev.details && <span className="text-ink-700"> — {ev.details}</span>}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-500">
+                    <span>{ev.agent ?? 'system'}</span>
+                    <span className="text-ink-300">·</span>
+                    <span>{relativeTime(ev.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Section>
   );
 }
 
