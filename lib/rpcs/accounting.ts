@@ -445,3 +445,21 @@ export async function createCommonAssociationCharge(formData: FormData) {
   revalidatePath('/charges/common/new');
   redirect(`/charges/common/new?posted=${units.length}`);
 }
+
+export async function manuallyPostJournalEntries(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const entryIds = formData.getAll('entry_ids').filter((value): value is string => typeof value === 'string' && value.length > 0);
+  if (entryIds.length === 0) throw new Error('Select at least one journal entry.');
+
+  const { error } = await (supabase as any)
+    .from('journal_entries')
+    .update({ posted: true, posted_at: new Date().toISOString() })
+    .in('id', entryIds)
+    .eq('posted', false);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/journal-entries');
+  revalidatePath('/journal-entries/post');
+  redirect(`/journal-entries/post?posted=${entryIds.length}`);
+}

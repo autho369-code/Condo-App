@@ -60,3 +60,4 @@ flowchart LR
 | Lockbox | `/lockbox`, `/lockbox/new` | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | Writes batches, items, and matched receipts |
 | Recurring Journal Entries | `/journal-entries/recurring`, `/journal-entries/recurring/new` | `recurring_journal_entries`, `gl_accounts`, `generate_recurring_journal_entries` | Writes recurring templates and can generate due entries |
 | Journal Entry Batches | `/journal-entries/batches`, `/journal-entries/batches/new` | `journal_entry_batches` | Writes batch metadata |
+| Manually Post Journal Entries | `/journal-entries/post` | `journal_entries` | Updates selected drafts to posted |

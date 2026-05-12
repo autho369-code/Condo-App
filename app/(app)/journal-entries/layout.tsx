@@ -11,7 +11,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/journal-entries/recurring/new">New Recurring Journal Entry</PanelLink>
           <PanelLink href="/journal-entries/batches/new">Upload Journal Entry Batch</PanelLink>
           <PanelLink href="/journal-entries/batches">View Journal Entry Batches</PanelLink>
-          <PanelLink href="/journal-entries/post" status="placeholder">Manually Post Journal Entries</PanelLink>
+          <PanelLink href="/journal-entries/post">Manually Post Journal Entries</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
