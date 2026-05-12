@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
+import { createViolation } from '@/lib/rpcs/violations';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -25,36 +26,37 @@ export default async function NewViolationPage() {
       actions={<Link href="/violations" className="text-sm font-medium text-ink-600 hover:text-ink-900">Cancel</Link>}
       rail={<NoticePreview />}
     >
-      <form className="space-y-5">
+      <form action={createViolation} className="space-y-5">
         <Section title="Association, unit, and owner">
           <div className="grid gap-4 md:grid-cols-3">
-            <Select label="Association" options={(associations ?? []).map((row: any) => ({ value: row.id, label: row.name }))} />
-            <Select label="Unit" options={(units ?? []).map((row: any) => ({ value: row.id, label: row.unit_number }))} />
-            <Select label="Owner" options={(owners ?? []).map((row: any) => ({ value: row.id, label: row.full_name }))} />
+            <Select name="association_id" label="Association" required options={(associations ?? []).map((row: any) => ({ value: row.id, label: row.name }))} />
+            <Select name="unit_id" label="Unit" options={(units ?? []).map((row: any) => ({ value: row.id, label: row.unit_number }))} />
+            <Select name="owner_id" label="Owner" options={(owners ?? []).map((row: any) => ({ value: row.id, label: row.full_name }))} />
           </div>
         </Section>
         <Section title="Rule and violation">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-medium text-ink-700">Rule/type<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{typeOptions.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}</select></label>
-            <label className="text-sm font-medium text-ink-700">Title<input className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="Parking violation, noise complaint..." /></label>
+            <label className="text-sm font-medium text-ink-700">Rule/type<select name="violation_type" className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{typeOptions.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}</select></label>
+            <label className="text-sm font-medium text-ink-700">Title<input name="title" required className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="Parking violation, noise complaint..." /></label>
           </div>
-          <textarea className="mt-4 w-full rounded border border-ink-200 px-3 py-2 text-sm" rows={4} placeholder="Observation details and governing document reference" />
+          <textarea name="description" className="mt-4 w-full rounded border border-ink-200 px-3 py-2 text-sm" rows={4} placeholder="Observation details and governing document reference" />
+          <input name="governing_document_reference" className="mt-4 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="Governing document reference" />
         </Section>
         <Section title="Dates and escalation">
           <div className="grid gap-4 md:grid-cols-4">
-            <label className="text-sm font-medium text-ink-700">Observed<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-ink-700">Due date<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-ink-700">Hearing date<input type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
-            <label className="text-sm font-medium text-ink-700">Status<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>open</option><option>notice_sent</option><option>hearing_pending</option><option>fined</option></select></label>
+            <label className="text-sm font-medium text-ink-700">Observed<input name="date_observed" type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Due date<input name="due_date" type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Hearing date<input name="hearing_date" type="date" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" /></label>
+            <label className="text-sm font-medium text-ink-700">Status<select name="status" className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>open</option><option>notice_sent</option><option>hearing_pending</option><option>fined</option></select></label>
           </div>
         </Section>
         <Section title="Fine and evidence">
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-medium text-ink-700">Fine amount<input className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="$0.00" /></label>
+            <label className="text-sm font-medium text-ink-700">Fine amount<input name="fine_amount" className="mt-1 h-10 w-full rounded border border-ink-200 px-3 text-sm" placeholder="$0.00" /></label>
             <div className="rounded border border-dashed border-ink-200 bg-cream-50 px-4 py-6 text-center text-sm text-ink-500">Evidence and attachments will be added after the draft is saved.</div>
           </div>
         </Section>
-        <div className="flex justify-end gap-2"><Button type="button" variant="secondary">Preview notice</Button><Button type="button">Save draft</Button></div>
+        <div className="flex justify-end gap-2"><Link href="/violations" className="rounded border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-cream-50">Cancel</Link><Button type="submit">Save draft</Button></div>
       </form>
     </DataWorkspace>
   );
@@ -64,8 +66,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section className="rounded border border-ink-100 bg-white p-5"><h2 className="text-sm font-semibold text-ink-900">{title}</h2><div className="mt-4">{children}</div></section>;
 }
 
-function Select({ label, options }: { label: string; options: Array<{ value: string; label: string }> }) {
-  return <label className="text-sm font-medium text-ink-700">{label}<select className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>Select {label.toLowerCase()}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+function Select({ name, label, required, options }: { name: string; label: string; required?: boolean; options: Array<{ value: string; label: string }> }) {
+  return <label className="text-sm font-medium text-ink-700">{label}<select name={name} required={required} className="mt-1 h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option value="">Select {label.toLowerCase()}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }
 
 function NoticePreview() {

@@ -50,6 +50,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Homeowners Directory | `owners`, `occupancies`, `units`, `associations` | UI simplified to screenshot structure. |
 | Owners Directory | `owners`, `management_agreements`, `documents` | UI simplified to screenshot structure; deeper actions pending. |
 | Vendors Directory | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | UI simplified to screenshot structure; deeper actions pending. |
+| New Violation | `violations`, `associations`, `units`, `owners` | `/violations/new` writes draft violation records into Supabase. |
 | Send Email Homeowners Modal | `owners`, `email_queue`, `communication_messages` | Captured, not implemented. |
 | Move In Homeowner | `owners`, `occupancies`, `units`, `associations`, `documents` | Captured, terminology decision pending. |
 | Accounting Receipts | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts`, `bank_accounts` | Initial UI aligned; deeper actions pending. |
