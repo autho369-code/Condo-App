@@ -65,3 +65,10 @@ test('workflow links live under Tasks, not separate workflow sections', () => {
 
   assert.deepEqual(offenders, []);
 });
+
+test('dashboard activity uses the full center column', () => {
+  const source = readFileSync(join(appRoot, 'dashboard', 'page.tsx'), 'utf8');
+
+  assert.equal(source.includes('mx-auto max-w-5xl'), false);
+  assert.match(source, /className="[^"]*w-full[^"]*px-8[^"]*py-6/);
+});

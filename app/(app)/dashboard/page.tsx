@@ -81,7 +81,7 @@ export default async function DashboardPage({
   const pct = (n: number) => portalTotal ? Math.round((n / portalTotal) * 100) : 0;
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
+    <div className="w-full px-8 py-6 space-y-4">
       {/* Header with association filter */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">
