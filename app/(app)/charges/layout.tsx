@@ -15,7 +15,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/charges/recurring/bulk">Bulk Recurring Charges</PanelLink>
           <PanelLink href="/credits/new" status="placeholder">Homeowner Credit</PanelLink>
           <PanelLink href="/credits/apply">Apply Credits</PanelLink>
-          <PanelLink href="/charges/common/new" status="placeholder">Common Charge</PanelLink>
+          <PanelLink href="/charges/common/new">Common Charge</PanelLink>
           <PanelLink href="/charges/late-fees">Charge Late Fees</PanelLink>
           <PanelLink href="/bank-accounts/deposits/new">New Bank Deposit</PanelLink>
           <PanelLink href="/lockbox">Lockbox</PanelLink>

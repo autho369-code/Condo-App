@@ -410,3 +410,38 @@ export async function postRecurringUnitCharges() {
   revalidatePath('/charges/recurring/bulk');
   redirect(`/charges/recurring/bulk?posted=${data ?? 0}`);
 }
+
+export async function createCommonAssociationCharge(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const associationId = required(str(formData, 'association_id'), 'Association');
+  const chargeCategoryId = required(str(formData, 'charge_category_id'), 'Charge category');
+  const amount = num(formData, 'amount');
+  const description = required(str(formData, 'description'), 'Description');
+  const dueDate = str(formData, 'due_date') ?? new Date().toISOString().slice(0, 10);
+
+  const { data: units, error: unitsError } = await (supabase as any)
+    .from('units')
+    .select('id, buildings!inner(association_id)')
+    .eq('buildings.association_id', associationId)
+    .is('archived_at', null);
+
+  if (unitsError) throw new Error(unitsError.message);
+  if (!units || units.length === 0) throw new Error('No active units found for this association.');
+
+  for (const unit of units) {
+    const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
+      p_unit_id: unit.id,
+      p_charge_category_id: chargeCategoryId,
+      p_amount: amount,
+      p_description: description,
+      p_due_date: dueDate,
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath('/charges');
+  revalidatePath('/charges/common/new');
+  redirect(`/charges/common/new?posted=${units.length}`);
+}

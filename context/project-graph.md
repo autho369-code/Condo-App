@@ -56,6 +56,7 @@ flowchart LR
 | Apply Credits | `/credits/apply` | `v_unapplied_credits`, `aged_receivables`, `payment_applications` via `apply_payment` | Writes to Supabase |
 | Charge Late Fees | `/charges/late-fees` | `v_charge_balances`, `apply_late_fees` | Posts late fees through existing RPC |
 | Bulk Recurring Charges | `/charges/recurring/bulk` | `v_unit_charge_schedule`, `post_unit_recurring_charges` | Posts due recurring charges through existing RPC |
+| Common Charge | `/charges/common/new` | `associations`, `units`, `charge_categories`, `post_ad_hoc_charge` | Posts same charge to all active units in an association |
 | Lockbox | `/lockbox`, `/lockbox/new` | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | Writes batches, items, and matched receipts |
 | Recurring Journal Entries | `/journal-entries/recurring`, `/journal-entries/recurring/new` | `recurring_journal_entries`, `gl_accounts`, `generate_recurring_journal_entries` | Writes recurring templates and can generate due entries |
 | Journal Entry Batches | `/journal-entries/batches`, `/journal-entries/batches/new` | `journal_entry_batches` | Writes batch metadata |
