@@ -157,3 +157,42 @@ export async function createGLAccount(formData: FormData) {
   revalidatePath('/gl-accounts');
   redirect('/gl-accounts');
 }
+
+export async function createBankDeposit(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const paymentIds = formData.getAll('payment_ids').filter((value): value is string => typeof value === 'string' && value.length > 0);
+  if (paymentIds.length === 0) throw new Error('Select at least one receipt.');
+
+  const { error } = await (supabase as any)
+    .from('payments')
+    .update({
+      bank_account_id: required(str(formData, 'bank_account_id'), 'Bank account'),
+      reference: str(formData, 'deposit_reference'),
+      payment_date: str(formData, 'deposit_date') ?? new Date().toISOString().slice(0, 10),
+    })
+    .in('id', paymentIds);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/charges');
+  revalidatePath('/bank-accounts');
+  revalidatePath('/bank-accounts/deposits/new');
+  redirect('/charges');
+}
+
+export async function applyCredits(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const chargeIds = formData.getAll('charge_ids').filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+  const { error } = await (supabase as any).rpc('apply_payment', {
+    p_payment_id: required(str(formData, 'payment_id'), 'Credit payment'),
+    p_charge_ids: chargeIds.length > 0 ? chargeIds : undefined,
+    p_strategy: chargeIds.length > 0 ? 'selected' : 'oldest_first',
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/charges');
+  revalidatePath('/credits/apply');
+  redirect('/charges');
+}

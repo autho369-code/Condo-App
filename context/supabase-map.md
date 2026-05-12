@@ -63,6 +63,8 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Bank Transfer | `bank_transfers`, `bank_accounts` | `/bank-transfers/new` writes transfers into Supabase. |
 | New Journal Entry | `journal_entries`, `journal_lines`, `gl_accounts`, `associations` | `/journal-entries/new` writes balanced two-line entries into Supabase. |
 | New GL Account | `gl_accounts`, `associations` | `/gl-accounts/new` writes chart accounts into Supabase. |
+| New Bank Deposit | `payments`, `bank_accounts` | `/bank-accounts/deposits/new` assigns selected undeposited receipts to a bank account. |
+| Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
 
 ## Cleanup Rule
 
