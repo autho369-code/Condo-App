@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Services — Migration, onboarding, and operational support · Portier',
+  title: 'Services - Migration, onboarding, and operational support | Portier',
   description:
-    'Implementation, migration, and fractional operations support — priced transparently, delivered by named specialists.',
+    'Implementation, migration, and fractional operations support for association operators, priced transparently and delivered by named specialists.',
 };
 
 type Package = {
@@ -22,7 +22,7 @@ const PACKAGES: Package[] = [
     eyebrow: 'Migration',
     title: 'Migrated in 14 days, guaranteed in writing.',
     hook:
-      'A named migration concierge takes ownership of every record. AppFolio, Buildium, Yardi, TOPS, QuickBooks — exported, reconciled, audited, live.',
+      'A named migration concierge takes ownership of every association record. AppFolio, Buildium, Yardi, TOPS, QuickBooks, and spreadsheets are exported, reconciled, audited, and staged for launch.',
     priceRanges: [
       { label: 'Small portfolio (< 200 units)',     range: '$2,500 – $5,000' },
       { label: 'Mid-market (200 – 1,500 units)',    range: '$5,000 – $15,000' },
@@ -30,7 +30,7 @@ const PACKAGES: Package[] = [
     ],
     includes: [
       'Source-platform data extract + reconciliation',
-      'Unit + owner + tenant imports',
+      'Association, unit, and homeowner imports',
       'Vendor records + W9s + insurance certificates',
       'Ledger migration with historical balances',
       'Banking setup + first reconciliation',
@@ -45,7 +45,7 @@ const PACKAGES: Package[] = [
     eyebrow: 'Launch concierge',
     title: 'Go live in 14 days without disrupting operations.',
     hook:
-      'Workflow configuration, vendor onboarding, owner announcements, and team training — handled by a concierge who knows property management, not just software.',
+      'Workflow configuration, vendor onboarding, owner announcements, and team training handled by a concierge who knows association operations, not just software.',
     priceRanges: [
       { label: 'Standard launch',  range: '$1,500 – $4,000' },
       { label: 'Premium launch',   range: '$4,000 – $10,000' },
@@ -66,7 +66,7 @@ const PACKAGES: Package[] = [
     eyebrow: 'Fractional operations',
     title: 'Operational support, on retainer.',
     hook:
-      'For firms post-migration who want a partner — not just software — during the first 90 days. A monthly retainer with a named operations specialist.',
+      'For firms post-migration who want a partner, not just software, during the first 90 days. A monthly retainer with a named operations specialist.',
     priceRanges: [
       { label: 'SMB retainer',         range: '$1,000 – $3,000 / month' },
       { label: 'Mid-market retainer',  range: '$3,000 – $7,500 / month' },
@@ -88,7 +88,7 @@ const PACKAGES: Package[] = [
 
 const PROCESS = [
   ['01', 'Discovery',     'A 30-minute call to understand portfolio size, current platform, accounting cadence, and timeline. We write you a fixed-scope proposal within two business days.'],
-  ['02', 'Proposal',      'You see exactly what you&apos;re paying for. Migration scope, launch concierge scope, and SaaS subscription — itemised line by line. No surprises.'],
+  ['02', 'Proposal',      'You see exactly what you&apos;re paying for. Migration scope, launch concierge scope, and SaaS subscription are itemized line by line. No surprises.'],
   ['03', 'Migration',     'Your concierge runs the data import, reconciles every balance, and pre-stages your account in a private sandbox you review before signing off.'],
   ['04', 'Launch',        'Go-live date locked. Team trained, owners announced, statements queued. Day-one operations supported by a named contact.'],
   ['05', 'Optimise',      'First 30 days: weekly check-ins. Day 30 onward: monthly. Fractional ops retainer optional from month two.'],

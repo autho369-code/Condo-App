@@ -1,26 +1,18 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-// =============================================================================
-// Pricing trio — units-based, monthly/annual toggle
-// =============================================================================
-// Annual billing is 17% cheaper (rounded so the math is clean for the buyer):
-//   Starter   $149/mo  → $1,490/yr  (2 months free)
-//   Growth    $499/mo  → $4,990/yr  (2 months free)
-//   Enterprise from $1,500/mo → from $15,000/yr (2 months free)
-// =============================================================================
-
 type Tier = {
-  id: 'starter' | 'growth' | 'enterprise';
+  id: 'starter' | 'growth' | 'professional' | 'enterprise';
   name: string;
   tagline: string;
-  monthly: number | null;       // null = custom pricing
-  annual:  number | null;
-  units:   string;              // "Up to 100 units" etc.
+  monthly: number | null;
+  annual: number | null;
+  units: string;
   unitOverage: string | null;
-  features: string[];
+  featureGroups: { title: string; items: string[] }[];
   cta: { label: string; href: string; variant: 'primary' | 'outline' | 'accent' };
   featured?: boolean;
 };
@@ -29,58 +21,124 @@ const TIERS: Tier[] = [
   {
     id: 'starter',
     name: 'Starter',
-    tagline: 'For self-managed HOAs and small portfolios.',
-    monthly: 149,
-    annual:  1490,
-    units: 'Up to 100 units',
-    unitOverage: '$1.50 / additional unit',
-    features: [
-      'Online payments — ACH + card',
-      'Owner portal + statements',
-      'Violations + service requests',
-      'Standard accounting + reports',
-      'Email support, 1 business day',
+    tagline: 'For smaller associations transitioning from spreadsheets.',
+    monthly: 99,
+    annual: 990,
+    units: 'Includes 50 units',
+    unitOverage: '$2 / additional unit',
+    featureGroups: [
+      {
+        title: 'Core operations',
+        items: [
+          'Owner portal and statements',
+          'Online dues payments',
+          'Violation tracking',
+          'Service requests',
+        ],
+      },
+      {
+        title: 'Support',
+        items: ['Email support within 1 business day'],
+      },
     ],
-    cta: { label: 'Plan your migration', href: '/request-access?tier=starter', variant: 'outline' },
+    cta: { label: 'Start onboarding', href: '/request-access?tier=starter', variant: 'outline' },
   },
   {
     id: 'growth',
     name: 'Growth',
-    tagline: 'For scaling property-management companies.',
-    monthly: 499,
-    annual:  4990,
-    units: 'Up to 500 units',
-    unitOverage: '$1.00 / additional unit',
-    features: [
-      'Everything in Starter, and:',
-      'Vendor management + work orders',
-      'Approval workflows for bills + POs',
-      'SMS texting inbox',
-      'Automated monthly owner reporting',
-      'Integrate with existing accounting + vendor stack',
-      'Priority support, same business day',
+    tagline: 'For modern property management teams scaling operations.',
+    monthly: 299,
+    annual: 2990,
+    units: 'Includes 150 units',
+    unitOverage: '$1.25 / additional unit',
+    featureGroups: [
+      {
+        title: 'Operations',
+        items: [
+          'Vendor management',
+          'Work orders',
+          'Bill and PO approval workflows',
+        ],
+      },
+      {
+        title: 'Communication',
+        items: ['SMS inbox', 'Owner announcements'],
+      },
+      {
+        title: 'Reporting',
+        items: ['Automated monthly owner reporting'],
+      },
+      {
+        title: 'Support',
+        items: ['Same-day support'],
+      },
     ],
-    cta: { label: 'Plan your migration', href: '/request-access?tier=growth', variant: 'accent' },
+    cta: { label: 'Book migration consultation', href: '/request-access?tier=growth', variant: 'accent' },
     featured: true,
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    tagline: 'For established operators managing complex portfolios.',
+    monthly: 699,
+    annual: 6990,
+    units: 'Includes 500 units',
+    unitOverage: '$0.75 / additional unit',
+    featureGroups: [
+      {
+        title: 'Portfolio control',
+        items: [
+          'Multi-association rollup reporting',
+          'Advanced approval routing',
+          'Board packet automation',
+        ],
+      },
+      {
+        title: 'Integrations',
+        items: [
+          'Accounting integrations',
+          'API access',
+          'Vendor and bank workflow support',
+        ],
+      },
+      {
+        title: 'Support',
+        items: ['Priority success support'],
+      },
+    ],
+    cta: { label: 'Schedule portfolio review', href: '/request-access?tier=professional', variant: 'outline' },
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    tagline: 'For multi-entity operators and regulated portfolios.',
+    tagline: 'For multi-entity operators with advanced compliance and reporting needs.',
     monthly: null,
-    annual:  null,
-    units: 'Unlimited units',
-    unitOverage: null,
-    features: [
-      'Everything in Growth, and:',
-      'SSO / SAML',
-      'Per-role GL account permissions',
-      '7-year audit retention',
-      'Multi-entity rollup reporting',
-      'Dedicated implementation manager',
-      '24/7 support, 1-hour SLA',
+    annual: null,
+    units: 'Custom unit volume',
+    unitOverage: 'Custom commercial terms',
+    featureGroups: [
+      {
+        title: 'Governance',
+        items: [
+          'SSO / SAML',
+          'Per-role GL permissions',
+          '7-year audit retention',
+        ],
+      },
+      {
+        title: 'Scale',
+        items: [
+          'Custom reporting workflows',
+          'Dedicated implementation manager',
+          'Executive success reviews',
+        ],
+      },
+      {
+        title: 'Support',
+        items: ['1-hour priority SLA'],
+      },
     ],
-    cta: { label: 'Schedule a portfolio review', href: '/request-access?tier=enterprise', variant: 'outline' },
+    cta: { label: 'Schedule portfolio review', href: '/request-access?tier=enterprise', variant: 'outline' },
   },
 ];
 
@@ -89,33 +147,32 @@ export function PricingTrio() {
 
   return (
     <div>
-      {/* Monthly / Annual toggle */}
       <div className="mx-auto flex max-w-xs items-center justify-center gap-3">
         <ToggleBtn active={!annual} onClick={() => setAnnual(false)}>Monthly</ToggleBtn>
-        <ToggleBtn active={annual}  onClick={() => setAnnual(true)}>
+        <ToggleBtn active={annual} onClick={() => setAnnual(true)}>
           Annual <span className="ml-1.5 inline-flex h-5 items-center rounded-full bg-sage-100 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-700">2 months free</span>
         </ToggleBtn>
       </div>
 
-      {/* Free-under-20 callout */}
-      <div className="mx-auto mt-6 max-w-md text-center text-[13px] text-ink-600">
-        <span className="font-medium text-ink-900">Free under 20 units</span> — perfect for self-managed HOAs and condo associations.
+      <div className="mx-auto mt-6 max-w-2xl text-center text-[13px] text-ink-600">
+        <span className="font-medium text-ink-900">Software scales by unit count.</span>{' '}
+        Implementation and migration are scoped separately so teams know exactly what is included.
       </div>
 
-      {/* Three cards */}
-      <div className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
+      <div className="mx-auto mt-12 grid max-w-7xl gap-6 md:grid-cols-2 xl:grid-cols-4">
         {TIERS.map((t) => (
           <TierCard key={t.id} tier={t} annual={annual} />
         ))}
       </div>
 
-      {/* Money-back banner */}
-      <div className="mx-auto mt-12 max-w-4xl rounded-lg border border-champagne-300 bg-champagne-50/80 px-6 py-5 text-center">
-        <div className="eyebrow">Migration guarantee</div>
+      <div className="mx-auto mt-12 max-w-5xl rounded-lg border border-champagne-300 bg-champagne-50/80 px-6 py-5 text-center">
+        <div className="eyebrow">Implementation is separate</div>
         <div className="mt-2 font-display text-lg tracking-editorial text-ink-900">
-          If we can&apos;t migrate your AppFolio or Buildium data in 14 days, you get a full refund.
+          Concierge migration packages start at $2,500 and include source-platform migration, banking setup, imports, onboarding, and training.
         </div>
-        <div className="mt-1 text-xs text-ink-500">No fine print. No exceptions.</div>
+        <div className="mt-1 text-xs text-ink-500">
+          Software subscription stays clean. Implementation scope is quoted before work begins.
+        </div>
       </div>
     </div>
   );
@@ -124,14 +181,17 @@ export function PricingTrio() {
 function TierCard({ tier, annual }: { tier: Tier; annual: boolean }) {
   const featured = !!tier.featured;
   const cardCls = featured
-    ? 'relative flex flex-col rounded-lg bg-ink-gradient p-8 text-cream-100 shadow-soft-lg ring-1 ring-champagne-500/40'
-    : 'flex flex-col rounded-lg border border-ink-100 bg-white p-8 shadow-soft-sm transition-shadow hover:shadow-soft';
+    ? 'relative flex flex-col rounded-lg bg-ink-gradient p-7 text-cream-100 shadow-soft-lg ring-1 ring-champagne-500/40'
+    : 'flex flex-col rounded-lg border border-ink-100 bg-white p-7 shadow-soft-sm transition-shadow hover:shadow-soft';
   const eyebrowCls = featured ? 'text-[11px] font-semibold uppercase tracking-[0.18em] text-champagne-200' : 'eyebrow';
-  const titleCls = featured ? 'mt-2 font-display text-2xl tracking-editorial text-cream-50' : 'mt-2 font-display text-2xl tracking-editorial text-ink-900';
-  const priceCls = featured ? 'font-display text-5xl text-cream-50 number-plate' : 'font-display text-5xl text-ink-900 number-plate';
-  const perCls   = featured ? 'text-sm text-cream-300' : 'text-sm text-ink-500';
+  const titleCls = featured ? 'mt-2 font-display text-xl tracking-editorial text-cream-50' : 'mt-2 font-display text-xl tracking-editorial text-ink-900';
+  const priceCls = featured ? 'font-display text-4xl text-cream-50 number-plate' : 'font-display text-4xl text-ink-900 number-plate';
+  const perCls = featured ? 'text-sm text-cream-300' : 'text-sm text-ink-500';
   const unitsCls = featured ? 'mt-3 text-sm text-cream-300' : 'mt-3 text-sm text-ink-600';
   const overageCls = featured ? 'text-[12px] text-cream-400' : 'text-[12px] text-ink-500';
+  const groupCls = featured
+    ? 'text-[11px] font-semibold uppercase tracking-[0.16em] text-champagne-200'
+    : 'text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-500';
   const featureCls = featured ? 'flex items-start gap-2.5 text-[14px] text-cream-200' : 'flex items-start gap-2.5 text-[14px] text-ink-700';
 
   const displayPrice = tier.monthly === null
@@ -140,7 +200,7 @@ function TierCard({ tier, annual }: { tier: Tier; annual: boolean }) {
       ? Math.round(tier.annual! / 12)
       : tier.monthly;
   const billedSuffix = tier.monthly === null
-    ? ''
+    ? 'Priced around portfolio complexity'
     : annual
       ? `Billed $${tier.annual!.toLocaleString()} / year`
       : 'Billed monthly';
@@ -158,10 +218,7 @@ function TierCard({ tier, annual }: { tier: Tier; annual: boolean }) {
 
       <div className="mt-7">
         {displayPrice === null ? (
-          <>
-            <span className={priceCls}>From $1,500</span>
-            <span className={perCls}> / month</span>
-          </>
+          <span className={priceCls}>Custom</span>
         ) : (
           <>
             <span className={priceCls}>${displayPrice.toLocaleString()}</span>
@@ -178,14 +235,21 @@ function TierCard({ tier, annual }: { tier: Tier; annual: boolean }) {
         )}
       </div>
 
-      <ul className="mt-7 flex-1 space-y-2.5">
-        {tier.features.map((f) => (
-          <li key={f} className={featureCls}>
-            <Check featured={featured} />
-            <span>{f}</span>
-          </li>
+      <div className="mt-7 flex-1 space-y-5">
+        {tier.featureGroups.map((group) => (
+          <div key={group.title}>
+            <div className={groupCls}>{group.title}</div>
+            <ul className="mt-2.5 space-y-2.5">
+              {group.items.map((f) => (
+                <li key={f} className={featureCls}>
+                  <Check featured={featured} />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
 
       <Link href={tier.cta.href} className="mt-8">
         <Button size="md" variant={tier.cta.variant} className="w-full">

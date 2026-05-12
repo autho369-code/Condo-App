@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { PricingTrio } from '@/components/marketing/pricing-trio';
 
 export const metadata = {
-  title: 'Portier — Modern property management with concierge onboarding.',
+  title: 'Portier - Association operations with concierge onboarding.',
   description:
-    'Replace AppFolio or Buildium without painful migrations, broken workflows, or weeks of setup. Units-based pricing, concierge migration, AI-assisted operations.',
+    'Association management software with unit-based pricing, separate implementation packages, and concierge migration from AppFolio, Buildium, or spreadsheets.',
 };
 
 function Diamond() {
@@ -16,75 +16,100 @@ function Diamond() {
   );
 }
 
-// Outcome-based feature copy — every line ties software to operator value.
 const features = [
   {
-    title: 'Migrated in 14 days',
-    desc: 'Send a CSV export from AppFolio, Buildium, Yardi, or QuickBooks. A concierge lands your portfolio in 48–72 hours, fully reconciled. Go live in two weeks — guaranteed in writing.',
+    title: 'Replace disconnected tools',
+    desc: 'Dues, violations, work orders, board reporting, vendor records, and owner communication live in one operating workspace instead of eight separate tools.',
   },
   {
-    title: 'Collect dues without bleeding on fees',
-    desc: 'ACH at 0.8% (capped $5), card fees passed through transparently. Autopay enrolment in a single tap. Statements that look like correspondence, not invoices.',
+    title: 'Reduce monthly reporting time',
+    desc: 'Board packets, statements, delinquency reports, insurance expirations, and owner summaries can be generated from the same source of truth.',
   },
   {
-    title: 'Automated monthly owner reporting',
-    desc: 'Board packets, statements, delinquency reports, insurance expirations — generated, signed, and delivered on the first of the month. Your team doesn&apos;t touch them.',
+    title: 'Collect dues without fee confusion',
+    desc: 'ACH and card processing are clearly separated from software pricing, with owner-facing payment flows that make autopay easier to adopt.',
   },
   {
-    title: 'Maintenance that closes itself',
-    desc: 'Service request → work order → vendor → labour → bill → payment → archived. AI-assisted triage classifies and routes requests the moment they come in.',
+    title: 'Coordinate vendors and maintenance',
+    desc: 'Service requests move into work orders, approvals, vendor communication, bill review, payment, and history without losing the thread.',
   },
   {
-    title: 'Integrate with the stack you already use',
-    desc: 'Webhooks into QuickBooks, lockbox feeds, Mailchimp, Slack. Scoped API keys with twenty-plus event types. Your data, your tools, your pace.',
+    title: 'Keep association accounting visible',
+    desc: 'GL accounts, bank workflow, owner balances, dues roll, and board reporting stay close to the daily work instead of hiding in exports.',
   },
   {
-    title: 'Compliance, by composition',
-    desc: '1099 generation, immutable audit log, GDPR / CCPA exports, soft-delete restore. SOC 2 Type II in progress. Built into the platform, not bolted on.',
+    title: 'Go live with real help',
+    desc: 'Migration, banking setup, imports, vendor onboarding, and staff training are scoped as implementation services before launch begins.',
   },
 ];
 
 const steps = [
-  ['01', 'Discovery call', 'A concierge reviews your portfolio, current platform, and timeline. We map your accounting cadence to ours before you commit.'],
-  ['02', 'Migration', 'Send your data export. We land it in 48–72 hours, fully reconciled. You review every balance against the source-of-truth.'],
-  ['03', 'Launch concierge', 'Workflows configured, vendors onboarded, owners announced. Your team trained, your SOPs documented. Live within 14 days.'],
-  ['04', 'Operate', 'Day one onward, you have a dedicated success contact. Fractional ops support available when you want a partner, not just software.'],
+  ['01', 'Discovery call', 'We review portfolio size, current software, association complexity, accounting cadence, and launch timeline.'],
+  ['02', 'Implementation quote', 'Software subscription and implementation scope are separated so you can see exactly what is included.'],
+  ['03', 'Migration and setup', 'Your AppFolio, Buildium, or spreadsheet data is imported, reconciled, and reviewed before go-live.'],
+  ['04', 'Launch support', 'Your team is trained, owner communication is staged, and operating workflows are configured for the first month.'],
 ];
 
 const switchReasons: [string, string][] = [
-  ['Slow support',          'Same-business-day response on Growth, 1-hour SLA on Enterprise. Real people, not bots.'],
-  ['Generic onboarding',    'Each migration assigned to a named concierge. We learn your portfolio before you sign.'],
-  ['Hidden fees',           'Unit-based pricing on the page. No setup fees, no per-feature pricing, no surprises at renewal.'],
-  ['Locked data exports',   'Full JSON / CSV export anytime, even on the lowest tier. Your data is yours, always.'],
-  ['Old user interface',    'A modern editorial design language built for operators who notice details. Mobile-first resident portal.'],
+  ['Slow support', 'Same-day support on Growth, priority success on Professional, and 1-hour SLA paths for Enterprise.'],
+  ['Generic onboarding', 'Implementation is scoped around your associations, bank accounts, vendors, owners, and reporting cadence.'],
+  ['Pricing confusion', 'Software is unit-based. Implementation is quoted separately. No pretending migration is free.'],
+  ['Locked data exports', 'Full export paths for owner, unit, accounting, and operational data. Your data remains yours.'],
+  ['Operational blind spots', 'Tasks, reporting, activity, and financial work stay connected in the same association workspace.'],
 ];
 
 const faqs: [string, string][] = [
-  ['How does the migration actually work?',
-   'You send a data export from AppFolio, Buildium, Yardi, or QuickBooks (a CSV or our partner connectors). Within 48–72 hours we land it in your tenant, fully reconciled against source-of-truth. You review balances unit by unit. If anything doesn&apos;t match, we fix it before you go live. Our 14-day guarantee covers the entire process.'],
-  ['What if my portfolio outgrows the unit count on my plan?',
-   'You stay on the plan; the per-unit overage rate kicks in. Starter is $1.50 / unit over 100. Growth is $1.00 / unit over 500. We never auto-upgrade your plan without a conversation.'],
-  ['Are there setup or implementation fees baked into the monthly price?',
-   'No. The monthly price covers the platform only. Implementation, migration, and operational onboarding are priced separately and transparently on the Services page — you see exactly what you&apos;re paying for.'],
-  ['How are payment-processing fees handled?',
-   'ACH at 0.8% (capped at $5 per transaction). Cards at 2.9% + 30¢. You decide whether to absorb the card fee or pass it through to owners as a convenience charge. ACH stays free for the owner.'],
-  ['Is the platform secure and compliant?',
-   'Row-level security at the database for every query — no portfolio can read another portfolio&apos;s data. SOC 2 Type II is in progress. GDPR + CCPA exports, right-to-delete, and audit log are built in.'],
-  ['Do you support HOAs, condominiums, co-ops, and rental portfolios?',
-   'Association management is our primary discipline. We also handle rental and mixed portfolios. Condos and co-ops use the same workflow with different labels.'],
+  [
+    'How does the unit-based pricing work?',
+    'Each paid plan includes a unit allowance, then charges a clear per-unit rate above that allowance. Starter includes 50 units at $99/month with $2/additional unit. Growth includes 150 units at $299/month with $1.25/additional unit. Professional includes 500 units at $699/month with $0.75/additional unit.',
+  ],
+  [
+    'What would a 1,000-unit operator pay?',
+    'On Professional, a 1,000-unit operator would pay $699/month plus 500 additional units at $0.75, or about $1,074/month before implementation and payment-processing costs.',
+  ],
+  [
+    'Are implementation and migration included in the monthly subscription?',
+    'No. The monthly price covers the software subscription. Concierge migration and implementation are quoted separately, with packages starting at $2,500. That keeps the subscription clean and prevents hidden setup assumptions.',
+  ],
+  [
+    'What does implementation include?',
+    'Implementation can include AppFolio or Buildium migration, banking setup, GL account configuration, owner and unit imports, vendor onboarding, staff training, and launch support.',
+  ],
+  [
+    'Who is Starter for?',
+    'Starter is for smaller associations moving away from spreadsheets or lightweight tools. It is not positioned as a tiny version of the platform; it is a clean entry point into real association operations.',
+  ],
+  [
+    'Do you support HOAs, condominiums, and co-ops?',
+    'Yes. Association management is the primary discipline. HOAs, condominium associations, and co-ops use the association workflow with configuration differences where needed.',
+  ],
 ];
 
 const stats: [string, string][] = [
-  ['14 days', 'average migration timeline'],
-  ['48 hrs',  'data landed + reconciled'],
-  ['$3M+',    'dues processed yearly'],
-  ['99.98%',  'uptime SLA'],
+  ['8+', 'tools replaced'],
+  ['14 days', 'target launch window'],
+  ['$2,500+', 'implementation packages'],
+  ['1,000 units', 'priced around $1,074/mo'],
+];
+
+const outcomes: [string, string][] = [
+  ['Replace 8+ disconnected tools', 'Dues, violations, work orders, documents, statements, vendors, reports, and owner communication in one place.'],
+  ['Reduce reporting drag', 'Board packets and owner reporting come from live association data instead of monthly spreadsheet assembly.'],
+  ['Go live in 14 days', 'A scoped implementation plan turns migration into a managed project, not a vague promise.'],
+];
+
+const implementationIncludes = [
+  'AppFolio and Buildium migration',
+  'Spreadsheet imports for units and homeowners',
+  'Banking and GL account setup',
+  'Vendor onboarding',
+  'Staff training',
+  'Launch support',
 ];
 
 export default function Landing() {
   return (
     <>
-      {/* ============ HERO ============ */}
       <section className="relative overflow-hidden">
         <div
           className="absolute inset-0 -z-10"
@@ -97,41 +122,38 @@ export default function Landing() {
           <div className="mx-auto max-w-4xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-champagne-300 bg-cream-50/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-700 backdrop-blur-sm">
               <Diamond />
-              <span>Concierge property management platform</span>
+              <span>Concierge association operations platform</span>
             </div>
             <h1 className="mt-8 font-display text-[2.5rem] leading-[1.1] tracking-tightest text-ink-900 sm:text-5xl md:text-7xl md:leading-[1.05]">
-              Modern property operations.<br />
-              <span className="italic text-champagne-700">Migrated in 14 days.</span>
+              Serious association operations.<br />
+              <span className="italic text-champagne-700">Launched with real help.</span>
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-lg text-ink-600 leading-relaxed md:text-xl">
-              Replace AppFolio or Buildium without painful migrations, broken
-              workflows, or weeks of setup. Unit-based pricing, concierge
-              onboarding, AI-assisted operations — engineered for the way your
-              team actually works.
+              Replace spreadsheets, AppFolio gaps, or disconnected tools with unit-based software pricing and separately scoped implementation.
+              Built for teams that need cleaner accounting, faster reporting, and better owner communication.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link href="/request-access">
-                <Button size="lg" variant="primary">Plan your migration →</Button>
+                <Button size="lg" variant="primary">Start onboarding</Button>
               </Link>
               <Link href="/request-access?intent=quote">
-                <Button size="lg" variant="outline">Get a migration quote</Button>
+                <Button size="lg" variant="outline">Book migration consultation</Button>
               </Link>
             </div>
             <p className="mt-4 text-xs uppercase tracking-[0.15em] text-ink-500">
-              14-day migration guarantee · No setup fees · Cancel any time
+              Unit-based software pricing / Implementation quoted separately / No hidden migration assumptions
             </p>
             <p className="mt-7 text-sm text-ink-600">
               Already a customer?{' '}
               <Link
                 href="/login"
-                className="font-medium text-champagne-700 underline decoration-champagne-300 decoration-1 underline-offset-4 hover:decoration-champagne-500 transition-colors"
+                className="font-medium text-champagne-700 underline decoration-champagne-300 decoration-1 underline-offset-4 transition-colors hover:decoration-champagne-500"
               >
-                Sign in to your workspace →
+                Sign in to your workspace
               </Link>
             </p>
           </div>
 
-          {/* Editorial proof strip */}
           <div className="mx-auto mt-20 max-w-5xl">
             <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-ink-100 bg-ink-100 shadow-soft md:grid-cols-4">
               {stats.map(([n, l]) => (
@@ -145,17 +167,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ============ FEATURES ============ */}
       <section id="features" className="border-t border-ink-100 bg-white py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <div className="eyebrow">Platform</div>
             <h2 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
-              Built for the operator, not the demo.
+              Built around operational outcomes.
             </h2>
             <p className="mt-5 text-base text-ink-600 leading-relaxed md:text-lg">
-              Accounting, maintenance, communications, compliance, reporting —
-              one login, one bill, one team that runs better by Friday.
+              Property managers and association boards buy fewer headaches, faster close cycles, fewer support tickets, and clearer visibility. The feature set should prove those outcomes.
             </p>
           </div>
 
@@ -166,7 +186,7 @@ export default function Landing() {
                   <span className="font-display text-xl text-champagne-600 number-plate">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <div className="h-px flex-1 bg-ink-100 group-hover:bg-champagne-300 transition-colors" />
+                  <div className="h-px flex-1 bg-ink-100 transition-colors group-hover:bg-champagne-300" />
                 </div>
                 <h3 className="mt-5 font-display text-xl tracking-editorial text-ink-900">
                   {f.title}
@@ -178,7 +198,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ============ WHY SWITCH (TEASER) ============ */}
       <section className="border-t border-ink-100 bg-cream-100 py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid gap-12 md:grid-cols-2 md:items-start">
@@ -189,11 +208,10 @@ export default function Landing() {
                 <span className="italic text-champagne-700">AppFolio and Buildium.</span>
               </h2>
               <p className="mt-5 max-w-md text-base text-ink-600 leading-relaxed">
-                Every operator we&apos;ve onboarded comes with the same five gripes.
-                We rebuilt the platform around fixing them.
+                The pain is rarely one missing feature. It is support delay, reporting drag, migration uncertainty, and scattered operational work.
               </p>
-              <Link href="/why-switch" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-champagne-700 underline decoration-champagne-300 underline-offset-4 hover:decoration-champagne-500 transition-colors">
-                Read the full comparison <span aria-hidden="true">→</span>
+              <Link href="/why-switch" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-champagne-700 underline decoration-champagne-300 underline-offset-4 transition-colors hover:decoration-champagne-500">
+                Read the full comparison
               </Link>
             </div>
             <ul className="space-y-5 border-l-2 border-champagne-300 pl-7">
@@ -201,7 +219,7 @@ export default function Landing() {
                 <li key={pain}>
                   <div className="font-display text-lg tracking-editorial text-ink-900">
                     {pain}
-                    <span className="ml-2 text-champagne-600">→</span>
+                    <span className="ml-2 text-champagne-600">-</span>
                     <span className="ml-2 font-sans text-[15px] font-normal text-ink-600">{fix}</span>
                   </div>
                 </li>
@@ -211,17 +229,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ============ HOW IT WORKS ============ */}
       <section className="border-t border-ink-100 bg-white py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <div className="eyebrow">Onboarding</div>
             <h2 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
-              An association, in an afternoon.
+              Software and implementation stay separate.
             </h2>
             <p className="mt-5 text-base text-ink-600 leading-relaxed md:text-lg">
-              Most platforms take ninety days to implement. We take fourteen,
-              with a concierge alongside your team the entire time.
+              The platform subscription covers the product. Migration, banking setup, data import, and launch work are quoted as services so nobody assumes complex implementation is free.
             </p>
           </div>
 
@@ -236,28 +252,22 @@ export default function Landing() {
           </div>
 
           <div className="mt-14 text-center">
-            <Link href="/services" className="inline-flex items-center gap-2 text-sm font-semibold text-champagne-700 underline decoration-champagne-300 underline-offset-4 hover:decoration-champagne-500 transition-colors">
-              Implementation &amp; concierge services →
+            <Link href="/services" className="inline-flex items-center gap-2 text-sm font-semibold text-champagne-700 underline decoration-champagne-300 underline-offset-4 transition-colors hover:decoration-champagne-500">
+              Implementation and concierge services
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ============ PRICING ============ */}
       <section id="pricing" className="border-t border-ink-100 bg-cream-100 py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <div className="eyebrow">Pricing</div>
             <h2 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
-              Priced by units, not by seats.
+              Unit-based pricing for different buyers.
             </h2>
             <p className="mt-5 text-base text-ink-600 leading-relaxed md:text-lg">
-              The same way your portfolio scales. No per-feature pricing, no setup
-              fees, no surprises at renewal. Implementation is priced separately
-              and transparently on the{' '}
-              <Link href="/services" className="font-medium text-champagne-700 underline decoration-champagne-300 underline-offset-4 hover:decoration-champagne-500 transition-colors">
-                Services page
-              </Link>.
+              Smaller associations, scaling management teams, and established operators have different economics. The pricing now scales with unit count instead of forcing every buyer into one ladder.
             </p>
           </div>
 
@@ -267,7 +277,49 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ============ FAQ ============ */}
+      <section className="border-t border-ink-100 bg-white py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="eyebrow">ROI</div>
+            <h2 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
+              Sell the operating result, not the checklist.
+            </h2>
+          </div>
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            {outcomes.map(([title, desc]) => (
+              <article key={title} className="border-l-2 border-champagne-300 pl-6">
+                <h3 className="font-display text-xl tracking-editorial text-ink-900">{title}</h3>
+                <p className="mt-3 text-[15px] text-ink-600 leading-relaxed">{desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-ink-100 bg-cream-100 py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-[1fr_1.1fr] md:items-start">
+          <div>
+            <div className="eyebrow">Concierge migration and implementation</div>
+            <h2 className="mt-3 font-display text-4xl tracking-editorial text-ink-900 md:text-5xl">
+              Migration packages start at $2,500.
+            </h2>
+            <p className="mt-5 text-base text-ink-600 leading-relaxed md:text-lg">
+              This keeps Portier positioned as a serious operator platform, not a cheap replacement. Buyers see the subscription price and the implementation project as two different decisions.
+            </p>
+            <Link href="/services" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-champagne-700 underline decoration-champagne-300 underline-offset-4 transition-colors hover:decoration-champagne-500">
+              View implementation services
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {implementationIncludes.map((item) => (
+              <div key={item} className="rounded-lg border border-ink-100 bg-white px-5 py-4 text-[14px] text-ink-700 shadow-soft-sm">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="faq" className="border-t border-ink-100 bg-white py-24">
         <div className="mx-auto max-w-3xl px-6">
           <div className="text-center">
@@ -280,49 +332,47 @@ export default function Landing() {
             {faqs.map(([q, a]) => (
               <div key={q} className="border-b border-ink-100 pb-10 last:border-b-0">
                 <dt className="font-display text-xl tracking-editorial text-ink-900">{q}</dt>
-                <dd className="mt-3 text-[15px] text-ink-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: a }} />
+                <dd className="mt-3 text-[15px] text-ink-600 leading-relaxed">{a}</dd>
               </div>
             ))}
           </dl>
         </div>
       </section>
 
-      {/* ============ CTA ============ */}
       <section id="contact" className="bg-ink-gradient text-cream-100">
         <div className="mx-auto max-w-4xl px-6 py-24 text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-champagne-200">Begin</div>
           <h2 className="mt-4 font-display text-4xl tracking-editorial text-cream-50 md:text-6xl md:leading-[1.05]">
-            Give your portfolio<br />
-            <span className="italic text-champagne-300">a finer instrument.</span>
+            Choose the right starting point<br />
+            <span className="italic text-champagne-300">for your association portfolio.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-cream-300 leading-relaxed">
-            A concierge will walk you through migration, configuration, and your
-            first month — so your team notices the difference by Friday, not Q4.
+            Start onboarding if you are moving from spreadsheets. Book a migration consultation if your team is switching from AppFolio, Buildium, or a larger existing stack.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/request-access">
-              <Button size="lg" variant="accent">Plan your migration →</Button>
+            <Link href="/request-access?tier=starter">
+              <Button size="lg" variant="accent">Start onboarding</Button>
             </Link>
-            <Link href="/request-access?intent=quote">
+            <Link href="/request-access?intent=migration">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-cream-300/40 text-cream-100 hover:bg-white/5 hover:border-cream-200"
+                className="border-cream-300/40 text-cream-100 hover:border-cream-200 hover:bg-white/5"
               >
-                Get a migration quote
+                Book migration consultation
               </Button>
             </Link>
           </div>
           <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-cream-400">
-            14-day migration guarantee · No setup fees
+            Software subscription and implementation scope are quoted separately
           </p>
           <p className="mt-7 text-sm text-cream-300">
             Already a customer?{' '}
             <Link
               href="/login"
-              className="font-medium text-champagne-300 underline decoration-champagne-500/60 decoration-1 underline-offset-4 hover:text-champagne-200 hover:decoration-champagne-400 transition-colors"
+              className="font-medium text-champagne-300 underline decoration-champagne-500/60 decoration-1 underline-offset-4 transition-colors hover:text-champagne-200 hover:decoration-champagne-400"
             >
-              Sign in to your workspace →
+              Sign in to your workspace
             </Link>
           </p>
         </div>
