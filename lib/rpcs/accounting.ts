@@ -388,3 +388,25 @@ export async function reactivateGLAccount(formData: FormData) {
   revalidatePath('/gl-accounts/reactivate');
   redirect('/gl-accounts');
 }
+
+export async function chargeLateFees() {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('apply_late_fees');
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/charges');
+  revalidatePath('/charges/late-fees');
+  redirect(`/charges/late-fees?posted=${data ?? 0}`);
+}
+
+export async function postRecurringUnitCharges() {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('post_unit_recurring_charges');
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/charges');
+  revalidatePath('/charges/recurring/bulk');
+  redirect(`/charges/recurring/bulk?posted=${data ?? 0}`);
+}

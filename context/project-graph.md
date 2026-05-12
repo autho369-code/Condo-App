@@ -54,6 +54,8 @@ flowchart LR
 | Bank Account Online Payments | `/bank-accounts/online-payments` | `bank_accounts.payments_enabled` | Updates payment enablement |
 | Link With Bank | `/bank-accounts/link` | `bank_accounts.auto_reconciliation` | Updates feed/reconciliation flag |
 | Apply Credits | `/credits/apply` | `v_unapplied_credits`, `aged_receivables`, `payment_applications` via `apply_payment` | Writes to Supabase |
+| Charge Late Fees | `/charges/late-fees` | `v_charge_balances`, `apply_late_fees` | Posts late fees through existing RPC |
+| Bulk Recurring Charges | `/charges/recurring/bulk` | `v_unit_charge_schedule`, `post_unit_recurring_charges` | Posts due recurring charges through existing RPC |
 | Lockbox | `/lockbox`, `/lockbox/new` | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | Writes batches, items, and matched receipts |
 | Recurring Journal Entries | `/journal-entries/recurring`, `/journal-entries/recurring/new` | `recurring_journal_entries`, `gl_accounts`, `generate_recurring_journal_entries` | Writes recurring templates and can generate due entries |
 | Journal Entry Batches | `/journal-entries/batches`, `/journal-entries/batches/new` | `journal_entry_batches` | Writes batch metadata |

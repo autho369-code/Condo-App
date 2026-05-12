@@ -69,6 +69,8 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Bank Account Online Payments | `bank_accounts` | `/bank-accounts/online-payments` updates `payments_enabled`. |
 | Link With Bank | `bank_accounts` | `/bank-accounts/link` updates `auto_reconciliation`; no provider connection table is currently confirmed. |
 | Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
+| Charge Late Fees | `v_charge_balances`, `apply_late_fees` | `/charges/late-fees` previews past-due balances and runs the existing late-fee RPC. |
+| Bulk Recurring Charges | `v_unit_charge_schedule`, `post_unit_recurring_charges` | `/charges/recurring/bulk` previews due schedules and runs the existing recurring-charge RPC. |
 | Lockbox | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | `/lockbox/new` writes lockbox batches/items and creates matched receipt payments when a unit is selected. |
 | Recurring Journal Entries | `recurring_journal_entries`, `gl_accounts` | `/journal-entries/recurring/new` writes templates; list can run `generate_recurring_journal_entries`. |
 | Journal Entry Batches | `journal_entry_batches` | `/journal-entries/batches/new` writes batch metadata. |
