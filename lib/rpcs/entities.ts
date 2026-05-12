@@ -202,6 +202,39 @@ export async function createBankAccount(formData: FormData) {
   redirect(`/bank-accounts`);
 }
 
+export async function updateBankAccountOnlinePayments(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const id = req(formData, 'bank_account_id');
+
+  const { error } = await (supabase as any)
+    .from('bank_accounts')
+    .update({ payments_enabled: str(formData, 'payments_enabled') === 'true' })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/bank-accounts');
+  revalidatePath('/bank-accounts/online-payments');
+  redirect('/bank-accounts');
+}
+
+export async function updateBankAccountLinking(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const id = req(formData, 'bank_account_id');
+
+  const { error } = await (supabase as any)
+    .from('bank_accounts')
+    .update({ auto_reconciliation: str(formData, 'auto_reconciliation') === 'true' })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/bank-accounts');
+  revalidatePath('/bank-accounts/feeds');
+  revalidatePath('/bank-accounts/link');
+  redirect('/bank-accounts/feeds');
+}
+
 // ============================================================================
 // BUILDINGS
 // ============================================================================

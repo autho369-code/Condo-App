@@ -37,7 +37,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | `report_data_property_directory` | Property terminology. | Rename/replace with association/unit directory report. | Pending |
 | `financial_diagnostics` | Needed by reference screenshot but current backing table/view must be confirmed. | Keep or create a view only after schema audit. | Pending |
 | `bank_reconciliations` | Needed for bank account and diagnostic screens, current schema must be confirmed. | Keep if present; otherwise map existing reconciliation source. | Pending |
-| `bank_feed_connections` | Needed for Bank Feed / Link With Bank tasks, current schema must be confirmed. | Keep if present; otherwise mark future integration. | Pending |
+| `bank_feed_connections` | Not present in generated Supabase types. | Treat external-provider connection as future integration; current UI uses `bank_accounts.auto_reconciliation`. | Pending |
 | `gl_account_role_permissions` | Used by GL account permissions task. | Keep. | Confirmed |
 | `recurring_journal_entries` | Needed by journal-entry screenshot, current schema must be confirmed. | Keep if present; otherwise mark future workflow. | Pending |
 | `journal_entry_batches` | Needed by journal-entry batch upload screenshot, current schema must be confirmed. | Keep if present; otherwise mark future workflow. | Pending |
@@ -66,6 +66,8 @@ No schema changes should be made from this file alone. It is an audit and approv
 | GL Account Permissions | `gl_account_role_permissions`, `gl_accounts`, `user_roles` | `/gl-accounts/permissions` writes role-level GL permissions into Supabase. |
 | Reactivate GL Account | `gl_accounts` | `/gl-accounts/reactivate` updates inactive GL accounts back to active. |
 | New Bank Deposit | `payments`, `bank_accounts` | `/bank-accounts/deposits/new` assigns selected undeposited receipts to a bank account. |
+| Bank Account Online Payments | `bank_accounts` | `/bank-accounts/online-payments` updates `payments_enabled`. |
+| Link With Bank | `bank_accounts` | `/bank-accounts/link` updates `auto_reconciliation`; no provider connection table is currently confirmed. |
 | Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
 | Lockbox | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | `/lockbox/new` writes lockbox batches/items and creates matched receipt payments when a unit is selected. |
 | Recurring Journal Entries | `recurring_journal_entries`, `gl_accounts` | `/journal-entries/recurring/new` writes templates; list can run `generate_recurring_journal_entries`. |
