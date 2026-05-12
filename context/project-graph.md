@@ -53,6 +53,7 @@ flowchart LR
 | New Bank Deposit | `/bank-accounts/deposits/new` | `payments`, `bank_accounts` | Assigns receipts to bank account |
 | Bank Account Online Payments | `/bank-accounts/online-payments` | `bank_accounts.payments_enabled` | Updates payment enablement |
 | Link With Bank | `/bank-accounts/link` | `bank_accounts.auto_reconciliation` | Updates feed/reconciliation flag |
+| Bank Reconciliation | `/bank-accounts/reconcile` | `payments`, `payable_bills`, `bank_transfers`, `bank_accounts.last_reconciliation_date` | Updates reconciliation date after balanced guardrails pass |
 | Apply Credits | `/credits/apply` | `v_unapplied_credits`, `aged_receivables`, `payment_applications` via `apply_payment` | Writes to Supabase |
 | Charge Late Fees | `/charges/late-fees` | `v_charge_balances`, `apply_late_fees` | Posts late fees through existing RPC |
 | Bulk Recurring Charges | `/charges/recurring/bulk` | `v_unit_charge_schedule`, `post_unit_recurring_charges` | Posts due recurring charges through existing RPC |

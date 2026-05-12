@@ -12,6 +12,7 @@ import {
   parseStatementBalance,
   type ReconciliationTransaction,
 } from '@/lib/banking/reconciliation';
+import { reconcileBankAccount } from '@/lib/rpcs/accounting';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ type ReconcileSearchParams = {
   bank_account_id?: string;
   statement_date?: string;
   statement_balance?: string;
+  reconciled?: string;
 };
 
 export default async function BankReconcilePage({
@@ -98,6 +100,12 @@ export default async function BankReconcilePage({
       rail={<ReconciliationRail account={selectedAccount} summary={summary} guardrails={guardrails} />}
     >
       <div className="space-y-6">
+        {params.reconciled === '1' && (
+          <div className="rounded border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-900">
+            Bank account reconciled through {date(statementDate)}.
+          </div>
+        )}
+
         <form action="/bank-accounts/reconcile" className="rounded-lg border border-ink-100 bg-white p-5 shadow-soft-sm">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(160px,1fr)_minmax(160px,1fr)_auto]">
             <label className="text-sm font-medium text-ink-700">
@@ -176,10 +184,13 @@ export default async function BankReconcilePage({
         <TransactionTable title="Cleared transactions" rows={summary.cleared} empty="No transactions are cleared through this statement date." />
         <TransactionTable title="Uncleared transactions" rows={summary.uncleared} empty="No outstanding deposits, bill payments, or transfers remain after this statement date." />
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <form action={reconcileBankAccount} className="flex flex-wrap justify-end gap-2">
+          <input type="hidden" name="bank_account_id" value={selectedAccountId} />
+          <input type="hidden" name="statement_date" value={statementDate} />
+          <input type="hidden" name="statement_balance" value={params.statement_balance ?? ''} />
           <Button type="button" variant="secondary" disabled={!guardrails.canSaveDraft}>Save draft</Button>
-          <Button type="button" disabled={!guardrails.canReconcile}>Reconcile account</Button>
-        </div>
+          <Button type="submit" disabled={!guardrails.canReconcile}>Reconcile account</Button>
+        </form>
       </div>
     </DataWorkspace>
   );

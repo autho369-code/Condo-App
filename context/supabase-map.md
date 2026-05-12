@@ -68,6 +68,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | New Bank Deposit | `payments`, `bank_accounts` | `/bank-accounts/deposits/new` assigns selected undeposited receipts to a bank account. |
 | Bank Account Online Payments | `bank_accounts` | `/bank-accounts/online-payments` updates `payments_enabled`. |
 | Link With Bank | `bank_accounts` | `/bank-accounts/link` updates `auto_reconciliation`; no provider connection table is currently confirmed. |
+| Bank Reconciliation | `payments`, `payable_bills`, `bank_transfers`, `bank_accounts` | `/bank-accounts/reconcile` recalculates guardrails server-side and updates `last_reconciliation_date` only when balanced. |
 | Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
 | Charge Late Fees | `v_charge_balances`, `apply_late_fees` | `/charges/late-fees` previews past-due balances and runs the existing late-fee RPC. |
 | Bulk Recurring Charges | `v_unit_charge_schedule`, `post_unit_recurring_charges` | `/charges/recurring/bulk` previews due schedules and runs the existing recurring-charge RPC. |

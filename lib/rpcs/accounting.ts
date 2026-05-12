@@ -1,6 +1,12 @@
 'use server';
 
 import { requireStaff } from '@/lib/auth/me';
+import {
+  buildReconciliationTransactions,
+  calculateReconciliationSummary,
+  getReconciliationGuardrails,
+  parseStatementBalance,
+} from '@/lib/banking/reconciliation';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -462,4 +468,66 @@ export async function manuallyPostJournalEntries(formData: FormData) {
   revalidatePath('/journal-entries');
   revalidatePath('/journal-entries/post');
   redirect(`/journal-entries/post?posted=${entryIds.length}`);
+}
+
+export async function reconcileBankAccount(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+  const bankAccountId = required(str(formData, 'bank_account_id'), 'Bank account');
+  const statementDate = required(str(formData, 'statement_date'), 'Statement date');
+  const statementBalance = parseStatementBalance(str(formData, 'statement_balance'));
+  if (statementBalance === null) throw new Error('Statement balance is required.');
+
+  const [paymentResult, billResult, transferResult] = await Promise.all([
+    db
+      .from('payments')
+      .select('id, amount, payment_date, method, reference, notes')
+      .eq('bank_account_id', bankAccountId)
+      .order('payment_date', { ascending: true })
+      .limit(250),
+    db
+      .from('payable_bills')
+      .select('id, amount, paid_at, due_date, bill_number, memo, vendors(name)')
+      .eq('bank_account_id', bankAccountId)
+      .eq('status', 'paid')
+      .is('archived_at', null)
+      .order('paid_at', { ascending: true, nullsFirst: false })
+      .limit(250),
+    db
+      .from('bank_transfers')
+      .select('id, amount, transfer_date, reference_number, memo, from_bank_account_id, to_bank_account_id, from:from_bank_account_id(name), to:to_bank_account_id(name)')
+      .or(`from_bank_account_id.eq.${bankAccountId},to_bank_account_id.eq.${bankAccountId}`)
+      .order('transfer_date', { ascending: true })
+      .limit(250),
+  ]);
+
+  if (paymentResult.error) throw new Error(paymentResult.error.message);
+  if (billResult.error) throw new Error(billResult.error.message);
+  if (transferResult.error) throw new Error(transferResult.error.message);
+
+  const transactions = buildReconciliationTransactions({
+    bankAccountId,
+    payments: paymentResult.data ?? [],
+    payableBills: billResult.data ?? [],
+    transfers: transferResult.data ?? [],
+  });
+  const summary = calculateReconciliationSummary({ statementDate, statementBalance, transactions });
+  const guardrails = getReconciliationGuardrails({
+    hasAccount: Boolean(bankAccountId),
+    statementDate,
+    statementBalance,
+    summary,
+  });
+  if (!guardrails.canReconcile) throw new Error(guardrails.blockers.join(' '));
+
+  const { error } = await db
+    .from('bank_accounts')
+    .update({ last_reconciliation_date: statementDate })
+    .eq('id', bankAccountId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/bank-accounts');
+  revalidatePath('/bank-accounts/reconcile');
+  redirect(`/bank-accounts/reconcile?bank_account_id=${bankAccountId}&statement_date=${statementDate}&statement_balance=${statementBalance}&reconciled=1`);
 }
