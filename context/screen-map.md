@@ -399,7 +399,7 @@ Design note:
 Status:
 
 - Approved reference batch saved locally.
-- UI comparison complete; implementation pending.
+- Initial UI alignment complete for Receipts, Bank Accounts, Bank Transfers, Journal Entries, GL Accounts, and Diagnostics.
 
 ## Accounting Receipts
 
@@ -459,7 +459,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app needs route/workflow review.
+- Initial UI alignment complete; deeper receipt actions still need workflow wiring.
 
 ## Accounting Bank Accounts
 
@@ -510,7 +510,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app is wired but center pane has extra dashboard-style elements to remove in a later UI pass.
+- Initial UI alignment complete; bank feed and reconciliation actions remain separate routes.
 
 ## Accounting Bank Transfers
 
@@ -552,7 +552,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app has a transfer table but needs incomplete/completed workflow shape.
+- Initial UI alignment complete; completed transfer filtering still needs workflow wiring.
 
 ## Accounting Journal Entries
 
@@ -601,7 +601,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app has a basic journal-entry table but not the reference filter workflow.
+- Initial UI alignment complete; batch and recurring workflows still need deeper wiring.
 
 ## Accounting GL Accounts
 
@@ -639,7 +639,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app groups accounts by range; reference uses a flat chart list.
+- Initial UI alignment complete with flat chart list.
 
 ## Accounting Financial Diagnostics
 
@@ -684,7 +684,7 @@ Supabase wiring:
 Status:
 
 - Captured from saved screenshot.
-- Current app shows data-quality diagnostic tiles; reference requires accounting diagnostic tables.
+- Initial UI alignment complete; accounting diagnostic source tables still need Supabase review.
 
 ## Template
 

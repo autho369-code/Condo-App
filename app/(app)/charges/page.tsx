@@ -1,48 +1,74 @@
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { AccountingPage, AccountingSearchBox } from '@/components/accounting/accounting-page';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { money, date } from '@/lib/utils';
+import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
+import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ChargesPage() {
   await requireStaff();
   const supabase = await createClient();
-  // aged_receivables = one row per open charge (balance_due > 0)
   const { data: rows } = await (supabase as any)
-    .from('aged_receivables')
-    .select('*')
-    .order('due_date');
+    .from('payments')
+    .select(`
+      id,
+      amount,
+      payment_date,
+      method,
+      reference,
+      notes,
+      gl_accounts(number, name),
+      units(unit_number, buildings(name, associations(name)))
+    `)
+    .order('payment_date', { ascending: false })
+    .limit(100);
 
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
-      <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Open charges</h1>
-      <Table>
-        <THead><TR>
-          <TH>Unit</TH><TH>Association</TH><TH>Description</TH>
-          <TH className="text-right">Balance</TH><TH>Due</TH><TH>Aging</TH>
-        </TR></THead>
-        <tbody>
-          {(rows ?? []).map((c: any) => (
-            <TR key={c.charge_id}>
-              <TD className="font-medium">{c.unit_number}</TD>
-              <TD>{c.association_name}</TD>
-              <TD>{c.description}</TD>
-              <TD className="text-right font-medium text-bordeaux-600">{money(c.balance_due)}</TD>
-              <TD>{date(c.due_date)}</TD>
-              <TD><span className={`rounded px-2 py-0.5 text-xs ${
-                c.aging_bucket === 'current' ? 'bg-cream-100 text-ink-700'
-                : c.aging_bucket === '1_30'   ? 'bg-yellow-100 text-yellow-800'
-                : c.aging_bucket === '31_60'  ? 'bg-orange-100 text-orange-800'
-                : c.aging_bucket === '61_90'  ? 'bg-red-100 text-red-800'
-                : 'bg-red-200 text-red-900'
-              }`}>{c.aging_bucket.replace('_', '–')}</span></TD>
-            </TR>
-          ))}
-        </tbody>
-      </Table>
+    <AccountingPage
+      active="receivables"
+      title="Receipts"
+      subtabs={[
+        { label: 'Receipts', href: '/charges', active: true },
+        { label: 'Charges', href: '/charges?view=charges' },
+        { label: 'Bank Deposits', href: '/bank-accounts/deposits' },
+        { label: 'Homeowner Delinquencies', href: '/reports?slug=homeowner-delinquency' },
+        { label: 'Chargeback Insights', href: '/charges/chargebacks' },
+      ]}
+    >
+      <div className="space-y-4">
+        <AccountingSearchBox>Click here to search</AccountingSearchBox>
+
+        {rows && rows.length > 0 ? (
+          <Table>
+            <THead>
+              <TR><TH>Date</TH><TH>Payer</TH><TH>GL Account</TH><TH>Association - Unit</TH><TH className="text-right">Amount</TH><TH>Reference</TH></TR>
+            </THead>
+            <tbody>
+              {rows.map((payment: any) => {
+                const unit = payment.units;
+                const building = unit?.buildings;
+                const association = building?.associations;
+                return (
+                  <TR key={payment.id}>
+                    <TD className="whitespace-nowrap text-sm">{date(payment.payment_date)}</TD>
+                    <TD>{payment.notes || payment.method || 'Payment'}</TD>
+                    <TD>{payment.gl_accounts ? `${payment.gl_accounts.number}: ${payment.gl_accounts.name}` : '-'}</TD>
+                    <TD>
+                      <div>{association?.name ?? building?.name ?? '-'}</div>
+                      <div className="text-xs text-ink-500">{unit?.unit_number ? `Unit ${unit.unit_number}` : ''}</div>
+                    </TD>
+                    <TD className="text-right font-medium text-brand-700">{money(payment.amount)}</TD>
+                    <TD className="font-mono text-xs text-ink-600">{payment.reference ?? '-'}</TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        ) : (
+          <p className="border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No receipts found.</p>
+        )}
       </div>
-    </div>
+    </AccountingPage>
   );
 }

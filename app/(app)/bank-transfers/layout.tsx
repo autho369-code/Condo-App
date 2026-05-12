@@ -5,14 +5,9 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
     <div className="flex h-full">
       <div className="flex-1 overflow-hidden min-w-0">{children}</div>
       <ContextPanel title="Tasks">
-        <PanelSection title="Tasks">
-          <PanelLink href="/bank-transfers/new">New Bank Transfer</PanelLink>
-        </PanelSection>
         <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=cash-flow">Cash Flow</PanelLink>
-        </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/bank-transfers">Bank Transfers</PanelLink>
+          <PanelLink href="/bank-accounts/activity">Bank Account Activity</PanelLink>
+          <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

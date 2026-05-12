@@ -7,13 +7,16 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
           <PanelLink href="/journal-entries/new">New Journal Entry</PanelLink>
+          <PanelLink href="/journal-entries/post-gpr">Post GPR</PanelLink>
+          <PanelLink href="/journal-entries/recurring/new">New Recurring Journal Entry</PanelLink>
+          <PanelLink href="/journal-entries/batches/new">Upload Journal Entry Batch</PanelLink>
+          <PanelLink href="/journal-entries/batches">View Journal Entry Batches</PanelLink>
+          <PanelLink href="/journal-entries/post">Manually Post Journal Entries</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
-          <PanelLink href="/reports?slug=trial-balance">Trial Balance</PanelLink>
-        </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/journal-entries">Journal Entries</PanelLink>
+          <PanelLink href="/reports?slug=gross-potential-rent">Gross Potential Rent</PanelLink>
+          <PanelLink href="/reports?slug=journal-entry-register">Journal Entry Register</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

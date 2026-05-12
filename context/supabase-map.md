@@ -52,12 +52,12 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Vendors Directory | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | UI simplified to screenshot structure; deeper actions pending. |
 | Send Email Homeowners Modal | `owners`, `email_queue`, `communication_messages` | Captured, not implemented. |
 | Move In Homeowner | `owners`, `occupancies`, `units`, `associations`, `documents` | Captured, terminology decision pending. |
-| Accounting Receipts | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts`, `bank_accounts` | Captured, implementation pending. |
-| Accounting Bank Accounts | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Existing route wired; UI alignment pending. |
-| Accounting Bank Transfers | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Existing route wired; UI alignment pending. |
-| Accounting Journal Entries | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations`, `recurring_journal_entries`, `journal_entry_batches` | Existing route wired; UI alignment pending. |
-| Accounting GL Accounts | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Existing route wired; UI alignment pending. |
-| Accounting Financial Diagnostics | `financial_diagnostics`, `gl_accounts`, `bank_accounts`, `bank_reconciliations`, `owners`, `charges`, `payments`, `associations` | Current route is data diagnostics; accounting diagnostic source pending review. |
+| Accounting Receipts | `payments`, `payment_applications`, `charges`, `owners`, `units`, `associations`, `gl_accounts`, `bank_accounts` | Initial UI aligned; deeper actions pending. |
+| Accounting Bank Accounts | `bank_accounts`, `associations`, `bank_reconciliations`, `bank_feed_connections` | Existing route wired; initial UI aligned. |
+| Accounting Bank Transfers | `bank_transfers`, `bank_accounts`, `associations`, `journal_entries` | Existing route wired; initial UI aligned. |
+| Accounting Journal Entries | `journal_entries`, `journal_entry_lines`, `gl_accounts`, `associations`, `recurring_journal_entries`, `journal_entry_batches` | Existing route wired; initial UI aligned. |
+| Accounting GL Accounts | `gl_accounts`, `gl_account_permissions`, `journal_entry_lines` | Existing route wired; initial UI aligned. |
+| Accounting Financial Diagnostics | `financial_diagnostics`, `gl_accounts`, `bank_accounts`, `bank_reconciliations`, `owners`, `charges`, `payments`, `associations` | Initial UI aligned; accounting diagnostic source pending review. |
 
 ## Cleanup Rule
 

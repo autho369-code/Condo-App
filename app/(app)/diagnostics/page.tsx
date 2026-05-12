@@ -1,54 +1,92 @@
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { AccountingPage } from '@/components/accounting/accounting-page';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { ModulePage } from '@/components/workspace/module-page';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-// The financial / data diagnostic scanners write into multiple tables; this page
-// surfaces the high-level counts and links to the reports that break them down.
 export default async function DiagnosticsPage() {
   const me = await requireStaff();
   const supabase = await createClient();
 
-  const [{ count: invalidPhone }, { count: noOwner }, { count: noEmail }, { data: summary }] = await Promise.all([
+  const [{ count: missingPhone }, { count: missingEmail }, { data: summary }] = await Promise.all([
     (supabase as any).from('owners').select('*', { count: 'exact', head: true }).or('phone.is.null,phone.eq.'),
-    (supabase as any).from('units').select('*', { count: 'exact', head: true }).not('id', 'in', '(SELECT unit_id FROM occupancies WHERE status=\'current\')'),
     (supabase as any).from('owners').select('*', { count: 'exact', head: true }).or('email.is.null,email.eq.'),
-    (supabase as any).from('v_dashboard_summary').select('open_diagnostics, portal_not_activated_count, insurance_expirations_60d').eq('portfolio_id', me.portfolio?.id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
+    (supabase as any)
+      .from('v_dashboard_summary')
+      .select('open_diagnostics, portal_not_activated_count, insurance_expirations_60d')
+      .eq('portfolio_id', me.portfolio?.id ?? '00000000-0000-0000-0000-000000000000')
+      .maybeSingle(),
   ]);
 
-  const tiles = [
-    { label: 'Owners missing phone', value: invalidPhone ?? 0 },
-    { label: 'Owners missing email', value: noEmail ?? 0 },
-    { label: 'Units without current occupancy', value: noOwner ?? 0 },
-    { label: 'Portal not activated',    value: summary?.portal_not_activated_count ?? 0 },
-    { label: 'Insurance expiring (60d)', value: summary?.insurance_expirations_60d ?? 0 },
-    { label: 'Other diagnostics',        value: summary?.open_diagnostics ?? 0 },
+  const sections = [
+    { name: 'Security Deposit Funds Mismatch', rows: [] },
+    { name: 'Escrow Cash Account Balance Mismatch', rows: [] },
+    { name: 'Non-Zero Security Clearing Account Balances', rows: [] },
+    { name: 'Negative Balance on Additional Fee GL Accounts', rows: [] },
+    { name: 'Positive Balance on Additional Fee GL Accounts', rows: [] },
+    {
+      name: 'Tenants and Homeowners With Unused Prepayments / Open Charges / Open Credits',
+      rows: [
+        { label: 'Owners missing phone', value: missingPhone ?? 0 },
+        { label: 'Owners missing email', value: missingEmail ?? 0 },
+        { label: 'Portal not activated', value: summary?.portal_not_activated_count ?? 0 },
+      ],
+    },
+    { name: 'Prepayment Balance Mismatch', rows: [] },
+    {
+      name: 'Bank Account Reconciliation Lapses Over 60 Days',
+      rows: [
+        { label: 'Insurance expiring within 60 days', value: summary?.insurance_expirations_60d ?? 0 },
+        { label: 'Other diagnostics', value: summary?.open_diagnostics ?? 0 },
+      ],
+    },
   ];
 
   return (
-    <ModulePage title="Diagnostics" description="Data-quality and financial-health issues found by nightly scans. Resolve directly from the linked records.">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {tiles.map((t) => (
-          <div key={t.label} className="rounded border border-ink-100 bg-white p-4">
-            <div className="text-xs font-medium uppercase tracking-wider text-ink-500">{t.label}</div>
-            <div className={'mt-1 text-2xl font-semibold tabular-nums ' + (Number(t.value) > 0 ? 'text-bordeaux-700' : 'text-ink-900')}>{t.value}</div>
+    <AccountingPage active="diagnostics" title="Financial Diagnostics">
+      <div className="space-y-4">
+        <form action="/diagnostics" className="border border-brand-500 bg-white px-8 py-5">
+          <div className="grid gap-3 text-xs md:grid-cols-[140px_1fr]">
+            <label htmlFor="association" className="self-center text-right text-ink-700">Association</label>
+            <input id="association" name="association" placeholder="Search by property, group, portfolio, or owner" className="h-8 border border-ink-300 px-2 text-xs" />
+            <span />
+            <select name="scope" className="h-8 border border-ink-300 bg-white px-2 text-xs">
+              <option>Show All Associations</option>
+              <option>Show Active Associations</option>
+            </select>
+            <span />
+            <button type="submit" className="h-8 w-fit bg-brand-700 px-4 text-xs font-medium text-white">Search</button>
           </div>
-        ))}
-      </div>
+        </form>
 
-      <div className="rounded border border-ink-100 bg-white px-5 py-4 text-sm">
-        <div className="font-medium text-ink-900">Detailed scans</div>
-        <ul className="mt-2 space-y-1 text-sm">
-          <li><Link href="/reports/data_diagnostics_summary" className="text-brand-600 hover:underline">Data diagnostics summary →</Link></li>
-          <li><Link href="/reports/email_delivery_errors" className="text-brand-600 hover:underline">Email delivery errors →</Link></li>
-          <li><Link href="/reports/users_and_permissions" className="text-brand-600 hover:underline">User roles &amp; permissions →</Link></li>
-        </ul>
-        <p className="mt-3 text-xs text-ink-500">
-          Scans run via the <code className="rounded bg-cream-100 px-1">scan_data_diagnostics</code> and <code className="rounded bg-cream-100 px-1">scan_financial_diagnostics</code> functions on a nightly cron.
-        </p>
+        <div className="text-right">
+          <button type="button" className="border border-ink-300 bg-white px-3 py-1.5 text-xs text-ink-800">Print</button>
+        </div>
+
+        <div className="space-y-3">
+          {sections.map((section) => (
+            <section key={section.name}>
+              <h2 className="border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-900">{section.name}</h2>
+              <Table>
+                <THead><TR><TH>Association</TH><TH className="text-right">Balance</TH></TR></THead>
+                <tbody>
+                  {section.rows.length > 0 ? (
+                    section.rows.map((row) => (
+                      <TR key={row.label}>
+                        <TD>{row.label}</TD>
+                        <TD className="text-right tabular-nums">{row.value}</TD>
+                      </TR>
+                    ))
+                  ) : (
+                    <TR><TD colSpan={2} className="text-center text-sm text-ink-500">No mismatched balance</TD></TR>
+                  )}
+                </tbody>
+              </Table>
+            </section>
+          ))}
+        </div>
       </div>
-    </ModulePage>
+    </AccountingPage>
   );
 }

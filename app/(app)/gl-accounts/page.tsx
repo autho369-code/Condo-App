@@ -1,66 +1,44 @@
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
-import { ModulePage } from '@/components/workspace/module-page';
+import { AccountingPage, AccountingSearchBox } from '@/components/accounting/accounting-page';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-
-const RANGES: Array<{ from: number; to: number; label: string }> = [
-  { from: 1000, to: 1999, label: 'Assets' },
-  { from: 2000, to: 2999, label: 'Liabilities' },
-  { from: 3000, to: 3999, label: 'Equity' },
-  { from: 4000, to: 4999, label: 'Income' },
-  { from: 5000, to: 5999, label: 'Cost of Goods Sold' },
-  { from: 6000, to: 6999, label: 'Operating Expenses' },
-  { from: 7000, to: 7999, label: 'Other Income' },
-  { from: 8000, to: 8999, label: 'Other Expenses' },
-  { from: 9000, to: 9999, label: 'Non-Operating' },
-];
 
 export default async function GLAccountsPage() {
   await requireStaff();
   const supabase = await createClient();
   const { data: rows } = await (supabase as any)
     .from('gl_accounts')
-    .select('id, number, name, account_type, fund_account, include_on_cash_flow, subject_to_management_fees, active')
+    .select('id, number, name, account_type, active')
     .eq('active', true)
     .order('number');
 
-  const grouped = RANGES.map((r) => ({
-    ...r,
-    items: (rows ?? []).filter((a: any) => a.number >= r.from && a.number <= r.to),
-  })).filter((g) => g.items.length > 0);
-
   return (
-    <ModulePage title="GL Accounts" description="Chart of accounts for the portfolio. Ranges follow standard accounting conventions.">
-      {grouped.length === 0 ? (
-        <p className="rounded border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No GL accounts configured yet.</p>
-      ) : (
-        grouped.map((g) => (
-          <section key={g.label} className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
-              {g.from}s — {g.label} <span className="ml-1 font-normal text-ink-400">({g.items.length})</span>
-            </h2>
-            <Table>
-              <THead><TR><TH>#</TH><TH>Name</TH><TH>Type</TH><TH>Fund</TH><TH>Flags</TH></TR></THead>
-              <tbody>
-                {g.items.map((a: any) => (
-                  <TR key={a.id}>
-                    <TD className="font-mono tabular-nums">{a.number}</TD>
-                    <TD className="font-medium">{a.name}</TD>
-                    <TD className="text-sm capitalize text-ink-700">{a.account_type?.replace(/_/g, ' ')}</TD>
-                    <TD className="text-sm capitalize text-ink-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
-                    <TD className="text-xs text-ink-500">
-                      {a.include_on_cash_flow && <span className="mr-1 rounded bg-blue-100 px-1.5 py-0.5 text-champagne-700">cash flow</span>}
-                      {a.subject_to_management_fees && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-700">mgmt fee</span>}
-                    </TD>
-                  </TR>
-                ))}
-              </tbody>
-            </Table>
-          </section>
-        ))
-      )}
-    </ModulePage>
+    <AccountingPage active="gl-accounts" title="Chart of Accounts">
+      <div className="space-y-4">
+        <AccountingSearchBox>Click here to search</AccountingSearchBox>
+
+        {rows && rows.length > 0 ? (
+          <Table>
+            <THead><TR><TH>GL Account</TH><TH>Type</TH></TR></THead>
+            <tbody>
+              {rows.map((account: any) => (
+                <TR key={account.id}>
+                  <TD>
+                    <a href={`/gl-accounts/${account.id}`} className="font-medium text-brand-700 hover:underline">
+                      {account.number} {account.name}
+                    </a>
+                  </TD>
+                  <TD className="text-sm capitalize text-ink-700">{account.account_type?.replace(/_/g, ' ') ?? '-'}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <p className="border border-ink-100 bg-white px-6 py-8 text-center text-sm text-ink-500">No GL accounts configured yet.</p>
+        )}
+      </div>
+    </AccountingPage>
   );
 }
