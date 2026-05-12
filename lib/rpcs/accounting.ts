@@ -271,3 +271,74 @@ export async function createLockboxBatch(formData: FormData) {
   revalidatePath('/charges');
   redirect('/lockbox');
 }
+
+export async function createRecurringJournalEntry(formData: FormData) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const amount = num(formData, 'amount');
+  const memo = str(formData, 'memo');
+
+  const templateLines = [
+    {
+      gl_account_id: required(str(formData, 'debit_gl_account_id'), 'Debit GL account'),
+      debit_amount: amount,
+      credit_amount: 0,
+      memo,
+    },
+    {
+      gl_account_id: required(str(formData, 'credit_gl_account_id'), 'Credit GL account'),
+      debit_amount: 0,
+      credit_amount: amount,
+      memo,
+    },
+  ];
+
+  const { error } = await (supabase as any).from('recurring_journal_entries').insert({
+    portfolio_id: me.portfolio?.id,
+    created_by: me.auth_user_id,
+    name: required(str(formData, 'name'), 'Name'),
+    memo,
+    frequency: str(formData, 'frequency') ?? 'monthly',
+    interval_count: Number(str(formData, 'interval_count') ?? '1') || 1,
+    next_post_date: str(formData, 'next_post_date') ?? new Date().toISOString().slice(0, 10),
+    auto_generate: formData.get('auto_generate') === 'on',
+    template_lines: templateLines,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/journal-entries');
+  revalidatePath('/journal-entries/recurring');
+  redirect('/journal-entries/recurring');
+}
+
+export async function createJournalEntryBatch(formData: FormData) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+
+  const { error } = await (supabase as any).from('journal_entry_batches').insert({
+    portfolio_id: me.portfolio?.id,
+    created_by: me.auth_user_id,
+    name: required(str(formData, 'name'), 'Batch name'),
+    description: str(formData, 'description'),
+    upload_url: str(formData, 'upload_url'),
+    total_entries: Number(str(formData, 'total_entries') ?? '0') || 0,
+    total_debit: num(formData, 'total_debit'),
+    total_credit: num(formData, 'total_credit'),
+    status: 'draft',
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/journal-entries/batches');
+  redirect('/journal-entries/batches');
+}
+
+export async function generateRecurringJournalEntries() {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('generate_recurring_journal_entries');
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/journal-entries');
+  revalidatePath('/journal-entries/recurring');
+  redirect('/journal-entries');
+}

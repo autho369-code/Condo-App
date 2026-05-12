@@ -66,6 +66,8 @@ No schema changes should be made from this file alone. It is an audit and approv
 | New Bank Deposit | `payments`, `bank_accounts` | `/bank-accounts/deposits/new` assigns selected undeposited receipts to a bank account. |
 | Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
 | Lockbox | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | `/lockbox/new` writes lockbox batches/items and creates matched receipt payments when a unit is selected. |
+| Recurring Journal Entries | `recurring_journal_entries`, `gl_accounts` | `/journal-entries/recurring/new` writes templates; list can run `generate_recurring_journal_entries`. |
+| Journal Entry Batches | `journal_entry_batches` | `/journal-entries/batches/new` writes batch metadata. |
 
 ## Cleanup Rule
 
