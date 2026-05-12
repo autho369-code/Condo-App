@@ -342,3 +342,49 @@ export async function generateRecurringJournalEntries() {
   revalidatePath('/journal-entries/recurring');
   redirect('/journal-entries');
 }
+
+export async function setGLAccountPermission(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const glAccountId = required(str(formData, 'gl_account_id'), 'GL account');
+  const roleId = required(str(formData, 'role_id'), 'Role');
+
+  const { data: existing, error: findError } = await (supabase as any)
+    .from('gl_account_role_permissions')
+    .select('id')
+    .eq('gl_account_id', glAccountId)
+    .eq('role_id', roleId)
+    .maybeSingle();
+
+  if (findError) throw new Error(findError.message);
+
+  const payload = {
+    gl_account_id: glAccountId,
+    role_id: roleId,
+    permission: str(formData, 'permission') ?? 'read',
+  };
+
+  const { error } = existing?.id
+    ? await (supabase as any).from('gl_account_role_permissions').update(payload).eq('id', existing.id)
+    : await (supabase as any).from('gl_account_role_permissions').insert(payload);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/gl-accounts/permissions');
+  redirect('/gl-accounts/permissions');
+}
+
+export async function reactivateGLAccount(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const accountId = required(str(formData, 'gl_account_id'), 'GL account');
+
+  const { error } = await (supabase as any)
+    .from('gl_accounts')
+    .update({ active: true })
+    .eq('id', accountId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/gl-accounts');
+  revalidatePath('/gl-accounts/reactivate');
+  redirect('/gl-accounts');
+}

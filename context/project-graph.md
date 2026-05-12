@@ -48,6 +48,8 @@ flowchart LR
 | Bank Transfer | `/bank-transfers/new` | `bank_transfers`, `bank_accounts` | Writes to Supabase |
 | New Journal Entry | `/journal-entries/new` | `journal_entries`, `journal_lines`, `gl_accounts`, `associations` | Writes to Supabase |
 | New GL Account | `/gl-accounts/new` | `gl_accounts`, `associations` | Writes to Supabase |
+| GL Account Permissions | `/gl-accounts/permissions` | `gl_account_role_permissions`, `gl_accounts`, `user_roles` | Writes to Supabase |
+| Reactivate GL Account | `/gl-accounts/reactivate` | `gl_accounts` | Updates inactive accounts |
 | New Bank Deposit | `/bank-accounts/deposits/new` | `payments`, `bank_accounts` | Assigns receipts to bank account |
 | Apply Credits | `/credits/apply` | `v_unapplied_credits`, `aged_receivables`, `payment_applications` via `apply_payment` | Writes to Supabase |
 | Lockbox | `/lockbox`, `/lockbox/new` | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | Writes batches, items, and matched receipts |
