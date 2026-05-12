@@ -143,6 +143,63 @@ export async function addNote(workOrderId: string, formData: FormData) {
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
+export async function createWorkOrder(formData: FormData) {
+  const supabase = await createClient();
+
+  const str = (key: string) => {
+    const value = formData.get(key);
+    return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+  };
+
+  const portfolioId = str('portfolio_id');
+  const associationId = str('association_id');
+  const title = str('title');
+  const issue = str('issue');
+  const vendorId = str('vendor_id');
+
+  if (!portfolioId) return { error: 'Portfolio is required' };
+  if (!associationId) return { error: 'Association is required' };
+  if (!title) return { error: 'Title is required' };
+  if (!issue) return { error: 'Issue description is required' };
+
+  const { data: workOrder, error } = await (supabase as any)
+    .from('work_orders')
+    .insert({
+      portfolio_id: portfolioId,
+      association_id: associationId,
+      unit_id: str('unit_id'),
+      vendor_id: vendorId,
+      title,
+      issue,
+      description: issue,
+      priority: str('priority') ?? 'normal',
+      category: str('category') ?? 'general_repair',
+      trade: str('trade'),
+      status: vendorId ? 'assigned' : 'new',
+      scheduled_date: str('scheduled_date'),
+      scheduled_time: str('scheduled_time'),
+      requested_by: str('requested_by'),
+      owner_availability: str('owner_availability'),
+      vendor_instructions: str('vendor_instructions'),
+      internal_notes: str('internal_notes'),
+    })
+    .select('id')
+    .single();
+
+  if (error || !workOrder) {
+    return { error: error?.message ?? 'Failed to create work order' };
+  }
+
+  await (supabase as any).from('work_order_updates').insert({
+    work_order_id: workOrder.id,
+    note: vendorId ? 'Work order created and assigned to vendor' : 'Work order created',
+    new_status: vendorId ? 'assigned' : 'new',
+  });
+
+  revalidatePath('/work-orders');
+  redirect(`/work-orders/${workOrder.id}`);
+}
+
 /**
  * Create a new work order from a service request.
  * Used by staff to triage owner-submitted requests.
