@@ -1,5 +1,6 @@
 node_modules
 .next
+.next-dev-logs/
 out
 .env
 .env.local
@@ -7,6 +8,7 @@ out
 .vercel
 *.log
 .DS_Store
+.gitnexus/
 lib/types/database.ts
 .superpowers/
 .worktrees/

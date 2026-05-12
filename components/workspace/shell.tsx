@@ -20,14 +20,19 @@ export function Workspace({
           {header}
         </div>
         <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
+          {rail && (
+            <details className="mb-6 rounded-lg border border-gray-200 bg-white" open>
+              <summary className="cursor-pointer list-none border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-900">
+                Task menu
+              </summary>
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-2 xl:grid-cols-3">
+                {rail}
+              </div>
+            </details>
+          )}
           {children}
         </div>
       </div>
-      {rail && (
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-6 py-6">
-          {rail}
-        </aside>
-      )}
     </div>
   );
 }

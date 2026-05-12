@@ -5,6 +5,7 @@ import { EVENT_TYPES, DEFAULT_REMINDERS, REMINDER_ACTIONS, eventTypeLabel, remin
 import { createCalendarEvent } from '@/lib/rpcs/calendar';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { ContextPanel, PanelSection } from '@/components/workspace/context-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,28 +30,29 @@ export default async function NewCalendarEventPage({
   const reminders = DEFAULT_REMINDERS[eventType as keyof typeof DEFAULT_REMINDERS] ?? [];
 
   return (
-    <div className="mx-auto h-full max-w-5xl overflow-y-auto px-8 py-6">
-      <div className="mb-6 flex items-start justify-between gap-6">
-        <div>
-          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-            <Link href="/calendar" className="hover:text-brand-600">Calendar</Link>
-            <span className="mx-2">/</span>
-            New Event
-          </nav>
-          <h1 className="text-2xl font-semibold text-gray-900">Create association calendar event</h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
-          </p>
-        </div>
-        <Link href="/calendar">
-          <Button type="button" variant="secondary">Cancel</Button>
-        </Link>
-      </div>
+    <div className="flex h-full">
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-8 py-6">
+          <div className="mb-6 flex items-start justify-between gap-6">
+            <div>
+              <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <Link href="/calendar" className="hover:text-brand-600">Calendar</Link>
+                <span className="mx-2">/</span>
+                New Event
+              </nav>
+              <h1 className="text-2xl font-semibold text-gray-900">Create association calendar event</h1>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
+              </p>
+            </div>
+            <Link href="/calendar">
+              <Button type="button" variant="secondary">Cancel</Button>
+            </Link>
+          </div>
 
-      <form action={createCalendarEvent as any} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
-        <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />
+          <form id="calendar-event-form" action={createCalendarEvent as any} className="space-y-6">
+            <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />
 
-        <div className="space-y-6">
           <section className="rounded-lg border border-gray-200 bg-white p-5">
             <h2 className="text-sm font-semibold text-gray-900">Event details</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -149,57 +151,59 @@ export default async function NewCalendarEventPage({
               </div>
             </div>
           </section>
+          </form>
         </div>
+      </main>
 
-        <aside className="space-y-6">
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Default reminders</h2>
-            <div className="mt-3 space-y-2">
-              {reminders.length ? reminders.map((minutes) => (
-                <label key={minutes} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
-                  <input type="checkbox" name="reminder_minutes" value={minutes} defaultChecked />
-                  {reminderLabel(minutes)}
-                </label>
-              )) : (
-                <p className="text-sm text-gray-500">No default reminders. Add this event, then customize reminders in Automation Center.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Automation actions</h2>
-            <div className="mt-3 space-y-2">
-              {REMINDER_ACTIONS.map((action) => (
-                <label key={action.value} className="flex items-start gap-2 text-sm text-gray-700">
-                  <input type="checkbox" name={action.value} defaultChecked={['create_email_draft', 'create_follow_up_task'].includes(action.value)} className="mt-1" />
-                  <span>{action.label}</span>
-                </label>
-              ))}
-              <label className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="checkbox" name="notify_sms" className="mt-1" />
-                <span>Also prepare SMS text where phone numbers exist</span>
+      <ContextPanel title="Tasks">
+        <PanelSection title="Default Reminders">
+          {reminders.length ? reminders.map((minutes) => (
+            <li key={minutes}>
+              <label className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                <input form="calendar-event-form" type="checkbox" name="reminder_minutes" value={minutes} defaultChecked />
+                {reminderLabel(minutes)}
               </label>
-            </div>
-          </section>
+            </li>
+          )) : (
+            <li className="text-sm text-gray-500">No default reminders. Add this event, then customize reminders in Automation Center.</li>
+          )}
+        </PanelSection>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-900">Recipient groups</h2>
-            <div className="mt-3 space-y-2">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_management" defaultChecked /> Management office</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_board" /> Board</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_vendor" /> Vendor</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="recipient_residents" defaultChecked /> Affected owners/residents</label>
-            </div>
-          </section>
+        <PanelSection title="Automation Actions">
+          {REMINDER_ACTIONS.map((action) => (
+            <li key={action.value}>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input form="calendar-event-form" type="checkbox" name={action.value} defaultChecked={['create_email_draft', 'create_follow_up_task'].includes(action.value)} className="mt-1" />
+                <span>{action.label}</span>
+              </label>
+            </li>
+          ))}
+          <li>
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input form="calendar-event-form" type="checkbox" name="notify_sms" className="mt-1" />
+              <span>Also prepare SMS text where phone numbers exist</span>
+            </label>
+          </li>
+        </PanelSection>
 
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1">Create event</Button>
-            <button type="submit" name="add_another" value="1" className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+        <PanelSection title="Recipient Groups">
+          <li><label className="flex items-center gap-2 text-sm"><input form="calendar-event-form" type="checkbox" name="recipient_management" defaultChecked /> Management office</label></li>
+          <li><label className="flex items-center gap-2 text-sm"><input form="calendar-event-form" type="checkbox" name="recipient_board" /> Board</label></li>
+          <li><label className="flex items-center gap-2 text-sm"><input form="calendar-event-form" type="checkbox" name="recipient_vendor" /> Vendor</label></li>
+          <li><label className="flex items-center gap-2 text-sm"><input form="calendar-event-form" type="checkbox" name="recipient_residents" defaultChecked /> Affected owners/residents</label></li>
+        </PanelSection>
+
+        <PanelSection title="Actions">
+          <li>
+            <Button form="calendar-event-form" type="submit" className="w-full">Create event</Button>
+          </li>
+          <li>
+            <button form="calendar-event-form" type="submit" name="add_another" value="1" className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               Add another
             </button>
-          </div>
-        </aside>
-      </form>
+          </li>
+        </PanelSection>
+      </ContextPanel>
     </div>
   );
 }

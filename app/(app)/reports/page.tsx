@@ -17,46 +17,79 @@ const UI_GROUPS: Array<{ title: string; slugs: string[] }> = [
   {
     title: 'Accounting Reports',
     slugs: [
-      'balance_sheet', 'income_statement', 'cash_flow', 'general_ledger', 'trial_balance',
-      'annual_budget_comparative', 'budget_vs_actual', 'fund_balance_sheet',
-      'reserve_fund_analysis', 'bank_reconciliation',
+      'account_totals', 'annual_budget_comparative', 'balance_sheet',
+      'balance_sheet_comparative', 'balance_sheet_property_comparison',
+      'bank_account_activity', 'bank_account_reconciliation', 'bank_reconciliation',
+      'budget_vs_actual', 'cash_flow', 'cash_flow_12_month', 'cash_flow_detail',
+      'cash_flow_property_comparison', 'expense_distribution', 'fund_balance_sheet',
+      'general_account', 'general_ledger', 'income_register', 'income_statement',
+      'income_statement_12_month', 'income_statement_comparative',
+      'income_statement_property_comparison', 'loan_statement', 'reserve_fund_analysis',
+      'management_fee_summary', 'trial_balance', 'trial_balance_property',
+      'trust_account_balance', 'trust_account_detail',
     ],
   },
   {
     title: 'Association Reports',
     slugs: [
-      'assessment_roll', 'delinquency', 'dues_roll', 'owner_ledger',
-      'owner_vehicle_info', 'owner_directory',
+      'architectural_review', 'association_vendor', 'assessment_roll', 'board_directory',
+      'board_packet', 'board_rollup', 'board_work_orders', 'delinquency',
+      'delinquency_summary', 'dues_roll', 'email_opt_out', 'homeowner_balance',
+      'homeowner_directory', 'homeowner_ledger', 'homeowner_prepaid',
+      'homeowner_vehicle_info', 'homeowner_violations', 'insurance_expiration_dates',
+      'lease_expirations', 'mailing_labels', 'owner_directory', 'owner_ledger',
+      'owner_vehicle_info', 'resident_directory', 'tenant_directory', 'vehicle_info',
     ],
   },
   {
     title: 'Diagnostic Reports',
-    slugs: ['data_diagnostics_summary', 'email_delivery_errors', 'users_and_permissions', 'violation_log'],
+    slugs: [
+      'application_settings', 'data_diagnostics_summary', 'email_delivery_errors',
+      'import_validation', 'inspection_reasons', 'lease_file_policy_comparison',
+      'login_audit', 'residents_check_fee_coverage', 'user_roles_permissions',
+      'users_and_permissions', 'violation_log',
+    ],
   },
   {
     title: 'Maintenance Reports',
-    slugs: ['open_work_orders', 'maintenance_history', 'work_order_report',
-            'vendor_performance', 'project_directory', 'purchase_order_detail'],
+    slugs: [
+      'inspection_detail', 'maintenance_history', 'open_work_orders',
+      'project_budget_detail', 'project_directory', 'purchase_order',
+      'purchase_order_detail', 'recurring_work_orders', 'task_list',
+      'vendor_directory', 'vendor_performance', 'work_order_bill_detail',
+      'work_order_labor_summary', 'work_order_report',
+    ],
   },
   {
     title: 'Property And Unit Reports',
-    slugs: ['property_directory', 'unit_availability', 'unit_turn_report', 'vendor_directory'],
+    slugs: [
+      'amenities_assigned', 'association_log', 'building_and_unit', 'building_list',
+      'inventory_ledger', 'keys', 'parking_spaces', 'property_directory',
+      'property_inspection', 'rentable_units', 'unit_availability', 'unit_directory',
+      'unit_inspection', 'unit_make_ready', 'unit_turn_report', 'units_by_owner',
+    ],
   },
   {
     title: 'Tax Reports',
-    slugs: ['owner_1099_detail', 'owner_1099_summary', 'vendor_1099_detail', 'vendor_1099_summary'],
+    slugs: [
+      'owner_1099_detail', 'owner_1099_summary', 'owner_tax_detail', 'owner_tax_summary',
+      'vendor_1099_detail', 'vendor_1099_summary', 'vendor_tax_detail', 'vendor_tax_summary',
+    ],
   },
   {
     title: 'Transaction Reports',
     slugs: [
-      'ap_aging', 'ar_aging', 'aged_payables_summary', 'bill_detail', 'charge_detail',
-      'check_register', 'deposit_register', 'expense_register', 'income_register',
-      'journal_entry_register', 'unpaid_balances_by_month',
+      'ap_aging', 'ap_transaction_summary', 'ar_aging', 'aged_payables_summary',
+      'bill_detail', 'charge_detail', 'charge_register', 'check_register',
+      'check_register_detail', 'deposit_register', 'expense_register',
+      'invoice_register', 'journal_entry_register', 'payment_register',
+      'refund_register', 'transfer_register', 'unapplied_receipts',
+      'unpaid_balances_by_month', 'vendor_payment_register', 'voided_check_register',
     ],
   },
   {
     title: 'Communication Reports',
-    slugs: ['letter_history', 'survey_results'],
+    slugs: ['letter_history', 'market_metrics', 'pricing_metrics', 'survey_results'],
   },
 ];
 
@@ -198,21 +231,32 @@ export default async function ReportsIndex({
 
       <ContextPanel>
         <PanelSection title="Tasks">
-          <PanelLink href="/reports/runs">Run history</PanelLink>
-          <PanelLink href="/scheduled-reports">Scheduled reports</PanelLink>
-          <PanelLink href="/reports/ar_aging">A/R Aging (live)</PanelLink>
-        </PanelSection>
-        <PanelSection title="Jump to category">
-          <PanelLink href="/reports?q=accounting">Accounting</PanelLink>
-          <PanelLink href="/reports?q=association">Association</PanelLink>
-          <PanelLink href="/reports?q=maintenance">Maintenance</PanelLink>
-          <PanelLink href="/reports?q=tax">Tax</PanelLink>
-          <PanelLink href="/reports?q=transaction">Transaction</PanelLink>
+          <PanelLink href="/inbox">My Tasks</PanelLink>
+          <PanelLink href="/inbox">Inbox</PanelLink>
+          <PanelLink href="/associations/new">Bulk Property Association Import</PanelLink>
+          <PanelLink href="/charges">Bulk Charge Creation</PanelLink>
+          <PanelLink href="/associations">Portfolio Items</PanelLink>
+          <PanelLink href="/reports/management_fee_summary">Management Fee Summary</PanelLink>
+          <PanelLink href="/reports/bank_reconciliation">Reconciliation</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
-          <PanelLink href="#">Scheduling a report</PanelLink>
-          <PanelLink href="#">Saving a report preset</PanelLink>
-          <PanelLink href="#">Report builder basics</PanelLink>
+          <PanelLink href="/reports">Reports</PanelLink>
+          <PanelLink href="/scheduled-reports">Scheduled Reports</PanelLink>
+          <PanelLink href="/associations">Portfolio and HOA Management</PanelLink>
+          <PanelLink href="/dashboard">Dashboard</PanelLink>
+          <PanelLink href="/gl-accounts">GL Accounts</PanelLink>
+          <PanelLink href="/owners">Online Owner Portal</PanelLink>
+          <PanelLink href="/bank-accounts/activity">Online Payments</PanelLink>
+          <PanelLink href="/settings">Owner/Resident Portal Settings</PanelLink>
+          <PanelLink href="/reports?q=accounting">Accounting</PanelLink>
+        </PanelSection>
+        <PanelSection title="Useful Links">
+          <PanelLink href="/reports/runs">Run History</PanelLink>
+          <PanelLink href="/reports/builder">Report Builder</PanelLink>
+          <PanelLink href="/bank-accounts/activity">Banking Activity</PanelLink>
+          <PanelLink href="/bills/check-run">Check Run</PanelLink>
+          <PanelLink href="/bank-accounts">Bank Accounts</PanelLink>
+          <PanelLink href="/reports/ar_aging">A/R Aging Live</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

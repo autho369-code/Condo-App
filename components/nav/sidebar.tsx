@@ -4,55 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-
-const NAV = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Communication Center', href: '/communication-center' },
-  { label: 'Calendar', children: [
-    { label: 'Association Calendar', href: '/calendar' },
-    { label: 'New Event', href: '/calendar/new' },
-  ]},
-  { label: 'Automation Center', href: '/automation-center' },
-  { label: 'Associations', href: '/associations' },
-  { label: 'People', children: [
-    { label: 'Owners', href: '/owners' },
-    { label: 'Tenants', href: '/owners?view=tenants' },
-    { label: 'Vendors', href: '/vendors' },
-  ]},
-  { label: 'Accounting', children: [
-    { label: 'Receivables', href: '/charges' },
-    { label: 'Payables', href: '/bills' },
-    { label: 'Bank Accounts', href: '/bank-accounts' },
-    { label: 'Journal Entries', href: '/journal-entries' },
-    { label: 'Bank Transfers', href: '/bank-transfers' },
-    { label: 'GL Accounts', href: '/gl-accounts' },
-    { label: 'Diagnostics', href: '/diagnostics' },
-    { label: 'Charge Categories', href: '/charge-categories' },
-  ]},
-  { label: 'Maintenance', children: [
-    { label: 'Work Orders', href: '/work-orders' },
-    { label: 'Recurring Work Orders', href: '/recurring-work-orders' },
-    { label: 'Inspections', href: '/inspections' },
-    { label: 'Unit Turns', href: '/unit-turns' },
-    { label: 'Projects', href: '/projects' },
-    { label: 'Purchase Orders', href: '/purchase-orders' },
-    { label: 'Inventory', href: '/inventory' },
-    { label: 'Fixed Assets', href: '/fixed-assets' },
-  ]},
-  { label: 'Violations', href: '/violations' },
-  { label: 'Reporting', children: [
-    { label: 'Reports', href: '/reports' },
-    { label: 'Scheduled Reports', href: '/scheduled-reports' },
-    { label: 'Metrics', href: '/metrics' },
-    { label: 'Surveys', href: '/surveys' },
-  ]},
-  { label: 'Communication', children: [
-    { label: 'Letters', href: '/letters' },
-    { label: 'Forms', href: '/forms' },
-    { label: 'Inbox', href: '/inbox' },
-    { label: 'Send Email', href: '/send-email' },
-  ]},
-]
+import { NAV, type NavSection } from '@/components/nav/items'
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -68,16 +20,16 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
   const router = useRouter()
 
   const defaults: Record<string, boolean> = {}
-  NAV.forEach((s: any) => {
-    if (s.children) defaults[s.label] = s.children.some((i: any) => pathname.startsWith(i.href.split('?')[0]))
+  NAV.forEach((s) => {
+    if (s.children) defaults[s.label] = s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))
   })
   const [open, setOpen] = useState<Record<string, boolean>>(defaults)
 
   useEffect(() => {
     setOpen(prev => {
       const next = { ...prev }
-      NAV.forEach((s: any) => {
-        if (s.children && s.children.some((i: any) => pathname.startsWith(i.href.split('?')[0]))) {
+      NAV.forEach((s) => {
+        if (s.children && s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))) {
           next[s.label] = true
         }
       })
@@ -105,15 +57,16 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
       </div>
 
       <nav className="flex-1 overflow-y-auto py-1">
-        {NAV.map((s: any) => {
-          if (!s.children) return (
+        {NAV.map((s: NavSection) => {
+          if (!s.children && s.href) return (
             <Link key={s.label} href={s.href}
               className={"flex items-center px-4 py-2 text-sm " + (active(s.href) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50')}>
               {s.label}
             </Link>
           )
+          if (!s.children) return null
           const isOpen = open[s.label]
-          const isActive = s.children.some((i: any) => active(i.href))
+          const isActive = s.children.some((i) => active(i.href))
           return (
             <div key={s.label}>
               <button onClick={() => toggle(s.label)}
@@ -123,7 +76,7 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
               </button>
               {isOpen && (
                 <div className="border-l-2 border-gray-100 ml-4 bg-gray-50">
-                  {s.children.map((c: any) => (
+                  {s.children.map((c) => (
                     <Link key={c.href} href={c.href}
                       className={"block px-4 py-1.5 text-sm " + (active(c.href) ? 'text-blue-700 font-medium bg-blue-50' : 'text-gray-600 hover:bg-gray-100')}>
                       {c.label}

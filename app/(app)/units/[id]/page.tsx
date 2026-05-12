@@ -55,7 +55,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
       <div className="flex-1 space-y-6 overflow-y-auto bg-gray-50 px-8 py-6">
 
       {/* ======== ACCOUNT SUMMARY ======== */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Stat label="Total charged" value={money(summary?.total_charged ?? 0)} />
         <Stat label="Total paid" value={money(summary?.total_paid ?? 0)} />
         <Stat label="Outstanding"
@@ -98,7 +98,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
           )}
 
           {/* Subscribe form */}
-          <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-5">
+          <form action={subscribeUnitToCharge as any} className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-3">
             <input type="hidden" name="unit_id" value={unitId} />
             <div className="md:col-span-2">
               <Label htmlFor="charge_category_id">Add subscription</Label>
@@ -162,7 +162,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
       <Card>
         <CardHeader><CardTitle>Post a one-off charge</CardTitle></CardHeader>
         <CardBody>
-          <form action={postAdHocCharge as any} className="grid grid-cols-1 gap-3 md:grid-cols-5">
+          <form action={postAdHocCharge as any} className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <input type="hidden" name="unit_id" value={unitId} />
             <div>
               <Label htmlFor="adhoc_cat">Category</Label>
@@ -214,7 +214,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </tbody>
           </Table>
 
-          <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-5">
+          <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-3">
             <input type="hidden" name="unit_id" value={unitId} />
             <div>
               <Label htmlFor="pay_date">Date</Label>

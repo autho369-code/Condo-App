@@ -10,6 +10,7 @@ export default async function BillsLayout({ children }: { children: React.ReactN
       <div className="flex-1 overflow-y-auto">{children}</div>
       <ContextPanel>
         <PanelSection title="Tasks">
+          <PanelLink href="/accounting/payable-invoices">Bills Ledger</PanelLink>
           <PanelLink href="/bills/new">+ New bill</PanelLink>
           <PanelLink href="/bills/check-run">Run check run</PanelLink>
           <PanelLink href="/bills?status=pending_approval">Pending approval</PanelLink>
@@ -23,9 +24,9 @@ export default async function BillsLayout({ children }: { children: React.ReactN
           <PanelLink href="/reports/vendor_1099_summary">1099 Summary</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
-          <PanelLink href="#">Bill approval workflow</PanelLink>
-          <PanelLink href="#">Check run &amp; printing setup</PanelLink>
-          <PanelLink href="#">1099 year-end process</PanelLink>
+          <PanelLink href="/accounting/payable-invoices">Bill approval workflow</PanelLink>
+          <PanelLink href="/bills/check-run">Check run &amp; printing setup</PanelLink>
+          <PanelLink href="/reports/vendor_1099_summary">1099 year-end process</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

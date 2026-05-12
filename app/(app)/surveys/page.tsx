@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { ModulePage } from '@/components/workspace/module-page';
@@ -17,6 +18,14 @@ export default async function SurveysPage() {
 
   return (
     <ModulePage title="Surveys" description="Maintenance satisfaction, community feedback, and custom surveys.">
+      <div className="flex gap-2">
+        <Link href="/surveys/maintenance/responses" className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-gray-50">
+          Maintenance responses
+        </Link>
+        <Link href="/reports/survey_results" className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
+          Survey results report
+        </Link>
+      </div>
       {rows && rows.length > 0 ? (
         <Table>
           <THead><TR><TH>Name</TH><TH>Type</TH><TH>Active</TH><TH>Created</TH></TR></THead>

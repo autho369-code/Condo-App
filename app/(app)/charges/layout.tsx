@@ -7,14 +7,18 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
           <PanelLink href="/charges/new">New Charge</PanelLink>
+          <PanelLink href="/accounting/receivable-payments">Receipts</PanelLink>
           <PanelLink href="/assessments/update">Update Assessments</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=aged-receivables">Aged Receivables</PanelLink>
-          <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
+          <PanelLink href="/reports/ar_aging">Aged Receivables</PanelLink>
+          <PanelLink href="/reports/payment_register">Payment Register</PanelLink>
+          <PanelLink href="/reports/unapplied_receipts">Unapplied Receipts</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
-          <PanelLink href="/help/charges">Managing Charges</PanelLink>
+          <PanelLink href="/charges">Receivables</PanelLink>
+          <PanelLink href="/accounting/receivable-payments">Receipt Ledger</PanelLink>
+          <PanelLink href="/reports?q=receivable">Receivable Reports</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

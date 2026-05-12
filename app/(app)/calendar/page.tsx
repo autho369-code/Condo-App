@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/context-panel';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
@@ -77,7 +78,7 @@ export default async function CalendarPage({
           </Link>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Metric label="Next 45 days" value={rows.length} />
           <Metric label="Critical / deadline events" value={critical} tone="text-amber-700" />
           <Metric label="Draft notices" value={rows.filter((event: any) => event.operations_status === 'scheduled' && event.public_notice_text).length} />
@@ -147,17 +148,23 @@ export default async function CalendarPage({
         )}
       </main>
 
-      <aside className="w-80 shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-6 py-6">
-        <h2 className="text-sm font-semibold text-gray-900">AIOS workflow examples</h2>
-        <div className="mt-4 space-y-3 text-sm text-gray-600">
+      <ContextPanel title="Tasks">
+        <PanelSection title="Tasks">
+          <PanelLink href={`/calendar/new${sp.assoc ? `?assoc=${sp.assoc}` : ''}`}>Create Event</PanelLink>
+          <PanelLink href="/send-email">Draft Notice</PanelLink>
+          <PanelLink href="/work-orders">Create Follow-up</PanelLink>
+        </PanelSection>
+        <PanelSection title="Workflow Examples">
           <Prompt text="Schedule water shutoff for AACA on April 22 from 8 AM to noon for plumbing repairs." />
           <Prompt text="Create board meeting reminder for Lakeview Towers next Thursday at 6 PM." />
           <Prompt text="Set contract renewal reminder 90, 60, and 30 days before elevator agreement expires." />
-        </div>
-        <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+        </PanelSection>
+        <PanelSection title="Help Topics">
+          <li className="rounded border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
           AIOS should create the event, draft owner/vendor messages, schedule reminders, and create the follow-up task. This first slice stores those records so the assistant can safely operate on them.
-        </div>
-      </aside>
+          </li>
+        </PanelSection>
+      </ContextPanel>
     </div>
   );
 }
@@ -173,8 +180,8 @@ function Metric({ label, value, tone = 'text-gray-900' }: { label: string; value
 
 function Prompt({ text }: { text: string }) {
   return (
-    <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+    <li className="rounded-md border border-gray-200 bg-gray-50 p-3">
       "{text}"
-    </div>
+    </li>
   );
 }

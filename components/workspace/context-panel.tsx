@@ -10,11 +10,9 @@ export function ContextPanel({
   children: React.ReactNode;
 }) {
   return (
-    <aside className="w-72 shrink-0 overflow-y-auto border-l border-gray-200 bg-white">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-3">
+    <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-gray-200 bg-white xl:block">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-5 py-3">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-        {/* Decorative close — panel remains mounted; stub until client-side toggle exists */}
-        <span className="cursor-pointer text-gray-400 hover:text-gray-600" aria-hidden="true">×</span>
       </div>
       <div className="space-y-5 px-5 py-4">{children}</div>
     </aside>
@@ -32,13 +30,16 @@ export function PanelSection({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-        {icon && <span className="text-gray-500">{icon}</span>}
-        <span>{title}</span>
-      </div>
-      <ul className="space-y-1.5">{children}</ul>
-    </div>
+    <details className="group rounded border border-gray-200 bg-white" open>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-gray-700">
+        <span className="flex min-w-0 items-center gap-1.5">
+          {icon && <span className="text-gray-500">{icon}</span>}
+          <span className="truncate">{title}</span>
+        </span>
+        <span className="text-xs text-gray-400 group-open:rotate-180">v</span>
+      </summary>
+      <ul className="space-y-1.5 border-t border-gray-100 px-3 py-2">{children}</ul>
+    </details>
   );
 }
 

@@ -253,7 +253,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
           </Table>
         ) : <p className="px-5 py-4 text-sm text-gray-500">No labor entries yet.</p>}
 
-        <form action={addLaborEntry.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-4">
+        <form action={addLaborEntry.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
           <Input name="tech_name" placeholder="Tech name" required />
           <Input name="date_worked" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
           <Input name="hours" type="number" step="0.25" min="0.25" placeholder="Hours" required />

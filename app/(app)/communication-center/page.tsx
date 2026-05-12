@@ -49,7 +49,7 @@ export default async function CommunicationCenterPage() {
         </Link>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Metric label="Total messages" value={rows.length} />
         <Metric label="Drafts awaiting approval" value={drafts} tone="text-amber-700" />
         <Metric label="Failed delivery" value={failed} tone="text-red-700" />

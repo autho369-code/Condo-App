@@ -49,7 +49,7 @@ export default async function AutomationCenterPage() {
         </Link>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Metric label="Scheduled reminders" value={reminderRows.length} />
         <Metric label="Due now" value={dueSoon} tone="text-red-700" />
         <Metric label="Open follow-ups" value={taskRows.filter((task: any) => task.status === 'open').length} tone="text-amber-700" />

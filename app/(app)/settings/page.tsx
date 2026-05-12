@@ -144,7 +144,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Invite a staff member</CardTitle></CardHeader>
         <CardBody>
-          <form action={inviteStaff as any} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <form action={inviteStaff as any} className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <input type="hidden" name="portfolio_id" value={portfolioId} />
             <div className="md:col-span-2">
               <Label htmlFor="email">Email</Label>

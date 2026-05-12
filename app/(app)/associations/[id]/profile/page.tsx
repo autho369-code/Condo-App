@@ -56,7 +56,7 @@ export default async function AssociationProfileTab({
       }
       rail={rail}
     >
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Tile label="Units"             value={unitsRes.count ?? 0}      href={`/associations/${id}/units`} />
         <Tile label="Board Members"     value={boardRes.count ?? 0}      href={`/associations/${id}/board`} />
         <Tile label="Committees"        value={committeesRes.count ?? 0} href={`/associations/${id}/committees`} />

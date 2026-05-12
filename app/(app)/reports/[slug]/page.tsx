@@ -156,7 +156,7 @@ async function ARAgingView({
       }
       rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} isLive />}
     >
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {BUCKETS.map((b) => (
           <Tile
             key={b}
@@ -168,7 +168,7 @@ async function ARAgingView({
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-4 gap-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Tile label="Total outstanding" value={money(grand)}     tone={grand > 0 ? 'danger' : 'positive'} />
         <Tile label="Past due (30d+)"    value={money(pastDue)}   tone={pastDue > 0 ? 'danger' : 'positive'} />
         <Tile label="Units with balance" value={distinctUnits} />
