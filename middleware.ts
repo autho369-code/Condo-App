@@ -27,7 +27,6 @@ const LEAN_CORE_DISABLED_APP_PREFIXES = [
   '/lockbox',
   '/metrics',
   '/owners/ach',
-  '/owners/activations',
   '/owners/forms',
   '/owners/management-agreements',
   '/owners/packets',

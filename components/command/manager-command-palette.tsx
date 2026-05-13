@@ -19,6 +19,7 @@ export function ManagerCommandPalette() {
     { id: 'new.unit',         label: '+ New unit',        group: 'Associations', perform: go('/units/new'), keywords: ['create', 'add'] },
     { id: 'go.owners',        label: 'Owners',            group: 'Associations', perform: go('/owners') },
     { id: 'new.owner',        label: '+ New owner',       group: 'Associations', perform: go('/owners/new'), keywords: ['create', 'add'] },
+    { id: 'go.owner.invites', label: 'Owner portal invites', group: 'Associations', perform: go('/owners/activations'), keywords: ['portal', 'invite', 'password', 'reset'] },
 
     // ---------- Accounting ----------
     { id: 'go.charges',     label: 'Receivables (charges)', group: 'Accounting', perform: go('/charges') },

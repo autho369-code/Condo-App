@@ -6,6 +6,14 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
+import {
+  getOwnerPortalStatus,
+  ownerPortalStatusLabel,
+  ownerPortalStatusTone,
+  sendOwnerPortalInvite,
+  sendOwnerPortalPasswordReset,
+} from '@/lib/auth/owner-portal';
+import { StatusChip } from '@/components/operations/status-chip';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +22,16 @@ function formatName(first?: string | null, last?: string | null, full?: string |
   return full ?? [last, first].filter(Boolean).join(', ') ?? 'â€”';
 }
 
-export default async function OwnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OwnerDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ portal_invite_sent?: string; portal_reset_sent?: string; portal_error?: string }>;
+}) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -27,7 +42,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
     { data: units },
   ] = await Promise.all([
     (supabase as any).from('owners')
-      .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at')
+      .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, auth_user_id, portal_activated, portal_login_last_at, created_at')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     (supabase as any).from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
@@ -52,6 +67,14 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
   const displayName = formatName(owner.first_name, owner.last_name, owner.full_name);
   const phones: any[] = Array.isArray(owner.phone_numbers) ? owner.phone_numbers : [];
   const emails: any[] = Array.isArray(owner.emails) ? owner.emails : [];
+  const portalStatus = getOwnerPortalStatus(owner);
+  const portalResult = sp.portal_error
+    ? { tone: 'danger' as const, text: sp.portal_error }
+    : sp.portal_invite_sent
+      ? { tone: 'success' as const, text: `Invitation sent to ${sp.portal_invite_sent}.` }
+      : sp.portal_reset_sent
+        ? { tone: 'success' as const, text: `Password setup link sent to ${sp.portal_reset_sent}.` }
+        : null;
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
@@ -74,6 +97,12 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
       </div>
+
+      {portalResult && (
+        <div className={`rounded border px-4 py-3 text-sm ${portalResult.tone === 'danger' ? 'border-bordeaux-200 bg-bordeaux-50 text-bordeaux-700' : 'border-sage-200 bg-sage-50 text-sage-700'}`}>
+          {portalResult.text}
+        </div>
+      )}
 
       {/* Contact */}
       <Section title="Contact">
@@ -167,6 +196,41 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
             </div>
           </form>
         </details>
+      </Section>
+
+      <Section
+        title="Owner portal"
+        right={<StatusChip tone={ownerPortalStatusTone(portalStatus)}>{ownerPortalStatusLabel(portalStatus)}</StatusChip>}
+      >
+        <div className="grid gap-4 px-5 py-4 text-sm md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <div className="font-medium text-ink-900">{owner.email ?? 'No owner email on file'}</div>
+            <div className="mt-1 text-xs text-ink-500">
+              {owner.auth_user_id ? 'Connected to Supabase Auth.' : 'Not connected to Supabase Auth yet.'}
+              {owner.portal_login_last_at ? ` Last login: ${date(owner.portal_login_last_at)}.` : ''}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 md:justify-end">
+            {portalStatus === 'missing_email' ? (
+              <span className="text-xs text-ink-500">Add an email in Contact before sending portal access.</span>
+            ) : portalStatus === 'needs_invite' ? (
+              <form action={sendOwnerPortalInvite.bind(null, id, `/owners/${id}`) as any}>
+                <Button type="submit">Send portal invite</Button>
+              </form>
+            ) : (
+              <>
+                <form action={sendOwnerPortalPasswordReset.bind(null, id, `/owners/${id}`) as any}>
+                  <Button type="submit" variant="secondary">Send password reset</Button>
+                </form>
+                {portalStatus === 'invited' && (
+                  <form action={sendOwnerPortalInvite.bind(null, id, `/owners/${id}`) as any}>
+                    <Button type="submit" variant="outline">Resend setup link</Button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </Section>
 
       {/* Occupancies â€” unit links */}
