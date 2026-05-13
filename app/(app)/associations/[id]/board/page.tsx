@@ -1,19 +1,27 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
-import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
+
 import { AssociationTabs } from '@/components/associations/tabs';
+import { Button } from '@/components/ui/button';
+import { Input, Label } from '@/components/ui/input';
+import { Section, Workspace, WorkspaceHeader } from '@/components/workspace/shell';
+import { requireStaff } from '@/lib/auth/me';
+import { boardRoleLabel } from '@/lib/associations/board-members';
+import { addBoardMember } from '@/lib/rpcs/board-members';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BoardTab({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ board_added?: string; board_error?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: assoc, error: aErr } = await (supabase as any)
@@ -57,6 +65,76 @@ export default async function BoardTab({
       }
       rail={rail}
     >
+      {sp.board_added && (
+        <div className="mb-4 rounded-md border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+          Board member added.
+        </div>
+      )}
+
+      {sp.board_error && (
+        <div className="mb-4 rounded-md border border-bordeaux-200 bg-bordeaux-50 px-4 py-3 text-sm text-bordeaux-700">
+          {sp.board_error}
+        </div>
+      )}
+
+      <Section
+        title="Add Board Member"
+        subtitle="Create board contacts for approvals, signatures, and association governance."
+        padded
+      >
+        <form action={addBoardMember.bind(null, id)} className="grid gap-4 xl:grid-cols-12">
+          <div className="xl:col-span-4">
+            <Label htmlFor="full_name">Name</Label>
+            <Input id="full_name" name="full_name" required placeholder="Full name" />
+          </div>
+
+          <div className="xl:col-span-3">
+            <Label htmlFor="role">Role</Label>
+            <select
+              id="role"
+              name="role"
+              defaultValue="director"
+              className="h-10 w-full rounded-md border border-ink-200 bg-white px-3.5 text-sm text-ink-900 transition-colors hover:border-ink-300 focus:border-champagne-500 focus:outline-none focus:ring-2 focus:ring-champagne-200/60"
+            >
+              <option value="president">President</option>
+              <option value="vice_president">Vice President</option>
+              <option value="secretary">Secretary</option>
+              <option value="treasurer">Treasurer</option>
+              <option value="director">Director</option>
+            </select>
+          </div>
+
+          <div className="xl:col-span-2">
+            <Label htmlFor="term_start">Start Date</Label>
+            <Input id="term_start" name="term_start" type="date" />
+          </div>
+
+          <div className="xl:col-span-2">
+            <Label htmlFor="term_end">End Date</Label>
+            <Input id="term_end" name="term_end" type="date" />
+          </div>
+
+          <label className="flex items-end gap-2 pb-2 text-sm text-ink-700 xl:col-span-1">
+            <input name="signature_on_file" type="checkbox" className="mb-0.5 h-4 w-4 rounded border-ink-300" />
+            Signature
+          </label>
+
+          <div className="xl:col-span-4">
+            <Label htmlFor="phone">Phone</Label>
+            <Input id="phone" name="phone" type="tel" placeholder="(312) 555-0100" />
+          </div>
+
+          <div className="xl:col-span-5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" placeholder="board.member@example.com" />
+          </div>
+
+          <div className="flex items-end xl:col-span-3">
+            <Button type="submit" className="w-full xl:w-auto">Add board member</Button>
+          </div>
+        </form>
+      </Section>
+
       <Section title="Board Members">
         <table className="w-full text-sm">
           <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
@@ -72,16 +150,20 @@ export default async function BoardTab({
           </thead>
           <tbody>
             {current.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-ink-500">No active board members.</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-ink-500">
+                  No active board members.
+                </td>
+              </tr>
             ) : current.map((m: any) => (
               <tr key={m.id} className="border-b border-ink-100 last:border-b-0 hover:bg-cream-50">
                 <td className="px-4 py-3"><span className="text-champagne-700">{m.full_name}</span></td>
-                <td className="px-4 py-3 text-ink-700">{humanRole(m.role)}</td>
-                <td className="px-4 py-3 text-ink-700">{m.term_start ? formatDate(m.term_start) : <span className="text-ink-400">—</span>}</td>
-                <td className="px-4 py-3 text-ink-700">{m.term_end ? formatDate(m.term_end) : <span className="text-ink-400">—</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{boardRoleLabel(m.role)}</td>
+                <td className="px-4 py-3 text-ink-700">{m.term_start ? formatDate(m.term_start) : <span className="text-ink-400">-</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{m.term_end ? formatDate(m.term_end) : <span className="text-ink-400">-</span>}</td>
                 <td className="px-4 py-3 text-ink-700">{m.signature_on_file ? 'Yes' : 'No'}</td>
-                <td className="px-4 py-3 text-ink-700">{m.phone || <span className="text-ink-400">—</span>}</td>
-                <td className="px-4 py-3 text-ink-700">{m.email ? <a href={`mailto:${m.email}`} className="text-champagne-700 hover:underline">{m.email}</a> : <span className="text-ink-400">—</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{m.phone || <span className="text-ink-400">-</span>}</td>
+                <td className="px-4 py-3 text-ink-700">{m.email ? <a href={`mailto:${m.email}`} className="text-champagne-700 hover:underline">{m.email}</a> : <span className="text-ink-400">-</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -90,8 +172,8 @@ export default async function BoardTab({
 
       <Section>
         <details className="px-5 py-3">
-          <summary className="cursor-pointer text-sm font-semibold text-ink-900 list-none flex items-center gap-1">
-            <span className="text-ink-500 text-xs">▸</span>
+          <summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-ink-900">
+            <span className="text-xs text-ink-500">+</span>
             Past Board Members
             {past.length > 0 && <span className="font-normal text-ink-500">({past.length})</span>}
           </summary>
@@ -106,13 +188,17 @@ export default async function BoardTab({
             </thead>
             <tbody>
               {past.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-ink-500">No past board members.</td></tr>
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-ink-500">
+                    No past board members.
+                  </td>
+                </tr>
               ) : past.map((m: any) => (
                 <tr key={m.id} className="border-b border-ink-100 last:border-b-0">
                   <td className="px-4 py-3 text-ink-700">{m.full_name}</td>
-                  <td className="px-4 py-3 text-ink-700">{humanRole(m.role)}</td>
-                  <td className="px-4 py-3 text-ink-700">{m.term_start ? formatDate(m.term_start) : '—'}</td>
-                  <td className="px-4 py-3 text-ink-700">{m.term_end ? formatDate(m.term_end) : '—'}</td>
+                  <td className="px-4 py-3 text-ink-700">{boardRoleLabel(m.role)}</td>
+                  <td className="px-4 py-3 text-ink-700">{m.term_start ? formatDate(m.term_start) : '-'}</td>
+                  <td className="px-4 py-3 text-ink-700">{m.term_end ? formatDate(m.term_end) : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -141,11 +227,6 @@ export default async function BoardTab({
       </Section>
     </Workspace>
   );
-}
-
-function humanRole(role: string | null): string {
-  if (!role) return '—';
-  return role.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
 function humanVotingScheme(scheme: string): string {
