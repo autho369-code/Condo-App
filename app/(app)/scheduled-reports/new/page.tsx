@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { ModulePage } from '@/components/workspace/module-page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { orderedReportFormats } from '@/lib/reports/exporter';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export default async function NewScheduledReportPage({
       .is('archived_at', null)
       .order('name'),
   ]);
+  const formats = orderedReportFormats(Array.from(new Set((definitions ?? []).flatMap((definition: any) => definition.output_formats ?? []))));
 
   return (
     <ModulePage
@@ -110,10 +112,12 @@ export default async function NewScheduledReportPage({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-700">Format</label>
-            <select name="output_format" defaultValue="csv" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
-              <option value="csv">CSV</option>
+            <select name="output_format" defaultValue="pdf" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              {formats.map((format) => (
+                <option key={format} value={format}>{format.toUpperCase()}</option>
+              ))}
             </select>
-            <p className="mt-1 text-xs text-ink-500">CSV is the live export path used by scheduled runs.</p>
+            <p className="mt-1 text-xs text-ink-500">PDF is the printable default. CSV/XLS formats are for row review.</p>
           </div>
         </div>
 

@@ -87,8 +87,9 @@ function reportFormat(value: FormDataEntryValue | null) {
     case 'html':
       return value;
     case 'csv':
-    default:
       return 'csv';
+    default:
+      return 'pdf';
   }
 }
 

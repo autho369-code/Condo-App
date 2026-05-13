@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/workspace';
 import { Button } from '@/components/ui/button';
 import { queueReport } from '@/lib/rpcs/reports';
+import { defaultReportFormat, orderedReportFormats } from '@/lib/reports/exporter';
 import { canonicalReportSlug } from '@/lib/reports/routing';
 import { money, date } from '@/lib/utils';
 
@@ -369,6 +370,10 @@ function RightRail({
 }) {
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
+  const formats = orderedReportFormats(def.output_formats);
+  const selectedOutputFormat = selectedFormat && formats.includes(selectedFormat as any)
+    ? selectedFormat
+    : defaultReportFormat(def.output_formats);
 
   const presets: Array<{ k: string; label: string }> = [
     { k: 'this_month',   label: 'This month' },
@@ -504,13 +509,15 @@ function RightRail({
           <label className="mb-1 block text-xs font-medium text-ink-700">Output format</label>
           <select
             name="output_format"
-            defaultValue="csv"
+            defaultValue={selectedOutputFormat}
             className="h-9 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
-            <option value="csv">CSV</option>
+            {formats.map((format) => (
+              <option key={format} value={format}>{format.toUpperCase()}</option>
+            ))}
           </select>
           <p className="mt-1 text-[11px] leading-4 text-ink-500">
-            CSV is the live executable export. PDF and spreadsheet templates can be layered on this verified data path.
+            PDF is the printable report output. CSV and spreadsheet formats are available when you need the underlying rows.
           </p>
         </div>
 

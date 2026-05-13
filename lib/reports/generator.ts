@@ -1,4 +1,9 @@
-import { buildReportCsv } from '@/lib/reports/exporter';
+import {
+  buildReportCsv,
+  buildReportHtml,
+  buildReportPdf,
+  type ReportFormat,
+} from '@/lib/reports/exporter';
 
 type ReportRunLike = {
   id: string;
@@ -10,20 +15,26 @@ type ReportRunLike = {
 };
 
 export async function generateReportCsv(db: any, run: ReportRunLike) {
+  const { body, rowCount } = await generateReportOutput(db, run, 'csv');
+  return { csv: body.toString('utf8'), rowCount };
+}
+
+export async function generateReportOutput(db: any, run: ReportRunLike, format: ReportFormat) {
   const definition = run.report_definitions;
   const slug = definition?.slug ?? 'report';
   const title = definition?.name ?? 'Report';
   const rows = await loadReportRows(db, slug, run.parameters ?? {});
-
-  return {
-    csv: buildReportCsv({
-      title,
-      generatedAt: new Date().toISOString(),
-      parameters: run.parameters ?? {},
-      rows,
-    }),
-    rowCount: rows.length,
+  const input = {
+    title,
+    generatedAt: new Date().toISOString(),
+    parameters: run.parameters ?? {},
+    rows,
   };
+
+  if (format === 'pdf') return { body: buildReportPdf(input), rowCount: rows.length };
+  if (format === 'json') return { body: Buffer.from(JSON.stringify(input, null, 2), 'utf8'), rowCount: rows.length };
+  if (format === 'html' || format === 'xlsx') return { body: Buffer.from(buildReportHtml(input), 'utf8'), rowCount: rows.length };
+  return { body: Buffer.from(buildReportCsv(input), 'utf8'), rowCount: rows.length };
 }
 
 async function loadReportRows(db: any, slug: string, parameters: Record<string, unknown>) {
