@@ -14,7 +14,7 @@ export type PortfolioHealthRow = {
 
 export type PlatformSummary = {
   totalClients: number;
-  totalProperties: number;
+  totalAssociations: number;
   totalUnits: number;
   activeSeats: number;
   includedSeats: number;
@@ -34,7 +34,7 @@ export function toCount(value: number | string | null | undefined) {
 export function summarizePortfolioHealth(rows: PortfolioHealthRow[]): PlatformSummary {
   const summary = rows.reduce(
     (acc, row) => {
-      acc.totalProperties += toCount(row.association_count);
+      acc.totalAssociations += toCount(row.association_count);
       acc.totalUnits += toCount(row.unit_count);
       acc.activeSeats += toCount(row.seats_used);
       acc.includedSeats += toCount(row.seats_included);
@@ -46,7 +46,7 @@ export function summarizePortfolioHealth(rows: PortfolioHealthRow[]): PlatformSu
     },
     {
       totalClients: rows.length,
-      totalProperties: 0,
+      totalAssociations: 0,
       totalUnits: 0,
       activeSeats: 0,
       includedSeats: 0,

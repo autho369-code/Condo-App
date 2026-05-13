@@ -8,7 +8,7 @@ export default async function UnitTurnsPage() {
   return (
     <ModulePage title="Unit Turns" description="Turnover workflow for vacating → cleaning → inspecting → re-listing units.">
       <ComingSoon
-        reason="Unit turns aren't common for HOAs (owners, not tenants). This module targets mixed HOA+rental portfolios. Schema + workflow pending."
+        reason="Unit turns aren't common for HOAs (owner-led communities). This module targets association portfolios. Schema + workflow pending."
         supabaseTable="(not created yet — planned: unit_turns)"
         roadmapPhase="Phase 6 — Advanced Features"
       />

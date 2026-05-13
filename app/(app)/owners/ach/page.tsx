@@ -69,14 +69,14 @@ export default async function OwnerAchPage({
     <DataWorkspace
       title="Owner ACH Setup"
       description="Review owner payment methods, autopay mandates, verification status, and ACH readiness before enabling payment workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-3 text-sm text-ink-700">
           <div className="text-xs font-semibold uppercase text-ink-500">Confirmation rule</div>
           <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-xs text-amber-800">
             ACH setup is a protected action. Use this screen to review readiness, then confirm changes through the payment processor flow.
           </div>
-          <Link href="/reports?slug=homeowner-ledger" className="block rounded border border-ink-100 p-3 hover:bg-cream-50">Run homeowner ledger report</Link>
+          <Link href="/reports?slug=owner-ledger" className="block rounded border border-ink-100 p-3 hover:bg-cream-50">Run owner ledger report</Link>
         </div>
       }
     >

@@ -36,7 +36,7 @@ export default async function PlatformOwnersPage() {
     <div className="space-y-7">
       <header>
         <h1 className="font-display text-4xl tracking-editorial text-ink-900">Owners</h1>
-        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">Owner directory by client and property. This is visibility, not daily owner operations.</p>
+        <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">Owner directory by client and association. This is visibility, not daily owner operations.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -52,7 +52,7 @@ export default async function PlatformOwnersPage() {
               <TR>
                 <TH>Owner</TH>
                 <TH>Client</TH>
-                <TH>Property / Unit</TH>
+                <TH>Association / Unit</TH>
                 <TH>Portal</TH>
                 <TH>Last login</TH>
               </TR>

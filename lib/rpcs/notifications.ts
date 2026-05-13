@@ -15,7 +15,7 @@ const req = (f: FormData, k: string) => {
 };
 
 /**
- * Queue emails to owners, tenants, or both — scoped to one association.
+ * Queue emails to owners or board members, scoped to one association.
  * One `notices` row per recipient so individual delivery status is tracked.
  * Actual send goes through whichever edge function is wired to notices.status='draft'
  * (see FINAL_INTEGRATION.md §1 Email sender).
@@ -26,7 +26,7 @@ export async function sendEmail(formData: FormData) {
   const db = supabase as any;
 
   const associationId = req(formData, 'association_id');
-  const recipientType = req(formData, 'recipient_type'); // owners | tenants | both | board
+  const recipientType = req(formData, 'recipient_type'); // owners | board
   const subject       = req(formData, 'subject');
   const body          = req(formData, 'message');
   const cc            = str(formData, 'cc');
@@ -36,7 +36,7 @@ export async function sendEmail(formData: FormData) {
   // Resolve recipient email addresses based on the type picker
   const recipients: Array<{ email: string; name: string; source: string }> = [];
 
-  if (recipientType === 'owners' || recipientType === 'both') {
+  if (recipientType === 'owners') {
     const { data: occs } = await (supabase as any)
       .from('occupancies')
       .select('owners!owner_id(id, email, full_name)')
@@ -47,19 +47,6 @@ export async function sendEmail(formData: FormData) {
       if (o.owners?.email) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner' });
     });
   }
-
-  if (recipientType === 'tenants' || recipientType === 'both') {
-    const { data: occs } = await (supabase as any)
-      .from('occupancies')
-      .select('owners!owner_id(id, email, full_name)')
-      .eq('association_id', associationId)
-      .eq('occupancy_type', 'tenant')
-      .eq('status', 'current');
-    (occs ?? []).forEach((o: any) => {
-      if (o.owners?.email) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'tenant' });
-    });
-  }
-
   if (recipientType === 'board') {
     const { data: bm } = await (supabase as any)
       .from('board_members')
@@ -91,7 +78,7 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (unique.length === 0) {
-    return { error: `No recipients found for ${recipientType} at this association. Make sure owners/tenants have email addresses on file.` };
+    return { error: `No recipients found for ${recipientType} at this association. Make sure owners or board members have email addresses on file.` };
   }
 
   // Queue one row per recipient so individual delivery status is tracked.

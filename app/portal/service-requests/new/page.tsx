@@ -65,7 +65,7 @@ export default async function NewServiceRequest() {
       <div>
         <h1 className="font-display text-4xl tracking-editorial text-ink-900">Submit a service request</h1>
         <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">
-          Tell us what&apos;s going on. Your property manager reviews requests during business hours and
+          Tell us what&apos;s going on. Your association manager reviews requests during business hours and
           dispatches a vendor when needed. For an active emergency — burst pipe, no heat in winter, fire, gas leak —
           <strong className="text-ink-700"> please also call your emergency maintenance line.</strong>
         </p>
@@ -75,7 +75,7 @@ export default async function NewServiceRequest() {
         <Card>
           <CardBody>
             <p className="text-sm text-gray-600">
-              You don&apos;t have a unit on file yet. Contact your property manager so they can link
+              You don&apos;t have a unit on file yet. Contact your association manager so they can link
               your account to your unit.
             </p>
           </CardBody>
@@ -153,7 +153,7 @@ export default async function NewServiceRequest() {
                   <div>
                     <div className="text-sm font-medium">Permission to enter my unit when I&apos;m not home</div>
                     <div className="text-xs text-gray-600">
-                      If checked, the vendor can enter with the property manager&apos;s master key to
+                      If checked, the vendor can enter with the association manager&apos;s master key to
                       complete the work. Otherwise we&apos;ll coordinate a time with you.
                     </div>
                   </div>

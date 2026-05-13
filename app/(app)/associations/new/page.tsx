@@ -20,14 +20,14 @@ const US_STATES = [
   'VA','WA','WV','WI','WY','DC',
 ];
 
-export default async function NewPropertyPage() {
+export default async function NewAssociationPage() {
   await requireStaff();
   const supabase = await createClient();
 
   const [
     { data: glAccounts },
     { data: bankAccounts },
-    { data: propertyGroups },
+    { data: associationGroups },
     { data: feeSchedules },
     { data: ownersList },
   ] = await Promise.all([
@@ -43,7 +43,7 @@ export default async function NewPropertyPage() {
     return t === 'asset' || t === 'bank' || t === 'cash';
   });
 
-  async function createProperty(formData: FormData) {
+  async function createAssociation(formData: FormData) {
     'use server';
     const supabase = await createClient();
     const m = await getMe();
@@ -53,7 +53,7 @@ export default async function NewPropertyPage() {
     const city = requiredString(formData, 'city', 'City');
     const state = requiredString(formData, 'state', 'State');
     const zip = requiredString(formData, 'zip', 'Zip');
-    if (!name) throw new Error('Property Name is required.');
+    if (!name) throw new Error('Association Name is required.');
     if (!address) throw new Error('Address is required.');
     if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
     if (!m.auth_user_id) throw new Error('Could not determine current user.');
@@ -84,8 +84,6 @@ export default async function NewPropertyPage() {
         fiscal_year_start: yearEndMonthToStartMonth(formData.get('fiscal_year_end')) ?? 1,
         basis_for_owner_packets: (formData.get('basis_for_owner_packets') as string) || null,
         management_fee_schedule_id: (formData.get('management_fee_schedule_id') as string) || null,
-        lease_fee_type: (formData.get('lease_fee_type') as string) || null,
-        lease_fee_pct: numOrNull(formData.get('lease_fee_pct')),
         renewal_fee_type: (formData.get('renewal_fee_type') as string) || null,
         renewal_fee_pct: numOrNull(formData.get('renewal_fee_pct')),
         late_fee_type: (formData.get('late_fee_type') as string) || 'flat',
@@ -108,7 +106,7 @@ export default async function NewPropertyPage() {
       .select('id')
       .single();
 
-    if (aErr) throw new Error(`Could not create property: ${aErr.message}`);
+    if (aErr) throw new Error(`Could not create association: ${aErr.message}`);
     const newId = assoc!.id;
 
     revalidatePath('/associations');
@@ -117,12 +115,12 @@ export default async function NewPropertyPage() {
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <h1 className="text-2xl font-semibold text-ink-900">New Property</h1>
+      <h1 className="text-2xl font-semibold text-ink-900">New Association</h1>
 
-      <form action={createProperty as any} className="mt-6 space-y-5">
+      <form action={createAssociation as any} className="mt-6 space-y-5">
 
-        <Section title="Property Name and Address" padded>
-          <FormRow label="Property Type" required>
+        <Section title="Association Name and Address" padded>
+          <FormRow label="Association Type" required>
             <select name="property_type" required className="w-full max-w-md rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">— Select —</option>
               <option value="condominium">Condominium</option>
@@ -133,7 +131,7 @@ export default async function NewPropertyPage() {
               <option value="hoa">HOA</option>
             </select>
           </FormRow>
-          <FormRow label="Property Name">
+          <FormRow label="Association Name">
             <input type="text" name="name" required className="w-full max-w-lg rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
           <FormRow label="Address" required>
@@ -155,7 +153,7 @@ export default async function NewPropertyPage() {
           </FormRow>
         </Section>
 
-        <Section title="Property Information" padded>
+        <Section title="Association Information" padded>
           <FormRow label="Description">
             <textarea name="description" rows={3} className="w-full max-w-lg resize-y rounded border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>

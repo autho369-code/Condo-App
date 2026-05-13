@@ -16,7 +16,7 @@ export default async function NewOwnerPage() {
     <DataWorkspace
       title="New Owner"
       description="Create the owner profile, then connect unit ownership, portal activation, ACH, and packet workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-4">
           <div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">

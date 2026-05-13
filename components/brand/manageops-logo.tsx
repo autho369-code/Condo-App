@@ -86,7 +86,7 @@ export function ManageOpsLogo({
           </span>
           {size !== 'sm' && (
             <span className={`mt-1 text-[10px] uppercase tracking-[0.22em] ${subColor}`}>
-              Property operations, refined.
+              Association operations, refined.
             </span>
           )}
         </span>

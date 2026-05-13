@@ -180,7 +180,7 @@ function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
       <section className="border-t border-ink-100 pt-5">
         <h2 className="text-sm font-semibold text-ink-900">Design guardrail</h2>
         <p className="mt-2 text-sm leading-6 text-ink-600">
-          Portier follows property-management workflow expectations while using its own information architecture, brand language, and visual system.
+          Portier follows association-management workflow expectations while using its own information architecture, brand language, and visual system.
         </p>
       </section>
     </div>
@@ -195,7 +195,7 @@ function pickFeaturedReports(definitions: ReportDefinition[]) {
     'income_statement',
     'general_ledger',
     'owner_ledger',
-    'homeowner_directory',
+    'owner_directory',
     'check_register',
     'open_work_orders',
   ];

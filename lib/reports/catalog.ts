@@ -13,7 +13,7 @@ const categoryLabels: Record<string, string> = {
   compliance: 'Compliance',
   maintenance: 'Maintenance',
   people: 'People',
-  property_unit: 'Property And Unit',
+  property_unit: 'Association And Unit',
   communication: 'Communication',
 };
 

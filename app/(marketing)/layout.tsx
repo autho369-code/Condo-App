@@ -56,7 +56,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             <div className="md:col-span-2">
               <PortierLogo size="md" tone="light" />
               <p className="mt-5 max-w-md text-sm leading-relaxed text-cream-300/90">
-                Modern property management operations with concierge onboarding.
+                Modern association management operations with concierge onboarding.
                 Replace AppFolio and Buildium without painful migrations,
                 broken workflows, or weeks of setup.
               </p>
@@ -81,7 +81,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             </div>
           </div>
           <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-cream-400">
-            <span>© {new Date().getFullYear()} Portier · Property operations, refined.</span>
+            <span>© {new Date().getFullYear()} Portier · Association operations, refined.</span>
             <span className="font-display italic text-cream-300">14-day migration guarantee</span>
           </div>
         </div>

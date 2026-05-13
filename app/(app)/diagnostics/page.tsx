@@ -26,7 +26,7 @@ export default async function DiagnosticsPage() {
     { name: 'Negative Balance on Additional Fee GL Accounts', rows: [] },
     { name: 'Positive Balance on Additional Fee GL Accounts', rows: [] },
     {
-      name: 'Tenants and Homeowners With Unused Prepayments / Open Charges / Open Credits',
+      name: 'Owners With Unused Prepayments / Open Charges / Open Credits',
       rows: [
         { label: 'Owners missing phone', value: missingPhone ?? 0 },
         { label: 'Owners missing email', value: missingEmail ?? 0 },
@@ -49,7 +49,7 @@ export default async function DiagnosticsPage() {
         <form action="/diagnostics" className="border border-brand-500 bg-white px-8 py-5">
           <div className="grid gap-3 text-xs md:grid-cols-[140px_1fr]">
             <label htmlFor="association" className="self-center text-right text-ink-700">Association</label>
-            <input id="association" name="association" placeholder="Search by property, group, portfolio, or owner" className="h-8 border border-ink-300 px-2 text-xs" />
+            <input id="association" name="association" placeholder="Search by association, group, portfolio, or owner" className="h-8 border border-ink-300 px-2 text-xs" />
             <span />
             <select name="scope" className="h-8 border border-ink-300 bg-white px-2 text-xs">
               <option>Show All Associations</option>

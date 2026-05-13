@@ -92,7 +92,7 @@ export default async function PortfoliosPage() {
           <div className="eyebrow">Platform</div>
           <h1 className="mt-2 font-display text-4xl tracking-editorial text-ink-900">Clients</h1>
           <p className="mt-3 text-[15px] text-ink-500 leading-relaxed">
-            Platform control across every management company, property, seat, and billing state.
+            Platform control across every management company, association, seat, and billing state.
             Each client gets their own URL on <span className="font-mono text-ink-700">{APEX_DOMAIN}</span>.
           </p>
         </div>
@@ -103,7 +103,7 @@ export default async function PortfoliosPage() {
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Clients" value={summary.totalClients} sub={`${summary.paidAccounts} paid, ${summary.trialAccounts} trial`} />
-        <Stat label="Properties" value={summary.totalProperties} sub="Association records" />
+        <Stat label="Associations" value={summary.totalAssociations} sub="Association records" />
         <Stat label="Units" value={summary.totalUnits} sub="Across all clients" />
         <Stat label="Seats" value={`${summary.activeSeats} / ${summary.includedSeats || '-'}`} sub="Used seats" />
         <Stat label="Invites" value={summary.pendingInvitations} sub="Pending activation" />
@@ -162,7 +162,7 @@ export default async function PortfoliosPage() {
       <section className="space-y-3">
         <div>
           <h2 className="font-display text-2xl tracking-editorial text-ink-900">Client directory</h2>
-          <p className="text-sm text-ink-500">Drill into a client to review properties, owners, users, and billing.</p>
+          <p className="text-sm text-ink-500">Drill into a client to review associations, owners, users, and billing.</p>
         </div>
         <Table>
           <THead>
@@ -171,7 +171,7 @@ export default async function PortfoliosPage() {
               <TH>URL</TH>
               <TH>Tier</TH>
               <TH>Status</TH>
-              <TH className="text-right">Properties</TH>
+              <TH className="text-right">Associations</TH>
               <TH className="text-right">Units</TH>
               <TH className="text-right">Seats</TH>
               <TH className="text-right">Pending</TH>

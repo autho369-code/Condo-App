@@ -7,8 +7,8 @@ export default function PaymentsLayout({ children }: { children: React.ReactNode
       panel={
         <ContextPanel title="Tasks">
           <PanelSection title="Tasks">
-            <PanelLink href="/payments/new">Homeowner Receipt</PanelLink>
-            <PanelLink href="/charges/new">Homeowner Charge</PanelLink>
+            <PanelLink href="/payments/new">Owner Receipt</PanelLink>
+            <PanelLink href="/charges/new">Owner Charge</PanelLink>
             <PanelLink href="/bank-accounts/deposits/new">New Bank Deposit</PanelLink>
             <PanelLink href="/credits/apply">Apply Credits</PanelLink>
           </PanelSection>

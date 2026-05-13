@@ -122,7 +122,7 @@ export default async function OnboardPage() {
       {[
         { ...steps[1], href: '/associations', desc: 'Open the association you just created and add its buildings and units.' },
         { ...steps[2], href: '/owners',       desc: 'Add owner contact info. We\'ll match them to units in the next step.' },
-        { ...steps[3], href: '/settings',     desc: 'Add accountants, property managers, and on-site staff.' },
+        { ...steps[3], href: '/settings',     desc: 'Add accountants, association managers, and on-site staff.' },
       ].map((s, i) => (
         <Card key={s.key}>
           <CardHeader>

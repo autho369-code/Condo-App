@@ -21,7 +21,7 @@ export default async function NewManagementAgreementPage() {
     <DataWorkspace
       title="New Management Agreement"
       description="Draft the owner and association agreement package, then route it through review and signature."
-      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to owners</Link>}
       rail={<div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">Agreement drafts should capture owner, association, fee schedule, management dates, and signature delivery method before any outbound send.</div>}
     >
       <form action={createManagementAgreement} className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">

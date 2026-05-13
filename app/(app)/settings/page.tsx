@@ -17,7 +17,7 @@ async function inviteStaff(formData: FormData) {
   const { error } = await (supabase as any).rpc('invite_staff', {
     p_portfolio_id: formData.get('portfolio_id') as string,
     p_email: formData.get('email') as string,
-    p_role_name: (formData.get('role_name') as string) || 'Property Manager',
+    p_role_name: (formData.get('role_name') as string) || 'Association Manager',
     p_message: (formData.get('message') as string) || undefined,
   });
   if (error) return { error: error.message };
@@ -161,8 +161,8 @@ export default async function SettingsPage() {
             </div>
             <div>
               <Label htmlFor="role_name">Role</Label>
-              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm" defaultValue="Property Manager">
-                <option>President</option><option>Property Manager</option><option>Accountant</option>
+              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm" defaultValue="Association Manager">
+                <option>President</option><option>Association Manager</option><option>Accountant</option>
                 <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
               </select>
             </div>

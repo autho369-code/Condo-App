@@ -166,7 +166,7 @@ export default async function StatementPage({
               <div className="mt-1 text-sm text-ink-600">{me.email}</div>
             </div>
             <div>
-              <div className="eyebrow">Property</div>
+              <div className="eyebrow">Association</div>
               <div className="mt-2 font-display text-lg tracking-editorial text-ink-900">
                 {assoc?.name ?? unit.association_name ?? 'Association'}
               </div>

@@ -38,7 +38,7 @@ describe('summarizePortfolioHealth', () => {
 
     expect(summary).toEqual({
       totalClients: 3,
-      totalProperties: 7,
+      totalAssociations: 7,
       totalUnits: 30,
       activeSeats: 9,
       includedSeats: 22,

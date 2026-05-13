@@ -14,14 +14,14 @@ export type ReportNavItem = {
 const CATEGORY_LABELS: Record<string, string> = {
   accounting:    'Accounting',
   association:   'Association & HOA',
-  property_unit: 'Property & units',
+  association_unit: 'Association & units',
   people:        'People',
   maintenance:   'Maintenance',
   compliance:    'Compliance',
   communication: 'Communication',
 };
 
-const CATEGORY_ORDER = ['accounting', 'association', 'property_unit', 'people', 'maintenance', 'compliance', 'communication'];
+const CATEGORY_ORDER = ['accounting', 'association', 'association_unit', 'people', 'maintenance', 'compliance', 'communication'];
 
 export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
   const pathname = usePathname();

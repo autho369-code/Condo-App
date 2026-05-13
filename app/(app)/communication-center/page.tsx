@@ -39,7 +39,7 @@ export default async function CommunicationCenterPage() {
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">Communication Center</div>
-          <h1 className="mt-1 text-2xl font-semibold text-ink-900">Owner, tenant, board, and vendor communication</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-ink-900">Owner, board, and vendor communication</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-500">
             Central queue for event notices, vendor confirmations, SMS drafts, board reminders, and communication history.
           </p>

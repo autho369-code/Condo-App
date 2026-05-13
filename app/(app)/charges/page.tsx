@@ -32,7 +32,7 @@ export default async function ChargesPage() {
         { label: 'Receipts', href: '/charges', active: true },
         { label: 'Charges', href: '/charges?view=charges' },
         { label: 'New Bank Deposit', href: '/bank-accounts/deposits/new' },
-        { label: 'Homeowner Delinquencies', href: '/reports?slug=homeowner-delinquency' },
+        { label: 'Owner Delinquencies', href: '/reports?slug=owner-delinquency' },
       ]}
     >
       <div className="space-y-4">

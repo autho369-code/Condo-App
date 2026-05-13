@@ -36,7 +36,7 @@ export async function generateMetadata() {
     };
   }
   return {
-    title: 'Portier — Property management, refined.',
+    title: 'Portier — Association management, refined.',
     description:
       'A premium operating platform for community managers — accounting, maintenance, owner services, and reporting in one editorial workspace.',
   };

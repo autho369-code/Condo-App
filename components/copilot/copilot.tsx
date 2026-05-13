@@ -16,7 +16,7 @@ const MODES: Array<{ id: Mode; label: string; eyebrow: string; placeholder: stri
   { id: 'free',                  label: 'Ask anything',          eyebrow: 'Free-form',     placeholder: 'How is delinquency trending across the portfolio?' },
   { id: 'draft_board',           label: 'Draft a board response', eyebrow: 'Communication', placeholder: "The treasurer asked why the reserve study was deferred…" },
   { id: 'summarize_financials',  label: 'Summarize financials',  eyebrow: 'Reporting',     placeholder: 'Beacon Hill HOA — May 2026 close' },
-  { id: 'classify_maintenance',  label: 'Classify a maintenance request', eyebrow: 'Triage', placeholder: "Tenant says the kitchen faucet won't shut off, water everywhere" },
+  { id: 'classify_maintenance',  label: 'Classify a maintenance request', eyebrow: 'Triage', placeholder: "Resident says the kitchen faucet won't shut off, water everywhere" },
   { id: 'draft_violation',       label: 'Draft a violation notice', eyebrow: 'Compliance', placeholder: 'Patio furniture stored on common-area lawn for 14+ days' },
 ];
 
