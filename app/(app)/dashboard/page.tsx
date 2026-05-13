@@ -4,13 +4,14 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspac
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/operations/status-chip';
 import { requireStaff } from '@/lib/auth/me';
+import { buildDashboardSearchGroups, type DashboardSearchGroup, type DashboardSearchResult } from '@/lib/dashboard/search';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type DashboardSearchParams = Promise<{ assoc?: string }>;
+type DashboardSearchParams = Promise<{ assoc?: string; q?: string }>;
 
 /**
  * Editorial command centre for portfolio managers.
@@ -29,6 +30,7 @@ export default async function DashboardPage({
   const db = supabase as any;
   const sp = await searchParams;
   const assocFilter = sp.assoc ?? '';
+  const searchQuery = (sp.q ?? '').trim();
 
   if (me.is_full_access_staff && me.portfolio?.id && process.env.LOCAL_PREVIEW_MODE !== 'true') {
     const { count } = await db
@@ -105,6 +107,7 @@ export default async function DashboardPage({
     { data: focusReports },
     { data: dashSummary },
     { data: recentActivity },
+    searchGroups,
   ] = await Promise.all([
     openViolationsQuery,
     overdueViolationsQuery,
@@ -118,6 +121,7 @@ export default async function DashboardPage({
     buildReportQueue(db, todayIso),
     dashSummaryQuery,
     activityQuery,
+    buildDashboardSearchGroups(db, searchQuery),
   ]);
 
   const commandMetrics = buildCommandMetrics({
@@ -137,11 +141,12 @@ export default async function DashboardPage({
       header={
         <WorkspaceHeader
           eyebrow={activeAssoc ? activeAssoc.name : 'Portfolio'}
-          title={activeAssoc ? `${activeAssoc.name} command centre` : 'Command centre'}
-          subtitle="A staff-first operating view for exceptions, approvals, reconciliations, report runs, and maintenance work — the day, in one screen."
+          title={activeAssoc ? `${activeAssoc.name} dashboard` : 'Dashboard'}
+          subtitle="Search, review exceptions, approve bills, reconcile accounts, run reports, and move work forward from one operating view."
           actions={
             <>
               <form action="/dashboard" method="get" className="flex items-center gap-2">
+                {searchQuery && <input type="hidden" name="q" value={searchQuery} />}
                 <select
                   name="assoc"
                   defaultValue={assocFilter}
@@ -160,6 +165,8 @@ export default async function DashboardPage({
         />
       }
     >
+      <DashboardSearch query={searchQuery} assocFilter={assocFilter} groups={searchGroups} />
+
       {/* ---- Operating tiles -------------------------------------------- */}
       <div className="mb-2 flex items-baseline justify-between">
         <div className="eyebrow">Operating queue</div>
@@ -243,15 +250,7 @@ export default async function DashboardPage({
       {/* ---- Focus queue ------------------------------------------------ */}
       <Section
         title="Focus queue"
-        subtitle="Highest-leverage items across modules — addressed in this list, your day collapses to one inbox."
-        actions={
-          <Link
-            href="/inbox"
-            className="text-sm font-medium text-champagne-700 underline decoration-champagne-300 underline-offset-4 hover:decoration-champagne-500 transition-colors"
-          >
-            Open full inbox →
-          </Link>
-        }
+        subtitle="Highest-leverage items across modules, from approvals to maintenance and reports."
         className="mt-7"
       >
         {focusItems.length > 0 ? (
@@ -331,19 +330,101 @@ function SnapshotMicro({
   );
 }
 
+function DashboardSearch({
+  query,
+  assocFilter,
+  groups,
+}: {
+  query: string;
+  assocFilter: string;
+  groups: DashboardSearchGroup[];
+}) {
+  const hasQuery = query.length > 0;
+  const hasResults = groups.some((group) => group.results.length > 0);
+
+  return (
+    <Section padded className="mb-7">
+      <form action="/dashboard" method="get" className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        {assocFilter && <input type="hidden" name="assoc" value={assocFilter} />}
+        <label className="sr-only" htmlFor="dashboard-search">Search Portier</label>
+        <input
+          id="dashboard-search"
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Search associations, units, owners, vendors, work orders, reports..."
+          className="h-12 min-w-0 flex-1 rounded-md border border-ink-200 bg-white px-4 text-sm text-ink-900 shadow-soft-sm placeholder:text-ink-400 focus:border-champagne-500 focus:outline-none focus:ring-2 focus:ring-champagne-200/60"
+        />
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="submit" variant="primary" size="md">Search</Button>
+          {hasQuery && (
+            <Link href={assocFilter ? `/dashboard?assoc=${assocFilter}` : '/dashboard'}>
+              <Button type="button" variant="outline" size="md">Clear</Button>
+            </Link>
+          )}
+        </div>
+      </form>
+
+      <div className="mt-2 text-xs text-ink-500">
+        Tip: press <span className="font-semibold text-ink-700">/</span> or <span className="font-semibold text-ink-700">Ctrl+K</span> anywhere for quick page navigation.
+      </div>
+
+      {hasQuery && (
+        <div className="mt-5 border-t border-ink-100 pt-5">
+          <div className="mb-3">
+            <h2 className="font-display text-lg tracking-editorial text-ink-900">Search results</h2>
+            <p className="mt-1 text-xs text-ink-500">Live Supabase records matching {query}.</p>
+          </div>
+
+          {hasResults ? (
+            <div className="grid gap-4 xl:grid-cols-3">
+              {groups.map((group) => (
+                <div key={group.label} className="rounded-md border border-ink-100 bg-cream-50/60">
+                  <div className="border-b border-ink-100 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">{group.label}</div>
+                  </div>
+                  <ul className="divide-y divide-ink-100">
+                    {group.results.map((result) => (
+                      <SearchResultRow key={result.id} result={result} />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border border-ink-100 bg-cream-50 px-5 py-8 text-center text-sm text-ink-500">
+              No matches found. Try an association name, unit number, owner name, vendor, work order, or report.
+            </div>
+          )}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function SearchResultRow({ result }: { result: DashboardSearchResult }) {
+  return (
+    <li>
+      <Link href={result.href} className="block px-4 py-3 transition-colors hover:bg-white">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-ink-900">{result.title}</div>
+            {result.subtitle && <div className="mt-0.5 truncate text-xs text-ink-500">{result.subtitle}</div>}
+          </div>
+          <span className="shrink-0 rounded bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-500">
+            {result.type}
+          </span>
+        </div>
+      </Link>
+    </li>
+  );
+}
+
 function ActivitySection({ items }: { items: any[] }) {
   return (
     <Section
       title="Recent motion"
       subtitle="Who did what across the portfolio, in the last day."
-      actions={
-        <Link
-          href="/activity"
-          className="text-xs font-semibold uppercase tracking-[0.14em] text-champagne-700 hover:text-champagne-800 transition-colors"
-        >
-          View full audit log →
-        </Link>
-      }
     >
       {items.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-ink-500">No activity recorded yet.</p>

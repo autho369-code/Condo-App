@@ -9,9 +9,6 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/buildings/new">New Building</PanelLink>
           <PanelLink href="/units/new">New Unit</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/buildings">Managing Buildings</PanelLink>
-        </PanelSection>
       </ContextPanel>
     </div>
   );

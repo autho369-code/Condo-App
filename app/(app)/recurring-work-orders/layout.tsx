@@ -6,11 +6,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <div className="flex-1 overflow-hidden min-w-0">{children}</div>
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="/recurring-work-orders/new">New Recurring Work Order</PanelLink>
-        </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/recurring-work-orders">Recurring Work Orders</PanelLink>
-        </PanelSection>
+</PanelSection>
       </ContextPanel>
     </div>
   );

@@ -22,11 +22,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <PanelLink href="/associations/new">+ New Association</PanelLink>
           <PanelLink href="/units/new">+ New Unit</PanelLink>
         </PanelSection>
-        <PanelSection title="People">
+        <PanelSection title="Owners and Vendors">
           <PanelLink href="/owners/new">+ New Owner</PanelLink>
           <PanelLink href="/vendors/new">+ New Vendor</PanelLink>
-          <PanelLink href="/bills/new">Draw Bill</PanelLink>
-          <PanelLink href="/charges">Draw Invoice</PanelLink>
+          <PanelLink href="/bills/new">Enter bill</PanelLink>
+          <PanelLink href="/charges">Create charge</PanelLink>
         </PanelSection>
         <PanelSection title="In Reports">
           <PanelLink href="/reports/delinquency">Owner Delinquency</PanelLink>
@@ -34,9 +34,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <PanelLink href="/reports/dues_roll">Dues Roll</PanelLink>
           <PanelLink href="/reports/cash_flow">Cash Flow</PanelLink>
           <PanelLink href="/reports/balance_sheet">Balance Sheet</PanelLink>
-        </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="#">How to Use the Help Center</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

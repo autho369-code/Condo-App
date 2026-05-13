@@ -24,11 +24,6 @@ export default async function UnitsLayout({ children }: { children: React.ReactN
           <PanelLink href="/reports/association_directory">Association Directory</PanelLink>
           <PanelLink href="/reports/unit_availability">Unit Availability</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="#">Ownership percentage explained</PanelLink>
-          <PanelLink href="#">Linking owners to units</PanelLink>
-          <PanelLink href="#">Bulk unit import</PanelLink>
-        </PanelSection>
       </ContextPanel>
       }
     >

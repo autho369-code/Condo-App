@@ -11,8 +11,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/bank-accounts/deposits/new">New Bank Deposit</PanelLink>
           <PanelLink href="/bank-accounts/feeds">Bank Feed</PanelLink>
           <PanelLink href="/bank-accounts/reconcile">Reconcile</PanelLink>
-          <PanelLink href="/accounting-periods/close" status="placeholder">Close Accounting Period</PanelLink>
-          <PanelLink href="/bank-accounts/online-payments">Enable Bank Accounts for Online Payments</PanelLink>
+<PanelLink href="/bank-accounts/online-payments">Enable Bank Accounts for Online Payments</PanelLink>
           <PanelLink href="/bank-accounts/link">Link With Bank</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">

@@ -8,12 +8,8 @@ const ignoredPrefixes = ['/api/', '/portal/pay/success', '/portal/pay/cancel'];
 const placeholderHrefs = new Set([
   '/assessments/update',
   '/unit-types/new',
-  '/bank-transfers/new',
-  '/journal-entries/new',
-  '/charges/new',
   '/fixed-assets/new',
   '/forms/new',
-  '/gl-accounts/new',
   '/inspections/new',
   '/inventory/new',
   '/letters/new',

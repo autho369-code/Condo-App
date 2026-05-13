@@ -12,6 +12,36 @@ const PUBLIC_PATHS = [
   '/api/auth/callback',
 ];
 
+const LEAN_CORE_DISABLED_APP_PREFIXES = [
+  '/activity',
+  '/automation-center',
+  '/bulk-statement-settings',
+  '/compliance',
+  '/diagnostics',
+  '/fixed-assets',
+  '/forms',
+  '/inbox',
+  '/inspections',
+  '/inventory',
+  '/letters',
+  '/lockbox',
+  '/metrics',
+  '/owners/ach',
+  '/owners/activations',
+  '/owners/forms',
+  '/owners/management-agreements',
+  '/owners/packets',
+  '/projects',
+  '/purchase-orders',
+  '/recurring-work-orders',
+  '/surveys',
+  '/unit-turns',
+  '/vendors/ach',
+  '/vendors/compliance',
+  '/vendors/forms',
+  '/vendors/w9',
+];
+
 /**
  * Top-level middleware. Wrapped in try/catch so a failure in any branch
  * just renders the page without tenant context — never returns 500.
@@ -32,6 +62,13 @@ export async function middleware(request: NextRequest) {
     response = NextResponse.next({ request });
   }
 
+  if (!response.headers.has('location') && isLeanCoreDisabledPath(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
   // -- Stage 2: tenant resolution (best-effort) ------------------------------
   try {
     const host = request.headers.get('host');
@@ -46,6 +83,10 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
+}
+
+function isLeanCoreDisabledPath(pathname: string) {
+  return LEAN_CORE_DISABLED_APP_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 // =============================================================================

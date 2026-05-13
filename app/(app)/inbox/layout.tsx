@@ -8,9 +8,6 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
         <PanelSection title="Tasks">
           <PanelLink href="/send-email">New Email</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/inbox">Inbox</PanelLink>
-        </PanelSection>
       </ContextPanel>
     </div>
   );

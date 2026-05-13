@@ -24,11 +24,6 @@ export default async function BillsLayout({ children }: { children: React.ReactN
           <PanelLink href="/reports/expense_register">Expense Register</PanelLink>
           <PanelLink href="/reports/vendor_1099_summary">1099 Summary</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="#">Bill approval workflow</PanelLink>
-          <PanelLink href="#">Check run &amp; printing setup</PanelLink>
-          <PanelLink href="#">1099 year-end process</PanelLink>
-        </PanelSection>
       </ContextPanel>
       }
     >

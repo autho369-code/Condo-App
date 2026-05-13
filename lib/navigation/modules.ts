@@ -5,7 +5,7 @@ export type AppModule = {
 };
 
 export const appModules: AppModule[] = [
-  { label: 'Command', href: '/dashboard' },
+  { label: 'Dashboard', href: '/dashboard' },
   {
     label: 'Associations',
     href: '/associations',
@@ -15,24 +15,23 @@ export const appModules: AppModule[] = [
       { label: 'Units', href: '/units' },
     ],
   },
+  { label: 'Owners', href: '/owners' },
   {
     label: 'Accounting',
     href: '/bank-accounts',
     children: [
       { label: 'Receivables', href: '/charges' },
       { label: 'Payables', href: '/bills' },
+      { label: 'Vendors', href: '/vendors' },
       { label: 'Bank accounts', href: '/bank-accounts' },
-      { label: 'Journal entries', href: '/journal-entries' },
       { label: 'Bank transfers', href: '/bank-transfers' },
       { label: 'GL accounts', href: '/gl-accounts' },
-      { label: 'Diagnostics', href: '/diagnostics' },
+      { label: 'Journal entries', href: '/journal-entries' },
     ],
   },
-  { label: 'Reports', href: '/reports' },
+  { label: 'Work Orders', href: '/work-orders' },
   { label: 'Violations', href: '/violations' },
-  { label: 'People', href: '/owners' },
-  { label: 'Vendors', href: '/vendors' },
-  { label: 'Maintenance', href: '/work-orders' },
   { label: 'Communication', href: '/communication-center' },
+  { label: 'Reports', href: '/reports' },
   { label: 'Settings', href: '/settings' },
 ];
