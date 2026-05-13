@@ -34,6 +34,7 @@ flowchart LR
 | New Association | `/associations/new` | `associations`, accounting tables, `units`, `owners`, storage | Pending wiring review |
 | Homeowners Directory | `/owners` | `owners`, `occupancies`, `units`, `associations` | Screenshot captured |
 | Owners Directory | `/owners?view=directory` | `owners`, `management_agreements`, `documents` | Screenshot captured |
+| Management Agreements | `/owners/management-agreements`, `/owners/management-agreements/new` | `management_agreements`, `owners`, `associations` | Lists and writes agreement drafts |
 | Vendors Directory | `/vendors` | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | Screenshot captured |
 | New Violation | `/violations/new` | `violations`, `associations`, `units`, `owners` | Writes violation draft to Supabase |
 | Send Email Homeowners | Modal / future route | `owners`, `email_queue`, `communication_messages` | Screenshot captured |

@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
+import { createManagementAgreement } from '@/lib/rpcs/management-agreements';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function NewManagementAgreementPage() {
       actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
       rail={<div className="rounded border border-ink-100 bg-white p-3 text-sm text-ink-700">Agreement drafts should capture owner, association, fee schedule, management dates, and signature delivery method before any outbound send.</div>}
     >
-      <form className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
+      <form action={createManagementAgreement} className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
@@ -65,8 +66,8 @@ export default async function NewManagementAgreementPage() {
           <textarea id="terms" name="terms" rows={5} className="w-full rounded-md border border-ink-200 px-3 py-2 text-sm" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
         </div>
         <div className="flex justify-end gap-2 border-t border-ink-100 pt-5">
-          <Button type="button" variant="secondary">Preview agreement</Button>
-          <Button type="button">Stage agreement</Button>
+          <Link href="/owners/management-agreements" className="rounded-md border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-cream-50">Cancel</Link>
+          <Button type="submit">Save draft</Button>
         </div>
       </form>
     </DataWorkspace>
