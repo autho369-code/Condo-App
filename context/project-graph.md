@@ -55,6 +55,7 @@ flowchart LR
 | GL Account Permissions | `/gl-accounts/permissions` | `gl_account_role_permissions`, `gl_accounts`, `user_roles` | Writes to Supabase |
 | Reactivate GL Account | `/gl-accounts/reactivate` | `gl_accounts` | Updates inactive accounts |
 | New Bank Deposit | `/bank-accounts/deposits/new` | `payments`, `bank_accounts` | Assigns receipts to bank account |
+| Homeowner Credit | `/credits/new` | `payments`, `v_unapplied_credits` | Creates credit-on-file payment records for later allocation |
 | Bank Account Online Payments | `/bank-accounts/online-payments` | `bank_accounts.payments_enabled` | Updates payment enablement |
 | Link With Bank | `/bank-accounts/link` | `bank_accounts.auto_reconciliation` | Updates feed/reconciliation flag |
 | Bank Reconciliation | `/bank-accounts/reconcile` | `payments`, `payable_bills`, `bank_transfers`, `bank_accounts.last_reconciliation_date` | Updates reconciliation date after balanced guardrails pass |

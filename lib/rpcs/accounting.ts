@@ -49,6 +49,29 @@ export async function createHomeownerReceipt(formData: FormData) {
   redirect('/charges');
 }
 
+export async function createHomeownerCredit(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const unitId = required(str(formData, 'unit_id'), 'Unit');
+
+  const { error } = await (supabase as any).from('payments').insert({
+    unit_id: unitId,
+    amount: num(formData, 'amount'),
+    payment_date: str(formData, 'payment_date') ?? new Date().toISOString().slice(0, 10),
+    method: 'credit',
+    reference: str(formData, 'reference'),
+    notes: str(formData, 'notes') ?? str(formData, 'reason'),
+    bank_account_id: str(formData, 'bank_account_id'),
+    gl_account_id: str(formData, 'gl_account_id'),
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/charges');
+  revalidatePath('/credits/apply');
+  revalidatePath(`/units/${unitId}`);
+  redirect('/credits/apply');
+}
+
 export async function createHomeownerCharge(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
