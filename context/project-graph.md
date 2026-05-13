@@ -37,6 +37,7 @@ flowchart LR
 | Management Agreements | `/owners/management-agreements`, `/owners/management-agreements/new` | `management_agreements`, `owners`, `associations` | Lists and writes agreement drafts |
 | Owner Forms | `/owners/forms` | `owners`, `user_invitations`, `document_requests`, `communication_messages`, `email_queue` | Stages owner form drafts; portal activation calls the homeowner invitation RPC |
 | Vendors Directory | `/vendors` | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | Screenshot captured |
+| Vendor Forms | `/vendors/forms` | `vendors`, `document_requests`, `communication_messages`, `email_queue` | Stages vendor intake, W-9, bank, and compliance document requests |
 | New Violation | `/violations/new` | `violations`, `associations`, `units`, `owners` | Writes violation draft to Supabase |
 | Send Email Homeowners | Modal / future route | `owners`, `email_queue`, `communication_messages` | Screenshot captured |
 | Move In Homeowner | Future route | `owners`, `occupancies`, `units`, `associations`, `documents` | Needs terminology decision |

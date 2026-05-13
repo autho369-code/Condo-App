@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
+import { stageVendorForm } from '@/lib/rpcs/vendor-forms';
 import { createClient } from '@/lib/supabase/server';
 import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
@@ -45,7 +46,7 @@ export default async function VendorFormsPage({
         </div>
       }
     >
-      <form className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
+      <form action={stageVendorForm as any} className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="vendor_id">Vendor</Label>
@@ -75,8 +76,7 @@ export default async function VendorFormsPage({
           Vendor requests are staged for review. Final delivery should require explicit confirmation and audit logging.
         </div>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary">Preview</Button>
-          <Button type="button">Stage for confirmation</Button>
+          <Button type="submit">Stage for confirmation</Button>
         </div>
       </form>
     </DataWorkspace>
