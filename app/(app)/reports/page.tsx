@@ -109,12 +109,12 @@ export default async function ReportsIndex({
             <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
               <div>
                 <h2 className="text-sm font-semibold text-ink-900">Report Command Center</h2>
-                <p className="mt-0.5 text-xs text-ink-500">Verified live catalog, scoped filters, CSV exports, saved runs, and scheduled execution.</p>
+                <p className="mt-0.5 text-xs text-ink-500">Verified live catalog, scoped filters, PDF/XLSX/CSV exports, saved runs, and scheduled execution.</p>
               </div>
               <Link href="/reports/runs" className="text-xs font-semibold text-champagne-700 hover:underline">Run history</Link>
             </div>
             <div className="grid gap-px bg-ink-100 md:grid-cols-3">
-              <CommandCell label="Executable export" value="CSV" detail="Live data generation and download route" />
+              <CommandCell label="Export options" value="3" detail="PDF, XLSX, and CSV on every report" />
               <CommandCell label="Catalog groups" value={groups.length} detail="Accounting, operations, people, compliance" />
               <CommandCell label="Saved reports" value={savedRows.length} detail={`${favorites.length} pinned favorites`} />
             </div>
@@ -273,7 +273,7 @@ function RecentRuns({ rows }: { rows: ReportRun[] }) {
   if (rows.length === 0) {
     return (
       <div className="px-4 py-6 text-sm text-ink-500">
-        No report runs yet. Open any report and run a CSV export to create the first entry.
+        No report runs yet. Open any report and run a PDF, XLSX, or CSV export to create the first entry.
       </div>
     );
   }

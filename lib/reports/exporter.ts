@@ -7,21 +7,15 @@ type ReportCsvInput = {
 
 export type ReportFormat = 'pdf' | 'xlsx' | 'csv' | 'json' | 'html';
 
-const FORMAT_PRIORITY: ReportFormat[] = ['pdf', 'xlsx', 'csv', 'html', 'json'];
+export const STANDARD_REPORT_FORMATS = ['pdf', 'xlsx', 'csv'] as const;
+const FORMAT_PRIORITY: ReportFormat[] = [...STANDARD_REPORT_FORMATS, 'html', 'json'];
 
 export function reportDownloadPath(runId: string) {
   return `/reports/runs/${runId}/download`;
 }
 
 export function orderedReportFormats(formats: unknown): ReportFormat[] {
-  const allowed = new Set<ReportFormat>();
-  if (Array.isArray(formats)) {
-    for (const format of formats) {
-      if (isReportFormat(format)) allowed.add(format);
-    }
-  }
-  if (allowed.size === 0) allowed.add('pdf');
-  return FORMAT_PRIORITY.filter((format) => allowed.has(format));
+  return [...STANDARD_REPORT_FORMATS];
 }
 
 export function defaultReportFormat(formats: unknown): ReportFormat {
