@@ -31,9 +31,13 @@ export default async function SendEmailPage({
 
   // Pull counts per recipient group for the preselected association so the
   // user knows how many each bucket resolves to before hitting Send.
-  let ownerCount = 0, boardCount = 0;
+  let ownerCount = 0, renterCount = 0, boardCount = 0;
   if (preAssoc) {
-    const [ownC, brdC] = await Promise.all([
+    const [{ data: unitRows }, ownC, brdC] = await Promise.all([
+      (supabase as any).from('units')
+        .select('id, building:buildings!inner(association_id)')
+        .eq('building.association_id', preAssoc)
+        .is('archived_at', null),
       (supabase as any).from('occupancies')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
@@ -46,6 +50,16 @@ export default async function SendEmailPage({
     ]);
     ownerCount  = ownC.count ?? 0;
     boardCount  = brdC.count ?? 0;
+    const unitIds = (unitRows ?? []).map((unit: any) => unit.id);
+    if (unitIds.length > 0) {
+      const renterC = await (supabase as any)
+        .from('tenancies')
+        .select('*', { count: 'exact', head: true })
+        .in('unit_id', unitIds)
+        .is('archived_at', null)
+        .not('tenant_email', 'is', null);
+      renterCount = renterC.count ?? 0;
+    }
   }
 
   return (
@@ -93,13 +107,15 @@ export default async function SendEmailPage({
             </select>
           </div>
 
-          {/* Recipient type — owners / board */}
+          {/* Recipient type - owners / renters / board */}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-700">
               Recipients <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               <RecipientOption value="owners" label="Owners" count={ownerCount} defaultChecked />
+              <RecipientOption value="both" label="Owners + renters" count={ownerCount + renterCount} />
+              <RecipientOption value="renters" label="Renters only" count={renterCount} />
               <RecipientOption value="board" label="Board members" count={boardCount} />
             </div>
             <p className="mt-1 text-xs text-ink-500">
