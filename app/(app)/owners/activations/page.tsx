@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { OwnerPortalLinkPanel } from '@/components/owners/owner-portal-link-panel';
 import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -154,6 +155,11 @@ export default async function OwnerActivationsPage({
                         </form>
                       )}
                     </div>
+                    {status !== 'missing_email' && (
+                      <div className="mt-3">
+                        <OwnerPortalLinkPanel ownerId={owner.id} status={status} />
+                      </div>
+                    )}
                   </TD>
                 </TR>
               );

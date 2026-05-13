@@ -5,6 +5,7 @@ import { requireStaff, type MeResult } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export type OwnerPortalStatus = 'active' | 'invited' | 'needs_invite' | 'missing_email';
+export type OwnerPortalGeneratedLinkType = 'invite' | 'recovery';
 
 type OwnerForPortal = {
   id?: string | null;
@@ -38,6 +39,12 @@ export function getOwnerPortalStatus(owner: OwnerForPortal): OwnerPortalStatus {
   if (owner.portal_activated) return 'active';
   if (owner.auth_user_id) return 'invited';
   return 'needs_invite';
+}
+
+export function getOwnerPortalGeneratedLinkType(status: OwnerPortalStatus): OwnerPortalGeneratedLinkType | null {
+  if (status === 'needs_invite') return 'invite';
+  if (status === 'invited' || status === 'active') return 'recovery';
+  return null;
 }
 
 export function assertOwnerPortalActionAllowed(owner: OwnerForPortal, actor: PortalActor) {

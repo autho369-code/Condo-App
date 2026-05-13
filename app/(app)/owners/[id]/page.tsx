@@ -6,6 +6,7 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
+import { OwnerPortalLinkPanel } from '@/components/owners/owner-portal-link-panel';
 import {
   getOwnerPortalStatus,
   ownerPortalStatusLabel,
@@ -231,6 +232,11 @@ export default async function OwnerDetailPage({
             )}
           </div>
         </div>
+        {portalStatus !== 'missing_email' && (
+          <div className="border-t border-ink-100 px-5 py-4">
+            <OwnerPortalLinkPanel ownerId={id} status={portalStatus} />
+          </div>
+        )}
       </Section>
 
       {/* Occupancies â€” unit links */}

@@ -4,6 +4,7 @@ import {
   assertOwnerPortalActionAllowed,
   buildOwnerPortalRedirectTo,
   getOwnerPortalStatus,
+  getOwnerPortalGeneratedLinkType,
   normalizeOwnerPortalEmail,
 } from '@/lib/auth/owner-portal';
 
@@ -55,5 +56,12 @@ describe('owner portal auth actions', () => {
       'needs_invite',
     );
     expect(getOwnerPortalStatus({ email: null, portal_activated: false, auth_user_id: null })).toBe('missing_email');
+  });
+
+  it('uses invite links before auth connection and recovery links afterward', () => {
+    expect(getOwnerPortalGeneratedLinkType('needs_invite')).toBe('invite');
+    expect(getOwnerPortalGeneratedLinkType('invited')).toBe('recovery');
+    expect(getOwnerPortalGeneratedLinkType('active')).toBe('recovery');
+    expect(getOwnerPortalGeneratedLinkType('missing_email')).toBeNull();
   });
 });
