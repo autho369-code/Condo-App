@@ -8,9 +8,6 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
         <PanelSection title="Tasks">
           <PanelLink href="/charge-categories/new">New Charge Category</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/charge-categories">Charge Categories</PanelLink>
-        </PanelSection>
       </ContextPanel>
     </div>
   );

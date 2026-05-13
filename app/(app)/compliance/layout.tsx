@@ -8,9 +8,6 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=compliance">Compliance Status</PanelLink>
         </PanelSection>
-        <PanelSection title="Help Topics">
-          <PanelLink href="/help/compliance">Compliance</PanelLink>
-        </PanelSection>
       </ContextPanel>
     </div>
   );

@@ -5,13 +5,16 @@ import { platformModules } from '@/lib/navigation/platform-modules';
 describe('appModules', () => {
   it('includes the core operating modules', () => {
     const labels = appModules.map((module) => module.label);
-    expect(labels).toContain('Command');
+    expect(labels).toContain('Dashboard');
     expect(labels).toContain('Associations');
+    expect(labels).toContain('Owners');
     expect(labels).toContain('Accounting');
-    expect(labels).toContain('Reports');
+    expect(labels).toContain('Work Orders');
     expect(labels).toContain('Violations');
-    expect(labels).toContain('People');
-    expect(labels).toContain('Vendors');
+    expect(labels).toContain('Communication');
+    expect(labels).toContain('Reports');
+    expect(labels).not.toContain('People');
+    expect(labels).not.toContain('Maintenance');
   });
 });
 

@@ -7,10 +7,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
           <PanelLink href="/payments/new">Owner Receipt</PanelLink>
-          <PanelLink href="/vendor-receipts/new" status="placeholder">Vendor Receipt</PanelLink>
-          <PanelLink href="/other-receipts/new" status="placeholder">Other Receipt</PanelLink>
-          <PanelLink href="/subsidy-receipts/new" status="placeholder">Subsidy Receipt</PanelLink>
-          <PanelLink href="/charges/new">Owner Charge</PanelLink>
+<PanelLink href="/charges/new">Owner Charge</PanelLink>
           <PanelLink href="/charges/bulk">Bulk Charges and Credits</PanelLink>
           <PanelLink href="/charges/recurring/bulk">Bulk Recurring Charges</PanelLink>
           <PanelLink href="/credits/new">Owner Credit</PanelLink>
@@ -19,9 +16,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
           <PanelLink href="/charges/late-fees">Charge Late Fees</PanelLink>
           <PanelLink href="/bank-accounts/deposits/new">New Bank Deposit</PanelLink>
           <PanelLink href="/lockbox">Lockbox</PanelLink>
-          <PanelLink href="/collections/signup" status="placeholder">Sign Up for Debt Collections</PanelLink>
-          <PanelLink href="/settings/resident-check-fees" status="placeholder">Resident Check Fee Settings</PanelLink>
-        </PanelSection>
+</PanelSection>
       </ContextPanel>
     </div>
   );
