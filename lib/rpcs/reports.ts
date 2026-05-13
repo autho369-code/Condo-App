@@ -1,8 +1,9 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { generateReportCsv } from '@/lib/reports/generator';
+import { generateReportOutput } from '@/lib/reports/generator';
 import { reportDownloadPath } from '@/lib/reports/exporter';
+import { type ReportFormat } from '@/lib/reports/exporter';
 import { withReportError } from '@/lib/reports/routing';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -46,8 +47,10 @@ export async function queueReport(formData: FormData) {
   redirect(`/reports/runs/${(data as any).id}`);
 }
 
-function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'xlsx' | 'csv' | 'json' | 'html' {
-  return 'csv';
+function parseOutputFormat(value: FormDataEntryValue | null): ReportFormat {
+  return value === 'xlsx' || value === 'csv' || value === 'json' || value === 'html' || value === 'pdf'
+    ? value
+    : 'pdf';
 }
 
 function safeReturnTo(value: FormDataEntryValue | null) {
@@ -61,7 +64,7 @@ async function completeQueuedReportRun(runId: string) {
 
   const { data: run, error: loadError } = await (service as any)
     .from('report_runs')
-    .select('id, parameters, report_definitions(slug, name)')
+    .select('id, parameters, output_format, report_definitions(slug, name)')
     .eq('id', runId)
     .maybeSingle();
 
@@ -76,7 +79,8 @@ async function completeQueuedReportRun(runId: string) {
       .update({ status: 'running', started_at: startedAt.toISOString(), error_message: null })
       .eq('id', runId);
 
-    const { csv, rowCount } = await generateReportCsv(service, run);
+    const format = parseOutputFormat(run.output_format ?? 'pdf');
+    const { body, rowCount } = await generateReportOutput(service, run, format);
     const finishedAt = new Date();
 
     await (service as any)
@@ -85,7 +89,7 @@ async function completeQueuedReportRun(runId: string) {
         status: 'succeeded',
         row_count: rowCount,
         output_url: reportDownloadPath(runId),
-        output_size_bytes: Buffer.byteLength(csv, 'utf8'),
+        output_size_bytes: body.byteLength,
         duration_ms: finishedAt.getTime() - startedAt.getTime(),
         finished_at: finishedAt.toISOString(),
         error_message: null,

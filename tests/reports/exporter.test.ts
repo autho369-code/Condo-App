@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildReportCsv, reportDownloadPath } from '@/lib/reports/exporter';
+import {
+  buildReportCsv,
+  buildReportPdf,
+  defaultReportFormat,
+  orderedReportFormats,
+  reportDownloadPath,
+  reportFileExtension,
+} from '@/lib/reports/exporter';
 
 describe('report export helpers', () => {
   it('serializes report rows as csv with escaped values', () => {
@@ -22,5 +29,23 @@ describe('report export helpers', () => {
 
   it('builds an app download URL for completed runs', () => {
     expect(reportDownloadPath('run-1')).toBe('/reports/runs/run-1/download');
+  });
+
+  it('prioritizes pdf as the default printable report format', () => {
+    expect(defaultReportFormat(['csv', 'pdf', 'xlsx'])).toBe('pdf');
+    expect(orderedReportFormats(['csv', 'pdf', 'xlsx'])).toEqual(['pdf', 'xlsx', 'csv']);
+  });
+
+  it('builds a valid pdf payload for printable reports', () => {
+    const pdf = buildReportPdf({
+      title: 'Income Statement',
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      parameters: { scope: 'association' },
+      rows: [{ account: 'Revenue', amount: 1200 }],
+    });
+
+    expect(pdf.subarray(0, 5).toString('utf8')).toBe('%PDF-');
+    expect(pdf.toString('latin1')).toContain('Income Statement');
+    expect(reportFileExtension('pdf')).toBe('pdf');
   });
 });
