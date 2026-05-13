@@ -13,9 +13,16 @@ const PLACEHOLDER_HREFS = new Set([
   '/projects/new',
   '/purchase-orders/new',
   '/recurring-work-orders/new',
-  '/scheduled-reports/new',
   '/surveys/new',
   '/unit-turns/new',
+  '/accounting-periods/close',
+  '/vendor-receipts/new',
+  '/other-receipts/new',
+  '/subsidy-receipts/new',
+  '/collections/signup',
+  '/settings/resident-check-fees',
+  '/gl-account-maps/new',
+  '/journal-entries/post-gpr',
 ]);
 
 export function ContextPanel({

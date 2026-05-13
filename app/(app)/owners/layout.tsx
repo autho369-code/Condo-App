@@ -23,7 +23,7 @@ export default async function OwnersLayout({ children }: { children: React.React
           <PanelLink href="/owners/ach">Owner ACH Setup</PanelLink>
           <PanelLink href="/owners/management-agreements/new">New Management Agreement</PanelLink>
           <PanelLink href="/owners/management-agreements">Management Agreements</PanelLink>
-          <PanelLink href="/owners/portal-bulk-settings">Owner Portal Bulk Settings</PanelLink>
+          <PanelLink href="/owners/portal-bulk-settings" status="placeholder">Owner Portal Bulk Settings</PanelLink>
         </PanelSection>
         <PanelSection title="Letters">
           <PanelLink href="/reports?slug=owner-statement-enhanced">Owner Statement (Enhanced)</PanelLink>

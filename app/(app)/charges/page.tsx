@@ -31,9 +31,8 @@ export default async function ChargesPage() {
       subtabs={[
         { label: 'Receipts', href: '/charges', active: true },
         { label: 'Charges', href: '/charges?view=charges' },
-        { label: 'Bank Deposits', href: '/bank-accounts/deposits' },
+        { label: 'New Bank Deposit', href: '/bank-accounts/deposits/new' },
         { label: 'Homeowner Delinquencies', href: '/reports?slug=homeowner-delinquency' },
-        { label: 'Chargeback Insights', href: '/charges/chargebacks' },
       ]}
     >
       <div className="space-y-4">
