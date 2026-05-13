@@ -475,6 +475,59 @@ export async function createCommonAssociationCharge(formData: FormData) {
   redirect(`/charges/common/new?posted=${units.length}`);
 }
 
+export async function createBulkChargesOrCredits(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const unitIds = formData.getAll('unit_ids').filter((value): value is string => typeof value === 'string' && value.length > 0);
+  if (unitIds.length === 0) throw new Error('Select at least one unit.');
+
+  const operation = str(formData, 'operation') ?? 'charge';
+  const amount = num(formData, 'amount');
+  if (!(amount > 0)) throw new Error('Amount must be greater than zero.');
+
+  if (operation === 'credit') {
+    const paymentDate = str(formData, 'date') ?? new Date().toISOString().slice(0, 10);
+    const rows = unitIds.map((unitId) => ({
+      unit_id: unitId,
+      amount,
+      payment_date: paymentDate,
+      method: 'credit',
+      reference: str(formData, 'reference'),
+      notes: str(formData, 'description') ?? 'Bulk homeowner credit',
+      bank_account_id: str(formData, 'bank_account_id'),
+      gl_account_id: str(formData, 'gl_account_id'),
+    }));
+
+    const { error } = await (supabase as any).from('payments').insert(rows);
+    if (error) throw new Error(error.message);
+
+    revalidatePath('/charges');
+    revalidatePath('/credits/apply');
+    revalidatePath('/charges/bulk');
+    redirect(`/charges/bulk?posted=${unitIds.length}&kind=credits`);
+  }
+
+  const chargeCategoryId = required(str(formData, 'charge_category_id'), 'Charge category');
+  const description = required(str(formData, 'description'), 'Description');
+  const dueDate = str(formData, 'date') ?? new Date().toISOString().slice(0, 10);
+
+  for (const unitId of unitIds) {
+    const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
+      p_unit_id: unitId,
+      p_charge_category_id: chargeCategoryId,
+      p_amount: amount,
+      p_description: description,
+      p_due_date: dueDate,
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath('/charges');
+  revalidatePath('/charges/bulk');
+  redirect(`/charges/bulk?posted=${unitIds.length}&kind=charges`);
+}
+
 export async function manuallyPostJournalEntries(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();

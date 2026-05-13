@@ -77,6 +77,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Apply Credits | `v_unapplied_credits`, `aged_receivables`, `payment_applications` | `/credits/apply` uses existing `apply_payment` RPC. |
 | Charge Late Fees | `v_charge_balances`, `apply_late_fees` | `/charges/late-fees` previews past-due balances and runs the existing late-fee RPC. |
 | Bulk Recurring Charges | `v_unit_charge_schedule`, `post_unit_recurring_charges` | `/charges/recurring/bulk` previews due schedules and runs the existing recurring-charge RPC. |
+| Bulk Charges and Credits | `units`, `charge_categories`, `charges`, `payments` | `/charges/bulk` posts selected-unit charges through `post_ad_hoc_charge` or selected-unit credits into `payments`. |
 | Common Charge | `associations`, `units`, `charge_categories`, `charges` via `post_ad_hoc_charge` | `/charges/common/new` posts one ad-hoc charge per active unit in the selected association. |
 | Lockbox | `lockbox_batches`, `lockbox_items`, `payments`, `bank_accounts`, `units`, `associations` | `/lockbox/new` writes lockbox batches/items and creates matched receipt payments when a unit is selected. |
 | Recurring Journal Entries | `recurring_journal_entries`, `gl_accounts` | `/journal-entries/recurring/new` writes templates; list can run `generate_recurring_journal_entries`. |
