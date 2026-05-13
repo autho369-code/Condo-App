@@ -129,7 +129,7 @@ export default async function PortfoliosPage() {
               <Input id="admin_name" name="admin_name" placeholder="Margaret Devlin" />
             </Field>
 
-            <Field label="URL slug" hint={`Live at https://{slug}.${APEX_DOMAIN}/login. Leave blank to derive from company name.`}>
+            <Field label="URL slug" hint={`Live at https://${APEX_DOMAIN}/t/{slug}/login. Leave blank to derive from company name.`}>
               <Input id="slug" name="slug" placeholder="beacon" pattern="^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])$" />
             </Field>
             <Field label="Custom domain (optional)" hint="A vanity domain pointed at Vercel via CNAME. Leave blank for now.">

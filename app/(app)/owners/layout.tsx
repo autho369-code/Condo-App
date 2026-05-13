@@ -14,6 +14,7 @@ export default async function OwnersLayout({ children }: { children: React.React
         <PanelSection title="Tasks">
           <PanelLink href="/owners/new">New Owner</PanelLink>
           <PanelLink href="/owners/new?flow=move-in">Move In Owner</PanelLink>
+          <PanelLink href="/owners/activations">Owner Portal Invites</PanelLink>
           <PanelLink href="/send-email?audience=owners">Email All Owners</PanelLink>
 </PanelSection>
         <PanelSection title="Reports">
