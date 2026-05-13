@@ -50,6 +50,7 @@ No schema changes should be made from this file alone. It is an audit and approv
 | Homeowners Directory | `owners`, `occupancies`, `units`, `associations` | UI simplified to screenshot structure. |
 | Owners Directory | `owners`, `management_agreements`, `documents` | UI simplified to screenshot structure; deeper actions pending. |
 | Management Agreements | `management_agreements`, `owners`, `associations` | `/owners/management-agreements/new` writes drafts; `/owners/management-agreements` lists saved agreements. |
+| Owner Forms | `owners`, `user_invitations`, `document_requests`, `communication_messages`, `email_queue` | `/owners/forms` stages owner form drafts; portal activation uses the existing homeowner invitation RPC. |
 | Vendors Directory | `vendors`, `vendor_compliance`, `documents`, `payment_methods` | UI simplified to screenshot structure; deeper actions pending. |
 | New Violation | `violations`, `associations`, `units`, `owners` | `/violations/new` writes draft violation records into Supabase. |
 | Send Email Homeowners Modal | `owners`, `email_queue`, `communication_messages` | Captured, not implemented. |

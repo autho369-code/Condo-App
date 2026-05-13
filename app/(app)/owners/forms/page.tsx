@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
+import { stageOwnerForm } from '@/lib/rpcs/owner-forms';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +47,7 @@ export default async function OwnerFormsPage({
         </div>
       }
     >
-      <form className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
+      <form action={stageOwnerForm as any} className="max-w-4xl space-y-5 rounded border border-ink-100 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
@@ -76,8 +77,7 @@ export default async function OwnerFormsPage({
           This composer is staged for review. Final delivery should require explicit confirmation and audit logging.
         </div>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary">Preview</Button>
-          <Button type="button">Stage for confirmation</Button>
+          <Button type="submit">Stage for confirmation</Button>
         </div>
       </form>
     </DataWorkspace>
