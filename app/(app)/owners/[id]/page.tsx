@@ -6,6 +6,8 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
+import { sendOwnerText } from '@/lib/rpcs/text-messages';
+import { normalizeTextPhone } from '@/lib/communications/text-messages';
 import { OwnerPortalLinkPanel } from '@/components/owners/owner-portal-link-panel';
 import {
   getOwnerPortalStatus,
@@ -28,7 +30,7 @@ export default async function OwnerDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ portal_invite_sent?: string; portal_reset_sent?: string; portal_error?: string }>;
+  searchParams: Promise<{ portal_invite_sent?: string; portal_reset_sent?: string; portal_error?: string; text_sent?: string; text_error?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
@@ -68,6 +70,27 @@ export default async function OwnerDetailPage({
   const displayName = formatName(owner.first_name, owner.last_name, owner.full_name);
   const phones: any[] = Array.isArray(owner.phone_numbers) ? owner.phone_numbers : [];
   const emails: any[] = Array.isArray(owner.emails) ? owner.emails : [];
+  const currentUnitIds = [...new Set(currentOccs.map((o: any) => o.units?.id).filter(Boolean))];
+  const ownerTextPhones = textPhonesFromOwner(owner);
+  const { data: activeRenters } = currentUnitIds.length > 0
+    ? await (supabase as any)
+        .from('tenancies')
+        .select('id, tenant_name, tenant_phone, tenant_email, unit_id')
+        .in('unit_id', currentUnitIds)
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+    : { data: [] };
+  const renterTextPhones = uniquePhones((activeRenters ?? []).map((renter: any) => renter.tenant_phone));
+  const textHistoryPhones = uniquePhones([...ownerTextPhones, ...renterTextPhones]);
+  const { data: textMessages } = textHistoryPhones.length > 0
+    ? await (supabase as any)
+        .from('communication_messages')
+        .select('id, created_at, recipient_group, recipient_name, recipient_phone, body, status')
+        .eq('channel', 'sms')
+        .in('recipient_phone', textHistoryPhones)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: [] };
   const portalStatus = getOwnerPortalStatus(owner);
   const portalResult = sp.portal_error
     ? { tone: 'danger' as const, text: sp.portal_error }
@@ -76,6 +99,11 @@ export default async function OwnerDetailPage({
       : sp.portal_reset_sent
         ? { tone: 'success' as const, text: `Password setup link sent to ${sp.portal_reset_sent}.` }
         : null;
+  const textResult = sp.text_error
+    ? { tone: 'danger' as const, text: sp.text_error }
+    : sp.text_sent
+      ? { tone: 'success' as const, text: `Text queued for ${sp.text_sent} recipient${sp.text_sent === '1' ? '' : 's'}.` }
+      : null;
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
@@ -102,6 +130,12 @@ export default async function OwnerDetailPage({
       {portalResult && (
         <div className={`rounded border px-4 py-3 text-sm ${portalResult.tone === 'danger' ? 'border-bordeaux-200 bg-bordeaux-50 text-bordeaux-700' : 'border-sage-200 bg-sage-50 text-sage-700'}`}>
           {portalResult.text}
+        </div>
+      )}
+
+      {textResult && (
+        <div className={`rounded border px-4 py-3 text-sm ${textResult.tone === 'danger' ? 'border-bordeaux-200 bg-bordeaux-50 text-bordeaux-700' : 'border-sage-200 bg-sage-50 text-sage-700'}`}>
+          {textResult.text}
         </div>
       )}
 
@@ -197,6 +231,73 @@ export default async function OwnerDetailPage({
             </div>
           </form>
         </details>
+      </Section>
+
+      <Section
+        title="Texts"
+        right={<Link href="/inbox" className="text-xs font-medium text-champagne-700 hover:underline">Open inbox</Link>}
+      >
+        <form action={sendOwnerText.bind(null, id) as any} className="space-y-4 px-5 py-4">
+          <div>
+            <Label>To</Label>
+            <div className="grid gap-2 md:grid-cols-2">
+              <TextRecipientOption value="owners" label="Owner" count={ownerTextPhones.length} defaultChecked />
+              <TextRecipientOption value="both" label="Owner + renters" count={ownerTextPhones.length + renterTextPhones.length} />
+              <TextRecipientOption value="renters" label="Renters only" count={renterTextPhones.length} />
+              <TextRecipientOption value="custom" label="Custom phone" count={0} />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="custom_phone">Custom phone</Label>
+            <Input id="custom_phone" name="custom_phone" type="tel" placeholder="(312) 555-0100" />
+          </div>
+
+          <div>
+            <Label htmlFor="text_message">Message</Label>
+            <textarea
+              id="text_message"
+              name="message"
+              rows={4}
+              required
+              className="w-full rounded border border-ink-200 bg-white px-3 py-2 text-sm"
+              placeholder="Type your message."
+            />
+          </div>
+
+          <div className="flex justify-end border-t border-ink-100 pt-4">
+            <Button type="submit">Send text</Button>
+          </div>
+        </form>
+
+        <div className="border-t border-ink-100">
+          {(textMessages ?? []).length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold">Date</th>
+                  <th className="px-4 py-2 text-left font-semibold">To</th>
+                  <th className="px-4 py-2 text-left font-semibold">Phone</th>
+                  <th className="px-4 py-2 text-left font-semibold">Message</th>
+                  <th className="px-4 py-2 text-left font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(textMessages ?? []).map((message: any) => (
+                  <tr key={message.id} className="border-t border-ink-100">
+                    <td className="whitespace-nowrap px-4 py-2 text-xs text-ink-500">{date(message.created_at)}</td>
+                    <td className="px-4 py-2 text-ink-700">{message.recipient_name ?? labelRecipientGroup(message.recipient_group)}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-ink-500">{message.recipient_phone}</td>
+                    <td className="max-w-md truncate px-4 py-2 text-ink-700">{message.body}</td>
+                    <td className="px-4 py-2 text-xs capitalize text-ink-500">{message.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="px-5 py-6 text-center text-sm text-ink-500">No text messages on file.</p>
+          )}
+        </div>
       </Section>
 
       <Section
@@ -398,4 +499,60 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
       {children}
     </section>
   );
+}
+
+function TextRecipientOption({
+  value,
+  label,
+  count,
+  defaultChecked,
+}: {
+  value: string;
+  label: string;
+  count: number;
+  defaultChecked?: boolean;
+}) {
+  const countText = value === 'custom'
+    ? 'Manual recipient'
+    : `${count} phone number${count === 1 ? '' : 's'} on file`;
+  return (
+    <label className="flex cursor-pointer items-start gap-2 rounded border border-ink-100 bg-white px-3 py-2 hover:border-champagne-400 has-[:checked]:border-champagne-500 has-[:checked]:bg-champagne-50">
+      <input type="radio" name="recipient_group" value={value} defaultChecked={defaultChecked} className="mt-1" />
+      <span className="flex-1 text-sm">
+        <span className="block font-medium text-ink-900">{label}</span>
+        <span className="text-xs text-ink-500">{countText}</span>
+      </span>
+    </label>
+  );
+}
+
+function textPhonesFromOwner(owner: any) {
+  const phones = [owner.phone];
+  if (Array.isArray(owner.phone_numbers)) {
+    for (const item of owner.phone_numbers) {
+      phones.push(typeof item === 'string' ? item : item?.number ?? item?.value ?? null);
+    }
+  }
+  return uniquePhones(phones);
+}
+
+function uniquePhones(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const phones: string[] = [];
+  for (const value of values) {
+    const phone = normalizeTextPhone(value);
+    if (!phone || seen.has(phone)) continue;
+    seen.add(phone);
+    phones.push(phone);
+  }
+  return phones;
+}
+
+function labelRecipientGroup(value: string | null | undefined) {
+  switch (value) {
+    case 'owner': return 'Owner';
+    case 'renter': return 'Renter';
+    case 'custom': return 'Custom';
+    default: return 'Recipient';
+  }
 }
