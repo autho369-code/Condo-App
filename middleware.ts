@@ -41,6 +41,16 @@ const LEAN_CORE_DISABLED_APP_PREFIXES = [
   '/vendors/w9',
 ];
 
+function tenantAliasForPath(pathname: string) {
+  const match = pathname.match(/^\/t\/([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)(\/.*)?$/);
+  if (!match) return null;
+
+  const slug = match[1];
+  const targetPath = match[2] || '/login';
+  if (targetPath !== '/login' && !targetPath.startsWith('/login/')) return null;
+  return { slug, targetPath };
+}
+
 /**
  * Top-level middleware. Wrapped in try/catch so a failure in any branch
  * just renders the page without tenant context — never returns 500.
@@ -52,6 +62,16 @@ const LEAN_CORE_DISABLED_APP_PREFIXES = [
  *      headers so server components can render tenant branding.
  */
 export async function middleware(request: NextRequest) {
+  const tenantAlias = tenantAliasForPath(request.nextUrl.pathname);
+  if (tenantAlias) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-portier-tenant-slug', tenantAlias.slug);
+
+    const url = request.nextUrl.clone();
+    url.pathname = tenantAlias.targetPath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+
   // -- Stage 1: auth refresh + public-path gate ------------------------------
   let response: NextResponse;
   try {

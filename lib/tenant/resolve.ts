@@ -65,7 +65,8 @@ export async function resolveTenantFromHost(host: string | null | undefined): Pr
 
 export function tenantUrl(slug: string, path = '/dashboard') {
   const apex = APEX_DOMAIN;
-  return `https://${slug}.${apex}${path.startsWith('/') ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `https://${apex}/t/${encodeURIComponent(slug)}${normalizedPath}`;
 }
 
 export function tenantSlugFromHeaders(headers: Headers): string | null {
