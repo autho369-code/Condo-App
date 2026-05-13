@@ -10,6 +10,7 @@ import {
 } from '@/lib/rpcs/charges';
 import { archiveUnitRenter, upsertUnitRenter } from '@/lib/rpcs/entities';
 import { occupancyLabel, splitRenterName } from '@/lib/units/renter';
+import { normalizeTextPhone } from '@/lib/communications/text-messages';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -63,6 +64,33 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
   const activeRenter = (tenancies ?? [])[0] as any | undefined;
   const renterName = splitRenterName(activeRenter?.tenant_name);
   const isRenterOccupied = Boolean(activeRenter);
+  const communicationEmails = uniqueEmails([
+    ...owners.map((owner) => owner.email),
+    activeRenter?.tenant_email,
+  ]);
+  const communicationPhones = uniquePhones([
+    ...owners.map((owner) => owner.phone),
+    activeRenter?.tenant_phone,
+  ]);
+  const [{ data: emailMessages }, { data: phoneMessages }] = await Promise.all([
+    communicationEmails.length
+      ? (supabase as any)
+        .from('communication_messages')
+        .select('id, created_at, channel, recipient_name, recipient_email, recipient_phone, subject, body, status')
+        .in('recipient_email', communicationEmails)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      : Promise.resolve({ data: [] }),
+    communicationPhones.length
+      ? (supabase as any)
+        .from('communication_messages')
+        .select('id, created_at, channel, recipient_name, recipient_email, recipient_phone, subject, body, status')
+        .in('recipient_phone', communicationPhones)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const communicationMessages = dedupeMessages([...(emailMessages ?? []), ...(phoneMessages ?? [])]).slice(0, 12);
 
   return (
     <div className="flex h-full flex-col">
@@ -162,6 +190,41 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
               </div>
             </form>
           </section>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Communication history</CardTitle></CardHeader>
+        <CardBody className="p-0">
+          {communicationMessages.length ? (
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Date</TH>
+                  <TH>Channel</TH>
+                  <TH>Recipient</TH>
+                  <TH>Subject / Message</TH>
+                  <TH>Status</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {communicationMessages.map((message: any) => (
+                  <TR key={message.id}>
+                    <TD className="whitespace-nowrap text-xs text-ink-500">{date(message.created_at)}</TD>
+                    <TD className="text-xs font-semibold uppercase text-ink-600">{message.channel}</TD>
+                    <TD>
+                      <div className="text-sm text-ink-900">{message.recipient_name ?? '-'}</div>
+                      <div className="font-mono text-xs text-ink-500">{message.recipient_email ?? message.recipient_phone ?? '-'}</div>
+                    </TD>
+                    <TD className="max-w-lg truncate">{message.subject ?? message.body}</TD>
+                    <TD className="text-xs capitalize text-ink-500">{message.status}</TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          ) : (
+            <p className="px-5 py-6 text-center text-sm text-ink-500">No communication history for this unit yet.</p>
+          )}
         </CardBody>
       </Card>
 
@@ -346,4 +409,39 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
       </div>
     </div>
   );
+}
+
+function uniqueEmails(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const value of values) {
+    const email = value?.trim().toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    emails.push(email);
+  }
+  return emails;
+}
+
+function uniquePhones(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const phones: string[] = [];
+  for (const value of values) {
+    const phone = normalizeTextPhone(value);
+    if (!phone || seen.has(phone)) continue;
+    seen.add(phone);
+    phones.push(phone);
+  }
+  return phones;
+}
+
+function dedupeMessages(messages: any[]) {
+  const seen = new Set<string>();
+  return messages
+    .filter((message) => {
+      if (!message?.id || seen.has(message.id)) return false;
+      seen.add(message.id);
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
 }

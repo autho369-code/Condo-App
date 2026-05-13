@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwnerPortal } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -28,7 +28,7 @@ const PRIORITY_OPTIONS: Array<{ value: string; label: string; hint: string }> = 
 ];
 
 export default async function NewServiceRequest() {
-  const me = await requireAuth();
+  const me = await requireOwnerPortal();
 
   // Only owners (and board members, who are also owners) submit requests
   if (!me.is_resident && !me.is_board) {
@@ -39,11 +39,13 @@ export default async function NewServiceRequest() {
 
   const supabase = await createClient();
 
-  // Get the owner's units with association context.
-  // RLS on v_unit_account_summary already filters to units the user belongs to.
-  const { data: units } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('unit_id, unit_number, association_id');
+  const unitIds = me.resident_unit_ids ?? [];
+  const { data: units } = unitIds.length
+    ? await (supabase as any)
+      .from('v_unit_account_summary')
+      .select('unit_id, unit_number, association_id')
+      .in('unit_id', unitIds)
+    : { data: [] };
 
   const unitOptions = (units ?? []) as UnitOption[];
   const associationIds: string[] = Array.from(

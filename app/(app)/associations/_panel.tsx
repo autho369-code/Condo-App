@@ -15,10 +15,12 @@ export function AssociationsPanel() {
 
   // ----- Association detail tabs (most specific first) -----
   if (/^\/associations\/[^/]+\/board/.test(pathname)) {
+    const associationId = pathname.split('/')[2];
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-<PanelLink href="#share-packets">Share Board Member Packets</PanelLink>
+          <PanelLink href={`/associations/${associationId}/documents`}>Share Board Member Packets</PanelLink>
+          <PanelLink href="/send-email">Email Board Members</PanelLink>
 </PanelSection>
       </ContextPanel>
     );
@@ -28,7 +30,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-<PanelLink href="#email-board">Email Board Members</PanelLink>
+          <PanelLink href="/send-email">Email Board Members</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=approval-history">Approval History</PanelLink>
@@ -41,7 +43,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-<PanelLink href="#email-committee">Email Committee Members</PanelLink>
+          <PanelLink href="/send-email">Email Committee Members</PanelLink>
         </PanelSection>
       </ContextPanel>
     );
@@ -51,7 +53,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-<PanelLink href="#view-submissions">View Submissions</PanelLink>
+          <PanelLink href="/reports?slug=architectural-review-log">Architectural Review Log</PanelLink>
         </PanelSection>
       </ContextPanel>
     );
@@ -77,7 +79,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-<PanelLink href="#view-reservations">View Reservations</PanelLink>
+          <PanelLink href="/calendar">View Reservations</PanelLink>
         </PanelSection>
       </ContextPanel>
     );
@@ -88,7 +90,6 @@ export function AssociationsPanel() {
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
 <PanelLink href="/units/new">New Unit</PanelLink>
-<PanelLink href="/units/bulk-import-ownership">Bulk Import Ownership Percentages</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
@@ -131,7 +132,7 @@ export function AssociationsPanel() {
       </PanelSection>
       <PanelSection title="Tasks">
         <PanelLink href="/associations/new">New Association</PanelLink>
-<PanelLink href="#violations-field-entry">Violations Field Entry</PanelLink>
+        <PanelLink href="/violations/new">New Violation</PanelLink>
 </PanelSection>
       <PanelSection title="Reports">
         <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>

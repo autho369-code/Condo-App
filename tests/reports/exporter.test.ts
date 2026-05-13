@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildReportCsv,
   buildReportPdf,
+  buildReportXlsx,
   defaultReportFormat,
   orderedReportFormats,
+  reportContentType,
   reportDownloadPath,
   reportFileExtension,
   STANDARD_REPORT_FORMATS,
@@ -54,5 +56,19 @@ describe('report export helpers', () => {
     expect(pdf.subarray(0, 5).toString('utf8')).toBe('%PDF-');
     expect(pdf.toString('latin1')).toContain('Income Statement');
     expect(reportFileExtension('pdf')).toBe('pdf');
+  });
+
+  it('builds a real xlsx zip payload for spreadsheet exports', () => {
+    const xlsx = buildReportXlsx({
+      title: 'Income Statement',
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      parameters: { scope: 'association' },
+      rows: [{ account: 'Revenue', amount: 1200 }],
+    });
+
+    expect(xlsx.subarray(0, 4).toString('hex')).toBe('504b0304');
+    expect(xlsx.toString('utf8')).toContain('xl/worksheets/sheet1.xml');
+    expect(reportFileExtension('xlsx')).toBe('xlsx');
+    expect(reportContentType('xlsx')).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   });
 });

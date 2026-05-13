@@ -5,7 +5,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
-import { filterReports, groupReports, type ReportDefinition } from '@/lib/reports/catalog';
+import { filterReports, groupReports, normalizeReportDefinitions, type ReportDefinition } from '@/lib/reports/catalog';
 import { reportHrefFromSlugParam } from '@/lib/reports/routing';
 import { date } from '@/lib/utils';
 
@@ -67,7 +67,7 @@ export default async function ReportsIndex({
       .limit(8),
   ]);
 
-  const definitions = (defs ?? []) as ReportDefinition[];
+  const definitions = normalizeReportDefinitions((defs ?? []) as ReportDefinition[]);
   const visibleDefinitions = filterReports(definitions, q);
   const groups = groupReports(visibleDefinitions);
   const savedRows = (saved ?? []) as unknown as SavedReport[];

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { appModules } from '@/lib/navigation/modules'
+import type { AppModule } from '@/lib/navigation/modules'
 import { createClient } from '@/lib/supabase/client'
 import { PortierLogo } from '@/components/brand/manageops-logo'
 
@@ -25,15 +26,17 @@ function ChevronDown({ open }: { open: boolean }) {
 export default function Sidebar({
   portfolioName,
   userEmail,
+  modules = appModules,
 }: {
   portfolioName?: string
   userEmail?: string
+  modules?: AppModule[]
 }) {
   const pathname = usePathname()
   const router = useRouter()
 
   const defaults: Record<string, boolean> = {}
-  appModules.forEach((s) => {
+  modules.forEach((s) => {
     if (s.children) defaults[s.label] = s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))
   })
   const [open, setOpen] = useState<Record<string, boolean>>(defaults)
@@ -41,14 +44,14 @@ export default function Sidebar({
   useEffect(() => {
     setOpen((prev) => {
       const next = { ...prev }
-      appModules.forEach((s) => {
+      modules.forEach((s) => {
         if (s.children && s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))) {
           next[s.label] = true
         }
       })
       return next
     })
-  }, [pathname])
+  }, [modules, pathname])
 
   const toggle = (label: string) => setOpen((p) => ({ ...p, [label]: !p[label] }))
   const active = (href: string) => {
@@ -79,7 +82,7 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {appModules.map((s) => {
+        {modules.map((s) => {
           if (!s.children)
             return (
               <Link

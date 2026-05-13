@@ -1,16 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/types/database';
+import { isPublicPath } from '@/lib/auth/public-paths';
 
 const APEX_DOMAIN = process.env.NEXT_PUBLIC_PORTIER_APEX_DOMAIN ?? 'portier369.com';
 const RESERVED_SUBDOMAINS = new Set(['www', 'app', 'api', 'admin', 'platform', 'auth', 'mail', 'smtp']);
-
-const PUBLIC_PATHS = [
-  '/', '/pricing', '/features',
-  '/login', '/signup', '/request-access', '/accept-invitation',
-  '/forgot-password', '/reset-password',
-  '/api/auth/callback',
-];
 
 const LEAN_CORE_DISABLED_APP_PREFIXES = [
   '/activity',
@@ -144,8 +138,7 @@ async function updateSessionSafe(request: NextRequest): Promise<NextResponse> {
     console.warn('[middleware] auth.getUser failed', err);
   }
 
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
-  if (!user && !isPublic) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', request.nextUrl.pathname);

@@ -28,6 +28,7 @@ export default async function StatementPage({
   const me = await requireAuth();
   const supabase = await createClient();
   const sp = await searchParams;
+  const unitIds = me.resident_unit_ids ?? [];
 
   // Tenant brand block — read from URL-resolved tenant if available,
   // otherwise from me.portfolio so the page still works on the apex.
@@ -49,9 +50,12 @@ export default async function StatementPage({
   } as const;
 
   // Pull the resident's units (RLS scopes)
-  const { data: units } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('*');
+  const { data: units } = unitIds.length > 0
+    ? await (supabase as any)
+        .from('v_unit_account_summary')
+        .select('*')
+        .in('unit_id', unitIds)
+    : { data: [] };
   const allUnits = (units ?? []) as any[];
   if (!allUnits.length) {
     redirect('/portal');
@@ -76,6 +80,7 @@ export default async function StatementPage({
   const { data: paymentRows } = await (supabase as any)
     .from('payments')
     .select('id, amount, payment_date, method, reference')
+    .eq('unit_id', unit.unit_id)
     .order('payment_date', { ascending: false })
     .limit(20);
 

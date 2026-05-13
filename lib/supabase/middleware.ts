@@ -3,8 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/types/database';
-
-const PUBLIC_PATHS = ['/', '/pricing', '/features', '/login', '/signup', '/request-access', '/accept-invitation', '/api/auth/callback'];
+import { isPublicPath } from '@/lib/auth/public-paths';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -27,8 +26,7 @@ export async function updateSession(request: NextRequest) {
   // Required: touches the session so it's refreshed before returning
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
-  if (!user && !isPublic) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', request.nextUrl.pathname);

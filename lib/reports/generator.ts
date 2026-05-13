@@ -2,6 +2,7 @@ import {
   buildReportCsv,
   buildReportHtml,
   buildReportPdf,
+  buildReportXlsx,
   type ReportFormat,
 } from '@/lib/reports/exporter';
 
@@ -32,8 +33,9 @@ export async function generateReportOutput(db: any, run: ReportRunLike, format: 
   };
 
   if (format === 'pdf') return { body: buildReportPdf(input), rowCount: rows.length };
+  if (format === 'xlsx') return { body: buildReportXlsx(input), rowCount: rows.length };
   if (format === 'json') return { body: Buffer.from(JSON.stringify(input, null, 2), 'utf8'), rowCount: rows.length };
-  if (format === 'html' || format === 'xlsx') return { body: Buffer.from(buildReportHtml(input), 'utf8'), rowCount: rows.length };
+  if (format === 'html') return { body: Buffer.from(buildReportHtml(input), 'utf8'), rowCount: rows.length };
   return { body: Buffer.from(buildReportCsv(input), 'utf8'), rowCount: rows.length };
 }
 

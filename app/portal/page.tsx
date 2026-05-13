@@ -11,10 +11,14 @@ export const dynamic = 'force-dynamic';
 export default async function PortalHome() {
   const me = await requireAuth();
   const supabase = await createClient();
+  const unitIds = me.resident_unit_ids ?? [];
 
-  const { data: units } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('*');
+  const { data: units } = unitIds.length > 0
+    ? await (supabase as any)
+        .from('v_unit_account_summary')
+        .select('*')
+        .in('unit_id', unitIds)
+    : { data: [] };
 
   const total = (units ?? []).reduce(
     (acc: any, u: any) => ({

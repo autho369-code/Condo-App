@@ -5,6 +5,7 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/
 import { Button } from '@/components/ui/button';
 import { queueReport } from '@/lib/rpcs/reports';
 import { defaultReportFormat, orderedReportFormats } from '@/lib/reports/exporter';
+import { normalizeReportDefinitions } from '@/lib/reports/catalog';
 import { canonicalReportSlug } from '@/lib/reports/routing';
 import { money, date } from '@/lib/utils';
 
@@ -43,6 +44,8 @@ export default async function ReportView({
     .maybeSingle();
 
   if (!def) notFound();
+  const displayDef = normalizeReportDefinitions([def as any])[0];
+  if (!displayDef) notFound();
 
   const [{ data: runs }, { data: associations }, { data: savedReport }] = await Promise.all([
     (supabase as any).from('report_runs')
@@ -75,7 +78,7 @@ export default async function ReportView({
   );
 
   const ctx = {
-    def,
+    def: displayDef,
     runs: runs ?? [],
     associations: associations ?? [],
     period,

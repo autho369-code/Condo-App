@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwnerPortal } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardSubtitle, CardBody } from '@/components/ui/card';
 import { Input, Field } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,14 +24,18 @@ type UnitAccountSummary = {
 type AssociationOption = { id: string; name: string };
 
 export default async function PayPage() {
-  const me = await requireAuth();
+  const me = await requireOwnerPortal();
   const supabase = await createClient();
   const paymentsEnabled = isStripePaymentsConfigured();
+  const unitIds = me.resident_unit_ids ?? [];
 
-  const { data: units } = await (supabase as any)
-    .from('v_unit_account_summary')
-    .select('*')
-    .order('association_id');
+  const { data: units } = unitIds.length
+    ? await (supabase as any)
+      .from('v_unit_account_summary')
+      .select('*')
+      .in('unit_id', unitIds)
+      .order('association_id')
+    : { data: [] };
 
   const unitOptions = (units ?? []) as UnitAccountSummary[];
   const associationIds = Array.from(

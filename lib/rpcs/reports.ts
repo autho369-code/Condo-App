@@ -5,6 +5,7 @@ import { generateReportOutput } from '@/lib/reports/generator';
 import { reportDownloadPath } from '@/lib/reports/exporter';
 import { type ReportFormat } from '@/lib/reports/exporter';
 import { withReportError } from '@/lib/reports/routing';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -17,6 +18,7 @@ import { redirect } from 'next/navigation';
  * report_runs.status='succeeded' with output_url.
  */
 export async function queueReport(formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
 
   const definitionId = formData.get('definition_id') as string;
@@ -116,6 +118,7 @@ async function markReportFailed(service: any, runId: string, message: string) {
  * checks this status before each step and bails early.
  */
 export async function cancelReportRun(runId: string) {
+  await requireStaff();
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('report_runs')

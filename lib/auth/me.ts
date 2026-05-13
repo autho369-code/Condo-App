@@ -83,3 +83,15 @@ export async function requireStaff(): Promise<MeResult> {
   if (!me.is_staff && !me.is_platform_operator) redirect('/portal');
   return me;
 }
+
+export async function requireBoardAccess(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_board && !me.is_staff && !me.is_platform_operator) redirect('/portal');
+  return me;
+}
+
+export async function requireOwnerPortal(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.owner_id && !me.is_resident && !me.is_board) redirect('/dashboard');
+  return me;
+}

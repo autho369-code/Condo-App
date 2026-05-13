@@ -3,10 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { generateReportOutput } from '@/lib/reports/generator';
 import { reportContentType, reportFileExtension, type ReportFormat } from '@/lib/reports/exporter';
 import { canonicalReportSlug } from '@/lib/reports/routing';
+import { requireStaff } from '@/lib/auth/me';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  await requireStaff();
   const { id } = await params;
   const supabase = await createClient();
 

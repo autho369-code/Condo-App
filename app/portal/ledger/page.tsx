@@ -6,19 +6,26 @@ import { money, date } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 export default async function LedgerPage() {
-  await requireAuth();
+  const me = await requireAuth();
   const supabase = await createClient();
+  const unitIds = me.resident_unit_ids ?? [];
 
   // RLS scopes charges + payments to the resident's own unit
-  const { data: charges } = await (supabase as any)
-    .from('v_charge_balances')
-    .select('*')
-    .order('due_date', { ascending: false });
+  const { data: charges } = unitIds.length > 0
+    ? await (supabase as any)
+        .from('v_charge_balances')
+        .select('*')
+        .in('unit_id', unitIds)
+        .order('due_date', { ascending: false })
+    : { data: [] };
 
-  const { data: payments } = await (supabase as any)
-    .from('payments')
-    .select('id, amount, payment_date, method, reference, notes')
-    .order('payment_date', { ascending: false });
+  const { data: payments } = unitIds.length > 0
+    ? await (supabase as any)
+        .from('payments')
+        .select('id, amount, payment_date, method, reference, notes')
+        .in('unit_id', unitIds)
+        .order('payment_date', { ascending: false })
+    : { data: [] };
 
   return (
     <div className="space-y-8">

@@ -82,15 +82,28 @@ export default async function OwnerDetailPage({
     : { data: [] };
   const renterTextPhones = uniquePhones((activeRenters ?? []).map((renter: any) => renter.tenant_phone));
   const textHistoryPhones = uniquePhones([...ownerTextPhones, ...renterTextPhones]);
-  const { data: textMessages } = textHistoryPhones.length > 0
-    ? await (supabase as any)
+  const ownerEmails = uniqueEmails([owner.email, ...emails.map((email: any) => typeof email === 'string' ? email : email?.address ?? email?.value)]);
+  const renterEmails = uniqueEmails((activeRenters ?? []).map((renter: any) => renter.tenant_email));
+  const communicationEmails = uniqueEmails([...ownerEmails, ...renterEmails]);
+  const [{ data: phoneMessages }, { data: emailMessages }] = await Promise.all([
+    textHistoryPhones.length > 0
+      ? (supabase as any)
         .from('communication_messages')
-        .select('id, created_at, recipient_group, recipient_name, recipient_phone, body, status')
-        .eq('channel', 'sms')
+        .select('id, created_at, channel, recipient_group, recipient_name, recipient_email, recipient_phone, subject, body, status')
         .in('recipient_phone', textHistoryPhones)
         .order('created_at', { ascending: false })
-        .limit(10)
-    : { data: [] };
+        .limit(20)
+      : Promise.resolve({ data: [] }),
+    communicationEmails.length > 0
+      ? (supabase as any)
+        .from('communication_messages')
+        .select('id, created_at, channel, recipient_group, recipient_name, recipient_email, recipient_phone, subject, body, status')
+        .in('recipient_email', communicationEmails)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const communicationMessages = dedupeMessages([...(phoneMessages ?? []), ...(emailMessages ?? [])]).slice(0, 20);
   const portalStatus = getOwnerPortalStatus(owner);
   const portalResult = sp.portal_error
     ? { tone: 'danger' as const, text: sp.portal_error }
@@ -234,7 +247,7 @@ export default async function OwnerDetailPage({
       </Section>
 
       <Section
-        title="Texts"
+        title="Communications"
         right={<Link href="/inbox" className="text-xs font-medium text-champagne-700 hover:underline">Open inbox</Link>}
       >
         <form action={sendOwnerText.bind(null, id) as any} className="space-y-4 px-5 py-4">
@@ -271,31 +284,33 @@ export default async function OwnerDetailPage({
         </form>
 
         <div className="border-t border-ink-100">
-          {(textMessages ?? []).length > 0 ? (
+          {communicationMessages.length > 0 ? (
             <table className="w-full text-sm">
               <thead className="bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold">Date</th>
+                  <th className="px-4 py-2 text-left font-semibold">Channel</th>
                   <th className="px-4 py-2 text-left font-semibold">To</th>
-                  <th className="px-4 py-2 text-left font-semibold">Phone</th>
-                  <th className="px-4 py-2 text-left font-semibold">Message</th>
+                  <th className="px-4 py-2 text-left font-semibold">Destination</th>
+                  <th className="px-4 py-2 text-left font-semibold">Subject / Message</th>
                   <th className="px-4 py-2 text-left font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {(textMessages ?? []).map((message: any) => (
+                {communicationMessages.map((message: any) => (
                   <tr key={message.id} className="border-t border-ink-100">
                     <td className="whitespace-nowrap px-4 py-2 text-xs text-ink-500">{date(message.created_at)}</td>
+                    <td className="px-4 py-2 text-xs font-semibold uppercase text-ink-600">{message.channel}</td>
                     <td className="px-4 py-2 text-ink-700">{message.recipient_name ?? labelRecipientGroup(message.recipient_group)}</td>
-                    <td className="px-4 py-2 font-mono text-xs text-ink-500">{message.recipient_phone}</td>
-                    <td className="max-w-md truncate px-4 py-2 text-ink-700">{message.body}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-ink-500">{message.recipient_email ?? message.recipient_phone ?? '-'}</td>
+                    <td className="max-w-md truncate px-4 py-2 text-ink-700">{message.subject ?? message.body}</td>
                     <td className="px-4 py-2 text-xs capitalize text-ink-500">{message.status}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <p className="px-5 py-6 text-center text-sm text-ink-500">No text messages on file.</p>
+            <p className="px-5 py-6 text-center text-sm text-ink-500">No communication history on file.</p>
           )}
         </div>
       </Section>
@@ -546,6 +561,29 @@ function uniquePhones(values: Array<string | null | undefined>) {
     phones.push(phone);
   }
   return phones;
+}
+
+function uniqueEmails(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const value of values) {
+    const email = value?.trim().toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    emails.push(email);
+  }
+  return emails;
+}
+
+function dedupeMessages(messages: any[]) {
+  const seen = new Set<string>();
+  return messages
+    .filter((message) => {
+      if (!message?.id || seen.has(message.id)) return false;
+      seen.add(message.id);
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
 }
 
 function labelRecipientGroup(value: string | null | undefined) {

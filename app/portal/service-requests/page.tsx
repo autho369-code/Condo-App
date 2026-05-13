@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwnerPortal } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -28,20 +28,23 @@ export default async function ServiceRequestsList({
 }: {
   searchParams: Promise<{ submitted?: string }>;
 }) {
-  await requireAuth();
+  const me = await requireOwnerPortal();
   const { submitted } = await searchParams;
   const supabase = await createClient();
 
-  const { data: rows } = await (supabase as any)
-    .from('service_requests')
-    .select(`
-      id, number, description, priority, status, source, created_on, created_at,
-      permission_to_enter,
-      units(unit_number, buildings(associations(name))),
-      work_orders(id, status)
-    `)
-    .is('archived_at', null)
-    .order('created_at', { ascending: false });
+  const { data: rows } = me.owner_id
+    ? await (supabase as any)
+      .from('service_requests')
+      .select(`
+        id, number, description, priority, status, source, created_on, created_at,
+        permission_to_enter,
+        units(unit_number, buildings(associations(name))),
+        work_orders(id, status)
+      `)
+      .eq('homeowner_id', me.owner_id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+    : { data: [] };
 
   return (
     <div className="space-y-6">

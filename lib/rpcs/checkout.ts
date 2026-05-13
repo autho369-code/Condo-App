@@ -38,6 +38,9 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   const method        = (formData.get('method') as string) || 'card';
 
   if (!unit_id || !(amount_dollars > 0)) return { error: 'Pick a unit and a positive amount.' };
+  if (!me.resident_unit_ids?.includes(unit_id)) {
+    return { error: 'You can only pay balances for your own unit.' };
+  }
 
   const supabase = await createClient();
   const amount_cents = Math.round(amount_dollars * 100);

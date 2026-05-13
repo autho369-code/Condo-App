@@ -17,10 +17,12 @@ const categoryLabels: Record<string, string> = {
   communication: 'Communication',
 };
 
+const blockedReportTerms = /\blease|leasing\b/i;
+
 export function groupReports(definitions: ReportDefinition[]) {
   const grouped = new Map<string, ReportDefinition[]>();
 
-  for (const definition of definitions.filter((row) => row.active !== false)) {
+  for (const definition of normalizeReportDefinitions(definitions).filter((row) => row.active !== false)) {
     const current = grouped.get(definition.category) ?? [];
     grouped.set(definition.category, [...current, definition]);
   }
@@ -54,14 +56,41 @@ export function serializeReportParams(input: ReportScopeInput) {
 }
 
 export function filterReports(definitions: ReportDefinition[], query: string) {
+  const normalizedDefinitions = normalizeReportDefinitions(definitions);
   const term = query.trim().toLowerCase();
-  if (!term) return definitions;
-  return definitions.filter((definition) =>
+  if (!term) return normalizedDefinitions;
+  return normalizedDefinitions.filter((definition) =>
     definition.name.toLowerCase().includes(term) ||
     definition.slug.toLowerCase().includes(term) ||
     (definition.description ?? '').toLowerCase().includes(term) ||
     (categoryLabels[definition.category] ?? definition.category).toLowerCase().includes(term)
   );
+}
+
+export function normalizeReportDefinitions(definitions: ReportDefinition[]) {
+  return definitions
+    .filter((definition) => !blockedReportTerms.test(`${definition.slug} ${definition.name} ${definition.description ?? ''}`))
+    .map((definition) => ({
+      ...definition,
+      name: reportDisplayText(definition.name),
+      description: definition.description ? reportDisplayText(definition.description) : definition.description,
+    }));
+}
+
+export function reportDisplayText(value: string) {
+  return value
+    .replace(/\bHomeowners\b/g, 'Owners')
+    .replace(/\bhomeowners\b/g, 'owners')
+    .replace(/\bHomeowner\b/g, 'Owner')
+    .replace(/\bhomeowner\b/g, 'owner')
+    .replace(/\bProperties\b/g, 'Associations')
+    .replace(/\bproperties\b/g, 'associations')
+    .replace(/\bProperty\b/g, 'Association')
+    .replace(/\bproperty\b/g, 'association')
+    .replace(/\bTenants\b/g, 'Renters')
+    .replace(/\btenants\b/g, 'renters')
+    .replace(/\bTenant\b/g, 'Renter')
+    .replace(/\btenant\b/g, 'renter');
 }
 
 export { categoryLabels };

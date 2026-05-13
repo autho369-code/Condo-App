@@ -7,8 +7,10 @@
 // affects /associations and does not interfere with them.
 import { AssociationsPanel } from './_panel';
 import { SectionShell } from '@/components/workspace/section-shell';
+import { requireStaff } from '@/lib/auth/me';
 
-export default function AssociationsLayout({ children }: { children: React.ReactNode }) {
+export default async function AssociationsLayout({ children }: { children: React.ReactNode }) {
+  await requireStaff();
   return (
     <SectionShell panel={<AssociationsPanel />}>{children}</SectionShell>
   );

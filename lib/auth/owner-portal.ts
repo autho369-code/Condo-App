@@ -126,6 +126,44 @@ function revalidateOwnerPortalPaths(ownerId: string) {
   revalidatePath('/owners');
   revalidatePath('/owners/activations');
   revalidatePath(`/owners/${ownerId}`);
+  revalidatePath('/communication-center');
+}
+
+async function recordOwnerPortalCommunication(
+  db: any,
+  owner: OwnerForPortal,
+  me: MeResult,
+  subject: string,
+  body: string,
+) {
+  const { data: occupancy } = owner.id
+    ? await db
+      .from('occupancies')
+      .select('association_id')
+      .eq('owner_id', owner.id)
+      .eq('status', 'current')
+      .order('is_primary', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    : { data: null };
+
+  const { error } = await db.from('communication_messages').insert({
+    portfolio_id: owner.portfolio_id ?? me.portfolio?.id ?? null,
+    association_id: occupancy?.association_id ?? null,
+    channel: 'email',
+    status: 'sent',
+    recipient_group: 'owner_portal',
+    recipient_name: owner.full_name ?? null,
+    recipient_email: normalizeOwnerPortalEmail(owner.email),
+    subject,
+    body,
+    created_by: me.auth_user_id,
+    sent_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.warn('[owner-portal] communication history insert failed', error.message);
+  }
 }
 
 export async function sendOwnerPortalInvite(ownerId: string, returnTo: string, _formData?: FormData) {
@@ -146,6 +184,13 @@ export async function sendOwnerPortalInvite(ownerId: string, returnTo: string, _
       const supabase = await createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw new Error(error.message);
+      await recordOwnerPortalCommunication(
+        supabase as any,
+        owner,
+        me,
+        'Owner portal password setup link sent',
+        'A password setup/reset link was sent through Supabase Auth.',
+      );
 
       revalidateOwnerPortalPaths(ownerId);
       target = resultPath(returnTo, { portal_reset_sent: email });
@@ -173,6 +218,13 @@ export async function sendOwnerPortalInvite(ownerId: string, returnTo: string, _
         invited_by: me.auth_user_id,
         message: 'Owner portal invitation sent through Supabase Auth.',
       });
+      await recordOwnerPortalCommunication(
+        service,
+        { ...owner, auth_user_id: authUserId },
+        me,
+        'Owner portal invitation sent',
+        'An owner portal invitation link was sent through Supabase Auth.',
+      );
 
       revalidateOwnerPortalPaths(ownerId);
       target = resultPath(returnTo, { portal_invite_sent: email });
@@ -204,6 +256,13 @@ export async function sendOwnerPortalPasswordReset(ownerId: string, returnTo: st
     const redirectTo = buildOwnerPortalRedirectTo(ownerPortalBaseUrl());
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw new Error(error.message);
+    await recordOwnerPortalCommunication(
+      supabase as any,
+      owner,
+      me,
+      'Owner portal password reset sent',
+      'A password reset link was sent through Supabase Auth.',
+    );
 
     revalidateOwnerPortalPaths(ownerId);
     target = resultPath(returnTo, { portal_reset_sent: email });

@@ -27,6 +27,7 @@ export async function submitServiceRequest(formData: FormData) {
   const access      = (formData.get('access_notes') as string)?.trim() || null;
 
   if (!unitId)      return { error: 'Unit is required' };
+  if (!me.resident_unit_ids?.includes(unitId)) return { error: 'You can only submit requests for your own unit' };
   if (!description) return { error: 'Please describe the issue' };
   if (description.length < 10) return { error: 'Please give us at least a sentence so we can help' };
 
@@ -79,11 +80,14 @@ function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceR
 
 /** Resident cancels one of their own open requests. RLS enforces ownership. */
 export async function cancelServiceRequest(serviceRequestId: string) {
+  const me = await getMe();
+  if (!me.auth_user_id || !me.owner_id) return { error: 'Not authenticated' };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('service_requests')
     .update({ status: 'cancelled' })
-    .eq('id', serviceRequestId);
+    .eq('id', serviceRequestId)
+    .eq('homeowner_id', me.owner_id);
   if (error) return { error: error.message };
   revalidatePath('/portal/service-requests');
 }

@@ -35,3 +35,21 @@ export const appModules: AppModule[] = [
   { label: 'Reports', href: '/reports' },
   { label: 'Settings', href: '/settings' },
 ];
+
+export const boardModules: AppModule[] = [
+  { label: 'Board dashboard', href: '/board' },
+  { label: 'Association documents', href: '/portal/documents' },
+  { label: 'Account ledger', href: '/portal/ledger' },
+  { label: 'Service requests', href: '/portal/service-requests' },
+];
+
+export const portalModules: AppModule[] = [
+  { label: 'Portal home', href: '/portal' },
+  { label: 'Account ledger', href: '/portal/ledger' },
+  { label: 'Statement', href: '/portal/statement' },
+  { label: 'Payments', href: '/portal/pay' },
+  { label: 'Autopay', href: '/portal/autopay' },
+  { label: 'Service requests', href: '/portal/service-requests' },
+  { label: 'Documents', href: '/portal/documents' },
+  { label: 'Communication history', href: '/portal/communications' },
+];

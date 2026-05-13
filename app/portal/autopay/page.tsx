@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { getMe, requireOwnerPortal } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,14 @@ export const dynamic = 'force-dynamic';
 
 async function enroll(formData: FormData) {
   'use server';
+  const me = await getMe();
+  const unitId = formData.get('unit_id') as string;
+  if (!me.auth_user_id || !me.owner_id || !me.resident_unit_ids?.includes(unitId)) {
+    return { error: 'You can only enroll autopay for your own unit.' };
+  }
   const supabase = await createClient();
   const { error } = await (supabase as any).rpc('enroll_autopay', {
-    p_unit_id:                formData.get('unit_id') as string,
+    p_unit_id:                unitId,
     p_payment_method_id:      formData.get('payment_method_id') as string,
     p_authorized_max_cents:   Math.round(parseFloat(formData.get('max_amount') as string) * 100),
     p_frequency:              (formData.get('frequency') as any) || 'on_charge_posted',
@@ -25,19 +30,31 @@ async function enroll(formData: FormData) {
 
 async function cancel(mandateId: string) {
   'use server';
+  const me = await getMe();
+  if (!me.auth_user_id || !me.owner_id) return { error: 'Not authenticated' };
   const supabase = await createClient();
+  const { data: mandate } = await (supabase as any)
+    .from('autopay_mandates')
+    .select('id')
+    .eq('id', mandateId)
+    .eq('owner_id', me.owner_id)
+    .maybeSingle();
+  if (!mandate) return { error: 'Autopay mandate not found.' };
   await (supabase as any).rpc('cancel_autopay', { p_mandate_id: mandateId, p_reason: 'user requested' });
   revalidatePath('/portal/autopay');
 }
 
 export default async function AutopayPage() {
-  const me = await requireAuth();
+  const me = await requireOwnerPortal();
   const supabase = await createClient();
+  const unitIds = me.resident_unit_ids ?? [];
 
   const [{ data: mandates }, { data: methods }, { data: units }] = await Promise.all([
     (supabase as any).from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
     (supabase as any).from('payment_methods').select('id, brand, last_four, method_type, bank_name, is_default').eq('owner_id', me.owner_id ?? '').is('archived_at', null),
-    (supabase as any).from('v_unit_account_summary').select('*'),
+    unitIds.length
+      ? (supabase as any).from('v_unit_account_summary').select('*').in('unit_id', unitIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
   return (

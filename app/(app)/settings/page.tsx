@@ -163,7 +163,7 @@ export default async function SettingsPage() {
               <Label htmlFor="role_name">Role</Label>
               <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm" defaultValue="Association Manager">
                 <option>President</option><option>Association Manager</option><option>Accountant</option>
-                <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
+                <option>On-Site Manager</option><option>Board Liaison</option><option>Accounts Payable</option>
               </select>
             </div>
             <div className="flex items-end"><Button type="submit" className="w-full">Send invite</Button></div>
