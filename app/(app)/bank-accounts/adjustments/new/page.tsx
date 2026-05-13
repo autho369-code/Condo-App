@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
@@ -29,7 +31,12 @@ export default async function NewBankAdjustmentPage() {
           <textarea className="mt-4 w-full rounded border border-ink-200 px-3 py-2 text-sm" rows={3} placeholder="Description" />
         </section>
         <section className="rounded border border-ink-100 bg-white p-5 text-sm text-ink-500">History, notes, and attachments will be recorded after save.</section>
-        <div className="flex justify-end gap-2"><Button type="button" variant="secondary">Cancel</Button><Button type="button">Save adjustment draft</Button></div>
+        <div className="flex justify-end gap-2">
+          <Link href="/bank-accounts">
+            <Button type="button" variant="secondary">Cancel</Button>
+          </Link>
+          <Button type="button" disabled>Save adjustment draft</Button>
+        </div>
       </form>
     </DataWorkspace>
   );

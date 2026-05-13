@@ -1,5 +1,5 @@
 # Condo-App — Master Project Status
-*Last updated: 2026-04-21*
+*Last updated: 2026-05-13*
 *Read this at the start of every session. Update it at the end.*
 
 ---
@@ -8,7 +8,7 @@
 Building an AppFolio clone for **Stellar Property Group** — a multi-tenant HOA/condo property management SaaS.
 
 **Supabase project:** `termxngysvotnfbzbgrv`
-**GitHub repo:** `https://github.com/authou369-code/Condo-App`
+**GitHub repo:** `https://github.com/autho369-code/Condo-App`
 **GitHub token:** stored in git remote URL (already configured)
 **Local project path:** `C:\Condo-App\condo-app-ui`
 **App URL (dev):** `http://localhost:3000`
@@ -110,6 +110,8 @@ Building an AppFolio clone for **Stellar Property Group** — a multi-tenant HOA
 ### Reporting & Analytics
 - `report_definitions`, `report_runs`, `report_snapshots`
 - `saved_reports`, `scheduled_reports`
+- Supabase has 128 active report definitions verified opening locally through the reports UI.
+- Local migrations still lack the full reports baseline, so a fresh local database will not reproduce the complete Supabase report catalog yet.
 - `surveys`, `survey_responses`
 - `data_diagnostics`, `usage_metrics`
 
@@ -137,6 +139,11 @@ Building an AppFolio clone for **Stellar Property Group** — a multi-tenant HOA
 | `/owners` | ✅ | List with alphabet filter |
 | `/owners?view=tenants` | ✅ | Tenants list |
 | `/vendors` | ✅ | Vendors tab |
+| `/reports` | ✅ | Active Supabase catalog renders; 128 definitions verified opening locally |
+| `/reports/[slug]` | ✅ | Generic report workspace opens active definitions; A/R aging has live inline data |
+| `/reports/runs` | ✅ | Run history page |
+| `/reports/runs/[id]/download` | ✅ | Non-mutating CSV generation verified |
+| `/scheduled-reports` | ✅ | List and create flows present; CSV is the live output path |
 
 ### Left Nav Built ✅
 Dashboard, Calendar, Associations, Units, Owners, Tenants, Vendors, Receivables, Payables, Bank Accounts, Journal Entries, Bank Transfers, GL Accounts, Diagnostics, Charge Categories, Work Orders (+ more in Maintenance, Reporting, Communication, Settings)
@@ -153,7 +160,6 @@ Dashboard, Calendar, Associations, Units, Owners, Tenants, Vendors, Receivables,
 | `/bills` — payables list | MEDIUM |
 | `/receivables` — charges list | MEDIUM |
 | `/calendar` | MEDIUM |
-| `/reports/*` — all reports | MEDIUM |
 | `/settings` — company, accounting, users | MEDIUM |
 | `/vendors/:id` — vendor detail | MEDIUM |
 | `/board-members` | LOW |
@@ -181,7 +187,8 @@ Dashboard, Calendar, Associations, Units, Owners, Tenants, Vendors, Receivables,
 - No work order full lifecycle (create → assign → vendor → bill → close)
 - No violation enforcement workflow (notice → hearing → fine → cure)
 - No full accounting UI (GL accounts, journal entries, bank reconciliation)
-- No reports engine (AppFolio has 110+ reports — we have 0 rendered)
+- Reports engine renders the active Supabase catalog and can queue/download CSV outputs, but many individual reports still use the generic workspace rather than bespoke live previews.
+- Local migrations still need the full reports definition baseline so local rebuilds match Supabase's 128 active definitions.
 - No SMS inbox
 - No document template merge fields
 - No ballot/voting UI
@@ -210,7 +217,7 @@ Priority order for pages to build next:
 3. `/work-orders` full CRUD
 4. `/violations` enforcement workflow
 5. `/owners/:id` detail with charges, payments, history
-6. `/reports/delinquency` + `/reports/income_statement`
+6. Harden report-specific live previews beyond the current generic workspace and A/R aging view.
 7. `/bills` + `/receivables`
 8. `/settings`
 
@@ -251,11 +258,18 @@ Priority order for pages to build next:
 
 ### 2026-04-21
 - Fixed admin profile (no profile row = left nav disappeared)
-- Git connected to https://github.com/authou369-code/Condo-App
+- Git connected to https://github.com/autho369-code/Condo-App
 - Confirmed 110+ table schema built by Cowork
 - Dashboard working, owner/tenant pages working
 - All other pages redirect to /portal (not built yet)
 - Created this master tracking document
+
+### 2026-05-13
+- Corrected GitHub repo URL to `https://github.com/autho369-code/Condo-App`.
+- Reports hardening: `/reports`, `/reports/[slug]`, run history, scheduled reports, and report download routes are present.
+- Verified 128 active Supabase report definitions open locally through the catalog/detail workflow.
+- Verified CSV report generation/download path is non-mutating.
+- Remaining reports caveat: local migrations still lack the full `report_definitions` baseline.
 
 ---
 

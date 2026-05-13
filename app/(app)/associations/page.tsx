@@ -93,7 +93,13 @@ export default function AssociationsPage() {
       )}
 
       <div className="mt-4 text-sm">
-        <Link href="#" className="text-champagne-600 hover:underline">Show Hidden Associations</Link>
+        <button
+          type="button"
+          disabled
+          className="text-ink-400 cursor-not-allowed"
+        >
+          Show Hidden Associations
+        </button>
       </div>
     </div>
   )

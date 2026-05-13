@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/workspace';
 import { Button } from '@/components/ui/button';
 import { queueReport } from '@/lib/rpcs/reports';
+import { canonicalReportSlug } from '@/lib/reports/routing';
 import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -24,22 +25,25 @@ export default async function ReportView({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string }>;
+  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string; saved?: string; error?: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = canonicalReportSlug(rawSlug);
+  if (slug !== rawSlug) redirect(`/reports/${slug}`);
+
   const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: def } = await (supabase as any)
     .from('report_definitions')
-    .select('id, slug, name, category, description, output_formats')
+    .select('id, slug, name, category, description, output_formats, default_filters')
     .eq('slug', slug)
     .eq('active', true)
     .maybeSingle();
 
   if (!def) notFound();
 
-  const [{ data: runs }, { data: associations }] = await Promise.all([
+  const [{ data: runs }, { data: associations }, { data: savedReport }] = await Promise.all([
     (supabase as any).from('report_runs')
       .select('id, status, output_format, output_url, row_count, duration_ms, created_at')
       .eq('definition_id', def.id)
@@ -49,19 +53,38 @@ export default async function ReportView({
       .select('id, name, created_at')
       .is('archived_at', null)
       .order('name'),
+    sp.saved
+      ? (supabase as any).from('saved_reports')
+          .select('id, name, parameters, output_format')
+          .eq('id', sp.saved)
+          .eq('definition_id', def.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
+  const savedParams = asParams(savedReport?.parameters);
+  const defaultParams = asParams(def.default_filters);
+
   // Compute default period from preset
-  const period = computePeriod(sp.preset ?? 'this_month', sp.from, sp.to);
+  const selectedPreset = sp.preset ?? stringParam(defaultParams.preset) ?? 'this_month';
+  const period = computePeriod(
+    selectedPreset,
+    sp.from ?? stringParam(savedParams.date_from) ?? stringParam(defaultParams.date_from),
+    sp.to ?? stringParam(savedParams.date_to) ?? stringParam(defaultParams.date_to),
+  );
 
   const ctx = {
     def,
     runs: runs ?? [],
     associations: associations ?? [],
     period,
-    selectedAssociation: sp.association ?? '',
-    selectedPreset: sp.preset ?? 'this_month',
-    selectedScope: sp.scope ?? 'association',
+    selectedAssociation: sp.association ?? stringParam(savedParams.association_id) ?? stringParam(defaultParams.association_id) ?? '',
+    selectedPreset,
+    selectedScope: sp.scope ?? stringParam(savedParams.scope) ?? stringParam(defaultParams.scope) ?? 'association',
+    selectedOwner: stringParam(savedParams.owner_id) ?? '',
+    selectedUnit: stringParam(savedParams.unit_id) ?? '',
+    selectedFormat: stringParam(savedReport?.output_format) ?? undefined,
+    error: sp.error,
   };
 
   if (def.slug === 'ar_aging') {
@@ -110,14 +133,22 @@ function computePeriod(preset: string, customFrom?: string, customTo?: string): 
   return { from: fmt(firstOfMonth(today.getFullYear(), today.getMonth())), to: fmt(today), label: 'This month' };
 }
 
+function asParams(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function stringParam(value: unknown) {
+  return typeof value === 'string' && value ? value : undefined;
+}
+
 // ============================================================================
 // LIVE VIEW â€” A/R Aging (renders aged_receivables inline)
 // ============================================================================
 async function ARAgingView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedOwner, selectedUnit, selectedFormat, error,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; selectedOwner: string; selectedUnit: string; selectedFormat?: string; error?: string;
 }) {
   const supabase = await createClient();
 
@@ -155,7 +186,7 @@ async function ARAgingView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} selectedOwner={selectedOwner} selectedUnit={selectedUnit} selectedFormat={selectedFormat} error={error} isLive />}
     >
       <div className="grid grid-cols-5 gap-3">
         {BUCKETS.map((b) => (
@@ -180,15 +211,21 @@ async function ARAgingView({
         title="Open charges"
         subtitle="Every receivable with a positive balance"
         actions={
-          <select
-            className="h-8 rounded-md border border-ink-200 bg-white px-2 text-xs focus:border-brand-500 focus:outline-none"
-            defaultValue=""
-          >
-            <option value="">All associations</option>
-            {(assocs ?? []).map((a: any) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+          <form action="/reports/ar_aging" method="get" className="flex items-center gap-2">
+            <input type="hidden" name="preset" value={selectedPreset} />
+            <input type="hidden" name="scope" value={selectedScope} />
+            <select
+              name="association"
+              className="h-8 rounded-md border border-ink-200 bg-white px-2 text-xs focus:border-brand-500 focus:outline-none"
+              defaultValue={selectedAssociation}
+            >
+              <option value="">All associations</option>
+              {(assocs ?? []).map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <Button type="submit" size="sm" variant="secondary">Apply</Button>
+          </form>
         }
       >
         {(rows ?? []).length === 0 ? (
@@ -247,10 +284,10 @@ function BucketPill({ bucket }: { bucket: string }) {
 // QUEUED REPORT VIEW â€” Run form + recent runs for this definition
 // ============================================================================
 function QueuedReportView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedOwner, selectedUnit, selectedFormat, error,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; selectedOwner: string; selectedUnit: string; selectedFormat?: string; error?: string;
 }) {
   return (
     <Workspace
@@ -267,7 +304,7 @@ function QueuedReportView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} />}
+      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} selectedOwner={selectedOwner} selectedUnit={selectedUnit} selectedFormat={selectedFormat} error={error} />}
     >
       <Section title="About this report">
         <div className="px-5 py-4 text-sm leading-6 text-ink-700">
@@ -325,10 +362,10 @@ function QueuedReportView({
 // RIGHT RAIL â€” Run form + quick stats
 // ============================================================================
 function RightRail({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedOwner, selectedUnit, selectedFormat, error, isLive,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; selectedOwner: string; selectedUnit: string; selectedFormat?: string; error?: string; isLive?: boolean;
 }) {
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
@@ -359,6 +396,13 @@ function RightRail({
 
       <form action={queueReport as any} className="space-y-3">
         <input type="hidden" name="definition_id" value={def.id} />
+        <input type="hidden" name="return_to" value={`/reports/${def.slug}`} />
+
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+            {error}
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-xs font-medium text-ink-700">Scope</label>
@@ -396,6 +440,7 @@ function RightRail({
             <input
               name="param_owner_id"
               placeholder="Optional"
+              defaultValue={selectedOwner}
               className="h-9 w-full rounded-md border border-ink-200 bg-white px-2 text-sm"
             />
           </div>
@@ -404,6 +449,7 @@ function RightRail({
             <input
               name="param_unit_id"
               placeholder="Optional"
+              defaultValue={selectedUnit}
               className="h-9 w-full rounded-md border border-ink-200 bg-white px-2 text-sm"
             />
           </div>
@@ -458,13 +504,14 @@ function RightRail({
           <label className="mb-1 block text-xs font-medium text-ink-700">Output format</label>
           <select
             name="output_format"
-            defaultValue={def.output_formats?.[0] ?? 'csv'}
+            defaultValue="csv"
             className="h-9 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
-            {(def.output_formats ?? ['csv']).map((f: string) => (
-              <option key={f} value={f}>{f.toUpperCase()}</option>
-            ))}
+            <option value="csv">CSV</option>
           </select>
+          <p className="mt-1 text-[11px] leading-4 text-ink-500">
+            CSV is the live executable export. PDF and spreadsheet templates can be layered on this verified data path.
+          </p>
         </div>
 
         <Button type="submit" className="w-full">
