@@ -74,6 +74,7 @@ export default async function ReportsIndex({
   const favorites = savedRows.filter((report) => report.pinned);
   const recentRuns = (runs ?? []) as unknown as ReportRun[];
   const successfulRuns = recentRuns.filter((run) => run.status === 'succeeded').length;
+  const featuredReports = pickFeaturedReports(definitions);
 
   return (
     <DataWorkspace
@@ -134,22 +135,13 @@ export default async function ReportsIndex({
           </ReportSection>
         )}
 
-        {groups.map((group) => (
-          <ReportSection key={group.category} title={group.title} count={group.items.length}>
-            <div className="grid gap-2 p-4 md:grid-cols-2 xl:grid-cols-3">
-              {group.items.map((definition) => (
-                <Link
-                  key={definition.id}
-                  href={`/reports/${definition.slug}`}
-                  className="rounded border border-ink-100 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
-                >
-                  <div className="font-medium text-champagne-700">{definition.name}</div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-500">{definition.description ?? 'Scoped report workspace'}</p>
-                </Link>
-              ))}
-            </div>
+        {!q && featuredReports.length > 0 && (
+          <ReportSection title="Most used reports" count={featuredReports.length}>
+            <ReportGrid items={featuredReports} />
           </ReportSection>
-        ))}
+        )}
+
+        <ReportLibrary groups={groups} query={q} />
 
         {savedRows.length > 0 && (
           <ReportSection title="Saved reports" count={savedRows.length}>
@@ -191,6 +183,78 @@ function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
           Portier follows property-management workflow expectations while using its own information architecture, brand language, and visual system.
         </p>
       </section>
+    </div>
+  );
+}
+
+function pickFeaturedReports(definitions: ReportDefinition[]) {
+  const featuredSlugs = [
+    'ar_aging',
+    'bank_reconciliation',
+    'balance_sheet',
+    'income_statement',
+    'general_ledger',
+    'owner_ledger',
+    'homeowner_directory',
+    'check_register',
+    'open_work_orders',
+  ];
+  const bySlug = new Map(definitions.map((definition) => [definition.slug, definition]));
+  return featuredSlugs.map((slug) => bySlug.get(slug)).filter(Boolean) as ReportDefinition[];
+}
+
+function ReportLibrary({
+  groups,
+  query,
+}: {
+  groups: ReturnType<typeof groupReports>;
+  query: string;
+}) {
+  return (
+    <section className="rounded border border-ink-100 bg-white">
+      <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-ink-900">Report library</h2>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {query ? 'Search results are expanded below.' : 'Open a category to browse the full Supabase-backed catalog.'}
+          </p>
+        </div>
+        <span className="rounded bg-cream-100 px-2 py-0.5 text-xs font-medium tabular-nums text-ink-600">
+          {groups.reduce((sum, group) => sum + group.items.length, 0)}
+        </span>
+      </div>
+      <div className="divide-y divide-ink-100">
+        {groups.map((group, index) => (
+          <details key={group.category} open={Boolean(query) || index === 0} className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 hover:bg-cream-50">
+              <div>
+                <h3 className="text-sm font-semibold text-ink-900">{group.title}</h3>
+                <p className="mt-0.5 text-xs text-ink-500">{group.items.length} report{group.items.length === 1 ? '' : 's'} available</p>
+              </div>
+              <span className="text-xs font-semibold text-champagne-700 group-open:hidden">Open</span>
+              <span className="hidden text-xs font-semibold text-ink-500 group-open:inline">Close</span>
+            </summary>
+            <ReportGrid items={group.items} compact />
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReportGrid({ items, compact = false }: { items: ReportDefinition[]; compact?: boolean }) {
+  return (
+    <div className={`grid gap-2 p-4 ${compact ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-3'}`}>
+      {items.map((definition) => (
+        <Link
+          key={definition.id}
+          href={`/reports/${definition.slug}`}
+          className="rounded border border-ink-100 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
+        >
+          <div className="font-medium text-champagne-700">{definition.name}</div>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-500">{definition.description ?? 'Scoped report workspace'}</p>
+        </Link>
+      ))}
     </div>
   );
 }
