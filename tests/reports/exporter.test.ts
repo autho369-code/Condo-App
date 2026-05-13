@@ -6,6 +6,7 @@ import {
   orderedReportFormats,
   reportDownloadPath,
   reportFileExtension,
+  STANDARD_REPORT_FORMATS,
 } from '@/lib/reports/exporter';
 
 describe('report export helpers', () => {
@@ -34,6 +35,12 @@ describe('report export helpers', () => {
   it('prioritizes pdf as the default printable report format', () => {
     expect(defaultReportFormat(['csv', 'pdf', 'xlsx'])).toBe('pdf');
     expect(orderedReportFormats(['csv', 'pdf', 'xlsx'])).toEqual(['pdf', 'xlsx', 'csv']);
+  });
+
+  it('uses the same three export choices even when a definition lists fewer formats', () => {
+    expect(STANDARD_REPORT_FORMATS).toEqual(['pdf', 'xlsx', 'csv']);
+    expect(orderedReportFormats(['csv'])).toEqual(['pdf', 'xlsx', 'csv']);
+    expect(orderedReportFormats(['json', 'html'])).toEqual(['pdf', 'xlsx', 'csv']);
   });
 
   it('builds a valid pdf payload for printable reports', () => {

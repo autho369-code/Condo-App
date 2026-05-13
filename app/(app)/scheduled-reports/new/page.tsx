@@ -117,7 +117,7 @@ export default async function NewScheduledReportPage({
                 <option key={format} value={format}>{format.toUpperCase()}</option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-ink-500">PDF is the printable default. CSV/XLS formats are for row review.</p>
+            <p className="mt-1 text-xs text-ink-500">PDF is the printable default. XLSX and CSV are for row review.</p>
           </div>
         </div>
 
