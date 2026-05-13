@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 const CATEGORY_LABELS: Record<string, string> = {
   accounting:    'Accounting',
   association:   'Association & HOA',
-  property_unit: 'Property & units',
+  property_unit: 'Association & units',
   people:        'People',
   maintenance:   'Maintenance',
   compliance:    'Compliance',

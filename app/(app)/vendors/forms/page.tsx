@@ -66,7 +66,7 @@ export default async function VendorFormsPage({
         </div>
         <div>
           <Label htmlFor="subject">Subject</Label>
-          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-ink-200 px-3 text-sm" defaultValue="Vendor information request from Stellar Property Management" />
+          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-ink-200 px-3 text-sm" defaultValue="Vendor information request from Stellar Association Management" />
         </div>
         <div>
           <Label htmlFor="message">Message</Label>

@@ -14,7 +14,7 @@ import { date, money } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 const statusOptions = ['open', 'notice_sent', 'hearing_pending', 'cured', 'fined', 'closed'];
-const typeOptions = ['noise', 'parking', 'pets', 'exterior_modification', 'trash_debris', 'landscaping', 'common_area_misuse', 'lease_violation', 'assessment_delinquency', 'other'];
+const typeOptions = ['noise', 'parking', 'pets', 'exterior_modification', 'trash_debris', 'landscaping', 'common_area_misuse', 'governing_document_violation', 'assessment_delinquency', 'other'];
 
 export default async function ViolationsPage({
   searchParams,

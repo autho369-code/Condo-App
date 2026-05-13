@@ -46,7 +46,7 @@ const TIERS: Tier[] = [
   {
     id: 'growth',
     name: 'Growth',
-    tagline: 'For modern property management teams scaling operations.',
+    tagline: 'For modern association management teams scaling operations.',
     monthly: 299,
     annual: 2990,
     units: 'Includes 150 units',

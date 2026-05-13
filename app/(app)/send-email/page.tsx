@@ -31,18 +31,13 @@ export default async function SendEmailPage({
 
   // Pull counts per recipient group for the preselected association so the
   // user knows how many each bucket resolves to before hitting Send.
-  let ownerCount = 0, tenantCount = 0, boardCount = 0;
+  let ownerCount = 0, boardCount = 0;
   if (preAssoc) {
-    const [ownC, tenC, brdC] = await Promise.all([
+    const [ownC, brdC] = await Promise.all([
       (supabase as any).from('occupancies')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
         .eq('occupancy_type', 'owner')
-        .eq('status', 'current'),
-      (supabase as any).from('occupancies')
-        .select('*', { count: 'exact', head: true })
-        .eq('association_id', preAssoc)
-        .eq('occupancy_type', 'tenant')
         .eq('status', 'current'),
       (supabase as any).from('board_members')
         .select('*', { count: 'exact', head: true })
@@ -50,7 +45,6 @@ export default async function SendEmailPage({
         .eq('active', true),
     ]);
     ownerCount  = ownC.count ?? 0;
-    tenantCount = tenC.count ?? 0;
     boardCount  = brdC.count ?? 0;
   }
 
@@ -99,15 +93,13 @@ export default async function SendEmailPage({
             </select>
           </div>
 
-          {/* Recipient type — owners / tenants / both / board */}
+          {/* Recipient type — owners / board */}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-700">
               Recipients <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <RecipientOption value="owners" label="Owners only" count={ownerCount} />
-              <RecipientOption value="tenants" label="Tenants only" count={tenantCount} />
-              <RecipientOption value="both" label="Owners + Tenants" count={ownerCount + tenantCount} defaultChecked />
+              <RecipientOption value="owners" label="Owners" count={ownerCount} defaultChecked />
               <RecipientOption value="board" label="Board members" count={boardCount} />
             </div>
             <p className="mt-1 text-xs text-ink-500">

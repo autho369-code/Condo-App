@@ -37,7 +37,7 @@ export default async function OwnerFormsPage({
     <DataWorkspace
       title="Send Owner Form"
       description="Stage owner communications and form packages with recipient, template, and delivery context before confirmation."
-      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-champagne-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-2">
           <div className="text-xs font-semibold uppercase text-ink-500">Related workflows</div>
@@ -67,7 +67,7 @@ export default async function OwnerFormsPage({
         </div>
         <div>
           <Label htmlFor="subject">Subject</Label>
-          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-ink-200 px-3 text-sm" defaultValue="Action requested from Stellar Property Management" />
+          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-ink-200 px-3 text-sm" defaultValue="Action requested from Stellar Association Management" />
         </div>
         <div>
           <Label htmlFor="message">Message</Label>

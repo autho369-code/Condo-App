@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <PanelSection title="Calendar">
           <PanelLink href="/calendar">View Calendar</PanelLink>
         </PanelSection>
-        <PanelSection title="Property">
+        <PanelSection title="Association">
           <PanelLink href="/associations/new">+ New Association</PanelLink>
           <PanelLink href="/units/new">+ New Unit</PanelLink>
         </PanelSection>

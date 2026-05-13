@@ -81,7 +81,7 @@ const TESTIMONIALS = [
   {
     quote: 'The migration concierge knew our portfolio better than I did by day three. We went live on day twelve.',
     name: 'Daniel Choi',
-    role: 'Managing Partner, Cedar Grove Properties',
+    role: 'Managing Partner, Cedar Grove Associations',
   },
 ];
 

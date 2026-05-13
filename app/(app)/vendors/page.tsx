@@ -64,7 +64,7 @@ export default async function VendorsPage({
   return (
     <div className="px-8 py-6">
       <nav className="mb-7 flex flex-wrap gap-5 text-sm">
-        <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">Homeowners</Link>
+        <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">Owners</Link>
         <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-ink-700 hover:text-ink-900">Owners</Link>
         <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
       </nav>

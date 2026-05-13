@@ -21,7 +21,7 @@ export default async function UnitsLayout({ children }: { children: React.ReactN
           <PanelLink href="/reports/ar_aging">A/R Aging (live)</PanelLink>
           <PanelLink href="/reports/owner_ledger">Owner Ledger</PanelLink>
           <PanelLink href="/reports/delinquency">Delinquency</PanelLink>
-          <PanelLink href="/reports/property_directory">Property Directory</PanelLink>
+          <PanelLink href="/reports/association_directory">Association Directory</PanelLink>
           <PanelLink href="/reports/unit_availability">Unit Availability</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">

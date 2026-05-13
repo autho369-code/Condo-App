@@ -18,7 +18,7 @@ export function TenantFooter({ tenant }: { tenant: CurrentTenant }) {
       <footer className="mt-16 border-t border-ink-100 px-8 py-6 text-xs text-ink-500">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <ManageOpsLogo size="sm" />
-          <span>© {year} Portier · Property operations, refined.</span>
+          <span>© {year} Portier · Association operations, refined.</span>
         </div>
       </footer>
     );

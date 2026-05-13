@@ -8,6 +8,8 @@ import {
   subscribeUnitToCharge, unsubscribeUnit,
   postAdHocCharge, recordReceipt, unapplyPayment,
 } from '@/lib/rpcs/charges';
+import { archiveUnitRenter, upsertUnitRenter } from '@/lib/rpcs/entities';
+import { occupancyLabel, splitRenterName } from '@/lib/units/renter';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -22,6 +24,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
   const [
     { data: unit }, { data: summary }, { data: schedule },
     { data: balances }, { data: payments }, { data: categories },
+    { data: occupancies }, { data: tenancies },
   ] = await Promise.all([
     (supabase as any).from('units')
       .select('id, unit_number, bedrooms, bathrooms, sqft, buildings(name, association_id, associations(name))')
@@ -31,9 +34,35 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
     (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
     (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
     (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
+    (supabase as any).from('occupancies')
+      .select('id, occupancy_type, status, is_primary, share_pct, owners(id, full_name, email, phone)')
+      .eq('unit_id', unitId)
+      .eq('occupancy_type', 'owner')
+      .eq('status', 'current')
+      .order('is_primary', { ascending: false }),
+    (supabase as any).from('tenancies')
+      .select('id, tenant_name, tenant_phone, tenant_email, created_at')
+      .eq('unit_id', unitId)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1),
   ]);
 
   if (!unit) notFound();
+  const ownerOccupancies = (occupancies ?? []) as any[];
+  const owners = ownerOccupancies
+    .map((occupancy) => ({
+      id: occupancy.owners?.id,
+      name: occupancy.owners?.full_name,
+      email: occupancy.owners?.email,
+      phone: occupancy.owners?.phone,
+      share: occupancy.share_pct,
+      primary: occupancy.is_primary,
+    }))
+    .filter((owner) => owner.id || owner.name);
+  const activeRenter = (tenancies ?? [])[0] as any | undefined;
+  const renterName = splitRenterName(activeRenter?.tenant_name);
+  const isRenterOccupied = Boolean(activeRenter);
 
   return (
     <div className="flex h-full flex-col">
@@ -65,6 +94,76 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
         <Stat label="Credit on file"
           value={<span className="text-green-600">{money(summary?.unapplied_credit ?? 0)}</span>} />
       </div>
+
+      {/* ======== OCCUPANCY ======== */}
+      <Card>
+        <CardHeader><CardTitle>Occupancy</CardTitle></CardHeader>
+        <CardBody className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+          <section className="space-y-4">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">Current status</div>
+              <div className={`mt-2 inline-flex rounded px-2.5 py-1 text-sm font-semibold ${isRenterOccupied ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'}`}>
+                {occupancyLabel(isRenterOccupied)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">Owner</div>
+              {owners.length > 0 ? (
+                <div className="mt-2 space-y-2">
+                  {owners.map((owner) => (
+                    <div key={owner.id ?? owner.name} className="rounded border border-ink-100 bg-cream-50 px-3 py-2">
+                      <div className="font-medium text-ink-900">{owner.name}</div>
+                      <div className="mt-1 text-xs text-ink-500">
+                        {owner.primary ? 'Primary owner' : 'Owner'}{owner.share != null ? ` / ${Number(owner.share).toFixed(2)}%` : ''}
+                      </div>
+                      {(owner.email || owner.phone) && (
+                        <div className="mt-1 text-xs text-ink-500">{[owner.email, owner.phone].filter(Boolean).join(' / ')}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-ink-500">No owner is linked to this unit yet.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded border border-ink-100 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-ink-900">Renter information</h2>
+                <p className="mt-1 text-xs leading-5 text-ink-500">Only use this when the unit is renter occupied. Owner records remain separate.</p>
+              </div>
+              {activeRenter?.id && (
+                <form action={archiveUnitRenter.bind(null, activeRenter.id, unitId) as any}>
+                  <button type="submit" className="text-xs font-semibold text-bordeaux-600 hover:underline">Mark owner occupied</button>
+                </form>
+              )}
+            </div>
+            <form action={upsertUnitRenter.bind(null, unitId) as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <Label htmlFor="renter_first_name">First name</Label>
+                <Input id="renter_first_name" name="renter_first_name" defaultValue={renterName.firstName} required />
+              </div>
+              <div>
+                <Label htmlFor="renter_last_name">Last name</Label>
+                <Input id="renter_last_name" name="renter_last_name" defaultValue={renterName.lastName} required />
+              </div>
+              <div>
+                <Label htmlFor="renter_phone">Phone number</Label>
+                <Input id="renter_phone" name="renter_phone" defaultValue={activeRenter?.tenant_phone ?? ''} />
+              </div>
+              <div>
+                <Label htmlFor="renter_email">Email</Label>
+                <Input id="renter_email" name="renter_email" type="email" defaultValue={activeRenter?.tenant_email ?? ''} />
+              </div>
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">{activeRenter ? 'Update renter' : 'Save renter'}</Button>
+              </div>
+            </form>
+          </section>
+        </CardBody>
+      </Card>
 
       {/* ======== RECURRING CHARGES (SUBSCRIPTIONS) ======== */}
       <Card>

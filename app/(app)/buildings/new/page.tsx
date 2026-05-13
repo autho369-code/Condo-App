@@ -1,4 +1,4 @@
-// New Property (physical asset) — replicates AppFolio's New Property form but
+// New Building — replicates AppFolio's New Building form but
 // scoped to a single Building under an existing Association.
 //
 // See PROJECT_HANDOFF.md §0 for the Association vs Building distinction.
@@ -41,7 +41,7 @@ export default async function NewBuildingPage({
 
   const supabase = await createClient();
 
-  const [{ data: assoc }, { data: propertyGroups }] = await Promise.all([
+  const [{ data: assoc }, { data: associationGroups }] = await Promise.all([
     (supabase as any).from('associations').select('id, name').eq('id', associationId).maybeSingle(),
     (supabase as any).from('property_groups').select('id, name').order('name'),
   ]);
@@ -55,7 +55,7 @@ export default async function NewBuildingPage({
           ← {assoc.name}
         </Link>
       </div>
-      <h1 className="mb-1 text-2xl font-semibold text-ink-900">New Property</h1>
+      <h1 className="mb-1 text-2xl font-semibold text-ink-900">New Building</h1>
       <p className="mb-4 text-sm text-ink-500">
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
@@ -64,17 +64,17 @@ export default async function NewBuildingPage({
         <input type="hidden" name="association_id" value={assoc.id} />
 
         {/* ============================================================
-            1. PROPERTY NAME AND ADDRESS
+            1. BUILDING NAME AND ADDRESS
            ============================================================ */}
         <Card>
-          <CardTitle>Property Name and Address</CardTitle>
+          <CardTitle>Building Name and Address</CardTitle>
           <div className="space-y-4 px-5 py-4">
-            <Row label="Property Type" required>
+            <Row label="Building Type" required>
               <select name="property_type" required defaultValue="hoa" className={input()}>
                 {PROPERTY_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
             </Row>
-            <Row label="Property Name" required>
+            <Row label="Building Name" required>
               <input name="name" required placeholder={`${assoc.name} — Main Building`} className={input()} />
             </Row>
             <Row label="Address" required>
@@ -101,10 +101,10 @@ export default async function NewBuildingPage({
         </Card>
 
         {/* ============================================================
-            2. PROPERTY INFORMATION
+            2. BUILDING INFORMATION
            ============================================================ */}
         <Card>
-          <CardTitle>Property Information</CardTitle>
+          <CardTitle>Building Information</CardTitle>
           <div className="space-y-4 px-5 py-4">
             <Row label="Description">
               <textarea name="description" rows={3} className={`${input()} h-auto py-2`} />
@@ -166,20 +166,20 @@ export default async function NewBuildingPage({
         </Card>
 
         {/* ============================================================
-            4. PROPERTY GROUPS (optional tagging)
+            4. ASSOCIATION GROUPS (optional tagging)
            ============================================================ */}
         <Card>
-          <CardTitle>Property Groups</CardTitle>
+          <CardTitle>Association Groups</CardTitle>
           <div className="space-y-3 px-5 py-4">
-            {(propertyGroups ?? []).length === 0 ? (
+            {(associationGroups ?? []).length === 0 ? (
               <p className="text-sm text-ink-500">
-                No property groups defined. Create one in{' '}
+                No association groups defined. Create one in{' '}
                 <Link href="/settings" className="text-champagne-700 hover:underline">Settings</Link>.
               </p>
             ) : (
               <select name="property_group_id" defaultValue="" className={input()}>
                 <option value="">— None —</option>
-                {(propertyGroups ?? []).map((g: any) => (
+                {(associationGroups ?? []).map((g: any) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
               </select>
@@ -188,12 +188,12 @@ export default async function NewBuildingPage({
         </Card>
 
         <div className="flex items-center gap-3 pt-2">
-          <Button type="submit" size="lg">Save Property</Button>
+          <Button type="submit" size="lg">Save Building</Button>
           <Link href={`/associations/${assoc.id}`} className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
         </div>
       </form>
 
-      {/* Bank accounts, photos, notes, attachments, lease templates, owner
+      {/* Bank accounts, photos, notes, attachments, owner
           distributions, management fees, late fee policy, budgets — all live
           on the Association, not the Building. After saving, head to the
           Association detail page. */}

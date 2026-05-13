@@ -31,8 +31,8 @@ export default async function BulkStatementSettingsPage() {
         <span className="mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-teal-600 text-xs font-semibold text-white">i</span>
         <p>
           If you leave the <strong>Update Settings for</strong> field blank, we will update the
-          statement settings for all your properties and associations at once. You can also select
-          a mixture of individual properties or associations by checking them.
+          statement settings for all your associations at once. You can also select
+          a mixture of individual associations by checking them.
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default async function BulkStatementSettingsPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-ink-500">By default, all properties and associations will be updated.</p>
+                <p className="text-xs text-ink-500">By default, all associations will be updated.</p>
               </div>
             </Row>
 

@@ -2,7 +2,7 @@
 // AI manager copilot — server-only Claude proxy
 // =============================================================================
 // Streams tokens from Anthropic's Messages API to the staff UI. Never returns
-// user content unsanitised — system prompt enforces "Portier-aware property
+// user content unsanitised — system prompt enforces "Portier-aware association
 // management assistant" persona.
 //
 // Required env vars:
@@ -25,7 +25,7 @@ const MODEL  = process.env.PORTIER_AI_MODEL  ?? 'claude-sonnet-4-6';
 const APIKEY = process.env.ANTHROPIC_API_KEY ?? '';
 
 const SYSTEM_PROMPT = `
-You are Portier, an executive assistant embedded in a property management
+You are Portier, an executive assistant embedded in a association management
 operating platform. The user is a staff member at a management company.
 
 Voice: confident, concise, editorial. Short sentences. Use measured

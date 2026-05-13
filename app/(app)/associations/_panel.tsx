@@ -91,10 +91,10 @@ export function AssociationsPanel() {
           <PanelLink href="/reports?slug=annual-budget-approved">Annual Budget — Approved</PanelLink>
           <PanelLink href="/reports?slug=budget-detail">Budget Detail</PanelLink>
           <PanelLink href="/reports?slug=budget-components">Budget — Components</PanelLink>
-          <PanelLink href="/reports?slug=budget-property-comparison">Budget — Property Comparison</PanelLink>
+          <PanelLink href="/reports?slug=budget-association-comparison">Budget - Association Comparison</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
-          <PanelLink href="/help/add-property-budget">Add a Property Budget</PanelLink>
+          <PanelLink href="/help/add-association-budget">Add an Association Budget</PanelLink>
         </PanelSection>
       </ContextPanel>
     );
@@ -126,8 +126,8 @@ export function AssociationsPanel() {
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-          <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
-          <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
+          <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>
+          <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
           <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
           <PanelLink href="/reports?slug=activities-summary">Activities Summary</PanelLink>
@@ -161,11 +161,10 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Help Topics">
-          <PanelLink href="/help/adding-a-property">Adding a Property</PanelLink>
+          <PanelLink href="/help/adding-an-association">Adding an Association</PanelLink>
           <PanelLink href="/help/import-association">Importing a New Association</PanelLink>
           <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
-          <PanelLink href="/help/property-groups">Property Groups</PanelLink>
-          <PanelLink href="/help/lease-templates">Lease Templates</PanelLink>
+          <PanelLink href="/help/association-groups">Association Groups</PanelLink>
           <PanelLink href="/help/late-fee-policies">Late Fee Policies</PanelLink>
         </PanelSection>
       </ContextPanel>
@@ -179,16 +178,14 @@ export function AssociationsPanel() {
         <PanelLink href="/calendar">View Calendar</PanelLink>
       </PanelSection>
       <PanelSection title="Tasks">
-        <PanelLink href="/associations/new">New Property</PanelLink>
         <PanelLink href="/associations/new">New Association</PanelLink>
         <PanelLink href="#meeting-sign-in">Meeting Sign-In</PanelLink>
         <PanelLink href="#violations-field-entry">Violations Field Entry</PanelLink>
         <PanelLink href="#bulk-update-board-reports">Bulk Update Board Reports</PanelLink>
       </PanelSection>
       <PanelSection title="Reports">
-        <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
+        <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>
         <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-        <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
         <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
         <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
       </PanelSection>
@@ -198,8 +195,8 @@ export function AssociationsPanel() {
       <PanelSection title="Help Topics">
         <PanelLink href="/help/import-association">Import a New Association</PanelLink>
         <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
-        <PanelLink href="/help/property-groups">Managing Property Groups</PanelLink>
-        <PanelLink href="/help/owner-statements">Sending Homeowner Statements</PanelLink>
+        <PanelLink href="/help/association-groups">Managing Association Groups</PanelLink>
+        <PanelLink href="/help/owner-statements">Sending Owner Statements</PanelLink>
       </PanelSection>
     </ContextPanel>
   );

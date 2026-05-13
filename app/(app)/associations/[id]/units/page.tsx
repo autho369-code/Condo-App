@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { occupancyLabel } from '@/lib/units/renter';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,13 @@ type UnitRow = {
   id: string;
   unit_number: string;
   ownership_pct: number | null;
-  homeowners: string;
-  renter: string | null;
+  owners: string;
+  occupancy: string;
+  renter: {
+    name: string;
+    phone: string | null;
+    email: string | null;
+  } | null;
   dues: number | null;
 };
 
@@ -52,13 +58,21 @@ export default async function AssociationUnitsTab({
 
   const unitIds = (units ?? []).map((u: any) => u.id);
 
-  const { data: occs } = unitIds.length > 0
-    ? await (supabase as any)
-        .from('occupancies')
-        .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
-        .in('unit_id', unitIds)
-        .eq('status', 'current')
-    : { data: [] as any[] };
+  const [{ data: occs }, { data: tenancies }] = unitIds.length > 0
+    ? await Promise.all([
+        (supabase as any)
+          .from('occupancies')
+          .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
+          .in('unit_id', unitIds)
+          .eq('status', 'current'),
+        (supabase as any)
+          .from('tenancies')
+          .select('unit_id, tenant_name, tenant_phone, tenant_email, created_at')
+          .in('unit_id', unitIds)
+          .is('archived_at', null)
+          .order('created_at', { ascending: false }),
+      ])
+    : [{ data: [] as any[] }, { data: [] as any[] }];
 
   const ownerIds = Array.from(new Set((occs ?? []).map((o: any) => o.owner_id).filter(Boolean)));
   const { data: owners } = ownerIds.length > 0
@@ -75,41 +89,46 @@ export default async function AssociationUnitsTab({
     occByUnit.set(o.unit_id, arr);
   });
 
+  const renterByUnit = new Map<string, any>();
+  (tenancies ?? []).forEach((tenancy: any) => {
+    if (!renterByUnit.has(tenancy.unit_id)) renterByUnit.set(tenancy.unit_id, tenancy);
+  });
+
   const rows: UnitRow[] = (units ?? []).map((u: any) => {
     const list = occByUnit.get(u.id) ?? [];
     const ownerOccs = list.filter((o: any) => o.occupancy_type === 'owner');
-    const tenantOccs = list.filter((o: any) => o.occupancy_type === 'tenant');
 
     ownerOccs.sort((a: any, b: any) => {
       if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
       return (b.share_pct ?? 0) - (a.share_pct ?? 0);
     });
-    const homeowners = ownerOccs
+    const ownerNames = ownerOccs
       .map((o: any) => ownerById.get(o.owner_id)?.full_name)
       .filter(Boolean)
       .join(' & ');
 
     const primaryOwner = ownerOccs.find((o: any) => o.is_primary) ?? ownerOccs[0];
     const dues = primaryOwner?.dues_amount ?? null;
-
-    const tenantOcc = tenantOccs[0];
-    const renter = tenantOcc ? (ownerById.get(tenantOcc.owner_id)?.full_name ?? null) : null;
+    const renterRow = renterByUnit.get(u.id);
+    const renter = renterRow ? {
+      name: renterRow.tenant_name,
+      phone: renterRow.tenant_phone,
+      email: renterRow.tenant_email,
+    } : null;
 
     return {
       id: u.id,
       unit_number: u.unit_number,
       ownership_pct: u.ownership_pct != null ? Number(u.ownership_pct) : null,
-      homeowners,
+      owners: ownerNames,
+      occupancy: occupancyLabel(Boolean(renter)),
       renter,
       dues: dues != null ? Number(dues) : null,
     };
   });
 
-  const occupiedUnits = rows.filter((r) => occByUnit.get(r.id)?.length).length;
-  const ownerOccupied = rows.filter((r) => {
-    const list = occByUnit.get(r.id) ?? [];
-    return list.some((o: any) => o.occupancy_type === 'owner');
-  }).length;
+  const occupiedUnits = rows.filter((r) => occByUnit.get(r.id)?.length || r.renter).length;
+  const ownerOccupied = rows.filter((r) => !r.renter && occByUnit.get(r.id)?.some((o: any) => o.occupancy_type === 'owner')).length;
   const ownerOccupiedPct = occupiedUnits > 0 ? Math.round((ownerOccupied / occupiedUnits) * 100) : 0;
 
   const total = rows.length;
@@ -119,8 +138,6 @@ export default async function AssociationUnitsTab({
   const end = Math.min(start + pageSize, total);
   const slice = rows.slice(start, end);
 
-  const rail = null;
-
   return (
     <Workspace
       header={
@@ -128,40 +145,51 @@ export default async function AssociationUnitsTab({
           <AssociationTabs associationId={id} active="units" />
           <WorkspaceHeader
             title={assoc.name}
-            subtitle={`${ownerOccupiedPct}% Owner Occupied`}
+            subtitle={`${ownerOccupiedPct}% owner occupied`}
           />
         </>
       }
-      rail={rail}
+      rail={null}
     >
       <div className="overflow-hidden rounded border border-ink-100 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-ink-100 bg-cream-50 text-xs uppercase tracking-wide text-ink-600">
             <tr>
               <th className="w-20 px-4 py-2 text-left font-semibold">Unit</th>
-              <th className="px-4 py-2 text-left font-semibold">Homeowner</th>
-              <th className="px-4 py-2 text-left font-semibold">Renter Occupied</th>
+              <th className="px-4 py-2 text-left font-semibold">Owner</th>
+              <th className="px-4 py-2 text-left font-semibold">Occupancy</th>
+              <th className="px-4 py-2 text-left font-semibold">Renter</th>
               <th className="px-4 py-2 text-left font-semibold">Ownership Percentage</th>
               <th className="px-4 py-2 text-left font-semibold">Dues</th>
             </tr>
           </thead>
           <tbody>
             {slice.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-ink-500">No units in this association.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-ink-500">No units in this association.</td></tr>
             ) : slice.map((r) => (
               <tr key={r.id} className="border-b border-ink-100 last:border-b-0 hover:bg-cream-50">
                 <td className="px-4 py-3">
                   <Link href={`/units/${r.id}`} className="text-champagne-700 hover:underline">{r.unit_number}</Link>
                 </td>
                 <td className="px-4 py-3">
-                  {r.homeowners ? <span className="text-champagne-700">{r.homeowners}</span> : <span className="text-ink-400">—</span>}
+                  {r.owners ? <span className="text-champagne-700">{r.owners}</span> : <span className="text-ink-400">--</span>}
                 </td>
-                <td className="px-4 py-3 text-ink-700">{r.renter ?? '--'}</td>
-                <td className="px-4 py-3 tabular-nums text-ink-700">
-                  {r.ownership_pct != null ? `${r.ownership_pct.toFixed(6)}%` : '—'}
+                <td className="px-4 py-3 text-ink-700">{r.occupancy}</td>
+                <td className="px-4 py-3 text-ink-700">
+                  {r.renter ? (
+                    <div>
+                      <div>{r.renter.name}</div>
+                      <div className="mt-1 text-xs text-ink-500">{[r.renter.email, r.renter.phone].filter(Boolean).join(' / ')}</div>
+                    </div>
+                  ) : (
+                    <span className="text-ink-400">--</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 tabular-nums text-ink-700">
-                  {r.dues != null ? r.dues.toFixed(2) : <span className="text-ink-400">—</span>}
+                  {r.ownership_pct != null ? `${r.ownership_pct.toFixed(6)}%` : '--'}
+                </td>
+                <td className="px-4 py-3 tabular-nums text-ink-700">
+                  {r.dues != null ? r.dues.toFixed(2) : <span className="text-ink-400">--</span>}
                 </td>
               </tr>
             ))}

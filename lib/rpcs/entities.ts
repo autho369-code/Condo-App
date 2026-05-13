@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff, requirePortfolioAdmin } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { joinRenterName } from '@/lib/units/renter';
 
 // ---------- Helpers ----------
 const str  = (f: FormData, k: string) => {
@@ -42,7 +43,7 @@ const intn = (f: FormData, k: string, fallback: number | null = null) => {
  * Association vs. Building distinction.
  *
  * After creating the Association, the user is taken to /buildings/new so they
- * can add the physical property under this legal entity.
+ * can add the physical building under this legal entity.
  */
 export async function createAssociation(formData: FormData) {
   const me = await requirePortfolioAdmin();
@@ -100,7 +101,7 @@ export async function createAssociation(formData: FormData) {
   if (error || !assoc) return { error: error?.message ?? 'Failed to create association' };
 
   revalidatePath('/associations');
-  // Next step: let the user add the physical property under this legal entity.
+  // Next step: let the user add the physical building under this legal entity.
   redirect(`/buildings/new?association=${assoc.id}`);
 }
 
@@ -424,8 +425,84 @@ export async function updateUnit(id: string, formData: FormData) {
   revalidatePath('/units');
 }
 
+export async function upsertUnitRenter(unitId: string, formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const firstName = req(formData, 'renter_first_name');
+  const lastName = req(formData, 'renter_last_name');
+  const renterName = joinRenterName(firstName, lastName);
+  const phone = str(formData, 'renter_phone');
+  const email = str(formData, 'renter_email');
+
+  const { data: unit, error: unitErr } = await (supabase as any)
+    .from('units')
+    .select('id, buildings!inner(association_id)')
+    .eq('id', unitId)
+    .maybeSingle();
+  if (unitErr || !unit) return { error: 'Unit not found' };
+
+  const { data: existing } = await (supabase as any)
+    .from('tenancies')
+    .select('id')
+    .eq('unit_id', unitId)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const payload = {
+    unit_id: unitId,
+    tenant_name: renterName,
+    tenant_phone: phone,
+    tenant_email: email,
+    lease_start: new Date().toISOString().slice(0, 10),
+  };
+
+  const result = existing?.id
+    ? await (supabase as any)
+        .from('tenancies')
+        .update({
+          tenant_name: payload.tenant_name,
+          tenant_phone: payload.tenant_phone,
+          tenant_email: payload.tenant_email,
+        })
+        .eq('id', existing.id)
+    : await (supabase as any).from('tenancies').insert(payload);
+
+  if (result.error) return { error: result.error.message };
+
+  const associationId = (unit.buildings as any)?.association_id;
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath('/units');
+  if (associationId) revalidatePath(`/associations/${associationId}/units`);
+}
+
+export async function archiveUnitRenter(tenancyId: string, unitId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const { data: unit } = await (supabase as any)
+    .from('units')
+    .select('id, buildings!inner(association_id)')
+    .eq('id', unitId)
+    .maybeSingle();
+
+  const { error } = await (supabase as any)
+    .from('tenancies')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', tenancyId)
+    .eq('unit_id', unitId);
+  if (error) return { error: error.message };
+
+  const associationId = (unit?.buildings as any)?.association_id;
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath('/units');
+  if (associationId) revalidatePath(`/associations/${associationId}/units`);
+}
+
 // ============================================================================
-// OWNERS (HOMEOWNERS)
+// OWNERS
 // ============================================================================
 
 export async function createOwner(formData: FormData) {

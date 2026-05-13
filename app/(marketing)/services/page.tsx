@@ -30,7 +30,7 @@ const PACKAGES: Package[] = [
     ],
     includes: [
       'Source-platform data extract + reconciliation',
-      'Association, unit, and homeowner imports',
+      'Association, unit, and owner imports',
       'Vendor records + W9s + insurance certificates',
       'Ledger migration with historical balances',
       'Banking setup + first reconciliation',

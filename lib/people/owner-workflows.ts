@@ -30,7 +30,7 @@ export const ownerWorkflowCards = [
   },
   {
     title: 'Owner Packets',
-    description: 'Prepare onboarding packets with association and property context.',
+    description: 'Prepare onboarding packets with association and association context.',
     href: '/owners/packets',
     action: 'send_owner_packet' satisfies OwnerWorkflowAction,
   },

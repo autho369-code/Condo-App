@@ -120,7 +120,7 @@ export default async function NewWorkOrderPage({
         </section>
 
         <section className="rounded-lg border border-ink-100 bg-white p-5 shadow-soft-sm">
-          <h2 className="font-display text-lg tracking-editorial text-ink-900">Property and scheduling</h2>
+          <h2 className="font-display text-lg tracking-editorial text-ink-900">Association and scheduling</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="association_id">Association</Label>

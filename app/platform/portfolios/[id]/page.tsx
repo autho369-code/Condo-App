@@ -25,7 +25,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: portfolio }, { data: healthRows }, { data: properties }, { data: owners }, { data: users }, { data: subscription }, { data: workOrders }] =
+  const [{ data: portfolio }, { data: healthRows }, { data: associations }, { data: owners }, { data: users }, { data: subscription }, { data: workOrders }] =
     await Promise.all([
       (supabase as any)
         .from('portfolios')
@@ -68,7 +68,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
 
   if (!portfolio) notFound();
 
-  const associationIds = (properties ?? []).map((property: any) => property.id);
+  const associationIds = (associations ?? []).map((association: any) => association.id);
   const { data: violations } = associationIds.length
     ? await (supabase as any).from('violations').select('id, status, association_id').in('association_id', associationIds).is('archived_at', null).limit(500)
     : { data: [] };
@@ -79,8 +79,8 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
     tier: portfolio.tier,
     suspended_at: portfolio.suspended_at,
     subscription_status: subscription?.status ?? null,
-    association_count: properties?.length ?? 0,
-    unit_count: (properties ?? []).reduce((sum: number, property: any) => sum + (property.unit_count ?? 0), 0),
+    association_count: associations?.length ?? 0,
+    unit_count: (associations ?? []).reduce((sum: number, association: any) => sum + (association.unit_count ?? 0), 0),
     seats_used: subscription?.seats_used ?? 0,
     seats_included: subscription?.seats_included ?? null,
   }) as PortfolioHealthRow;
@@ -102,7 +102,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
           <div>
             <h1 className="font-display text-4xl tracking-editorial text-ink-900">{portfolio.company_name}</h1>
             <p className="mt-2 text-[15px] text-ink-500 leading-relaxed">
-              Client oversight: properties, owners, users, billing, and operational volume.
+              Client oversight: associations, owners, users, billing, and operational volume.
             </p>
           </div>
           <Badge className={statusClass(status)}>{status.replace(/_/g, ' ')}</Badge>
@@ -110,7 +110,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
       </header>
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Properties" value={health.association_count ?? properties?.length ?? 0} sub="Associations" />
+        <Stat label="Associations" value={health.association_count ?? associations?.length ?? 0} sub="Associations" />
         <Stat label="Units" value={health.unit_count ?? 0} sub="Managed units" />
         <Stat label="Owners" value={(owners ?? []).length} sub="First 10 loaded" />
         <Stat label="Users" value={(users ?? []).length} sub="Staff seats" />
@@ -121,31 +121,31 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Properties</CardTitle>
+            <CardTitle>Associations</CardTitle>
           </CardHeader>
           <CardBody className="p-0">
             <Table className="border-0">
               <THead>
                 <TR>
-                  <TH>Property</TH>
+                  <TH>Association</TH>
                   <TH>Status</TH>
                   <TH className="text-right">Units</TH>
                 </TR>
               </THead>
               <tbody>
-                {(properties ?? []).length === 0 ? (
+                {(associations ?? []).length === 0 ? (
                   <TR>
-                    <TD colSpan={3} className="text-center text-ink-500">No properties found for this client.</TD>
+                    <TD colSpan={3} className="text-center text-ink-500">No associations found for this client.</TD>
                   </TR>
                 ) : (
-                  (properties ?? []).map((property: any) => (
-                    <TR key={property.id}>
+                  (associations ?? []).map((association: any) => (
+                    <TR key={association.id}>
                       <TD>
-                        <div className="font-medium text-ink-900">{property.name}</div>
-                        <div className="mt-1 text-xs text-ink-500">{[property.city, property.state].filter(Boolean).join(', ')}</div>
+                        <div className="font-medium text-ink-900">{association.name}</div>
+                        <div className="mt-1 text-xs text-ink-500">{[association.city, association.state].filter(Boolean).join(', ')}</div>
                       </TD>
-                      <TD>{property.status ?? 'active'}</TD>
-                      <TD className="text-right">{property.unit_count ?? 0}</TD>
+                      <TD>{association.status ?? 'active'}</TD>
+                      <TD className="text-right">{association.unit_count ?? 0}</TD>
                     </TR>
                   ))
                 )}

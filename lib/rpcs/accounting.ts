@@ -27,7 +27,7 @@ function required(value: string | null, label: string) {
   return value;
 }
 
-export async function createHomeownerReceipt(formData: FormData) {
+export async function createOwnerReceipt(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
   const unitId = required(str(formData, 'unit_id'), 'Unit');
@@ -49,7 +49,7 @@ export async function createHomeownerReceipt(formData: FormData) {
   redirect('/charges');
 }
 
-export async function createHomeownerCredit(formData: FormData) {
+export async function createOwnerCredit(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
   const unitId = required(str(formData, 'unit_id'), 'Unit');
@@ -72,7 +72,7 @@ export async function createHomeownerCredit(formData: FormData) {
   redirect('/credits/apply');
 }
 
-export async function createHomeownerCharge(formData: FormData) {
+export async function createOwnerCharge(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
   const unitId = required(str(formData, 'unit_id'), 'Unit');
@@ -493,7 +493,7 @@ export async function createBulkChargesOrCredits(formData: FormData) {
       payment_date: paymentDate,
       method: 'credit',
       reference: str(formData, 'reference'),
-      notes: str(formData, 'description') ?? 'Bulk homeowner credit',
+      notes: str(formData, 'description') ?? 'Bulk owner credit',
       bank_account_id: str(formData, 'bank_account_id'),
       gl_account_id: str(formData, 'gl_account_id'),
     }));

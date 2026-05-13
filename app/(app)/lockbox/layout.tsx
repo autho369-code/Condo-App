@@ -8,7 +8,7 @@ export default function LockboxLayout({ children }: { children: React.ReactNode 
         <ContextPanel title="Tasks">
           <PanelSection title="Tasks">
             <PanelLink href="/lockbox/new">New Lockbox Batch</PanelLink>
-            <PanelLink href="/payments/new">Homeowner Receipt</PanelLink>
+            <PanelLink href="/payments/new">Owner Receipt</PanelLink>
             <PanelLink href="/bank-accounts/deposits/new">New Bank Deposit</PanelLink>
             <PanelLink href="/credits/apply">Apply Credits</PanelLink>
           </PanelSection>

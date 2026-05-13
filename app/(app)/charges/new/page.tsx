@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
-import { createHomeownerCharge } from '@/lib/rpcs/accounting';
+import { createOwnerCharge } from '@/lib/rpcs/accounting';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewHomeownerChargePage() {
+export default async function NewOwnerChargePage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: units }, { data: categories }] = await Promise.all([
@@ -28,11 +28,11 @@ export default async function NewHomeownerChargePage() {
     <div className="h-full overflow-y-auto bg-gray-50 px-8 py-7">
       <main className="mx-auto max-w-3xl">
         <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-xl font-medium text-ink-900">Homeowner Charge</h1>
+          <h1 className="text-xl font-medium text-ink-900">Owner Charge</h1>
           <Link href="/charges" className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
         </div>
 
-        <form action={createHomeownerCharge} className="space-y-4 border border-ink-100 bg-white p-5">
+        <form action={createOwnerCharge} className="space-y-4 border border-ink-100 bg-white p-5">
           <Field label="Unit">
             <select name="unit_id" required className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="">Select unit</option>

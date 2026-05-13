@@ -100,7 +100,7 @@ const outcomes: [string, string][] = [
 
 const implementationIncludes = [
   'AppFolio and Buildium migration',
-  'Spreadsheet imports for units and homeowners',
+  'Spreadsheet imports for units and owners',
   'Banking and GL account setup',
   'Vendor onboarding',
   'Staff training',
@@ -175,7 +175,7 @@ export default function Landing() {
               Built around operational outcomes.
             </h2>
             <p className="mt-5 text-base text-ink-600 leading-relaxed md:text-lg">
-              Property managers and association boards buy fewer headaches, faster close cycles, fewer support tickets, and clearer visibility. The feature set should prove those outcomes.
+              Association managers and association boards buy fewer headaches, faster close cycles, fewer support tickets, and clearer visibility. The feature set should prove those outcomes.
             </p>
           </div>
 

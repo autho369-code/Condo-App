@@ -21,7 +21,7 @@ describe('platformModules', () => {
     expect(labels).toEqual([
       'Clients',
       'Access requests',
-      'Properties',
+      'Associations',
       'Owners',
       'Users',
       'Operators',

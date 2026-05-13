@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 // Default landing for an association detail is the Units tab,
-// matching AppFolio's behavior at /properties/[id] -> /properties/[id]/units.
+// Association detail defaults to the unit roster.
 export default async function AssociationDetailPage({
   params,
 }: {

@@ -3,12 +3,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
-import { createHomeownerCredit } from '@/lib/rpcs/accounting';
+import { createOwnerCredit } from '@/lib/rpcs/accounting';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewHomeownerCreditPage() {
+export default async function NewOwnerCreditPage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: units }, { data: bankAccounts }, { data: glAccounts }] = await Promise.all([
@@ -35,11 +35,11 @@ export default async function NewHomeownerCreditPage() {
     <div className="h-full overflow-y-auto bg-gray-50 px-8 py-7">
       <main className="mx-auto max-w-3xl">
         <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-xl font-medium text-ink-900">Homeowner Credit</h1>
+          <h1 className="text-xl font-medium text-ink-900">Owner Credit</h1>
           <Link href="/charges" className="text-sm text-ink-600 hover:text-ink-900">Cancel</Link>
         </div>
 
-        <form action={createHomeownerCredit} className="space-y-4 border border-ink-100 bg-white p-5">
+        <form action={createOwnerCredit} className="space-y-4 border border-ink-100 bg-white p-5">
           <Field label="Unit">
             <select name="unit_id" required className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
               <option value="">Select unit</option>
@@ -89,7 +89,7 @@ export default async function NewHomeownerCreditPage() {
           </Field>
 
           <div className="rounded border border-amber-200 bg-champagne-50 p-3 text-sm text-amber-800">
-            This saves a credit on the homeowner ledger. Use Apply Credits to allocate it to open charges.
+            This saves a credit on the owner ledger. Use Apply Credits to allocate it to open charges.
           </div>
 
           <div className="flex justify-end gap-2">
