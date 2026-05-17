@@ -259,3 +259,17 @@
 - [x] Register /dashboard/owner-messages route in App.tsx
 - [x] Write 14 vitest tests for new DB helpers and tRPC procedures — all passing
 - [x] Full test suite: 177 tests passing
+
+## Manager Reply Notifications
+- [x] Review notificationService.ts and owner_notification_prefs schema
+- [x] Add getUserById DB helper for owner email/name lookup
+- [x] Add notifyManagerReply(ownerId, propertyId, companyId, managerName, replyBody, propertyName) to notificationService.ts
+- [x] Respect msgReceivedInApp and msgReceivedEmail preferences per owner
+- [x] Create in-app notification (type: "message_received") with truncated body preview
+- [x] Send branded HTML email with manager name, property name, and reply preview
+- [x] Wire notifyManagerReply into documents.replyToOwner tRPC procedure (fire-and-forget, never blocks reply)
+- [x] Clicking a "message_received" notification in the portal navigates to the Messages view
+- [x] Clicking a "document_shared" notification navigates to the Documents view
+- [x] Updated empty-state description to mention manager replies
+- [x] Write 18 vitest tests for notifyManagerReply logic and preference gating — all passing
+- [x] Full test suite: 195 tests passing

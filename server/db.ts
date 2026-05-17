@@ -728,3 +728,10 @@ export async function getTotalUnreadManagerCount(companyId: number): Promise<num
     ));
   return Number(row?.count ?? 0);
 }
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await (db as any).select().from(users).where(eq(users.id, id)).limit(1);
+  return result[0] as typeof users.$inferSelect | undefined;
+}

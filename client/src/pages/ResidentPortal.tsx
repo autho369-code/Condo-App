@@ -209,7 +209,15 @@ export default function ResidentPortal() {
             <OwnerMessages key="messages" propertyId={selectedPropertyId} />
           )}
           {view === "notifications" && (
-            <NotificationsView key="notifications" />
+            <NotificationsView
+              key="notifications"
+              onNavigate={(v, propertyId) => {
+                // Set the property context before switching views so
+                // messages/documents views (which require selectedPropertyId) work
+                if (propertyId) setSelectedPropertyId(propertyId);
+                setView(v as any);
+              }}
+            />
           )}
           {view === "settings" && (
             <NotificationSettings key="settings" />
@@ -1396,7 +1404,7 @@ function NotificationBell({ onOpen }: { onOpen: () => void }) {
 }
 
 // ─── Notifications View ───────────────────────────────────────────────────────
-function NotificationsView() {
+function NotificationsView({ onNavigate }: { onNavigate?: (view: string, propertyId?: number) => void }) {
   const utils = trpc.useUtils();
   const { data: notifications, isLoading } = trpc.portal.getNotifications.useQuery();
 
@@ -1465,7 +1473,7 @@ function NotificationsView() {
             <Bell className="w-12 h-12 text-[#CCC] mx-auto mb-3" />
             <p className="text-[#666] text-sm font-medium">No notifications yet</p>
             <p className="text-[#999] text-xs mt-1">
-              You'll be notified here when documents are shared or updates are posted.
+              You'll be notified here when documents are shared, your manager replies to a message, or other updates are posted.
             </p>
           </CardContent>
         </Card>
@@ -1491,6 +1499,13 @@ function NotificationsView() {
                 onClick={() => {
                   if (isUnread) {
                     markReadMutation.mutate({ notificationId: notif.id });
+                  }
+                  // Navigate to the relevant portal view on click, passing propertyId
+                  // so the parent can set selectedPropertyId before switching views
+                  if (notif.type === "message_received" && onNavigate) {
+                    onNavigate("messages", notif.propertyId ?? undefined);
+                  } else if (notif.type === "document_shared" && onNavigate) {
+                    onNavigate("documents", notif.propertyId ?? undefined);
                   }
                 }}
               >

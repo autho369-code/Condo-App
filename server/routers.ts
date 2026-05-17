@@ -24,7 +24,7 @@ import { getAttachmentsByTicket, deleteAttachment as dbDeleteAttachment } from "
 import { syncEmailConnection } from "./email/emailRoutes";
 import { categorizeEmail, saveCategorization, bulkCategorizeCompanyEmails } from "./email/categorize";
 import { ENV } from "./_core/env";
-import { notifyDocumentShared } from "./notifications/notificationService";
+import { notifyDocumentShared, notifyManagerReply } from "./notifications/notificationService";
 import {
   getNotificationsByOwner, getUnreadNotificationCount,
   markNotificationRead, markAllNotificationsRead,
@@ -519,6 +519,20 @@ export const appRouter = router({
         });
         // Mark thread as read by manager since they just replied
         await markThreadReadByManager(ctx.user.companyId, input.threadKey);
+
+        // Fire-and-forget: notify the owner about the manager's reply
+        // Fetch property name for the notification body
+        getPropertyById(input.propertyId).then(property => {
+          notifyManagerReply({
+            ownerId: input.ownerId,
+            propertyId: input.propertyId,
+            companyId: ctx.user.companyId!,
+            managerName: ctx.user.name ?? "Your Property Manager",
+            replyBody: input.body,
+            propertyName: property?.name ?? "your property",
+          }).catch(err => console.error("[replyToOwner] Notification error:", err));
+        }).catch(err => console.error("[replyToOwner] Property lookup error:", err));
+
         return { success: true };
       }),
   }),
