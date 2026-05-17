@@ -13,6 +13,9 @@ import {
   getAllUsers, updateUserRole, getPlatformStats, getCompanyStats,
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
+import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
+import { syncEmailConnection } from "./email/emailRoutes";
+import { ENV } from "./_core/env";
 
 export const appRouter = router({
   // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -227,6 +230,45 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const draft = await draftEmailReply(input.subject, input.body);
         return { draft };
+      }),
+    // ── Connected accounts ──────────────────────────────────────────────────
+    listConnections: protectedProcedure.query(async ({ ctx }) => {
+      return getEmailConnectionsByUser(ctx.user.id);
+    }),
+    disconnectAccount: protectedProcedure
+      .input(z.object({ connectionId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify the connection belongs to the current user
+        const connections = await getEmailConnectionsByUser(ctx.user.id);
+        const owned = connections.some(c => c.id === input.connectionId);
+        if (!owned) throw new Error("Not authorized to disconnect this account");
+        await deactivateEmailConnection(input.connectionId);
+        return { success: true };
+      }),
+    syncEmails: protectedProcedure
+      .input(z.object({ connectionId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify the connection belongs to the current user
+        const connections = await getEmailConnectionsByUser(ctx.user.id);
+        const owned = connections.some(c => c.id === input.connectionId);
+        if (!owned) return { synced: 0, error: "Not authorized to sync this account" };
+        return syncEmailConnection(input.connectionId);
+      }),
+    // Return OAuth URLs for the frontend to redirect to
+    getConnectUrl: protectedProcedure
+      .input(z.object({ provider: z.enum(["gmail", "outlook"]), origin: z.string() }))
+      .query(async ({ input }) => {
+        if (input.provider === "gmail") {
+          if (!ENV.gmailClientId) return { url: null, configured: false };
+          const { buildGmailAuthUrl } = await import("./email/gmail");
+          const state = Buffer.from(JSON.stringify({ origin: input.origin })).toString("base64");
+          return { url: buildGmailAuthUrl(state, input.origin), configured: true };
+        } else {
+          if (!ENV.outlookClientId) return { url: null, configured: false };
+          const { buildOutlookAuthUrl } = await import("./email/outlook");
+          const state = Buffer.from(JSON.stringify({ origin: input.origin })).toString("base64");
+          return { url: buildOutlookAuthUrl(state, input.origin), configured: true };
+        }
       }),
   }),
 });

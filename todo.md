@@ -95,3 +95,21 @@
 - [ ] Toast notifications
 - [ ] Loading skeletons
 - [ ] Empty state illustrations
+
+## Email OAuth Integration
+- [x] Add GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET to secrets
+- [x] Add email_connections table to schema (userId, provider, accessToken, refreshToken, expiresAt, email, syncedAt)
+- [x] Run db:push for new schema
+- [x] Build Gmail OAuth authorize endpoint (/api/email/gmail/connect)
+- [x] Build Gmail OAuth callback handler (/api/email/gmail/callback)
+- [x] Build Gmail token refresh helper
+- [x] Build Gmail message sync function (fetch last 50 messages via Gmail API)
+- [x] Build Outlook OAuth authorize endpoint (/api/email/outlook/connect)
+- [x] Build Outlook OAuth callback handler (/api/email/outlook/callback)
+- [x] Build Outlook token refresh helper
+- [x] Build Outlook message sync function (fetch last 50 messages via Graph API)
+- [x] Add tRPC procedures: listConnections, disconnectAccount, syncEmails
+- [x] Update Email Hub UI with connected accounts panel
+- [x] Add sync button with loading state and last-synced timestamp
+- [x] Add Gmail/Outlook source badges on email thread cards
+- [x] Write vitest tests for token refresh and sync procedures

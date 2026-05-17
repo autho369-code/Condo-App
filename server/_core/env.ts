@@ -10,4 +10,10 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "https://forge.manus.ai",
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: parseInt(process.env.PORT ?? "3000", 10),
+  // Gmail OAuth
+  gmailClientId: process.env.GMAIL_CLIENT_ID ?? "",
+  gmailClientSecret: process.env.GMAIL_CLIENT_SECRET ?? "",
+  // Outlook / Microsoft Graph OAuth
+  outlookClientId: process.env.OUTLOOK_CLIENT_ID ?? "",
+  outlookClientSecret: process.env.OUTLOOK_CLIENT_SECRET ?? "",
 };

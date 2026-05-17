@@ -7,6 +7,7 @@ import { appRouter } from "./routers";
 import { createContext } from "./_core/context";
 import { handleOAuthCallback } from "./_core/oauth";
 import { ENV } from "./_core/env";
+import { registerEmailRoutes } from "./email/emailRoutes";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,9 @@ async function startServer() {
 
   // OAuth callback
   app.get("/api/oauth/callback", handleOAuthCallback);
+
+  // Email OAuth routes (Gmail + Outlook)
+  registerEmailRoutes(app);
 
   // tRPC
   app.use(

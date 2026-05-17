@@ -270,3 +270,26 @@ export const emailThreads = mysqlTable("email_threads", {
 
 export type EmailThread = typeof emailThreads.$inferSelect;
 export type InsertEmailThread = typeof emailThreads.$inferInsert;
+
+// ─── Email Connections (OAuth tokens per user per provider) ───────────────────
+export const emailConnections = mysqlTable("email_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  companyId: int("companyId").notNull(),
+  provider: mysqlEnum("provider", ["gmail", "outlook"]).notNull(),
+  // The email address of the connected account
+  accountEmail: varchar("accountEmail", { length: 320 }).notNull(),
+  // OAuth tokens (encrypted at rest via application logic)
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken"),
+  expiresAt: timestamp("expiresAt"),
+  // Sync state
+  lastSyncedAt: timestamp("lastSyncedAt"),
+  syncCursor: text("syncCursor"), // Gmail historyId or Outlook deltaLink
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailConnection = typeof emailConnections.$inferSelect;
+export type InsertEmailConnection = typeof emailConnections.$inferInsert;
