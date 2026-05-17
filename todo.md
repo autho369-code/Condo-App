@@ -287,3 +287,19 @@
 - [x] Updated empty-state description to mention ticket status changes
 - [x] Write 24 vitest tests for notifyTicketUpdate logic and preference gating — all passing
 - [x] Full test suite: 219 tests passing
+
+## Tasks Panel Quick Actions (3-Panel Layout)
+- [x] Read DashboardLayout.tsx and Tasks panel to understand current structure
+- [x] Build right Tasks panel component with collapsible toggle (open/close button)
+- [x] Add QUICK ACTIONS section: Open work orders, Schedule hearing, Send email blast, View meetings
+- [x] Add OWNER COMMUNICATIONS section: View owner messages, Owner portal
+- [x] Add PROPERTIES & DOCUMENTS section: Manage properties, Upload document, View all documents
+- [x] Add WORK ORDERS section: All tickets, Urgent tickets, Manage vendors
+- [x] Add ACCOUNTING section: Post charge, Record credit, Payment history
+- [x] Add REPORTS & ANALYTICS section: View analytics
+- [x] Add NOTIFICATIONS section: Notification history, Settings
+- [x] Role-based section visibility (managers only see relevant sections)
+- [x] Tasks panel toggle button on right edge when panel is closed
+- [x] Mobile: Tasks panel as overlay with backdrop dismiss
+- [x] Mobile header: Tasks toggle button in top-right corner
+- [x] All 219 tests still passing after layout changes
