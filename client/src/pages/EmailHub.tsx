@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Mail, Plus, Sparkles, CheckCheck, Search, RefreshCw,
   Link2, Link2Off, AlertCircle, CheckCircle2, Clock,
-  Building2, Zap, AlertTriangle, Info, ChevronDown, ChevronUp
+  Building2, Zap, AlertTriangle, Info, ChevronDown, ChevronUp,
+  Ticket, ExternalLink, CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +100,25 @@ export default function EmailHub() {
   const [draft, setDraft] = useState("");
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [expandedReason, setExpandedReason] = useState<number | null>(null);
+  // Convert to ticket dialog state
+  const [convertDialogEmail, setConvertDialogEmail] = useState<null | {
+    id: number;
+    subject: string;
+    fromAddress: string | null;
+    bodyPreview: string | null;
+    aiUrgency: string | null;
+    aiCategory: string | null;
+    aiMatchedPropertyId: number | null;
+    convertedToTicketId: number | null;
+  }>(null);
+  const [ticketForm, setTicketForm] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as "low" | "medium" | "high" | "urgent",
+    propertyId: "",
+    unitNumber: "",
+    category: "maintenance" as string,
+  });
 
   const utils = trpc.useUtils();
   const { data: emails, isLoading } = trpc.email.list.useQuery();
@@ -161,6 +182,20 @@ export default function EmailHub() {
     onError: (e) => toast.error(e.message),
   });
 
+  const convertToTicket = trpc.email.convertToTicket.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Ticket #${data.ticketId} created successfully!`, {
+        action: {
+          label: "View Tickets",
+          onClick: () => window.location.href = "/dashboard/tickets",
+        },
+      });
+      utils.email.list.invalidate();
+      setConvertDialogEmail(null);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const bulkRecategorize = trpc.email.bulkRecategorize.useMutation({
     onSuccess: (data) => {
       toast.success(`AI categorized ${data.processed} email${data.processed !== 1 ? "s" : ""}${data.errors > 0 ? ` (${data.errors} skipped)` : ""}.`);
@@ -168,6 +203,53 @@ export default function EmailHub() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  // Map AI urgency → ticket priority
+  const urgencyToPriority = (urgency: string | null): "low" | "medium" | "high" | "urgent" => {
+    if (urgency === "critical") return "urgent";
+    if (urgency === "high") return "high";
+    if (urgency === "medium") return "medium";
+    return "low";
+  };
+
+  // Map AI email category → ticket category
+  const emailCategoryToTicketCategory = (cat: string | null): string => {
+    if (!cat) return "other";
+    const map: Record<string, string> = {
+      maintenance_request: "maintenance",
+      emergency: "emergency",
+      vendor_communication: "vendor",
+      board_matter: "board_matter",
+      billing_payment: "other",
+      noise_complaint: "common_area",
+      amenity_booking: "common_area",
+      lease_ownership: "unit_related",
+      general_inquiry: "other",
+    };
+    return map[cat] ?? "other";
+  };
+
+  const openConvertDialog = (e: typeof emails extends (infer T)[] | undefined ? T : never) => {
+    const ea = e as any;
+    setConvertDialogEmail({
+      id: ea.id,
+      subject: ea.subject ?? "",
+      fromAddress: ea.fromAddress ?? null,
+      bodyPreview: ea.bodyPreview ?? null,
+      aiUrgency: ea.aiUrgency ?? null,
+      aiCategory: ea.aiCategory ?? null,
+      aiMatchedPropertyId: ea.aiMatchedPropertyId ?? null,
+      convertedToTicketId: ea.convertedToTicketId ?? null,
+    });
+    setTicketForm({
+      title: ea.subject ?? "",
+      description: ea.bodyPreview ? `From: ${ea.fromAddress ?? "unknown"}\n\n${ea.bodyPreview}` : "",
+      priority: urgencyToPriority(ea.aiUrgency),
+      propertyId: ea.aiMatchedPropertyId ? String(ea.aiMatchedPropertyId) : "",
+      unitNumber: "",
+      category: emailCategoryToTicketCategory(ea.aiCategory),
+    });
+  };
 
   const handleConnect = (provider: "gmail" | "outlook") => {
     window.location.href = `/api/email/${provider}/connect?origin=${encodeURIComponent(window.location.origin)}`;
@@ -492,13 +574,50 @@ export default function EmailHub() {
                       )}
                     </div>
 
-                    {/* Action buttons */}
+                      {/* Action buttons */}
                     <div className="flex flex-col gap-1.5 flex-shrink-0">
                       {!e.isRead && (
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
                           onClick={() => markRead.mutate({ emailId: e.id })}>
                           <CheckCheck className="w-3.5 h-3.5 mr-1" />Read
                         </Button>
+                      )}
+                      {/* Convert to Ticket button — only for categorized emails */}
+                      {emailAny.convertedToTicketId ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="ghost"
+                              className="h-7 px-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 cursor-default"
+                              onClick={() => window.location.href = "/dashboard/tickets"}>
+                              <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                              Ticket #{emailAny.convertedToTicketId}
+                              <ExternalLink className="w-3 h-3 ml-1" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">Click to view in Work Tickets</TooltipContent>
+                        </Tooltip>
+                      ) : isCategorized ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline"
+                              className="h-7 px-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                              onClick={() => openConvertDialog(e)}>
+                              <Ticket className="w-3.5 h-3.5 mr-1" />Create Ticket
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">Convert this email into a work ticket</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="ghost"
+                              className="h-7 px-2 text-xs text-muted-foreground opacity-50 cursor-not-allowed"
+                              disabled>
+                              <Ticket className="w-3.5 h-3.5 mr-1" />Create Ticket
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">Run AI categorization first (Re-tag button)</TooltipContent>
+                        </Tooltip>
                       )}
                       <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-olive/30 text-olive hover:bg-olive/10"
                         onClick={() => {
@@ -554,6 +673,166 @@ export default function EmailHub() {
           })}
         </div>
       )}
+      {/* ─── Convert to Ticket Dialog ──────────────────────────────────────── */}
+      <Dialog open={!!convertDialogEmail} onOpenChange={(open) => { if (!open) setConvertDialogEmail(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-charcoal">
+              <Ticket className="w-5 h-5 text-amber-600" />
+              Create Work Ticket from Email
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              AI has pre-filled the fields below from the email. Review and adjust before creating.
+            </DialogDescription>
+          </DialogHeader>
+
+          {convertDialogEmail && (
+            <div className="space-y-4 py-2">
+              {/* Email source info */}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600">
+                <Mail className="w-4 h-4 flex-shrink-0 mt-0.5 text-stone-400" />
+                <div className="min-w-0">
+                  <p className="font-medium text-stone-700 truncate">{convertDialogEmail.subject || "(No subject)"}</p>
+                  <p className="mt-0.5">{convertDialogEmail.fromAddress ?? "Unknown sender"}</p>
+                </div>
+              </div>
+
+              {/* Ticket Title */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Ticket Title <span className="text-red-500">*</span></Label>
+                <Input
+                  value={ticketForm.title}
+                  onChange={e => setTicketForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Describe the issue..."
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Property */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Property <span className="text-red-500">*</span></Label>
+                <Select
+                  value={ticketForm.propertyId}
+                  onValueChange={v => setTicketForm(f => ({ ...f, propertyId: v }))}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Select property..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(properties ?? []).map((p: any) => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {convertDialogEmail.aiMatchedPropertyId && (
+                  <p className="text-[10px] text-olive flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    AI matched: {propertyMap[convertDialogEmail.aiMatchedPropertyId] ?? "Unknown property"}
+                  </p>
+                )}
+              </div>
+
+              {/* Priority + Category row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Priority</Label>
+                  <Select
+                    value={ticketForm.priority}
+                    onValueChange={v => setTicketForm(f => ({ ...f, priority: v as any }))}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {convertDialogEmail.aiUrgency && (
+                    <p className="text-[10px] text-olive flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      AI: {convertDialogEmail.aiUrgency}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Category</Label>
+                  <Select
+                    value={ticketForm.category}
+                    onValueChange={v => setTicketForm(f => ({ ...f, category: v }))}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="common_area">Common Area</SelectItem>
+                      <SelectItem value="unit_related">Unit Related</SelectItem>
+                      <SelectItem value="emergency">Emergency</SelectItem>
+                      <SelectItem value="vendor">Vendor</SelectItem>
+                      <SelectItem value="board_matter">Board Matter</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Unit Number */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Unit Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={ticketForm.unitNumber}
+                  onChange={e => setTicketForm(f => ({ ...f, unitNumber: e.target.value }))}
+                  placeholder="e.g. 4B"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Description</Label>
+                <Textarea
+                  value={ticketForm.description}
+                  onChange={e => setTicketForm(f => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  className="text-sm resize-none"
+                  placeholder="Additional context..."
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setConvertDialogEmail(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              disabled={!ticketForm.title || !ticketForm.propertyId || convertToTicket.isPending}
+              onClick={() => {
+                if (!convertDialogEmail || !ticketForm.propertyId) return;
+                convertToTicket.mutate({
+                  emailId: convertDialogEmail.id,
+                  propertyId: Number(ticketForm.propertyId),
+                  title: ticketForm.title,
+                  description: ticketForm.description || undefined,
+                  priority: ticketForm.priority,
+                  category: ticketForm.category as any,
+                  unitNumber: ticketForm.unitNumber || undefined,
+                });
+              }}
+            >
+              {convertToTicket.isPending ? (
+                <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Creating...</>
+              ) : (
+                <><Ticket className="w-3.5 h-3.5 mr-1.5" />Create Ticket</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

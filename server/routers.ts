@@ -9,7 +9,7 @@ import {
   getEventsByCompany, getEventsByProperty, createEvent,
   getMeetingsByProperty, createMeeting, updateMeeting,
   getVendorsByCompany, createVendor,
-  getEmailsByCompany, createEmailThread, markEmailRead,
+  getEmailsByCompany, createEmailThread, markEmailRead, markEmailConverted,
   getAllUsers, updateUserRole, getPlatformStats, getCompanyStats,
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
@@ -283,6 +283,43 @@ export const appRouter = router({
           ctx.user.companyId,
           props.map(p => ({ id: p.id, name: p.name, address: p.address, city: p.city }))
         );
+      }),
+    // ── Convert email to ticket ─────────────────────────────────────────────
+    convertToTicket: companyProcedure
+      .input(z.object({
+        emailId: z.number(),
+        // Ticket fields — pre-filled from AI but user can override
+        propertyId: z.number(),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        category: z.enum(["common_area","unit_related","emergency","vendor","board_matter","maintenance","other"]).optional(),
+        unitNumber: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        // Verify the email belongs to this company
+        const emails = await getEmailsByCompany(ctx.user.companyId);
+        const email = emails.find(e => e.id === input.emailId);
+        if (!email) throw new Error("Email not found");
+        // Prevent duplicate conversion
+        if ((email as any).convertedToTicketId) {
+          throw new Error(`Already converted to ticket #${(email as any).convertedToTicketId}`);
+        }
+        // Create the ticket sourced from email
+        const { emailId, ...ticketData } = input;
+        const result = await createTicket({
+          ...ticketData,
+          companyId: ctx.user.companyId,
+          source: "email",
+          reportedById: ctx.user.id,
+          sourceEmailId: emailId,
+        });
+        const ticketId = result?.id;
+        if (!ticketId) throw new Error("Failed to create ticket");
+        // Link the email back to the ticket
+        await markEmailConverted(emailId, ticketId);
+        return { ticketId, success: true };
       }),
     // Return OAuth URLs for the frontend to redirect to
     getConnectUrl: protectedProcedure

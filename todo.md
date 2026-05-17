@@ -126,3 +126,14 @@
 - [x] Add filter tabs: All / Critical / High / Unassigned
 - [x] Add per-card "Re-categorize" button
 - [x] Write vitest tests for categorizeEmail structured output parsing
+
+## Email → Work Ticket Conversion
+- [x] Add sourceEmailId foreign key column to tickets table in schema and run db:push
+- [x] Add email.convertToTicket tRPC procedure that maps AI fields to ticket fields and saves both
+- [x] Map aiUrgency → ticket priority, aiCategory → ticket category, aiMatchedPropertyId → ticket propertyId
+- [x] Mark email as converted (set sourceEmailId on ticket, add convertedToTicketId on email thread)
+- [x] Add Convert to Ticket button on each email card (only show when email has AI categorization)
+- [x] Build pre-filled confirmation dialog showing all auto-populated ticket fields with edit capability
+- [x] Show linked ticket badge on email card after conversion (with ticket ID link)
+- [x] Prevent duplicate conversion (disable button if email already converted)
+- [x] Write vitest tests for emailToTicket field mapping logic

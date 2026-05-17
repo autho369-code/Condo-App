@@ -209,6 +209,11 @@ export async function markEmailRead(emailId: number) {
   if (!db) return;
   await (db as any).update(emailThreads).set({ isRead: true }).where(eq(emailThreads.id, emailId));
 }
+export async function markEmailConverted(emailId: number, ticketId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(emailThreads).set({ convertedToTicketId: ticketId }).where(eq(emailThreads.id, emailId));
+}
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 export async function getCompanyStats(companyId: number) {

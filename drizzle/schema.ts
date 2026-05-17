@@ -126,6 +126,8 @@ export const tickets = mysqlTable("tickets", {
   unitNumber: varchar("unitNumber", { length: 20 }),
   // Source of the ticket
   source: mysqlEnum("source", ["portal", "email", "phone", "manager", "system"]).default("manager").notNull(),
+  // If this ticket was created from an email, link back to the email thread
+  sourceEmailId: int("sourceEmailId"),
   dueDate: timestamp("dueDate"),
   resolvedAt: timestamp("resolvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -280,6 +282,8 @@ export const emailThreads = mysqlTable("email_threads", {
   aiConfidence: int("aiConfidence"), // 0-100
   aiReasoning: text("aiReasoning"),
   aiCategorizedAt: timestamp("aiCategorizedAt"),
+  // If this email was converted to a ticket, store the ticket ID
+  convertedToTicketId: int("convertedToTicketId"),
   isRead: boolean("isRead").default(false).notNull(),
   source: mysqlEnum("source", ["gmail", "outlook", "manual"]).default("manual").notNull(),
   receivedAt: timestamp("receivedAt").defaultNow().notNull(),
