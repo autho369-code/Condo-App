@@ -10,10 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import {
-  Ticket, Plus, Search, Filter, Paperclip, Upload, X, FileText,
-  Image as ImageIcon, Trash2, ChevronDown, ChevronUp, Eye, ZoomIn
+import { Ticket, Plus, Search, Filter, Paperclip, Upload, X, FileText,
+  Image as ImageIcon, Trash2, ChevronDown, ChevronUp, Eye, ZoomIn,
+  LayoutList, Columns
 } from "lucide-react";
+import KanbanBoard, { type TicketStatus as KanbanStatus } from "@/components/KanbanBoard";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -317,6 +318,10 @@ function AttachmentPanel({ ticketId }: { ticketId: number }) {
 export default function Tickets() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    try { return (localStorage.getItem("tickets_view") as "list" | "kanban") ?? "list"; }
+    catch { return "list"; }
+  });
   const [open, setOpen] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium", unitNumber: "" });
@@ -365,6 +370,15 @@ export default function Tickets() {
   const updateStatus = trpc.tickets.updateStatus.useMutation({
     onSuccess: () => { utils.tickets.list.invalidate(); toast.success("Status updated."); },
   });
+
+  const handleViewChange = (mode: "list" | "kanban") => {
+    setViewMode(mode);
+    try { localStorage.setItem("tickets_view", mode); } catch {}
+  };
+
+  const handleKanbanStatusChange = (ticketId: number, newStatus: KanbanStatus) => {
+    updateStatus.mutate({ ticketId, status: newStatus });
+  };
 
   const filtered = (tickets ?? []).filter(t => {
     const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase());
@@ -415,7 +429,31 @@ export default function Tickets() {
           <h1 className="font-serif text-3xl font-bold text-charcoal">Work Tickets</h1>
           <p className="text-muted-foreground mt-1 text-sm">AI-classified tickets from all sources.</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setPendingFiles([]); }}>
+        <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex items-center border rounded-lg overflow-hidden">
+              <button
+                onClick={() => handleViewChange("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === "list"
+                    ? "bg-olive text-cream"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" /> List
+              </button>
+              <button
+                onClick={() => handleViewChange("kanban")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === "kanban"
+                    ? "bg-olive text-cream"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Columns className="w-3.5 h-3.5" /> Kanban
+              </button>
+            </div>
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setPendingFiles([]); }}>
           <DialogTrigger asChild>
             <Button className="bg-olive text-cream hover:bg-olive/90">
               <Plus className="w-4 h-4 mr-2" />New Ticket
@@ -547,6 +585,7 @@ export default function Tickets() {
             </div>
           </DialogContent>
         </Dialog>
+          </div>
       </div>
 
       {/* Filters */}
@@ -586,11 +625,24 @@ export default function Tickets() {
         )}
       </div>
 
-      {/* Ticket List */}
+      {/* Ticket List / Kanban */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
         </div>
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard
+          tickets={(tickets ?? []).map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status as KanbanStatus | null,
+            priority: t.priority,
+            category: t.category,
+            unitNumber: t.unitNumber,
+            createdAt: t.createdAt,
+          }))}
+          onStatusChange={handleKanbanStatusChange}
+        />
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Ticket className="w-10 h-10 mx-auto mb-3 opacity-30" />

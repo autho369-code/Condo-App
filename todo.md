@@ -1,100 +1,100 @@
 # Portier369 — Project TODO
 
 ## Database Schema
-- [ ] Extend users table with portier-specific role enum (super_admin, company_admin, portfolio_manager, property_manager, accountant, assistant_manager, owner, vendor, resident)
-- [ ] Create companies table (property management companies)
-- [ ] Create properties table (individual condo communities)
-- [ ] Create property_assignments table (manager ↔ property)
-- [ ] Create work_tickets table
-- [ ] Create ticket_comments table
-- [ ] Create schedule_events table
-- [ ] Create meetings table
-- [ ] Create meeting_action_items table
-- [ ] Create vendors table
-- [ ] Create email_threads table
-- [ ] Run db:push to apply migrations
+- [x] Extend users table with portier-specific role enum (super_admin, company_admin, portfolio_manager, property_manager, accountant, assistant_manager, owner, vendor, resident)
+- [x] Create companies table (property management companies)
+- [x] Create properties table (individual condo communities)
+- [x] Create property_assignments table (manager ↔ property)
+- [x] Create work_tickets table
+- [x] Create ticket_comments table
+- [x] Create schedule_events table
+- [x] Create meetings table
+- [x] Create meeting_action_items table
+- [x] Create vendors table
+- [x] Create email_threads table
+- [x] Run db:push to apply migrations
 
 ## Landing Page
-- [ ] Match portier369.com brand: warm cream bg, editorial serif, charcoal text, olive/gold accents
-- [ ] Hero section with headline, subheadline, dual CTAs (Start Free Trial / Book Demo)
-- [ ] Features grid (6 key modules)
-- [ ] Role hierarchy explainer section
-- [ ] Pricing tiers (Starter, Growth, Professional, Enterprise)
-- [ ] FAQ accordion
-- [ ] Footer with nav links
+- [x] Match portier369.com brand: warm cream bg, editorial serif, charcoal text, olive/gold accents
+- [x] Hero section with headline, subheadline, dual CTAs (Start Free Trial / Book Demo)
+- [x] Features grid (6 key modules)
+- [x] Role hierarchy explainer section
+- [x] Pricing tiers (Starter, Growth, Professional, Enterprise)
+- [x] FAQ accordion
+- [x] Footer with nav links
 
 ## Authentication & Role System
-- [ ] Multi-tier role enum in schema
-- [ ] SuperAdmin: invisible login / impersonation (can log in as any company)
-- [ ] Company Admin login → company dashboard
-- [ ] Portfolio Manager login → portfolio view
-- [ ] Property Manager login → single property workspace
-- [ ] Sub-role creation by Property Manager (accountant, assistant, owner, vendor, resident)
-- [ ] Role-based route guards in App.tsx
-- [ ] Login page with role-aware redirect
+- [x] Multi-tier role enum in schema
+- [x] SuperAdmin: invisible login / impersonation (can log in as any company)
+- [x] Company Admin login → company dashboard
+- [x] Portfolio Manager login → portfolio view
+- [x] Property Manager login → single property workspace
+- [x] Sub-role creation by Property Manager (accountant, assistant, owner, vendor, resident)
+- [x] Role-based route guards in App.tsx
+- [x] Login page with role-aware redirect
 
 ## SuperAdmin Dashboard
-- [ ] Customer list (all companies)
-- [ ] Company detail view
-- [ ] Impersonate / invisible login into any company
-- [ ] Platform-wide stats (total properties, tickets, users)
+- [x] Customer list (all companies)
+- [x] Company detail view
+- [x] Impersonate / invisible login into any company
+- [x] Platform-wide stats (total properties, tickets, users)
 
 ## Company Admin Dashboard
-- [ ] Portfolio overview (all properties under company)
-- [ ] Manager management (add/remove/assign managers)
-- [ ] Company settings and branding
-- [ ] Billing and subscription view
+- [x] Portfolio overview (all properties under company)
+- [x] Manager management (add/remove/assign managers)
+- [x] Company settings and branding
+- [x] Billing and subscription view
 
 ## Portfolio Manager Dashboard
-- [ ] Cross-property summary view
-- [ ] Aggregate ticket and schedule overview
-- [ ] Manager performance metrics
+- [x] Cross-property summary view
+- [x] Aggregate ticket and schedule overview
+- [x] Manager performance metrics
 
 ## Property Manager Workspace
-- [ ] Property overview card
-- [ ] Open tickets summary
-- [ ] Today's schedule
-- [ ] Recent emails
-- [ ] Upcoming meetings
-- [ ] Quick-add sub-users (accountant, assistant, owner, vendor, resident)
+- [x] Property overview card
+- [x] Open tickets summary
+- [x] Today's schedule
+- [x] Recent emails
+- [x] Upcoming meetings
+- [x] Quick-add sub-users (accountant, assistant, owner, vendor, resident)
 
 ## Work Tickets Module
-- [ ] Ticket inbox list view with filters (status, priority, category)
-- [ ] Create ticket form (title, description, category, priority, assignee)
-- [ ] Ticket detail view with comments and status workflow
-- [ ] Ticket categories: common-area, unit-related, emergency, vendor, board matter
+- [x] Ticket inbox list view with filters (status, priority, category)
+- [x] Create ticket form (title, description, category, priority, assignee)
+- [x] Ticket detail view with comments and status workflow
+- [x] Ticket categories: common-area, unit-related, emergency, vendor, board matter
 
 ## Scheduling Hub
-- [ ] Calendar view (month/week/day)
-- [ ] Create event form (type, date, time, assignee, property)
-- [ ] Event types: inspection, vendor visit, maintenance, board meeting, deadline
-- [ ] Recurring event support
+- [x] Calendar view (month/week/day)
+- [x] Create event form (type, date, time, assignee, property)
+- [x] Event types: inspection, vendor visit, maintenance, board meeting, deadline
+- [x] Recurring event support
 
 ## Email Hub
-- [ ] Email thread list view
-- [ ] Link email to ticket/property/unit
-- [ ] AI-draft reply button (using LLM integration)
-- [ ] Gmail / Outlook connect placeholders
+- [x] Email thread list view
+- [x] Link email to ticket/property/unit
+- [x] AI-draft reply button (using LLM integration)
+- [x] Gmail / Outlook connect placeholders
 
 ## Meeting Hub
-- [ ] Meeting list view
-- [ ] Create meeting form (agenda, attendees, date)
-- [ ] Agenda builder
-- [ ] Action items tracker
-- [ ] AI meeting summary (using LLM integration)
+- [x] Meeting list view
+- [x] Create meeting form (agenda, attendees, date)
+- [x] Agenda builder
+- [x] Action items tracker
+- [x] AI meeting summary (using LLM integration)
 
 ## Vendor Management
-- [ ] Vendor directory list
-- [ ] Vendor profile (contact, insurance, contracts)
-- [ ] Insurance expiry alerts
-- [ ] Work history log
+- [x] Vendor directory list
+- [x] Vendor profile (contact, insurance, contracts)
+- [x] Insurance expiry alerts
+- [x] Work history log
 
 ## Global UX
-- [ ] Sidebar navigation (role-aware items)
-- [ ] Responsive mobile layout
-- [ ] Toast notifications
-- [ ] Loading skeletons
-- [ ] Empty state illustrations
+- [x] Sidebar navigation (role-aware items)
+- [x] Responsive mobile layout
+- [x] Toast notifications
+- [x] Loading skeletons
+- [x] Empty state illustrations
 
 ## Email OAuth Integration
 - [x] Add GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET to secrets
@@ -149,3 +149,15 @@
 - [x] Allow delete of own attachments (with confirmation)
 - [x] Support image preview lightbox on click
 - [x] Write vitest tests for attachment upload validation logic
+
+## Kanban Board View for Work Tickets
+- [x] Install @dnd-kit/core and @dnd-kit/sortable for drag-and-drop
+- [x] Build KanbanBoard component with 5 status columns (Open, In Progress, Pending Vendor, Resolved, Closed)
+- [x] Build draggable KanbanCard component with ticket info, priority badge, category chip, attachment count
+- [x] Wire drag-end event to trpc.tickets.updateStatus mutation with optimistic update
+- [x] Add view toggle (List / Kanban) in the Tickets page header
+- [x] Persist view preference in localStorage
+- [x] Show column ticket count badge
+- [x] Highlight drop target column on drag-over
+- [x] Show empty column placeholder when no tickets
+- [x] Write vitest tests for Kanban status column mapping logic
