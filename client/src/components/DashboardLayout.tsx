@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Vendors", href: "/dashboard/vendors", icon: Briefcase, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: ["super_admin", "company_admin", "portfolio_manager"] },
   { label: "Admin Panel", href: "/dashboard/admin", icon: Shield, roles: ["super_admin"] },
+  { label: "Resident Portal", href: "/portal", icon: Home, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

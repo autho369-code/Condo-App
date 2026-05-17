@@ -215,6 +215,27 @@ export async function markEmailConverted(emailId: number, ticketId: number) {
   await (db as any).update(emailThreads).set({ convertedToTicketId: ticketId }).where(eq(emailThreads.id, emailId));
 }
 
+// ─── Portal (Resident / Owner) Helpers ──────────────────────────────────────
+export async function getTicketsByReporter(reportedById: number) {
+  const db = await getDb();
+  if (!db) return [] as (typeof tickets.$inferSelect)[];
+  return (db as any).select().from(tickets).where(eq(tickets.reportedById, reportedById)).orderBy(desc(tickets.createdAt)) as Promise<(typeof tickets.$inferSelect)[]>;
+}
+
+export async function getTicketById(ticketId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await (db as any).select().from(tickets).where(eq(tickets.id, ticketId)).limit(1);
+  return result[0] as typeof tickets.$inferSelect | undefined;
+}
+
+export async function getPropertyById(propertyId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await (db as any).select().from(properties).where(eq(properties.id, propertyId)).limit(1);
+  return result[0] as typeof properties.$inferSelect | undefined;
+}
+
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 export async function getCompanyStats(companyId: number) {
   const db = await getDb();

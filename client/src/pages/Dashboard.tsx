@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -9,7 +10,7 @@ import {
   Building2, Ticket, Users, Briefcase, BarChart3, Shield,
   ArrowRight, TrendingUp, AlertCircle
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -179,7 +180,15 @@ function CompanyDashboard() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const role = user?.portierRole ?? "user";
+
+  // Residents and owners belong in the portal, not the manager dashboard
+  useEffect(() => {
+    if (user && (role === "resident" || role === "owner")) {
+      navigate("/portal");
+    }
+  }, [user, role, navigate]);
 
   const renderContent = () => {
     if (role === "super_admin") return <SuperAdminDashboard />;

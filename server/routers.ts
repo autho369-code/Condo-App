@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { serialize } from "cookie";
-import { router, publicProcedure, protectedProcedure, adminProcedure, companyProcedure } from "./_core/trpc";
+import { router, publicProcedure, protectedProcedure, adminProcedure, companyProcedure, portalProcedure } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
 import {
   getAllCompanies, getCompanyById, createCompany,
@@ -11,6 +11,7 @@ import {
   getVendorsByCompany, createVendor,
   getEmailsByCompany, createEmailThread, markEmailRead, markEmailConverted,
   getAllUsers, updateUserRole, getPlatformStats, getCompanyStats,
+  getTicketsByReporter, getTicketById, getPropertyById,
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
 import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
@@ -223,6 +224,60 @@ export const appRouter = router({
         await updateMeeting(input.meetingId, { aiSummary: summary });
         return { summary };
       }),
+  }),
+
+  // ─── Portal (Resident / Owner) ─────────────────────────────────────────────
+  portal: router({
+    submitRequest: portalProcedure
+      .input(z.object({
+        propertyId: z.number(),
+        title: z.string().min(1),
+        description: z.string().optional(),
+        category: z.enum(["common_area","unit_related","emergency","vendor","board_matter","maintenance","other"]).optional(),
+        unitNumber: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const property = await getPropertyById(input.propertyId);
+        if (!property) throw new Error("Property not found");
+        const category = input.category ?? await classifyTicket(input.title, input.description ?? "") as any;
+        const result = await createTicket({
+          ...input,
+          category,
+          companyId: property.companyId,
+          source: "portal",
+          reportedById: ctx.user.id,
+          priority: "medium",
+        });
+        return { ticketId: result?.id, success: true };
+      }),
+    myTickets: portalProcedure.query(async ({ ctx }) => {
+      return getTicketsByReporter(ctx.user.id);
+    }),
+    getTicket: portalProcedure
+      .input(z.object({ ticketId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const ticket = await getTicketById(input.ticketId);
+        if (!ticket || ticket.reportedById !== ctx.user.id) throw new Error("Ticket not found");
+        const comments = await getTicketComments(input.ticketId);
+        const property = ticket.propertyId ? await getPropertyById(ticket.propertyId) : null;
+        const publicComments = comments.filter(c => !c.isInternal);
+        return { ticket, comments: publicComments, property };
+      }),
+    addComment: portalProcedure
+      .input(z.object({ ticketId: z.number(), content: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const ticket = await getTicketById(input.ticketId);
+        if (!ticket || ticket.reportedById !== ctx.user.id) throw new Error("Ticket not found");
+        await addTicketComment({ ticketId: input.ticketId, authorId: ctx.user.id, content: input.content, isInternal: false });
+        return { success: true };
+      }),
+    getProperty: portalProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ input }) => getPropertyById(input.propertyId)),
+    listProperties: portalProcedure.query(async ({ ctx }) => {
+      if (ctx.user.companyId) return getPropertiesByCompany(ctx.user.companyId);
+      return [];
+    }),
   }),
 
   // ─── Email Hub ─────────────────────────────────────────────────────────────

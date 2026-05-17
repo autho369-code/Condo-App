@@ -26,3 +26,12 @@ export const companyProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+// Residents and owners — plus managers who preview the portal
+export const portalProcedure = protectedProcedure.use(({ ctx, next }) => {
+  const portalRoles = ["resident", "owner", "property_manager", "company_admin", "portfolio_manager", "super_admin"];
+  if (!ctx.user.portierRole || !portalRoles.includes(ctx.user.portierRole)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Resident or owner access required." });
+  }
+  return next({ ctx });
+});

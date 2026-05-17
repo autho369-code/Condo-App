@@ -13,6 +13,7 @@ import Vendors from "./pages/Vendors";
 import Properties from "./pages/Properties";
 import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
+import ResidentPortal from "./pages/ResidentPortal";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/dashboard/vendors" component={Vendors} />
       <Route path="/dashboard/properties" component={Properties} />
       <Route path="/dashboard/admin" component={AdminPanel} />
+      <Route path="/portal" component={ResidentPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

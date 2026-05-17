@@ -161,3 +161,16 @@
 - [x] Highlight drop target column on drag-over
 - [x] Show empty column placeholder when no tickets
 - [x] Write vitest tests for Kanban status column mapping logic
+
+## Resident & Owner Portal
+- [x] Add portalUserId and unitNumber fields to tickets table (for resident-submitted tickets)
+- [x] Add tRPC procedures: portal.submitRequest, portal.myTickets, portal.getTicket, portal.addComment
+- [x] Restrict portal procedures to resident/owner roles only
+- [x] Build PortalLayout component (clean minimal nav, no manager sidebar)
+- [x] Build portal landing/welcome page with property info and quick actions
+- [x] Build Submit Request form (title, category, description, unit, photo upload)
+- [x] Build My Tickets list with status timeline and last-updated indicator
+- [x] Build Ticket Detail view with status history, manager comments, and resident reply
+- [x] Add role-based redirect: resident/owner → /portal, manager+ → /dashboard
+- [x] Add /portal route and PortalLayout to App.tsx
+- [x] Write vitest tests for portal.submitRequest and portal.myTickets procedures
