@@ -20,6 +20,17 @@ vi.mock("./db", () => ({
   getDocumentById: vi.fn(),
   getPropertyById: vi.fn(),
   getOwnersByProperty: vi.fn(),
+  // Return all-enabled defaults so preference checks don't suppress notifications in these tests
+  getNotificationPrefs: vi.fn().mockResolvedValue({
+    docSharedInApp: true,
+    docSharedEmail: true,
+    paymentDueInApp: true,
+    paymentDueEmail: true,
+    msgReceivedInApp: true,
+    msgReceivedEmail: true,
+    ticketUpdateInApp: true,
+    ticketUpdateEmail: true,
+  }),
 }));
 
 // ─── Mock the ENV so email sending is skipped ─────────────────────────────────

@@ -466,3 +466,34 @@ export const ownerNotifications = mysqlTable("owner_notifications", {
 
 export type OwnerNotification = typeof ownerNotifications.$inferSelect;
 export type InsertOwnerNotification = typeof ownerNotifications.$inferInsert;
+
+// ─── Owner Notification Preferences ──────────────────────────────────────────
+// Per-owner settings controlling which channels are active for each event type.
+// Defaults to true (all channels on) so new owners receive all notifications
+// until they explicitly opt out.
+export const ownerNotificationPrefs = mysqlTable("owner_notification_prefs", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(), // one row per owner
+
+  // document_shared
+  docSharedInApp:  boolean("docSharedInApp").default(true).notNull(),
+  docSharedEmail:  boolean("docSharedEmail").default(true).notNull(),
+
+  // payment_due
+  paymentDueInApp: boolean("paymentDueInApp").default(true).notNull(),
+  paymentDueEmail: boolean("paymentDueEmail").default(true).notNull(),
+
+  // message_received (manager replies)
+  msgReceivedInApp: boolean("msgReceivedInApp").default(true).notNull(),
+  msgReceivedEmail: boolean("msgReceivedEmail").default(true).notNull(),
+
+  // ticket_update
+  ticketUpdateInApp: boolean("ticketUpdateInApp").default(true).notNull(),
+  ticketUpdateEmail: boolean("ticketUpdateEmail").default(true).notNull(),
+
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OwnerNotificationPrefs = typeof ownerNotificationPrefs.$inferSelect;
+export type InsertOwnerNotificationPrefs = typeof ownerNotificationPrefs.$inferInsert;

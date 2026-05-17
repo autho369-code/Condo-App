@@ -221,3 +221,17 @@
 - [x] Email sent indicator on each notification card
 - [x] Write 12 vitest tests for notification trigger logic and DB helpers — all passing
 - [x] Full test suite: 150 tests passing
+
+## Owner Notification Preferences
+- [x] Add owner_notification_prefs table (ownerId, docSharedInApp, docSharedEmail, paymentDueInApp, paymentDueEmail, msgReceivedInApp, msgReceivedEmail, ticketUpdateInApp, ticketUpdateEmail)
+- [x] Run db:push for new table
+- [x] Add DB helpers: upsertNotificationPrefs, getNotificationPrefs with DEFAULT_NOTIFICATION_PREFS fallback
+- [x] Add portal.getNotificationPrefs tRPC procedure (portalProcedure, returns prefs or defaults)
+- [x] Add portal.saveNotificationPrefs tRPC procedure (portalProcedure, partial update upsert)
+- [x] Update notifyDocumentShared to call getNotificationPrefs per owner before creating in-app notification or sending email
+- [x] Build Settings view in owner portal (4 notification type cards, each with In-App + Email toggles)
+- [x] Add Settings quick action tile to portal home (owners only)
+- [x] Add "settings" view type to PortalView union and goBack handler
+- [x] Sticky unsaved-changes bar with Save and Discard buttons
+- [x] Write 12 vitest tests for preference-aware notification logic — all passing
+- [x] Full test suite: 163 tests passing

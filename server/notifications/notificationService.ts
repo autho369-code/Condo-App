@@ -3,6 +3,10 @@
  *
  * Handles creating in-app notifications and sending email alerts to owners
  * when a document is shared with them.
+ *
+ * Respects each owner's notification preferences (getNotificationPrefs):
+ *  - docSharedInApp  → whether to create an in-app notification
+ *  - docSharedEmail  → whether to send an email alert
  */
 
 import {
@@ -11,6 +15,7 @@ import {
   getDocumentById,
   getPropertyById,
   markNotificationEmailSent,
+  getNotificationPrefs,
 } from "../db";
 import { ENV } from "../_core/env";
 
@@ -119,6 +124,7 @@ function buildDocumentSharedEmail(params: {
             <td style="padding:24px 40px;border-top:1px solid #e8e5de;">
               <p style="margin:0;color:#999;font-size:13px;font-family:sans-serif;line-height:1.5;">
                 This notification was sent because you are registered as an owner on the Portier369 platform.
+                To manage your notification preferences, visit your owner portal settings.
                 If you have questions, please contact your property management company directly.
               </p>
             </td>
@@ -158,29 +164,37 @@ export async function notifyDocumentShared(documentId: number): Promise<void> {
     }
 
     const portalUrl = `${ENV.oauthPortalUrl}/portal?tab=documents&propertyId=${doc.propertyId}`;
+    let notifiedCount = 0;
 
     for (const owner of owners) {
-      // 1. Create in-app notification
+      // ── Load this owner's notification preferences ──────────────────────────
+      const prefs = await getNotificationPrefs(owner.id);
+
+      // 1. Create in-app notification (if owner has not opted out)
       let notifId: number | undefined;
-      try {
-        const result = await createOwnerNotification({
-          ownerId: owner.id,
-          propertyId: doc.propertyId,
-          companyId: doc.companyId,
-          type: "document_shared",
-          title: "New Document Shared",
-          body: `"${doc.title}" has been shared with you for ${property.name}.`,
-          documentId: doc.id,
-          isRead: false,
-          emailSent: false,
-        });
-        notifId = result?.id;
-      } catch (err) {
-        console.error(`[Notifications] Failed to create in-app notification for owner ${owner.id}:`, err);
+      if (prefs.docSharedInApp) {
+        try {
+          const result = await createOwnerNotification({
+            ownerId: owner.id,
+            propertyId: doc.propertyId,
+            companyId: doc.companyId,
+            type: "document_shared",
+            title: "New Document Shared",
+            body: `"${doc.title}" has been shared with you for ${property.name}.`,
+            documentId: doc.id,
+            isRead: false,
+            emailSent: false,
+          });
+          notifId = result?.id;
+        } catch (err) {
+          console.error(`[Notifications] Failed to create in-app notification for owner ${owner.id}:`, err);
+        }
+      } else {
+        console.info(`[Notifications] Owner ${owner.id} has opted out of in-app document notifications.`);
       }
 
-      // 2. Send email notification if owner has an email address
-      if (owner.email) {
+      // 2. Send email notification (if owner has not opted out and has an email)
+      if (prefs.docSharedEmail && owner.email) {
         const ownerName = owner.name ?? "Owner";
         const html = buildDocumentSharedEmail({
           ownerName,
@@ -197,10 +211,14 @@ export async function notifyDocumentShared(documentId: number): Promise<void> {
         if (sent && notifId) {
           await markNotificationEmailSent(notifId);
         }
+      } else if (!prefs.docSharedEmail) {
+        console.info(`[Notifications] Owner ${owner.id} has opted out of email document notifications.`);
       }
+
+      notifiedCount++;
     }
 
-    console.info(`[Notifications] Notified ${owners.length} owner(s) about document "${doc.title}" (id=${documentId}).`);
+    console.info(`[Notifications] Processed ${notifiedCount} owner(s) for document "${doc.title}" (id=${documentId}).`);
   } catch (err) {
     // Notification failures must never crash the main request
     console.error("[Notifications] Unexpected error in notifyDocumentShared:", err);

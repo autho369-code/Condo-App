@@ -5,6 +5,8 @@ import {
   users, companies, properties, propertyAssignments,
   tickets, ticketComments, scheduleEvents, meetings,
   meetingActionItems, vendors, emailThreads,
+  ownerAccounts, paymentTransactions, propertyDocuments,
+  ownerMessages, ownerNotifications, ownerNotificationPrefs,
   type InsertUser, type InsertTicket, type InsertScheduleEvent,
   type InsertMeeting, type InsertVendor, type InsertEmailThread,
   type InsertCompany, type InsertProperty,
@@ -267,7 +269,6 @@ export async function getPlatformStats() {
 
 // ─── Owner Accounts & Payments ────────────────────────────────────────────────
 import {
-  ownerAccounts, paymentTransactions, propertyDocuments, ownerMessages,
   type InsertOwnerAccount, type InsertPaymentTransaction,
   type InsertPropertyDocument, type InsertOwnerMessage,
 } from "../drizzle/schema";
@@ -391,7 +392,6 @@ export async function getOwnerMessagesByCompany(companyId: number) {
 
 // ─── Owner Notifications ──────────────────────────────────────────────────────
 import {
-  ownerNotifications,
   type InsertOwnerNotification,
 } from "../drizzle/schema";
 
@@ -463,4 +463,83 @@ export async function getOwnersByProperty(propertyId: number) {
   const allUsers = await (db as any).select().from(users)
     .where(eq(users.portierRole, "owner")) as (typeof users.$inferSelect)[];
   return allUsers.filter(u => ownerIds.includes(u.id));
+}
+
+// ─── Owner Notification Preferences ──────────────────────────────────────────
+
+export type NotificationPrefsShape = {
+  docSharedInApp: boolean;
+  docSharedEmail: boolean;
+  paymentDueInApp: boolean;
+  paymentDueEmail: boolean;
+  msgReceivedInApp: boolean;
+  msgReceivedEmail: boolean;
+  ticketUpdateInApp: boolean;
+  ticketUpdateEmail: boolean;
+};
+
+/** Default prefs (all channels enabled) returned when no row exists yet. */
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefsShape = {
+  docSharedInApp: true,
+  docSharedEmail: true,
+  paymentDueInApp: true,
+  paymentDueEmail: true,
+  msgReceivedInApp: true,
+  msgReceivedEmail: true,
+  ticketUpdateInApp: true,
+  ticketUpdateEmail: true,
+};
+
+/**
+ * Return the owner's notification preferences.
+ * If no row exists yet, returns the all-enabled defaults without writing to DB.
+ */
+export async function getNotificationPrefs(ownerId: number): Promise<NotificationPrefsShape> {
+  const db = await getDb();
+  if (!db) return { ...DEFAULT_NOTIFICATION_PREFS };
+  const rows = await (db as any)
+    .select()
+    .from(ownerNotificationPrefs)
+    .where(eq(ownerNotificationPrefs.ownerId, ownerId))
+    .limit(1) as (typeof ownerNotificationPrefs.$inferSelect)[];
+  if (!rows[0]) return { ...DEFAULT_NOTIFICATION_PREFS };
+  const r = rows[0];
+  return {
+    docSharedInApp:    r.docSharedInApp,
+    docSharedEmail:    r.docSharedEmail,
+    paymentDueInApp:   r.paymentDueInApp,
+    paymentDueEmail:   r.paymentDueEmail,
+    msgReceivedInApp:  r.msgReceivedInApp,
+    msgReceivedEmail:  r.msgReceivedEmail,
+    ticketUpdateInApp: r.ticketUpdateInApp,
+    ticketUpdateEmail: r.ticketUpdateEmail,
+  };
+}
+
+/**
+ * Create or update the owner's notification preferences (upsert by ownerId).
+ */
+export async function upsertNotificationPrefs(
+  ownerId: number,
+  prefs: Partial<NotificationPrefsShape>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Check if a row already exists
+  const existing = await (db as any)
+    .select({ id: ownerNotificationPrefs.id })
+    .from(ownerNotificationPrefs)
+    .where(eq(ownerNotificationPrefs.ownerId, ownerId))
+    .limit(1) as { id: number }[];
+
+  if (existing[0]) {
+    await (db as any)
+      .update(ownerNotificationPrefs)
+      .set({ ...prefs, updatedAt: new Date() })
+      .where(eq(ownerNotificationPrefs.ownerId, ownerId));
+  } else {
+    await (db as any)
+      .insert(ownerNotificationPrefs)
+      .values({ ownerId, ...DEFAULT_NOTIFICATION_PREFS, ...prefs });
+  }
 }

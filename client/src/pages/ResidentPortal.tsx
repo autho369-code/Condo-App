@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -17,7 +17,7 @@ import {
   Phone, CreditCard, Download, Eye, EyeOff, TrendingDown,
   TrendingUp, Inbox, Reply, Paperclip, FolderOpen, Shield,
   BookOpen, FileCheck, ReceiptText, Bell, BellDot, FileCheck2,
-  X, CheckCheck
+  X, CheckCheck, Settings, ToggleLeft, ToggleRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -33,7 +33,8 @@ type PortalView =
   | "make-payment"
   | "documents"
   | "messages"
-  | "notifications";
+  | "notifications"
+  | "settings";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   open:           { label: "Open",           color: "bg-blue-100 text-blue-800",     icon: <Clock className="w-3 h-3" /> },
@@ -99,7 +100,7 @@ export default function ResidentPortal() {
   function goBack() {
     if (view === "ticket-detail") setView("my-tickets");
     else if (view === "make-payment") setView("account-balance");
-    else if (["new-request", "my-tickets", "account-balance", "documents", "messages", "notifications"].includes(view))
+    else if (["new-request", "my-tickets", "account-balance", "documents", "messages", "notifications", "settings"].includes(view))
       setView("home");
     else setView("welcome");
   }
@@ -162,6 +163,7 @@ export default function ResidentPortal() {
               onDocuments={() => setView("documents")}
               onMessages={() => setView("messages")}
               onChangeProperty={() => setView("select-property")}
+              onSettings={() => setView("settings")}
             />
           )}
           {view === "new-request" && selectedPropertyId && (
@@ -208,6 +210,9 @@ export default function ResidentPortal() {
           )}
           {view === "notifications" && (
             <NotificationsView key="notifications" />
+          )}
+          {view === "settings" && (
+            <NotificationSettings key="settings" />
           )}
         </AnimatePresence>
       </main>
@@ -362,7 +367,7 @@ function PropertySelector({ onSelect }: { onSelect: (id: number) => void }) {
 // ─── Portal Home ──────────────────────────────────────────────────────────────
 function PortalHome({
   propertyId, isOwner, onNewRequest, onMyTickets, onAccountBalance,
-  onDocuments, onMessages, onChangeProperty
+  onDocuments, onMessages, onChangeProperty, onSettings
 }: {
   propertyId: number;
   isOwner: boolean;
@@ -372,6 +377,7 @@ function PortalHome({
   onDocuments: () => void;
   onMessages: () => void;
   onChangeProperty: () => void;
+  onSettings: () => void;
 }) {
   const { data: property } = trpc.portal.getProperty.useQuery({ propertyId });
   const { data: tickets } = trpc.portal.myTickets.useQuery();
@@ -390,6 +396,7 @@ function PortalHome({
       { icon: <DollarSign className="w-6 h-6" />, label: "Account Balance", sub: "View balance & pay", onClick: onAccountBalance, primary: false },
       { icon: <FolderOpen className="w-6 h-6" />, label: "Documents", sub: "Governing docs & minutes", onClick: onDocuments, primary: false },
       { icon: <MessageSquare className="w-6 h-6" />, label: "Contact Us", sub: "Message management", onClick: onMessages, primary: false },
+      { icon: <Settings className="w-6 h-6" />, label: "Settings", sub: "Notification preferences", onClick: onSettings, primary: false },
     ] : []),
   ];
 
@@ -1540,6 +1547,231 @@ function NotificationsView() {
           );
         })}
       </div>
+    </motion.div>
+  );
+}
+
+// ─── Notification Settings ────────────────────────────────────────────────────
+function NotificationSettings() {
+  const utils = trpc.useUtils();
+  const { data: prefs, isLoading } = trpc.portal.getNotificationPrefs.useQuery();
+
+  const saveMutation = trpc.portal.saveNotificationPrefs.useMutation({
+    onSuccess: () => {
+      utils.portal.getNotificationPrefs.invalidate();
+      toast.success("Notification preferences saved");
+    },
+    onError: (err) => toast.error(err.message || "Failed to save preferences"),
+  });
+
+  // Local state mirrors server prefs; initialised once data loads
+  const [local, setLocal] = useState<Record<string, boolean> | null>(null);
+
+  // Sync local state when server data arrives
+  useEffect(() => {
+    if (prefs && !local) {
+      setLocal({ ...prefs });
+    }
+  }, [prefs]);
+
+  function toggle(key: string) {
+    setLocal(prev => prev ? { ...prev, [key]: !prev[key] } : prev);
+  }
+
+  function isDirty() {
+    if (!prefs || !local) return false;
+    return Object.keys(local).some(k => (local as any)[k] !== (prefs as any)[k]);
+  }
+
+  function handleSave() {
+    if (!local) return;
+    saveMutation.mutate(local as any);
+  }
+
+  // ── Notification type definitions ────────────────────────────────────────────
+  const NOTIF_TYPES = [
+    {
+      key: "docShared",
+      label: "Document Shared",
+      description: "When your management company shares a new governing document, meeting minutes, or other file with you.",
+      icon: <FileCheck2 className="w-5 h-5 text-blue-600" />,
+      bg: "bg-blue-50",
+    },
+    {
+      key: "paymentDue",
+      label: "Payment Due",
+      description: "When a new charge or payment reminder is posted to your account.",
+      icon: <DollarSign className="w-5 h-5 text-red-600" />,
+      bg: "bg-red-50",
+    },
+    {
+      key: "msgReceived",
+      label: "Message Received",
+      description: "When your property manager replies to one of your messages.",
+      icon: <MessageSquare className="w-5 h-5 text-purple-600" />,
+      bg: "bg-purple-50",
+    },
+    {
+      key: "ticketUpdate",
+      label: "Request Update",
+      description: "When the status of one of your maintenance requests changes.",
+      icon: <Wrench className="w-5 h-5 text-amber-600" />,
+      bg: "bg-amber-50",
+    },
+  ];
+
+  // ── Toggle row component ──────────────────────────────────────────────────────
+  function PrefRow({
+    label,
+    value,
+    onChange,
+    disabled,
+  }: {
+    label: string;
+    value: boolean;
+    onChange: () => void;
+    disabled?: boolean;
+  }) {
+    return (
+      <div className="flex items-center justify-between py-2.5">
+        <div className="flex items-center gap-2">
+          {value
+            ? <ToggleRight className="w-4 h-4 text-[#5C6B3A]" />
+            : <ToggleLeft className="w-4 h-4 text-[#CCC]" />
+          }
+          <span className={`text-sm ${value ? "text-[#3C3C3C] font-medium" : "text-[#999]"}`}>{label}</span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value}
+          disabled={disabled}
+          onClick={onChange}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#5C6B3A] focus:ring-offset-1 ${
+            value ? "bg-[#5C6B3A]" : "bg-[#D1CBBD]"
+          } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+              value ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      className="space-y-5"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-serif font-semibold text-[#3C3C3C]">Notification Settings</h2>
+          <p className="text-[#666] text-sm mt-0.5">
+            Choose how you want to be alerted for each event type.
+          </p>
+        </div>
+        <div className="w-10 h-10 bg-[#F0EBE0] rounded-xl flex items-center justify-center shrink-0">
+          <Settings className="w-5 h-5 text-[#5C6B3A]" />
+        </div>
+      </div>
+
+      {/* Channel legend */}
+      <div className="flex items-center gap-4 bg-[#F8FBF5] border border-[#D4E0C4] rounded-xl px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <Bell className="w-3.5 h-3.5 text-[#5C6B3A]" />
+          <span className="text-xs text-[#5C6B3A] font-medium">In-App</span>
+        </div>
+        <span className="text-[#CCC] text-xs">—</span>
+        <p className="text-xs text-[#666]">Shown in the notification bell inside this portal</p>
+      </div>
+      <div className="flex items-center gap-4 bg-[#FFF8F0] border border-[#F0D8B4] rounded-xl px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <Mail className="w-3.5 h-3.5 text-amber-700" />
+          <span className="text-xs text-amber-700 font-medium">Email</span>
+        </div>
+        <span className="text-[#CCC] text-xs">—</span>
+        <p className="text-xs text-[#666]">Sent to the email address on your account</p>
+      </div>
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" />
+        </div>
+      )}
+
+      {/* Preference cards */}
+      {!isLoading && local && (
+        <div className="space-y-3">
+          {NOTIF_TYPES.map(({ key, label, description, icon, bg }) => (
+            <Card key={key} className="border-[#E8E0D0]">
+              <CardContent className="p-4">
+                {/* Type header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#3C3C3C]">{label}</p>
+                    <p className="text-xs text-[#888] leading-snug">{description}</p>
+                  </div>
+                </div>
+
+                {/* Channel toggles */}
+                <div className="border-t border-[#F0EBE0] divide-y divide-[#F0EBE0]">
+                  <PrefRow
+                    label="In-App notification"
+                    value={local[`${key}InApp`] ?? true}
+                    onChange={() => toggle(`${key}InApp`)}
+                  />
+                  <PrefRow
+                    label="Email alert"
+                    value={local[`${key}Email`] ?? true}
+                    onChange={() => toggle(`${key}Email`)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Save / discard bar */}
+      {!isLoading && local && (
+        <div className={`sticky bottom-4 transition-all duration-200 ${isDirty() ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
+          <div className="bg-[#3C3C3C] rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl">
+            <p className="text-white text-sm">You have unsaved changes</p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                onClick={() => setLocal({ ...prefs! })}
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#5C6B3A] hover:bg-[#4A5730] text-white"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+              >
+                {saveMutation.isPending ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving...</>
+                ) : (
+                  "Save Preferences"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

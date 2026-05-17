@@ -27,6 +27,8 @@ import { notifyDocumentShared } from "./notifications/notificationService";
 import {
   getNotificationsByOwner, getUnreadNotificationCount,
   markNotificationRead, markAllNotificationsRead,
+  getNotificationPrefs, upsertNotificationPrefs,
+  type NotificationPrefsShape,
 } from "./db";
 
 export const appRouter = router({
@@ -397,6 +399,29 @@ export const appRouter = router({
       await markAllNotificationsRead(ctx.user.id);
       return { success: true };
     }),
+
+    // ── Notification Preferences ────────────────────────────────────────────
+    getNotificationPrefs: portalProcedure.query(async ({ ctx }) => {
+      return getNotificationPrefs(ctx.user.id);
+    }),
+
+    saveNotificationPrefs: portalProcedure
+      .input(
+        z.object({
+          docSharedInApp:    z.boolean().optional(),
+          docSharedEmail:    z.boolean().optional(),
+          paymentDueInApp:   z.boolean().optional(),
+          paymentDueEmail:   z.boolean().optional(),
+          msgReceivedInApp:  z.boolean().optional(),
+          msgReceivedEmail:  z.boolean().optional(),
+          ticketUpdateInApp: z.boolean().optional(),
+          ticketUpdateEmail: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await upsertNotificationPrefs(ctx.user.id, input);
+        return { success: true };
+      }),
   }),
 
   // ─── Documents (Manager-side) ──────────────────────────────────────────────

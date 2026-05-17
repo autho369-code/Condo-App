@@ -50,6 +50,13 @@
       "when": 1778992688497,
       "tag": "0006_confused_the_hand",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1778993189060,
+      "tag": "0007_peaceful_hercules",
+      "breakpoints": true
     }
   ]
 }
