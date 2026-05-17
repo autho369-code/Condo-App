@@ -23,6 +23,11 @@ import { getAttachmentsByTicket, deleteAttachment as dbDeleteAttachment } from "
 import { syncEmailConnection } from "./email/emailRoutes";
 import { categorizeEmail, saveCategorization, bulkCategorizeCompanyEmails } from "./email/categorize";
 import { ENV } from "./_core/env";
+import { notifyDocumentShared } from "./notifications/notificationService";
+import {
+  getNotificationsByOwner, getUnreadNotificationCount,
+  markNotificationRead, markAllNotificationsRead,
+} from "./db";
 
 export const appRouter = router({
   // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -370,6 +375,28 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+
+    // ── Notifications ────────────────────────────────────────────────────────────────────────
+    getNotifications: portalProcedure.query(async ({ ctx }) => {
+      return getNotificationsByOwner(ctx.user.id, 50);
+    }),
+
+    getUnreadCount: portalProcedure.query(async ({ ctx }) => {
+      const count = await getUnreadNotificationCount(ctx.user.id);
+      return { count };
+    }),
+
+    markNotificationRead: portalProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await markNotificationRead(input.notificationId, ctx.user.id);
+        return { success: true };
+      }),
+
+    markAllNotificationsRead: portalProcedure.mutation(async ({ ctx }) => {
+      await markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
   }),
 
   // ─── Documents (Manager-side) ──────────────────────────────────────────────
@@ -387,7 +414,15 @@ export const appRouter = router({
         // Verify document belongs to this company
         const doc = await getDocumentById(input.documentId);
         if (!doc || doc.companyId !== ctx.user.companyId) throw new Error("Document not found");
+        const wasShared = doc.isSharedWithOwners;
         await toggleDocumentShare(input.documentId, input.isShared);
+        // Fire notifications when sharing is newly enabled
+        if (input.isShared && !wasShared) {
+          // Non-blocking: do not await so the mutation returns quickly
+          notifyDocumentShared(input.documentId).catch(err =>
+            console.error("[toggleShare] Notification error:", err)
+          );
+        }
         return { success: true };
       }),
     delete: companyProcedure

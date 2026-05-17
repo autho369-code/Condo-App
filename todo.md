@@ -203,3 +203,21 @@
 - [x] Add delete document button with confirmation
 - [x] Write vitest tests for owner portal logic (balance, payments, documents, messages)
 - [x] All 138 tests passing
+
+## Automated Document Notification System
+- [x] Add owner_notifications table (ownerId, propertyId, companyId, type, title, body, documentId, isRead, emailSent, createdAt)
+- [x] Run db:push for new table
+- [x] Add DB helpers: createOwnerNotification, getNotificationsByOwner, markNotificationRead, markNotificationsRead, getUnreadCount
+- [x] Build notifyDocumentShared(documentId) server helper — creates in-app notifications for all owners of the property
+- [x] Build sendDocumentEmail helper — sends branded HTML email via Forge API
+- [x] Trigger notification on documents.toggleShare (when isShared flips true)
+- [x] Trigger notification on POST /api/properties/:propertyId/documents (when isSharedWithOwners=true at upload time)
+- [x] Add portal.getNotifications tRPC procedure (returns unread + recent notifications for logged-in owner)
+- [x] Add portal.markNotificationRead tRPC procedure
+- [x] Add portal.markAllNotificationsRead tRPC procedure
+- [x] Add portal.getUnreadCount tRPC procedure (polls every 30s on frontend)
+- [x] Add notification bell icon with unread badge to portal header
+- [x] Build Notifications view in owner portal (list, unread dot, mark-read, mark-all-read)
+- [x] Email sent indicator on each notification card
+- [x] Write 12 vitest tests for notification trigger logic and DB helpers — all passing
+- [x] Full test suite: 150 tests passing

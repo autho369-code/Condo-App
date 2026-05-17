@@ -16,7 +16,8 @@ import {
   Send, Loader2, Home, LogIn, DollarSign, FileText, Mail,
   Phone, CreditCard, Download, Eye, EyeOff, TrendingDown,
   TrendingUp, Inbox, Reply, Paperclip, FolderOpen, Shield,
-  BookOpen, FileCheck, ReceiptText
+  BookOpen, FileCheck, ReceiptText, Bell, BellDot, FileCheck2,
+  X, CheckCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -31,7 +32,8 @@ type PortalView =
   | "account-balance"
   | "make-payment"
   | "documents"
-  | "messages";
+  | "messages"
+  | "notifications";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   open:           { label: "Open",           color: "bg-blue-100 text-blue-800",     icon: <Clock className="w-3 h-3" /> },
@@ -97,7 +99,7 @@ export default function ResidentPortal() {
   function goBack() {
     if (view === "ticket-detail") setView("my-tickets");
     else if (view === "make-payment") setView("account-balance");
-    else if (["new-request", "my-tickets", "account-balance", "documents", "messages"].includes(view))
+    else if (["new-request", "my-tickets", "account-balance", "documents", "messages", "notifications"].includes(view))
       setView("home");
     else setView("welcome");
   }
@@ -124,6 +126,11 @@ export default function ResidentPortal() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isOwner && selectedPropertyId && (
+              <NotificationBell
+                onOpen={() => setView("notifications")}
+              />
+            )}
             <div className="w-7 h-7 rounded-full bg-[#5C6B3A] flex items-center justify-center text-white text-xs font-semibold">
               {user?.name?.[0]?.toUpperCase() ?? "R"}
             </div>
@@ -198,6 +205,9 @@ export default function ResidentPortal() {
           )}
           {view === "messages" && selectedPropertyId && (
             <OwnerMessages key="messages" propertyId={selectedPropertyId} />
+          )}
+          {view === "notifications" && (
+            <NotificationsView key="notifications" />
           )}
         </AnimatePresence>
       </main>
@@ -1347,6 +1357,189 @@ function OwnerMessages({ propertyId }: { propertyId: number }) {
           </Button>
         </CardContent>
       </Card>
+    </motion.div>
+  );
+}
+
+// ─── Notification Bell (header widget) ───────────────────────────────────────
+function NotificationBell({ onOpen }: { onOpen: () => void }) {
+  const { data } = trpc.portal.getUnreadCount.useQuery(undefined, {
+    refetchInterval: 30_000, // poll every 30s
+  });
+  const unread = data?.count ?? 0;
+
+  return (
+    <button
+      onClick={onOpen}
+      className="relative p-1.5 rounded-lg hover:bg-[#F0EBE0] transition-colors"
+      aria-label={unread > 0 ? `${unread} unread notifications` : "Notifications"}
+    >
+      {unread > 0 ? (
+        <BellDot className="w-5 h-5 text-[#5C6B3A]" />
+      ) : (
+        <Bell className="w-5 h-5 text-[#999]" />
+      )}
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ─── Notifications View ───────────────────────────────────────────────────────
+function NotificationsView() {
+  const utils = trpc.useUtils();
+  const { data: notifications, isLoading } = trpc.portal.getNotifications.useQuery();
+
+  const markReadMutation = trpc.portal.markNotificationRead.useMutation({
+    onSuccess: () => {
+      utils.portal.getNotifications.invalidate();
+      utils.portal.getUnreadCount.invalidate();
+    },
+  });
+
+  const markAllMutation = trpc.portal.markAllNotificationsRead.useMutation({
+    onSuccess: () => {
+      utils.portal.getNotifications.invalidate();
+      utils.portal.getUnreadCount.invalidate();
+      toast.success("All notifications marked as read");
+    },
+  });
+
+  const unreadCount = notifications?.filter(n => !n.isRead).length ?? 0;
+
+  const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+    document_shared:  { icon: <FileCheck2 className="w-4 h-4" />, color: "text-blue-700",  bg: "bg-blue-50" },
+    payment_due:      { icon: <DollarSign className="w-4 h-4" />, color: "text-red-700",   bg: "bg-red-50" },
+    message_received: { icon: <MessageSquare className="w-4 h-4" />, color: "text-purple-700", bg: "bg-purple-50" },
+    ticket_update:    { icon: <Wrench className="w-4 h-4" />,     color: "text-amber-700", bg: "bg-amber-50" },
+    general:          { icon: <Bell className="w-4 h-4" />,       color: "text-gray-700",  bg: "bg-gray-50" },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-serif font-semibold text-[#3C3C3C]">Notifications</h2>
+          <p className="text-[#666] text-sm">
+            {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+          </p>
+        </div>
+        {unreadCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[#E8E0D0] text-[#5C6B3A] hover:bg-[#F0EBE0] text-xs"
+            onClick={() => markAllMutation.mutate()}
+            disabled={markAllMutation.isPending}
+          >
+            <CheckCheck className="w-3.5 h-3.5 mr-1.5" />
+            Mark all read
+          </Button>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" />
+        </div>
+      )}
+
+      {!isLoading && (!notifications || notifications.length === 0) && (
+        <Card className="border-[#E8E0D0] text-center py-14">
+          <CardContent>
+            <Bell className="w-12 h-12 text-[#CCC] mx-auto mb-3" />
+            <p className="text-[#666] text-sm font-medium">No notifications yet</p>
+            <p className="text-[#999] text-xs mt-1">
+              You'll be notified here when documents are shared or updates are posted.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-2">
+        {notifications?.map((notif) => {
+          const cfg = TYPE_CONFIG[notif.type ?? "general"] ?? TYPE_CONFIG.general;
+          const isUnread = !notif.isRead;
+          return (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              layout
+            >
+              <Card
+                className={`border transition-all cursor-pointer ${
+                  isUnread
+                    ? "border-[#5C6B3A]/30 bg-[#F8FBF5] hover:border-[#5C6B3A]"
+                    : "border-[#E8E0D0] bg-white hover:border-[#5C6B3A]/50"
+                }`}
+                onClick={() => {
+                  if (isUnread) {
+                    markReadMutation.mutate({ notificationId: notif.id });
+                  }
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg} ${cfg.color}`}>
+                      {cfg.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-sm font-medium ${isUnread ? "text-[#2C2C2C]" : "text-[#555]"}`}>
+                          {notif.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isUnread && (
+                            <span className="w-2 h-2 bg-[#5C6B3A] rounded-full" />
+                          )}
+                          {isUnread && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markReadMutation.mutate({ notificationId: notif.id });
+                              }}
+                              className="p-0.5 rounded hover:bg-[#E8E0D0] transition-colors"
+                              title="Mark as read"
+                            >
+                              <X className="w-3 h-3 text-[#999]" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className={`text-xs mt-0.5 leading-relaxed ${isUnread ? "text-[#444]" : "text-[#888]"}`}>
+                        {notif.body}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <p className="text-[10px] text-[#BBB]">
+                          {new Date(notif.createdAt).toLocaleString()}
+                        </p>
+                        {notif.emailSent && (
+                          <span className="flex items-center gap-0.5 text-[10px] text-[#5C6B3A]">
+                            <Mail className="w-2.5 h-2.5" />
+                            Email sent
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
     </motion.div>
   );
 }

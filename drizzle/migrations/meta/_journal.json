@@ -43,6 +43,13 @@
       "when": 1778991984490,
       "tag": "0005_striped_lilith",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778992688497,
+      "tag": "0006_confused_the_hand",
+      "breakpoints": true
     }
   ]
 }

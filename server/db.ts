@@ -388,3 +388,79 @@ export async function getOwnerMessagesByCompany(companyId: number) {
     .where(eq(ownerMessages.companyId, companyId))
     .orderBy(desc(ownerMessages.createdAt)) as Promise<(typeof ownerMessages.$inferSelect)[]>;
 }
+
+// ─── Owner Notifications ──────────────────────────────────────────────────────
+import {
+  ownerNotifications,
+  type InsertOwnerNotification,
+} from "../drizzle/schema";
+
+export async function createOwnerNotification(data: InsertOwnerNotification) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const result = await (db as any).insert(ownerNotifications).values(data).$returningId();
+  return result[0] as { id: number } | undefined;
+}
+
+export async function getNotificationsByOwner(ownerId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [] as (typeof ownerNotifications.$inferSelect)[];
+  return (db as any).select().from(ownerNotifications)
+    .where(eq(ownerNotifications.ownerId, ownerId))
+    .orderBy(desc(ownerNotifications.createdAt))
+    .limit(limit) as Promise<(typeof ownerNotifications.$inferSelect)[]>;
+}
+
+export async function getUnreadNotificationCount(ownerId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await (db as any).select({ count: sql<number>`count(*)` })
+    .from(ownerNotifications)
+    .where(and(eq(ownerNotifications.ownerId, ownerId), eq(ownerNotifications.isRead, false)));
+  return Number(row?.count ?? 0);
+}
+
+export async function markNotificationRead(notificationId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(ownerNotifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(eq(ownerNotifications.id, notificationId), eq(ownerNotifications.ownerId, ownerId)));
+}
+
+export async function markAllNotificationsRead(ownerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(ownerNotifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(eq(ownerNotifications.ownerId, ownerId), eq(ownerNotifications.isRead, false)));
+}
+
+export async function markNotificationEmailSent(notificationId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(ownerNotifications)
+    .set({ emailSent: true, emailSentAt: new Date() })
+    .where(eq(ownerNotifications.id, notificationId));
+}
+
+/**
+ * Get all owners who have an owner_account for a specific property.
+ * This is the correct property-scoped lookup — it only returns owners
+ * explicitly linked to this property via the owner_accounts table,
+ * preventing cross-property notifications within the same company.
+ */
+export async function getOwnersByProperty(propertyId: number) {
+  const db = await getDb();
+  if (!db) return [] as (typeof users.$inferSelect)[];
+  // Find all owner IDs from owner_accounts for this property
+  const accounts = await (db as any).select({ ownerId: ownerAccounts.ownerId })
+    .from(ownerAccounts)
+    .where(eq(ownerAccounts.propertyId, propertyId)) as { ownerId: number }[];
+  if (accounts.length === 0) return [];
+  const ownerIds = accounts.map(a => a.ownerId);
+  // Fetch the user records for those owner IDs
+  const allUsers = await (db as any).select().from(users)
+    .where(eq(users.portierRole, "owner")) as (typeof users.$inferSelect)[];
+  return allUsers.filter(u => ownerIds.includes(u.id));
+}

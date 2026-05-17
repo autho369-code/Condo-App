@@ -9,6 +9,7 @@ import { parse as parseCookies } from "cookie";
 import { verifySession } from "../_core/session";
 import { getUserByOpenId } from "../db";
 import { COOKIE_NAME } from "../../shared/const";
+import { notifyDocumentShared } from "../notifications/notificationService";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB for documents
@@ -119,13 +120,23 @@ export function registerDocumentRoutes(app: ReturnType<typeof Router>) {
           })
           .$returningId();
 
+        const sharedFlag = isSharedWithOwners === "true" || isSharedWithOwners === true;
+        const newDocId = row?.id;
+
+        // Fire notifications if document is shared at upload time
+        if (sharedFlag && newDocId) {
+          notifyDocumentShared(newDocId).catch(err =>
+            console.error("[documentRoutes] Notification error:", err)
+          );
+        }
+
         res.json({
-          id: row?.id,
+          id: newDocId,
           title,
           fileUrl: url,
           mimeType: file.mimetype,
           fileSize: file.size,
-          isSharedWithOwners: isSharedWithOwners === "true" || isSharedWithOwners === true,
+          isSharedWithOwners: sharedFlag,
         });
       } catch (err: any) {
         console.error("[documentRoutes] upload error:", err);

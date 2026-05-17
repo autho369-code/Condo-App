@@ -432,3 +432,37 @@ export const ownerMessages = mysqlTable("owner_messages", {
 
 export type OwnerMessage = typeof ownerMessages.$inferSelect;
 export type InsertOwnerMessage = typeof ownerMessages.$inferInsert;
+
+// ─── Owner Notifications ──────────────────────────────────────────────────────
+// In-app notifications sent to owners/residents when documents are shared
+// or other important events occur.
+export const ownerNotifications = mysqlTable("owner_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  // Recipient
+  ownerId: int("ownerId").notNull(),         // references users.id
+  propertyId: int("propertyId").notNull(),   // references properties.id
+  companyId: int("companyId").notNull(),
+  // Notification type
+  type: mysqlEnum("type", [
+    "document_shared",
+    "payment_due",
+    "message_received",
+    "ticket_update",
+    "general",
+  ]).default("general").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  body: text("body").notNull(),
+  // Optional deep-link data
+  documentId: int("documentId"),   // if type = document_shared
+  ticketId: int("ticketId"),       // if type = ticket_update
+  // Read state
+  isRead: boolean("isRead").default(false).notNull(),
+  readAt: timestamp("readAt"),
+  // Email delivery tracking
+  emailSent: boolean("emailSent").default(false).notNull(),
+  emailSentAt: timestamp("emailSentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OwnerNotification = typeof ownerNotifications.$inferSelect;
+export type InsertOwnerNotification = typeof ownerNotifications.$inferInsert;
