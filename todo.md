@@ -303,3 +303,22 @@
 - [x] Mobile: Tasks panel as overlay with backdrop dismiss
 - [x] Mobile header: Tasks toggle button in top-right corner
 - [x] All 219 tests still passing after layout changes
+
+## Context-Aware Tasks Panel
+- [x] Read DashboardLayout.tsx to understand current Tasks panel structure
+- [x] Define per-route PAGE_CONTEXT map (10 routes × 4-6 actions each)
+- [x] Dashboard: Open work orders, View overdue, Pending approvals, Send email blast, Schedule hearing
+- [x] Properties: Add property, Upload document, View documents, Message owners, Post charge, Record credit
+- [x] Tickets: New work order, Filter urgent, Assign vendor, Export report, View all vendors
+- [x] Owner Messages: Mark all read, Filter by property, View owner portal, Send email blast
+- [x] Schedule: New event, View calendar, Send reminder, View meetings
+- [x] Email Hub: New email blast, View templates, Scheduled emails, View analytics
+- [x] Meetings: New meeting, View agenda, Send minutes, Invite owners
+- [x] Vendors: Add vendor, View work orders, Rate vendor, Archive vendor
+- [x] Analytics: Export report, Refresh data, Compare properties, View delinquency
+- [x] Admin: Manage users, System settings, View audit log, Quick setup
+- [x] Context section rendered at TOP with olive accent color and ▸ prefix
+- [x] Context section separated from static sections by bottom border
+- [x] Static sections (Owner Communications, Accounting, Reports) filtered to not duplicate context section
+- [x] Role-based filtering on both context and static sections
+- [x] All 219 tests still passing after changes

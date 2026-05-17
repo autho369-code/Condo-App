@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -9,9 +9,12 @@ import {
   Briefcase, LogOut, Menu, X, ChevronRight, Shield, Home,
   MessageSquare, CheckSquare, Plus, FileText, DollarSign,
   Bell, Settings, CreditCard, Upload, Eye, LayoutList,
+  Filter, Download, Send, Clock, AlertTriangle, RefreshCw,
+  UserPlus, Star, Archive, CheckCircle2, Zap,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface NavItem {
   label: string;
   href: string;
@@ -20,6 +23,20 @@ interface NavItem {
   badgeKey?: "ownerMessages";
 }
 
+interface TaskAction {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+}
+
+interface TaskSection {
+  heading: string;
+  context?: boolean; // true = page-specific section shown at top
+  roles?: string[];
+  actions: TaskAction[];
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
   { label: "Properties", href: "/dashboard/properties", icon: Building2, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
@@ -34,52 +51,132 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Resident Portal", href: "/portal", icon: Home, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
 ];
 
-// ─── Task panel sections ──────────────────────────────────────────────────────
-interface TaskAction {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-}
-interface TaskSection {
-  heading: string;
-  roles?: string[];
-  actions: TaskAction[];
-}
-
-const TASK_SECTIONS: TaskSection[] = [
-  {
-    heading: "QUICK ACTIONS",
+// ─── Per-page context sections ────────────────────────────────────────────────
+// Each route maps to a context section shown at the TOP of the Tasks panel.
+const PAGE_CONTEXT: Record<string, TaskSection> = {
+  "/dashboard": {
+    heading: "DASHBOARD",
+    context: true,
     actions: [
-      { label: "Open work orders", href: "/dashboard/tickets", icon: Ticket },
+      { label: "Open work orders →", href: "/dashboard/tickets", icon: Ticket },
+      { label: "View overdue items", href: "/dashboard/tickets", icon: AlertTriangle },
+      { label: "Pending approvals", href: "/dashboard/tickets", icon: CheckCircle2 },
+      { label: "Send email blast", href: "/dashboard/email", icon: Send },
       { label: "Schedule hearing", href: "/dashboard/schedule", icon: CalendarDays },
-      { label: "Send email blast", href: "/dashboard/email", icon: Mail },
+    ],
+  },
+  "/dashboard/properties": {
+    heading: "PROPERTIES",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"],
+    actions: [
+      { label: "Add new property", href: "/dashboard/properties", icon: Plus },
+      { label: "Upload document", href: "/dashboard/properties", icon: Upload },
+      { label: "View all documents", href: "/dashboard/properties", icon: FileText },
+      { label: "Message owners", href: "/dashboard/owner-messages", icon: MessageSquare },
+      { label: "Post charge", href: "/dashboard/properties", icon: DollarSign },
+      { label: "Record credit", href: "/dashboard/properties", icon: CreditCard },
+    ],
+  },
+  "/dashboard/tickets": {
+    heading: "WORK ORDERS",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "accountant", "assistant_manager"],
+    actions: [
+      { label: "New work order", href: "/dashboard/tickets", icon: Plus },
+      { label: "Filter urgent", href: "/dashboard/tickets", icon: AlertTriangle },
+      { label: "Assign vendor", href: "/dashboard/vendors", icon: Briefcase },
+      { label: "Export report", href: "/dashboard/analytics", icon: Download },
+      { label: "View all vendors", href: "/dashboard/vendors", icon: LayoutList },
+    ],
+  },
+  "/dashboard/owner-messages": {
+    heading: "OWNER MESSAGES",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"],
+    actions: [
+      { label: "Mark all read", href: "/dashboard/owner-messages", icon: CheckCircle2 },
+      { label: "Filter by property", href: "/dashboard/owner-messages", icon: Filter },
+      { label: "View owner portal", href: "/portal", icon: Eye },
+      { label: "Send email blast", href: "/dashboard/email", icon: Send },
+    ],
+  },
+  "/dashboard/schedule": {
+    heading: "SCHEDULE",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"],
+    actions: [
+      { label: "New event", href: "/dashboard/schedule", icon: Plus },
+      { label: "View calendar", href: "/dashboard/schedule", icon: CalendarDays },
+      { label: "Send reminder", href: "/dashboard/email", icon: Bell },
       { label: "View meetings", href: "/dashboard/meetings", icon: Users },
     ],
   },
+  "/dashboard/email": {
+    heading: "EMAIL HUB",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "accountant", "assistant_manager"],
+    actions: [
+      { label: "New email blast", href: "/dashboard/email", icon: Send },
+      { label: "View templates", href: "/dashboard/email", icon: FileText },
+      { label: "Scheduled emails", href: "/dashboard/email", icon: Clock },
+      { label: "View analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    ],
+  },
+  "/dashboard/meetings": {
+    heading: "MEETINGS",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"],
+    actions: [
+      { label: "New meeting", href: "/dashboard/meetings", icon: Plus },
+      { label: "View agenda", href: "/dashboard/meetings", icon: LayoutList },
+      { label: "Send minutes", href: "/dashboard/email", icon: Send },
+      { label: "Invite owners", href: "/dashboard/email", icon: UserPlus },
+    ],
+  },
+  "/dashboard/vendors": {
+    heading: "VENDORS",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"],
+    actions: [
+      { label: "Add vendor", href: "/dashboard/vendors", icon: Plus },
+      { label: "View work orders", href: "/dashboard/tickets", icon: Ticket },
+      { label: "Rate vendor", href: "/dashboard/vendors", icon: Star },
+      { label: "Archive vendor", href: "/dashboard/vendors", icon: Archive },
+    ],
+  },
+  "/dashboard/analytics": {
+    heading: "ANALYTICS",
+    context: true,
+    roles: ["super_admin", "company_admin", "portfolio_manager"],
+    actions: [
+      { label: "Export report", href: "/dashboard/analytics", icon: Download },
+      { label: "Refresh data", href: "/dashboard/analytics", icon: RefreshCw },
+      { label: "Compare properties", href: "/dashboard/analytics", icon: Building2 },
+      { label: "View delinquency", href: "/dashboard/analytics", icon: AlertTriangle },
+    ],
+  },
+  "/dashboard/admin": {
+    heading: "ADMIN",
+    context: true,
+    roles: ["super_admin"],
+    actions: [
+      { label: "Manage users", href: "/dashboard/admin", icon: Users },
+      { label: "System settings", href: "/dashboard/admin", icon: Settings },
+      { label: "View audit log", href: "/dashboard/admin", icon: FileText },
+      { label: "Quick setup", href: "/dashboard/admin", icon: Zap },
+    ],
+  },
+};
+
+// ─── Static always-visible sections ──────────────────────────────────────────
+const STATIC_SECTIONS: TaskSection[] = [
   {
     heading: "OWNER COMMUNICATIONS",
     roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"],
     actions: [
       { label: "View owner messages", href: "/dashboard/owner-messages", icon: MessageSquare },
       { label: "Owner portal", href: "/portal", icon: Eye },
-    ],
-  },
-  {
-    heading: "PROPERTIES & DOCUMENTS",
-    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"],
-    actions: [
-      { label: "Manage properties", href: "/dashboard/properties", icon: Building2 },
-      { label: "Upload document", href: "/dashboard/properties", icon: Upload },
-      { label: "View all documents", href: "/dashboard/properties", icon: FileText },
-    ],
-  },
-  {
-    heading: "WORK ORDERS",
-    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "accountant", "assistant_manager"],
-    actions: [
-      { label: "All tickets", href: "/dashboard/tickets", icon: LayoutList },
-      { label: "Urgent tickets", href: "/dashboard/tickets", icon: Ticket },
-      { label: "Manage vendors", href: "/dashboard/vendors", icon: Briefcase },
     ],
   },
   {
@@ -96,14 +193,7 @@ const TASK_SECTIONS: TaskSection[] = [
     roles: ["super_admin", "company_admin", "portfolio_manager"],
     actions: [
       { label: "View analytics", href: "/dashboard/analytics", icon: BarChart3 },
-    ],
-  },
-  {
-    heading: "NOTIFICATIONS",
-    roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"],
-    actions: [
-      { label: "Notification history", href: "/dashboard/owner-messages", icon: Bell },
-      { label: "Settings", href: "/dashboard/properties", icon: Settings },
+      { label: "Export report", href: "/dashboard/analytics", icon: Download },
     ],
   },
 ];
@@ -125,11 +215,61 @@ function useOwnerMessageUnread(): number {
 }
 
 // ─── Tasks Panel ──────────────────────────────────────────────────────────────
-function TasksPanel({ role, onClose }: { role: string; onClose?: () => void }) {
+function TasksPanel({
+  role,
+  location,
+  onClose,
+}: {
+  role: string;
+  location: string;
+  onClose?: () => void;
+}) {
   const [, navigate] = useLocation();
 
-  const visibleSections = TASK_SECTIONS.filter(
-    s => !s.roles || s.roles.includes(role)
+  // Determine the page-specific context section for the current route
+  const contextSection = useMemo<TaskSection | null>(() => {
+    const section = PAGE_CONTEXT[location] ?? null;
+    if (!section) return null;
+    if (section.roles && !section.roles.includes(role)) return null;
+    return section;
+  }, [location, role]);
+
+  // Filter static sections by role, and skip any whose heading matches the context section
+  const staticSections = useMemo(() =>
+    STATIC_SECTIONS.filter(s => {
+      if (s.roles && !s.roles.includes(role)) return false;
+      // Hide static section if the context section covers the same topic
+      if (contextSection && s.heading === contextSection.heading) return false;
+      return true;
+    }),
+    [role, contextSection]
+  );
+
+  const renderSection = (section: TaskSection, isContext = false) => (
+    <div key={section.heading} className={`mb-1 ${isContext ? "border-b border-border pb-2" : ""}`}>
+      <p className={`px-4 pt-3 pb-1 text-[10px] font-semibold tracking-widest uppercase ${
+        isContext ? "text-olive" : "text-muted-foreground"
+      }`}>
+        {isContext ? "▸ " : ""}{section.heading}
+      </p>
+      <ul>
+        {section.actions.map(action => (
+          <li key={action.label}>
+            <button
+              onClick={() => navigate(action.href)}
+              className={`w-full flex items-center gap-2.5 px-4 py-1.5 text-sm transition-colors text-left ${
+                isContext
+                  ? "text-foreground hover:bg-olive/10 hover:text-olive"
+                  : "text-foreground hover:bg-muted hover:text-charcoal"
+              }`}
+            >
+              <action.icon className={`w-3.5 h-3.5 flex-shrink-0 ${isContext ? "text-olive/70" : "text-muted-foreground"}`} />
+              <span className="truncate">{action.label}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 
   return (
@@ -149,26 +289,11 @@ function TasksPanel({ role, onClose }: { role: string; onClose?: () => void }) {
 
       {/* Sections */}
       <div className="flex-1 overflow-y-auto py-2">
-        {visibleSections.map(section => (
-          <div key={section.heading} className="mb-1">
-            <p className="px-4 pt-3 pb-1 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              {section.heading}
-            </p>
-            <ul>
-              {section.actions.map(action => (
-                <li key={action.label}>
-                  <button
-                    onClick={() => navigate(action.href)}
-                    className="w-full flex items-center gap-2.5 px-4 py-1.5 text-sm text-foreground hover:bg-muted hover:text-charcoal transition-colors text-left"
-                  >
-                    <action.icon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="truncate">{action.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {/* Context section (page-specific, highlighted) */}
+        {contextSection && renderSection(contextSection, true)}
+
+        {/* Static sections */}
+        {staticSections.map(s => renderSection(s, false))}
       </div>
     </aside>
   );
@@ -202,7 +327,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const role = user.portierRole ?? "user";
   const visibleNav = NAV_ITEMS.filter(item => !item.roles || item.roles.includes(role));
 
-  // Show Tasks panel only for managers
   const showTasks = [
     "super_admin", "company_admin", "portfolio_manager",
     "property_manager", "accountant", "assistant_manager",
@@ -317,7 +441,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {/* Desktop Tasks panel */}
           {showTasks && tasksOpen && (
             <div className="hidden md:flex">
-              <TasksPanel role={role} onClose={() => setTasksOpen(false)} />
+              <TasksPanel role={role} location={location} onClose={() => setTasksOpen(false)} />
             </div>
           )}
 
@@ -326,7 +450,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="md:hidden fixed inset-y-0 right-0 z-40 flex">
               <div className="fixed inset-0 bg-black/30" onClick={() => setTasksOpen(false)} />
               <div className="relative z-10 ml-auto">
-                <TasksPanel role={role} onClose={() => setTasksOpen(false)} />
+                <TasksPanel role={role} location={location} onClose={() => setTasksOpen(false)} />
               </div>
             </div>
           )}
