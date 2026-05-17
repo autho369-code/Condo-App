@@ -1,22 +1,25 @@
 FROM node:20-slim
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+
+# Install pnpm
+RUN npm install -g pnpm@10.4.1
 
 WORKDIR /app
 
-# Copy dependency manifests + patches first (for layer caching)
-COPY package.json pnpm-lock.yaml .npmrc* ./
-COPY patches/ ./patches/
+# Copy package files
+COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Install ALL deps with shamefully-hoist so node_modules is flat (no symlink issues)
-# Do NOT prune - pnpm prune removes hoisted packages breaking ESM resolution
-RUN pnpm install --frozen-lockfile --shamefully-hoist
+# Install all dependencies (hoisted flat node_modules via .npmrc)
+RUN pnpm install --frozen-lockfile
 
-# Copy source and build
+# Copy source code
 COPY . .
+
+# Build (vite frontend + esbuild server)
 RUN pnpm build
 
+# Expose port
 EXPOSE 3000
+
+# Start server
 ENV NODE_ENV=production
 CMD ["node", "dist/index.js"]

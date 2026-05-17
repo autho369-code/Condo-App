@@ -1,7 +1,6 @@
 import express from "express";
 import { createServer } from "http";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "./routers";
 import { createContext } from "./_core/context";
@@ -11,8 +10,8 @@ import { registerEmailRoutes } from "./email/emailRoutes";
 import { registerAttachmentRoutes } from "./attachments/attachmentRoutes";
 import { registerDocumentRoutes } from "./documents/documentRoutes";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is natively available in CJS (esbuild --format=cjs injects it)
+declare const __dirname: string;
 
 async function startServer() {
   const app = express();
