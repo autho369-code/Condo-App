@@ -1,12 +1,12 @@
 import { eq, and } from "drizzle-orm";
 import { getDb } from "../db";
-import { emailConnections, emailThreads, InsertEmailConnection } from "../../drizzle/schema";
+import { emailConnections, emailThreads, properties, InsertEmailConnection } from "../../drizzle/schema";
+import { categorizeEmail, saveCategorization, PropertyHint } from "./categorize";
 
 export async function upsertEmailConnection(data: InsertEmailConnection) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Check if connection already exists for this user + provider
   const existing = await db
     .select()
     .from(emailConnections)
@@ -92,6 +92,25 @@ export async function deactivateEmailConnection(id: number) {
     .where(eq(emailConnections.id, id));
 }
 
+// ─── Fetch company properties for AI property matching ───────────────────────
+
+async function getCompanyProperties(companyId: number): Promise<PropertyHint[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: properties.id,
+      name: properties.name,
+      address: properties.address,
+      city: properties.city,
+    })
+    .from(properties)
+    .where(and(eq(properties.companyId, companyId), eq(properties.isActive, true)));
+  return rows;
+}
+
+// ─── Save email threads with automatic AI categorization ─────────────────────
+
 export async function saveEmailThreads(
   companyId: number,
   connectionId: number,
@@ -109,11 +128,13 @@ export async function saveEmailThreads(
   const db = await getDb();
   if (!db) return 0;
 
+  // Fetch company properties once for the entire batch
+  const companyProperties = await getCompanyProperties(companyId);
+
   let saved = 0;
   for (const email of emails) {
     try {
-      // Check if this email was already synced (by externalId stored in subject prefix trick)
-      // We use a simple approach: check if an email with same fromAddress + subject + receivedAt exists
+      // Dedup: skip if same provider + sender + subject already exists
       const existing = await db
         .select({ id: emailThreads.id })
         .from(emailThreads)
@@ -126,24 +147,35 @@ export async function saveEmailThreads(
         )
         .limit(1);
 
-      // Only insert if not already present (basic dedup by from+subject+date within 1 min)
-      const alreadyExists = existing.length > 0;
-      if (!alreadyExists) {
-        await db.insert(emailThreads).values({
-          companyId,
-          subject: email.subject,
-          fromAddress: email.fromAddress,
-          toAddresses: email.toAddresses,
-          bodyPreview: email.bodyPreview,
-          fullBody: email.fullBody,
-          isRead: false,
-          source: provider,
-          receivedAt: email.receivedAt,
-        });
-        saved++;
-      }
+      if (existing.length > 0) continue;
+
+      // Insert the email thread
+      const insertResult = await db.insert(emailThreads).values({
+        companyId,
+        subject: email.subject,
+        fromAddress: email.fromAddress,
+        toAddresses: email.toAddresses,
+        bodyPreview: email.bodyPreview,
+        fullBody: email.fullBody,
+        isRead: false,
+        source: provider,
+        receivedAt: email.receivedAt,
+      });
+
+      const newEmailId = (insertResult as any).insertId as number;
+      saved++;
+
+      // Fire-and-forget AI categorization (non-blocking so sync stays fast)
+      categorizeEmail(
+        newEmailId,
+        email.subject,
+        email.fullBody || email.bodyPreview,
+        companyProperties
+      )
+        .then(result => saveCategorization(newEmailId, result))
+        .catch(err => console.warn(`[AI categorize] email ${newEmailId}:`, err));
     } catch {
-      // Skip individual failures
+      // Skip individual failures silently
     }
   }
   return saved;

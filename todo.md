@@ -113,3 +113,16 @@
 - [x] Add sync button with loading state and last-synced timestamp
 - [x] Add Gmail/Outlook source badges on email thread cards
 - [x] Write vitest tests for token refresh and sync procedures
+
+## AI Email Categorization
+- [x] Add aiUrgency, aiCategory, aiPropertyId, aiConfidence, aiCategorizedAt fields to email_threads schema
+- [x] Run db:push for new fields
+- [x] Build categorizeEmail(email, properties[]) LLM function using structured JSON output
+- [x] Call categorizeEmail automatically on every email during sync (Gmail + Outlook)
+- [x] Add tRPC procedure: email.recategorize (re-run AI on a single email)
+- [x] Add tRPC procedure: email.bulkRecategorize (re-run AI on all uncategorized emails for a company)
+- [x] Update Email Hub UI with urgency badges (critical/high/medium/low)
+- [x] Add property tag chips on email cards
+- [x] Add filter tabs: All / Critical / High / Unassigned
+- [x] Add per-card "Re-categorize" button
+- [x] Write vitest tests for categorizeEmail structured output parsing

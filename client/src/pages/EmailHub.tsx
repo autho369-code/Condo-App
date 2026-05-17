@@ -8,21 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Mail, Plus, Sparkles, CheckCheck, Search, RefreshCw,
-  Link2, Link2Off, AlertCircle, CheckCircle2, Clock
+  Link2, Link2Off, AlertCircle, CheckCircle2, Clock,
+  Building2, Zap, AlertTriangle, Info, ChevronDown, ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
 
-// Gmail and Outlook brand SVG icons
+// ─── Brand Icons ──────────────────────────────────────────────────────────────
+
 function GmailIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6z" fill="#fff" stroke="#e0e0e0" strokeWidth="0.5"/>
       <path d="M22 6l-10 7L2 6" stroke="#EA4335" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M2 6l10 7 10-7" fill="none"/>
     </svg>
   );
 }
@@ -38,26 +39,72 @@ function OutlookIcon({ className }: { className?: string }) {
   );
 }
 
+// ─── Urgency config ───────────────────────────────────────────────────────────
+
+const URGENCY_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; dot: string }> = {
+  critical: {
+    label: "Critical",
+    color: "bg-red-100 text-red-700 border-red-300",
+    icon: <Zap className="w-3 h-3" />,
+    dot: "bg-red-500",
+  },
+  high: {
+    label: "High",
+    color: "bg-orange-100 text-orange-700 border-orange-300",
+    icon: <AlertTriangle className="w-3 h-3" />,
+    dot: "bg-orange-400",
+  },
+  medium: {
+    label: "Medium",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+    icon: <Info className="w-3 h-3" />,
+    dot: "bg-amber-400",
+  },
+  low: {
+    label: "Low",
+    color: "bg-stone-100 text-stone-500 border-stone-200",
+    icon: <Info className="w-3 h-3" />,
+    dot: "bg-stone-300",
+  },
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  maintenance_request: "Maintenance",
+  billing_payment: "Billing",
+  noise_complaint: "Noise",
+  amenity_booking: "Amenity",
+  vendor_communication: "Vendor",
+  board_matter: "Board",
+  emergency: "Emergency",
+  general_inquiry: "Inquiry",
+  lease_ownership: "Ownership",
+  other: "Other",
+};
+
 const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
   gmail: { label: "Gmail", color: "bg-red-50 text-red-600 border-red-200" },
   outlook: { label: "Outlook", color: "bg-blue-50 text-blue-600 border-blue-200" },
   manual: { label: "Manual", color: "bg-stone-100 text-stone-600 border-stone-200" },
 };
 
+type FilterTab = "all" | "critical" | "high" | "unassigned";
+
 export default function EmailHub() {
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", fromAddress: "", toAddresses: "", fullBody: "" });
   const [draftOpen, setDraftOpen] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [syncingId, setSyncingId] = useState<number | null>(null);
-  const [location] = useLocation();
+  const [expandedReason, setExpandedReason] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: emails, isLoading } = trpc.email.list.useQuery();
-  const { data: connections, isLoading: connectionsLoading } = trpc.email.listConnections.useQuery();
+  const { data: connections } = trpc.email.listConnections.useQuery();
+  const { data: properties } = trpc.company.properties.useQuery();
 
-  // Handle redirect back from OAuth with success/error params
+  // Handle OAuth redirect back
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("connected");
@@ -65,12 +112,10 @@ export default function EmailHub() {
     if (connected) {
       toast.success(`${connected === "gmail" ? "Gmail" : "Outlook"} account connected successfully!`);
       utils.email.listConnections.invalidate();
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
     if (error) {
-      const msg = error.includes("cancelled") ? "Connection was cancelled." : "Failed to connect account. Please try again.";
-      toast.error(msg);
+      toast.error(error.includes("cancelled") ? "Connection was cancelled." : "Failed to connect account.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -90,41 +135,42 @@ export default function EmailHub() {
   });
 
   const draftReply = trpc.email.draftReply.useMutation({
-    onSuccess: (data) => {
-      setDraft(data.draft);
-      toast.success("AI draft ready.");
-    },
+    onSuccess: (data) => { setDraft(data.draft); toast.success("AI draft ready."); },
     onError: () => toast.error("Could not generate draft."),
   });
 
   const syncEmails = trpc.email.syncEmails.useMutation({
     onSuccess: (data) => {
-      if (data.error) {
-        toast.error(data.error);
-      } else {
-        toast.success(`Synced ${data.synced} new email${data.synced !== 1 ? "s" : ""}.`);
-        utils.email.list.invalidate();
-        utils.email.listConnections.invalidate();
-      }
+      if (data.error) { toast.error(data.error); }
+      else { toast.success(`Synced ${data.synced} new email${data.synced !== 1 ? "s" : ""}.`); utils.email.list.invalidate(); utils.email.listConnections.invalidate(); }
       setSyncingId(null);
     },
-    onError: (e) => {
-      toast.error(e.message);
-      setSyncingId(null);
-    },
+    onError: (e) => { toast.error(e.message); setSyncingId(null); },
   });
 
   const disconnectAccount = trpc.email.disconnectAccount.useMutation({
-    onSuccess: () => {
-      toast.success("Account disconnected.");
-      utils.email.listConnections.invalidate();
+    onSuccess: () => { toast.success("Account disconnected."); utils.email.listConnections.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const recategorize = trpc.email.recategorize.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Re-categorized: ${result.urgency} urgency · ${CATEGORY_LABELS[result.category] ?? result.category}`);
+      utils.email.list.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const bulkRecategorize = trpc.email.bulkRecategorize.useMutation({
+    onSuccess: (data) => {
+      toast.success(`AI categorized ${data.processed} email${data.processed !== 1 ? "s" : ""}${data.errors > 0 ? ` (${data.errors} skipped)` : ""}.`);
+      utils.email.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });
 
   const handleConnect = (provider: "gmail" | "outlook") => {
-    const origin = window.location.origin;
-    window.location.href = `/api/email/${provider}/connect?origin=${encodeURIComponent(origin)}`;
+    window.location.href = `/api/email/${provider}/connect?origin=${encodeURIComponent(window.location.origin)}`;
   };
 
   const handleSync = (connectionId: number) => {
@@ -132,13 +178,27 @@ export default function EmailHub() {
     syncEmails.mutate({ connectionId });
   };
 
-  const filtered = (emails ?? []).filter(e =>
-    !search ||
-    (e.subject ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (e.fromAddress ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Build a property lookup map
+  const propertyMap = Object.fromEntries((properties ?? []).map((p: { id: number; name: string }) => [p.id, p.name]));
 
-  const unread = filtered.filter(e => !e.isRead).length;
+  // Filter emails by tab + search
+  const filtered = (emails ?? []).filter(e => {
+    const matchesSearch = !search ||
+      (e.subject ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.fromAddress ?? "").toLowerCase().includes(search.toLowerCase());
+
+    const matchesTab =
+      activeTab === "all" ? true :
+      activeTab === "critical" ? (e as any).aiUrgency === "critical" :
+      activeTab === "high" ? ((e as any).aiUrgency === "high" || (e as any).aiUrgency === "critical") :
+      activeTab === "unassigned" ? !(e as any).aiCategorizedAt :
+      true;
+
+    return matchesSearch && matchesTab;
+  });
+
+  const unread = (emails ?? []).filter(e => !e.isRead).length;
+  const uncategorized = (emails ?? []).filter(e => !(e as any).aiCategorizedAt).length;
   const gmailConnected = (connections ?? []).some(c => c.provider === "gmail");
   const outlookConnected = (connections ?? []).some(c => c.provider === "outlook");
 
@@ -149,35 +209,50 @@ export default function EmailHub() {
         <div>
           <h1 className="font-serif text-3xl font-bold text-charcoal">Email Hub</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            {unread > 0
-              ? <span className="text-olive font-medium">{unread} unread</span>
-              : "All caught up"
-            } · {filtered.length} total threads
+            {unread > 0 ? <span className="text-olive font-medium">{unread} unread · </span> : ""}
+            {filtered.length} threads
+            {uncategorized > 0 && (
+              <span className="ml-2 text-amber-600">· {uncategorized} uncategorized</span>
+            )}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-olive text-cream hover:bg-olive/90">
-              <Plus className="w-4 h-4 mr-2" />Log Email
+        <div className="flex gap-2">
+          {uncategorized > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-olive/40 text-olive hover:bg-olive/10 text-xs"
+              onClick={() => bulkRecategorize.mutate()}
+              disabled={bulkRecategorize.isPending}
+            >
+              <Sparkles className={`w-3.5 h-3.5 mr-1.5 ${bulkRecategorize.isPending ? "animate-pulse" : ""}`} />
+              {bulkRecategorize.isPending ? "Categorizing..." : `AI Categorize All (${uncategorized})`}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle className="font-serif">Log Email Thread</DialogTitle></DialogHeader>
-            <div className="space-y-4 mt-2">
-              <div><Label>Subject</Label><Input placeholder="Re: Roof leak in unit 12A" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
-              <div><Label>From</Label><Input placeholder="resident@example.com" value={form.fromAddress} onChange={e => setForm(f => ({ ...f, fromAddress: e.target.value }))} /></div>
-              <div><Label>To</Label><Input placeholder="manager@yourcompany.com" value={form.toAddresses} onChange={e => setForm(f => ({ ...f, toAddresses: e.target.value }))} /></div>
-              <div><Label>Body</Label><Textarea placeholder="Email content..." value={form.fullBody} onChange={e => setForm(f => ({ ...f, fullBody: e.target.value }))} rows={4} /></div>
-              <Button
-                className="w-full bg-olive text-cream"
-                onClick={() => addEmail.mutate({ ...form, source: "manual", bodyPreview: form.fullBody.slice(0, 200) })}
-                disabled={addEmail.isPending}
-              >
-                {addEmail.isPending ? "Logging..." : "Log Email"}
+          )}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-olive text-cream hover:bg-olive/90">
+                <Plus className="w-4 h-4 mr-2" />Log Email
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle className="font-serif">Log Email Thread</DialogTitle></DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div><Label>Subject</Label><Input placeholder="Re: Roof leak in unit 12A" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
+                <div><Label>From</Label><Input placeholder="resident@example.com" value={form.fromAddress} onChange={e => setForm(f => ({ ...f, fromAddress: e.target.value }))} /></div>
+                <div><Label>To</Label><Input placeholder="manager@yourcompany.com" value={form.toAddresses} onChange={e => setForm(f => ({ ...f, toAddresses: e.target.value }))} /></div>
+                <div><Label>Body</Label><Textarea placeholder="Email content..." value={form.fullBody} onChange={e => setForm(f => ({ ...f, fullBody: e.target.value }))} rows={4} /></div>
+                <Button
+                  className="w-full bg-olive text-cream"
+                  onClick={() => addEmail.mutate({ ...form, source: "manual", bodyPreview: form.fullBody.slice(0, 200) })}
+                  disabled={addEmail.isPending}
+                >
+                  {addEmail.isPending ? "Logging..." : "Log Email"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Connected Accounts Panel */}
@@ -201,45 +276,24 @@ export default function EmailHub() {
                       <CheckCircle2 className="w-3 h-3" />
                       {(connections ?? []).find(c => c.provider === "gmail")?.accountEmail ?? "Connected"}
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Not connected</p>
-                  )}
+                  ) : <p className="text-xs text-muted-foreground">Not connected</p>}
                 </div>
               </div>
               <div className="flex gap-2">
                 {gmailConnected ? (
                   <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-olive/30 text-olive hover:bg-olive/10"
-                      onClick={() => {
-                        const conn = (connections ?? []).find(c => c.provider === "gmail");
-                        if (conn) handleSync(conn.id);
-                      }}
-                      disabled={syncingId !== null}
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 mr-1 ${syncingId !== null ? "animate-spin" : ""}`} />
-                      Sync
+                    <Button size="sm" variant="outline" className="h-8 px-2 text-xs border-olive/30 text-olive hover:bg-olive/10"
+                      onClick={() => { const c = (connections ?? []).find(c => c.provider === "gmail"); if (c) handleSync(c.id); }}
+                      disabled={syncingId !== null}>
+                      <RefreshCw className={`w-3.5 h-3.5 mr-1 ${syncingId !== null ? "animate-spin" : ""}`} />Sync
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        const conn = (connections ?? []).find(c => c.provider === "gmail");
-                        if (conn) disconnectAccount.mutate({ connectionId: conn.id });
-                      }}
-                    >
+                    <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={() => { const c = (connections ?? []).find(c => c.provider === "gmail"); if (c) disconnectAccount.mutate({ connectionId: c.id }); }}>
                       <Link2Off className="w-3.5 h-3.5 mr-1" />Disconnect
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    size="sm"
-                    className="h-8 px-3 text-xs bg-olive text-cream hover:bg-olive/90"
-                    onClick={() => handleConnect("gmail")}
-                  >
+                  <Button size="sm" className="h-8 px-3 text-xs bg-olive text-cream hover:bg-olive/90" onClick={() => handleConnect("gmail")}>
                     Connect Gmail
                   </Button>
                 )}
@@ -257,45 +311,24 @@ export default function EmailHub() {
                       <CheckCircle2 className="w-3 h-3" />
                       {(connections ?? []).find(c => c.provider === "outlook")?.accountEmail ?? "Connected"}
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Not connected</p>
-                  )}
+                  ) : <p className="text-xs text-muted-foreground">Not connected</p>}
                 </div>
               </div>
               <div className="flex gap-2">
                 {outlookConnected ? (
                   <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
-                      onClick={() => {
-                        const conn = (connections ?? []).find(c => c.provider === "outlook");
-                        if (conn) handleSync(conn.id);
-                      }}
-                      disabled={syncingId !== null}
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 mr-1 ${syncingId !== null ? "animate-spin" : ""}`} />
-                      Sync
+                    <Button size="sm" variant="outline" className="h-8 px-2 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                      onClick={() => { const c = (connections ?? []).find(c => c.provider === "outlook"); if (c) handleSync(c.id); }}
+                      disabled={syncingId !== null}>
+                      <RefreshCw className={`w-3.5 h-3.5 mr-1 ${syncingId !== null ? "animate-spin" : ""}`} />Sync
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        const conn = (connections ?? []).find(c => c.provider === "outlook");
-                        if (conn) disconnectAccount.mutate({ connectionId: conn.id });
-                      }}
-                    >
+                    <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={() => { const c = (connections ?? []).find(c => c.provider === "outlook"); if (c) disconnectAccount.mutate({ connectionId: c.id }); }}>
                       <Link2Off className="w-3.5 h-3.5 mr-1" />Disconnect
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    size="sm"
-                    className="h-8 px-3 text-xs bg-blue-600 text-white hover:bg-blue-700"
-                    onClick={() => handleConnect("outlook")}
-                  >
+                  <Button size="sm" className="h-8 px-3 text-xs bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleConnect("outlook")}>
                     Connect Outlook
                   </Button>
                 )}
@@ -303,44 +336,52 @@ export default function EmailHub() {
             </div>
           </div>
 
-          {/* Last sync info */}
+          {/* Last sync timestamps */}
           {(connections ?? []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-3">
-              {(connections ?? []).map(conn => (
-                conn.lastSyncedAt && (
+              {(connections ?? []).map(conn =>
+                conn.lastSyncedAt ? (
                   <div key={conn.id} className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
-                    {conn.provider === "gmail" ? "Gmail" : "Outlook"} last synced: {new Date(conn.lastSyncedAt).toLocaleString()}
+                    {conn.provider === "gmail" ? "Gmail" : "Outlook"} synced: {new Date(conn.lastSyncedAt).toLocaleString()}
                   </div>
-                )
-              ))}
+                ) : null
+              )}
             </div>
           )}
 
-          {/* Setup notice if neither is configured */}
           {!gmailConnected && !outlookConnected && (
             <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>
-                To enable Gmail or Outlook sync, add your OAuth credentials in <strong>Settings → Secrets</strong> (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET), then click Connect above.
-              </span>
+              <span>Add your OAuth credentials in <strong>Settings → Secrets</strong> (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET), then click Connect above.</span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Search */}
-      <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by subject or sender..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      {/* Search + Filter Tabs */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by subject or sender..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as FilterTab)}>
+          <TabsList className="h-10">
+            <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
+            <TabsTrigger value="critical" className="text-xs px-3 text-red-600 data-[state=active]:bg-red-100">
+              <Zap className="w-3 h-3 mr-1" />Critical
+            </TabsTrigger>
+            <TabsTrigger value="high" className="text-xs px-3 text-orange-600 data-[state=active]:bg-orange-100">
+              <AlertTriangle className="w-3 h-3 mr-1" />High
+            </TabsTrigger>
+            <TabsTrigger value="unassigned" className="text-xs px-3">
+              Unassigned
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Email list */}
+      {/* Email List */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
@@ -348,59 +389,135 @@ export default function EmailHub() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Mail className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No emails yet</p>
-          <p className="text-sm mt-1">Connect Gmail or Outlook above to sync your inbox, or log an email manually.</p>
+          <p className="font-medium">No emails in this view</p>
+          <p className="text-sm mt-1">
+            {activeTab !== "all" ? "Try switching to the All tab." : "Connect Gmail or Outlook above to sync your inbox."}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map(e => {
+            const emailAny = e as any;
             const sourceInfo = SOURCE_LABELS[e.source ?? "manual"] ?? SOURCE_LABELS.manual;
+            const urgencyInfo = emailAny.aiUrgency ? URGENCY_CONFIG[emailAny.aiUrgency] : null;
+            const categoryLabel = emailAny.aiCategory ? CATEGORY_LABELS[emailAny.aiCategory] : null;
+            const matchedProperty = emailAny.aiMatchedPropertyId ? propertyMap[emailAny.aiMatchedPropertyId] : null;
+            const isCategorized = !!emailAny.aiCategorizedAt;
+            const isRecategorizing = recategorize.isPending && recategorize.variables?.emailId === e.id;
+
             return (
-              <Card key={e.id} className={`hover:shadow-sm transition-shadow ${!e.isRead ? "border-olive/40 bg-olive/5" : ""}`}>
+              <Card
+                key={e.id}
+                className={`hover:shadow-sm transition-shadow ${
+                  emailAny.aiUrgency === "critical"
+                    ? "border-red-300 bg-red-50/30"
+                    : emailAny.aiUrgency === "high"
+                    ? "border-orange-200 bg-orange-50/20"
+                    : !e.isRead
+                    ? "border-olive/40 bg-olive/5"
+                    : ""
+                }`}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
+                      {/* Subject line + badges */}
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         {!e.isRead && <div className="w-2 h-2 rounded-full bg-olive flex-shrink-0" />}
                         <p className={`text-sm truncate ${!e.isRead ? "font-semibold text-charcoal" : "font-medium text-charcoal"}`}>
                           {e.subject ?? "(No subject)"}
                         </p>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 h-4 flex-shrink-0 ${sourceInfo.color}`}
-                        >
+
+                        {/* Source badge */}
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 flex-shrink-0 ${sourceInfo.color}`}>
                           {sourceInfo.label}
                         </Badge>
+
+                        {/* Urgency badge */}
+                        {urgencyInfo && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 flex-shrink-0 flex items-center gap-0.5 ${urgencyInfo.color}`}>
+                            {urgencyInfo.icon}
+                            {urgencyInfo.label}
+                          </Badge>
+                        )}
+
+                        {/* Category badge */}
+                        {categoryLabel && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0 bg-stone-50 text-stone-600 border-stone-200">
+                            {categoryLabel}
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* Sender + date */}
                       <p className="text-xs text-muted-foreground">
                         {e.fromAddress ?? "Unknown sender"} · {new Date(e.receivedAt).toLocaleDateString()}
                       </p>
+
+                      {/* Body preview */}
                       {e.bodyPreview && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{e.bodyPreview}</p>
                       )}
+
+                      {/* Property tag + AI reasoning */}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {matchedProperty && (
+                          <div className="flex items-center gap-1 text-xs text-olive bg-olive/10 px-2 py-0.5 rounded-full">
+                            <Building2 className="w-3 h-3" />
+                            {matchedProperty}
+                          </div>
+                        )}
+                        {emailAny.aiReasoning && (
+                          <button
+                            className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-charcoal transition-colors"
+                            onClick={() => setExpandedReason(expandedReason === e.id ? null : e.id)}
+                          >
+                            <Sparkles className="w-3 h-3 text-olive" />
+                            AI reasoning
+                            {expandedReason === e.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                        )}
+                        {isCategorized && emailAny.aiConfidence != null && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {emailAny.aiConfidence}% confidence
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expanded AI reasoning */}
+                      {expandedReason === e.id && emailAny.aiReasoning && (
+                        <div className="mt-2 p-2 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 italic">
+                          {emailAny.aiReasoning}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
+
+                    {/* Action buttons */}
+                    <div className="flex flex-col gap-1.5 flex-shrink-0">
                       {!e.isRead && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2 text-xs"
-                          onClick={() => markRead.mutate({ emailId: e.id })}
-                        >
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                          onClick={() => markRead.mutate({ emailId: e.id })}>
                           <CheckCheck className="w-3.5 h-3.5 mr-1" />Read
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs border-olive/30 text-olive hover:bg-olive/10"
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-olive/30 text-olive hover:bg-olive/10"
                         onClick={() => {
                           setDraftOpen(e.id);
-                          draftReply.mutate({ subject: e.subject ?? "", body: e.fullBody ?? e.bodyPreview ?? "" });
-                        }}
-                      >
+                          draftReply.mutate({ subject: e.subject ?? "", body: (emailAny.fullBody ?? e.bodyPreview ?? "") });
+                        }}>
                         <Sparkles className="w-3.5 h-3.5 mr-1" />AI Reply
                       </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-olive"
+                            onClick={() => recategorize.mutate({ emailId: e.id })}
+                            disabled={isRecategorizing}>
+                            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isRecategorizing ? "animate-spin" : ""}`} />
+                            {isRecategorizing ? "..." : "Re-tag"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">Re-run AI categorization</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
 
@@ -418,19 +535,12 @@ export default function EmailHub() {
                           </p>
                           <Textarea value={draft} onChange={ev => setDraft(ev.target.value)} rows={4} className="text-sm" />
                           <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              className="bg-olive text-cream text-xs"
-                              onClick={() => { navigator.clipboard.writeText(draft); toast.success("Copied to clipboard."); }}
-                            >
+                            <Button size="sm" className="bg-olive text-cream text-xs"
+                              onClick={() => { navigator.clipboard.writeText(draft); toast.success("Copied to clipboard."); }}>
                               Copy
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-xs"
-                              onClick={() => { setDraftOpen(null); setDraft(""); }}
-                            >
+                            <Button size="sm" variant="ghost" className="text-xs"
+                              onClick={() => { setDraftOpen(null); setDraft(""); }}>
                               Dismiss
                             </Button>
                           </div>

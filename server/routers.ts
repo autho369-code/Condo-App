@@ -15,6 +15,7 @@ import {
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
 import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
 import { syncEmailConnection } from "./email/emailRoutes";
+import { categorizeEmail, saveCategorization, bulkCategorizeCompanyEmails } from "./email/categorize";
 import { ENV } from "./_core/env";
 
 export const appRouter = router({
@@ -253,6 +254,35 @@ export const appRouter = router({
         const owned = connections.some(c => c.id === input.connectionId);
         if (!owned) return { synced: 0, error: "Not authorized to sync this account" };
         return syncEmailConnection(input.connectionId);
+      }),
+    // ── AI Categorization ───────────────────────────────────────────────────
+    recategorize: companyProcedure
+      .input(z.object({ emailId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        // Fetch the email
+        const emails = await getEmailsByCompany(ctx.user.companyId);
+        const email = emails.find(e => e.id === input.emailId);
+        if (!email) throw new Error("Email not found");
+        // Fetch company properties for matching
+        const props = await getPropertiesByCompany(ctx.user.companyId);
+        const result = await categorizeEmail(
+          input.emailId,
+          email.subject ?? "",
+          (email as any).fullBody ?? email.bodyPreview ?? "",
+          props.map(p => ({ id: p.id, name: p.name, address: p.address, city: p.city }))
+        );
+        await saveCategorization(input.emailId, result);
+        return result;
+      }),
+    bulkRecategorize: companyProcedure
+      .mutation(async ({ ctx }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        const props = await getPropertiesByCompany(ctx.user.companyId);
+        return bulkCategorizeCompanyEmails(
+          ctx.user.companyId,
+          props.map(p => ({ id: p.id, name: p.name, address: p.address, city: p.city }))
+        );
       }),
     // Return OAuth URLs for the frontend to redirect to
     getConnectUrl: protectedProcedure
