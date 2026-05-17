@@ -9,15 +9,13 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY patches/ ./patches/
 
-# Install all deps with shamefully-hoist so node_modules is flat (no symlink issues)
+# Install ALL deps with shamefully-hoist so node_modules is flat (no symlink issues)
+# Do NOT prune - pnpm prune removes hoisted packages breaking ESM resolution
 RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 # Copy source and build
 COPY . .
 RUN pnpm build
-
-# Remove devDependencies after build
-RUN pnpm prune --prod --no-optional
 
 EXPOSE 3000
 ENV NODE_ENV=production
