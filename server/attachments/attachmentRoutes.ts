@@ -128,7 +128,7 @@ export function registerAttachmentRoutes(app: ReturnType<typeof Router>) {
                 mimeType: file.mimetype,
                 fileSize: file.size,
               })
-              .$returningId();
+              .returning();
 
             return {
               id: row?.id,

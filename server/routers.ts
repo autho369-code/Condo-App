@@ -322,15 +322,29 @@ export const appRouter = router({
       .input(z.object({
         propertyId: z.number(),
         amountCents: z.number().min(1),
-        method: z.enum(["ach", "credit_card", "check", "wire", "other"]).optional(),
+        method: z.enum(["ach", "credit_card", "check", "cash", "other"]).optional(),
         description: z.string().optional(),
         referenceNumber: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const property = await getPropertyById(input.propertyId);
         if (!property) throw new Error("Property not found");
+        // Get or create the owner account to get ownerAccountId
+        const existing = await getOwnerAccount(ctx.user.id, input.propertyId);
+        if (!existing) {
+          await upsertOwnerAccount({
+            ownerId: ctx.user.id,
+            propertyId: input.propertyId,
+            companyId: property.companyId,
+            balanceCents: 0,
+            currency: "USD",
+          });
+        }
+        const account = await getOwnerAccount(ctx.user.id, input.propertyId);
+        if (!account) throw new Error("Failed to get owner account");
         // Create the payment transaction record (pending status)
         const result = await createPaymentTransaction({
+          ownerAccountId: account.id,
           ownerId: ctx.user.id,
           propertyId: input.propertyId,
           companyId: property.companyId,
@@ -341,7 +355,6 @@ export const appRouter = router({
           referenceNumber: input.referenceNumber,
         });
         // Update the owner's balance (reduce by payment amount)
-        const existing = await getOwnerAccount(ctx.user.id, input.propertyId);
         await upsertOwnerAccount({
           ownerId: ctx.user.id,
           propertyId: input.propertyId,

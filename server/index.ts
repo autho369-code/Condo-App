@@ -30,6 +30,11 @@ async function startServer() {
   // Property document upload routes
   registerDocumentRoutes(app as any);
 
+  // Health check for Railway
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // tRPC
   app.use(
     "/api/trpc",
@@ -39,7 +44,7 @@ async function startServer() {
     })
   );
 
-  // Static files
+  // Static files - in production, serve the Vite build output
   const staticPath =
     ENV.nodeEnv === "production"
       ? path.resolve(__dirname, "public")

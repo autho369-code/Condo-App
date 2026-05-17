@@ -1,1 +1,0 @@
-ALTER TABLE `owner_messages` ADD `isReadByManager` boolean DEFAULT false NOT NULL;

@@ -1,6 +1,6 @@
 import { eq, desc, and, sql } from "drizzle-orm";
-import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
-import { createPool } from "mysql2/promise";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import {
   users, companies, properties, propertyAssignments,
   tickets, ticketComments, scheduleEvents, meetings,
@@ -13,14 +13,14 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-type DB = MySql2Database<Record<string, never>>;
+type DB = ReturnType<typeof drizzle>;
 let _db: DB | null = null;
 
 export async function getDb(): Promise<DB | null> {
   if (!_db && ENV.databaseUrl) {
     try {
-      const pool = createPool(ENV.databaseUrl);
-      _db = drizzle(pool) as unknown as DB;
+      const pool = new Pool({ connectionString: ENV.databaseUrl, ssl: { rejectUnauthorized: false } });
+      _db = drizzle(pool) as DB;
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
     }
@@ -43,7 +43,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     role: isOwner ? "admin" : "user",
     portierRole: isOwner ? "super_admin" : "user",
     lastSignedIn: new Date(),
-  }).onDuplicateKeyUpdate({ set: updateSet });
+  }).onConflictDoUpdate({ target: users.openId, set: updateSet as any });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -119,7 +119,7 @@ export async function getTicketsByCompany(companyId: number) {
 export async function createTicket(data: InsertTicket) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(tickets).values(data).$returningId();
+  const result = await (db as any).insert(tickets).values(data).returning();
   return result[0];
 }
 
@@ -170,7 +170,7 @@ export async function getMeetingsByProperty(propertyId: number) {
 export async function createMeeting(data: InsertMeeting) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(meetings).values(data).$returningId();
+  const result = await (db as any).insert(meetings).values(data).returning();
   return result[0];
 }
 
@@ -286,7 +286,7 @@ export async function upsertOwnerAccount(data: InsertOwnerAccount) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   await (db as any).insert(ownerAccounts).values(data)
-    .onDuplicateKeyUpdate({ set: { balanceCents: data.balanceCents, notes: data.notes, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: [ownerAccounts.ownerId, ownerAccounts.propertyId], set: { balanceCents: data.balanceCents, notes: data.notes, updatedAt: new Date() } });
 }
 
 export async function getPaymentsByOwner(ownerId: number, propertyId: number) {
@@ -300,7 +300,7 @@ export async function getPaymentsByOwner(ownerId: number, propertyId: number) {
 export async function createPaymentTransaction(data: InsertPaymentTransaction) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(paymentTransactions).values(data).$returningId();
+  const result = await (db as any).insert(paymentTransactions).values(data).returning();
   return result[0];
 }
 
@@ -319,7 +319,7 @@ export async function getDocumentsByProperty(propertyId: number, sharedOnly = fa
 export async function createPropertyDocument(data: InsertPropertyDocument) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(propertyDocuments).values(data).$returningId();
+  const result = await (db as any).insert(propertyDocuments).values(data).returning();
   return result[0];
 }
 
@@ -357,7 +357,7 @@ export async function getOwnerMessages(ownerId: number, propertyId: number) {
 export async function createOwnerMessage(data: InsertOwnerMessage) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(ownerMessages).values(data).$returningId();
+  const result = await (db as any).insert(ownerMessages).values(data).returning();
   return result[0];
 }
 
@@ -398,7 +398,7 @@ import {
 export async function createOwnerNotification(data: InsertOwnerNotification) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  const result = await (db as any).insert(ownerNotifications).values(data).$returningId();
+  const result = await (db as any).insert(ownerNotifications).values(data).returning();
   return result[0] as { id: number } | undefined;
 }
 

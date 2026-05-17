@@ -112,13 +112,14 @@ export function registerDocumentRoutes(app: ReturnType<typeof Router>) {
             title,
             description: description ?? null,
             category: category ?? "other",
+            fileName: file.originalname,
             fileKey: key,
             fileUrl: url,
             mimeType: file.mimetype,
             fileSize: file.size,
             isSharedWithOwners: isSharedWithOwners === "true" || isSharedWithOwners === true,
           })
-          .$returningId();
+          .returning();
 
         const sharedFlag = isSharedWithOwners === "true" || isSharedWithOwners === true;
         const newDocId = row?.id;

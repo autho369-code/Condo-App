@@ -889,7 +889,7 @@ function AccountBalance({ propertyId, onMakePayment }: { propertyId: number; onM
             <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
             <p className="text-4xl font-bold">
-              {showBalance ? formatCents(balanceCents, data?.currency) : "••••••"}
+              {showBalance ? formatCents(balanceCents, "USD") : "••••••"}
             </p>
           )}
           {isOwed && <TrendingUp className="w-5 h-5 text-red-300 mb-1" />}
@@ -949,10 +949,10 @@ function AccountBalance({ propertyId, onMakePayment }: { propertyId: number; onM
                   </div>
                   <div className="text-right">
                     <p className={`text-sm font-semibold ${isPayment ? "text-green-600" : "text-red-600"}`}>
-                      {isPayment ? "-" : "+"}{formatCents(tx.amountCents, tx.currency)}
+                      {isPayment ? "-" : "+"}{formatCents(tx.amountCents, "USD")}
                     </p>
                     <Badge className={`text-xs border-0 ${
-                      tx.status === "completed" ? "bg-green-50 text-green-700"
+                      tx.status === "confirmed" ? "bg-green-50 text-green-700"
                         : tx.status === "pending" ? "bg-amber-50 text-amber-700"
                         : tx.status === "failed" ? "bg-red-50 text-red-700"
                         : "bg-gray-50 text-gray-600"
@@ -980,7 +980,7 @@ function MakePayment({
 }) {
   const [form, setForm] = useState({
     amountDollars: "",
-    method: "ach" as "ach" | "credit_card" | "check" | "wire" | "other",
+    method: "ach" as "ach" | "credit_card" | "check" | "cash" | "other",
     description: "",
     referenceNumber: "",
   });

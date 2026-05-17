@@ -136,7 +136,7 @@ function CompanyDashboard() {
                   <div key={p.id} className="py-2.5 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-charcoal">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.city ?? "—"} · {p.unitCount ?? 0} units</p>
+                      <p className="text-xs text-muted-foreground">{p.city ?? "—"} · {p.totalUnits ?? 0} units</p>
                     </div>
                     <Badge variant="outline" className="text-xs capitalize">{p.propertyType}</Badge>
                   </div>
