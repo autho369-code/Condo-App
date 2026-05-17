@@ -315,3 +315,25 @@ export const emailConnections = mysqlTable("email_connections", {
 
 export type EmailConnection = typeof emailConnections.$inferSelect;
 export type InsertEmailConnection = typeof emailConnections.$inferInsert;
+
+// ─── Ticket Attachments ──────────────────────────────────────────────────────
+export const ticketAttachments = mysqlTable("ticket_attachments", {
+  id: int("id").autoincrement().primaryKey(),
+  ticketId: int("ticketId").notNull(),
+  companyId: int("companyId").notNull(),
+  uploadedById: int("uploadedById").notNull(),
+  // Original file name shown to users
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  // S3 storage key (used to build the URL)
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  // Served URL from storage
+  fileUrl: text("fileUrl").notNull(),
+  // MIME type e.g. image/jpeg, application/pdf
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  // File size in bytes
+  fileSize: int("fileSize").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TicketAttachment = typeof ticketAttachments.$inferSelect;
+export type InsertTicketAttachment = typeof ticketAttachments.$inferInsert;

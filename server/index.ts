@@ -8,6 +8,7 @@ import { createContext } from "./_core/context";
 import { handleOAuthCallback } from "./_core/oauth";
 import { ENV } from "./_core/env";
 import { registerEmailRoutes } from "./email/emailRoutes";
+import { registerAttachmentRoutes } from "./attachments/attachmentRoutes";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,9 @@ async function startServer() {
 
   // Email OAuth routes (Gmail + Outlook)
   registerEmailRoutes(app);
+
+  // Ticket file attachment upload routes
+  registerAttachmentRoutes(app as any);
 
   // tRPC
   app.use(

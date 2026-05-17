@@ -137,3 +137,15 @@
 - [x] Show linked ticket badge on email card after conversion (with ticket ID link)
 - [x] Prevent duplicate conversion (disable button if email already converted)
 - [x] Write vitest tests for emailToTicket field mapping logic
+
+## Ticket File Attachments
+- [x] Add ticket_attachments table to schema (id, ticketId, uploadedBy, fileName, fileKey, fileUrl, mimeType, fileSize, createdAt)
+- [x] Run db:push for new table
+- [x] Add POST /api/tickets/upload Express route (multipart, calls storagePut, returns key+url)
+- [x] Add tRPC procedures: tickets.listAttachments, tickets.deleteAttachment
+- [x] Add file upload dropzone to ticket creation form (photos + documents, max 10MB each, max 5 files)
+- [x] Add attachment panel to ticket detail/expand view with image previews and document icons
+- [x] Show upload progress bar during upload
+- [x] Allow delete of own attachments (with confirmation)
+- [x] Support image preview lightbox on click
+- [x] Write vitest tests for attachment upload validation logic

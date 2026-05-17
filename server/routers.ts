@@ -14,6 +14,7 @@ import {
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
 import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
+import { getAttachmentsByTicket, deleteAttachment as dbDeleteAttachment } from "./attachments/attachmentDb";
 import { syncEmailConnection } from "./email/emailRoutes";
 import { categorizeEmail, saveCategorization, bulkCategorizeCompanyEmails } from "./email/categorize";
 import { ENV } from "./_core/env";
@@ -145,6 +146,28 @@ export const appRouter = router({
     addComment: companyProcedure
       .input(z.object({ ticketId: z.number(), content: z.string().min(1), isInternal: z.boolean().optional() }))
       .mutation(({ ctx, input }) => addTicketComment({ ...input, authorId: ctx.user.id })),
+    // ── Attachments ────────────────────────────────────────────────────────
+    listAttachments: companyProcedure
+      .input(z.object({ ticketId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) return [];
+        // Verify ticket belongs to this company
+        const allTickets = await getTicketsByCompany(ctx.user.companyId);
+        const ticket = allTickets.find(t => t.id === input.ticketId);
+        if (!ticket) return [];
+        return getAttachmentsByTicket(input.ticketId);
+      }),
+    deleteAttachment: companyProcedure
+      .input(z.object({ attachmentId: z.number(), ticketId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        // Verify ticket belongs to this company
+        const allTickets = await getTicketsByCompany(ctx.user.companyId);
+        const ticket = allTickets.find(t => t.id === input.ticketId);
+        if (!ticket) throw new Error("Ticket not found");
+        await dbDeleteAttachment(input.attachmentId, ctx.user.id);
+        return { success: true };
+      }),
   }),
 
   // ─── Schedule ──────────────────────────────────────────────────────────────

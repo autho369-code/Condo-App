@@ -29,6 +29,13 @@
       "when": 1778989433219,
       "tag": "0003_flashy_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778989817699,
+      "tag": "0004_fixed_spirit",
+      "breakpoints": true
     }
   ]
 }
