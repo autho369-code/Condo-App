@@ -1473,7 +1473,7 @@ function NotificationsView({ onNavigate }: { onNavigate?: (view: string, propert
             <Bell className="w-12 h-12 text-[#CCC] mx-auto mb-3" />
             <p className="text-[#666] text-sm font-medium">No notifications yet</p>
             <p className="text-[#999] text-xs mt-1">
-              You'll be notified here when documents are shared, your manager replies to a message, or other updates are posted.
+              You'll be notified here when documents are shared, your manager replies to a message, your maintenance request status changes, or other updates are posted.
             </p>
           </CardContent>
         </Card>
@@ -1506,6 +1506,8 @@ function NotificationsView({ onNavigate }: { onNavigate?: (view: string, propert
                     onNavigate("messages", notif.propertyId ?? undefined);
                   } else if (notif.type === "document_shared" && onNavigate) {
                     onNavigate("documents", notif.propertyId ?? undefined);
+                  } else if (notif.type === "ticket_update" && onNavigate) {
+                    onNavigate("my-tickets", notif.propertyId ?? undefined);
                   }
                 }}
               >

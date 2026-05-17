@@ -273,3 +273,17 @@
 - [x] Updated empty-state description to mention manager replies
 - [x] Write 18 vitest tests for notifyManagerReply logic and preference gating — all passing
 - [x] Full test suite: 195 tests passing
+
+## Ticket Update Notifications
+- [x] Review tickets schema (status enum, reportedById, propertyId) and updateTicketStatus procedure
+- [x] Add notifyTicketUpdate(ticketId, newStatus, oldStatus) to notificationService.ts
+- [x] Owner-role guard: only notify when reporter has portierRole === "owner"
+- [x] No-op guard: skip when newStatus === oldStatus
+- [x] Respect ticketUpdateInApp and ticketUpdateEmail preferences per owner
+- [x] Create in-app notification (type: "ticket_update") with ticket title, new status label, and property name
+- [x] Send branded HTML email with ticket title, old status → new status badge, and portal CTA
+- [x] Wire notifyTicketUpdate into tickets.updateStatus tRPC procedure (fire-and-forget, fetches old status first)
+- [x] Clicking ticket_update notification in portal navigates to my-tickets view
+- [x] Updated empty-state description to mention ticket status changes
+- [x] Write 24 vitest tests for notifyTicketUpdate logic and preference gating — all passing
+- [x] Full test suite: 219 tests passing

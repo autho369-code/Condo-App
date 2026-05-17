@@ -24,7 +24,7 @@ import { getAttachmentsByTicket, deleteAttachment as dbDeleteAttachment } from "
 import { syncEmailConnection } from "./email/emailRoutes";
 import { categorizeEmail, saveCategorization, bulkCategorizeCompanyEmails } from "./email/categorize";
 import { ENV } from "./_core/env";
-import { notifyDocumentShared, notifyManagerReply } from "./notifications/notificationService";
+import { notifyDocumentShared, notifyManagerReply, notifyTicketUpdate } from "./notifications/notificationService";
 import {
   getNotificationsByOwner, getUnreadNotificationCount,
   markNotificationRead, markAllNotificationsRead,
@@ -152,7 +152,19 @@ export const appRouter = router({
       }),
     updateStatus: companyProcedure
       .input(z.object({ ticketId: z.number(), status: z.enum(["open","in_progress","pending_vendor","resolved","closed"]) }))
-      .mutation(({ input }) => updateTicketStatus(input.ticketId, input.status)),
+      .mutation(async ({ input }) => {
+        // Fetch old status before updating so we can pass it to the notification
+        const ticket = await getTicketById(input.ticketId);
+        const oldStatus = ticket?.status ?? "open";
+        await updateTicketStatus(input.ticketId, input.status);
+        // Fire-and-forget: notify the owner about the status change
+        notifyTicketUpdate({
+          ticketId: input.ticketId,
+          newStatus: input.status,
+          oldStatus,
+        }).catch(err => console.error("[updateStatus] Notification error:", err));
+        return { success: true };
+      }),
     comments: companyProcedure
       .input(z.object({ ticketId: z.number() }))
       .query(({ input }) => getTicketComments(input.ticketId)),

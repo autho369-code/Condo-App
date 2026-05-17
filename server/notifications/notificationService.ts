@@ -401,3 +401,227 @@ export async function notifyManagerReply(params: {
     console.error("[Notifications] Unexpected error in notifyManagerReply:", err);
   }
 }
+
+// ─── Status label map (shared between in-app body and email) ─────────────────
+const STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  pending_vendor: "Pending Vendor",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+// ─── Build email HTML for ticket-update notification ─────────────────────────
+function buildTicketUpdateEmail(params: {
+  ownerName: string;
+  ticketTitle: string;
+  oldStatus: string;
+  newStatus: string;
+  propertyName: string;
+  portalUrl: string;
+}): string {
+  const { ownerName, ticketTitle, oldStatus, newStatus, propertyName, portalUrl } = params;
+  const oldLabel = STATUS_LABELS[oldStatus] ?? oldStatus;
+  const newLabel = STATUS_LABELS[newStatus] ?? newStatus;
+
+  // Choose a status colour for the badge
+  const statusColor: Record<string, string> = {
+    open: "#6B7280",
+    in_progress: "#2563EB",
+    pending_vendor: "#D97706",
+    resolved: "#16A34A",
+    closed: "#374151",
+  };
+  const badgeColor = statusColor[newStatus] ?? "#5C6B3A";
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintenance Request Update</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f4f0;font-family:'Georgia',serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:#2D4A3E;padding:32px 40px;">
+              <p style="margin:0;color:#C9A84C;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-family:sans-serif;">Portier369</p>
+              <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;font-weight:normal;">Maintenance Request Update</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 16px;color:#3d3d3d;font-size:16px;line-height:1.6;">
+                Dear ${ownerName},
+              </p>
+              <p style="margin:0 0 24px;color:#3d3d3d;font-size:16px;line-height:1.6;">
+                Your maintenance request for <strong>${propertyName}</strong> has been updated.
+              </p>
+              <!-- Ticket card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f8f5;border:1px solid #e8e5de;border-radius:6px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 8px;color:#888;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-family:sans-serif;">Request</p>
+                    <p style="margin:0 0 16px;color:#1a1a1a;font-size:18px;font-weight:bold;">${ticketTitle}</p>
+                    <!-- Status change row -->
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="background:#e8e5de;border-radius:4px;padding:4px 10px;">
+                          <span style="font-family:sans-serif;font-size:13px;color:#555;">${oldLabel}</span>
+                        </td>
+                        <td style="padding:0 10px;color:#888;font-family:sans-serif;font-size:14px;">→</td>
+                        <td style="background:${badgeColor};border-radius:4px;padding:4px 10px;">
+                          <span style="font-family:sans-serif;font-size:13px;color:#ffffff;font-weight:600;">${newLabel}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 32px;color:#3d3d3d;font-size:16px;line-height:1.6;">
+                Log in to your owner portal to view the full request history and any comments from your management team.
+              </p>
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#2D4A3E;border-radius:6px;">
+                    <a href="${portalUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-family:sans-serif;font-size:15px;font-weight:600;">
+                      View Request in Portal →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px;border-top:1px solid #e8e5de;">
+              <p style="margin:0;color:#999;font-size:13px;font-family:sans-serif;line-height:1.5;">
+                This notification was sent because your property manager updated a maintenance request on the Portier369 platform.
+                To manage your notification preferences, visit your owner portal settings.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+// ─── Trigger: notify an owner when their ticket status changes ────────────────
+/**
+ * Call this after a manager calls updateTicketStatus.
+ * Respects the owner's ticketUpdateInApp and ticketUpdateEmail preferences.
+ * Only notifies if the ticket was reported by an owner (reportedById maps to an owner-role user).
+ *
+ * @param ticketId   - The numeric ID of the updated ticket
+ * @param newStatus  - The new status value
+ * @param oldStatus  - The previous status value (for the email diff display)
+ */
+export async function notifyTicketUpdate(params: {
+  ticketId: number;
+  newStatus: string;
+  oldStatus: string;
+}): Promise<void> {
+  const { ticketId, newStatus, oldStatus } = params;
+
+  // Skip if status didn't actually change
+  if (newStatus === oldStatus) return;
+
+  try {
+    // Load ticket to get reportedById, propertyId, companyId, title
+    const ticket = await (await import("../db")).getTicketById(ticketId);
+    if (!ticket) {
+      console.warn(`[Notifications] Ticket ${ticketId} not found — skipping ticket update notification.`);
+      return;
+    }
+    if (!ticket.reportedById) {
+      console.info(`[Notifications] Ticket ${ticketId} has no reporter — skipping notification.`);
+      return;
+    }
+
+    // Load the reporter (must be an owner to receive portal notifications)
+    const reporter = await getUserById(ticket.reportedById);
+    if (!reporter) {
+      console.warn(`[Notifications] Reporter ${ticket.reportedById} not found — skipping.`);
+      return;
+    }
+    if (reporter.portierRole !== "owner") {
+      // Only owners have a portal; skip for manager-created tickets
+      console.info(`[Notifications] Reporter ${reporter.id} is not an owner (role: ${reporter.portierRole}) — skipping.`);
+      return;
+    }
+
+    // Load property for the notification body
+    const property = await getPropertyById(ticket.propertyId);
+    const propertyName = property?.name ?? "your property";
+
+    // Load this owner's notification preferences
+    const prefs = await getNotificationPrefs(reporter.id);
+
+    const portalUrl = `${ENV.oauthPortalUrl ?? ""}/portal?tab=tickets`;
+    const newLabel = STATUS_LABELS[newStatus] ?? newStatus;
+    const notifTitle = `Request updated: ${newLabel}`;
+    const notifBody = `Your request "${ticket.title}" for ${propertyName} is now ${newLabel}.`;
+
+    // 1. Create in-app notification (if owner has not opted out)
+    let notifId: number | undefined;
+    if (prefs.ticketUpdateInApp) {
+      try {
+        const result = await createOwnerNotification({
+          ownerId: reporter.id,
+          propertyId: ticket.propertyId,
+          companyId: ticket.companyId,
+          type: "ticket_update",
+          title: notifTitle,
+          body: notifBody,
+          documentId: null,
+          isRead: false,
+          emailSent: false,
+        });
+        notifId = result?.id;
+      } catch (err) {
+        console.error(`[Notifications] Failed to create in-app ticket notification for owner ${reporter.id}:`, err);
+      }
+    } else {
+      console.info(`[Notifications] Owner ${reporter.id} has opted out of in-app ticket notifications.`);
+    }
+
+    // 2. Send email notification (if owner has not opted out and has an email)
+    if (prefs.ticketUpdateEmail && reporter.email) {
+      const ownerName = reporter.name ?? "Owner";
+      const html = buildTicketUpdateEmail({
+        ownerName,
+        ticketTitle: ticket.title,
+        oldStatus,
+        newStatus,
+        propertyName,
+        portalUrl,
+      });
+      const sent = await sendEmailViaForge(
+        reporter.email,
+        `Request update: "${ticket.title}" is now ${newLabel} — ${propertyName}`,
+        html,
+      );
+      if (sent && notifId) {
+        await markNotificationEmailSent(notifId);
+      }
+    } else if (!prefs.ticketUpdateEmail) {
+      console.info(`[Notifications] Owner ${reporter.id} has opted out of email ticket notifications.`);
+    }
+
+    console.info(`[Notifications] Ticket update notification processed for owner ${reporter.id} (ticket ${ticketId}: ${oldStatus} → ${newStatus}).`);
+  } catch (err) {
+    // Notification failures must never crash the main request
+    console.error("[Notifications] Unexpected error in notifyTicketUpdate:", err);
+  }
+}
