@@ -16,6 +16,7 @@ import {
   getOwnerAccount, upsertOwnerAccount, getPaymentsByOwner, createPaymentTransaction,
   getDocumentsByProperty, createPropertyDocument, toggleDocumentShare, deletePropertyDocument, getDocumentById,
   getOwnerMessages, createOwnerMessage, markMessagesRead, getOwnerMessagesByCompany,
+  getOwnerMessageThreads, getThreadMessages, markThreadReadByManager, getTotalUnreadManagerCount,
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
 import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
@@ -459,21 +460,52 @@ export const appRouter = router({
         await deletePropertyDocument(input.documentId);
         return { success: true };
       }),
-    // Manager inbox: see all owner messages for their company
+    // Manager inbox: see all owner messages for their company (legacy flat list)
     ownerMessages: companyProcedure.query(async ({ ctx }) => {
       if (!ctx.user.companyId) return [];
       return getOwnerMessagesByCompany(ctx.user.companyId);
     }),
+
+    // Manager inbox: grouped threads with unread counts
+    getMessageThreads: companyProcedure.query(async ({ ctx }) => {
+      if (!ctx.user.companyId) return [];
+      return getOwnerMessageThreads(ctx.user.companyId);
+    }),
+
+    // All messages in a specific thread
+    getThreadMessages: companyProcedure
+      .input(z.object({ threadKey: z.string() }))
+      .query(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) return [];
+        return getThreadMessages(ctx.user.companyId, input.threadKey);
+      }),
+
+    // Mark all owner→manager messages in a thread as read by manager
+    markThreadRead: companyProcedure
+      .input(z.object({ threadKey: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        await markThreadReadByManager(ctx.user.companyId, input.threadKey);
+        return { success: true };
+      }),
+
+    // Total unread count badge for sidebar nav
+    getTotalUnread: companyProcedure.query(async ({ ctx }) => {
+      if (!ctx.user.companyId) return { count: 0 };
+      const count = await getTotalUnreadManagerCount(ctx.user.companyId);
+      return { count };
+    }),
+
     replyToOwner: companyProcedure
       .input(z.object({
         ownerId: z.number(),
         propertyId: z.number(),
+        threadKey: z.string(),
         body: z.string().min(1),
         subject: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         if (!ctx.user.companyId) throw new Error("No company");
-        const threadKey = `owner-${input.ownerId}-prop-${input.propertyId}`;
         await createOwnerMessage({
           propertyId: input.propertyId,
           companyId: ctx.user.companyId,
@@ -483,8 +515,10 @@ export const appRouter = router({
           channel: "in_app",
           subject: input.subject,
           body: input.body,
-          threadKey,
+          threadKey: input.threadKey,
         });
+        // Mark thread as read by manager since they just replied
+        await markThreadReadByManager(ctx.user.companyId, input.threadKey);
         return { success: true };
       }),
   }),

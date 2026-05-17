@@ -14,6 +14,7 @@ import Properties from "./pages/Properties";
 import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 import ResidentPortal from "./pages/ResidentPortal";
+import OwnerMessages from "./pages/OwnerMessages";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/dashboard/properties" component={Properties} />
       <Route path="/dashboard/admin" component={AdminPanel} />
       <Route path="/portal" component={ResidentPortal} />
+      <Route path="/dashboard/owner-messages" component={OwnerMessages} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

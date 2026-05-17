@@ -425,6 +425,8 @@ export const ownerMessages = mysqlTable("owner_messages", {
   subject: varchar("subject", { length: 255 }),
   body: text("body").notNull(),
   isRead: boolean("isRead").default(false).notNull(),
+  // Separate read tracking for manager side (owner isRead is tracked by the isRead field)
+  isReadByManager: boolean("isReadByManager").default(false).notNull(),
   // Thread grouping: all messages in a conversation share the same threadKey
   threadKey: varchar("threadKey", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

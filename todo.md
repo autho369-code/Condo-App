@@ -235,3 +235,27 @@
 - [x] Sticky unsaved-changes bar with Save and Discard buttons
 - [x] Write 12 vitest tests for preference-aware notification logic — all passing
 - [x] Full test suite: 163 tests passing
+
+## Manager Owner Messages Inbox
+- [x] Review owner_messages schema and existing DB helpers
+- [x] Add isReadByManager column to owner_messages table + db:push migration
+- [x] Add getOwnerMessageThreads DB helper (grouped by threadKey, with unread count per thread)
+- [x] Add getThreadMessages DB helper (all messages in a thread, ordered by createdAt)
+- [x] Add markThreadReadByManager DB helper (mark all messages in thread as read by manager)
+- [x] Add getTotalUnreadManagerCount DB helper (total unread across all properties for a company)
+- [x] Add documents.getMessageThreads tRPC procedure (manager: list all threads with metadata)
+- [x] Add documents.getThreadMessages tRPC procedure (manager: messages in a specific thread)
+- [x] Add documents.markThreadRead tRPC procedure (manager: mark thread as read)
+- [x] Add documents.getTotalUnread tRPC procedure (manager: total unread badge count)
+- [x] Update documents.replyToOwner to accept threadKey and auto-mark thread as read after reply
+- [x] Build OwnerMessages.tsx page (thread list + reply panel, two-column layout on desktop)
+- [x] Thread list: property badge, owner name, last message preview, timestamp, unread dot
+- [x] Thread list sorted: unread first, then by most recent message
+- [x] Thread detail: full message history with chat bubbles, manager reply compose box, Ctrl+Enter to send
+- [x] Auto-mark thread as read when manager opens it
+- [x] Auto-scroll to latest message when thread opens or new message arrives
+- [x] Unread badge on sidebar nav item (polls every 60s)
+- [x] Add "Owner Messages" nav entry to DashboardLayout sidebar
+- [x] Register /dashboard/owner-messages route in App.tsx
+- [x] Write 14 vitest tests for new DB helpers and tRPC procedures — all passing
+- [x] Full test suite: 177 tests passing

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Building2, Ticket, CalendarDays, Mail, Users, BarChart3,
-  Briefcase, LogOut, Menu, X, ChevronRight, Shield, Home
+  Briefcase, LogOut, Menu, X, ChevronRight, Shield, Home,
+  MessageSquare,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -14,6 +16,7 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   roles?: string[];
+  badgeKey?: "ownerMessages"; // extend if more badges needed
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -22,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Work Tickets", href: "/dashboard/tickets", icon: Ticket, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "accountant", "assistant_manager"] },
   { label: "Schedule", href: "/dashboard/schedule", icon: CalendarDays, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"] },
   { label: "Email Hub", href: "/dashboard/email", icon: Mail, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "accountant", "assistant_manager"] },
+  { label: "Owner Messages", href: "/dashboard/owner-messages", icon: MessageSquare, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager", "assistant_manager"], badgeKey: "ownerMessages" },
   { label: "Meetings", href: "/dashboard/meetings", icon: Users, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
   { label: "Vendors", href: "/dashboard/vendors", icon: Briefcase, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: ["super_admin", "company_admin", "portfolio_manager"] },
@@ -29,10 +33,31 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Resident Portal", href: "/portal", icon: Home, roles: ["super_admin", "company_admin", "portfolio_manager", "property_manager"] },
 ];
 
+// ─── Unread badge hook ────────────────────────────────────────────────────────
+function useOwnerMessageUnread(): number {
+  const { user } = useAuth();
+  const isManager = user?.portierRole && [
+    "super_admin", "company_admin", "portfolio_manager",
+    "property_manager", "assistant_manager",
+  ].includes(user.portierRole);
+
+  const { data } = trpc.documents.getTotalUnread.useQuery(undefined, {
+    enabled: !!isManager,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  return data?.count ?? 0;
+}
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout, loginUrl } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const ownerMsgUnread = useOwnerMessageUnread();
+
+  const badges: Record<string, number> = {
+    ownerMessages: ownerMsgUnread,
+  };
 
   if (!user) {
     return (
@@ -78,14 +103,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <ul className="space-y-0.5">
           {visibleNav.map(item => {
             const active = location === item.href;
+            const badgeCount = item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0;
             return (
               <li key={item.href}>
                 <Link href={item.href}>
-                  <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-olive text-cream" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-                    onClick={() => setSidebarOpen(false)}>
+                  <a
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      active ? "bg-olive text-cream" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
-                    {item.label}
-                    {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {badgeCount > 0 && !active && (
+                      <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                      </span>
+                    )}
+                    {active && <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0" />}
                   </a>
                 </Link>
               </li>
@@ -95,7 +130,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </nav>
       {/* Logout */}
       <div className="p-3 border-t border-border">
-        <button onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full">
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full"
+        >
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>
@@ -122,11 +160,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-          <button onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5" /></button>
-          <span className="font-serif text-base font-semibold text-charcoal">Portier<span className="text-gold">369</span></span>
+          <button onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-serif text-base font-semibold text-charcoal">
+            Portier<span className="text-gold">369</span>
+          </span>
           <div className="w-5" />
         </div>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>

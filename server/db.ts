@@ -543,3 +543,188 @@ export async function upsertNotificationPrefs(
       .values({ ownerId, ...DEFAULT_NOTIFICATION_PREFS, ...prefs });
   }
 }
+
+// ─── Manager Owner Message Inbox ──────────────────────────────────────────────
+
+/**
+ * Returns all unique conversation threads for a company, grouped by threadKey.
+ * Each thread summary includes: threadKey, ownerId, ownerName, propertyId, propertyName,
+ * subject, lastMessage, lastMessageAt, unreadCount (messages from owner not yet read by manager).
+ */
+export async function getOwnerMessageThreads(companyId: number): Promise<{
+  threadKey: string;
+  ownerId: number;
+  ownerName: string | null;
+  propertyId: number;
+  propertyName: string;
+  subject: string | null;
+  lastBody: string;
+  lastDirection: string;
+  lastMessageAt: Date;
+  unreadCount: number;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get all messages for the company, ordered newest first
+  const allMessages = await (db as any)
+    .select()
+    .from(ownerMessages)
+    .where(eq(ownerMessages.companyId, companyId))
+    .orderBy(desc(ownerMessages.createdAt)) as (typeof ownerMessages.$inferSelect)[];
+
+  if (allMessages.length === 0) return [];
+
+  // Group by threadKey (fall back to ownerId+propertyId composite if no threadKey)
+  const threadMap = new Map<string, {
+    threadKey: string;
+    ownerId: number;
+    propertyId: number;
+    subject: string | null;
+    lastBody: string;
+    lastDirection: string;
+    lastMessageAt: Date;
+    unreadCount: number;
+  }>();
+
+  for (const msg of allMessages) {
+    const key = msg.threadKey ?? `${msg.ownerId}-${msg.propertyId}`;
+    if (!threadMap.has(key)) {
+      threadMap.set(key, {
+        threadKey: key,
+        ownerId: msg.ownerId,
+        propertyId: msg.propertyId,
+        subject: msg.subject ?? null,
+        lastBody: msg.body,
+        lastDirection: msg.direction,
+        lastMessageAt: msg.createdAt,
+        unreadCount: 0,
+      });
+    }
+    // Count unread owner→manager messages (not yet read by manager)
+    if (msg.direction === "owner_to_manager" && !msg.isReadByManager) {
+      const thread = threadMap.get(key)!;
+      thread.unreadCount += 1;
+    }
+  }
+
+  // Enrich with owner name and property name
+  const ownerIds = Array.from(new Set(Array.from(threadMap.values()).map(t => t.ownerId)));
+  const propertyIds = Array.from(new Set(Array.from(threadMap.values()).map(t => t.propertyId)));
+
+  const ownerRows = ownerIds.length > 0
+    ? await (db as any).select({ id: users.id, name: users.name }).from(users)
+        .where(sql`${users.id} IN (${sql.join(ownerIds.map(id => sql`${id}`), sql`, `)})`) as { id: number; name: string | null }[]
+    : [];
+
+  const propertyRows = propertyIds.length > 0
+    ? await (db as any).select({ id: properties.id, name: properties.name }).from(properties)
+        .where(sql`${properties.id} IN (${sql.join(propertyIds.map(id => sql`${id}`), sql`, `)})`) as { id: number; name: string }[]
+    : [];
+
+  const ownerNameMap = new Map(ownerRows.map(o => [o.id, o.name]));
+  const propertyNameMap = new Map(propertyRows.map(p => [p.id, p.name]));
+
+  return Array.from(threadMap.values()).map(t => ({
+    ...t,
+    ownerName: ownerNameMap.get(t.ownerId) ?? null,
+    propertyName: propertyNameMap.get(t.propertyId) ?? "Unknown Property",
+  }));
+}
+
+/**
+ * Returns all messages in a specific thread.
+ * Supports two key formats:
+ *   - Real threadKey (stored in DB): matches directly on threadKey column
+ *   - Fallback synthetic key "ownerId-propertyId": matches rows where threadKey IS NULL
+ *     for the given ownerId+propertyId combination
+ */
+export async function getThreadMessages(
+  companyId: number,
+  threadKey: string,
+): Promise<(typeof ownerMessages.$inferSelect)[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Detect fallback synthetic key pattern: "<number>-<number>"
+  const fallbackMatch = threadKey.match(/^(\d+)-(\d+)$/);
+  if (fallbackMatch) {
+    const ownerId = parseInt(fallbackMatch[1], 10);
+    const propertyId = parseInt(fallbackMatch[2], 10);
+    return (db as any)
+      .select()
+      .from(ownerMessages)
+      .where(and(
+        eq(ownerMessages.companyId, companyId),
+        eq(ownerMessages.ownerId, ownerId),
+        eq(ownerMessages.propertyId, propertyId),
+        sql`${ownerMessages.threadKey} IS NULL`,
+      ))
+      .orderBy(ownerMessages.createdAt) as Promise<(typeof ownerMessages.$inferSelect)[]>;
+  }
+
+  return (db as any)
+    .select()
+    .from(ownerMessages)
+    .where(and(
+      eq(ownerMessages.companyId, companyId),
+      eq(ownerMessages.threadKey, threadKey),
+    ))
+    .orderBy(ownerMessages.createdAt) as Promise<(typeof ownerMessages.$inferSelect)[]>;
+}
+
+/**
+ * Mark all owner→manager messages in a thread as read by the manager.
+ * Supports both real threadKey and fallback synthetic keys ("ownerId-propertyId").
+ */
+export async function markThreadReadByManager(
+  companyId: number,
+  threadKey: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  // Detect fallback synthetic key pattern: "<number>-<number>"
+  const fallbackMatch = threadKey.match(/^(\d+)-(\d+)$/);
+  if (fallbackMatch) {
+    const ownerId = parseInt(fallbackMatch[1], 10);
+    const propertyId = parseInt(fallbackMatch[2], 10);
+    await (db as any)
+      .update(ownerMessages)
+      .set({ isReadByManager: true })
+      .where(and(
+        eq(ownerMessages.companyId, companyId),
+        eq(ownerMessages.ownerId, ownerId),
+        eq(ownerMessages.propertyId, propertyId),
+        eq(ownerMessages.direction, "owner_to_manager"),
+        sql`${ownerMessages.threadKey} IS NULL`,
+      ));
+    return;
+  }
+
+  await (db as any)
+    .update(ownerMessages)
+    .set({ isReadByManager: true })
+    .where(and(
+      eq(ownerMessages.companyId, companyId),
+      eq(ownerMessages.threadKey, threadKey),
+      eq(ownerMessages.direction, "owner_to_manager"),
+    ));
+}
+
+/**
+ * Total count of unread owner→manager messages across all properties for a company.
+ */
+export async function getTotalUnreadManagerCount(companyId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await (db as any)
+    .select({ count: sql<number>`count(*)` })
+    .from(ownerMessages)
+    .where(and(
+      eq(ownerMessages.companyId, companyId),
+      eq(ownerMessages.direction, "owner_to_manager"),
+      eq(ownerMessages.isReadByManager, false),
+    ));
+  return Number(row?.count ?? 0);
+}
