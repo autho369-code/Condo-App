@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -9,24 +9,36 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Building2, ClipboardList, Plus, ArrowLeft, MessageSquare,
   Clock, CheckCircle2, AlertTriangle, Wrench, ChevronRight,
-  Send, Loader2, Home, LogIn
+  Send, Loader2, Home, LogIn, DollarSign, FileText, Mail,
+  Phone, CreditCard, Download, Eye, EyeOff, TrendingDown,
+  TrendingUp, Inbox, Reply, Paperclip, FolderOpen, Shield,
+  BookOpen, FileCheck, ReceiptText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type PortalView = "welcome" | "select-property" | "home" | "new-request" | "my-tickets" | "ticket-detail";
+type PortalView =
+  | "welcome"
+  | "select-property"
+  | "home"
+  | "new-request"
+  | "my-tickets"
+  | "ticket-detail"
+  | "account-balance"
+  | "make-payment"
+  | "documents"
+  | "messages";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  open:           { label: "Open",           color: "bg-blue-100 text-blue-800",   icon: <Clock className="w-3 h-3" /> },
-  in_progress:    { label: "In Progress",    color: "bg-amber-100 text-amber-800", icon: <Wrench className="w-3 h-3" /> },
+  open:           { label: "Open",           color: "bg-blue-100 text-blue-800",     icon: <Clock className="w-3 h-3" /> },
+  in_progress:    { label: "In Progress",    color: "bg-amber-100 text-amber-800",   icon: <Wrench className="w-3 h-3" /> },
   pending_vendor: { label: "Pending Vendor", color: "bg-purple-100 text-purple-800", icon: <Clock className="w-3 h-3" /> },
-  resolved:       { label: "Resolved",       color: "bg-green-100 text-green-800", icon: <CheckCircle2 className="w-3 h-3" /> },
-  closed:         { label: "Closed",         color: "bg-gray-100 text-gray-600",   icon: <CheckCircle2 className="w-3 h-3" /> },
+  resolved:       { label: "Resolved",       color: "bg-green-100 text-green-800",   icon: <CheckCircle2 className="w-3 h-3" /> },
+  closed:         { label: "Closed",         color: "bg-gray-100 text-gray-600",     icon: <CheckCircle2 className="w-3 h-3" /> },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -46,12 +58,29 @@ const CATEGORY_OPTIONS = [
   { value: "other",         label: "Other" },
 ];
 
+const DOC_CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  governing_document: { label: "Governing Document", icon: <Shield className="w-4 h-4" />, color: "bg-blue-50 text-blue-700" },
+  meeting_minutes:    { label: "Meeting Minutes",     icon: <BookOpen className="w-4 h-4" />, color: "bg-purple-50 text-purple-700" },
+  financial_report:   { label: "Financial Report",    icon: <ReceiptText className="w-4 h-4" />, color: "bg-green-50 text-green-700" },
+  insurance:          { label: "Insurance",           icon: <FileCheck className="w-4 h-4" />, color: "bg-amber-50 text-amber-700" },
+  maintenance_record: { label: "Maintenance Record",  icon: <Wrench className="w-4 h-4" />, color: "bg-orange-50 text-orange-700" },
+  notice:             { label: "Notice",              icon: <AlertTriangle className="w-4 h-4" />, color: "bg-red-50 text-red-700" },
+  other:              { label: "Document",            icon: <FileText className="w-4 h-4" />, color: "bg-gray-50 text-gray-600" },
+};
+
+function formatCents(cents: number, currency = "USD") {
+  const abs = Math.abs(cents) / 100;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(abs);
+}
+
 // ─── Portal Shell ─────────────────────────────────────────────────────────────
 export default function ResidentPortal() {
   const { user, isAuthenticated, loading } = useAuth();
   const [view, setView] = useState<PortalView>("welcome");
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+
+  const isOwner = user?.portierRole === "owner";
 
   if (loading) {
     return (
@@ -65,6 +94,14 @@ export default function ResidentPortal() {
     return <PortalLogin />;
   }
 
+  function goBack() {
+    if (view === "ticket-detail") setView("my-tickets");
+    else if (view === "make-payment") setView("account-balance");
+    else if (["new-request", "my-tickets", "account-balance", "documents", "messages"].includes(view))
+      setView("home");
+    else setView("welcome");
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8F4]">
       {/* Portal Header */}
@@ -73,11 +110,7 @@ export default function ResidentPortal() {
           <div className="flex items-center gap-3">
             {view !== "welcome" && view !== "home" && (
               <button
-                onClick={() => {
-                  if (view === "ticket-detail") setView("my-tickets");
-                  else if (view === "new-request" || view === "my-tickets") setView("home");
-                  else setView("welcome");
-                }}
+                onClick={goBack}
                 className="p-1.5 rounded-lg hover:bg-[#F0EBE0] transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 text-[#3C3C3C]" />
@@ -85,7 +118,9 @@ export default function ResidentPortal() {
             )}
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-[#5C6B3A]" />
-              <span className="font-semibold text-[#3C3C3C] text-sm">Portier Resident Portal</span>
+              <span className="font-semibold text-[#3C3C3C] text-sm">
+                {isOwner ? "Owner Portal" : "Resident Portal"}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -101,7 +136,7 @@ export default function ResidentPortal() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <AnimatePresence mode="wait">
           {view === "welcome" && (
-            <PortalWelcome key="welcome" user={user} onContinue={() => setView("select-property")} />
+            <PortalWelcome key="welcome" user={user} isOwner={isOwner} onContinue={() => setView("select-property")} />
           )}
           {view === "select-property" && (
             <PropertySelector
@@ -113,8 +148,12 @@ export default function ResidentPortal() {
             <PortalHome
               key="home"
               propertyId={selectedPropertyId}
+              isOwner={isOwner}
               onNewRequest={() => setView("new-request")}
               onMyTickets={() => setView("my-tickets")}
+              onAccountBalance={() => setView("account-balance")}
+              onDocuments={() => setView("documents")}
+              onMessages={() => setView("messages")}
               onChangeProperty={() => setView("select-property")}
             />
           )}
@@ -139,6 +178,27 @@ export default function ResidentPortal() {
               onBack={() => setView("my-tickets")}
             />
           )}
+          {view === "account-balance" && selectedPropertyId && (
+            <AccountBalance
+              key="account-balance"
+              propertyId={selectedPropertyId}
+              onMakePayment={() => setView("make-payment")}
+            />
+          )}
+          {view === "make-payment" && selectedPropertyId && (
+            <MakePayment
+              key="make-payment"
+              propertyId={selectedPropertyId}
+              onSuccess={() => { toast.success("Payment submitted successfully!"); setView("account-balance"); }}
+              onCancel={() => setView("account-balance")}
+            />
+          )}
+          {view === "documents" && selectedPropertyId && (
+            <SharedDocuments key="documents" propertyId={selectedPropertyId} />
+          )}
+          {view === "messages" && selectedPropertyId && (
+            <OwnerMessages key="messages" propertyId={selectedPropertyId} />
+          )}
         </AnimatePresence>
       </main>
     </div>
@@ -159,9 +219,9 @@ function PortalLogin() {
             <div className="w-14 h-14 bg-[#5C6B3A] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Building2 className="w-7 h-7 text-white" />
             </div>
-            <CardTitle className="text-[#3C3C3C] font-serif text-xl">Resident Portal</CardTitle>
+            <CardTitle className="text-[#3C3C3C] font-serif text-xl">Resident & Owner Portal</CardTitle>
             <CardDescription className="text-[#666]">
-              Sign in to submit maintenance requests and track your tickets
+              Sign in to manage your account, submit requests, and access property documents
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -183,7 +243,20 @@ function PortalLogin() {
 }
 
 // ─── Welcome Screen ───────────────────────────────────────────────────────────
-function PortalWelcome({ user, onContinue }: { user: any; onContinue: () => void }) {
+function PortalWelcome({ user, isOwner, onContinue }: { user: any; isOwner: boolean; onContinue: () => void }) {
+  const features = isOwner
+    ? [
+        { icon: <DollarSign className="w-5 h-5" />, label: "Account Balance" },
+        { icon: <ClipboardList className="w-5 h-5" />, label: "My Requests" },
+        { icon: <FolderOpen className="w-5 h-5" />, label: "Documents" },
+        { icon: <MessageSquare className="w-5 h-5" />, label: "Message Us" },
+      ]
+    : [
+        { icon: <Plus className="w-5 h-5" />, label: "Submit Requests" },
+        { icon: <ClipboardList className="w-5 h-5" />, label: "Track Status" },
+        { icon: <MessageSquare className="w-5 h-5" />, label: "Add Comments" },
+      ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -198,14 +271,12 @@ function PortalWelcome({ user, onContinue }: { user: any; onContinue: () => void
         Welcome back, {user?.name?.split(" ")[0] ?? "Resident"}
       </h1>
       <p className="text-[#666] mb-8 max-w-sm mx-auto">
-        Your dedicated portal for submitting maintenance requests and tracking their progress.
+        {isOwner
+          ? "Your owner portal — manage your account, view balances, access documents, and communicate with management."
+          : "Your dedicated portal for submitting maintenance requests and tracking their progress."}
       </p>
-      <div className="grid grid-cols-3 gap-4 mb-8 max-w-sm mx-auto">
-        {[
-          { icon: <Plus className="w-5 h-5" />, label: "Submit Requests" },
-          { icon: <ClipboardList className="w-5 h-5" />, label: "Track Status" },
-          { icon: <MessageSquare className="w-5 h-5" />, label: "Add Comments" },
-        ].map((item, i) => (
+      <div className={`grid gap-4 mb-8 max-w-sm mx-auto ${isOwner ? "grid-cols-4" : "grid-cols-3"}`}>
+        {features.map((item, i) => (
           <div key={i} className="bg-white rounded-xl p-3 border border-[#E8E0D0] text-center">
             <div className="text-[#5C6B3A] flex justify-center mb-1">{item.icon}</div>
             <p className="text-xs text-[#666]">{item.label}</p>
@@ -253,11 +324,7 @@ function PropertySelector({ onSelect }: { onSelect: (id: number) => void }) {
 
       <div className="space-y-3">
         {properties?.map((property) => (
-          <motion.div
-            key={property.id}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
+          <motion.div key={property.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
             <Card
               className="border-[#E8E0D0] cursor-pointer hover:border-[#5C6B3A] hover:shadow-md transition-all"
               onClick={() => onSelect(property.id)}
@@ -284,18 +351,37 @@ function PropertySelector({ onSelect }: { onSelect: (id: number) => void }) {
 
 // ─── Portal Home ──────────────────────────────────────────────────────────────
 function PortalHome({
-  propertyId, onNewRequest, onMyTickets, onChangeProperty
+  propertyId, isOwner, onNewRequest, onMyTickets, onAccountBalance,
+  onDocuments, onMessages, onChangeProperty
 }: {
   propertyId: number;
+  isOwner: boolean;
   onNewRequest: () => void;
   onMyTickets: () => void;
+  onAccountBalance: () => void;
+  onDocuments: () => void;
+  onMessages: () => void;
   onChangeProperty: () => void;
 }) {
   const { data: property } = trpc.portal.getProperty.useQuery({ propertyId });
   const { data: tickets } = trpc.portal.myTickets.useQuery();
+  const { data: balance } = trpc.portal.getAccountBalance.useQuery(
+    { propertyId },
+    { enabled: isOwner }
+  );
 
   const openCount = useMemo(() => tickets?.filter(t => t.status !== "closed" && t.status !== "resolved").length ?? 0, [tickets]);
   const resolvedCount = useMemo(() => tickets?.filter(t => t.status === "resolved" || t.status === "closed").length ?? 0, [tickets]);
+
+  const quickActions = [
+    { icon: <Plus className="w-6 h-6" />, label: "New Request", sub: "Submit a maintenance request", onClick: onNewRequest, primary: true },
+    { icon: <ClipboardList className="w-6 h-6" />, label: "My Requests", sub: "Track your submissions", onClick: onMyTickets, primary: false },
+    ...(isOwner ? [
+      { icon: <DollarSign className="w-6 h-6" />, label: "Account Balance", sub: "View balance & pay", onClick: onAccountBalance, primary: false },
+      { icon: <FolderOpen className="w-6 h-6" />, label: "Documents", sub: "Governing docs & minutes", onClick: onDocuments, primary: false },
+      { icon: <MessageSquare className="w-6 h-6" />, label: "Contact Us", sub: "Message management", onClick: onMessages, primary: false },
+    ] : []),
+  ];
 
   return (
     <motion.div
@@ -318,7 +404,7 @@ function PortalHome({
             Change
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className={`grid gap-3 mt-4 ${isOwner ? "grid-cols-3" : "grid-cols-2"}`}>
           <div className="bg-white/10 rounded-xl p-3">
             <p className="text-2xl font-bold">{openCount}</p>
             <p className="text-[#B8C99A] text-xs">Open Requests</p>
@@ -327,31 +413,38 @@ function PortalHome({
             <p className="text-2xl font-bold">{resolvedCount}</p>
             <p className="text-[#B8C99A] text-xs">Resolved</p>
           </div>
+          {isOwner && (
+            <div className="bg-white/10 rounded-xl p-3">
+              <p className={`text-2xl font-bold ${(balance?.balanceCents ?? 0) > 0 ? "text-red-300" : "text-green-300"}`}>
+                {balance ? formatCents(balance.balanceCents) : "—"}
+              </p>
+              <p className="text-[#B8C99A] text-xs">
+                {(balance?.balanceCents ?? 0) > 0 ? "Balance Due" : "Balance"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onNewRequest}
-          className="bg-white border-2 border-[#5C6B3A] rounded-2xl p-5 text-left hover:bg-[#F8F5EF] transition-colors"
-        >
-          <Plus className="w-7 h-7 text-[#5C6B3A] mb-2" />
-          <p className="font-semibold text-[#3C3C3C] text-sm">New Request</p>
-          <p className="text-[#999] text-xs mt-0.5">Submit a maintenance request</p>
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onMyTickets}
-          className="bg-white border border-[#E8E0D0] rounded-2xl p-5 text-left hover:border-[#5C6B3A] transition-colors"
-        >
-          <ClipboardList className="w-7 h-7 text-[#5C6B3A] mb-2" />
-          <p className="font-semibold text-[#3C3C3C] text-sm">My Requests</p>
-          <p className="text-[#999] text-xs mt-0.5">Track your submissions</p>
-        </motion.button>
+      <div className={`grid gap-3 mb-5 ${isOwner ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2"}`}>
+        {quickActions.map((action, i) => (
+          <motion.button
+            key={i}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={action.onClick}
+            className={`rounded-2xl p-4 text-left transition-colors ${
+              action.primary
+                ? "bg-white border-2 border-[#5C6B3A] hover:bg-[#F8F5EF]"
+                : "bg-white border border-[#E8E0D0] hover:border-[#5C6B3A]"
+            }`}
+          >
+            <div className="text-[#5C6B3A] mb-2">{action.icon}</div>
+            <p className="font-semibold text-[#3C3C3C] text-sm">{action.label}</p>
+            <p className="text-[#999] text-xs mt-0.5">{action.sub}</p>
+          </motion.button>
+        ))}
       </div>
 
       {/* Recent Tickets */}
@@ -391,12 +484,7 @@ function NewRequestForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "",
-    unitNumber: "",
-  });
+  const [form, setForm] = useState({ title: "", description: "", category: "", unitNumber: "" });
 
   const submitMutation = trpc.portal.submitRequest.useMutation({
     onSuccess,
@@ -437,7 +525,6 @@ function NewRequestForm({
                 required
               />
             </div>
-
             <div>
               <Label className="text-[#3C3C3C] text-sm font-medium">Category</Label>
               <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
@@ -451,7 +538,6 @@ function NewRequestForm({
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label className="text-[#3C3C3C] text-sm font-medium">Unit Number</Label>
               <Input
@@ -461,7 +547,6 @@ function NewRequestForm({
                 onChange={e => setForm(f => ({ ...f, unitNumber: e.target.value }))}
               />
             </div>
-
             <div>
               <Label className="text-[#3C3C3C] text-sm font-medium">Description</Label>
               <Textarea
@@ -475,7 +560,6 @@ function NewRequestForm({
           </CardContent>
         </Card>
 
-        {/* Emergency notice */}
         {form.category === "emergency" && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -491,12 +575,7 @@ function NewRequestForm({
         )}
 
         <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1 border-[#E8E0D0]"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="outline" className="flex-1 border-[#E8E0D0]" onClick={onCancel}>
             Cancel
           </Button>
           <Button
@@ -537,7 +616,6 @@ function MyTickets({ onViewTicket }: { onViewTicket: (id: number) => void }) {
       <h2 className="text-xl font-serif font-semibold text-[#3C3C3C] mb-1">My Requests</h2>
       <p className="text-[#666] text-sm mb-4">Track the status of your maintenance submissions</p>
 
-      {/* Filter tabs */}
       <div className="flex gap-2 mb-4">
         {(["all", "open", "resolved"] as const).map(f => (
           <button
@@ -549,16 +627,14 @@ function MyTickets({ onViewTicket }: { onViewTicket: (id: number) => void }) {
                 : "bg-white border border-[#E8E0D0] text-[#666] hover:border-[#5C6B3A]"
             }`}
           >
-            {f === "all" ? `All (${tickets?.length ?? 0})` : f === "open" ? `Open (${tickets?.filter(t => t.status !== "closed" && t.status !== "resolved").length ?? 0})` : `Resolved (${tickets?.filter(t => t.status === "closed" || t.status === "resolved").length ?? 0})`}
+            {f === "all" ? `All (${tickets?.length ?? 0})`
+              : f === "open" ? `Open (${tickets?.filter(t => t.status !== "closed" && t.status !== "resolved").length ?? 0})`
+              : `Resolved (${tickets?.filter(t => t.status === "closed" || t.status === "resolved").length ?? 0})`}
           </button>
         ))}
       </div>
 
-      {isLoading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" />
-        </div>
-      )}
+      {isLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" /></div>}
 
       {!isLoading && filtered.length === 0 && (
         <Card className="border-[#E8E0D0] text-center py-10">
@@ -575,11 +651,7 @@ function MyTickets({ onViewTicket }: { onViewTicket: (id: number) => void }) {
           const status = STATUS_CONFIG[ticket.status ?? "open"] ?? STATUS_CONFIG.open;
           const priority = PRIORITY_CONFIG[ticket.priority ?? "medium"] ?? PRIORITY_CONFIG.medium;
           return (
-            <motion.div
-              key={ticket.id}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-            >
+            <motion.div key={ticket.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
               <Card
                 className="border-[#E8E0D0] cursor-pointer hover:border-[#5C6B3A] hover:shadow-sm transition-all"
                 onClick={() => onViewTicket(ticket.id)}
@@ -599,9 +671,7 @@ function MyTickets({ onViewTicket }: { onViewTicket: (id: number) => void }) {
                     <Badge className={`${status.color} text-xs flex items-center gap-1 border-0`}>
                       {status.icon} {status.label}
                     </Badge>
-                    <Badge className={`${priority.color} text-xs border-0`}>
-                      {priority.label}
-                    </Badge>
+                    <Badge className={`${priority.color} text-xs border-0`}>{priority.label}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -617,7 +687,6 @@ function MyTickets({ onViewTicket }: { onViewTicket: (id: number) => void }) {
 function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => void }) {
   const [newComment, setNewComment] = useState("");
   const utils = trpc.useUtils();
-
   const { data, isLoading } = trpc.portal.getTicket.useQuery({ ticketId });
 
   const addCommentMutation = trpc.portal.addComment.useMutation({
@@ -629,13 +698,7 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
     onError: (err) => toast.error(err.message),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" /></div>;
 
   if (!data) {
     return (
@@ -649,8 +712,6 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
   const { ticket, comments, property } = data;
   const status = STATUS_CONFIG[ticket.status ?? "open"] ?? STATUS_CONFIG.open;
   const priority = PRIORITY_CONFIG[ticket.priority ?? "medium"] ?? PRIORITY_CONFIG.medium;
-
-  // Build a simple timeline of status steps
   const steps = ["open", "in_progress", "pending_vendor", "resolved", "closed"];
   const currentStepIdx = steps.indexOf(ticket.status ?? "open");
 
@@ -661,7 +722,6 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
       exit={{ opacity: 0, y: -16 }}
       className="space-y-4"
     >
-      {/* Ticket Header */}
       <Card className="border-[#E8E0D0]">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2 mb-3">
@@ -674,7 +734,6 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
               {status.icon} {status.label}
             </Badge>
           </div>
-
           <div className="flex gap-2 mb-3">
             <Badge className={`${priority.color} text-xs border-0`}>{priority.label} Priority</Badge>
             {ticket.category && (
@@ -686,18 +745,16 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
               <Badge className="bg-blue-50 text-blue-700 text-xs border-0">Unit {ticket.unitNumber}</Badge>
             )}
           </div>
-
           {ticket.description && (
             <p className="text-sm text-[#555] bg-[#FAF8F4] rounded-lg p-3">{ticket.description}</p>
           )}
-
           <p className="text-xs text-[#999] mt-3">
-            Submitted {new Date(ticket.createdAt).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            Submitted {new Date(ticket.createdAt).toLocaleDateString()}
           </p>
         </CardContent>
       </Card>
 
-      {/* Progress Timeline */}
+      {/* Status Timeline */}
       <Card className="border-[#E8E0D0]">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm font-semibold text-[#3C3C3C]">Progress</CardTitle>
@@ -705,25 +762,25 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
         <CardContent className="px-4 pb-4">
           <div className="flex items-center gap-1">
             {steps.map((step, idx) => {
-              const isCompleted = idx <= currentStepIdx;
+              const isPast = idx <= currentStepIdx;
               const isCurrent = idx === currentStepIdx;
               return (
                 <div key={step} className="flex items-center flex-1">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
-                    isCompleted ? "bg-[#5C6B3A] text-white" : "bg-[#E8E0D0] text-[#999]"
-                  } ${isCurrent ? "ring-2 ring-[#5C6B3A] ring-offset-1" : ""}`}>
-                    {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : idx + 1}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
+                    isCurrent ? "bg-[#5C6B3A] text-white" : isPast ? "bg-[#B8C99A] text-white" : "bg-[#E8E0D0] text-[#999]"
+                  }`}>
+                    {isPast ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                   </div>
                   {idx < steps.length - 1 && (
-                    <div className={`h-0.5 flex-1 mx-0.5 ${idx < currentStepIdx ? "bg-[#5C6B3A]" : "bg-[#E8E0D0]"}`} />
+                    <div className={`flex-1 h-0.5 mx-1 ${isPast && idx < currentStepIdx ? "bg-[#B8C99A]" : "bg-[#E8E0D0]"}`} />
                   )}
                 </div>
               );
             })}
           </div>
-          <div className="flex justify-between mt-1.5">
+          <div className="flex justify-between mt-1">
             {steps.map((step) => (
-              <p key={step} className="text-[9px] text-[#999] capitalize text-center" style={{ width: `${100 / steps.length}%` }}>
+              <p key={step} className="text-[10px] text-[#999] capitalize" style={{ width: "20%", textAlign: "center" }}>
                 {step.replace(/_/g, " ")}
               </p>
             ))}
@@ -734,56 +791,560 @@ function TicketDetail({ ticketId, onBack }: { ticketId: number; onBack: () => vo
       {/* Comments */}
       <Card className="border-[#E8E0D0]">
         <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold text-[#3C3C3C]">
-            Updates ({comments.length})
-          </CardTitle>
+          <CardTitle className="text-sm font-semibold text-[#3C3C3C]">Updates & Comments</CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {comments.length === 0 && (
-            <p className="text-xs text-[#999] text-center py-4">No updates yet. Your manager will post updates here.</p>
-          )}
-          <div className="space-y-3 mb-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-2">
-                <div className="w-6 h-6 rounded-full bg-[#5C6B3A] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 mt-0.5">
-                  {comment.authorId === ticket.reportedById ? "Y" : "M"}
+          {comments.length === 0 ? (
+            <p className="text-sm text-[#999] text-center py-4">No updates yet. We'll post progress here.</p>
+          ) : (
+            <div className="space-y-3 mb-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="bg-[#FAF8F4] rounded-xl p-3">
+                  <p className="text-sm text-[#3C3C3C]">{comment.content}</p>
+                  <p className="text-xs text-[#999] mt-1">{new Date(comment.createdAt).toLocaleString()}</p>
                 </div>
-                <div className="flex-1">
-                  <div className="bg-[#FAF8F4] rounded-xl rounded-tl-none p-3">
-                    <p className="text-sm text-[#3C3C3C]">{comment.content}</p>
-                  </div>
-                  <p className="text-[10px] text-[#999] mt-1 ml-1">
-                    {comment.authorId === ticket.reportedById ? "You" : "Property Manager"} · {new Date(comment.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Separator className="mb-3" />
-
-          {/* Add comment */}
-          {ticket.status !== "closed" && (
-            <div className="flex gap-2">
-              <Textarea
-                className="border-[#E8E0D0] focus:border-[#5C6B3A] resize-none text-sm"
-                placeholder="Add a comment or update..."
-                rows={2}
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-              />
-              <Button
-                className="bg-[#5C6B3A] hover:bg-[#4A5730] text-white px-3 self-end"
-                disabled={!newComment.trim() || addCommentMutation.isPending}
-                onClick={() => addCommentMutation.mutate({ ticketId, content: newComment })}
-              >
-                {addCommentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+              ))}
             </div>
           )}
-          {ticket.status === "closed" && (
-            <p className="text-xs text-[#999] text-center">This ticket is closed. Contact your manager to reopen it.</p>
+          <div className="flex gap-2 mt-3">
+            <Textarea
+              className="border-[#E8E0D0] focus:border-[#5C6B3A] resize-none text-sm"
+              placeholder="Add a comment or question..."
+              rows={2}
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+            />
+            <Button
+              className="bg-[#5C6B3A] hover:bg-[#4A5730] text-white shrink-0"
+              disabled={!newComment.trim() || addCommentMutation.isPending}
+              onClick={() => addCommentMutation.mutate({ ticketId, content: newComment })}
+            >
+              {addCommentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ─── Account Balance ──────────────────────────────────────────────────────────
+function AccountBalance({ propertyId, onMakePayment }: { propertyId: number; onMakePayment: () => void }) {
+  const [showBalance, setShowBalance] = useState(true);
+  const { data, isLoading } = trpc.portal.getAccountBalance.useQuery({ propertyId });
+
+  const balanceCents = data?.balanceCents ?? 0;
+  const isOwed = balanceCents > 0;
+  const isCredit = balanceCents < 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      className="space-y-4"
+    >
+      <div>
+        <h2 className="text-xl font-serif font-semibold text-[#3C3C3C] mb-1">Account Balance</h2>
+        <p className="text-[#666] text-sm">Your current account standing with the management company</p>
+      </div>
+
+      {/* Balance Card */}
+      <div className={`rounded-2xl p-6 text-white ${isOwed ? "bg-gradient-to-br from-red-600 to-red-700" : isCredit ? "bg-gradient-to-br from-[#5C6B3A] to-[#4A5730]" : "bg-gradient-to-br from-[#5C6B3A] to-[#4A5730]"}`}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-white/70 text-sm uppercase tracking-wider">
+            {isOwed ? "Amount Due" : isCredit ? "Credit Balance" : "Current Balance"}
+          </p>
+          <button onClick={() => setShowBalance(v => !v)} className="text-white/70 hover:text-white">
+            {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        <div className="flex items-end gap-2 mb-4">
+          {isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <p className="text-4xl font-bold">
+              {showBalance ? formatCents(balanceCents, data?.currency) : "••••••"}
+            </p>
           )}
+          {isOwed && <TrendingUp className="w-5 h-5 text-red-300 mb-1" />}
+          {isCredit && <TrendingDown className="w-5 h-5 text-green-300 mb-1" />}
+        </div>
+        {data?.notes && <p className="text-white/70 text-xs">{data.notes}</p>}
+        {isOwed && (
+          <Button
+            onClick={onMakePayment}
+            className="mt-4 bg-white text-red-700 hover:bg-red-50 font-semibold w-full"
+          >
+            <CreditCard className="w-4 h-4 mr-2" />
+            Make a Payment
+          </Button>
+        )}
+        {!isOwed && (
+          <Button
+            onClick={onMakePayment}
+            variant="outline"
+            className="mt-4 border-white/30 text-white hover:bg-white/10 w-full"
+          >
+            <CreditCard className="w-4 h-4 mr-2" />
+            Make a Payment
+          </Button>
+        )}
+      </div>
+
+      {/* Transaction History */}
+      <Card className="border-[#E8E0D0]">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold text-[#3C3C3C]">Transaction History</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          {isLoading && <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-[#5C6B3A]" /></div>}
+          {!isLoading && (!data?.transactions || data.transactions.length === 0) && (
+            <div className="text-center py-6">
+              <ReceiptText className="w-8 h-8 text-[#CCC] mx-auto mb-2" />
+              <p className="text-sm text-[#999]">No transactions yet</p>
+            </div>
+          )}
+          <div className="space-y-2">
+            {data?.transactions?.map((tx) => {
+              const isPayment = tx.amountCents > 0;
+              return (
+                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-[#F0EBE0] last:border-0">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPayment ? "bg-green-50" : "bg-red-50"}`}>
+                      {isPayment ? <TrendingDown className="w-4 h-4 text-green-600" /> : <TrendingUp className="w-4 h-4 text-red-600" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[#3C3C3C]">{tx.description ?? (isPayment ? "Payment" : "Charge")}</p>
+                      <p className="text-xs text-[#999]">
+                        {new Date(tx.createdAt).toLocaleDateString()} · {tx.method?.replace(/_/g, " ")}
+                        {tx.referenceNumber && ` · #${tx.referenceNumber}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${isPayment ? "text-green-600" : "text-red-600"}`}>
+                      {isPayment ? "-" : "+"}{formatCents(tx.amountCents, tx.currency)}
+                    </p>
+                    <Badge className={`text-xs border-0 ${
+                      tx.status === "completed" ? "bg-green-50 text-green-700"
+                        : tx.status === "pending" ? "bg-amber-50 text-amber-700"
+                        : tx.status === "failed" ? "bg-red-50 text-red-700"
+                        : "bg-gray-50 text-gray-600"
+                    }`}>
+                      {tx.status}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ─── Make Payment ─────────────────────────────────────────────────────────────
+function MakePayment({
+  propertyId, onSuccess, onCancel
+}: {
+  propertyId: number;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    amountDollars: "",
+    method: "ach" as "ach" | "credit_card" | "check" | "wire" | "other",
+    description: "",
+    referenceNumber: "",
+  });
+
+  const payMutation = trpc.portal.makePayment.useMutation({
+    onSuccess,
+    onError: (err) => toast.error(err.message || "Payment failed"),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const dollars = parseFloat(form.amountDollars);
+    if (isNaN(dollars) || dollars <= 0) { toast.error("Please enter a valid amount"); return; }
+    payMutation.mutate({
+      propertyId,
+      amountCents: Math.round(dollars * 100),
+      method: form.method,
+      description: form.description || undefined,
+      referenceNumber: form.referenceNumber || undefined,
+    });
+  };
+
+  const METHOD_LABELS: Record<string, string> = {
+    ach: "ACH Bank Transfer",
+    credit_card: "Credit / Debit Card",
+    check: "Check",
+    wire: "Wire Transfer",
+    other: "Other",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+    >
+      <h2 className="text-xl font-serif font-semibold text-[#3C3C3C] mb-1">Make a Payment</h2>
+      <p className="text-[#666] text-sm mb-5">Submit your payment details below</p>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+        <p className="text-xs text-amber-700">
+          This records your payment intent. Your management company will process and confirm the payment.
+          For immediate assistance, please contact the office directly.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="border-[#E8E0D0]">
+          <CardContent className="p-4 space-y-4">
+            <div>
+              <Label className="text-[#3C3C3C] text-sm font-medium">Payment Amount (USD) *</Label>
+              <div className="relative mt-1.5">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666] font-medium">$</span>
+                <Input
+                  className="pl-7 border-[#E8E0D0] focus:border-[#5C6B3A] text-lg font-semibold"
+                  placeholder="0.00"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.amountDollars}
+                  onChange={e => setForm(f => ({ ...f, amountDollars: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[#3C3C3C] text-sm font-medium">Payment Method</Label>
+              <Select value={form.method} onValueChange={v => setForm(f => ({ ...f, method: v as any }))}>
+                <SelectTrigger className="mt-1.5 border-[#E8E0D0]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(METHOD_LABELS).map(([val, label]) => (
+                    <SelectItem key={val} value={val}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-[#3C3C3C] text-sm font-medium">Description / Memo</Label>
+              <Input
+                className="mt-1.5 border-[#E8E0D0] focus:border-[#5C6B3A]"
+                placeholder="e.g. Monthly maintenance fee — June 2025"
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label className="text-[#3C3C3C] text-sm font-medium">Reference / Check Number</Label>
+              <Input
+                className="mt-1.5 border-[#E8E0D0] focus:border-[#5C6B3A]"
+                placeholder="Optional — check #, transaction ID, etc."
+                value={form.referenceNumber}
+                onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" className="flex-1 border-[#E8E0D0]" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 bg-[#5C6B3A] hover:bg-[#4A5730] text-white"
+            disabled={payMutation.isPending}
+          >
+            {payMutation.isPending ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+            ) : (
+              <><CreditCard className="w-4 h-4 mr-2" /> Submit Payment</>
+            )}
+          </Button>
+        </div>
+      </form>
+    </motion.div>
+  );
+}
+
+// ─── Shared Documents ─────────────────────────────────────────────────────────
+function SharedDocuments({ propertyId }: { propertyId: number }) {
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const { data: docs, isLoading } = trpc.portal.listDocuments.useQuery({ propertyId });
+
+  const categories = useMemo(() => {
+    if (!docs) return [];
+    const cats = new Set(docs.map(d => d.category));
+    return Array.from(cats);
+  }, [docs]);
+
+  const filtered = useMemo(() => {
+    if (!docs) return [];
+    if (categoryFilter === "all") return docs;
+    return docs.filter(d => d.category === categoryFilter);
+  }, [docs, categoryFilter]);
+
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+    >
+      <div className="mb-5">
+        <h2 className="text-xl font-serif font-semibold text-[#3C3C3C] mb-1">Property Documents</h2>
+        <p className="text-[#666] text-sm">Governing documents, meeting minutes, and other shared files</p>
+      </div>
+
+      {/* Category Filter */}
+      {categories.length > 0 && (
+        <div className="flex gap-2 flex-wrap mb-4">
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              categoryFilter === "all" ? "bg-[#5C6B3A] text-white" : "bg-white border border-[#E8E0D0] text-[#666] hover:border-[#5C6B3A]"
+            }`}
+          >
+            All ({docs?.length ?? 0})
+          </button>
+          {categories.map(cat => {
+            const config = DOC_CATEGORY_CONFIG[cat] ?? DOC_CATEGORY_CONFIG.other;
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  categoryFilter === cat ? "bg-[#5C6B3A] text-white" : "bg-white border border-[#E8E0D0] text-[#666] hover:border-[#5C6B3A]"
+                }`}
+              >
+                {config.label} ({docs?.filter(d => d.category === cat).length ?? 0})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {isLoading && <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#5C6B3A]" /></div>}
+
+      {!isLoading && filtered.length === 0 && (
+        <Card className="border-[#E8E0D0] text-center py-12">
+          <CardContent>
+            <FolderOpen className="w-12 h-12 text-[#CCC] mx-auto mb-3" />
+            <p className="text-[#666] text-sm font-medium">No documents available</p>
+            <p className="text-[#999] text-xs mt-1">
+              {categoryFilter !== "all" ? "No documents in this category." : "Your management company hasn't shared any documents yet."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        {filtered.map((doc) => {
+          const config = DOC_CATEGORY_CONFIG[doc.category ?? "other"] ?? DOC_CATEGORY_CONFIG.other;
+          const isPdf = doc.mimeType === "application/pdf";
+          const isImage = doc.mimeType.startsWith("image/");
+          return (
+            <motion.div key={doc.id} whileHover={{ scale: 1.01 }}>
+              <Card className="border-[#E8E0D0] hover:border-[#5C6B3A] hover:shadow-sm transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${config.color}`}>
+                      {config.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[#3C3C3C] text-sm">{doc.title}</p>
+                      {doc.description && (
+                        <p className="text-xs text-[#666] mt-0.5 line-clamp-2">{doc.description}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <Badge className={`text-xs border-0 ${config.color}`}>{config.label}</Badge>
+                        <span className="text-xs text-[#999]">{formatFileSize(doc.fileSize)}</span>
+                        <span className="text-xs text-[#999]">{new Date(doc.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <a
+                      href={doc.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="shrink-0 p-2 rounded-lg bg-[#F0EBE0] hover:bg-[#E8E0D0] transition-colors"
+                      title="Download"
+                    >
+                      <Download className="w-4 h-4 text-[#5C6B3A]" />
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Owner Messages ───────────────────────────────────────────────────────────
+function OwnerMessages({ propertyId }: { propertyId: number }) {
+  const [body, setBody] = useState("");
+  const [subject, setSubject] = useState("");
+  const [channel, setChannel] = useState<"in_app" | "email" | "text">("in_app");
+  const utils = trpc.useUtils();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages, isLoading } = trpc.portal.getMessages.useQuery({ propertyId });
+
+  const sendMutation = trpc.portal.sendMessage.useMutation({
+    onSuccess: () => {
+      setBody("");
+      setSubject("");
+      utils.portal.getMessages.invalidate({ propertyId });
+      toast.success("Message sent to management");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const CHANNEL_CONFIG = {
+    in_app:  { label: "In-App",  icon: <Inbox className="w-4 h-4" />,   desc: "Receive replies here in the portal" },
+    email:   { label: "Email",   icon: <Mail className="w-4 h-4" />,    desc: "Management will reply to your email" },
+    text:    { label: "Text",    icon: <Phone className="w-4 h-4" />,   desc: "Request a text message reply" },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      className="space-y-4"
+    >
+      <div>
+        <h2 className="text-xl font-serif font-semibold text-[#3C3C3C] mb-1">Contact Management</h2>
+        <p className="text-[#666] text-sm">Send a message directly to your property management team</p>
+      </div>
+
+      {/* Message Thread */}
+      {isLoading && <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#5C6B3A]" /></div>}
+
+      {!isLoading && messages && messages.length > 0 && (
+        <Card className="border-[#E8E0D0]">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-[#3C3C3C]">Message Thread</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 max-h-80 overflow-y-auto">
+            <div className="space-y-3" ref={messagesEndRef}>
+              {messages.map((msg) => {
+                const isOwnerMsg = msg.direction === "owner_to_manager";
+                return (
+                  <div key={msg.id} className={`flex ${isOwnerMsg ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      isOwnerMsg
+                        ? "bg-[#5C6B3A] text-white rounded-br-sm"
+                        : "bg-[#F0EBE0] text-[#3C3C3C] rounded-bl-sm"
+                    }`}>
+                      {msg.subject && (
+                        <p className={`text-xs font-semibold mb-1 ${isOwnerMsg ? "text-[#B8C99A]" : "text-[#5C6B3A]"}`}>
+                          {msg.subject}
+                        </p>
+                      )}
+                      <p className="text-sm">{msg.body}</p>
+                      <p className={`text-xs mt-1 ${isOwnerMsg ? "text-[#B8C99A]" : "text-[#999]"}`}>
+                        {new Date(msg.createdAt).toLocaleString()}
+                        {isOwnerMsg && ` · via ${msg.channel?.replace("_", " ")}`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Compose New Message */}
+      <Card className="border-[#E8E0D0]">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold text-[#3C3C3C]">
+            {messages && messages.length > 0 ? "Reply" : "New Message"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3">
+          {/* Channel selector */}
+          <div>
+            <Label className="text-[#3C3C3C] text-xs font-medium mb-2 block">Preferred Response Channel</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["in_app", "email", "text"] as const).map(ch => {
+                const cfg = CHANNEL_CONFIG[ch];
+                return (
+                  <button
+                    key={ch}
+                    type="button"
+                    onClick={() => setChannel(ch)}
+                    className={`rounded-xl p-2.5 text-left border transition-all ${
+                      channel === ch
+                        ? "border-[#5C6B3A] bg-[#F0EBE0]"
+                        : "border-[#E8E0D0] bg-white hover:border-[#5C6B3A]"
+                    }`}
+                  >
+                    <div className={`mb-1 ${channel === ch ? "text-[#5C6B3A]" : "text-[#999]"}`}>{cfg.icon}</div>
+                    <p className="text-xs font-medium text-[#3C3C3C]">{cfg.label}</p>
+                    <p className="text-[10px] text-[#999] leading-tight">{cfg.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Subject (optional) */}
+          <div>
+            <Label className="text-[#3C3C3C] text-xs font-medium">Subject (optional)</Label>
+            <Input
+              className="mt-1 border-[#E8E0D0] focus:border-[#5C6B3A] text-sm"
+              placeholder="e.g. Question about parking policy"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+            />
+          </div>
+
+          {/* Message body */}
+          <div>
+            <Label className="text-[#3C3C3C] text-xs font-medium">Message *</Label>
+            <Textarea
+              className="mt-1 border-[#E8E0D0] focus:border-[#5C6B3A] resize-none text-sm"
+              placeholder="Type your message here..."
+              rows={4}
+              value={body}
+              onChange={e => setBody(e.target.value)}
+            />
+          </div>
+
+          <Button
+            className="w-full bg-[#5C6B3A] hover:bg-[#4A5730] text-white"
+            disabled={!body.trim() || sendMutation.isPending}
+            onClick={() => sendMutation.mutate({ propertyId, body, subject: subject || undefined, channel })}
+          >
+            {sendMutation.isPending ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+            ) : (
+              <><Send className="w-4 h-4 mr-2" /> Send Message</>
+            )}
+          </Button>
         </CardContent>
       </Card>
     </motion.div>

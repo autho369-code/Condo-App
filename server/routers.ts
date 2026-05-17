@@ -12,6 +12,10 @@ import {
   getEmailsByCompany, createEmailThread, markEmailRead, markEmailConverted,
   getAllUsers, updateUserRole, getPlatformStats, getCompanyStats,
   getTicketsByReporter, getTicketById, getPropertyById,
+  // Owner portal additions
+  getOwnerAccount, upsertOwnerAccount, getPaymentsByOwner, createPaymentTransaction,
+  getDocumentsByProperty, createPropertyDocument, toggleDocumentShare, deletePropertyDocument, getDocumentById,
+  getOwnerMessages, createOwnerMessage, markMessagesRead, getOwnerMessagesByCompany,
 } from "./db";
 import { classifyTicket, draftEmailReply, summarizeMeeting } from "./_core/llm";
 import { getEmailConnectionsByUser, deactivateEmailConnection } from "./email/emailDb";
@@ -278,6 +282,151 @@ export const appRouter = router({
       if (ctx.user.companyId) return getPropertiesByCompany(ctx.user.companyId);
       return [];
     }),
+
+    // ── Account Balance ────────────────────────────────────────────────────
+    getAccountBalance: portalProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const account = await getOwnerAccount(ctx.user.id, input.propertyId);
+        const transactions = await getPaymentsByOwner(ctx.user.id, input.propertyId);
+        return {
+          balanceCents: account?.balanceCents ?? 0,
+          currency: account?.currency ?? "USD",
+          notes: account?.notes ?? null,
+          transactions,
+        };
+      }),
+
+    // ── Make Payment ───────────────────────────────────────────────────────
+    makePayment: portalProcedure
+      .input(z.object({
+        propertyId: z.number(),
+        amountCents: z.number().min(1),
+        method: z.enum(["ach", "credit_card", "check", "wire", "other"]).optional(),
+        description: z.string().optional(),
+        referenceNumber: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const property = await getPropertyById(input.propertyId);
+        if (!property) throw new Error("Property not found");
+        // Create the payment transaction record (pending status)
+        const result = await createPaymentTransaction({
+          ownerId: ctx.user.id,
+          propertyId: input.propertyId,
+          companyId: property.companyId,
+          amountCents: input.amountCents,
+          method: input.method ?? "other",
+          status: "pending",
+          description: input.description,
+          referenceNumber: input.referenceNumber,
+        });
+        // Update the owner's balance (reduce by payment amount)
+        const existing = await getOwnerAccount(ctx.user.id, input.propertyId);
+        await upsertOwnerAccount({
+          ownerId: ctx.user.id,
+          propertyId: input.propertyId,
+          companyId: property.companyId,
+          balanceCents: (existing?.balanceCents ?? 0) - input.amountCents,
+          currency: existing?.currency ?? "USD",
+        });
+        return { transactionId: result?.id, success: true };
+      }),
+
+    // ── Shared Documents ───────────────────────────────────────────────────
+    listDocuments: portalProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ input }) => {
+        return getDocumentsByProperty(input.propertyId, true);
+      }),
+
+    // ── Owner Messages ─────────────────────────────────────────────────────
+    getMessages: portalProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        await markMessagesRead(ctx.user.id, input.propertyId);
+        return getOwnerMessages(ctx.user.id, input.propertyId);
+      }),
+
+    sendMessage: portalProcedure
+      .input(z.object({
+        propertyId: z.number(),
+        subject: z.string().optional(),
+        body: z.string().min(1),
+        channel: z.enum(["in_app", "email", "text"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const property = await getPropertyById(input.propertyId);
+        if (!property) throw new Error("Property not found");
+        const threadKey = `owner-${ctx.user.id}-prop-${input.propertyId}`;
+        await createOwnerMessage({
+          propertyId: input.propertyId,
+          companyId: property.companyId,
+          ownerId: ctx.user.id,
+          direction: "owner_to_manager",
+          channel: input.channel ?? "in_app",
+          subject: input.subject,
+          body: input.body,
+          threadKey,
+        });
+        return { success: true };
+      }),
+  }),
+
+  // ─── Documents (Manager-side) ──────────────────────────────────────────────
+  documents: router({
+    listByProperty: companyProcedure
+      .input(z.object({ propertyId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) return [];
+        return getDocumentsByProperty(input.propertyId, false);
+      }),
+    toggleShare: companyProcedure
+      .input(z.object({ documentId: z.number(), isShared: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        // Verify document belongs to this company
+        const doc = await getDocumentById(input.documentId);
+        if (!doc || doc.companyId !== ctx.user.companyId) throw new Error("Document not found");
+        await toggleDocumentShare(input.documentId, input.isShared);
+        return { success: true };
+      }),
+    delete: companyProcedure
+      .input(z.object({ documentId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        const doc = await getDocumentById(input.documentId);
+        if (!doc || doc.companyId !== ctx.user.companyId) throw new Error("Document not found");
+        await deletePropertyDocument(input.documentId);
+        return { success: true };
+      }),
+    // Manager inbox: see all owner messages for their company
+    ownerMessages: companyProcedure.query(async ({ ctx }) => {
+      if (!ctx.user.companyId) return [];
+      return getOwnerMessagesByCompany(ctx.user.companyId);
+    }),
+    replyToOwner: companyProcedure
+      .input(z.object({
+        ownerId: z.number(),
+        propertyId: z.number(),
+        body: z.string().min(1),
+        subject: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.companyId) throw new Error("No company");
+        const threadKey = `owner-${input.ownerId}-prop-${input.propertyId}`;
+        await createOwnerMessage({
+          propertyId: input.propertyId,
+          companyId: ctx.user.companyId,
+          ownerId: input.ownerId,
+          managerId: ctx.user.id,
+          direction: "manager_to_owner",
+          channel: "in_app",
+          subject: input.subject,
+          body: input.body,
+          threadKey,
+        });
+        return { success: true };
+      }),
   }),
 
   // ─── Email Hub ─────────────────────────────────────────────────────────────

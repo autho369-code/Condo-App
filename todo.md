@@ -174,3 +174,32 @@
 - [x] Add role-based redirect: resident/owner → /portal, manager+ → /dashboard
 - [x] Add /portal route and PortalLayout to App.tsx
 - [x] Write vitest tests for portal.submitRequest and portal.myTickets procedures
+
+## Owner Portal Expansion
+- [x] Add owner_accounts table (ownerId, propertyId, companyId, balanceCents, currency, notes)
+- [x] Add payment_transactions table (ownerId, propertyId, companyId, amountCents, method, status, description, referenceNumber)
+- [x] Add property_documents table (propertyId, companyId, uploadedById, title, description, category, fileKey, fileUrl, mimeType, fileSize, isSharedWithOwners)
+- [x] Add owner_messages table (propertyId, companyId, ownerId, managerId, direction, channel, subject, body, threadKey, isReadByOwner, isReadByManager)
+- [x] Run db:push for all 4 new tables
+- [x] Add portal.getAccountBalance tRPC procedure (returns balance + transaction history)
+- [x] Add portal.makePayment tRPC procedure (records payment intent, updates balance)
+- [x] Add portal.listDocuments tRPC procedure (returns shared documents for a property)
+- [x] Add portal.getMessages tRPC procedure (returns owner-manager message thread)
+- [x] Add portal.sendMessage tRPC procedure (owner sends message to management)
+- [x] Add documents.listByProperty tRPC procedure (manager: all docs for a property)
+- [x] Add documents.toggleShare tRPC procedure (manager: toggle owner visibility)
+- [x] Add documents.delete tRPC procedure (manager: delete document)
+- [x] Add documents.ownerMessages tRPC procedure (manager inbox: all owner messages)
+- [x] Add documents.replyToOwner tRPC procedure (manager: reply to owner message)
+- [x] Add POST /api/properties/:propertyId/documents Express route (S3 upload, manager auth)
+- [x] Update ResidentPortal.tsx with Account Balance view (balance card + transaction history)
+- [x] Update ResidentPortal.tsx with Make Payment view (amount, method, description, reference)
+- [x] Update ResidentPortal.tsx with Shared Documents view (category filter, download button)
+- [x] Update ResidentPortal.tsx with Contact Management view (message thread + compose form)
+- [x] Update portal home screen with new quick action tiles for owners
+- [x] Update Properties.tsx with expandable document panel per property
+- [x] Add document upload dialog (title, category, description, file, share toggle)
+- [x] Add share/private toggle switch per document with Eye/EyeOff indicator
+- [x] Add delete document button with confirmation
+- [x] Write vitest tests for owner portal logic (balance, payments, documents, messages)
+- [x] All 138 tests passing

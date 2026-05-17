@@ -337,3 +337,98 @@ export const ticketAttachments = mysqlTable("ticket_attachments", {
 
 export type TicketAttachment = typeof ticketAttachments.$inferSelect;
 export type InsertTicketAttachment = typeof ticketAttachments.$inferInsert;
+
+// ─── Owner Accounts (Balance Ledger) ─────────────────────────────────────────
+export const ownerAccounts = mysqlTable("owner_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),       // references users.id
+  propertyId: int("propertyId").notNull(), // references properties.id
+  companyId: int("companyId").notNull(),
+  // Current balance in cents (positive = owed to company, negative = credit)
+  balanceCents: int("balanceCents").default(0).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  notes: text("notes"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OwnerAccount = typeof ownerAccounts.$inferSelect;
+export type InsertOwnerAccount = typeof ownerAccounts.$inferInsert;
+
+// ─── Payment Transactions ─────────────────────────────────────────────────────
+export const paymentTransactions = mysqlTable("payment_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  propertyId: int("propertyId").notNull(),
+  companyId: int("companyId").notNull(),
+  // Amount in cents (positive = payment from owner, negative = charge/fee)
+  amountCents: int("amountCents").notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  method: mysqlEnum("method", ["ach", "credit_card", "check", "wire", "other"]).default("other").notNull(),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "refunded"]).default("pending").notNull(),
+  description: varchar("description", { length: 500 }),
+  // Reference number (check #, transaction ID, etc.)
+  referenceNumber: varchar("referenceNumber", { length: 100 }),
+  // If paid via Stripe, store the payment intent ID
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 255 }),
+  processedAt: timestamp("processedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+export type InsertPaymentTransaction = typeof paymentTransactions.$inferInsert;
+
+// ─── Property Documents ───────────────────────────────────────────────────────
+export const propertyDocuments = mysqlTable("property_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  companyId: int("companyId").notNull(),
+  uploadedById: int("uploadedById").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  category: mysqlEnum("category", [
+    "governing_document",
+    "meeting_minutes",
+    "financial_report",
+    "insurance",
+    "maintenance_record",
+    "notice",
+    "other",
+  ]).default("other").notNull(),
+  // S3 storage key
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  fileSize: int("fileSize").notNull(),
+  // Whether this document is visible to owners/residents in their portal
+  isSharedWithOwners: boolean("isSharedWithOwners").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PropertyDocument = typeof propertyDocuments.$inferSelect;
+export type InsertPropertyDocument = typeof propertyDocuments.$inferInsert;
+
+// ─── Owner Messages (Direct messaging: owner ↔ management) ───────────────────
+export const ownerMessages = mysqlTable("owner_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  companyId: int("companyId").notNull(),
+  // The owner or resident who is part of this conversation
+  ownerId: int("ownerId").notNull(),
+  // The manager who replied (null if not yet replied)
+  managerId: int("managerId"),
+  // Direction of this specific message
+  direction: mysqlEnum("direction", ["owner_to_manager", "manager_to_owner"]).notNull(),
+  // Channel preference chosen by owner
+  channel: mysqlEnum("channel", ["in_app", "email", "text"]).default("in_app").notNull(),
+  subject: varchar("subject", { length: 255 }),
+  body: text("body").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  // Thread grouping: all messages in a conversation share the same threadKey
+  threadKey: varchar("threadKey", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OwnerMessage = typeof ownerMessages.$inferSelect;
+export type InsertOwnerMessage = typeof ownerMessages.$inferInsert;

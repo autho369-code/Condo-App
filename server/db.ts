@@ -264,3 +264,127 @@ export async function getPlatformStats() {
     tickets: Number(ticketCount?.count ?? 0),
   };
 }
+
+// ─── Owner Accounts & Payments ────────────────────────────────────────────────
+import {
+  ownerAccounts, paymentTransactions, propertyDocuments, ownerMessages,
+  type InsertOwnerAccount, type InsertPaymentTransaction,
+  type InsertPropertyDocument, type InsertOwnerMessage,
+} from "../drizzle/schema";
+
+export async function getOwnerAccount(ownerId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await (db as any).select().from(ownerAccounts)
+    .where(and(eq(ownerAccounts.ownerId, ownerId), eq(ownerAccounts.propertyId, propertyId)))
+    .limit(1);
+  return result[0] as typeof ownerAccounts.$inferSelect | undefined;
+}
+
+export async function upsertOwnerAccount(data: InsertOwnerAccount) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  await (db as any).insert(ownerAccounts).values(data)
+    .onDuplicateKeyUpdate({ set: { balanceCents: data.balanceCents, notes: data.notes, updatedAt: new Date() } });
+}
+
+export async function getPaymentsByOwner(ownerId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return [] as (typeof paymentTransactions.$inferSelect)[];
+  return (db as any).select().from(paymentTransactions)
+    .where(and(eq(paymentTransactions.ownerId, ownerId), eq(paymentTransactions.propertyId, propertyId)))
+    .orderBy(desc(paymentTransactions.createdAt)) as Promise<(typeof paymentTransactions.$inferSelect)[]>;
+}
+
+export async function createPaymentTransaction(data: InsertPaymentTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const result = await (db as any).insert(paymentTransactions).values(data).$returningId();
+  return result[0];
+}
+
+// ─── Property Documents ───────────────────────────────────────────────────────
+export async function getDocumentsByProperty(propertyId: number, sharedOnly = false) {
+  const db = await getDb();
+  if (!db) return [] as (typeof propertyDocuments.$inferSelect)[];
+  const conditions = sharedOnly
+    ? and(eq(propertyDocuments.propertyId, propertyId), eq(propertyDocuments.isSharedWithOwners, true))
+    : eq(propertyDocuments.propertyId, propertyId);
+  return (db as any).select().from(propertyDocuments)
+    .where(conditions)
+    .orderBy(desc(propertyDocuments.createdAt)) as Promise<(typeof propertyDocuments.$inferSelect)[]>;
+}
+
+export async function createPropertyDocument(data: InsertPropertyDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const result = await (db as any).insert(propertyDocuments).values(data).$returningId();
+  return result[0];
+}
+
+export async function toggleDocumentShare(documentId: number, isShared: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(propertyDocuments)
+    .set({ isSharedWithOwners: isShared, updatedAt: new Date() })
+    .where(eq(propertyDocuments.id, documentId));
+}
+
+export async function deletePropertyDocument(documentId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).delete(propertyDocuments).where(eq(propertyDocuments.id, documentId));
+}
+
+export async function getDocumentById(documentId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await (db as any).select().from(propertyDocuments)
+    .where(eq(propertyDocuments.id, documentId)).limit(1);
+  return result[0] as typeof propertyDocuments.$inferSelect | undefined;
+}
+
+// ─── Owner Messages ───────────────────────────────────────────────────────────
+export async function getOwnerMessages(ownerId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return [] as (typeof ownerMessages.$inferSelect)[];
+  return (db as any).select().from(ownerMessages)
+    .where(and(eq(ownerMessages.ownerId, ownerId), eq(ownerMessages.propertyId, propertyId)))
+    .orderBy(ownerMessages.createdAt) as Promise<(typeof ownerMessages.$inferSelect)[]>;
+}
+
+export async function createOwnerMessage(data: InsertOwnerMessage) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const result = await (db as any).insert(ownerMessages).values(data).$returningId();
+  return result[0];
+}
+
+export async function markMessagesRead(ownerId: number, propertyId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await (db as any).update(ownerMessages)
+    .set({ isRead: true })
+    .where(and(
+      eq(ownerMessages.ownerId, ownerId),
+      eq(ownerMessages.propertyId, propertyId),
+      eq(ownerMessages.direction, "manager_to_owner"),
+    ));
+}
+
+export async function getUnreadMessageCountForManager(companyId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await (db as any).select({ count: sql<number>`count(*)` })
+    .from(ownerMessages)
+    .where(and(eq(ownerMessages.companyId, companyId), eq(ownerMessages.direction, "owner_to_manager"), eq(ownerMessages.isRead, false)));
+  return Number(row?.count ?? 0);
+}
+
+export async function getOwnerMessagesByCompany(companyId: number) {
+  const db = await getDb();
+  if (!db) return [] as (typeof ownerMessages.$inferSelect)[];
+  return (db as any).select().from(ownerMessages)
+    .where(eq(ownerMessages.companyId, companyId))
+    .orderBy(desc(ownerMessages.createdAt)) as Promise<(typeof ownerMessages.$inferSelect)[]>;
+}

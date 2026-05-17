@@ -36,6 +36,13 @@
       "when": 1778989817699,
       "tag": "0004_fixed_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778991984490,
+      "tag": "0005_striped_lilith",
+      "breakpoints": true
     }
   ]
 }
