@@ -428,3 +428,31 @@ export const ownerNotificationPrefs = pgTable("owner_notification_prefs", {
 });
 export type OwnerNotificationPrefs = typeof ownerNotificationPrefs.$inferSelect;
 export type InsertOwnerNotificationPrefs = typeof ownerNotificationPrefs.$inferInsert;
+
+// ─── Leads (Request Private Access) ──────────────────────────────────────────
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  company: varchar("company", { length: 255 }).notNull(),
+  unitCount: integer("unitCount"),
+  currentSoftware: varchar("currentSoftware", { length: 255 }),
+  plan: varchar("plan", { length: 100 }),
+  message: text("message"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;
+
+// ─── Local Auth (Email/Password) ─────────────────────────────────────────────
+export const localAuth = pgTable("local_auth", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  resetToken: varchar("resetToken", { length: 255 }),
+  resetTokenExpiry: timestamp("resetTokenExpiry"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type LocalAuth = typeof localAuth.$inferSelect;
+export type InsertLocalAuth = typeof localAuth.$inferInsert;

@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { serialize } from "cookie";
 import { router, publicProcedure, protectedProcedure, adminProcedure, companyProcedure, portalProcedure } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
+import bcrypt from "bcryptjs";
 import {
   getAllCompanies, getCompanyById, createCompany,
   getPropertiesByCompany, createProperty,
@@ -12,6 +14,8 @@ import {
   getEmailsByCompany, createEmailThread, markEmailRead, markEmailConverted,
   getAllUsers, updateUserRole, getPlatformStats, getCompanyStats,
   getTicketsByReporter, getTicketById, getPropertyById,
+  getUserByEmail, createUserWithEmail, getLocalAuth, createLocalAuth,
+  createLead, getAllLeads,
   // Owner portal additions
   getOwnerAccount, upsertOwnerAccount, getPaymentsByOwner, createPaymentTransaction,
   getDocumentsByProperty, createPropertyDocument, toggleDocumentShare, deletePropertyDocument, getDocumentById,
@@ -696,6 +700,91 @@ export const appRouter = router({
           const state = Buffer.from(JSON.stringify({ origin: input.origin })).toString("base64");
           return { url: buildOutlookAuthUrl(state, input.origin), configured: true };
         }
+      }),
+  }),
+
+  // ─── Local Auth ────────────────────────────────────────────────────────────
+  localAuth: router({
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+        role: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        const auth = await getLocalAuth(user.id);
+        if (!auth) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        const valid = await bcrypt.compare(input.password, auth.passwordHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        const { signSession } = await import("./_core/session");
+        const token = await signSession({
+          userId: user.id,
+          openId: user.openId,
+          role: user.role,
+          portierRole: user.portierRole ?? "user",
+          companyId: user.companyId,
+        });
+        ctx.res.setHeader("Set-Cookie", serialize(COOKIE_NAME, token, {
+          httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7,
+        }));
+        return { success: true, portierRole: user.portierRole };
+      }),
+
+    register: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(8),
+        portierRole: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const existing = await getUserByEmail(input.email);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
+        const passwordHash = await bcrypt.hash(input.password, 12);
+        const user = await createUserWithEmail({
+          name: input.name,
+          email: input.email,
+          portierRole: input.portierRole ?? "user",
+        });
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
+        await createLocalAuth(user.id, passwordHash);
+        const { signSession } = await import("./_core/session");
+        const token = await signSession({
+          userId: user.id,
+          openId: user.openId,
+          role: user.role,
+          portierRole: user.portierRole ?? "user",
+          companyId: user.companyId,
+        });
+        ctx.res.setHeader("Set-Cookie", serialize(COOKIE_NAME, token, {
+          httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7,
+        }));
+        return { success: true, portierRole: user.portierRole };
+      }),
+  }),
+
+  // ─── Leads ─────────────────────────────────────────────────────────────────
+  leads: router({
+    submit: publicProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        company: z.string().min(1),
+        unitCount: z.number().optional(),
+        currentSoftware: z.string().optional(),
+        plan: z.string().optional(),
+        message: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await createLead(input);
+        return { success: true };
+      }),
+
+    getAll: adminProcedure
+      .query(async () => {
+        return getAllLeads();
       }),
   }),
 });

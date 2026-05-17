@@ -1,36 +1,50 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: oklch(0.97 0.01 85);
-  --color-foreground: oklch(0.18 0.02 60);
-  --color-card: oklch(0.99 0.005 85);
-  --color-card-foreground: oklch(0.18 0.02 60);
-  --color-popover: oklch(0.99 0.005 85);
-  --color-popover-foreground: oklch(0.18 0.02 60);
-  --color-primary: oklch(0.35 0.06 145);
-  --color-primary-foreground: oklch(0.97 0.01 85);
-  --color-secondary: oklch(0.92 0.02 85);
-  --color-secondary-foreground: oklch(0.25 0.03 60);
-  --color-muted: oklch(0.93 0.015 85);
-  --color-muted-foreground: oklch(0.50 0.02 60);
-  --color-accent: oklch(0.72 0.12 80);
-  --color-accent-foreground: oklch(0.18 0.02 60);
-  --color-destructive: oklch(0.55 0.22 25);
-  --color-destructive-foreground: oklch(0.97 0.01 85);
-  --color-border: oklch(0.85 0.02 80);
-  --color-input: oklch(0.85 0.02 80);
-  --color-ring: oklch(0.35 0.06 145);
-  --color-gold: oklch(0.72 0.12 80);
-  --color-olive: oklch(0.35 0.06 145);
-  --color-cream: oklch(0.97 0.01 85);
-  --color-charcoal: oklch(0.18 0.02 60);
-  --radius: 0.5rem;
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  /* ── Core palette ── */
+  --color-background:          oklch(0.97 0.008 240);   /* near-white with cool tint */
+  --color-foreground:          oklch(0.15 0.02 250);    /* deep navy-charcoal */
+  --color-card:                oklch(1 0 0);
+  --color-card-foreground:     oklch(0.15 0.02 250);
+  --color-popover:             oklch(1 0 0);
+  --color-popover-foreground:  oklch(0.15 0.02 250);
+
+  /* ── Brand ── */
+  --color-navy:                oklch(0.22 0.06 255);    /* deep navy — primary brand */
+  --color-navy-light:          oklch(0.28 0.07 255);
+  --color-teal:                oklch(0.52 0.12 195);    /* action teal */
+  --color-teal-light:          oklch(0.62 0.10 195);
+  --color-gold:                oklch(0.72 0.13 78);     /* accent gold */
+  --color-gold-light:          oklch(0.82 0.10 78);
+  --color-cream:               oklch(0.97 0.008 85);
+
+  /* ── Semantic ── */
+  --color-primary:             oklch(0.22 0.06 255);
+  --color-primary-foreground:  oklch(0.97 0.008 85);
+  --color-secondary:           oklch(0.93 0.01 240);
+  --color-secondary-foreground: oklch(0.22 0.06 255);
+  --color-muted:               oklch(0.93 0.01 240);
+  --color-muted-foreground:    oklch(0.50 0.03 250);
+  --color-accent:              oklch(0.52 0.12 195);
+  --color-accent-foreground:   oklch(0.97 0.008 85);
+  --color-destructive:         oklch(0.55 0.22 25);
+  --color-destructive-foreground: oklch(0.97 0.008 85);
+  --color-border:              oklch(0.88 0.01 240);
+  --color-input:               oklch(0.88 0.01 240);
+  --color-ring:                oklch(0.52 0.12 195);
+
+  /* ── Legacy aliases kept for compatibility ── */
+  --color-olive:               oklch(0.22 0.06 255);
+  --color-charcoal:            oklch(0.15 0.02 250);
+
+  /* ── Radius & fonts ── */
+  --radius:      0.5rem;
+  --font-sans:   'DM Sans', system-ui, sans-serif;
+  --font-serif:  'DM Serif Display', Georgia, serif;
 }
 
 @layer base {
@@ -40,23 +54,62 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3 { font-family: var(--font-serif); }
 }
 
 @layer utilities {
-  .font-serif { font-family: var(--font-serif); }
-  .text-gold { color: var(--color-gold); }
-  .text-olive { color: var(--color-olive); }
-  .bg-gold { background-color: var(--color-gold); }
-  .bg-olive { background-color: var(--color-olive); }
-  .border-gold { border-color: var(--color-gold); }
+  .font-serif  { font-family: var(--font-serif); }
+  .font-sans   { font-family: var(--font-sans); }
+
+  /* Brand colours */
+  .text-navy       { color: var(--color-navy); }
+  .text-teal       { color: var(--color-teal); }
+  .text-gold       { color: var(--color-gold); }
+  .text-cream      { color: var(--color-cream); }
+  .text-olive      { color: var(--color-olive); }
+
+  .bg-navy         { background-color: var(--color-navy); }
+  .bg-navy-light   { background-color: var(--color-navy-light); }
+  .bg-teal         { background-color: var(--color-teal); }
+  .bg-gold         { background-color: var(--color-gold); }
+  .bg-cream        { background-color: var(--color-cream); }
+  .bg-olive        { background-color: var(--color-olive); }
+
+  .border-navy     { border-color: var(--color-navy); }
+  .border-teal     { border-color: var(--color-teal); }
+  .border-gold     { border-color: var(--color-gold); }
+
+  /* Layout */
   .container { @apply mx-auto px-4 sm:px-6 lg:px-8; max-width: 1280px; }
   .flex { min-width: 0; min-height: 0; }
+
+  /* Glassmorphism */
+  .glass {
+    background: oklch(1 0 0 / 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(1 0 0 / 0.12);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--color-teal) 0%, var(--color-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
-/* Portier brand button active state */
-button:active { transform: scale(0.97); transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+/* ── Micro-interactions ── */
+button:active { transform: scale(0.97); }
+*, *::before, *::after {
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
 
-/* Smooth transitions */
-*, *::before, *::after { transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(0.75 0.02 250); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(0.60 0.04 250); }

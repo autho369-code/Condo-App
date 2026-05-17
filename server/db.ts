@@ -7,9 +7,10 @@ import {
   meetingActionItems, vendors, emailThreads,
   ownerAccounts, paymentTransactions, propertyDocuments,
   ownerMessages, ownerNotifications, ownerNotificationPrefs,
+  localAuth, leads,
   type InsertUser, type InsertTicket, type InsertScheduleEvent,
   type InsertMeeting, type InsertVendor, type InsertEmailThread,
-  type InsertCompany, type InsertProperty,
+  type InsertCompany, type InsertProperty, type InsertLead,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -734,4 +735,54 @@ export async function getUserById(id: number) {
   if (!db) return undefined;
   const result = await (db as any).select().from(users).where(eq(users.id, id)).limit(1);
   return result[0] as typeof users.$inferSelect | undefined;
+}
+
+// ─── Local Auth helpers ───────────────────────────────────────────────────────
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await (db as any).select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function createUserWithEmail(data: { name: string; email: string; portierRole: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const openId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const result = await (db as any).insert(users).values({
+    openId,
+    name: data.name,
+    email: data.email,
+    portierRole: data.portierRole as any,
+    loginMethod: "local",
+    role: "user",
+  }).returning();
+  return result[0] ?? null;
+}
+
+export async function getLocalAuth(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await (db as any).select().from(localAuth).where(eq(localAuth.userId, userId)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function createLocalAuth(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await (db as any).insert(localAuth).values({ userId, passwordHash }).returning();
+  return result[0] ?? null;
+}
+
+// ─── Leads helpers ────────────────────────────────────────────────────────────
+export async function createLead(data: InsertLead) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await (db as any).insert(leads).values(data).returning();
+  return result[0] ?? null;
+}
+export async function getAllLeads() {
+  const db = await getDb();
+  if (!db) return [] as (typeof leads.$inferSelect)[];
+  return (db as any).select().from(leads).orderBy(desc(leads.createdAt)) as Promise<(typeof leads.$inferSelect)[]>;
 }
