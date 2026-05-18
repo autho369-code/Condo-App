@@ -71,7 +71,7 @@ export default function AdminPropertiesPage() {
                 <td className="px-4 py-3 text-sm text-foreground">{p.unitCount}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground capitalize">{p.type}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${p.status === "active" ? "bg-green-400/10 text-green-400" : "bg-muted text-muted-foreground"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${p.status === "active" ? "status-approved" : "bg-muted text-muted-foreground"}`}>
                     {p.status}
                   </span>
                 </td>

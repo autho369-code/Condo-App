@@ -180,7 +180,7 @@ function LeftPanel({ role }: { role: string }) {
       {/* User footer */}
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-green-400"></div>
+          <div className="w-2 h-2 rounded-full" style={{background:'#2d4a2d'}}></div>
           <span className="text-xs text-muted-foreground">Systems operational</span>
         </div>
         <button
@@ -270,7 +270,7 @@ function RightPanel() {
         <div className="space-y-1">
           {["Fund Income Statement", "Vendor Ledger", "Homeowner Delinquency"].map((r) => (
             <Link key={r} href="/reports" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5">
-                <Star className="w-3 h-3 text-yellow-500" />
+                <Star className="w-3 h-3" style={{color:'#7a5a10'}} />
                 {r}
               </Link>
           ))}

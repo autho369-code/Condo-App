@@ -11,11 +11,11 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  super_admin: "bg-red-400/10 text-red-400", admin: "bg-red-400/10 text-red-400",
-  company_admin: "bg-orange-400/10 text-orange-400", portfolio_manager: "bg-purple-400/10 text-purple-400",
-  manager: "bg-blue-400/10 text-blue-400", accountant: "bg-cyan-400/10 text-cyan-400",
-  assistant: "bg-cyan-400/10 text-cyan-400", board_member: "bg-green-400/10 text-green-400",
-  user: "bg-muted text-muted-foreground",
+  super_admin: "role-super-admin", admin: "role-super-admin",
+  company_admin: "role-company-admin", portfolio_manager: "role-portfolio-manager",
+  manager: "role-manager", accountant: "role-accountant",
+  assistant: "role-assistant", board_member: "role-board-member",
+  user: "role-board-member",
 };
 
 export default function AdminUsersPage() {

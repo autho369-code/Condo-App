@@ -17,21 +17,21 @@ export default function CompliancePage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-green">
           <div className="w-9 h-9 rounded-lg bg-green-400/10 flex items-center justify-center mb-3">
-            <CheckCircle className="w-4.5 h-4.5 text-green-400" />
+            <CheckCircle className="w-4.5 h-4.5 text-[#2d4a2d]" />
           </div>
           <div className="text-2xl font-bold text-foreground">{(vendors ?? []).length - expiring.length}</div>
           <div className="text-sm text-muted-foreground">Compliant Vendors</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-orange">
           <div className="w-9 h-9 rounded-lg bg-orange-400/10 flex items-center justify-center mb-3">
-            <AlertTriangle className="w-4.5 h-4.5 text-orange-400" />
+            <AlertTriangle className="w-4.5 h-4.5 text-[#7a4a1a]" />
           </div>
           <div className="text-2xl font-bold text-foreground">{expiring.length}</div>
           <div className="text-sm text-muted-foreground">Expiring / Missing</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-blue">
-          <div className="w-9 h-9 rounded-lg bg-blue-400/10 flex items-center justify-center mb-3">
-            <Shield className="w-4.5 h-4.5 text-blue-400" />
+          <div className="w-9 h-9 rounded-lg stat-icon-blue flex items-center justify-center mb-3">
+            <Shield className="w-4.5 h-4.5 text-[#3a5a7a]" />
           </div>
           <div className="text-2xl font-bold text-foreground">{vendors?.length ?? 0}</div>
           <div className="text-sm text-muted-foreground">Total Vendors</div>
@@ -71,26 +71,26 @@ export default function CompliancePage() {
                   <td className="px-4 py-3 text-sm font-medium text-foreground">{v.companyName}</td>
                   <td className="px-4 py-3 text-sm">
                     {v.insuranceExpiry ? (
-                      <span className={insExpiry !== null && insExpiry < 30 ? "text-red-400" : "text-foreground"}>
+                      <span className={insExpiry !== null && insExpiry < 30 ? "text-[#8a3a2a]" : "text-foreground"}>
                         {format(new Date(v.insuranceExpiry), "MM/dd/yyyy")}
                         {insExpiry !== null && insExpiry < 30 && ` (${insExpiry}d)`}
                       </span>
-                    ) : <span className="text-red-400">Missing</span>}
+                    ) : <span className="text-[#8a3a2a]">Missing</span>}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {v.licenseExpiry ? (
-                      <span className={licExpiry !== null && licExpiry < 30 ? "text-red-400" : "text-foreground"}>
+                      <span className={licExpiry !== null && licExpiry < 30 ? "text-[#8a3a2a]" : "text-foreground"}>
                         {format(new Date(v.licenseExpiry), "MM/dd/yyyy")}
                       </span>
                     ) : <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {v.w9OnFile
-                      ? <span className="text-green-400">On File</span>
-                      : <span className="text-red-400">Missing</span>}
+                      ? <span style={{color:'#2d4a2d'}}>On File</span>
+                      : <span style={{color:'#8a3a2a'}}>Missing</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${isCompliant ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${isCompliant ? "status-approved" : "status-void"}`}>
                       {isCompliant ? "Compliant" : "Action Required"}
                     </span>
                   </td>

@@ -62,7 +62,7 @@ export default function AcceptInvitePage() {
         )}
 
         {status === "success" && (
-          <div className="flex items-center justify-center gap-2 text-green-400">
+          <div className="flex items-center justify-center gap-2 text-[#2d4a2d]">
             <CheckCircle className="w-5 h-5" />
             <span className="text-sm">{message}</span>
           </div>
@@ -70,7 +70,7 @@ export default function AcceptInvitePage() {
 
         {status === "error" && (
           <div>
-            <div className="flex items-center justify-center gap-2 text-red-400 mb-4">
+            <div className="flex items-center justify-center gap-2 mb-4" style={{color:'#8a3a2a'}}>
               <XCircle className="w-5 h-5" />
               <span className="text-sm">{message}</span>
             </div>
@@ -81,7 +81,7 @@ export default function AcceptInvitePage() {
         )}
 
         {!token && status === "idle" && (
-          <p className="text-sm text-red-400">Invalid or missing invitation token.</p>
+          <p className="text-sm" style={{color:'#8a3a2a'}}>Invalid or missing invitation token.</p>
         )}
       </div>
     </div>

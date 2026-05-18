@@ -114,8 +114,8 @@ export default function ReceivablesPage() {
                 <td className="px-4 py-3 text-sm font-medium text-foreground text-right">${Number(r.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-                    r.status === "posted" ? "bg-green-400/10 text-green-400" :
-                    r.status === "pending" ? "bg-yellow-400/10 text-yellow-400" :
+                    r.status === "posted" ? "status-approved" :
+                    r.status === "pending" ? "status-pending" :
                     "bg-muted text-muted-foreground"
                   }`}>{r.status}</span>
                 </td>

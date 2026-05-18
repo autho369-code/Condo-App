@@ -185,9 +185,9 @@ export default function InvitationsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full w-fit ${
-                    inv.status === "accepted" ? "bg-green-400/10 text-green-400" :
-                    inv.status === "pending" ? "bg-yellow-400/10 text-yellow-400" :
-                    "bg-red-400/10 text-red-400"
+                    inv.status === "accepted" ? "status-approved" :
+                    inv.status === "pending" ? "status-pending" :
+                    "status-void"
                   }`}>
                     {inv.status === "accepted" ? <CheckCircle className="w-3 h-3" /> :
                      inv.status === "pending" ? <Clock className="w-3 h-3" /> :

@@ -105,6 +105,7 @@ export const vendors = mysqlTable("vendors", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 32 }),
   address: text("address"),
+  trades: json("trades").$type<string[]>(),
   paymentType: mysqlEnum("paymentType", ["check", "ach", "online", "credit_card"]).default("check"),
   w9OnFile: boolean("w9OnFile").default(false),
   is1099Vendor: boolean("is1099Vendor").default(false),

@@ -56,29 +56,29 @@ export default function ManagerDashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-blue">
-          <div className="w-9 h-9 rounded-lg bg-blue-400/10 flex items-center justify-center mb-3">
-            <Building2 className="w-4.5 h-4.5 text-blue-400" />
+          <div className="w-9 h-9 rounded-lg stat-icon-blue flex items-center justify-center mb-3">
+            <Building2 className="w-4.5 h-4.5" style={{color:'#3a5a7a'}} />
           </div>
           <div className="text-2xl font-bold text-foreground">{stats?.associations ?? 0}</div>
           <div className="text-sm text-muted-foreground">Associations</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-purple">
-          <div className="w-9 h-9 rounded-lg bg-purple-400/10 flex items-center justify-center mb-3">
-            <Package className="w-4.5 h-4.5 text-purple-400" />
+          <div className="w-9 h-9 rounded-lg stat-icon-purple flex items-center justify-center mb-3">
+            <Package className="w-4.5 h-4.5" style={{color:'#5a4a7a'}} />
           </div>
           <div className="text-2xl font-bold text-foreground">{stats?.vendors ?? 0}</div>
           <div className="text-sm text-muted-foreground">Vendors</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-green">
-          <div className="w-9 h-9 rounded-lg bg-green-400/10 flex items-center justify-center mb-3">
-            <Users className="w-4.5 h-4.5 text-green-400" />
+          <div className="w-9 h-9 rounded-lg stat-icon-green flex items-center justify-center mb-3">
+            <Users className="w-4.5 h-4.5" style={{color:'#2d4a2d'}} />
           </div>
           <div className="text-2xl font-bold text-foreground">{stats?.owners ?? 0}</div>
           <div className="text-sm text-muted-foreground">Owners</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 stat-accent-orange">
-          <div className="w-9 h-9 rounded-lg bg-orange-400/10 flex items-center justify-center mb-3">
-            <CreditCard className="w-4.5 h-4.5 text-orange-400" />
+          <div className="w-9 h-9 rounded-lg stat-icon-orange flex items-center justify-center mb-3">
+            <CreditCard className="w-4.5 h-4.5" style={{color:'#7a4a1a'}} />
           </div>
           <div className="text-2xl font-bold text-foreground">{stats?.openBills ?? 0}</div>
           <div className="text-sm text-muted-foreground">Open Bills</div>
@@ -112,7 +112,7 @@ export default function ManagerDashboard() {
             {pendingBills.length > 0 ? pendingBills.slice(0, 6).map(b => (
               <div key={b.id} className="flex items-center justify-between px-4 py-2.5 table-row-hover">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{color:'#7a5a10'}} />
                   <div>
                     <p className="text-sm text-foreground">{b.description ?? `Bill #${b.id}`}</p>
                     <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(b.date), { addSuffix: true })}</p>
@@ -124,7 +124,7 @@ export default function ManagerDashboard() {
                     <button
                       onClick={() => approveBill.mutate({ id: b.id })}
                       disabled={approveBill.isPending}
-                      className="flex items-center gap-1 text-xs bg-green-400/10 text-green-400 hover:bg-green-400/20 px-2 py-1 rounded transition-colors"
+                      className="flex items-center gap-1 text-xs btn-approve px-2 py-1 rounded transition-colors"
                     >
                       <CheckCircle className="w-3 h-3" /> Approve
                     </button>
@@ -132,7 +132,7 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             )) : (
-              <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-green-400">
+              <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm" style={{color:'#2d4a2d'}}>
                 <CheckCircle className="w-4 h-4" /> Queue is clear
               </div>
             )}
@@ -156,7 +156,7 @@ export default function ManagerDashboard() {
                 "Vendor 1099 Detail",
               ].map(r => (
                 <Link key={r} href="/reports" className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/30 transition-colors">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
+                    <Star className="w-3.5 h-3.5 flex-shrink-0" style={{color:'#7a5a10'}} />
                     <span className="text-sm text-foreground">{r}</span>
                   </Link>
               ))}

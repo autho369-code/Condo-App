@@ -16,10 +16,10 @@ export default function DiagnosticsPage() {
   });
 
   const SEVERITY_STYLES: Record<string, { badge: string; icon: string }> = {
-    critical: { badge: "bg-red-400/10 text-red-400 border-red-400/20", icon: "text-red-400" },
-    high: { badge: "bg-orange-400/10 text-orange-400 border-orange-400/20", icon: "text-orange-400" },
-    medium: { badge: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20", icon: "text-yellow-400" },
-    low: { badge: "bg-blue-400/10 text-blue-400 border-blue-400/20", icon: "text-blue-400" },
+    critical: { badge: "status-void", icon: "" },
+    high: { badge: "status-pending", icon: "" },
+    medium: { badge: "status-pending", icon: "" },
+    low: { badge: "status-posted", icon: "" },
   };
 
   return (
@@ -93,7 +93,7 @@ export default function DiagnosticsPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <CheckCircle className="w-12 h-12 text-green-400 mb-4" />
+          <CheckCircle className="w-12 h-12 text-[#2d4a2d] mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">All Systems Healthy</h3>
           <p className="text-sm text-muted-foreground">No diagnostic flags detected across your portfolio.</p>
         </div>

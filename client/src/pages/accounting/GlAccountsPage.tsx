@@ -100,7 +100,7 @@ export default function GlAccountsPage() {
                         <td className="px-4 py-2 text-sm text-foreground">{a.name}</td>
                         <td className="px-4 py-2 text-sm text-muted-foreground">{a.parentCode ? `Parent: ${a.parentCode}` : "—"}</td>
                         <td className="px-4 py-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${a.isActive ? "bg-green-400/10 text-green-400" : "bg-muted text-muted-foreground"}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${a.isActive ? "status-approved" : "bg-muted text-muted-foreground"}`}>
                             {a.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>

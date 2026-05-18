@@ -47,7 +47,7 @@ export default function SearchPage() {
                   <div className="bg-card border border-border rounded-xl divide-y divide-border">
                     {results.people.map((p: any) => (
                       <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-accent/20 transition-colors">
-                        <Users className="w-4 h-4 text-blue-400" />
+                        <Users className="w-4 h-4 text-[#3a5a7a]" />
                         <span className="text-sm text-foreground">{p.name}</span>
                         <span className="text-xs text-muted-foreground ml-auto">{p.type}</span>
                       </div>
@@ -61,7 +61,7 @@ export default function SearchPage() {
                   <div className="bg-card border border-border rounded-xl divide-y divide-border">
                     {results.transactions.map((t: any) => (
                       <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-accent/20 transition-colors">
-                        <DollarSign className="w-4 h-4 text-green-400" />
+                        <DollarSign className="w-4 h-4 text-[#2d4a2d]" />
                         <span className="text-sm text-foreground">{t.description ?? t.reference}</span>
                         <span className="text-xs text-muted-foreground ml-auto">${Number(t.amount).toLocaleString()}</span>
                       </div>

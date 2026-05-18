@@ -56,7 +56,7 @@ export default function AdminCompaniesPage() {
                 <td className="px-4 py-3 text-sm text-foreground">—</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{format(new Date(c.createdAt), "MM/dd/yyyy")}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.isActive ? "bg-green-400/10 text-green-400" : "bg-muted text-muted-foreground"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.isActive ? "status-approved" : "bg-muted text-muted-foreground"}`}>
                     {c.isActive ? "Active" : "Inactive"}
                   </span>
                 </td>

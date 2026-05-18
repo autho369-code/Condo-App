@@ -115,10 +115,10 @@ export default function PayablesPage() {
                 <td className="px-4 py-3 text-sm font-medium text-foreground text-right">${Number(b.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-                    b.status === "approved" || b.status === "paid" ? "bg-green-400/10 text-green-400" :
-                    b.status === "pending" ? "bg-yellow-400/10 text-yellow-400" :
-                    b.status === "void" ? "bg-red-400/10 text-red-400" :
-                    "bg-muted text-muted-foreground"
+                    b.status === "approved" || b.status === "paid" ? "status-approved" :
+                    b.status === "pending" ? "status-pending" :
+                    b.status === "void" ? "status-void" :
+                    "status-void"
                   }`}>{b.status}</span>
                 </td>
                 <td className="px-4 py-3">
@@ -126,7 +126,7 @@ export default function PayablesPage() {
                     <button
                       onClick={() => approveBill.mutate({ id: b.id })}
                       disabled={approveBill.isPending}
-                      className="flex items-center gap-1 text-xs bg-green-400/10 text-green-400 hover:bg-green-400/20 px-2 py-1 rounded transition-colors"
+                      className="flex items-center gap-1 text-xs btn-approve px-2 py-1 rounded transition-colors"
                     >
                       <CheckCircle className="w-3 h-3" /> Approve
                     </button>

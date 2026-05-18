@@ -31,7 +31,7 @@ export default function BankAccountsPage() {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-primary" />
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/10 text-green-400">
+              <span className="text-xs px-2 py-0.5 rounded-full status-approved">
                 Active
               </span>
             </div>

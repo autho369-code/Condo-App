@@ -84,8 +84,8 @@ export default function JournalEntriesPage() {
                 <td className="px-4 py-3 text-sm text-foreground text-right">—</td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-                    e.status === "posted" ? "bg-green-400/10 text-green-400" :
-                    e.status === "pending" ? "bg-yellow-400/10 text-yellow-400" :
+                    e.status === "posted" ? "status-approved" :
+                    e.status === "pending" ? "status-pending" :
                     "bg-muted text-muted-foreground"
                   }`}>{e.status}</span>
                 </td>

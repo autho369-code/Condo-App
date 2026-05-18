@@ -43,8 +43,8 @@ function AddOwnerModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(26,46,26,0.35)'}}>
+      <div className="border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6" style={{background:'#faf7f2'}}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-foreground">Add Owner</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
@@ -173,8 +173,8 @@ function AddVendorModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(26,46,26,0.35)'}}>
+      <div className="border border-border rounded-xl shadow-xl w-full max-w-md mx-4 p-6" style={{background:'#faf7f2'}}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-foreground">Add Vendor</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
@@ -371,7 +371,7 @@ export default function PeoplePage() {
                   <td className="px-4 py-3 text-sm text-muted-foreground">{r.email ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{r.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive !== false ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${r.isActive !== false ? "status-approved" : "status-void"}`}>
                       {r.isActive !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
