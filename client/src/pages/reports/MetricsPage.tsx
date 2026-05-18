@@ -1,3 +1,4 @@
+import ThreePanelLayout from "@/components/ThreePanelLayout";
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Wrench } from "lucide-react";
 
 export default function MetricsPage() {
