@@ -39,7 +39,7 @@ export default function PortfolioManagerDashboard() {
       await sendInvite.mutateAsync({
         email,
         role: role as any,
-        propertyIds: selectedPropertyIds,
+        assignedPropertyIds: selectedPropertyIds,
         origin: window.location.origin,
       });
     } finally {
@@ -201,7 +201,7 @@ export default function PortfolioManagerDashboard() {
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {inv.propertyIds?.length ? `${inv.propertyIds.length} propert${inv.propertyIds.length === 1 ? "y" : "ies"}` : "No properties assigned"}
+                      {inv.assignedPropertyIds?.length ? `${inv.assignedPropertyIds.length} propert${inv.assignedPropertyIds.length === 1 ? "y" : "ies"}` : "No properties assigned"}
                     </div>
                   </div>
                   <div>

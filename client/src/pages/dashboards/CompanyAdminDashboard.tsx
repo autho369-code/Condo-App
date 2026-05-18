@@ -32,7 +32,7 @@ export default function CompanyAdminDashboard() {
       await sendInvite.mutateAsync({
         email,
         role: "portfolio_manager",
-        propertyIds: selectedPropertyIds,
+        assignedPropertyIds: selectedPropertyIds,
         origin: window.location.origin,
       });
     } finally {

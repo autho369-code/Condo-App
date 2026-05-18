@@ -31,7 +31,6 @@ export default function SuperAdminDashboard() {
       await sendInvite.mutateAsync({
         email,
         role: "company_admin",
-        companyName,
         origin: window.location.origin,
       });
     } finally {
