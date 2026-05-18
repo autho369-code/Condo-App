@@ -47,11 +47,9 @@ export default function ManagerDashboard() {
       subtitle="Your associations at a glance"
       actions={
         <div className="flex gap-2">
-          <Link href="/invitations">
-            <a className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+          <Link href="/invitations" className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               <Mail className="w-3.5 h-3.5" /> Invite
-            </a>
-          </Link>
+            </Link>
         </div>
       }
     >
@@ -89,21 +87,15 @@ export default function ManagerDashboard() {
 
       {/* Action buttons */}
       <div className="flex gap-2 mb-6">
-        <Link href="/accounting/payables">
-          <a className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
+        <Link href="/accounting/payables" className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
             <Plus className="w-3.5 h-3.5" /> New Bill
-          </a>
-        </Link>
-        <Link href="/accounting/receivables">
-          <a className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
+          </Link>
+        <Link href="/accounting/receivables" className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
             <Plus className="w-3.5 h-3.5" /> New Receipt
-          </a>
-        </Link>
-        <Link href="/reports">
-          <a className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
+          </Link>
+        <Link href="/reports" className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
             <ArrowRight className="w-3.5 h-3.5" /> Run Report
-          </a>
-        </Link>
+          </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -114,9 +106,7 @@ export default function ManagerDashboard() {
               <h3 className="text-sm font-semibold text-foreground">Payables Approval Queue</h3>
               <p className="text-xs text-muted-foreground">{pendingBills.length} pending</p>
             </div>
-            <Link href="/accounting/payables">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
-            </Link>
+            <Link href="/accounting/payables" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
           </div>
           <div className="divide-y divide-border">
             {pendingBills.length > 0 ? pendingBills.slice(0, 6).map(b => (
@@ -155,9 +145,7 @@ export default function ManagerDashboard() {
           <div className="bg-card border border-border rounded-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Favorite Reports</h3>
-              <Link href="/reports">
-                <a className="text-xs text-primary hover:underline flex items-center gap-1">All reports <ArrowRight className="w-3 h-3" /></a>
-              </Link>
+              <Link href="/reports" className="text-xs text-primary hover:underline flex items-center gap-1">All reports <ArrowRight className="w-3 h-3" /></Link>
             </div>
             <div className="p-3 space-y-1">
               {[
@@ -167,12 +155,10 @@ export default function ManagerDashboard() {
                 "Fund Income Statement",
                 "Vendor 1099 Detail",
               ].map(r => (
-                <Link key={r} href="/reports">
-                  <a className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/30 transition-colors">
+                <Link key={r} href="/reports" className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/30 transition-colors">
                     <Star className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
                     <span className="text-sm text-foreground">{r}</span>
-                  </a>
-                </Link>
+                  </Link>
               ))}
             </div>
           </div>
@@ -181,9 +167,7 @@ export default function ManagerDashboard() {
           <div className="bg-card border border-border rounded-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Associations</h3>
-              <Link href="/associations">
-                <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
-              </Link>
+              <Link href="/associations" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
             </div>
             <div className="divide-y divide-border">
               {properties && properties.length > 0 ? properties.slice(0, 4).map(p => (

@@ -216,9 +216,7 @@ function RightPanel() {
       <div className="px-4 py-3 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
-          <Link href="/activity">
-            <a className="text-xs text-primary hover:underline">View all →</a>
-          </Link>
+          <Link href="/activity" className="text-xs text-primary hover:underline">View all →</Link>
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">Last 24 hours</p>
       </div>
@@ -271,12 +269,10 @@ function RightPanel() {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Quick Reports</p>
         <div className="space-y-1">
           {["Fund Income Statement", "Vendor Ledger", "Homeowner Delinquency"].map((r) => (
-            <Link key={r} href="/reports">
-              <a className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5">
+            <Link key={r} href="/reports" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5">
                 <Star className="w-3 h-3 text-yellow-500" />
                 {r}
-              </a>
-            </Link>
+              </Link>
           ))}
         </div>
       </div>

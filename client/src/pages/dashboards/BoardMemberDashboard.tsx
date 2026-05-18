@@ -76,9 +76,7 @@ export default function BoardMemberDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Your Associations</h3>
-            <Link href="/associations">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View <ArrowRight className="w-3 h-3" /></a>
-            </Link>
+            <Link href="/associations" className="text-xs text-primary hover:underline flex items-center gap-1">View <ArrowRight className="w-3 h-3" /></Link>
           </div>
           <div className="divide-y divide-border">
             {properties && properties.length > 0 ? properties.map(p => (
@@ -101,9 +99,7 @@ export default function BoardMemberDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Available Reports</h3>
-            <Link href="/reports">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">All reports <ArrowRight className="w-3 h-3" /></a>
-            </Link>
+            <Link href="/reports" className="text-xs text-primary hover:underline flex items-center gap-1">All reports <ArrowRight className="w-3 h-3" /></Link>
           </div>
           <div className="p-3 space-y-1">
             {[
@@ -115,12 +111,10 @@ export default function BoardMemberDashboard() {
               { name: "Homeowner Delinquency", cat: "Association" },
               { name: "Reserve Fund Analysis", cat: "Association" },
             ].map(r => (
-              <Link key={r.name} href="/reports">
-                <a className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-accent/30 transition-colors">
+              <Link key={r.name} href="/reports" className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-accent/30 transition-colors">
                   <span className="text-sm text-foreground">{r.name}</span>
                   <span className="text-xs text-muted-foreground">{r.cat}</span>
-                </a>
-              </Link>
+                </Link>
             ))}
           </div>
         </div>

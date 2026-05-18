@@ -34,11 +34,9 @@ export default function PortfolioManagerDashboard() {
       title="Portfolio Manager"
       subtitle="Your assigned portfolio overview"
       actions={
-        <Link href="/invitations">
-          <a className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+        <Link href="/invitations" className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
             <Mail className="w-3.5 h-3.5" /> Invite Manager
-          </a>
-        </Link>
+          </Link>
       }
     >
       {/* Stat cards */}
@@ -78,9 +76,7 @@ export default function PortfolioManagerDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Assigned Properties</h3>
-            <Link href="/associations">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
-            </Link>
+            <Link href="/associations" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
           </div>
           <div className="divide-y divide-border">
             {properties && properties.length > 0 ? properties.slice(0, 6).map(p => (
@@ -109,9 +105,7 @@ export default function PortfolioManagerDashboard() {
           <div className="bg-card border border-border rounded-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Bills Awaiting Approval</h3>
-              <Link href="/accounting/payables">
-                <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
-              </Link>
+              <Link href="/accounting/payables" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
             </div>
             <div className="divide-y divide-border">
               {pendingBills.length > 0 ? pendingBills.slice(0, 4).map(b => (
@@ -131,9 +125,7 @@ export default function PortfolioManagerDashboard() {
           <div className="bg-card border border-border rounded-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">My Invitations</h3>
-              <Link href="/invitations">
-                <a className="text-xs text-primary hover:underline flex items-center gap-1">Manage <ArrowRight className="w-3 h-3" /></a>
-              </Link>
+              <Link href="/invitations" className="text-xs text-primary hover:underline flex items-center gap-1">Manage <ArrowRight className="w-3 h-3" /></Link>
             </div>
             <div className="divide-y divide-border">
               {pendingInvites.length > 0 ? pendingInvites.slice(0, 3).map(inv => (

@@ -1,15 +1,13 @@
 import { ThreePanelLayout } from "@/components/ThreePanelLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useEffect } from "react";
 import {
   Building2, Users, Mail, AlertTriangle, Plus, ArrowRight,
-  CheckCircle, Clock, XCircle, Shield, BarChart3, Home
+  CheckCircle, Home
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "wouter";
 
 function StatCard({ title, value, icon: Icon, accent, delta }: {
   title: string; value: number | string; icon: any; accent: string; delta?: string;
@@ -60,15 +58,17 @@ export default function SuperAdminDashboard() {
       subtitle="System-wide overview — all companies, properties, and users"
       actions={
         <div className="flex gap-2">
-          <Link href="/admin/companies">
-            <a className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> New Company
-            </a>
+          <Link
+            href="/admin/companies"
+            className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Company
           </Link>
-          <Link href="/admin/invitations">
-            <a className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
-              <Mail className="w-3.5 h-3.5" /> Invite User
-            </a>
+          <Link
+            href="/admin/invitations"
+            className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors"
+          >
+            <Mail className="w-3.5 h-3.5" /> Invite User
           </Link>
         </div>
       }
@@ -87,8 +87,8 @@ export default function SuperAdminDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Companies</h3>
-            <Link href="/admin/companies">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
+            <Link href="/admin/companies" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-border">
@@ -117,8 +117,8 @@ export default function SuperAdminDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Users by Role</h3>
-            <Link href="/admin/users">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">Manage <ArrowRight className="w-3 h-3" /></a>
+            <Link href="/admin/users" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Manage <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="p-4 space-y-2">
@@ -149,8 +149,8 @@ export default function SuperAdminDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Pending Invitations</h3>
-            <Link href="/admin/invitations">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
+            <Link href="/admin/invitations" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-border">
@@ -172,8 +172,8 @@ export default function SuperAdminDashboard() {
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">System Diagnostics</h3>
-            <Link href="/accounting/diagnostics">
-              <a className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></a>
+            <Link href="/accounting/diagnostics" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-border">
