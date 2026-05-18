@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuth } from "./_core/hooks/useAuth";
@@ -48,6 +48,12 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 };
 
 function RoleRedirect() {
+  // Check if user clicked a specific role login button
+  const savedPath = sessionStorage.getItem('loginReturnPath');
+  if (savedPath) {
+    sessionStorage.removeItem('loginReturnPath');
+    return <Redirect to={savedPath} />;
+  }
   const { user, loading, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
 

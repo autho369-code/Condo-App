@@ -227,34 +227,42 @@ export default function Home() {
         <p style={{ fontSize: 18, lineHeight: 1.6, color: "#4a5e4a", marginBottom: 36, fontFamily: "system-ui, sans-serif", maxWidth: 600, margin: "0 auto 36px" }}>
           Portier369 is the purpose-built operations platform for HOA and condominium association management companies — built on the AppFolio workflow you already know.
         </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a href={getLoginUrl()} style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "#2d4a2d", color: "#f5f0e8",
-            padding: "12px 24px", borderRadius: 8, fontWeight: 600,
-            fontSize: 15, textDecoration: "none", fontFamily: "system-ui, sans-serif",
-            transition: "background 0.15s, transform 0.1s",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#1a2e1a")}
-            onMouseLeave={e => (e.currentTarget.style.background = "#2d4a2d")}
-            onMouseDown={e => (e.currentTarget.style.transform = "scale(0.97)")}
-            onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}>
-            Sign In <ArrowRight style={{ width: 16, height: 16 }} />
-          </a>
-          <a href="#features" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "transparent", color: "#2d4a2d",
-            padding: "12px 24px", borderRadius: 8, fontWeight: 500,
-            fontSize: 15, textDecoration: "none", fontFamily: "system-ui, sans-serif",
-            border: "1px solid #b8c8b0", transition: "border-color 0.15s",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = "#2d4a2d")}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "#b8c8b0")}>
-            See All Features <ChevronDown style={{ width: 16, height: 16 }} />
-          </a>
+        {/* 4 Role Login Buttons */}
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
+          {[
+            { label: "Admin Login", role: "admin", path: "/dashboard/super-admin", bg: "#1a2e1a", hover: "#0f1f0f" },
+            { label: "Portfolio Manager Login", role: "portfolio_manager", path: "/dashboard/portfolio-manager", bg: "#2d4a2d", hover: "#1a2e1a" },
+            { label: "Manager Login", role: "manager", path: "/dashboard/manager", bg: "#4a7a4a", hover: "#2d4a2d" },
+            { label: "Board Member Login", role: "board_member", path: "/dashboard/board-member", bg: "#6a9a6a", hover: "#4a7a4a" },
+          ].map(({ label, path, bg, hover }) => (
+            <a key={label} href={getLoginUrl()} onClick={(e) => { e.preventDefault(); sessionStorage.setItem('loginReturnPath', path); window.location.href = getLoginUrl(); }} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: bg, color: "#f5f0e8",
+              padding: "11px 20px", borderRadius: 8, fontWeight: 600,
+              fontSize: 14, textDecoration: "none", fontFamily: "system-ui, sans-serif",
+              transition: "background 0.15s, transform 0.1s",
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = hover)}
+              onMouseLeave={e => (e.currentTarget.style.background = bg)}
+              onMouseDown={e => (e.currentTarget.style.transform = "scale(0.97)")}
+              onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}>
+              {label} <ArrowRight style={{ width: 14, height: 14 }} />
+            </a>
+          ))}
         </div>
+        <a href="#features" style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          background: "transparent", color: "#2d4a2d",
+          padding: "10px 20px", borderRadius: 8, fontWeight: 500,
+          fontSize: 14, textDecoration: "none", fontFamily: "system-ui, sans-serif",
+          border: "1px solid #b8c8b0", transition: "border-color 0.15s",
+        }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "#2d4a2d")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "#b8c8b0")}>
+          See All Features <ChevronDown style={{ width: 16, height: 16 }} />
+        </a>
         <p style={{ marginTop: 16, fontSize: 13, color: "#7a8e7a", fontFamily: "system-ui, sans-serif" }}>
-          No credit card required · 7-tier role access · API-enforced permissions
+          White-glove HOA management · 6-tier role access · API-enforced permissions
         </p>
       </section>
 
