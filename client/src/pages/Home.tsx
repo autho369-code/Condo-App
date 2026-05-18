@@ -191,21 +191,7 @@ export default function Home() {
               {label}
             </a>
           ))}
-          <a href={getLoginUrl()} style={{ fontSize: 14, color: "#4a5e4a", textDecoration: "none", fontFamily: "system-ui, sans-serif" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#1a2e1a")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#4a5e4a")}>
-            Sign In
-          </a>
-          <a href={getLoginUrl()} style={{
-            fontSize: 13, fontWeight: 600, fontFamily: "system-ui, sans-serif",
-            background: "#2d4a2d", color: "#f5f0e8",
-            padding: "7px 16px", borderRadius: 6, textDecoration: "none",
-            transition: "background 0.15s",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#1a2e1a")}
-            onMouseLeave={e => (e.currentTarget.style.background = "#2d4a2d")}>
-            Sign In to Portier369
-          </a>
+
         </nav>
       </header>
 
@@ -234,6 +220,7 @@ export default function Home() {
             { label: "Portfolio Manager Login", role: "portfolio_manager", path: "/dashboard/portfolio-manager", bg: "#2d4a2d", hover: "#1a2e1a" },
             { label: "Manager Login", role: "manager", path: "/dashboard/manager", bg: "#4a7a4a", hover: "#2d4a2d" },
             { label: "Board Member Login", role: "board_member", path: "/dashboard/board-member", bg: "#6a9a6a", hover: "#4a7a4a" },
+            { label: "Owner Login", role: "owner", path: "/dashboard/manager", bg: "#8aaa8a", hover: "#6a9a6a" },
           ].map(({ label, path, bg, hover }) => (
             <a key={label} href={getLoginUrl()} onClick={(e) => { e.preventDefault(); sessionStorage.setItem('loginReturnPath', path); window.location.href = getLoginUrl(); }} style={{
               display: "inline-flex", alignItems: "center", gap: 8,
