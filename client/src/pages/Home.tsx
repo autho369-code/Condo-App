@@ -222,7 +222,7 @@ export default function Home() {
             { label: "Board Member Login", role: "board_member", path: "/dashboard/board-member", bg: "#6a9a6a", hover: "#4a7a4a" },
             { label: "Owner Login", role: "owner", path: "/dashboard/manager", bg: "#8aaa8a", hover: "#6a9a6a" },
           ].map(({ label, path, bg, hover }) => (
-            <a key={label} href={getLoginUrl(path)} style={{
+            <a key={label} href={user ? path : getLoginUrl(path)} style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               background: bg, color: "#f5f0e8",
               padding: "11px 20px", borderRadius: 8, fontWeight: 600,
