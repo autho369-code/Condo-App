@@ -130,8 +130,8 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: "Is Stellar PM only for HOA associations?",
-    a: "Stellar PM is purpose-built for HOA and condominium association management. It is not designed for apartment or single-family rental portfolios.",
+    q: "Is Portier369 only for HOA associations?",
+    a: "Portier369 is purpose-built for HOA and condominium association management. It is not designed for apartment or single-family rental portfolios.",
   },
   {
     q: "How does the role hierarchy work?",
@@ -156,11 +156,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!loading && isAuthenticated && user) {
-      navigate("/dashboard");
-    }
-  }, [user, loading, isAuthenticated]);
+  // No auto-redirect — landing page always shows first
 
   if (loading) {
     return (
@@ -185,7 +181,7 @@ export default function Home() {
           <div style={{ width: 28, height: 28, background: "#2d4a2d", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Star style={{ width: 14, height: 14, color: "#f5f0e8" }} />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: "#1a2e1a" }}>Stellar PM</span>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: "#1a2e1a" }}>Portier369</span>
         </div>
         <nav style={{ display: "flex", alignItems: "center", gap: 28 }}>
           {[["Features", "#features"], ["Roles", "#roles"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
@@ -208,7 +204,7 @@ export default function Home() {
           }}
             onMouseEnter={e => (e.currentTarget.style.background = "#1a2e1a")}
             onMouseLeave={e => (e.currentTarget.style.background = "#2d4a2d")}>
-            Sign In to Stellar PM
+            Sign In to Portier369
           </a>
         </nav>
       </header>
@@ -229,7 +225,7 @@ export default function Home() {
           in one platform.
         </h1>
         <p style={{ fontSize: 18, lineHeight: 1.6, color: "#4a5e4a", marginBottom: 36, fontFamily: "system-ui, sans-serif", maxWidth: 600, margin: "0 auto 36px" }}>
-          Stellar PM is the purpose-built operations platform for HOA and condominium association management companies — built on the AppFolio workflow you already know.
+          Portier369 is the purpose-built operations platform for HOA and condominium association management companies — built on the AppFolio workflow you already know.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href={getLoginUrl()} style={{
@@ -466,7 +462,7 @@ export default function Home() {
           Ready to elevate your operations?
         </h2>
         <p style={{ fontSize: 16, color: "#4a5e4a", fontFamily: "system-ui, sans-serif", marginBottom: 32, maxWidth: 480, margin: "0 auto 32px" }}>
-          Join association management companies that trust Stellar PM to run their portfolios with precision and care.
+          Join association management companies that trust Portier369 to run their portfolios with precision and care.
         </p>
         <a href={getLoginUrl()} style={{
           display: "inline-flex", alignItems: "center", gap: 8,
@@ -479,7 +475,7 @@ export default function Home() {
           onMouseLeave={e => (e.currentTarget.style.background = "#2d4a2d")}
           onMouseDown={e => (e.currentTarget.style.transform = "scale(0.97)")}
           onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}>
-          Sign In to Stellar PM <ArrowRight style={{ width: 18, height: 18 }} />
+          Sign In to Portier369 <ArrowRight style={{ width: 18, height: 18 }} />
         </a>
       </section>
 
@@ -490,7 +486,7 @@ export default function Home() {
             <div style={{ width: 22, height: 22, background: "#2d4a2d", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Star style={{ width: 11, height: 11, color: "#f5f0e8" }} />
             </div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1a2e1a" }}>Stellar PM</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1a2e1a" }}>Portier369</span>
           </div>
           <div style={{ fontSize: 13, color: "#7a8e7a", fontFamily: "system-ui, sans-serif" }}>
             Purpose-built for HOA and association property management.
@@ -506,7 +502,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: "#9aaa9a", fontFamily: "system-ui, sans-serif" }}>
-          © {new Date().getFullYear()} Stellar PM — Stellar Property Group
+          © {new Date().getFullYear()} Portier369 — Portier369
         </div>
       </footer>
 

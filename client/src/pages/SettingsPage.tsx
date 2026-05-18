@@ -57,7 +57,7 @@ export default function SettingsPage() {
             <Building2 className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Company</h3>
           </div>
-          <p className="text-sm text-muted-foreground">Stellar Property Group</p>
+          <p className="text-sm text-muted-foreground">Portier369</p>
           <p className="text-xs text-muted-foreground mt-1">stellarpropertygrp.appfolio.com</p>
         </div>
       </div>

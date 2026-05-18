@@ -57,7 +57,7 @@ export default function CompanyAdminDashboard() {
           <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
             <Briefcase className="w-4 h-4 text-blue-400" />
           </div>
-          <span className="text-sm font-semibold text-foreground">Stellar PM</span>
+          <span className="text-sm font-semibold text-foreground">Portier369</span>
           <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">Company Admin</span>
         </div>
         <div className="flex items-center gap-4">

@@ -143,7 +143,7 @@ function LeftPanel({ role }: { role: string }) {
             <Star className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground">Stellar PM</div>
+            <div className="text-sm font-semibold text-foreground">Portier369</div>
             <div className="text-xs text-muted-foreground">Property Manager</div>
           </div>
         </div>

@@ -49,7 +49,7 @@ export default function SuperAdminDashboard() {
           <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
             <Shield className="w-4 h-4 text-primary" />
           </div>
-          <span className="text-sm font-semibold text-foreground">Stellar PM</span>
+          <span className="text-sm font-semibold text-foreground">Portier369</span>
           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Super Admin</span>
         </div>
         <div className="flex items-center gap-4">
@@ -99,7 +99,7 @@ export default function SuperAdminDashboard() {
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="e.g. Stellar Property Group"
+                  placeholder="e.g. Portier369"
                   className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none flex-1"
                   required
                 />

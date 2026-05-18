@@ -42,7 +42,7 @@ export default function AcceptInvitePage() {
         </div>
         <h1 className="text-xl font-bold text-foreground mb-2">You've been invited</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          You've been invited to join Stellar Property Management. Accept your invitation to get started.
+          You've been invited to join Portier369. Accept your invitation to get started.
         </p>
 
         {status === "idle" && token && (
