@@ -323,3 +323,59 @@ export async function getAllUsers(search?: string) {
   }
   return db.select().from(users).orderBy(users.createdAt);
 }
+
+// ─── CREATE OWNER ─────────────────────────────────────────────────────────────
+
+export async function createOwner(data: {
+  propertyId: number;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  unit?: string;
+  portalAccess?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.insert(owners).values({
+    propertyId: data.propertyId,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    unit: data.unit ?? null,
+    portalAccess: data.portalAccess ?? false,
+    isDelinquent: false,
+  });
+  return result;
+}
+
+// ─── CREATE VENDOR ────────────────────────────────────────────────────────────
+
+export async function createVendor(data: {
+  companyId: number;
+  companyName: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  paymentType?: "check" | "ach" | "online" | "credit_card";
+  w9OnFile?: boolean;
+  is1099Vendor?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.insert(vendors).values({
+    companyId: data.companyId,
+    companyName: data.companyName,
+    contactName: data.contactName ?? null,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    address: data.address ?? null,
+    paymentType: data.paymentType ?? "check",
+    w9OnFile: data.w9OnFile ?? false,
+    is1099Vendor: data.is1099Vendor ?? false,
+    isActive: true,
+  });
+  return result;
+}

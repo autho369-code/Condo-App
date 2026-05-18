@@ -16,6 +16,8 @@ import {
   getInvitationByToken,
   getInvitationsByInviter,
   getOwners,
+  createOwner,
+  createVendor,
   getProperties,
   getRecentActivity,
   getScheduledReports,
@@ -309,6 +311,17 @@ export const appRouter = router({
         const ids = getAccessiblePropertyIds(ctx.user as any);
         return getOwners(ids, input?.search);
       }),
+    create: writeProcedure
+      .input(z.object({
+        propertyId: z.number(),
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        unit: z.string().optional(),
+        portalAccess: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => createOwner(input)),
   }),
 
   vendors: router({
@@ -318,6 +331,18 @@ export const appRouter = router({
         const companyId = ctx.user.companyId ?? 1;
         return getVendors(companyId, input?.search);
       }),
+    create: writeProcedure
+      .input(z.object({
+        companyName: z.string().min(1),
+        contactName: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        paymentType: z.enum(["check", "ach", "online", "credit_card"]).optional(),
+        w9OnFile: z.boolean().optional(),
+        is1099Vendor: z.boolean().optional(),
+      }))
+      .mutation(({ ctx, input }) => createVendor({ ...input, companyId: ctx.user.companyId ?? 1 })),
   }),
 
   // ─── ACTIVITY ────────────────────────────────────────────────────────────
