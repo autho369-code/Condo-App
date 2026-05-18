@@ -44,7 +44,17 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.redirect(302, "/");
+      // Extract returnPath from state if present
+      let redirectTo = "/";
+      try {
+        const decoded = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
+        if (decoded.returnPath) {
+          redirectTo = decoded.returnPath;
+        }
+      } catch {
+        // state was plain base64 redirectUri (legacy), keep redirectTo as "/"
+      }
+      res.redirect(302, redirectTo);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
