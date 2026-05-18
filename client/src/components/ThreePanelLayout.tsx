@@ -159,17 +159,17 @@ function LeftPanel({ role }: { role: string }) {
             {section.links.map((link) => {
               const isActive = location === link.href || location.startsWith(link.href + "/");
               return (
-                <Link key={link.href} href={link.href}>
-                  <a
-                    className={`flex items-center gap-2.5 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors mb-0.5 ${
-                      isActive
-                        ? "nav-item-active font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    }`}
-                  >
-                    <link.icon className="w-4 h-4 flex-shrink-0" />
-                    {link.label}
-                  </a>
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors mb-0.5 ${
+                    isActive
+                      ? "nav-item-active font-medium"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  }`}
+                >
+                  <link.icon className="w-4 h-4 flex-shrink-0" />
+                  {link.label}
                 </Link>
               );
             })}
