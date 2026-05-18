@@ -84,5 +84,29 @@
 - [x] Vitest tests for RBAC middleware
 - [x] Vitest tests for property-scope enforcement
 - [x] Vitest tests for invitation flow
-- [ ] Save checkpoint
-- [ ] Push to GitHub
+- [x] Save checkpoint
+- [x] Push to GitHub
+
+## Phase 12: Continued Improvements
+- [ ] Promote first logged-in user to super_admin automatically via DB trigger
+- [ ] Seed GL accounts (370+ codes) into database on first run
+- [ ] Fix right pane — live 24h activity feed with real data
+- [ ] Add create/edit dialogs to Associations page
+- [ ] Add create/edit dialogs to Vendors page
+- [ ] Add create/edit dialogs to Owners page
+- [ ] Add create bill / create receipt forms to Accounting module
+- [ ] Add create journal entry form
+- [ ] Fix navigation active states in sidebar
+- [ ] Ensure all dashboard stat cards show real counts from DB
+- [ ] Push updated code to GitHub
+
+## Phase 13: UI Consistency Rebuild
+- [ ] Single design system — navy/slate dark theme, same sidebar, same 3-panel layout on every page
+- [ ] Landing page — hero, features, role overview, login CTA
+- [ ] Super Admin dashboard — consistent UI, all properties, user management, invitations
+- [ ] Portfolio Manager dashboard — same UI, scoped properties
+- [ ] Property Manager dashboard — same UI, assigned properties
+- [ ] Board Member dashboard — same UI, view-only
+- [ ] Owner portal — same UI, single account view
+- [ ] Role-based auto-redirect after login
+- [ ] Super Admin invitation flow — controls all access

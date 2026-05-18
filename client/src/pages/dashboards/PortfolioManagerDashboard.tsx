@@ -1,145 +1,224 @@
-import { ThreePanelLayout } from "@/components/ThreePanelLayout";
-import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
-import { Building2, Users, CreditCard, BarChart3, Plus, ArrowRight, Mail } from "lucide-react";
-import { Link } from "wouter";
-import { formatDistanceToNow } from "date-fns";
+import { LayoutGrid, Plus, Mail, Home, LogOut, CheckCircle, Clock, XCircle, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+
+const INVITABLE_ROLES = [
+  { value: "manager", label: "Manager" },
+  { value: "accountant", label: "Accountant" },
+  { value: "assistant", label: "Assistant" },
+];
 
 export default function PortfolioManagerDashboard() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
   const [, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("manager");
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<number[]>([]);
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) navigate("/");
-  }, [loading, isAuthenticated]);
+  const invitesQuery = trpc.invitations.list.useQuery();
+  const propertiesQuery = trpc.properties.list.useQuery();
+  const sendInvite = trpc.invitations.create.useMutation({
+    onSuccess: () => {
+      toast.success(`${role.replace("_", " ")} invitation sent`);
+      setEmail("");
+      setSelectedPropertyIds([]);
+      invitesQuery.refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
-  const { data: stats } = trpc.dashboard.stats.useQuery();
-  const { data: properties } = trpc.properties.list.useQuery();
-  const { data: invitations } = trpc.invitations.list.useQuery();
-  const { data: bills } = trpc.accounting.bills.useQuery({ status: "pending" });
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setSending(true);
+    try {
+      await sendInvite.mutateAsync({
+        email,
+        role: role as any,
+        propertyIds: selectedPropertyIds,
+        origin: window.location.origin,
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
-  const pendingBills = bills ?? [];
-  const pendingInvites = invitations?.filter(i => i.status === "pending") ?? [];
+  const toggleProperty = (id: number) => {
+    setSelectedPropertyIds(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
 
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
+  const invites = invitesQuery.data ?? [];
+  const myInvites = invites.filter((i: any) =>
+    ["manager", "accountant", "assistant"].includes(i.role)
   );
+  const properties = propertiesQuery.data ?? [];
 
   return (
-    <ThreePanelLayout
-      title="Portfolio Manager"
-      subtitle="Your assigned portfolio overview"
-      actions={
-        <Link href="/invitations" className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-            <Mail className="w-3.5 h-3.5" /> Invite Manager
-          </Link>
-      }
-    >
-      {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-card border border-border rounded-xl p-5 stat-accent-blue">
-          <div className="w-9 h-9 rounded-lg bg-blue-400/10 flex items-center justify-center mb-3">
-            <Building2 className="w-4.5 h-4.5 text-blue-400" />
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <LayoutGrid className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats?.associations ?? 0}</div>
-          <div className="text-sm text-muted-foreground">Associations</div>
+          <span className="text-sm font-semibold text-foreground">Stellar PM</span>
+          <span className="text-xs bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full">Portfolio Manager</span>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5 stat-accent-purple">
-          <div className="w-9 h-9 rounded-lg bg-purple-400/10 flex items-center justify-center mb-3">
-            <Users className="w-4.5 h-4.5 text-purple-400" />
-          </div>
-          <div className="text-2xl font-bold text-foreground">{stats?.owners ?? 0}</div>
-          <div className="text-sm text-muted-foreground">Owners</div>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-muted-foreground">{user?.name ?? user?.email}</span>
+          <button
+            onClick={() => { logout(); navigate("/"); }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5 stat-accent-orange">
-          <div className="w-9 h-9 rounded-lg bg-orange-400/10 flex items-center justify-center mb-3">
-            <CreditCard className="w-4.5 h-4.5 text-orange-400" />
-          </div>
-          <div className="text-2xl font-bold text-foreground">{pendingBills.length}</div>
-          <div className="text-sm text-muted-foreground">Pending Bills</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5 stat-accent-green">
-          <div className="w-9 h-9 rounded-lg bg-green-400/10 flex items-center justify-center mb-3">
-            <BarChart3 className="w-4.5 h-4.5 text-green-400" />
-          </div>
-          <div className="text-2xl font-bold text-foreground">{pendingInvites.length}</div>
-          <div className="text-sm text-muted-foreground">Pending Invites</div>
-        </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Assigned Properties */}
-        <div className="bg-card border border-border rounded-xl">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold text-foreground">Assigned Properties</h3>
-            <Link href="/associations" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
+      <main className="max-w-3xl mx-auto px-8 py-12">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-10">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="text-2xl font-bold text-foreground">{properties.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Assigned Properties</div>
           </div>
-          <div className="divide-y divide-border">
-            {properties && properties.length > 0 ? properties.slice(0, 6).map(p => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-2.5 table-row-hover">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded bg-primary/10 flex items-center justify-center">
-                    <Building2 className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.city}, {p.state} · {p.unitCount} units</p>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "active" ? "bg-green-400/10 text-green-400" : "bg-muted text-muted-foreground"}`}>
-                  {p.status}
-                </span>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="text-2xl font-bold text-green-400">
+              {myInvites.filter((i: any) => i.acceptedAt).length}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Active Team Members</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="text-2xl font-bold text-yellow-400">
+              {myInvites.filter((i: any) => !i.acceptedAt).length}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Pending Invitations</div>
+          </div>
+        </div>
+
+        {/* Invite form */}
+        <div className="bg-card border border-border rounded-xl p-6 mb-8">
+          <div className="flex items-center gap-2 mb-5">
+            <Plus className="w-4 h-4 text-purple-400" />
+            <h2 className="text-sm font-semibold text-foreground">Invite Team Member</h2>
+          </div>
+          <form onSubmit={handleSend} className="space-y-4">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5">Role</label>
+              <div className="relative">
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full appearance-none bg-input border border-border rounded-lg px-3 py-2.5 text-sm text-foreground outline-none pr-8"
+                >
+                  {INVITABLE_ROLES.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
-            )) : (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">No properties assigned</div>
-            )}
-          </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5">Email Address</label>
+              <div className="flex items-center gap-2 bg-input border border-border rounded-lg px-3 py-2.5">
+                <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="team@company.com"
+                  className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none flex-1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5">Assign Properties</label>
+              {properties.length === 0 ? (
+                <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-3">
+                  No properties in your portfolio yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {properties.map((p: any) => (
+                    <label
+                      key={p.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                        selectedPropertyIds.includes(p.id)
+                          ? "border-purple-500 bg-purple-500/10"
+                          : "border-border bg-input hover:border-purple-500/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPropertyIds.includes(p.id)}
+                        onChange={() => toggleProperty(p.id)}
+                        className="hidden"
+                      />
+                      <Home className={`w-3.5 h-3.5 flex-shrink-0 ${selectedPropertyIds.includes(p.id) ? "text-purple-400" : "text-muted-foreground"}`} />
+                      <span className={`text-xs truncate ${selectedPropertyIds.includes(p.id) ? "text-foreground" : "text-muted-foreground"}`}>
+                        {p.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={sending || !email}
+              className="w-full bg-purple-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sending ? "Sending..." : `Send ${INVITABLE_ROLES.find(r => r.value === role)?.label} Invitation`}
+            </button>
+          </form>
         </div>
 
-        {/* Pending Bills + Invitations */}
-        <div className="space-y-4">
-          <div className="bg-card border border-border rounded-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">Bills Awaiting Approval</h3>
-              <Link href="/accounting/payables" className="text-xs text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></Link>
-            </div>
+        {/* Team list */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">Team Invitations</h2>
+          </div>
+          {myInvites.length === 0 ? (
+            <div className="px-6 py-10 text-center text-sm text-muted-foreground">No invitations sent yet.</div>
+          ) : (
             <div className="divide-y divide-border">
-              {pendingBills.length > 0 ? pendingBills.slice(0, 4).map(b => (
-                <div key={b.id} className="flex items-center justify-between px-4 py-2.5">
+              {myInvites.map((inv: any) => (
+                <div key={inv.id} className="px-6 py-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-foreground">{b.description ?? `Bill #${b.id}`}</p>
-                    <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(b.date), { addSuffix: true })}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{inv.email}</span>
+                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full capitalize">
+                        {inv.role.replace("_", " ")}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {inv.propertyIds?.length ? `${inv.propertyIds.length} propert${inv.propertyIds.length === 1 ? "y" : "ies"}` : "No properties assigned"}
+                    </div>
                   </div>
-                  <span className="text-sm font-medium text-foreground">${Number(b.amount).toLocaleString()}</span>
+                  <div>
+                    {inv.acceptedAt ? (
+                      <span className="flex items-center gap-1 text-xs text-green-400"><CheckCircle className="w-3.5 h-3.5" /> Active</span>
+                    ) : inv.expiresAt && new Date(inv.expiresAt) < new Date() ? (
+                      <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="w-3.5 h-3.5" /> Expired</span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs text-yellow-400"><Clock className="w-3.5 h-3.5" /> Pending</span>
+                    )}
+                  </div>
                 </div>
-              )) : (
-                <div className="px-4 py-4 text-center text-sm text-muted-foreground">No pending bills</div>
-              )}
+              ))}
             </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">My Invitations</h3>
-              <Link href="/invitations" className="text-xs text-primary hover:underline flex items-center gap-1">Manage <ArrowRight className="w-3 h-3" /></Link>
-            </div>
-            <div className="divide-y divide-border">
-              {pendingInvites.length > 0 ? pendingInvites.slice(0, 3).map(inv => (
-                <div key={inv.id} className="flex items-center justify-between px-4 py-2.5">
-                  <p className="text-sm text-foreground">{inv.email}</p>
-                  <span className={`role-badge role-${inv.role.replace(/_/g, "-")}`}>{inv.role.replace(/_/g, " ")}</span>
-                </div>
-              )) : (
-                <div className="px-4 py-4 text-center text-sm text-muted-foreground">No pending invitations</div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
-    </ThreePanelLayout>
+      </main>
+    </div>
   );
 }
