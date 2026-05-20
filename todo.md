@@ -120,11 +120,11 @@
 - [x] Push fixes to GitHub
 
 ## Phase 15: Report Association Filter
-- [ ] Add association/property selector dropdown to ReportsPage (required before running any report)
-- [ ] Pass selected propertyId to reports.run — all queries must filter by association
-- [ ] Add reports.associations query to return accessible associations for the dropdown
-- [ ] Balance Sheet, Income Statement, GL, Trial Balance — filter GL accounts and transactions by propertyId
-- [ ] Vendor reports — filter vendors by association (via transactions or direct property link)
-- [ ] Owner reports — filter owners by propertyId
-- [ ] Transaction reports — filter by propertyId
-- [ ] "All Properties" option for super_admin/portfolio_manager roles
+- [x] Add association/property selector dropdown to ReportsPage (required before running any report)
+- [x] Pass selected propertyId to reports.run — all queries must filter by association
+- [x] Add reports.associations query to return accessible associations for the dropdown
+- [x] Balance Sheet, Income Statement, GL, Trial Balance — filter GL accounts and transactions by propertyId
+- [x] Vendor reports — filter vendors by portfolio_id (vendors are portfolio-level)
+- [x] Owner reports — filter owners by portfolio_id (owners are portfolio-level)
+- [x] Transaction reports — filter by associationId
+- [x] "All Associations" default option for all roles

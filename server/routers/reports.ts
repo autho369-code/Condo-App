@@ -177,10 +177,13 @@ async function runReportQuery(reportId: string, params: ReportParams): Promise<R
 
     case "income_statement":
     case "fund_income_statement": {
-      const [{ data: incData }, { data: expData }] = await Promise.all([
-        supabase.from("transactions").select("*").eq("transactionType","receipt").gte("date",startDate).lte("date",endDate),
-        supabase.from("transactions").select("*").eq("transactionType","bill").gte("date",startDate).lte("date",endDate),
-      ]);
+      let incQ = supabase.from("transactions").select("*").eq("transactionType","receipt").gte("date",startDate).lte("date",endDate);
+      let expQ = supabase.from("transactions").select("*").eq("transactionType","bill").gte("date",startDate).lte("date",endDate);
+      if (associationId) {
+        incQ = (incQ as any).eq("associationId", associationId);
+        expQ = (expQ as any).eq("associationId", associationId);
+      }
+      const [{ data: incData }, { data: expData }] = await Promise.all([incQ, expQ]);
       const totalIncome = (incData ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
       const totalExpense = (expData ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
       const rows = [
