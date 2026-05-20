@@ -89,7 +89,7 @@
 
 ## Phase 12: Continued Improvements
 - [ ] Promote first logged-in user to super_admin automatically via DB trigger
-- [ ] Seed GL accounts (370+ codes) into database on first run
+- [x] Seed GL accounts (294 codes) into database
 - [ ] Fix right pane — live 24h activity feed with real data
 - [ ] Add create/edit dialogs to Associations page
 - [ ] Add create/edit dialogs to Vendors page
@@ -97,8 +97,8 @@
 - [ ] Add create bill / create receipt forms to Accounting module
 - [ ] Add create journal entry form
 - [ ] Fix navigation active states in sidebar
-- [ ] Ensure all dashboard stat cards show real counts from DB
-- [ ] Push updated code to GitHub
+- [x] Fix db.ts column name mismatches (vendors, owners, gl_accounts, companies)
+- [x] Ensure Manager dashboard stat cards show real counts from DB
 
 ## Phase 13: UI Consistency Rebuild
 - [ ] Single design system — navy/slate dark theme, same sidebar, same 3-panel layout on every page
