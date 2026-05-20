@@ -28,6 +28,7 @@ import {
   revokeInvitation,
   upsertUser,
   getAccessiblePropertyIds,
+  updateUserRole,
 } from "./db";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -35,7 +36,6 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
 // ─── RBAC MIDDLEWARE FACTORIES ────────────────────────────────────────────────
-
 const WRITE_ROLES = ["super_admin", "company_admin", "portfolio_manager", "manager", "accountant", "assistant", "admin"];
 const MANAGER_ROLES = ["super_admin", "company_admin", "portfolio_manager", "manager", "accountant", "assistant", "admin"];
 const ADMIN_ROLES = ["super_admin", "admin"];
@@ -56,7 +56,6 @@ const managerProcedure = requireRole(MANAGER_ROLES);
 const inviteProcedure = requireRole(INVITE_ROLES);
 
 // ─── MAIN ROUTER ──────────────────────────────────────────────────────────────
-
 export const appRouter = router({
   system: systemRouter,
 
@@ -92,18 +91,37 @@ export const appRouter = router({
 
   // ─── PROPERTIES ──────────────────────────────────────────────────────────
   properties: router({
-    list: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getProperties(ids);
     }),
     get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       if (ids !== null && !ids.includes(input.id)) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const { getPropertyById } = await import("./db");
-      return getPropertyById(input.id);
+      const props = await getProperties(null);
+      return props.find((p: any) => p.id === input.id) ?? null;
     }),
+    create: writeProcedure
+      .input(
+        z.object({
+          name: z.string().min(1),
+          type: z.enum(["hoa", "condo", "commercial", "residential"]),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          state: z.string().optional(),
+          zip: z.string().optional(),
+          companyId: z.number().optional(),
+          units: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { createProperty } = await import("./db");
+        await createProperty({ ...input, companyId: input.companyId ?? ctx.user.companyId ?? 1 });
+        await logActivity({ userId: ctx.user.id, activityType: "property_updated", title: `Property "${input.name}" created` });
+        return { success: true };
+      }),
   }),
 
   // ─── USERS ───────────────────────────────────────────────────────────────
@@ -112,12 +130,7 @@ export const appRouter = router({
     updateRole: superAdminProcedure
       .input(z.object({ userId: z.number(), role: z.string() }))
       .mutation(async ({ input }) => {
-        const { getDb } = await import("./db");
-        const { users: usersTable } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        await db.update(usersTable).set({ role: input.role as any }).where(eq(usersTable.id, input.userId));
+        await updateUserRole(input.userId, input.role);
         return { success: true };
       }),
   }),
@@ -134,61 +147,13 @@ export const appRouter = router({
           email: z.string().email(),
           role: z.enum(["company_admin", "portfolio_manager", "manager", "accountant", "assistant", "board_member"]),
           companyId: z.number().optional(),
-          propertyIds: z.array(z.number()).optional(),
-          origin: z.string(),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const userRole = ctx.user.role;
-        if (userRole === "manager" || userRole === "accountant" || userRole === "assistant") {
-          if (!["accountant", "assistant", "board_member"].includes(input.role)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Managers can only invite Accountants, Assistants, and Board Members" });
-          }
-        }
-        if (userRole === "portfolio_manager") {
-          if (!["manager"].includes(input.role)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Portfolio Managers can only invite Managers" });
-          }
-        }
-        const token = nanoid(32);
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        await createInvitation({
-          token, email: input.email, role: input.role,
-          companyId: input.companyId ?? ctx.user.companyId ?? undefined,
-          assignedPropertyIds: input.propertyIds,
-          invitedBy: ctx.user.id, expiresAt,
-        });
-        await logActivity({ userId: ctx.user.id, activityType: "user_invited", title: `Invited ${input.email} as ${input.role}` });
-        const inviteUrl = `${input.origin}/invite/accept?token=${token}`;
-        return { success: true, inviteUrl, token };
-      }),
-    create: inviteProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          role: z.enum(["company_admin", "portfolio_manager", "manager", "accountant", "assistant", "board_member"]),
-          companyId: z.number().optional(),
           assignedPropertyIds: z.array(z.number()).optional(),
           origin: z.string(),
         })
       )
       .mutation(async ({ input, ctx }) => {
-        // Validate invitation chain rules
-        const userRole = ctx.user.role;
-        if (userRole === "manager" || userRole === "accountant" || userRole === "assistant") {
-          if (!["accountant", "assistant", "board_member"].includes(input.role)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Managers can only invite Accountants, Assistants, and Board Members" });
-          }
-        }
-        if (userRole === "portfolio_manager") {
-          if (!["manager"].includes(input.role)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Portfolio Managers can only invite Managers" });
-          }
-        }
-
         const token = nanoid(32);
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         await createInvitation({
           token,
           email: input.email,
@@ -198,13 +163,11 @@ export const appRouter = router({
           invitedBy: ctx.user.id,
           expiresAt,
         });
-
         await logActivity({
           userId: ctx.user.id,
           activityType: "user_invited",
           title: `Invited ${input.email} as ${input.role}`,
         });
-
         const inviteUrl = `${input.origin}/invite/accept?token=${token}`;
         return { success: true, inviteUrl, token };
       }),
@@ -214,101 +177,89 @@ export const appRouter = router({
         const inv = await getInvitationByToken(input.token);
         if (!inv) throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
         if (inv.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation already used or expired" });
-        if (new Date() > inv.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation expired" });
+        if (new Date() > new Date(inv.expiresAt)) throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation expired" });
         return { success: true, invitation: inv };
       }),
     revoke: inviteProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        await revokeInvitation(input.id);
+        await revokeInvitation(input.id as any);
         return { success: true };
       }),
   }),
 
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
   dashboard: router({
-    stats: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getDashboardStats(ids);
     }),
     recentActivity: protectedProcedure
       .input(z.object({ hours: z.number().default(24) }).optional())
-      .query(({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
         return getRecentActivity(ids, input?.hours ?? 24);
       }),
   }),
 
   // ─── ACCOUNTING ──────────────────────────────────────────────────────────
   accounting: router({
-    // Receivables
     receipts: protectedProcedure
       .input(z.object({ status: z.string().optional() }).optional())
-      .query(({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
         return getTransactions(ids, "receipt", input?.status);
       }),
-    charges: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    charges: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getTransactions(ids, "charge");
     }),
-    bankDeposits: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    bankDeposits: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getTransactions(ids, "bank_deposit");
     }),
-
-    // Payables
     bills: protectedProcedure
       .input(z.object({ status: z.string().optional() }).optional())
-      .query(({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
         return getTransactions(ids, "bill", input?.status);
       }),
-    payments: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    payments: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getTransactions(ids, "payment");
     }),
     approveBill: writeProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        // Board members cannot approve
         if (ctx.user.role === "board_member") throw new TRPCError({ code: "FORBIDDEN" });
         await approveBill(input.id);
         await logActivity({ userId: ctx.user.id, activityType: "bill_approved", title: `Bill #${input.id} approved` });
         return { success: true };
       }),
-
-    // Journal Entries
-    journalEntries: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    journalEntries: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getTransactions(ids, "journal_entry");
     }),
-
-    // Bank Accounts
-    bankAccounts: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    bankAccounts: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getBankAccounts(ids);
     }),
-
-    // GL Accounts
     glAccounts: protectedProcedure.query(({ ctx }) => {
       const companyId = ctx.user.companyId ?? 1;
       return getGlAccounts(companyId);
     }),
-
-    // Diagnostics
-    diagnostics: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    diagnostics: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getDiagnosticFlags(ids);
     }),
   }),
 
-  // ─── OWNERS & VENDORS (direct routers for page components) ─────────────
+  // ─── OWNERS ──────────────────────────────────────────────────────────────
   owners: router({
     list: protectedProcedure
       .input(z.object({ search: z.string().optional() }).optional())
-      .query(({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
         return getOwners(ids, input?.search);
       }),
     create: writeProcedure
@@ -324,12 +275,13 @@ export const appRouter = router({
       .mutation(({ input }) => createOwner(input)),
   }),
 
+  // ─── VENDORS ─────────────────────────────────────────────────────────────
   vendors: router({
     list: protectedProcedure
       .input(z.object({ search: z.string().optional() }).optional())
-      .query(({ ctx, input }) => {
-        const companyId = ctx.user.companyId ?? 1;
-        return getVendors(companyId, input?.search);
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
+        return getVendors(ids, input?.search);
       }),
     create: writeProcedure
       .input(z.object({
@@ -349,9 +301,9 @@ export const appRouter = router({
   activity: router({
     list: protectedProcedure
       .input(z.object({ limit: z.number().default(50) }).optional())
-      .query(({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
-        return getRecentActivity(ids, 720, input?.limit ?? 50); // 720h = 30 days
+      .query(async ({ ctx, input }) => {
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
+        return getRecentActivity(ids, 720, input?.limit ?? 50);
       }),
   }),
 
@@ -360,14 +312,14 @@ export const appRouter = router({
     global: protectedProcedure
       .input(z.object({ q: z.string() }))
       .query(async ({ ctx, input }) => {
-        const ids = getAccessiblePropertyIds(ctx.user as any);
+        const ids = await getAccessiblePropertyIds(ctx.user as any);
         const [properties, owners, vendors, transactions] = await Promise.all([
           getProperties(ids),
           getOwners(ids, input.q),
-          getVendors(ctx.user.companyId ?? 1, input.q),
-          getTransactions(ids, undefined, undefined, input.q),
+          getVendors(ids, input.q),
+          getTransactions(ids, undefined, undefined),
         ]);
-        const filteredProps = properties.filter(p =>
+        const filteredProps = properties.filter((p: any) =>
           p.name.toLowerCase().includes(input.q.toLowerCase()) ||
           (p.city ?? "").toLowerCase().includes(input.q.toLowerCase())
         );
@@ -393,20 +345,20 @@ export const appRouter = router({
 
   // ─── PEOPLE ──────────────────────────────────────────────────────────────
   people: router({
-    owners: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    owners: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getOwners(ids);
     }),
-    vendors: protectedProcedure.query(({ ctx }) => {
-      const companyId = ctx.user.companyId ?? 1;
-      return getVendors(companyId);
+    vendors: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
+      return getVendors(ids);
     }),
   }),
 
   // ─── REPORTS ─────────────────────────────────────────────────────────────
   reports: router({
-    scheduled: protectedProcedure.query(({ ctx }) => {
-      const ids = getAccessiblePropertyIds(ctx.user as any);
+    scheduled: protectedProcedure.query(async ({ ctx }) => {
+      const ids = await getAccessiblePropertyIds(ctx.user as any);
       return getScheduledReports(ids);
     }),
     categories: publicProcedure.query(() => {
@@ -418,7 +370,6 @@ export const appRouter = router({
 export type AppRouter = typeof appRouter;
 
 // ─── REPORT CATEGORIES DATA ───────────────────────────────────────────────────
-
 const REPORT_CATEGORIES = [
   {
     name: "Accounting Reports",

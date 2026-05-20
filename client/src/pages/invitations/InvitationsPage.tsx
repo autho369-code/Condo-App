@@ -125,7 +125,7 @@ export default function InvitationsPage() {
               onClick={() => sendInvite.mutate({
                 email,
                 role: selectedRole as any,
-                propertyIds: propertyIds ? propertyIds.split(",").map(Number) : undefined,
+                assignedPropertyIds: propertyIds ? propertyIds.split(",").map(Number) : undefined,
                 origin: window.location.origin,
               })}
               disabled={!email || sendInvite.isPending}

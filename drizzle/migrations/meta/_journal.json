@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1779278355528,
+      "tag": "0000_dapper_jack_flag",
+      "breakpoints": true
+    }
+  ]
+}
