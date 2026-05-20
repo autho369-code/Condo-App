@@ -118,3 +118,13 @@
 - [x] Implement key reports: Balance Sheet, Income Statement, General Ledger, Trial Balance, Chart of Accounts, Delinquency, Transaction Detail, Vendor Directory
 - [x] Fix old MySQL/Drizzle queries still running in server (server restart required)
 - [x] Push fixes to GitHub
+
+## Phase 15: Report Association Filter
+- [ ] Add association/property selector dropdown to ReportsPage (required before running any report)
+- [ ] Pass selected propertyId to reports.run — all queries must filter by association
+- [ ] Add reports.associations query to return accessible associations for the dropdown
+- [ ] Balance Sheet, Income Statement, GL, Trial Balance — filter GL accounts and transactions by propertyId
+- [ ] Vendor reports — filter vendors by association (via transactions or direct property link)
+- [ ] Owner reports — filter owners by propertyId
+- [ ] Transaction reports — filter by propertyId
+- [ ] "All Properties" option for super_admin/portfolio_manager roles
