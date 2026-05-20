@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
+import { reportsRouter } from "./routers/reports";
 import { z } from "zod";
 import {
   acceptInvitation,
@@ -356,15 +357,7 @@ export const appRouter = router({
   }),
 
   // ─── REPORTS ─────────────────────────────────────────────────────────────
-  reports: router({
-    scheduled: protectedProcedure.query(async ({ ctx }) => {
-      const ids = await getAccessiblePropertyIds(ctx.user as any);
-      return getScheduledReports(ids);
-    }),
-    categories: publicProcedure.query(() => {
-      return REPORT_CATEGORIES;
-    }),
-  }),
+  reports: reportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

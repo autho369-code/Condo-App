@@ -110,3 +110,11 @@
 - [ ] Owner portal — same UI, single account view
 - [ ] Role-based auto-redirect after login
 - [ ] Super Admin invitation flow — controls all access
+
+## Phase 14: Reports Module Fix
+- [x] Diagnose reports module — runReport() was just a toast with no real data
+- [x] Add reports.run tRPC procedure that queries real Supabase data per report type
+- [x] Build report result viewer (table + summary) shown in a modal/panel
+- [x] Implement key reports: Balance Sheet, Income Statement, General Ledger, Trial Balance, Chart of Accounts, Delinquency, Transaction Detail, Vendor Directory
+- [x] Fix old MySQL/Drizzle queries still running in server (server restart required)
+- [x] Push fixes to GitHub
