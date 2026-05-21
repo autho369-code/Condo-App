@@ -2,7 +2,7 @@
  * Reports Router — real data-backed report execution with association filter
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { supabase } from "../supabase";
 
 // ─── REPORT CATALOG ───────────────────────────────────────────────────────────
@@ -363,9 +363,9 @@ async function runReportQuery(reportId: string, params: ReportParams): Promise<R
 
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
 export const reportsRouter = router({
-  catalog: protectedProcedure.query(() => REPORT_CATALOG),
+  catalog: publicProcedure.query(() => REPORT_CATALOG),
 
-  associations: protectedProcedure.query(async () => {
+  associations: publicProcedure.query(async () => {
     const { data, error } = await supabase
       .from("associations")
       .select("id, name, address, city, state, portfolio_id")
