@@ -1,0 +1,14 @@
+import Sidebar from '@/components/nav/sidebar';
+import { requireAuth } from '@/lib/auth/me';
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const me = await requireAuth();
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'ManageOps'} userEmail={me.email ?? undefined} />
+      <main className="flex-1 overflow-hidden">
+        {children}
+      </main>
+    </div>
+  );
+}
