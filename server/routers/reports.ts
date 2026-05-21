@@ -2,7 +2,7 @@
  * Reports Router — real data-backed report execution with association filter
  */
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure, publicProcedure, reportsProcedure, BOARD_MEMBER_ALLOWED_REPORTS } from "../_core/trpc";
 import { supabase } from "../supabase";
 
 // ─── REPORT CATALOG ───────────────────────────────────────────────────────────
@@ -363,9 +363,9 @@ async function runReportQuery(reportId: string, params: ReportParams): Promise<R
 
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
 export const reportsRouter = router({
-  catalog: publicProcedure.query(() => REPORT_CATALOG),
+  catalog: protectedProcedure.query(() => REPORT_CATALOG),
 
-  associations: publicProcedure.query(async () => {
+  associations: reportsProcedure.query(async () => {
     const { data, error } = await supabase
       .from("associations")
       .select("id, name, address, city, state, portfolio_id")
@@ -382,7 +382,7 @@ export const reportsRouter = router({
     }));
   }),
 
-  run: protectedProcedure
+  run: reportsProcedure
     .input(
       z.object({
         reportId: z.string(),
@@ -392,7 +392,12 @@ export const reportsRouter = router({
         portfolioId: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Board members can only run a limited set of reports
+      const role = (ctx.user as any).role as string;
+      if (role === 'board_member' && !BOARD_MEMBER_ALLOWED_REPORTS.includes(input.reportId as any)) {
+        throw new Error('Board members can only run financial summary reports for their association.');
+      }
       const now = new Date();
       const startDate = input.startDate ?? `${now.getFullYear()}-01-01`;
       const endDate = input.endDate ?? now.toISOString().split("T")[0];
@@ -404,7 +409,7 @@ export const reportsRouter = router({
       });
     }),
 
-  scheduled: protectedProcedure.query(async () => {
+  scheduled: reportsProcedure.query(async () => {
     const { data, error } = await supabase
       .from("scheduled_reports")
       .select("*")
