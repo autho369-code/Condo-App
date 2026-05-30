@@ -83,7 +83,7 @@ export async function sendOwnerPortalActivation(formData: FormData) {
     .from('user_invitations')
     .select('id')
     .eq('email', owner.email)
-    .eq('hoa_role', 'homeowner')
+    .eq('hoa_role', 'owner')
     .eq('status', 'pending')
     .maybeSingle();
 
@@ -98,7 +98,7 @@ export async function sendOwnerPortalActivation(formData: FormData) {
       portfolio_id: portfolioId,
       email: owner.email,
       full_name: owner.full_name,
-      hoa_role: 'homeowner',
+      hoa_role: 'owner',
       status: 'pending',
       token: crypto.randomUUID(),
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
