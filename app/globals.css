@@ -2,4 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-50 text-gray-900; }
+@layer base {
+  body {
+    @apply bg-cream-100 text-ink-800 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-cream-600/20 text-ink-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg bg-ink-900 px-6 text-sm font-medium text-white transition-all duration-200 hover:bg-ink-800 hover:shadow-lg hover:shadow-ink-900/10 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg border border-cream-300 bg-white px-6 text-sm font-medium text-ink-700 transition-all duration-200 hover:border-cream-400 hover:bg-cream-50 active:scale-[0.98];
+  }
+
+  .card-premium {
+    @apply rounded-xl border border-cream-200 bg-white shadow-sm;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Fraunces optical sizing for headings */
+.font-serif {
+  font-optical-sizing: auto;
+}

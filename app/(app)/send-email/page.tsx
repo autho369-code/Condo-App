@@ -26,7 +26,7 @@ export default async function SendEmailPage({
     (supabase as any).from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
   ]);
 
-  const fromEmail = profile?.email ?? me.email ?? 'no-reply@condo-app.example';
+  const fromEmail = profile?.email ?? me.email ?? 'no-reply@portier369.com';
   const preAssoc = sp.association ?? '';
 
   // Pull counts per recipient group for the preselected association so the
@@ -76,7 +76,7 @@ export default async function SendEmailPage({
             />
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="from_donotreply" />
-              Send from donotreply@condo-app.example
+              Send from noreply@portier369.com
             </label>
           </div>
 

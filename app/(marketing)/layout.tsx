@@ -6,29 +6,31 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-gray-100">
+    <div className="min-h-screen bg-cream-100">
+      <header className="sticky top-0 z-50 border-b border-cream-200/80 bg-cream-100/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded bg-brand-600 text-center font-bold leading-8 text-white">C</div>
-            <span className="text-lg font-semibold">condo-app</span>
+            <span className="font-serif text-2xl font-light tracking-tightest text-ink-900">
+              Portier
+            </span>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm md:flex">
-            <Link href="/#features" className="text-gray-700 hover:text-gray-900">Features</Link>
-            <Link href="/#pricing" className="text-gray-700 hover:text-gray-900">Pricing</Link>
-            <Link href="/#faq" className="text-gray-700 hover:text-gray-900">FAQ</Link>
+          <nav className="hidden items-center gap-8 text-sm md:flex">
+            <Link href="/#features" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Features</Link>
+            <Link href="/#pricing" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Pricing</Link>
+            <Link href="/#faq" className="font-medium text-ink-500 transition-colors hover:text-ink-800">FAQ</Link>
+            <Link href="/contact" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Contact</Link>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {user ? (
-              <Link href="/dashboard"
-                className="inline-flex h-9 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
-                Go to app →
+              <Link href="/dashboard" className="btn-primary">
+                Dashboard &rarr;
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-gray-700 hover:text-gray-900">Sign in</Link>
-                <Link href="/signup"
-                  className="inline-flex h-9 items-center rounded-md bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
+                <Link href="/login" className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-800">
+                  Sign in
+                </Link>
+                <Link href="/signup" className="btn-primary">
                   Start free
                 </Link>
               </>
@@ -37,21 +39,22 @@ export default async function MarketingLayout({ children }: { children: React.Re
         </div>
       </header>
       <main>{children}</main>
-      <footer className="border-t border-gray-100 bg-gray-50">
-        <div className="mx-auto max-w-6xl px-6 py-10 text-sm text-gray-600">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded bg-brand-600 text-center text-xs font-bold leading-6 text-white">C</div>
-              <span className="font-semibold text-gray-800">condo-app</span>
-              <span>· HOA &amp; condo management, reimagined</span>
+      <footer className="border-t border-cream-200">
+        <div className="mx-auto max-w-6xl px-6 py-12 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div>
+              <span className="font-serif text-xl font-light text-ink-800">Portier</span>
+              <p className="mt-1 text-ink-400">HOA &amp; condo management, reimagined.</p>
             </div>
-            <div className="flex gap-6">
-              <Link href="/pricing">Pricing</Link>
-              <Link href="/login">Sign in</Link>
-              <Link href="/contact">Contact</Link>
+            <div className="flex gap-8">
+              <Link href="/pricing" className="text-ink-400 transition-colors hover:text-ink-700">Pricing</Link>
+              <Link href="/login" className="text-ink-400 transition-colors hover:text-ink-700">Sign in</Link>
+              <Link href="/contact" className="text-ink-400 transition-colors hover:text-ink-700">Contact</Link>
             </div>
           </div>
-          <div className="mt-6 text-xs text-gray-400">© {new Date().getFullYear()} · Built for the next generation of community managers.</div>
+          <div className="mt-8 text-xs text-ink-300">
+            &copy; {new Date().getFullYear()} Portier. Built for the next generation of community managers.
+          </div>
         </div>
       </footer>
     </div>
