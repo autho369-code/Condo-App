@@ -1,146 +1,96 @@
 import Link from 'next/link';
-
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { sendACHInvite } from '@/lib/people/owner-workflow-actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function OwnerAchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; owner?: string }>;
-}) {
+export default async function OwnerAchPage({ searchParams }: { searchParams: Promise<{ q?: string; owner?: string; ok?: string; error?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const supabase = await createClient();
+  const db = supabase as any;
 
-  const [{ data: owners }, { data: paymentMethods }, { data: mandates }] = await Promise.all([
-    (supabase as any)
-      .from('owners')
-      .select('id, full_name, email, portal_activated, archived_at')
-      .is('archived_at', null)
-      .order('full_name'),
-    (supabase as any)
-      .from('payment_methods')
-      .select('id, owner_id, method_type, bank_name, account_type, last_four, is_default, is_verified, verified_at, archived_at')
-      .is('archived_at', null),
-    (supabase as any)
-      .from('autopay_mandates')
-      .select('id, owner_id, status, frequency, next_run_date, failure_count, last_failure_reason'),
+  const [{ data: owners }, { data: achStatuses }] = await Promise.all([
+    db.from('owners').select('id, full_name, email, archived_at').is('archived_at', null).order('full_name'),
+    db.from('owner_ach_status').select('id, owner_id, status, invited_at, completed_at, verified_at, last_error'),
   ]);
 
-  const methodsByOwner = new Map<string, any[]>();
-  for (const method of paymentMethods ?? []) {
-    const ownerId = (method as any).owner_id;
-    methodsByOwner.set(ownerId, [...(methodsByOwner.get(ownerId) ?? []), method]);
-  }
+  const achByOwner = new Map();
+  for (const a of (achStatuses ?? [])) { achByOwner.set(a.owner_id, a); }
 
-  const mandateByOwner = new Map<string, any>();
-  for (const mandate of mandates ?? []) {
-    if (!mandateByOwner.has((mandate as any).owner_id)) mandateByOwner.set((mandate as any).owner_id, mandate);
-  }
+  let rows = (owners ?? []).map((o: any) => ({ owner: o, ach: achByOwner.get(o.id) || null }));
+  if (sp.owner) rows = rows.filter((r: any) => r.owner.id === sp.owner);
+  if (q) rows = rows.filter((r: any) => [r.owner.full_name, r.owner.email].some((v: string) => v?.toLowerCase().includes(q)));
 
-  let rows: any[] = (owners ?? []).map((owner: any) => ({
-    owner,
-    methods: methodsByOwner.get(owner.id) ?? [],
-    mandate: mandateByOwner.get(owner.id),
-  }));
+  const verified = rows.filter((r: any) => r.ach?.status === 'verified').length;
+  const inProgress = rows.filter((r: any) => r.ach && !['verified', 'not_started'].includes(r.ach.status)).length;
 
-  if (sp.owner) rows = rows.filter((row) => row.owner.id === sp.owner);
-  if (q) {
-    rows = rows.filter((row) =>
-      [row.owner.full_name, row.owner.email, row.methods[0]?.bank_name, row.methods[0]?.last_four].some((value) =>
-        value?.toLowerCase().includes(q),
-      ),
-    );
-  }
-
-  const activeMandates = (mandates ?? []).filter((mandate: any) => mandate.status === 'active').length;
-  const verifiedMethods = (paymentMethods ?? []).filter((method: any) => method.is_verified).length;
+  const stripeConnected = !!process.env.STRIPE_SECRET_KEY;
 
   return (
     <DataWorkspace
-      title="Owner ACH Setup"
-      description="Review owner payment methods, autopay mandates, verification status, and ACH readiness before enabling payment workflows."
+      title="ACH Setup"
+      description="Track ACH payment setup per owner. Bank information is never collected here — payment setup happens through Stripe's secure flow."
       actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
       rail={
-        <div className="space-y-3 text-sm text-gray-700">
-          <div className="text-xs font-semibold uppercase text-gray-500">Confirmation rule</div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            ACH setup is a protected action. Use this screen to review readiness, then confirm changes through the payment processor flow.
-          </div>
-          <Link href="/reports?slug=homeowner-ledger" className="block rounded border border-gray-200 p-3 hover:bg-gray-50">Run homeowner ledger report</Link>
+        <div className="space-y-3 text-sm">
+          {!stripeConnected && (
+            <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              Payment processor not connected. Configure Stripe to enable ACH payment collection.
+            </div>
+          )}
+          {sp.ok && <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">{sp.ok}</div>}
+          {sp.error && <div className="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">{sp.error}</div>}
         </div>
       }
     >
       <div className="space-y-4">
-        <MetricStrip
-          metrics={[
-            { label: 'Owners in queue', value: rows.length },
-            { label: 'Payment methods', value: paymentMethods?.length ?? 0 },
-            { label: 'Verified methods', value: verifiedMethods },
-            { label: 'Active autopay', value: activeMandates },
-          ]}
-        />
-
-        <FilterBar action="/owners/ach" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, email, bank, or last four" />
-
+        <MetricStrip metrics={[
+          { label: 'Owners', value: rows.length },
+          { label: 'Verified', value: verified },
+          { label: 'In Progress', value: inProgress },
+          { label: 'Not Started', value: rows.length - verified - inProgress },
+        ]} />
+        <FilterBar action="/owners/ach" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner or email" />
         <Table>
-          <THead>
-            <TR>
-              <TH>Owner</TH>
-              <TH>Payment Method</TH>
-              <TH>Verification</TH>
-              <TH>Autopay</TH>
-              <TH>Next Step</TH>
-            </TR>
-          </THead>
+          <THead><TR><TH>Owner</TH><TH>Status</TH><TH>Invited</TH><TH>Completed</TH><TH>Action</TH></TR></THead>
           <tbody>
-            {rows.map(({ owner, methods, mandate }) => {
-              const primary = methods.find((method: any) => method.is_default) ?? methods[0];
-              return (
-                <TR key={owner.id} className="hover:bg-gray-50">
-                  <TD>
-                    <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
-                  </TD>
-                  <TD>
-                    {primary ? (
-                      <>
-                        <div className="font-medium text-gray-900">{primary.bank_name ?? primary.method_type}</div>
-                        <div className="mt-1 text-xs text-gray-500">{primary.account_type ?? 'bank'} ending {primary.last_four ?? '----'}</div>
-                      </>
-                    ) : (
-                      <span className="text-gray-500">No payment method</span>
-                    )}
-                  </TD>
-                  <TD>
-                    <StatusChip tone={primary?.is_verified ? 'success' : primary ? 'warning' : 'neutral'}>
-                      {primary?.is_verified ? 'Verified' : primary ? 'Needs verification' : 'Not started'}
-                    </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Verified {date(primary?.verified_at)}</div>
-                  </TD>
-                  <TD>
-                    <StatusChip tone={mandate?.status === 'active' ? 'success' : mandate ? 'warning' : 'neutral'}>
-                      {mandate?.status?.replace(/_/g, ' ') ?? 'No mandate'}
-                    </StatusChip>
-                    <div className="mt-1 text-xs text-gray-500">Next run {date(mandate?.next_run_date)}</div>
-                  </TD>
-                  <TD>
-                    <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-blue-700 hover:underline">
-                      Prepare authorization
-                    </Link>
-                  </TD>
-                </TR>
-              );
-            })}
+            {rows.map(({ owner, ach }: any) => (
+              <TR key={owner.id}>
+                <TD>
+                  <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
+                  <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                </TD>
+                <TD>
+                  <StatusChip tone={ach?.status === 'verified' ? 'success' : ach?.status === 'failed' ? 'warning' : ach ? 'info' : 'neutral'}>
+                    {ach?.status?.replace(/_/g, ' ') ?? 'Not started'}
+                  </StatusChip>
+                  {ach?.last_error && <div className="mt-1 text-xs text-red-500">{ach.last_error}</div>}
+                </TD>
+                <TD className="text-sm text-gray-500">{ach?.invited_at ? new Date(ach.invited_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-gray-500">{ach?.completed_at ? new Date(ach.completed_at).toLocaleDateString() : '—'}</TD>
+                <TD>
+                  {stripeConnected ? (
+                    <form action={sendACHInvite}>
+                      <input type="hidden" name="owner_id" value={owner.id} />
+                      <Button type="submit" size="sm" variant="secondary" disabled={ach?.status === 'verified'}>
+                        {ach ? 'Resend invite' : 'Send invite'}
+                      </Button>
+                    </form>
+                  ) : (
+                    <span className="text-xs text-gray-400">Processor not connected</span>
+                  )}
+                </TD>
+              </TR>
+            ))}
           </tbody>
         </Table>
       </div>
