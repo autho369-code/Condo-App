@@ -171,8 +171,8 @@ export default async function OwnersPage({
               ))}
             </div>
           </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            Outbound owner actions are staged as review-first workflows so activations, packets, and ACH changes require an explicit confirmation step.
+          <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+            Select an owner and send invitations, forms, and activations immediately. One click, no staging.
           </div>
         </div>
       }

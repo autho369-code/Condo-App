@@ -72,7 +72,7 @@ export default async function VendorFormsPage({
           <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" defaultValue="Please review the requested vendor information and upload any required documents. This helps us keep payments and compliance records current." />
         </div>
         <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Vendor requests are staged for review. Final delivery should require explicit confirmation and audit logging.
+          Send vendor communications immediately. No staging.
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary">Preview</Button>
