@@ -32,8 +32,15 @@ async function sendOne(row: any) {
       },
     }),
   });
-  const body = await res.json().catch(() => ({}));
-  return { ok: res.ok && body?.ok, status: res.status, message: body?.error ?? null, provider_id: body?.message_id };
+  const raw = await res.text();
+  let body: any = {};
+  try { body = JSON.parse(raw); } catch { /* empty body */ }
+  return {
+    ok: res.ok && body?.ok === true,
+    status: res.status,
+    message: body?.error ?? (raw ? raw.slice(0, 200) : `http ${res.status}`) ?? null,
+    provider_id: body?.message_id
+  };
 }
 
 Deno.serve(async (_req) => {
