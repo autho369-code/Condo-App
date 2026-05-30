@@ -5,7 +5,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const me = await requireAuth();
   return (
     <div className="flex min-h-screen">
-      <Sidebar portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'ManageOps'} userEmail={me.email ?? undefined} />
+      <Sidebar portfolioName={me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier'} userEmail={me.email ?? undefined} />
       <main className="flex-1 overflow-hidden">
         {children}
       </main>
