@@ -146,12 +146,11 @@ export async function sendOwnerForm(formData: FormData) {
     .insert({
       recipient_name: owner.full_name,
       recipient_email: owner.email,
-      subject: subject || 'Communication from Stellar Property Management',
+      subject: subject || 'Communication from Portier',
       body: message || 'Please review the attached information.',
       channel: 'email',
       status: 'pending',
       template: template,
-      metadata: { owner_id: ownerId },
     })
     .select('id')
     .single();
@@ -161,7 +160,7 @@ export async function sendOwnerForm(formData: FormData) {
   await supabase.from('email_queue').insert({
     to_email: owner.email,
     to_name: owner.full_name,
-    subject: subject || 'Communication from Stellar Property Management',
+    subject: subject || 'Communication from Portier',
     body: message || 'Please review the attached information.',
     status: 'pending',
   });
