@@ -53,7 +53,7 @@ export default async function OwnerActivationsPage({
   }
 
   const active = (owners ?? []).filter((owner: any) => owner.portal_activated).length;
-  const invited = (invitations ?? []).filter((i: any) => i.status === 'sent').length;
+  const invited = (invitations ?? []).filter((i: any) => i.status === 'pending').length;
 
   return (
     <DataWorkspace

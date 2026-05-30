@@ -39,7 +39,7 @@ export async function sendOwnerPortalActivation(formData: FormData) {
     .select('id, status')
     .eq('email', owner.email)
     .eq('role', 'homeowner')
-    .in('status', ['sent'])
+    .in('status', ['pending'])
     .maybeSingle();
 
   if (existing) {
@@ -53,7 +53,7 @@ export async function sendOwnerPortalActivation(formData: FormData) {
       email: owner.email,
       full_name: owner.full_name,
       role: 'homeowner',
-      status: 'sent',
+      status: 'pending',
       message: `${subject}\n\n${message}`,
       metadata: { owner_id: ownerId, template: 'portal_activation' },
     })
@@ -117,7 +117,7 @@ export async function sendOwnerForm(formData: FormData) {
       subject: subject || 'Communication from Stellar Property Management',
       body: message || 'Please review the attached information.',
       channel: 'email',
-      status: 'sent',
+      status: 'pending',
       template: template,
       metadata: { owner_id: ownerId },
     })
