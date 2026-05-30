@@ -1,0 +1,11 @@
+{
+  "name": "@agency/voice-agent",
+  "version": "1.0.0",
+  "description": "AI Voice Receptionist — Twilio phone provisioning, Vapi voice agent, calendar integration, call transcripts.",
+  "scripts": {
+    "provision": "node src/provision-number.mjs",
+    "agent": "node src/create-agent.mjs",
+    "pipeline": "node src/onboard-client.mjs"
+  },
+  "license": "MIT"
+}
