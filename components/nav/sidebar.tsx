@@ -51,17 +51,17 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
   }
 
   return (
-    <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
-      <div className="border-b border-gray-200 px-4 py-3 flex-shrink-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{portfolioName ?? 'ManageOps'}</div>
-        <div className="text-xs text-gray-400 mt-0.5">Operations workspace</div>
+    <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0B1121] overflow-hidden">
+      <div className="border-b border-slate-800 px-4 py-3 flex-shrink-0">
+        <div className="text-sm font-semibold text-white truncate">{portfolioName ?? 'Portier'}</div>
+        <div className="text-xs text-slate-500 mt-0.5">Operations workspace</div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-1">
         {appModules.map((s) => {
           if (!s.children) return (
             <Link key={s.label} href={s.href}
-              className={"flex items-center px-4 py-2 text-sm " + (active(s.href) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50')}>
+              className={"flex items-center px-4 py-2 text-sm " + (active(s.href) ? 'bg-emerald-500/10 text-emerald-400 font-medium border-r-2 border-emerald-500' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
               {s.label}
             </Link>
           )
@@ -73,15 +73,15 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
               <button onClick={() => toggle(s.label)}
                 aria-expanded={!!isOpen}
                 aria-controls={submenuId}
-                className={"flex w-full items-center justify-between px-4 py-2 text-sm " + (isActive ? 'text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50')}>
+                className={"flex w-full items-center justify-between px-4 py-2 text-sm " + (isActive ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
                 <span>{s.label}</span>
                 <ChevronDown open={isOpen} />
               </button>
               {isOpen && (
-                <div id={submenuId} className="border-l-2 border-gray-100 ml-4 bg-gray-50">
+                <div id={submenuId} className="border-l-2 border-slate-700 ml-4 bg-[#060B18]">
                   {s.children.map((c: any) => (
                     <Link key={c.href} href={c.href}
-                      className={"block px-4 py-1.5 text-sm " + (active(c.href) ? 'text-blue-700 font-medium bg-blue-50' : 'text-gray-600 hover:bg-gray-100')}>
+                      className={"block px-4 py-1.5 text-sm " + (active(c.href) ? 'text-emerald-400 font-medium bg-emerald-500/10' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
                       {c.label}
                     </Link>
                   ))}
@@ -92,9 +92,9 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
         })}
       </nav>
 
-      <div className="border-t border-gray-200 px-4 py-3 flex-shrink-0">
-        <div className="text-xs text-gray-500 truncate mb-1">{userEmail}</div>
-        <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">Log out</button>
+      <div className="border-t border-slate-800 px-4 py-3 flex-shrink-0">
+        <div className="text-xs text-slate-500 truncate mb-1">{userEmail}</div>
+        <button onClick={handleLogout} className="text-xs text-slate-500 hover:text-slate-300">Log out</button>
       </div>
     </aside>
   )
