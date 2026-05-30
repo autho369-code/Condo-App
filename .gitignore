@@ -10,3 +10,8 @@ out
 .superpowers/
 .worktrees/
 supabase/.temp/
+.sb-anon-key
+.sb-svc-key
+check_db.sh
+verify_auth.sh
+verify_auth2.sh

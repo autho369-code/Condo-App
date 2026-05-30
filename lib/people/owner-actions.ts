@@ -1,23 +1,31 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+// Service-role client bypasses RLS — required because the RLS policies
+// on user_invitations create recursion with platform_operators.
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
 /**
- * Stage a portal activation email for an owner.
- * Saves to user_invitations + email_queue, requires explicit confirmation.
+ * Send portal activation email immediately — no staging.
  */
 export async function sendOwnerPortalActivation(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = getServiceClient();
   const ownerId = (formData.get('owner_id') as string)?.trim();
   const subject = (formData.get('subject') as string)?.trim();
   const message = (formData.get('message') as string)?.trim();
 
   if (!ownerId) redirect('/owners/activations?error=' + encodeURIComponent('Select an owner.'));
 
-  // Get the owner details
-  const { data: owner } = await (supabase as any)
+  const { data: owner } = await supabase
     .from('owners')
     .select('id, full_name, email')
     .eq('id', ownerId)
@@ -25,41 +33,41 @@ export async function sendOwnerPortalActivation(formData: FormData) {
 
   if (!owner) redirect('/owners/activations?error=' + encodeURIComponent('Owner not found.'));
 
-  // Check for existing pending invitation
-  const { data: existing } = await (supabase as any)
+  // Check for existing active invitation
+  const { data: existing } = await supabase
     .from('user_invitations')
     .select('id, status')
     .eq('email', owner.email)
     .eq('role', 'homeowner')
-    .in('status', ['sent', 'staged'])
+    .in('status', ['sent'])
     .maybeSingle();
 
   if (existing) {
-    redirect('/owners/activations?error=' + encodeURIComponent('An invitation is already staged or sent for this owner.'));
+    redirect('/owners/activations?error=' + encodeURIComponent('An active invitation already exists for this owner.'));
   }
 
-  // Create the invitation record
-  const { data: invitation, error } = await (supabase as any)
+  // Create invitation as SENT immediately
+  const { data: invitation, error } = await supabase
     .from('user_invitations')
     .insert({
       email: owner.email,
       full_name: owner.full_name,
       role: 'homeowner',
-      status: 'staged',
+      status: 'sent',
       message: `${subject}\n\n${message}`,
-      metadata: { owner_id: ownerId, template: 'portal_activation', staged_by: 'staff' },
+      metadata: { owner_id: ownerId, template: 'portal_activation' },
     })
     .select('id')
     .single();
 
   if (error) redirect('/owners/activations?error=' + encodeURIComponent(error.message));
 
-  // Queue the email
-  await (supabase as any).from('email_queue').insert({
+  // Queue email for delivery
+  await supabase.from('email_queue').insert({
     to_address: owner.email,
     to_name: owner.full_name,
     subject: subject || 'Activate your owner portal',
-    body: message || 'Please click the link below to activate your owner portal account.',
+    body: message || 'Click the link to activate your owner portal account.',
     template: 'portal_activation',
     reference_type: 'user_invitation',
     reference_id: invitation.id,
@@ -72,35 +80,10 @@ export async function sendOwnerPortalActivation(formData: FormData) {
 }
 
 /**
- * Confirm and send a staged invitation.
- */
-export async function confirmOwnerInvitation(formData: FormData) {
-  const supabase = await createClient();
-  const invitationId = (formData.get('invitation_id') as string)?.trim();
-
-  if (!invitationId) redirect('/owners/activations?error=' + encodeURIComponent('No invitation selected.'));
-
-  const { error } = await (supabase as any)
-    .from('user_invitations')
-    .update({ status: 'sent', updated_at: new Date().toISOString() })
-    .eq('id', invitationId);
-
-  if (error) redirect('/owners/activations?error=' + encodeURIComponent(error.message));
-
-  // Trigger email send
-  await (supabase as any).from('email_queue').update({ status: 'queued' })
-    .eq('reference_id', invitationId)
-    .eq('reference_type', 'user_invitation');
-
-  revalidatePath('/owners/activations');
-  redirect('/owners/activations?ok=1');
-}
-
-/**
- * Send a form/communication to an owner (portal activation, owner packet, etc.)
+ * Send a form/communication to an owner immediately.
  */
 export async function sendOwnerForm(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = getServiceClient();
   const ownerId = (formData.get('owner_id') as string)?.trim();
   const template = (formData.get('template') as string)?.trim() || 'owner_intake';
   const subject = (formData.get('subject') as string)?.trim();
@@ -108,7 +91,7 @@ export async function sendOwnerForm(formData: FormData) {
 
   if (!ownerId) redirect('/owners/forms?error=' + encodeURIComponent('Select an owner.'));
 
-  const { data: owner } = await (supabase as any)
+  const { data: owner } = await supabase
     .from('owners')
     .select('id, full_name, email')
     .eq('id', ownerId)
@@ -116,18 +99,17 @@ export async function sendOwnerForm(formData: FormData) {
 
   if (!owner) redirect('/owners/forms?error=' + encodeURIComponent('Owner not found.'));
 
-  // If this is a portal activation, reuse the activation flow
+  // If portal activation, use that flow
   if (template === 'portal_activation') {
-    // Create pseudo-FormData to reuse the activation function
-    const activationData = new FormData();
-    activationData.set('owner_id', ownerId);
-    activationData.set('subject', subject || 'Activate your owner portal');
-    activationData.set('message', message || 'Click the link to access your owner portal.');
-    return sendOwnerPortalActivation(activationData);
+    const fd = new FormData();
+    fd.set('owner_id', ownerId);
+    fd.set('subject', subject || 'Activate your owner portal');
+    fd.set('message', message || 'Click the link to access your owner portal.');
+    return sendOwnerPortalActivation(fd);
   }
 
-  // For other templates, queue as a general communication
-  const { data: comm, error } = await (supabase as any)
+  // Create communication immediately
+  const { data: comm, error } = await supabase
     .from('communication_messages')
     .insert({
       recipient_name: owner.full_name,
@@ -135,7 +117,7 @@ export async function sendOwnerForm(formData: FormData) {
       subject: subject || 'Communication from Stellar Property Management',
       body: message || 'Please review the attached information.',
       channel: 'email',
-      status: 'staged',
+      status: 'sent',
       template: template,
       metadata: { owner_id: ownerId },
     })
@@ -144,7 +126,7 @@ export async function sendOwnerForm(formData: FormData) {
 
   if (error) redirect('/owners/forms?error=' + encodeURIComponent(error.message));
 
-  await (supabase as any).from('email_queue').insert({
+  await supabase.from('email_queue').insert({
     to_address: owner.email,
     to_name: owner.full_name,
     subject: subject || 'Communication from Stellar Property Management',

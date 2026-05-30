@@ -36,7 +36,7 @@ export default async function OwnerFormsPage({
   return (
     <DataWorkspace
       title="Send Owner Form"
-      description="Stage owner communications and form packages with recipient, template, and delivery context before confirmation."
+      description="Send communications, portal activations, and form packages to owners."
       actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
       rail={
         <div className="space-y-2">
@@ -48,18 +48,8 @@ export default async function OwnerFormsPage({
       }
     >
       <div className="max-w-4xl space-y-4">
-        {/* Success banner */}
-        {sp.ok && (
-          <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-            Communication staged successfully. It will be queued for delivery.
-          </div>
-        )}
-        {/* Error banner */}
-        {sp.error && (
-          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            {sp.error}
-          </div>
-        )}
+        {sp.ok && <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">Sent successfully.</div>}
+        {sp.error && <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{sp.error}</div>}
         <form action={sendOwnerForm} className="space-y-5 rounded border border-gray-200 bg-white p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -86,11 +76,8 @@ export default async function OwnerFormsPage({
             <Label htmlFor="message">Message</Label>
             <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" defaultValue="Please review the attached owner form and complete any required fields. Contact our team if any information looks incorrect." />
           </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            This composer is staged for review. Final delivery requires explicit confirmation and audit logging.
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="submit" variant="secondary">Preview &amp; Stage</Button>
+          <div className="flex justify-end">
+            <Button type="submit">Send</Button>
           </div>
         </form>
       </div>
