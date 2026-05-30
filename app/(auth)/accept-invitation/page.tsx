@@ -21,7 +21,7 @@ export default async function AcceptInvitationPage({
         <CardBody>
           <p className="mb-4 text-sm text-gray-700">You need to sign in first so we can attach the invitation to your account.</p>
           <div className="flex gap-2">
-            <Link href={`/login?next=/accept-invitation?token=${encodeURIComponent(token)}`}>
+            <Link href={`/login?mode=owner&next=/accept-invitation?token=${encodeURIComponent(token)}`}>
               <Button variant="secondary">Sign in</Button>
             </Link>
             <Link href={`/signup?next=/accept-invitation?token=${encodeURIComponent(token)}`}>
@@ -53,7 +53,7 @@ export default async function AcceptInvitationPage({
       <CardHeader><CardTitle>You&apos;re in</CardTitle></CardHeader>
       <CardBody>
         <p className="mb-4 text-sm text-gray-700">Your invitation was accepted and your account is ready.</p>
-        <Link href="/dashboard"><Button>Go to dashboard</Button></Link>
+        <Link href="/portal"><Button>Go to portal</Button></Link>
       </CardBody>
     </Card>
   );

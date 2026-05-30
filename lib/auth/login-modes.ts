@@ -65,5 +65,5 @@ export function getLoginNext(params: { mode?: string | string[] | null; next?: s
 export function getVisibleLoginModes(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig[] {
   const mode = normalizeLoginMode(value);
   if (mode === 'admin') return [loginModes.admin];
-  return [loginModes.manager, loginModes.owner];
+  return [loginModes.owner, loginModes.manager];
 }
