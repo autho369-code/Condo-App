@@ -111,18 +111,7 @@ export async function sendOwnerPortalActivation(formData: FormData) {
 
   if (error) redirect('/owners/activations?error=' + encodeURIComponent(error.message));
 
-  // Queue email
-  await supabase.from('email_queue').insert({
-    to_address: owner.email,
-    to_name: owner.full_name,
-    subject: subject || 'Activate your owner portal',
-    body: message || 'Click the link to activate your owner portal account.',
-    template: 'portal_activation',
-    reference_type: 'user_invitation',
-    reference_id: invitation.id,
-    status: 'queued',
-  });
-
+  // Email is auto-queued by DB trigger queue_invitation_email
   revalidatePath('/owners/activations');
   redirect('/owners/activations?ok=1');
 }
@@ -170,14 +159,11 @@ export async function sendOwnerForm(formData: FormData) {
   if (error) redirect('/owners/forms?error=' + encodeURIComponent(error.message));
 
   await supabase.from('email_queue').insert({
-    to_address: owner.email,
+    to_email: owner.email,
     to_name: owner.full_name,
     subject: subject || 'Communication from Stellar Property Management',
     body: message || 'Please review the attached information.',
-    template: template,
-    reference_type: 'communication_message',
-    reference_id: comm.id,
-    status: 'queued',
+    status: 'pending',
   });
 
   revalidatePath('/owners/forms');
