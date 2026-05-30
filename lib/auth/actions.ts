@@ -23,13 +23,44 @@ export async function signupWithPassword(formData: FormData) {
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
 
-  const { error } = await supabase.auth.signUp({
+  // Use admin API to create user with email pre-confirmed
+  // This avoids Supabase's free-tier email rate limit (4/hour)
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_PORTAL_URL}/api/auth/callback` },
+    email_confirm: true,
   });
-  if (error) return { error: error.message };
-  return { success: 'Check your email for the confirmation link.' };
+
+  if (error) {
+    // If user already exists, fall back to regular signUp
+    if (error.message.includes('already') || error.status === 422) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_PORTAL_URL}/api/auth/callback` },
+      });
+      if (signUpError) return { error: signUpError.message };
+      return { success: 'Account exists. Check your email for the confirmation link.' };
+    }
+    return { error: error.message };
+  }
+
+  // Auto sign in the new user
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) return { error: signInError.message };
+
+  // Send welcome email through our reliable Resend pipeline
+  await (supabase as any).from('email_queue').insert({
+    to_email: email,
+    to_name: email.split('@')[0],
+    subject: 'Welcome to Portier',
+    body: `<p>Your account has been created and is ready to use.</p><p><a href="${process.env.NEXT_PUBLIC_PORTAL_URL}/portal">Go to portal</a></p>`,
+    from_address: 'noreply@portier369.com',
+    from_name: 'Portier',
+    status: 'pending',
+  });
+
+  return { success: 'Account created! Redirecting...', userId: data.user?.id };
 }
 
 export async function logout() {
