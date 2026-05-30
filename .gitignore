@@ -15,3 +15,4 @@ supabase/.temp/
 check_db.sh
 verify_auth.sh
 verify_auth2.sh
+packages/

@@ -1,0 +1,11 @@
+{
+  "name": "@agency/content-machine",
+  "version": "1.0.0",
+  "description": "AI Content Machine — video script generation, brand templates, content calendar, auto-posting pipeline.",
+  "scripts": {
+    "generate-scripts": "node src/generate-scripts.mjs",
+    "build-calendar": "node src/build-calendar.mjs",
+    "pipeline": "node src/generate-scripts.mjs && node src/build-calendar.mjs"
+  },
+  "license": "MIT"
+}
