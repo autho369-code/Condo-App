@@ -5,47 +5,44 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Fraunces', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Source Sans 3"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"Source Code Pro"', 'ui-monospace', 'monospace'],
       },
       colors: {
         brand: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          500: '#2563eb',
-          600: '#1d4ed8',
-          700: '#1e40af',
+          50:  '#f5f3ff',
+          100: '#ede9fe',
+          500: '#533afd',
+          600: '#4434d4',
+          700: '#2e2b8c',
         },
-        cream: {
-          50:  '#FDFAF5',
-          100: '#FAF7F2',
-          200: '#F5F0E8',
-          300: '#EDE5D8',
-          400: '#E0D5C0',
-          500: '#D4C4A8',
-          600: '#C4956A',
-          700: '#A67C52',
-          800: '#8B6540',
-          900: '#6B4C30',
+        navy: {
+          50:  '#f0f4f8',
+          100: '#d9e2ec',
+          500: '#273951',
+          600: '#061b31',
+          700: '#0d253d',
+          900: '#1c1e54',
         },
-        ink: {
-          50:  '#F5F5F7',
-          100: '#E8E8ED',
-          200: '#D1D1DB',
-          300: '#B0B0C0',
-          400: '#8888A0',
-          500: '#6B6B80',
-          600: '#4A4A5E',
-          700: '#35354A',
-          800: '#1E1E30',
-          900: '#0F0F1E',
-          950: '#080816',
+        slate: {
+          400: '#64748d',
+        },
+        border: {
+          DEFAULT: '#e5edf5',
+          purple: '#b9b9f9',
+        },
+        success: {
+          DEFAULT: '#15be53',
+          text: '#108c3d',
         },
       },
-      letterSpacing: {
-        'tightest': '-0.03em',
-        'tighter': '-0.02em',
-        'tight': '-0.01em',
+      boxShadow: {
+        'stripe': 'rgba(50,50,93,0.25) 0px 30px 45px -30px, rgba(0,0,0,0.1) 0px 18px 36px -18px',
+        'stripe-sm': 'rgba(50,50,93,0.15) 0px 6px 12px -2px, rgba(0,0,0,0.05) 0px 3px 7px -3px',
+        'stripe-hover': 'rgba(50,50,93,0.30) 0px 35px 50px -28px, rgba(0,0,0,0.12) 0px 22px 40px -16px',
+      },
+      borderRadius: {
+        'stripe': '4px',
       },
     },
   },

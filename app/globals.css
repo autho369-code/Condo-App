@@ -4,38 +4,54 @@
 
 @layer base {
   body {
-    @apply bg-cream-100 text-ink-800 antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  }
-
-  h1, h2, h3, h4 {
-    @apply font-serif tracking-tight;
+    @apply bg-white text-navy-600 antialiased;
+    font-feature-settings: 'ss01';
   }
 
   ::selection {
-    @apply bg-cream-600/20 text-ink-900;
+    @apply bg-brand-100 text-navy-600;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex h-11 items-center justify-center rounded-lg bg-ink-900 px-6 text-sm font-medium text-white transition-all duration-200 hover:bg-ink-800 hover:shadow-lg hover:shadow-ink-900/10 active:scale-[0.98];
+    @apply inline-flex h-11 items-center justify-center rounded-[4px] bg-brand-500 px-5 text-[15px] font-semibold text-white transition-all duration-150 hover:bg-brand-600 active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex h-11 items-center justify-center rounded-lg border border-cream-300 bg-white px-6 text-sm font-medium text-ink-700 transition-all duration-200 hover:border-cream-400 hover:bg-cream-50 active:scale-[0.98];
+    @apply inline-flex h-11 items-center justify-center rounded-[4px] border border-border-purple bg-transparent px-5 text-[15px] font-semibold text-brand-500 transition-all duration-150 hover:bg-brand-50 active:scale-[0.98];
   }
 
   .card-premium {
-    @apply rounded-xl border border-cream-200 bg-white shadow-sm;
+    @apply rounded-[6px] border border-border bg-white shadow-stripe-sm;
   }
 
-  .text-balance {
-    text-wrap: balance;
+  .card-premium-hover {
+    @apply card-premium transition-shadow duration-200 hover:shadow-stripe;
+  }
+
+  .heading-hero {
+    @apply text-[56px] font-light leading-[1.03] tracking-[-0.025em] text-navy-600;
+  }
+
+  .heading-section {
+    @apply text-[32px] font-light leading-[1.10] tracking-[-0.02em] text-navy-600;
+  }
+
+  .text-body {
+    @apply text-[18px] font-light leading-[1.40] text-slate-400;
+  }
+
+  .text-body-sm {
+    @apply text-[16px] font-normal leading-[1.40] text-slate-400;
+  }
+
+  .text-caption {
+    @apply text-[13px] font-normal leading-normal text-slate-400;
   }
 }
 
-/* Fraunces optical sizing for headings */
-.font-serif {
-  font-optical-sizing: auto;
+/* Source Sans 3 — light weight for headings and body */
+.font-light {
+  font-weight: 300;
 }

@@ -6,19 +6,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-cream-100">
-      <header className="sticky top-0 z-50 border-b border-cream-200/80 bg-cream-100/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-serif text-2xl font-light tracking-tightest text-ink-900">
+    <div className="min-h-screen bg-white">
+      <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-[12px]">
+        <div className="mx-auto flex max-w-[1080px] items-center justify-between px-6 py-3.5">
+          <Link href="/" className="flex items-center">
+            <span className="text-[22px] font-light tracking-[-0.02em] text-navy-600">
               Portier
             </span>
           </Link>
-          <nav className="hidden items-center gap-8 text-sm md:flex">
-            <Link href="/#features" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Features</Link>
-            <Link href="/#pricing" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Pricing</Link>
-            <Link href="/#faq" className="font-medium text-ink-500 transition-colors hover:text-ink-800">FAQ</Link>
-            <Link href="/contact" className="font-medium text-ink-500 transition-colors hover:text-ink-800">Contact</Link>
+          <nav className="hidden items-center gap-6 md:flex">
+            <Link href="/#features" className="text-[14px] font-normal text-navy-600 transition-colors hover:text-brand-500">Features</Link>
+            <Link href="/pricing" className="text-[14px] font-normal text-navy-600 transition-colors hover:text-brand-500">Pricing</Link>
+            <Link href="/#faq" className="text-[14px] font-normal text-navy-600 transition-colors hover:text-brand-500">FAQ</Link>
+            <Link href="/contact" className="text-[14px] font-normal text-navy-600 transition-colors hover:text-brand-500">Contact</Link>
           </nav>
           <div className="flex items-center gap-3">
             {user ? (
@@ -27,7 +27,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-800">
+                <Link href="/login" className="text-[14px] font-normal text-navy-600 transition-colors hover:text-brand-500">
                   Sign in
                 </Link>
                 <Link href="/signup" className="btn-primary">
@@ -39,21 +39,21 @@ export default async function MarketingLayout({ children }: { children: React.Re
         </div>
       </header>
       <main>{children}</main>
-      <footer className="border-t border-cream-200">
-        <div className="mx-auto max-w-6xl px-6 py-12 text-sm">
-          <div className="flex flex-wrap items-center justify-between gap-6">
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-[1080px] px-6 py-10">
+          <div className="flex flex-wrap items-center justify-between gap-6 text-[14px]">
             <div>
-              <span className="font-serif text-xl font-light text-ink-800">Portier</span>
-              <p className="mt-1 text-ink-400">HOA &amp; condo management, reimagined.</p>
+              <span className="text-[18px] font-light text-navy-600">Portier</span>
+              <p className="mt-1 text-slate-400">HOA &amp; condo management, reimagined.</p>
             </div>
-            <div className="flex gap-8">
-              <Link href="/pricing" className="text-ink-400 transition-colors hover:text-ink-700">Pricing</Link>
-              <Link href="/login" className="text-ink-400 transition-colors hover:text-ink-700">Sign in</Link>
-              <Link href="/contact" className="text-ink-400 transition-colors hover:text-ink-700">Contact</Link>
+            <div className="flex gap-6">
+              <Link href="/pricing" className="text-slate-400 transition-colors hover:text-navy-600">Pricing</Link>
+              <Link href="/login" className="text-slate-400 transition-colors hover:text-navy-600">Sign in</Link>
+              <Link href="/contact" className="text-slate-400 transition-colors hover:text-navy-600">Contact</Link>
             </div>
           </div>
-          <div className="mt-8 text-xs text-ink-300">
-            &copy; {new Date().getFullYear()} Portier. Built for the next generation of community managers.
+          <div className="mt-6 text-[12px] text-slate-400">
+            &copy; {new Date().getFullYear()} Portier.
           </div>
         </div>
       </footer>
