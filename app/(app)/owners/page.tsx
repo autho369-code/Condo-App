@@ -7,7 +7,6 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 
@@ -159,21 +158,8 @@ export default async function OwnersPage({
         </>
       }
       rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Owner workflows</div>
-            <div className="mt-2 space-y-2">
-              {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
-            Select an owner and send invitations, forms, and activations immediately. One click, no staging.
-          </div>
+        <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+          Select an owner and send invitations, forms, and activations immediately. One click, no staging.
         </div>
       }
     >

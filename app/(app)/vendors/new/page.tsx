@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
-import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,18 +26,8 @@ export default async function NewVendorPage() {
       description="Create the vendor record, capture tax/payment defaults, and route follow-up bank or document requests."
       actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
       rail={
-        <div className="space-y-4">
-          <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
-            Add the core vendor first. ACH, W-9, and compliance requests can be staged immediately after the record exists.
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
-            <div className="mt-2 space-y-2">
-              {vendorWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
-              ))}
-            </div>
-          </div>
+        <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
+          Add the core vendor first. ACH, W-9, and compliance requests can be staged immediately after the record exists.
         </div>
       }
     >

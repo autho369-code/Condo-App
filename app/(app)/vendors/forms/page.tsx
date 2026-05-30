@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,11 +36,8 @@ export default async function VendorFormsPage({
       description="Stage vendor onboarding, bank, W-9, and compliance document requests for confirmation."
       actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
       rail={
-        <div className="space-y-2">
-          <div className="text-xs font-semibold uppercase text-gray-500">Related workflows</div>
-          {vendorWorkflowCards.map((card) => (
-            <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
-          ))}
+        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Send vendor communications immediately. No staging.
         </div>
       }
     >
