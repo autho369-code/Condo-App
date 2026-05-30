@@ -4,7 +4,6 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
-import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
 import { createOwner } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
@@ -21,14 +20,6 @@ export default async function NewOwnerPage() {
         <div className="space-y-4">
           <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
             Add a clean owner record first. Unit links, portal invites, and packets can be staged once the owner exists.
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
-            <div className="mt-2 space-y-2">
-              {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
-              ))}
-            </div>
           </div>
         </div>
       }
