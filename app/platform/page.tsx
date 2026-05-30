@@ -89,7 +89,7 @@ export default async function SuperadminControlCenter() {
           subtitle="Bird's-eye view across all management companies. Invite portfolio admins, monitor portfolio health."
           actions={
             <Link href="/platform/portfolios/new">
-              <Button variant="accent">Add portfolio</Button>
+              <Button variant="primary">Add portfolio</Button>
             </Link>
           }
         />

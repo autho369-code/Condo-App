@@ -103,3 +103,31 @@ export async function inviteVendorWizard(formData: FormData) {
   revalidatePath('/settings/team');
   redirect('/settings/team?tab=vendor&ok=1');
 }
+
+export async function invitePropertyManager(formData: FormData) {
+  const supabase = await createClient();
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
+  const full_name = (formData.get('full_name') as string)?.trim();
+  const unitIdsRaw = formData.getAll('unit_ids') as string[];
+
+  if (!email || !full_name) {
+    redirect('/settings/team?tab=manager&error=' + encodeURIComponent('Name and email are required.'));
+  }
+
+  if (unitIdsRaw.length === 0) {
+    redirect('/settings/team?tab=manager&error=' + encodeURIComponent('Select at least one property or unit.'));
+  }
+
+  const { error } = await (supabase as any).rpc('invite_property_manager', {
+    p_email: email,
+    p_full_name: full_name,
+    p_unit_ids: unitIdsRaw,
+  });
+
+  if (error) {
+    redirect('/settings/team?tab=manager&error=' + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/settings/team');
+  redirect('/settings/team?tab=manager&ok=1');
+}
