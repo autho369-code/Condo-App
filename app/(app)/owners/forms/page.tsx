@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
+import { sendOwnerForm } from '@/lib/people/owner-actions';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ const TEMPLATES = [
 export default async function OwnerFormsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ owner?: string; template?: string }>;
+  searchParams: Promise<{ owner?: string; template?: string; error?: string; ok?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -46,40 +47,53 @@ export default async function OwnerFormsPage({
         </div>
       }
     >
-      <form className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-              <option value="">Select an owner</option>
-              {(owners ?? []).map((owner: any) => (
-                <option key={owner.id} value={owner.id}>{owner.full_name} - {owner.email}</option>
-              ))}
-            </select>
+      <div className="max-w-4xl space-y-4">
+        {/* Success banner */}
+        {sp.ok && (
+          <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            Communication staged successfully. It will be queued for delivery.
+          </div>
+        )}
+        {/* Error banner */}
+        {sp.error && (
+          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {sp.error}
+          </div>
+        )}
+        <form action={sendOwnerForm} className="space-y-5 rounded border border-gray-200 bg-white p-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="owner_id">Owner *</Label>
+              <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                <option value="">Select an owner</option>
+                {(owners ?? []).map((owner: any) => (
+                  <option key={owner.id} value={owner.id}>{owner.full_name} — {owner.email}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="template">Template</Label>
+              <select id="template" name="template" defaultValue={sp.template ?? 'owner_intake'} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                {TEMPLATES.map((template) => <option key={template.value} value={template.value}>{template.label}</option>)}
+              </select>
+            </div>
           </div>
           <div>
-            <Label htmlFor="template">Template</Label>
-            <select id="template" name="template" defaultValue={sp.template ?? 'owner_intake'} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-              {TEMPLATES.map((template) => <option key={template.value} value={template.value}>{template.label}</option>)}
-            </select>
+            <Label htmlFor="subject">Subject</Label>
+            <input id="subject" name="subject" className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm" defaultValue="Action requested from Stellar Property Management" />
           </div>
-        </div>
-        <div>
-          <Label htmlFor="subject">Subject</Label>
-          <input id="subject" name="subject" className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm" defaultValue="Action requested from Stellar Property Management" />
-        </div>
-        <div>
-          <Label htmlFor="message">Message</Label>
-          <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" defaultValue="Please review the attached owner form and complete any required fields. Contact our team if any information looks incorrect." />
-        </div>
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          This composer is staged for review. Final delivery should require explicit confirmation and audit logging.
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary">Preview</Button>
-          <Button type="button">Stage for confirmation</Button>
-        </div>
-      </form>
+          <div>
+            <Label htmlFor="message">Message</Label>
+            <textarea id="message" name="message" rows={6} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" defaultValue="Please review the attached owner form and complete any required fields. Contact our team if any information looks incorrect." />
+          </div>
+          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            This composer is staged for review. Final delivery requires explicit confirmation and audit logging.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="submit" variant="secondary">Preview &amp; Stage</Button>
+          </div>
+        </form>
+      </div>
     </DataWorkspace>
   );
 }
