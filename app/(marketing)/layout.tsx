@@ -48,7 +48,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             <div className="flex gap-6">
               <Link href="/pricing">Pricing</Link>
               <Link href="/login">Sign in</Link>
-              <a href="mailto:hello@condo-app.example">Contact</a>
+              <Link href="/contact">Contact</Link>
             </div>
           </div>
           <div className="mt-6 text-xs text-gray-400">© {new Date().getFullYear()} · Built for the next generation of community managers.</div>
