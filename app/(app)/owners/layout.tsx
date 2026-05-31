@@ -21,7 +21,7 @@ export default async function OwnersLayout({ children }: { children: React.React
           <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
           <PanelLink href="/reports?slug=delinquency">Owner Delinquency</PanelLink>
           <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>
-          <PanelLink href="/reports?slug=homeowner-ledger">Owner Ledger</PanelLink>
+          <PanelLink href="/reports?slug=owner-ledger">Owner Ledger</PanelLink>
         </PanelSection>
       </ContextPanel>
     </div>

@@ -126,7 +126,7 @@ export function AssociationsPanel() {
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-          <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
+          <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>
           <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
           <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
@@ -186,7 +186,7 @@ export function AssociationsPanel() {
         <PanelLink href="#bulk-update-board-reports">Bulk Update Board Reports</PanelLink>
       </PanelSection>
       <PanelSection title="Reports">
-        <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
+        <PanelLink href="/reports?slug=owner-directory">Owner Directory</PanelLink>
         <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
         <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
         <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>

@@ -13,7 +13,7 @@ type UnitRow = {
   id: string;
   unit_number: string;
   ownership_pct: number | null;
-  homeowners: string;
+  owners: string;
   renter: string | null;
   dues: number | null;
 };
@@ -84,7 +84,7 @@ export default async function AssociationUnitsTab({
       if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
       return (b.share_pct ?? 0) - (a.share_pct ?? 0);
     });
-    const homeowners = ownerOccs
+    const owners = ownerOccs
       .map((o: any) => ownerById.get(o.owner_id)?.full_name)
       .filter(Boolean)
       .join(' & ');
@@ -99,7 +99,7 @@ export default async function AssociationUnitsTab({
       id: u.id,
       unit_number: u.unit_number,
       ownership_pct: u.ownership_pct != null ? Number(u.ownership_pct) : null,
-      homeowners,
+      owners,
       renter,
       dues: dues != null ? Number(dues) : null,
     };
@@ -154,7 +154,7 @@ export default async function AssociationUnitsTab({
                   <Link href={`/units/${r.id}`} className="text-blue-700 hover:underline">{r.unit_number}</Link>
                 </td>
                 <td className="px-4 py-3">
-                  {r.homeowners ? <span className="text-blue-700">{r.homeowners}</span> : <span className="text-gray-400">—</span>}
+                  {r.owners ? <span className="text-blue-700">{r.owners}</span> : <span className="text-gray-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-gray-700">{r.renter ?? '--'}</td>
                 <td className="px-4 py-3 tabular-nums text-gray-700">

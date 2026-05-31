@@ -105,21 +105,21 @@ export default async function ArchitecturalReviewsTab({
 
         <RichTextSection
           title="Portal Homepage"
-          help="Provide a brief overview of what you would like homeowners to know prior to submitting an Architectural Review."
+          help="Provide a brief overview of what you would like owners to know prior to submitting an Architectural Review."
           name="portal_homepage_html"
           defaultValue={settings?.portal_homepage_html ?? ''}
         />
 
         <RichTextSection
           title="Architectural Review Submission Form"
-          help="Give the homeowner context for how you would like them to describe the modification they'd like to make to their home."
+          help="Give the owner context for how you would like them to describe the modification they'd like to make to their home."
           name="submission_form_html"
           defaultValue={settings?.submission_form_html ?? ''}
         />
 
         <RichTextSection
           title="Document Upload Instructions"
-          help="Describe the kind of documents you'd like the homeowner to upload."
+          help="Describe the kind of documents you'd like the owner to upload."
           name="document_upload_html"
           defaultValue={settings?.document_upload_html ?? ''}
         />

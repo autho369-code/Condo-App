@@ -44,7 +44,7 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
     id: 'owner',
     label: 'Owner',
     title: 'Owner Sign In',
-    description: 'For homeowners, board members, and residents using the owner portal.',
+    description: 'For owners, board members, and residents using the owner portal.',
     defaultNext: '/portal',
     submitLabel: 'Sign in as owner',
     note: 'Access your unit ledger, make payments, submit service requests, and view association documents.',

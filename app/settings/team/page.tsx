@@ -8,14 +8,14 @@ import { Input, Label } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import {
   inviteStaffMember, inviteBoardMemberWizard,
-  inviteHomeownerWizard, inviteVendorWizard,
+  inviteOwnerWizard, inviteVendorWizard,
   invitePropertyManager,
 } from '@/lib/rpcs/team-invites';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const TABS = ['staff', 'manager', 'board', 'homeowner', 'vendor'] as const;
+const TABS = ['staff', 'manager', 'board', 'owner', 'vendor'] as const;
 type Tab = (typeof TABS)[number];
 
 const STAFF_ROLES = [
@@ -53,7 +53,7 @@ export default async function TeamPage({
         <WorkspaceHeader
           eyebrow="Settings"
           title="Team & Invites"
-          subtitle="Invite staff, property managers, board members, homeowners, and vendors. Each role gets scoped access."
+          subtitle="Invite staff, property managers, board members, owners, and vendors. Each role gets scoped access."
         />
       }
     >
@@ -62,7 +62,7 @@ export default async function TeamPage({
           { key: 'staff', label: 'Staff' },
           { key: 'manager', label: 'Managers' },
           { key: 'board', label: 'Board Members' },
-          { key: 'homeowner', label: 'Homeowners' },
+          { key: 'owner', label: 'Owners' },
           { key: 'vendor', label: 'Vendors' },
         ].map((t) => {
           const isActive = t.key === activeTab;
@@ -164,12 +164,12 @@ export default async function TeamPage({
         </Card>
       )}
 
-      {/* Homeowner Invite */}
-      {activeTab === 'homeowner' && (
+      {/* Owner Invite */}
+      {activeTab === 'owner' && (
         <Card>
-          <CardHeader><CardTitle>Invite Homeowner</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Invite Owner</CardTitle></CardHeader>
           <CardBody>
-            <form action={inviteHomeownerWizard as any} className="space-y-4">
+            <form action={inviteOwnerWizard as any} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div><Label>Full Name</Label><Input name="full_name" required placeholder="Alice Walker" /></div>
                 <div><Label>Email</Label><Input name="email" type="email" required placeholder="alice@example.com" /></div>

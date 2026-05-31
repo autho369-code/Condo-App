@@ -63,7 +63,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
       units(unit_number, buildings(association_id, associations(name))),
-      service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
+      service_requests(id, number, description, priority, source, status, owner_id, owners:owner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
     (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),

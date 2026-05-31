@@ -54,7 +54,7 @@ export async function inviteBoardMemberWizard(formData: FormData) {
   redirect('/settings/team?tab=board&ok=1');
 }
 
-export async function inviteHomeownerWizard(formData: FormData) {
+export async function inviteOwnerWizard(formData: FormData) {
   const supabase = await createClient();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const full_name = (formData.get('full_name') as string)?.trim();
@@ -62,7 +62,7 @@ export async function inviteHomeownerWizard(formData: FormData) {
   const unit_number = (formData.get('unit_number') as string)?.trim();
 
   if (!email || !full_name || !association_id || !unit_number) {
-    redirect('/settings/team?tab=homeowner&error=' + encodeURIComponent('All fields are required.'));
+    redirect('/settings/team?tab=owner&error=' + encodeURIComponent('All fields are required.'));
   }
 
   const { error } = await (supabase as any).rpc('invite_owner', {
@@ -73,11 +73,11 @@ export async function inviteHomeownerWizard(formData: FormData) {
   });
 
   if (error) {
-    redirect('/settings/team?tab=homeowner&error=' + encodeURIComponent(error.message));
+    redirect('/settings/team?tab=owner&error=' + encodeURIComponent(error.message));
   }
 
   revalidatePath('/settings/team');
-  redirect('/settings/team?tab=homeowner&ok=1');
+  redirect('/settings/team?tab=owner&ok=1');
 }
 
 export async function inviteVendorWizard(formData: FormData) {

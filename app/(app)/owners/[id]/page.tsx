@@ -35,7 +35,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
       .order('status').order('move_in_date', { ascending: false }),
     (supabase as any).from('service_requests')
       .select('id, number, description, priority, status, created_at, units(unit_number)')
-      .eq('homeowner_id', id).is('archived_at', null).order('created_at', { ascending: false }).limit(10),
+      .eq('owner_id', id).is('archived_at', null).order('created_at', { ascending: false }).limit(10),
     (supabase as any).from('violations')
       .select('id, title, status, date_observed, fine_amount, associations(name)')
       .eq('owner_id', id).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),

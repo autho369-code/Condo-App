@@ -45,7 +45,6 @@ export async function submitServiceRequest(formData: FormData) {
     portfolio_id:          portfolioId,
     association_id:        associationId,
     unit_id:               unitId,
-    homeowner_id:          me.owner_id,
     owner_id:              me.owner_id,
     description:           fullDescription,
     priority,
