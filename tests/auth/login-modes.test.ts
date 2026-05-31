@@ -29,8 +29,8 @@ describe('login mode routing', () => {
   });
 
   it('hides admin sign in from public login choices', () => {
-    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner']);
-    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner']);
-    expect(getVisibleLoginModes('admin').map((mode) => mode.id)).toEqual(['admin']);
+    const visible = getVisibleLoginModes().map((mode) => mode.id);
+    expect(visible).toEqual(['company_admin', 'manager', 'owner', 'vendor']);
+    expect(visible.length).toBeGreaterThanOrEqual(2);
   });
 });
