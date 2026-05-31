@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
@@ -9,13 +10,48 @@ export async function loginWithPassword(formData: FormData) {
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
   const mode = normalizeLoginMode(formData.get('mode'));
-  const next = safeInternalNext(formData.get('next')) ?? '/dashboard';
+  const next = safeInternalNext(formData.get('next'));
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/login?mode=${mode}&error=${encodeURIComponent(error.message)}`);
 
+  // Get the user's ID directly from the auth session
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    // Check platform_operators using service client (bypasses RLS)
+    const adminClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: opCheck } = await (adminClient as any)
+      .from('platform_operators')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .eq('active', true)
+      .limit(1);
+    
+    if (opCheck && opCheck.length > 0) {
+      revalidatePath('/', 'layout');
+      redirect('/platform');
+    }
+  }
+  
+  // Fall back to me() RPC for role routing
+  const { data: me } = await (supabase as any).rpc('me');
+  
+  let destination = next;
+  if (!destination) {
+    if (me?.is_staff) {
+      destination = '/dashboard';
+    } else {
+      destination = '/portal';
+    }
+  }
+
   revalidatePath('/', 'layout');
-  redirect(next);
+  redirect(destination);
 }
 
 export async function signupWithPassword(formData: FormData) {

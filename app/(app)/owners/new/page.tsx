@@ -5,11 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createOwner } from '@/lib/rpcs/entities';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewOwnerPage() {
-  await requireStaff();
+  const me = await requireStaff();
+  const supabase = await createClient();
+
+  // Fetch associations for board member dropdown
+  const { data: associations } = await (supabase as any)
+    .from('associations')
+    .select('id, name')
+    .eq('portfolio_id', me.portfolio?.id)
+    .is('archived_at', null)
+    .order('name');
 
   return (
     <DataWorkspace
@@ -51,6 +61,33 @@ export default async function NewOwnerPage() {
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
             <div><Label htmlFor="address_state">State</Label><Input id="address_state" name="address_state" maxLength={2} className="uppercase" /></div>
             <div><Label htmlFor="address_zip">ZIP</Label><Input id="address_zip" name="address_zip" /></div>
+          </div>
+        </section>
+
+        {/* Board Member Section */}
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Board Member</div>
+          <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <input type="checkbox" name="is_board_member" value="1" className="mt-1" />
+            <span>
+              <span className="block text-sm font-medium text-gray-900">Designate as board member</span>
+              <span className="block text-xs text-gray-500">Board members are owners with governance rights for a specific association.</span>
+            </span>
+          </label>
+
+          <div className="mt-3">
+            <Label htmlFor="board_association_id">Association</Label>
+            <select
+              id="board_association_id"
+              name="board_association_id"
+              className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="">Select association (if board member)</option>
+              {(associations ?? []).map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">Only applies when &quot;Designate as board member&quot; is checked above.</p>
           </div>
         </section>
 

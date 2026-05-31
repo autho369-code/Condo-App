@@ -423,6 +423,22 @@ export async function createOwner(formData: FormData) {
   const { data: owner, error } = await (supabase as any).from('owners').insert(payload).select('id').single();
   if (error || !owner) return { error: error?.message ?? 'Failed to create owner' };
 
+  // Board member designation
+  const isBoardMember = str(formData, 'is_board_member') === '1';
+  const boardAssociationId = str(formData, 'board_association_id');
+
+  if (isBoardMember && boardAssociationId) {
+    await (supabase as any).from('board_members').insert({
+      association_id: boardAssociationId,
+      owner_id: owner.id,
+      full_name: fullName,
+      email: str(formData, 'email'),
+      phone: str(formData, 'phone'),
+      role: 'member',
+      active: true,
+    });
+  }
+
   revalidatePath('/owners');
   redirect(`/owners/${owner.id}`);
 }
