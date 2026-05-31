@@ -57,8 +57,7 @@ export default async function VendorsPage({
     >
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
-          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Homeowners</Link>
-          <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Owners</Link>
+          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Owners</Link>
           <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
         </nav>
 

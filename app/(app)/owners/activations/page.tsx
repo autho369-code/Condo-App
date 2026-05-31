@@ -40,7 +40,7 @@ export default async function OwnerActivationsPage({ searchParams }: { searchPar
     <DataWorkspace
       title="Portal Activation"
       description="Send secure portal invite emails to owners. Track activation status, last sent date, and last login."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-2">
           {sp.ok && <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">{sp.ok}</div>}

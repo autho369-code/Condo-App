@@ -39,7 +39,7 @@ export default async function OwnerAchPage({ searchParams }: { searchParams: Pro
     <DataWorkspace
       title="ACH Setup"
       description="Track ACH payment setup per owner. Bank information is never collected here — payment setup happens through Stripe's secure flow."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-3 text-sm">
           {!stripeConnected && (

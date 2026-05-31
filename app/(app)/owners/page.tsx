@@ -57,7 +57,6 @@ export default async function OwnersPage({
 }) {
   await requireStaff();
   const sp = await searchParams;
-  const view = sp.view === 'directory' || sp.view === 'tenants' ? sp.view : 'homeowners';
   const letter = sp.letter ?? 'all';
   const q = (sp.q ?? '').trim().toLowerCase();
 
@@ -108,8 +107,6 @@ export default async function OwnersPage({
     };
   });
 
-  if (view === 'homeowners') rows = rows.filter((row) => row.occupancyType === 'owner');
-  if (view === 'tenants') rows = rows.filter((row) => row.occupancyType === 'tenant');
   if (letter !== 'all') rows = rows.filter((row) => row.lastInitial === letter);
   if (q) {
     rows = rows.filter((row) =>
@@ -128,15 +125,12 @@ export default async function OwnersPage({
   );
 
   const tabs = [
-    { label: 'Homeowners', href: '/owners', active: view === 'homeowners' },
-    { label: 'Owners', href: '/owners?view=directory', active: view === 'directory' },
-    { label: 'Tenants', href: '/owners?view=tenants', active: view === 'tenants' },
+    { label: 'Owners', href: '/owners', active: true },
     { label: 'Vendors', href: '/vendors', active: false },
   ];
 
   const buildLetterHref = (item: string) => {
     const params = new URLSearchParams();
-    if (view !== 'homeowners') params.set('view', view);
     if (q) params.set('q', q);
     if (item !== 'all') params.set('letter', item);
     const query = params.toString();
@@ -145,7 +139,7 @@ export default async function OwnersPage({
 
   return (
     <DataWorkspace
-      title={view === 'tenants' ? 'Tenants' : view === 'directory' ? 'Owner Directory' : 'Homeowners'}
+      title="Owners"
       description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
       actions={
         <>
@@ -181,7 +175,6 @@ export default async function OwnersPage({
         />
 
         <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
-          {view !== 'homeowners' && <input type="hidden" name="view" value={view} />}
           <label className="text-xs font-medium uppercase text-gray-500">
             Letter
             <select name="letter" defaultValue={letter} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">

@@ -34,7 +34,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
     <DataWorkspace
       title="Management Agreement"
       description="Create an in-app management agreement. Admin fills the terms, owner signs electronically through the portal. No fake text, no PDFs by default."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-2 text-sm">
           {sp.ok && <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">{sp.ok}</div>}
