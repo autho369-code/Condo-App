@@ -25,11 +25,6 @@ export default async function NewVendorPage() {
       title="New Vendor"
       description="Create the vendor record, capture tax/payment defaults, and route follow-up bank or document requests."
       actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
-      rail={
-        <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
-          Add the core vendor first. ACH, W-9, and compliance requests can be staged immediately after the record exists.
-        </div>
-      }
     >
       <form action={createVendor as any} className="max-w-5xl space-y-6 rounded border border-gray-200 bg-white p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

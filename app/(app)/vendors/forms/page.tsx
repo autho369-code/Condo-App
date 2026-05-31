@@ -35,11 +35,6 @@ export default async function VendorFormsPage({
       title="Send Vendor Form"
       description="Stage vendor onboarding, bank, W-9, and compliance document requests for confirmation."
       actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
-      rail={
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Send vendor communications immediately. No staging.
-        </div>
-      }
     >
       <form className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">

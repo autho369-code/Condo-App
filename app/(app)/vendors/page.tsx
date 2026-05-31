@@ -54,11 +54,6 @@ export default async function VendorsPage({
           <Link href="/vendors/new"><Button>New vendor</Button></Link>
         </>
       }
-      rail={
-        <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
-          Send vendor forms, ACH requests, and W-9s immediately. One click, no staging.
-        </div>
-      }
     >
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
