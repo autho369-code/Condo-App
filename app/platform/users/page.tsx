@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 async function resetUserPassword(formData: FormData) {
   'use server';
   const email = formData.get('email') as string;
-  const serviceClient = createServiceClient();
+  const serviceClient = await createServiceClient();
   const { error } = await serviceClient.auth.admin.generateLink({
     type: 'recovery',
     email,

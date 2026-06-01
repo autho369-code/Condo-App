@@ -414,7 +414,7 @@ export default async function CommandCenterPage() {
         <div className="flex items-center gap-3">
           <GlobalSearch />
           <Link href="/platform/portfolios/new">
-            <Button variant="primary" size="sm"><Plus className="mr-1.5 h-4 w-4" />Add Portfolio</Button>
+            <Button variant="default" size="sm"><Plus className="mr-1.5 h-4 w-4" />Add Portfolio</Button>
           </Link>
         </div>
       </div>

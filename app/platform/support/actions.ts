@@ -8,7 +8,7 @@ export async function addInternalNote(formData: FormData) {
   const body = (formData.get('body') as string)?.trim();
   if (!ticketId || !body) return;
 
-  const serviceClient = createServiceClient();
+  const serviceClient = await createServiceClient();
   await (serviceClient as any)
     .from('ticket_comments')
     .insert({
@@ -24,7 +24,7 @@ export async function markTicketResolved(formData: FormData) {
   const ticketId = formData.get('ticket_id') as string;
   if (!ticketId) return;
 
-  const serviceClient = createServiceClient();
+  const serviceClient = await createServiceClient();
   await (serviceClient as any)
     .from('tickets')
     .update({

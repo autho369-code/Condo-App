@@ -83,3 +83,9 @@ export async function requireStaff(): Promise<MeResult> {
   if (!me.is_staff && !me.is_platform_operator) redirect('/portal');
   return me;
 }
+
+export async function requireCompanyAdmin(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_full_access_staff && !me.is_platform_operator) redirect('/dashboard');
+  return me;
+}

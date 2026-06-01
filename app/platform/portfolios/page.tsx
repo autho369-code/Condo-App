@@ -447,7 +447,7 @@ export default async function PortfoliosPage({
             subtitle="Manage every management company, subscription tier, and billing state from one place."
             actions={
               <Link href="/platform/portfolios?provision=1">
-                <Button size="sm" variant="primary" className="bg-blue-600 hover:bg-blue-500">
+                <Button size="sm" variant="default" className="bg-blue-600 hover:bg-blue-500">
                   + Provision Client
                 </Button>
               </Link>

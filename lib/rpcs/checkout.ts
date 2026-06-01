@@ -11,15 +11,17 @@
 //   - checkout.session.completed → updates payment_intents.status and inserts a
 //     payments row. auto_apply_new_payment trigger then applies to charges.
 
-import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { isStripePaymentsConfigured } from '@/lib/payments/config';
 import { redirect } from 'next/navigation';
 
-function stripeClient() {
+async function stripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!isStripePaymentsConfigured(key)) throw new Error('STRIPE_SECRET_KEY is not configured');
+  /* Using local stub until `stripe` package is installed.
+     Replace with: import Stripe from 'stripe'; once installed. */
+  const { default: Stripe } = await import('@/lib/stripe-stub');
   return new Stripe(key, { apiVersion: '2024-12-18.acacia' as any });
 }
 
@@ -71,8 +73,8 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   if (piErr || !pi) return { error: piErr?.message ?? 'Could not create payment record.' };
 
   // 3) Build the Stripe Checkout Session
-  const stripe = stripeClient();
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+  const stripe = await stripeClient();
+  const lineItems: any[] = [
     {
       price_data: {
         currency: 'usd',
@@ -97,8 +99,8 @@ export async function createOwnerCheckoutSession(formData: FormData) {
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     payment_method_types: method === 'ach'
-      ? (['us_bank_account'] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[])
-      : (['card'] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]),
+      ? (['us_bank_account'] as any[])
+      : (['card'] as any[]),
     line_items: lineItems,
     success_url: `${baseUrl}/portal/pay/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:  `${baseUrl}/portal/pay/cancel?pi=${pi.id}`,

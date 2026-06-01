@@ -101,7 +101,7 @@ export default async function TeamPage({
                   {STAFF_ROLES.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
                 </select>
               </div>
-              <div className="flex justify-end"><Button type="submit" variant="primary">Send invitation</Button></div>
+              <div className="flex justify-end"><Button type="submit" variant="default">Send invitation</Button></div>
             </form>
           </CardBody>
         </Card>
@@ -134,7 +134,7 @@ export default async function TeamPage({
                   ))}
                 </div>
               </div>
-              <div className="flex justify-end"><Button type="submit" variant="primary">Send invitation</Button></div>
+              <div className="flex justify-end"><Button type="submit" variant="default">Send invitation</Button></div>
             </form>
           </CardBody>
         </Card>
@@ -158,7 +158,7 @@ export default async function TeamPage({
                 </select>
               </div>
               <div><Label>Board Role (optional)</Label><Input name="board_role" placeholder="e.g. President, Treasurer" /></div>
-              <div className="flex justify-end"><Button type="submit" variant="primary">Send invitation</Button></div>
+              <div className="flex justify-end"><Button type="submit" variant="default">Send invitation</Button></div>
             </form>
           </CardBody>
         </Card>
@@ -182,7 +182,7 @@ export default async function TeamPage({
                 </select>
               </div>
               <div><Label>Unit Number</Label><Input name="unit_number" required placeholder="101" /></div>
-              <div className="flex justify-end"><Button type="submit" variant="primary">Send invitation</Button></div>
+              <div className="flex justify-end"><Button type="submit" variant="default">Send invitation</Button></div>
             </form>
           </CardBody>
         </Card>
@@ -207,7 +207,7 @@ export default async function TeamPage({
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end"><Button type="submit" variant="primary">Send invitation</Button></div>
+              <div className="flex justify-end"><Button type="submit" variant="default">Send invitation</Button></div>
             </form>
           </CardBody>
         </Card>

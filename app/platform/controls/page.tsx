@@ -64,7 +64,7 @@ async function forcePasswordReset(formData: FormData) {
   const email = formData.get('email') as string;
   if (!email) return;
 
-  const serviceClient = createServiceClient();
+  const serviceClient = await createServiceClient();
   const { error } = await serviceClient.auth.admin.generateLink({
     type: 'recovery',
     email,

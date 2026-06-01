@@ -309,7 +309,7 @@ export default async function PlatformInvitationsPage({
 
             {/* Submit */}
             <div className="flex justify-end">
-              <Button type="submit" variant="primary">
+              <Button type="submit" variant="default">
                 <Send className="mr-1.5 h-3.5 w-3.5" />
                 Send Invitation
               </Button>

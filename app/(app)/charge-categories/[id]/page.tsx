@@ -31,7 +31,7 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
         <div className="flex gap-2">
           {!cat.is_system && (
             <form action={archive as any}>
-              <Button type="submit" variant="danger">Archive</Button>
+              <Button type="submit" variant="destructive">Archive</Button>
             </form>
           )}
           <Link href="/charge-categories"><Button variant="secondary">Back</Button></Link>

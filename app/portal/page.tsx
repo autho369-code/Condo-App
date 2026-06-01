@@ -57,7 +57,7 @@ export default async function PortalHome() {
       {Number(total.outstanding) > 0 && (
         <div className="flex gap-3">
           <Link href="/portal/pay">
-            <Button size="lg" variant={paymentsEnabled ? 'primary' : 'secondary'}>
+            <Button size="lg" variant={paymentsEnabled ? 'default' : 'secondary'}>
               {paymentsEnabled ? `Pay ${money(total.outstanding)}` : 'Payment setup pending'}
             </Button>
           </Link>

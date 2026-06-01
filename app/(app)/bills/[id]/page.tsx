@@ -79,7 +79,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         )}
         {['draft','pending_approval','approved'].includes(b.status) && b.paid_at === null && (
           <form action={async () => { 'use server'; await voidBill(id); }}>
-            <Button type="submit" variant="danger">Void</Button>
+            <Button type="submit" variant="destructive">Void</Button>
           </form>
         )}
         {b.status === 'approved' && b.paid_at === null && (

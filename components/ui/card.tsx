@@ -92,6 +92,31 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/** Alias – many pages import CardBody instead of CardContent */
+const CardBody = CardContent;
+
+/** Simple stat display used in dashboards */
+function Stat({
+  className,
+  label,
+  value,
+  sub,
+  ...props
+}: React.ComponentProps<"div"> & { label?: string; value?: React.ReactNode; sub?: string }) {
+  return (
+    <div
+      data-slot="stat"
+      className={cn("flex flex-col gap-1 px-4 group-data-[size=sm]/card:px-3", className)}
+      {...props}
+    >
+      {label && <span className="text-xs font-medium text-muted-foreground">{label}</span>}
+      {value !== undefined && <span className="text-2xl font-semibold tabular-nums">{value}</span>}
+      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+      {props.children}
+    </div>
+  );
+}
+
 export {
   Card,
   CardHeader,
@@ -100,4 +125,6 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  CardBody,
+  Stat,
 }

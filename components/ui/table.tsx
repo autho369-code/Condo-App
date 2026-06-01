@@ -104,6 +104,12 @@ function TableCaption({
   )
 }
 
+/** Short aliases used across the codebase */
+const THead = TableHeader;
+const TR = TableRow;
+const TH = TableHead;
+const TD = TableCell;
+
 export {
   Table,
   TableHeader,
@@ -113,4 +119,8 @@ export {
   TableRow,
   TableCell,
   TableCaption,
+  THead,
+  TR,
+  TH,
+  TD,
 }

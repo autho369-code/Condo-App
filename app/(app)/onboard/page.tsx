@@ -134,7 +134,7 @@ export default async function OnboardPage() {
             <p className="text-sm text-gray-600">{s.desc}</p>
             <div className="mt-4">
               <Link href={s.href}>
-                <Button variant={s.done ? 'secondary' : 'primary'}>
+                <Button variant={s.done ? 'secondary' : 'default'}>
                   {s.done ? 'Manage' : 'Open'}
                 </Button>
               </Link>
