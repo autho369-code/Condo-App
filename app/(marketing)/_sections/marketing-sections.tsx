@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DollarSign, Zap, Users, Building2, HeartHandshake, FileCheck } from 'lucide-react';
+import { DollarSign, Zap, Users, Building2, HeartHandshake, FileCheck, ArrowRight, Phone, Globe, ShieldAlert, TrendingDown } from 'lucide-react';
 
 function Check() {
   return (
@@ -103,54 +103,72 @@ export function HowItWorksSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SAVINGS COMPARISON TABLE
+   SAVINGS COMPARISON — "How Much Are You Overpaying?"
    ═══════════════════════════════════════════════════════════════════ */
 export function SavingsSection() {
   const rows = [
-    { units: '500', legacy: '$500/mo', portier: '$282/mo', savings: '$2,616' },
-    { units: '1,000', legacy: '$1,000/mo', portier: '$532/mo', savings: '$5,616' },
-    { units: '4,000', legacy: '$4,000/mo', portier: '$1,800/mo', savings: '$26,400' },
-    { units: '10,000', legacy: '$10,000/mo', portier: '$3,600/mo', savings: '$76,800' },
+    { units: '250', legacy: '$1.00/unit', legacyCost: '$250/mo', portier: '$0.62/unit', portierCost: '$157/mo', annual: '$1,116' },
+    { units: '1,000', legacy: '$1.00/unit', legacyCost: '$1,000/mo', portier: '$0.53/unit', portierCost: '$532/mo', annual: '$5,616' },
+    { units: '4,000', legacy: '$1.00/unit', legacyCost: '$4,000/mo', portier: '$0.45/unit', portierCost: '$1,800/mo', annual: '$26,400' },
+    { units: '10,000', legacy: '$1.00/unit', legacyCost: '$10,000/mo', portier: '$0.36/unit', portierCost: '$3,600/mo', annual: '$76,800', highlight: true },
   ];
 
   return (
-    <section className="border-t border-slate-800 bg-[#060B18] py-28">
+    <section className="border-t border-slate-800 bg-[#060B18] py-24">
       <div className="mx-auto max-w-4xl px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Compare Your Savings</span>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Save Up To 60% Compared To AppFolio, Buildium &amp; Vantaca
+        {/* Hero callout */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+            <TrendingDown className="h-3.5 w-3.5" /> Compare &amp; Save
+          </div>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white md:text-5xl">
+            How Much Are You Overpaying?
           </h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
+            See how Portier369 stacks up against AppFolio, Buildium &amp; Vantaca.
+          </p>
         </div>
 
-        <div className="mt-12">
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#0B1121]">
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Units</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Typical Legacy Platform</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Portier369</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-emerald-400">Annual Savings</th>
+        {/* Big savings callout */}
+        <div className="mx-auto mt-10 max-w-md rounded-2xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/10 to-transparent p-8 text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">Save Up To</p>
+          <p className="mt-2 text-5xl font-extrabold tracking-tight text-white md:text-6xl">$76,800<span className="text-3xl md:text-4xl">/yr</span></p>
+          <p className="mt-2 text-base text-slate-400">at 10,000 units vs. legacy platforms</p>
+        </div>
+
+        {/* Comparison table */}
+        <div className="mt-12 overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-[#0B1121]">
+                <th className="whitespace-nowrap px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Units</th>
+                <th className="whitespace-nowrap px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Legacy Platform</th>
+                <th className="whitespace-nowrap px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">Portier369</th>
+                <th className="whitespace-nowrap px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-emerald-400">Annual Savings</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {rows.map((r) => (
+                <tr key={r.units} className={`transition-colors hover:bg-[#0B1121]/50 ${r.highlight ? 'bg-emerald-500/5' : 'bg-[#060B18]'}`}>
+                  <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-white">{r.units}</td>
+                  <td className="whitespace-nowrap px-5 py-4">
+                    <span className="text-sm text-slate-500 line-through">{r.legacyCost}</span>
+                    <span className="ml-2 text-xs text-slate-500">({r.legacy})</span>
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4">
+                    <span className="text-sm font-semibold text-emerald-400">{r.portierCost}</span>
+                    <span className="ml-2 text-xs text-emerald-400/70">({r.portier})</span>
+                  </td>
+                  <td className={`whitespace-nowrap px-5 py-4 text-right text-sm font-bold ${r.highlight ? 'text-emerald-300 text-base' : 'text-emerald-400'}`}>{r.annual}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {rows.map((row) => (
-                  <tr key={row.units} className="bg-[#060B18] transition-colors hover:bg-[#0B1121]/50">
-                    <td className="px-6 py-4 text-sm font-semibold text-white">{row.units}</td>
-                    <td className="px-6 py-4 text-sm text-slate-400 line-through decoration-slate-600">{row.legacy}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-emerald-400">{row.portier}</td>
-                    <td className="px-6 py-4 text-right text-sm font-bold text-emerald-400">{row.savings}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="mt-10 text-center">
-          <Link href="#contact" className="inline-flex h-14 items-center rounded-xl bg-emerald-500 px-8 text-base font-semibold text-black transition-all hover:bg-emerald-400">
-            See What You Could Save →
+          <Link href="#contact" className="inline-flex h-14 items-center gap-2 rounded-xl bg-emerald-500 px-8 text-base font-semibold text-black transition-all hover:bg-emerald-400">
+            See What You Could Save <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -159,155 +177,115 @@ export function SavingsSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PRICING
+   PRICING — Slim cards, max 8 features, cost-per-unit prominent
    ═══════════════════════════════════════════════════════════════════ */
 export function PricingSection() {
-  const plans = [
+  const plans: {
+    name: string; price: string; period: string; unitRange: string;
+    costPerUnit: string | null; savings: string | null; features: string[];
+    cta: string; href: string; featured: boolean; note: string | null;
+  }[] = [
     {
       name: 'Foundation',
       price: '$157',
       period: '/month',
-      description: 'Perfect for self-managed associations and smaller management portfolios.',
+      unitRange: 'Up to 250 Units',
+      costPerUnit: '$0.62/unit',
+      savings: null,
       features: [
-        'Up to 250 units',
-        'Unlimited users',
-        'Unlimited owners',
-        'Unlimited board members',
-        'Owner Portal',
-        'Board Portal',
+        'Unlimited Users & Board Members',
+        'Owner & Board Portals',
         'Accounting & Financial Reporting',
-        'Assessment Billing',
-        'Collections Tracking',
-        'Work Orders',
-        'Maintenance Requests',
-        'Document Library',
-        'Vendor Management',
-        'Architectural Requests',
-        'Announcements & Communications',
-        'Calendar & Events',
-        'Basic Violation Tracking',
+        'Assessment Billing & Collections',
+        'Work Orders & Maintenance',
+        'Document Library & Vendor Mgmt',
+        'Announcements & Calendar',
         'Mobile Friendly Access',
       ],
-      note: 'Effective Cost: $0.62 per unit at 250 units',
-      subPrice: null,
-      bestFor: 'Self-managed communities and smaller portfolios.',
+      note: null,
       cta: 'Request More Info',
       href: '#contact',
       featured: false,
-      examples: null,
     },
     {
       name: 'Growth',
-      price: 'From $282',
-      period: '/month',
-      subPrice: '$157 base + $0.50 per unit above 250',
-      description: 'Built for growing management companies operating multiple communities.',
+      price: '$157',
+      period: '/mo + $0.50/unit',
+      unitRange: '251–1,000 Units',
+      costPerUnit: null,
+      savings: null,
       features: [
+        'Everything in Foundation',
         'Multi-Association Management',
-        'Portfolio Dashboard',
-        'Property Manager Permissions',
-        'Department Permissions',
+        'Portfolio & Department Dashboards',
         'Board Packet Generation',
         'Bulk Communications',
-        'Vendor Compliance Tracking',
         'Advanced Financial Reporting',
-        'Portfolio Reporting',
-        'Automated Workflows',
-        'Custom User Roles',
         'Full Violation Management',
-        'Hearing Scheduling',
-        'Fine Tracking',
-        'Compliance Tracking',
       ],
-      note: null,
-      bestFor: 'Growing management companies.',
+      note: '500 units = $282/mo · 1,000 units = $532/mo',
       cta: 'Request More Info',
       href: '#contact',
       featured: true,
-      examples: [
-        '500 Units = $282/month',
-        '750 Units = $407/month',
-        '1,000 Units = $532/month',
-      ],
     },
     {
       name: 'Portfolio',
       price: '$0.45',
       period: '/unit',
-      description: 'For management companies operating between 1,001 and 4,000 units.',
+      unitRange: '1,001–4,000 Units',
+      costPerUnit: null,
+      savings: 'Save 55% vs AppFolio',
       features: [
+        'Everything in Growth',
         'Regional Manager Dashboards',
-        'Advanced Portfolio Analytics',
         'White-Labeled Portal',
-        'Executive Reporting',
-        'Performance Dashboards',
-        'Advanced Automation',
-        'Portfolio-Wide Reporting',
+        'Executive & Portfolio Reporting',
         'Vendor Performance Tracking',
-        'Association Benchmarking',
-        'Priority Support',
       ],
-      note: null,
-      subPrice: null,
-      bestFor: 'Established management companies.',
+      note: '2,000 units = $900/mo · 4,000 units = $1,800/mo',
       cta: 'Talk to Sales',
       href: '#contact',
       featured: false,
-      examples: [
-        '2,000 Units = $900/month',
-        '3,000 Units = $1,350/month',
-        '4,000 Units = $1,800/month',
-      ],
     },
     {
       name: 'Enterprise',
       price: '$0.36',
       period: '/unit',
-      description: 'For management firms operating more than 4,000 units.',
+      unitRange: '4,001–10,000+ Units',
+      costPerUnit: null,
+      savings: 'Save 64% vs AppFolio',
       features: [
-        'Single Sign-On (SSO)',
-        'Enterprise Security Controls',
+        'Everything in Portfolio',
+        'SSO & Enterprise Security',
         'Dedicated Account Manager',
-        'Advanced Audit Logs',
-        'API Access',
-        'Custom Integrations',
-        'Custom Reporting',
-        'Data Migration Assistance',
-        'Enterprise SLA',
-        'Dedicated Training',
-        'Priority Feature Requests',
+        'API Access & Custom Integrations',
+        'Enterprise SLA & Training',
       ],
-      note: 'Pricing Example: 10,000 Units = $3,600/month',
-      subPrice: null,
-      bestFor: 'Large management organizations.',
+      note: '10,000 units = $3,600/mo',
       cta: 'Schedule a Demo',
       href: '#contact',
       featured: false,
-      examples: null,
     },
   ];
 
   return (
-    <section className="border-t border-slate-800 bg-[#0B1121] py-28">
+    <section id="pricing" className="border-t border-slate-800 bg-[#0B1121] py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Pricing</span>
-          <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
-            Simple, Transparent Pricing for Community Management
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Simple, Transparent Pricing
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-slate-400">
-            Run your condominium, townhome, and HOA portfolio on a modern operating system while saving up to 60% compared to traditional property management software.
-          </p>
-          <p className="mt-3 text-base font-medium text-slate-300">
+          <p className="mt-3 text-base text-slate-400">
             No per-user fees. No hidden costs. Unlimited users included.
           </p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-7xl gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl border p-7 ${
+              className={`relative flex flex-col rounded-2xl border p-6 ${
                 plan.featured
                   ? 'border-emerald-500/30 bg-[#0A1628] shadow-[0_0_60px_-15px_rgba(16,185,129,0.15)]'
                   : 'border-slate-800 bg-[#111827]'
@@ -318,51 +296,43 @@ export function PricingSection() {
                   Most Popular
                 </span>
               )}
-              <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
-              <p className="mt-2 min-h-[48px] text-sm leading-relaxed text-slate-400">{plan.description}</p>
-              <div className="mt-5">
-                <span className="text-4xl font-light tracking-tight text-white">{plan.price}</span>
+
+              <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+              <p className="mt-1 text-xs font-medium text-slate-400">{plan.unitRange}</p>
+
+              {/* Price block */}
+              <div className="mt-4">
+                <span className="text-3xl font-bold tracking-tight text-white">{plan.price}</span>
                 <span className="ml-1 text-sm text-slate-400">{plan.period}</span>
               </div>
 
-              {plan.subPrice && (
-                <p className="mt-2 text-xs text-slate-400">{plan.subPrice}</p>
+              {plan.costPerUnit && (
+                <p className="mt-1 text-sm font-semibold text-emerald-400">{plan.costPerUnit}</p>
               )}
 
-              {plan.examples && (
-                <div className="mt-4 space-y-1">
-                  <p className="text-xs font-semibold text-slate-300">Pricing Examples</p>
-                  {plan.examples.map((ex) => (
-                    <div key={ex} className="text-xs text-slate-400">{ex}</div>
-                  ))}
-                </div>
+              {plan.savings && (
+                <span className="mt-2 inline-block w-fit rounded-full bg-emerald-500/15 px-3 py-0.5 text-xs font-bold text-emerald-400">
+                  {plan.savings}
+                </span>
               )}
+
+              {/* Features */}
+              <ul className="mt-5 flex-1 space-y-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm">
+                    <span className="mt-0.5"><Check /></span>
+                    <span className="text-slate-300">{f}</span>
+                  </li>
+                ))}
+              </ul>
 
               {plan.note && (
-                <p className="mt-3 text-xs font-medium text-emerald-400/80">{plan.note}</p>
-              )}
-
-              <div className="mt-5">
-                <p className="text-xs font-semibold text-slate-300 mb-2">
-                  {plan.name === 'Foundation' ? 'Includes' : plan.name === 'Growth' ? 'Includes Everything in Foundation Plus' : plan.name === 'Portfolio' ? 'Includes Everything in Growth Plus' : 'Includes Everything in Portfolio Plus'}
-                </p>
-                <ul className="flex-1 space-y-2">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <span className="mt-0.5"><Check /></span>
-                      <span className="text-slate-300">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {plan.bestFor && (
-                <p className="mt-4 text-xs text-slate-400"><span className="font-semibold text-slate-300">Best For:</span> {plan.bestFor}</p>
+                <p className="mt-4 text-xs text-slate-500">{plan.note}</p>
               )}
 
               <Link
                 href={plan.href}
-                className={`mt-8 flex h-12 items-center justify-center rounded-xl text-sm font-semibold transition-all ${
+                className={`mt-6 flex h-11 items-center justify-center rounded-xl text-sm font-semibold transition-all ${
                   plan.featured
                     ? 'bg-emerald-500 text-black hover:bg-emerald-400'
                     : 'border border-slate-700 bg-transparent text-white hover:border-slate-500'
@@ -379,132 +349,74 @@ export function PricingSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ADD-ON SERVICES
+   MOST POPULAR ADD-ONS (featured 3 + View All)
    ═══════════════════════════════════════════════════════════════════ */
 export function AddOnsSection() {
-  const addOns = [
+  const featured = [
     {
-      name: 'ViolationFlow™ Enforcement Suite',
-      price: '$157–$1,800/year',
-      desc: 'Complete compliance and enforcement management.',
-      expanded: [
-        'Owner Submitted Violations',
-        'Mobile Photo Uploads',
-        'Violation Approval Queue',
-        'Automated Notices',
-        'Hearing Scheduling',
-        'Board Decisions',
-        'Fine Tracking',
-        'Repeat Offender Tracking',
-        'Compliance Monitoring',
-        'Enforcement Reports',
-      ],
+      icon: ShieldAlert,
+      name: 'ViolationFlow™',
+      price: '$157–$1,800/yr',
+      tagline: 'End-to-end compliance & enforcement management.',
+      highlights: ['Automated Notices', 'Hearing Scheduling', 'Fine & Repeat Offender Tracking'],
     },
     {
+      icon: Phone,
       name: 'AI Receptionist',
-      price: '$2,388/year',
-      desc: '24/7 AI-powered phone answering and call routing.',
-      expanded: [
-        'Call Answering',
-        'Message Taking',
-        'Lead Capture',
-        'Maintenance Routing',
-        'Vendor Routing',
-        'Appointment Scheduling',
-      ],
+      price: '$2,388/yr',
+      tagline: '24/7 AI phone answering, routing & lead capture.',
+      highlights: ['Call Answering & Message Taking', 'Maintenance & Vendor Routing', 'Appointment Scheduling'],
     },
     {
-      name: 'AI Website & SEO Platform',
-      price: '$5,988/year',
-      desc: 'Professional website, AI search optimization, blogging, and lead generation.',
-      expanded: [
-        'Custom Website',
-        'Unlimited Updates',
-        'SEO Optimization',
-        'AI Search Optimization',
-        'Blog Publishing',
-        'Lead Tracking',
-        'Hosting & Security',
-      ],
-    },
-    {
-      name: 'Online Voting & Elections',
-      price: '$1,188/year',
-      desc: 'Secure online voting and election management.',
-      expanded: [
-        'Owner Voting',
-        'Proxy Collection',
-        'Election Reporting',
-        'Ballot Tracking',
-        'Audit History',
-      ],
-    },
-    {
-      name: 'White-Labeled Mobile App',
-      price: '$2,400/year',
-      desc: 'Launch Portier under your own company brand.',
-      expanded: [
-        'Company Branding',
-        'Branded Login Experience',
-        'Branded Mobile Application',
-        'Custom Colors & Logo',
-      ],
-    },
-    {
-      name: 'Executive Analytics Suite',
-      price: '$2,400/year',
-      desc: 'Advanced reporting and portfolio intelligence.',
-      expanded: [
-        'Executive Dashboards',
-        'Financial Trends',
-        'Delinquency Analytics',
-        'Maintenance Analytics',
-        'Board Performance Metrics',
-      ],
-    },
-    {
-      name: 'AI Collections Assistant',
-      price: '$1,800/year',
-      desc: 'Automated collections and delinquency follow-up.',
-      expanded: [
-        'Automated Reminder Sequences',
-        'Delinquency Monitoring',
-        'Collection Workflows',
-        'Owner Communications',
-        'Payment Follow-Up',
-      ],
+      icon: Globe,
+      name: 'AI Website & SEO',
+      price: '$5,988/yr',
+      tagline: 'Professional website, SEO, blogging & lead generation.',
+      highlights: ['Custom Website & Unlimited Updates', 'AI Search Optimization', 'Blog Publishing & Lead Tracking'],
     },
   ];
 
   return (
-    <section className="border-t border-slate-800 bg-[#060B18] py-28">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Annual Add-Ons</span>
-          <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
-            Enhance your platform with optional services.
+    <section className="border-t border-slate-800 bg-[#060B18] py-24">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Add-Ons</span>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Most Popular Add-Ons
           </h2>
+          <p className="mx-auto mt-3 max-w-lg text-base text-slate-400">
+            Extend your platform with powerful optional services.
+          </p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {addOns.map((addon) => (
-            <div key={addon.name} className="flex flex-col rounded-xl border border-slate-800 bg-[#0B1121] p-6 transition-colors hover:border-slate-700">
-              <h3 className="text-lg font-semibold text-white">{addon.name}</h3>
-              <p className="mt-1 text-sm font-semibold text-emerald-400">{addon.price}</p>
-              <p className="mt-3 text-sm leading-relaxed text-slate-400">{addon.desc}</p>
-              {addon.expanded && (
-                <ul className="mt-4 space-y-1.5 border-t border-slate-800 pt-4">
-                  <li className="text-xs font-semibold text-slate-300 mb-1">Includes:</li>
-                  {addon.expanded.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-xs text-slate-400">
+        <div className="mx-auto mt-14 grid gap-6 sm:grid-cols-3">
+          {featured.map((addon) => {
+            const Icon = addon.icon;
+            return (
+              <div key={addon.name} className="flex flex-col rounded-xl border border-slate-800 bg-[#0B1121] p-6 transition-colors hover:border-emerald-500/30">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15">
+                  <Icon className="h-5 w-5 text-emerald-400" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-white">{addon.name}</h3>
+                <p className="mt-1 text-sm font-bold text-emerald-400">{addon.price}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-400">{addon.tagline}</p>
+                <ul className="mt-4 space-y-1.5">
+                  {addon.highlights.map((h) => (
+                    <li key={h} className="flex items-start gap-2 text-xs text-slate-300">
                       <span className="mt-0.5"><Check /></span>
-                      {item}
+                      {h}
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 text-center">
+          <Link href="#contact" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 transition-colors hover:text-emerald-300">
+            View All Add-Ons <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>
@@ -516,58 +428,36 @@ export function AddOnsSection() {
    ═══════════════════════════════════════════════════════════════════ */
 export function WhySwitchSection() {
   const reasons = [
-    {
-      icon: DollarSign,
-      title: 'Save More',
-      desc: 'Reduce software expenses by up to 60% compared to traditional platforms.',
-    },
-    {
-      icon: Users,
-      title: 'Unlimited Users',
-      desc: 'No per-seat pricing. No surprise user charges.',
-    },
-    {
-      icon: Building2,
-      title: 'Built for Community Associations',
-      desc: 'Purpose-built for condominiums, townhomes, and HOAs.',
-    },
-    {
-      icon: HeartHandshake,
-      title: 'White-Glove Migration',
-      desc: 'We import owners, units, vendors, balances, documents, and historical data.',
-    },
-    {
-      icon: Zap,
-      title: 'Fast Implementation',
-      desc: 'Most companies are operational within days, not months.',
-    },
-    {
-      icon: FileCheck,
-      title: 'No Long-Term Contracts',
-      desc: 'Stay because you love the platform, not because you\'re locked into it.',
-    },
+    { icon: DollarSign, title: 'Save Up to 60%', desc: 'Cut software costs compared to legacy platforms.' },
+    { icon: Users, title: 'Unlimited Users', desc: 'No per-seat pricing. No surprise charges.' },
+    { icon: Building2, title: 'Built for Associations', desc: 'Purpose-built for condos, townhomes & HOAs.' },
+    { icon: HeartHandshake, title: 'White-Glove Migration', desc: 'We move owners, units, vendors, docs & balances.' },
+    { icon: Zap, title: 'Live in Days', desc: 'Most companies are operational within days.' },
+    { icon: FileCheck, title: 'No Long-Term Contracts', desc: 'Stay because you love it, not because you\'re locked in.' },
   ];
 
   return (
-    <section className="border-t border-slate-800 bg-[#0B1121] py-28">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+    <section className="border-t border-slate-800 bg-[#0B1121] py-20">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">The Portier369 Difference</span>
-          <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white md:text-4xl">
             Why Companies Choose Portier369
           </h2>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-4xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {reasons.map((r) => {
             const Icon = r.icon;
             return (
-              <div key={r.title} className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-500/20">
-                  <Icon className="h-7 w-7 text-emerald-400" />
+              <div key={r.title} className="flex items-start gap-4">
+                <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-emerald-500/15">
+                  <Icon className="h-5 w-5 text-emerald-400" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-white">{r.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{r.desc}</p>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">{r.title}</h3>
+                  <p className="mt-1 text-sm text-slate-400">{r.desc}</p>
+                </div>
               </div>
             );
           })}
