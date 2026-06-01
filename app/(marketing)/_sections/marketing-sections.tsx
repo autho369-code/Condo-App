@@ -189,6 +189,7 @@ export function PricingSection() {
         'Mobile Friendly Access',
       ],
       note: 'Effective Cost: $0.62 per unit at 250 units',
+      subPrice: null,
       bestFor: 'Self-managed communities and smaller portfolios.',
       cta: 'Request More Info',
       href: '#contact',
@@ -197,8 +198,9 @@ export function PricingSection() {
     },
     {
       name: 'Growth',
-      price: '$157',
-      period: '/month + $0.50 per unit above 250',
+      price: 'From $282',
+      period: '/month',
+      subPrice: '$157 base + $0.50 per unit above 250',
       description: 'Built for growing management companies operating multiple communities.',
       features: [
         'Multi-Association Management',
@@ -246,6 +248,7 @@ export function PricingSection() {
         'Priority Support',
       ],
       note: null,
+      subPrice: null,
       bestFor: 'Established management companies.',
       cta: 'Talk to Sales',
       href: '#contact',
@@ -275,6 +278,7 @@ export function PricingSection() {
         'Priority Feature Requests',
       ],
       note: 'Pricing Example: 10,000 Units = $3,600/month',
+      subPrice: null,
       bestFor: 'Large management organizations.',
       cta: 'Schedule a Demo',
       href: '#contact',
@@ -320,6 +324,10 @@ export function PricingSection() {
                 <span className="text-4xl font-light tracking-tight text-white">{plan.price}</span>
                 <span className="ml-1 text-sm text-slate-400">{plan.period}</span>
               </div>
+
+              {plan.subPrice && (
+                <p className="mt-2 text-xs text-slate-400">{plan.subPrice}</p>
+              )}
 
               {plan.examples && (
                 <div className="mt-4 space-y-1">

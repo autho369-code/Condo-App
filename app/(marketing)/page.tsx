@@ -1,7 +1,67 @@
 import Link from 'next/link';
+import Script from 'next/script';
 import { FeaturesSection, HowItWorksSection, SavingsSection, PricingSection, AddOnsSection, WhySwitchSection, FAQSection, ContactSection, CTASection } from './_sections/marketing-sections';
 
-export const metadata = { title: 'Portier — The operating system for condominium and HOA management' };
+export const metadata = {
+  title: 'Portier369 — HOA & Condo Management Software | Save Up To 60%',
+  description: 'The most affordable HOA and condominium management software. Assessment billing, work orders, violation tracking, owner & board portals. Save up to 60% vs AppFolio, Buildium & Vantaca.',
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://portier369.com/#organization',
+      name: 'Portier369',
+      url: 'https://portier369.com',
+      logo: 'https://portier369.com/favicon.svg',
+      description: 'The most affordable HOA and condominium management software. Save up to 60% vs AppFolio, Buildium & Vantaca.',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'hello@portier369.com',
+        contactType: 'sales',
+        availableLanguage: 'English',
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Chicago',
+        addressRegion: 'IL',
+        addressCountry: 'US',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://portier369.com/#website',
+      url: 'https://portier369.com',
+      name: 'Portier369',
+      publisher: { '@id': 'https://portier369.com/#organization' },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Portier369',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'HOA and condominium management software. Assessment billing, work orders, violations, owner portals, board portals, financial reporting.',
+      offers: [
+        { '@type': 'Offer', name: 'Foundation', price: '157', priceCurrency: 'USD', description: 'Up to 250 units. Unlimited users.' },
+        { '@type': 'Offer', name: 'Growth', price: '157', priceCurrency: 'USD', description: '$157/mo + $0.50 per unit above 250.' },
+        { '@type': 'Offer', name: 'Portfolio', price: '0.45', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', unitText: 'per unit per month' } },
+        { '@type': 'Offer', name: 'Enterprise', price: '0.36', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', unitText: 'per unit per month' } },
+      ],
+      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', ratingCount: '47', bestRating: '5' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'Can we migrate our existing data?', acceptedAnswer: { '@type': 'Answer', text: 'Absolutely. We handle the migration. Most portfolios go live within a week.' } },
+        { '@type': 'Question', name: 'Are there per-user fees?', acceptedAnswer: { '@type': 'Answer', text: 'Never. Every plan includes unlimited users.' } },
+        { '@type': 'Question', name: 'What about payment processing fees?', acceptedAnswer: { '@type': 'Answer', text: '0.8% for ACH (capped at $5), 2.9% + 30¢ for cards via Stripe.' } },
+        { '@type': 'Question', name: 'How does violation tracking work?', acceptedAnswer: { '@type': 'Answer', text: 'Foundation includes basic logging. Growth+ includes full workflow. ViolationFlow™ adds enforcement automation.' } },
+      ],
+    },
+  ],
+};
 
 function Check() {
   return (
@@ -14,6 +74,12 @@ function Check() {
 export default function Landing() {
   return (
     <>
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        strategy="afterInteractive"
+      />
       {/* HERO */}
       <section className="relative overflow-hidden bg-[#060B18]">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628] to-transparent" />
