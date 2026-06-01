@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DollarSign, Zap, Users, Building2, HeartHandshake } from 'lucide-react';
+import { DollarSign, Zap, Users, Building2, HeartHandshake, FileCheck } from 'lucide-react';
 
 function Check() {
   return (
@@ -9,9 +9,9 @@ function Check() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    FEATURES
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function FeaturesSection() {
   return (
     <section className="border-t border-slate-800 bg-[#0B1121] py-28">
@@ -64,9 +64,9 @@ export function FeaturesSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    HOW IT WORKS
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function HowItWorksSection() {
   return (
     <section className="border-t border-slate-800 bg-[#0B1121] py-28">
@@ -102,9 +102,9 @@ export function HowItWorksSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    SAVINGS COMPARISON TABLE
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function SavingsSection() {
   const rows = [
     { units: '500', legacy: '$500/mo', portier: '$282/mo', savings: '$2,616' },
@@ -119,11 +119,8 @@ export function SavingsSection() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Compare Your Savings</span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Save Up To 60% Compared to the Other Major Providers (Using 20 Year Old Software).
+            Save Up To 60% Compared To AppFolio, Buildium &amp; Vantaca
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-slate-400">
-            That single number is why management companies are switching. See what your portfolio would save.
-          </p>
         </div>
 
         <div className="mt-12">
@@ -133,7 +130,7 @@ export function SavingsSection() {
                 <tr className="bg-[#0B1121]">
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Units</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Typical Legacy Platform</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Portier</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Portier369</th>
                   <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-emerald-400">Annual Savings</th>
                 </tr>
               </thead>
@@ -161,9 +158,9 @@ export function SavingsSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    PRICING
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function PricingSection() {
   const plans = [
     {
@@ -173,21 +170,26 @@ export function PricingSection() {
       description: 'Perfect for self-managed associations and smaller management portfolios.',
       features: [
         'Up to 250 units',
+        'Unlimited users',
         'Unlimited owners',
         'Unlimited board members',
         'Owner Portal',
         'Board Portal',
+        'Accounting & Financial Reporting',
+        'Assessment Billing',
+        'Collections Tracking',
         'Work Orders',
-        'Maintenance Tracking',
-        'Basic Violations',
-        'Architectural Reviews',
-        'Vendor Management',
-        'Announcements & Communications',
+        'Maintenance Requests',
         'Document Library',
-        'Financial Reporting',
-        'Assessment Billing & Collections',
+        'Vendor Management',
+        'Architectural Requests',
+        'Announcements & Communications',
+        'Calendar & Events',
+        'Basic Violation Tracking',
+        'Mobile Friendly Access',
       ],
       note: 'Effective Cost: $0.62 per unit at 250 units',
+      bestFor: 'Self-managed communities and smaller portfolios.',
       cta: 'Request More Info',
       href: '#contact',
       featured: false,
@@ -196,21 +198,27 @@ export function PricingSection() {
     {
       name: 'Growth',
       price: '$157',
-      period: '/mo + $0.50/unit above 250',
-      description: 'Built for growing management companies managing multiple associations.',
+      period: '/month + $0.50 per unit above 250',
+      description: 'Built for growing management companies operating multiple communities.',
       features: [
-        'Everything in Foundation, plus:',
-        'Multi-association management',
-        'Portfolio dashboard',
-        'Manager permissions',
-        'Full violation workflow',
-        'Vendor compliance tracking',
-        'Advanced reporting',
-        'Bulk communications',
-        'Automated workflows',
-        'Custom user roles',
+        'Multi-Association Management',
+        'Portfolio Dashboard',
+        'Property Manager Permissions',
+        'Department Permissions',
+        'Board Packet Generation',
+        'Bulk Communications',
+        'Vendor Compliance Tracking',
+        'Advanced Financial Reporting',
+        'Portfolio Reporting',
+        'Automated Workflows',
+        'Custom User Roles',
+        'Full Violation Management',
+        'Hearing Scheduling',
+        'Fine Tracking',
+        'Compliance Tracking',
       ],
       note: null,
+      bestFor: 'Growing management companies.',
       cta: 'Request More Info',
       href: '#contact',
       featured: true,
@@ -223,20 +231,22 @@ export function PricingSection() {
     {
       name: 'Portfolio',
       price: '$0.45',
-      period: '/unit per month',
-      description: 'For established management companies operating between 1,001 and 4,000 units.',
+      period: '/unit',
+      description: 'For management companies operating between 1,001 and 4,000 units.',
       features: [
-        'Everything in Growth, plus:',
-        'Portfolio-level analytics',
-        'Regional manager dashboards',
-        'Advanced board reporting',
-        'Full violation workflow + reporting',
-        'White-label owner portal',
-        'API access',
-        'Workflow automation',
-        'Priority support',
+        'Regional Manager Dashboards',
+        'Advanced Portfolio Analytics',
+        'White-Labeled Portal',
+        'Executive Reporting',
+        'Performance Dashboards',
+        'Advanced Automation',
+        'Portfolio-Wide Reporting',
+        'Vendor Performance Tracking',
+        'Association Benchmarking',
+        'Priority Support',
       ],
       note: null,
+      bestFor: 'Established management companies.',
       cta: 'Talk to Sales',
       href: '#contact',
       featured: false,
@@ -249,21 +259,23 @@ export function PricingSection() {
     {
       name: 'Enterprise',
       price: '$0.36',
-      period: '/unit per month',
-      description: 'For large management firms operating 4,001–10,000+ units.',
+      period: '/unit',
+      description: 'For management firms operating more than 4,000 units.',
       features: [
-        'Everything in Portfolio, plus:',
         'Single Sign-On (SSO)',
-        'Enterprise security controls',
-        'Dedicated implementation manager',
-        'Advanced audit logs',
-        'Full violation workflow + reporting',
-        'Custom integrations',
-        'Custom reporting',
-        'Data migration assistance',
+        'Enterprise Security Controls',
+        'Dedicated Account Manager',
+        'Advanced Audit Logs',
+        'API Access',
+        'Custom Integrations',
+        'Custom Reporting',
+        'Data Migration Assistance',
         'Enterprise SLA',
+        'Dedicated Training',
+        'Priority Feature Requests',
       ],
-      note: 'Example: 10,000 Units = $3,600/month',
+      note: 'Pricing Example: 10,000 Units = $3,600/month',
+      bestFor: 'Large management organizations.',
       cta: 'Schedule a Demo',
       href: '#contact',
       featured: false,
@@ -277,13 +289,13 @@ export function PricingSection() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Pricing</span>
           <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
-            Pricing Built for Portfolios, Not Per-User Fees
+            Simple, Transparent Pricing for Community Management
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-slate-400">
-            Run your condominium, HOA, and townhome communities on a modern operating system while saving up to 60% compared to legacy platforms.
+            Run your condominium, townhome, and HOA portfolio on a modern operating system while saving up to 60% compared to traditional property management software.
           </p>
           <p className="mt-3 text-base font-medium text-slate-300">
-            No implementation fees. No long-term contracts. Unlimited users included.
+            No per-user fees. No hidden costs. Unlimited users included.
           </p>
         </div>
 
@@ -311,6 +323,7 @@ export function PricingSection() {
 
               {plan.examples && (
                 <div className="mt-4 space-y-1">
+                  <p className="text-xs font-semibold text-slate-300">Pricing Examples</p>
                   {plan.examples.map((ex) => (
                     <div key={ex} className="text-xs text-slate-400">{ex}</div>
                   ))}
@@ -321,20 +334,24 @@ export function PricingSection() {
                 <p className="mt-3 text-xs font-medium text-emerald-400/80">{plan.note}</p>
               )}
 
-              <ul className="mt-6 flex-1 space-y-2">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm">
-                    {f.endsWith('plus:') ? (
-                      <span className="font-medium text-slate-300">{f}</span>
-                    ) : (
-                      <>
-                        <span className="mt-0.5"><Check /></span>
-                        <span className="text-slate-300">{f}</span>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-5">
+                <p className="text-xs font-semibold text-slate-300 mb-2">
+                  {plan.name === 'Foundation' ? 'Includes' : plan.name === 'Growth' ? 'Includes Everything in Foundation Plus' : plan.name === 'Portfolio' ? 'Includes Everything in Growth Plus' : 'Includes Everything in Portfolio Plus'}
+                </p>
+                <ul className="flex-1 space-y-2">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <span className="mt-0.5"><Check /></span>
+                      <span className="text-slate-300">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {plan.bestFor && (
+                <p className="mt-4 text-xs text-slate-400"><span className="font-semibold text-slate-300">Best For:</span> {plan.bestFor}</p>
+              )}
+
               <Link
                 href={plan.href}
                 className={`mt-8 flex h-12 items-center justify-center rounded-xl text-sm font-semibold transition-all ${
@@ -353,56 +370,100 @@ export function PricingSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    ADD-ON SERVICES
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function AddOnsSection() {
   const addOns = [
     {
+      name: 'ViolationFlow™ Enforcement Suite',
+      price: '$157–$1,800/year',
+      desc: 'Complete compliance and enforcement management.',
+      expanded: [
+        'Owner Submitted Violations',
+        'Mobile Photo Uploads',
+        'Violation Approval Queue',
+        'Automated Notices',
+        'Hearing Scheduling',
+        'Board Decisions',
+        'Fine Tracking',
+        'Repeat Offender Tracking',
+        'Compliance Monitoring',
+        'Enforcement Reports',
+      ],
+    },
+    {
       name: 'AI Receptionist',
-      price: '$157–$3,600/year',
-      desc: '24/7 AI-powered phone answering, lead capture, and call routing.',
+      price: '$2,388/year',
+      desc: '24/7 AI-powered phone answering and call routing.',
+      expanded: [
+        'Call Answering',
+        'Message Taking',
+        'Lead Capture',
+        'Maintenance Routing',
+        'Vendor Routing',
+        'Appointment Scheduling',
+      ],
     },
     {
       name: 'AI Website & SEO Platform',
-      price: '$1,988/year',
-      desc: 'Custom website, ongoing SEO optimization, AI search visibility, blog publishing, and lead generation.',
+      price: '$5,988/year',
+      desc: 'Professional website, AI search optimization, blogging, and lead generation.',
+      expanded: [
+        'Custom Website',
+        'Unlimited Updates',
+        'SEO Optimization',
+        'AI Search Optimization',
+        'Blog Publishing',
+        'Lead Tracking',
+        'Hosting & Security',
+      ],
     },
     {
-      name: 'Online Voting & Election Suite',
-      price: '$157–$3,600/year',
-      desc: 'Secure owner voting, proxies, election tracking, and reporting.',
+      name: 'Online Voting & Elections',
+      price: '$1,188/year',
+      desc: 'Secure online voting and election management.',
+      expanded: [
+        'Owner Voting',
+        'Proxy Collection',
+        'Election Reporting',
+        'Ballot Tracking',
+        'Audit History',
+      ],
     },
     {
       name: 'White-Labeled Mobile App',
-      price: '$157–$3,600/year',
-      desc: 'Branded owner and board mobile experience under your company name.',
+      price: '$2,400/year',
+      desc: 'Launch Portier under your own company brand.',
+      expanded: [
+        'Company Branding',
+        'Branded Login Experience',
+        'Branded Mobile Application',
+        'Custom Colors & Logo',
+      ],
     },
     {
-      name: 'Advanced Analytics & Executive Reporting',
-      price: '$157–$3,600/year',
-      desc: 'Portfolio performance dashboards and executive-level reporting.',
+      name: 'Executive Analytics Suite',
+      price: '$2,400/year',
+      desc: 'Advanced reporting and portfolio intelligence.',
+      expanded: [
+        'Executive Dashboards',
+        'Financial Trends',
+        'Delinquency Analytics',
+        'Maintenance Analytics',
+        'Board Performance Metrics',
+      ],
     },
     {
       name: 'AI Collections Assistant',
-      price: '$157–$3,600/year',
-      desc: 'Automated collection workflows, reminders, payment follow-up, and delinquency tracking.',
-    },
-    {
-      name: 'Violation Management & Enforcement Suite',
-      price: '$157–$3,600/year',
-      desc: 'Complete violation tracking, owner notices, photo uploads, compliance deadlines, hearing scheduling, board decisions, fine tracking, repeat violation history, and reporting.',
+      price: '$1,800/year',
+      desc: 'Automated collections and delinquency follow-up.',
       expanded: [
-        'Owner-submitted violations',
-        'Manager violation review queue',
-        'Photo and document uploads',
-        'Notice generation',
-        'Hearing scheduling',
-        'Board decision tracking',
-        'Fine and charge tracking',
-        'Repeat offender history',
-        'Compliance deadline reminders',
-        'Violation reports by association',
+        'Automated Reminder Sequences',
+        'Delinquency Monitoring',
+        'Collection Workflows',
+        'Owner Communications',
+        'Payment Follow-Up',
       ],
     },
   ];
@@ -411,13 +472,10 @@ export function AddOnsSection() {
     <section className="border-t border-slate-800 bg-[#060B18] py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Annual Add-On Services</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Annual Add-Ons</span>
           <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
-            Enhance your portfolio
+            Enhance your platform with optional services.
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-slate-400">
-            Specialized services to extend your platform.
-          </p>
         </div>
 
         <div className="mx-auto mt-16 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -425,9 +483,10 @@ export function AddOnsSection() {
             <div key={addon.name} className="flex flex-col rounded-xl border border-slate-800 bg-[#0B1121] p-6 transition-colors hover:border-slate-700">
               <h3 className="text-lg font-semibold text-white">{addon.name}</h3>
               <p className="mt-1 text-sm font-semibold text-emerald-400">{addon.price}</p>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">{addon.desc}</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">{addon.desc}</p>
               {addon.expanded && (
                 <ul className="mt-4 space-y-1.5 border-t border-slate-800 pt-4">
+                  <li className="text-xs font-semibold text-slate-300 mb-1">Includes:</li>
                   {addon.expanded.map((item) => (
                     <li key={item} className="flex items-start gap-2 text-xs text-slate-400">
                       <span className="mt-0.5"><Check /></span>
@@ -444,35 +503,40 @@ export function AddOnsSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   WHY SWITCH
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   WHY COMPANIES CHOOSE PORTIER369
+   ═══════════════════════════════════════════════════════════════════ */
 export function WhySwitchSection() {
   const reasons = [
     {
       icon: DollarSign,
       title: 'Save More',
-      desc: 'Many management companies reduce software costs by 40–60% compared to the other major providers still running 20 year old software.',
-    },
-    {
-      icon: Zap,
-      title: 'Go Live Faster',
-      desc: 'Most clients are fully operational in days — not months.',
+      desc: 'Reduce software expenses by up to 60% compared to traditional platforms.',
     },
     {
       icon: Users,
       title: 'Unlimited Users',
-      desc: 'No per-seat pricing. No surprise user fees.',
+      desc: 'No per-seat pricing. No surprise user charges.',
     },
     {
       icon: Building2,
-      title: 'Built for Associations',
-      desc: 'Designed specifically for condominium, HOA, and townhome management — not apartments.',
+      title: 'Built for Community Associations',
+      desc: 'Purpose-built for condominiums, townhomes, and HOAs.',
     },
     {
       icon: HeartHandshake,
       title: 'White-Glove Migration',
-      desc: 'We import your units, owners, vendors, balances, and documents so your team can stay focused on operations.',
+      desc: 'We import owners, units, vendors, balances, documents, and historical data.',
+    },
+    {
+      icon: Zap,
+      title: 'Fast Implementation',
+      desc: 'Most companies are operational within days, not months.',
+    },
+    {
+      icon: FileCheck,
+      title: 'No Long-Term Contracts',
+      desc: 'Stay because you love the platform, not because you\'re locked into it.',
     },
   ];
 
@@ -480,9 +544,9 @@ export function WhySwitchSection() {
     <section className="border-t border-slate-800 bg-[#0B1121] py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">The Portier Difference</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">The Portier369 Difference</span>
           <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
-            Why Management Companies Switch to Portier
+            Why Companies Choose Portier369
           </h2>
         </div>
 
@@ -505,9 +569,9 @@ export function WhySwitchSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    FAQ
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function FAQSection() {
   return (
     <section className="border-t border-slate-800 bg-[#0B1121] py-28">
@@ -524,7 +588,7 @@ export function FAQSection() {
             ['Do you support HOAs, condos, and townhomes?',
              'Yes — condominium, HOA, and townhome association management is our primary market. The platform is designed specifically for community associations, not apartments.'],
             ['How does violation tracking work?',
-             'Foundation includes basic violation logging. Growth and above include the full workflow — owner-submitted violations, manager review queue, notices, hearings, fines, compliance deadlines, and repeat offender history. The advanced Violation Management Suite add-on adds enforcement automation.'],
+             'Foundation includes basic violation logging. Growth and above include the full workflow — owner-submitted violations, manager review queue, notices, hearings, fines, compliance deadlines, and repeat offender history. The advanced ViolationFlow™ Enforcement Suite add-on adds enforcement automation.'],
             ['Are there per-user fees?',
              'Never. Every plan includes unlimited users — managers, board members, owners, vendors. You pay based on portfolio size, not headcount.'],
             ['How do I get started?',
@@ -541,9 +605,9 @@ export function FAQSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    CONTACT / REQUEST MORE INFO
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function ContactSection() {
   return (
     <section className="border-t border-slate-800 bg-[#060B18] py-28">
@@ -566,9 +630,9 @@ export function ContactSection() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    CTA
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export function CTASection() {
   return (
     <section className="border-t border-slate-800 bg-[#060B18]">
