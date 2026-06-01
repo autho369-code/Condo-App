@@ -21,17 +21,17 @@ export default function ContactPage() {
             <div>
               <label className="block text-sm font-medium text-slate-300">Name</label>
               <input type="text" name="name" required
-                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300">Company</label>
               <input type="text" name="company" required
-                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300">Email</label>
               <input type="email" name="email" required
-                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300">How many units do you manage?</label>
@@ -48,14 +48,14 @@ export default function ContactPage() {
             <div>
               <label className="block text-sm font-medium text-slate-300">Message</label>
               <textarea name="message" rows={4} required
-                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-[#0A1628] px-4 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 placeholder="Tell us about your needs..." />
             </div>
             <button type="submit"
               className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition-all hover:bg-emerald-400">
               Send message
             </button>
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-slate-400">
               We&apos;ll get back to you within 24 hours. No spam, no sales calls.
             </p>
           </form>

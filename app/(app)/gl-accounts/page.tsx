@@ -34,11 +34,11 @@ export default async function GLAccountsPage() {
   return (
     <ModulePage title="GL Accounts" description="Chart of accounts for the portfolio. Ranges follow standard accounting conventions.">
       {grouped.length === 0 ? (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No GL accounts configured yet.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No GL accounts configured yet.</p>
       ) : (
         grouped.map((g) => (
           <section key={g.label} className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
               {g.from}s — {g.label} <span className="ml-1 font-normal text-gray-400">({g.items.length})</span>
             </h2>
             <Table>
@@ -49,8 +49,8 @@ export default async function GLAccountsPage() {
                     <TD className="font-mono tabular-nums">{a.number}</TD>
                     <TD className="font-medium">{a.name}</TD>
                     <TD className="text-sm capitalize text-gray-700">{a.account_type?.replace(/_/g, ' ')}</TD>
-                    <TD className="text-sm capitalize text-gray-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
-                    <TD className="text-xs text-gray-500">
+                    <TD className="text-sm capitalize text-slate-400">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
+                    <TD className="text-xs text-slate-400">
                       {a.include_on_cash_flow && <span className="mr-1 rounded bg-blue-100 px-1.5 py-0.5 text-blue-700">cash flow</span>}
                       {a.subject_to_management_fees && <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-700">mgmt fee</span>}
                     </TD>

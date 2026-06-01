@@ -80,10 +80,10 @@ export default async function VendorCompliancePage({
               const request = vendorRequests[0];
               return (
                 <TR key={vendor.id} className="hover:bg-gray-50">
-                  <TD><div className="font-medium text-gray-950">{vendor.name}</div><div className="mt-1 text-xs capitalize text-gray-500">{vendor.trade?.replace(/_/g, ' ')}</div></TD>
-                  <TD><StatusChip tone={docs.length ? 'success' : 'warning'}>{docs.length} on file</StatusChip><div className="mt-1 text-xs text-gray-500">{doc?.doc_type ?? 'No document uploaded'}</div></TD>
+                  <TD><div className="font-medium text-gray-950">{vendor.name}</div><div className="mt-1 text-xs capitalize text-slate-400">{vendor.trade?.replace(/_/g, ' ')}</div></TD>
+                  <TD><StatusChip tone={docs.length ? 'success' : 'warning'}>{docs.length} on file</StatusChip><div className="mt-1 text-xs text-slate-400">{doc?.doc_type ?? 'No document uploaded'}</div></TD>
                   <TD><StatusChip tone={expirationTone(doc?.expires_at ?? null)}>{doc?.expires_at ? date(doc.expires_at) : 'No expiration'}</StatusChip></TD>
-                  <TD><div className="capitalize">{request?.status?.replace(/_/g, ' ') ?? 'No open request'}</div><div className="mt-1 text-xs text-gray-500">Due {date(request?.due_date)}</div></TD>
+                  <TD><div className="capitalize">{request?.status?.replace(/_/g, ' ') ?? 'No open request'}</div><div className="mt-1 text-xs text-slate-400">Due {date(request?.due_date)}</div></TD>
                   <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=document_request`} className="text-sm font-medium text-blue-700 hover:underline">Stage request</Link></TD>
                 </TR>
               );

@@ -227,7 +227,7 @@ export default async function AuditLogsPage({
     <div className="-mx-8 -my-8 min-h-[calc(100vh-64px)] bg-[#060B18]">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="[&_h1]:text-white [&_.text-gray-500]:text-slate-400 [&_.text-gray-900]:text-white">
+        <div className="[&_h1]:text-white [&_.text-slate-400]:text-slate-400 [&_.text-gray-900]:text-white">
           <WorkspaceHeader
             eyebrow="Security & Compliance"
             title="Audit Logs & Login History"
@@ -254,7 +254,7 @@ export default async function AuditLogsPage({
             <div className="flex items-center gap-2">
               <FileSearch className="h-4 w-4 text-slate-400" />
               <h2 className="text-sm font-semibold text-white">Audit Log Entries</h2>
-              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-500">
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-400">
                 {filteredLogs.length} of {totalLogEntries}
               </span>
             </div>
@@ -273,7 +273,7 @@ export default async function AuditLogsPage({
                   name="search"
                   defaultValue={search}
                   placeholder="Actor, action, entity, IP…"
-                  className="mt-1 h-8 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-600 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 w-52"
+                  className="mt-1 h-8 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-400 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 w-52"
                 />
               </label>
 
@@ -356,7 +356,7 @@ export default async function AuditLogsPage({
               {(search || entityTypeFilter || actionFilter || dateFrom || dateTo) && (
                 <a
                   href="/platform/audit-logs"
-                  className="inline-flex h-8 items-center text-xs text-slate-500 hover:text-slate-300 transition"
+                  className="inline-flex h-8 items-center text-xs text-slate-400 hover:text-slate-300 transition"
                 >
                   Clear all
                 </a>
@@ -384,7 +384,7 @@ export default async function AuditLogsPage({
               <tbody>
                 {filteredLogs.length === 0 ? (
                   <TR className="border-white/[0.04]">
-                    <TD colSpan={7} className="py-14 text-center text-slate-500">
+                    <TD colSpan={7} className="py-14 text-center text-slate-400">
                       {search || entityTypeFilter || actionFilter || dateFrom || dateTo
                         ? 'No audit entries match your filters.'
                         : 'No audit log entries recorded yet.'}
@@ -404,11 +404,11 @@ export default async function AuditLogsPage({
                       <TD>
                         {log.actor_email ? (
                           <span className="inline-flex items-center gap-1.5 text-sm text-slate-300">
-                            <UserCheck className="h-3.5 w-3.5 text-slate-500" />
+                            <UserCheck className="h-3.5 w-3.5 text-slate-400" />
                             {log.actor_email}
                           </span>
                         ) : (
-                          <span className="text-sm text-slate-600">System</span>
+                          <span className="text-sm text-slate-400">System</span>
                         )}
                       </TD>
                       <TD>
@@ -420,17 +420,17 @@ export default async function AuditLogsPage({
                         <span className="text-sm text-slate-400">{log.entity_type || '—'}</span>
                       </TD>
                       <TD>
-                        <span className="font-mono text-xs text-slate-500">
+                        <span className="font-mono text-xs text-slate-400">
                           {log.entity_id ? log.entity_id.slice(0, 8) + '…' : '—'}
                         </span>
                       </TD>
                       <TD>
-                        <span className="font-mono text-xs text-slate-500 max-w-[180px] truncate block">
+                        <span className="font-mono text-xs text-slate-400 max-w-[180px] truncate block">
                           {jsonPreview(log.changes)}
                         </span>
                       </TD>
                       <TD>
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                           <Globe className="h-3 w-3" />
                           {log.ip_address || '—'}
                         </span>
@@ -443,7 +443,7 @@ export default async function AuditLogsPage({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-white/[0.04] px-4 py-2 text-xs text-slate-600">
+          <div className="border-t border-white/[0.04] px-4 py-2 text-xs text-slate-400">
             Showing {filteredLogs.length} of {totalLogEntries} audit log entries
             {(search || entityTypeFilter || actionFilter || dateFrom || dateTo) && ' (filtered)'}
           </div>
@@ -455,7 +455,7 @@ export default async function AuditLogsPage({
             <div className="flex items-center gap-2">
               <LogIn className="h-4 w-4 text-slate-400" />
               <h2 className="text-sm font-semibold text-white">Login History</h2>
-              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-500">
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-400">
                 {loginAttempts.length} attempts
               </span>
             </div>
@@ -478,7 +478,7 @@ export default async function AuditLogsPage({
               <tbody>
                 {loginAttempts.length === 0 ? (
                   <TR className="border-white/[0.04]">
-                    <TD colSpan={5} className="py-14 text-center text-slate-500">
+                    <TD colSpan={5} className="py-14 text-center text-slate-400">
                       No login attempts recorded yet.
                     </TD>
                   </TR>
@@ -499,7 +499,7 @@ export default async function AuditLogsPage({
                         </span>
                       </TD>
                       <TD>
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                           <Globe className="h-3 w-3" />
                           {la.ip_address || '—'}
                         </span>
@@ -524,7 +524,7 @@ export default async function AuditLogsPage({
                             MFA
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-600">—</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </TD>
                     </TR>

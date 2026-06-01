@@ -35,7 +35,7 @@ export default async function MetricsPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className="rounded border border-gray-200 bg-white p-4">
-            <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{t.label}</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-slate-400">{t.label}</div>
             <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{t.value}</div>
           </div>
         ))}

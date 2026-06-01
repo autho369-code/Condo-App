@@ -46,7 +46,7 @@ function StatusBadge({ status }: { status: string | null }) {
     suspended: { color: 'text-amber-400 bg-amber-400/10', label: 'Suspended' },
     archived: { color: 'text-red-400 bg-red-400/10', label: 'Archived' },
   };
-  const s = (status && map[status]) ? map[status] : { color: 'text-slate-500 bg-slate-500/10', label: status ?? 'Unknown' };
+  const s = (status && map[status]) ? map[status] : { color: 'text-slate-400 bg-slate-500/10', label: status ?? 'Unknown' };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${s.color}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -83,7 +83,7 @@ export default async function AssociationsPortfolioPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -232,11 +232,11 @@ export default async function AssociationsPortfolioPage() {
       {/* Search + Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[260px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search associations..."
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-10 pr-4 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-10 pr-4 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
         <Button variant="secondary" size="sm" className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800">
@@ -254,7 +254,7 @@ export default async function AssociationsPortfolioPage() {
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-16 text-center">
           <Building2 className="h-10 w-10 text-slate-700 mx-auto mb-4" />
           <p className="text-sm font-medium text-slate-400">No associations found</p>
-          <p className="text-xs text-slate-600 mt-1">Add your first association to get started.</p>
+          <p className="text-xs text-slate-400 mt-1">Add your first association to get started.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-white/[0.06] overflow-hidden">
@@ -281,18 +281,18 @@ export default async function AssociationsPortfolioPage() {
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-sm font-medium text-white">{a.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{a.address}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{a.address}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm text-slate-300">
-                        <MapPin className="h-3 w-3 text-slate-500 shrink-0" />
+                        <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
                         {a.city}, {a.state}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm text-slate-300">
-                        <DoorOpen className="h-3.5 w-3.5 text-slate-500" />
+                        <DoorOpen className="h-3.5 w-3.5 text-slate-400" />
                         {a.unit_count ?? '—'}
                       </div>
                     </td>
@@ -301,11 +301,11 @@ export default async function AssociationsPortfolioPage() {
                         <div>
                           <p className="text-sm text-slate-300">{a.manager.full_name ?? 'Unnamed'}</p>
                           {a.manager.email && (
-                            <p className="text-xs text-slate-500 truncate max-w-[160px]">{a.manager.email}</p>
+                            <p className="text-xs text-slate-400 truncate max-w-[160px]">{a.manager.email}</p>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-600 italic">Unassigned</span>
+                        <span className="text-xs text-slate-400 italic">Unassigned</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -314,14 +314,14 @@ export default async function AssociationsPortfolioPage() {
                           <p className="text-sm text-slate-300">{a.board[0].full_name}</p>
                           {(a.board[0].email || a.board[0].phone) && (
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              {a.board[0].email && <Mail className="h-3 w-3 text-slate-500" />}
-                              {a.board[0].phone && <Phone className="h-3 w-3 text-slate-500" />}
-                              <span className="text-xs text-slate-500">{a.board[0].email || a.board[0].phone}</span>
+                              {a.board[0].email && <Mail className="h-3 w-3 text-slate-400" />}
+                              {a.board[0].phone && <Phone className="h-3 w-3 text-slate-400" />}
+                              <span className="text-xs text-slate-400">{a.board[0].email || a.board[0].phone}</span>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-600 italic">No board</span>
+                        <span className="text-xs text-slate-400 italic">No board</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -333,7 +333,7 @@ export default async function AssociationsPortfolioPage() {
                           {a.openWOs}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-600">0</span>
+                        <span className="text-xs text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -345,14 +345,14 @@ export default async function AssociationsPortfolioPage() {
                           {a.openViolations}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-600">0</span>
+                        <span className="text-xs text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <HealthBadge score={a.healthScore} />
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-400">
                         {a.manager?.last_login_at ? timeAgo(a.manager.last_login_at) : '—'}
                       </span>
                     </td>
@@ -394,23 +394,23 @@ export default async function AssociationsPortfolioPage() {
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Total</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Total</p>
               <p className="text-lg font-bold text-white">{totalAssociations}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Total Doors</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Total Doors</p>
               <p className="text-lg font-bold text-white">
                 {enriched.reduce((sum, a) => sum + (a.unit_count ?? 0), 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Assigned</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Assigned</p>
               <p className="text-lg font-bold text-white">
                 {enriched.filter((a: any) => !!a.manager).length} / {totalAssociations}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Open Issues</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Open Issues</p>
               <p className="text-lg font-bold text-white">
                 {enriched.reduce((sum, a) => sum + a.healthScore, 0)}
               </p>

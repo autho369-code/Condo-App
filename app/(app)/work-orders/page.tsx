@@ -31,7 +31,7 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">Work Orders</nav>
+      <nav className="text-xs font-semibold uppercase tracking-wider text-slate-400">Work Orders</nav>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">Work Orders</h1>
         <Link href="/work-orders/new"><Button>+ New work order</Button></Link>
@@ -43,8 +43,8 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
           const isActive = t.key === tab;
           return (
             <Link key={t.key} href={`/work-orders?tab=${t.key}`}
-              className={`border-b-2 px-4 py-2 text-sm transition ${isActive ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
-              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${isActive ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+              className={`border-b-2 px-4 py-2 text-sm transition ${isActive ? 'border-brand-600 font-medium text-brand-600' : 'border-transparent text-slate-400 hover:text-gray-900'}`}>
+              {t.label} <span className={`ml-1 rounded px-1.5 text-xs tabular-nums ${isActive ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-slate-400'}`}>{count}</span>
             </Link>
           );
         })}
@@ -61,19 +61,19 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
                 <TD className="text-sm text-gray-700">{w.associations?.name}{w.units?.unit_number ? ` · Unit ${w.units.unit_number}` : ''}</TD>
                 <TD className="text-sm text-gray-700">{w.vendors?.name ?? <span className="text-red-600">Unassigned</span>}</TD>
                 <TD><Priority p={w.priority} /></TD>
-                <TD className="text-sm capitalize text-gray-600">{w.status?.replace(/_/g, ' ')}</TD>
-                <TD className="whitespace-nowrap text-sm text-gray-600">{date(w.scheduled_date)}</TD>
+                <TD className="text-sm capitalize text-slate-400">{w.status?.replace(/_/g, ' ')}</TD>
+                <TD className="whitespace-nowrap text-sm text-slate-400">{date(w.scheduled_date)}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
-      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No work orders in this view.</p>}
+      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No work orders in this view.</p>}
     </div>
   );
 }
 
 function Priority({ p }: { p?: string | null }) {
-  const m: Record<string, string> = { emergency: 'bg-red-100 text-red-800', high: 'bg-orange-100 text-orange-800', normal: 'bg-gray-100 text-gray-700', low: 'bg-gray-100 text-gray-500' };
+  const m: Record<string, string> = { emergency: 'bg-red-100 text-red-800', high: 'bg-orange-100 text-orange-800', normal: 'bg-gray-100 text-gray-700', low: 'bg-gray-100 text-slate-400' };
   if (!p) return null;
   return <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize ${m[p] ?? m.normal}`}>{p}</span>;
 }

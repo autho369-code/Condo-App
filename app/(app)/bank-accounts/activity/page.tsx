@@ -43,15 +43,15 @@ export default async function BankActivityPage({
         ]} />
 
         <FilterBar action="/bank-accounts/activity" searchName="bank_account_id" searchDefault={bank_account_id} searchPlaceholder="Bank account ID">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-slate-400">
             Account
             <select name="bank_account_id" defaultValue={bank_account_id} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
               <option value="">All accounts</option>
               {(accounts ?? []).map((account: any) => <option key={account.id} value={account.id}>{account.name}</option>)}
             </select>
           </label>
-          <label className="text-xs font-medium uppercase text-gray-500">From<input type="date" name="from" defaultValue={from} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
-          <label className="text-xs font-medium uppercase text-gray-500">To<input type="date" name="to" defaultValue={to} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
+          <label className="text-xs font-medium uppercase text-slate-400">From<input type="date" name="from" defaultValue={from} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
+          <label className="text-xs font-medium uppercase text-slate-400">To<input type="date" name="to" defaultValue={to} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
         </FilterBar>
 
         <Table>

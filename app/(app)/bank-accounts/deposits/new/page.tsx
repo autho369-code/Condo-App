@@ -17,7 +17,7 @@ export default async function NewBankDepositPage() {
     <DataWorkspace
       title="New bank deposit"
       description="Pick the account and scope before building a deposit worksheet. No funds are transmitted from this draft screen."
-      rail={<p className="text-sm leading-6 text-gray-600">Use this to stage deposits and confirm the association or unit scope before posting.</p>}
+      rail={<p className="text-sm leading-6 text-slate-400">Use this to stage deposits and confirm the association or unit scope before posting.</p>}
     >
       <form className="rounded border border-gray-200 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
@@ -29,7 +29,7 @@ export default async function NewBankDepositPage() {
           <input className="h-10 rounded border border-gray-300 px-3 text-sm" placeholder="Reference" />
           <Button type="button">Search open items</Button>
         </div>
-        <div className="mt-6 rounded border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">Select a scope to build the deposit worksheet.</div>
+        <div className="mt-6 rounded border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-sm text-slate-400">Select a scope to build the deposit worksheet.</div>
       </form>
     </DataWorkspace>
   );

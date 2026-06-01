@@ -115,7 +115,7 @@ export default function RequestForm() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/20 px-4 py-3">
           <p className="text-sm text-red-400">{error}</p>
         </div>
       )}

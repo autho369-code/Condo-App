@@ -55,7 +55,7 @@ export default async function BankAccountsPage({
         />
 
         <FilterBar action="/bank-accounts" searchDefault={q} searchPlaceholder="Search account name">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-slate-400">
             Bank
             <input
               name="bank"
@@ -64,7 +64,7 @@ export default async function BankAccountsPage({
               className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case text-gray-900"
             />
           </label>
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-slate-400">
             Queue
             <select name="filter" defaultValue={filter} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
               <option value="">All accounts</option>
@@ -91,12 +91,12 @@ export default async function BankAccountsPage({
                 <TR key={account.id}>
                   <TD>
                     <div className="font-medium text-gray-900">{account.name}</div>
-                    <div className="text-xs capitalize text-gray-500">{account.account_type?.replace(/_/g, ' ')}</div>
+                    <div className="text-xs capitalize text-slate-400">{account.account_type?.replace(/_/g, ' ')}</div>
                   </TD>
                   <TD className="text-sm text-gray-700">{account.bank_name ?? 'Not provided'}</TD>
-                  <TD className="text-sm text-gray-600">{account.associations?.name ?? 'Portfolio-level'}</TD>
-                  <TD className="text-sm text-gray-600">{date(account.last_reconciliation_date)}</TD>
-                  <TD className="text-xs text-gray-600">
+                  <TD className="text-sm text-slate-400">{account.associations?.name ?? 'Portfolio-level'}</TD>
+                  <TD className="text-sm text-slate-400">{date(account.last_reconciliation_date)}</TD>
+                  <TD className="text-xs text-slate-400">
                     <div>Acct {maskBankNumber(account.account_number)}</div>
                     <div>Routing {maskBankNumber(account.routing_number)}</div>
                   </TD>
@@ -107,7 +107,7 @@ export default async function BankAccountsPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-slate-400">
             No bank accounts match this view.
           </p>
         )}

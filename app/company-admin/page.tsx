@@ -103,9 +103,9 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
           {delta && (
             <div className="flex items-center gap-1">
               {delta.up ? (
@@ -188,7 +188,7 @@ function ExecRow({
       <span className="text-sm text-slate-300">{label}</span>
       <div className="text-right">
         <span className="text-sm font-semibold tabular-nums text-white">{value}</span>
-        {sub && <span className="ml-1.5 text-xs text-slate-500">{sub}</span>}
+        {sub && <span className="ml-1.5 text-xs text-slate-400">{sub}</span>}
       </div>
     </div>
   );
@@ -217,7 +217,7 @@ function QuickAction({
       </div>
       <div>
         <p className="text-sm font-medium text-white">{label}</p>
-        <p className="text-xs text-slate-500">{sub}</p>
+        <p className="text-xs text-slate-400">{sub}</p>
       </div>
     </Link>
   );
@@ -233,9 +233,9 @@ function AlertPill({
   href: string;
 }) {
   const colors: Record<string, string> = {
-    critical: 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20',
-    info: 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/20',
+    critical: 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/20',
+    warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/20',
+    info: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/20',
   };
   return (
     <Link
@@ -277,7 +277,7 @@ export default async function CompanyAdminOverviewPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -455,7 +455,7 @@ export default async function CompanyAdminOverviewPage() {
           </div>
           <div className="divide-y divide-white/[0.04]">
             {(recentActivity ?? []).length === 0 ? (
-              <div className="px-5 py-8 text-center text-sm text-slate-500">No recent activity</div>
+              <div className="px-5 py-8 text-center text-sm text-slate-400">No recent activity</div>
             ) : (
               (recentActivity ?? []).slice(0, 8).map((entry: any) => (
                 <div key={entry.id} className="flex items-center justify-between px-5 py-3">
@@ -463,10 +463,10 @@ export default async function CompanyAdminOverviewPage() {
                     <div className={`h-2 w-2 rounded-full ${entry.action?.includes('fail') || entry.action?.includes('disabled') ? 'bg-red-400' : 'bg-emerald-400'}`} />
                     <div>
                       <p className="text-sm text-slate-300">{entry.action}</p>
-                      <p className="text-xs text-slate-500">{entry.actor_email} · {entry.entity_type}</p>
+                      <p className="text-xs text-slate-400">{entry.actor_email} · {entry.entity_type}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-600">{timeAgo(entry.created_at)}</span>
+                  <span className="text-xs text-slate-400">{timeAgo(entry.created_at)}</span>
                 </div>
               ))
             )}
@@ -482,7 +482,7 @@ export default async function CompanyAdminOverviewPage() {
 
         {/* Quick Actions */}
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 px-1">Quick Actions</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">Quick Actions</h3>
           <QuickAction label="Invite Manager" sub="Add a new property manager" icon={Plus} href="/company-admin/managers" />
           <QuickAction label="Add Association" sub="Onboard a new HOA/Condo" icon={Building2} href="/company-admin/associations" />
           <QuickAction label="Request More Doors" sub="Increase door capacity" icon={DoorOpen} href="/company-admin/platform-requests" />

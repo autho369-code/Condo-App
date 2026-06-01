@@ -25,7 +25,7 @@ export default async function PortalHome() {
     <div className="space-y-8">
       <header>
         <h1 className="text-2xl font-semibold">Welcome{me.profile?.full_name ? `, ${me.profile.full_name.split(' ')[0]}` : ''}</h1>
-        <p className="text-sm text-gray-500">Your account overview</p>
+        <p className="text-sm text-slate-400">Your account overview</p>
       </header>
 
       <div className="grid grid-cols-2 gap-4">
@@ -42,7 +42,7 @@ export default async function PortalHome() {
               <li key={u.unit_id} className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">{u.association_name} · Unit {u.unit_number}</div>
-                  <div className="text-xs text-gray-500">Charged {money(u.total_charged)} · Paid {money(u.total_paid)}</div>
+                  <div className="text-xs text-slate-400">Charged {money(u.total_charged)} · Paid {money(u.total_paid)}</div>
                 </div>
                 <div className="text-right">
                   <div className={`font-medium ${Number(u.outstanding_balance) > 0 ? 'text-red-600' : ''}`}>{money(u.outstanding_balance)}</div>

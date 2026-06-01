@@ -136,7 +136,7 @@ export default async function AssociationUnitsTab({
     >
       <div className="overflow-hidden rounded border border-gray-200 bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
             <tr>
               <th className="w-20 px-4 py-2 text-left font-semibold">Unit</th>
               <th className="px-4 py-2 text-left font-semibold">Homeowner</th>
@@ -147,7 +147,7 @@ export default async function AssociationUnitsTab({
           </thead>
           <tbody>
             {slice.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">No units in this association.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">No units in this association.</td></tr>
             ) : slice.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                 <td className="px-4 py-3">
@@ -169,7 +169,7 @@ export default async function AssociationUnitsTab({
         </table>
       </div>
 
-      <div className="mt-3 text-sm text-gray-600">
+      <div className="mt-3 text-sm text-slate-400">
         Displaying: <span className="tabular-nums">{total === 0 ? 0 : start + 1}</span>-<span className="tabular-nums">{end}</span> of <span className="tabular-nums">{total}</span>
       </div>
     </Workspace>

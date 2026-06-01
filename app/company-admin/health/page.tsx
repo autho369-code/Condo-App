@@ -109,9 +109,9 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -163,7 +163,7 @@ export default async function PortfolioHealthPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">
             Contact the platform operator to set up your company.
@@ -375,7 +375,7 @@ export default async function PortfolioHealthPage() {
               />
             )}
           </div>
-          <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+          <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" /> Healthy
             </span>
@@ -403,7 +403,7 @@ export default async function PortfolioHealthPage() {
 
         {healthScores.length === 0 ? (
           <div className="px-5 py-10 text-center">
-            <Building2 className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+            <Building2 className="h-8 w-8 text-slate-400 mx-auto mb-3" />
             <p className="text-sm text-slate-400">No associations found</p>
           </div>
         ) : (
@@ -433,7 +433,7 @@ export default async function PortfolioHealthPage() {
                       <p className="text-sm font-medium text-white">
                         {h.associationName}
                       </p>
-                      <p className="text-xs text-slate-500">{h.city}</p>
+                      <p className="text-xs text-slate-400">{h.city}</p>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5">
@@ -456,7 +456,7 @@ export default async function PortfolioHealthPage() {
                         className={
                           h.overdueWorkOrders > 0
                             ? 'text-red-400 font-semibold'
-                            : 'text-slate-500'
+                            : 'text-slate-400'
                         }
                       >
                         {h.overdueWorkOrders}
@@ -465,7 +465,7 @@ export default async function PortfolioHealthPage() {
                     <td className="px-5 py-3 text-center text-sm tabular-nums text-slate-300">
                       {h.openViolations}
                     </td>
-                    <td className="px-5 py-3 text-center text-xs text-slate-500 tabular-nums">
+                    <td className="px-5 py-3 text-center text-xs text-slate-400 tabular-nums">
                       {fmtSince(h.managerLastLogin)}
                     </td>
                     <td className="px-5 py-3 text-center text-sm tabular-nums font-bold text-white">
@@ -494,7 +494,7 @@ export default async function PortfolioHealthPage() {
           </div>
           {workloadList.length === 0 ? (
             <div className="px-5 py-8 text-center">
-              <Users className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+              <Users className="h-8 w-8 text-slate-400 mx-auto mb-3" />
               <p className="text-sm text-slate-400">No managers assigned</p>
             </div>
           ) : (
@@ -517,7 +517,7 @@ export default async function PortfolioHealthPage() {
                       >
                         {w.name}
                       </span>
-                      <p className="text-xs text-slate-500">Last login: {fmtSince(w.lastLogin)}</p>
+                      <p className="text-xs text-slate-400">Last login: {fmtSince(w.lastLogin)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
@@ -550,7 +550,7 @@ export default async function PortfolioHealthPage() {
             <div className="flex items-center justify-between px-5 py-3">
               <span className="text-sm text-slate-400">Average Response Time</span>
               <span className="text-sm font-semibold tabular-nums text-white">
-                — <span className="text-xs text-slate-500 ml-1">not tracked</span>
+                — <span className="text-xs text-slate-400 ml-1">not tracked</span>
               </span>
             </div>
             <div className="flex items-center justify-between px-5 py-3">

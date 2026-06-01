@@ -14,7 +14,7 @@ export function ContextPanel({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-3">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         {/* Decorative close — panel remains mounted; stub until client-side toggle exists */}
-        <span className="cursor-pointer text-gray-400 hover:text-gray-600" aria-hidden="true">×</span>
+        <span className="cursor-pointer text-gray-400 hover:text-slate-400" aria-hidden="true">×</span>
       </div>
       <div className="space-y-5 px-5 py-4">{children}</div>
     </aside>
@@ -34,7 +34,7 @@ export function PanelSection({
   return (
     <div>
       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-        {icon && <span className="text-gray-500">{icon}</span>}
+        {icon && <span className="text-slate-400">{icon}</span>}
         <span>{title}</span>
       </div>
       <ul className="space-y-1.5">{children}</ul>

@@ -43,7 +43,7 @@ export default async function BulkStatementSettingsPage() {
             <Row label="Update Settings for">
               <div className="space-y-2">
                 {associations.length === 0 ? (
-                  <p className="text-sm text-gray-500">No associations found. Create one first.</p>
+                  <p className="text-sm text-slate-400">No associations found. Create one first.</p>
                 ) : (
                   <div className="max-h-48 overflow-y-auto rounded border border-gray-200 bg-white">
                     {associations.map((a: any) => (
@@ -51,7 +51,7 @@ export default async function BulkStatementSettingsPage() {
                         <input type="checkbox" name="association_ids" value={a.id} className="h-4 w-4" />
                         <span className="text-gray-900">{a.name}</span>
                         {(a.address || a.city) && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-slate-400">
                             — {[a.address, [a.city, a.state].filter(Boolean).join(', ')].filter(Boolean).join(' ')}
                           </span>
                         )}
@@ -59,7 +59,7 @@ export default async function BulkStatementSettingsPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">By default, all properties and associations will be updated.</p>
+                <p className="text-xs text-slate-400">By default, all properties and associations will be updated.</p>
               </div>
             </Row>
 
@@ -132,7 +132,7 @@ export default async function BulkStatementSettingsPage() {
 
         <div className="flex items-center gap-3 pt-2">
           <Button type="submit" size="lg">Update Settings</Button>
-          <Link href="/associations" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href="/associations" className="text-sm text-slate-400 hover:text-gray-900">Cancel</Link>
         </div>
       </form>
     </div>

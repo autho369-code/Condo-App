@@ -296,7 +296,7 @@ export default async function PortfoliosPage({
         />
         <Card className="border-gray-800 bg-gray-900">
           <CardBody>
-            <p className="py-10 text-center text-gray-500">
+            <p className="py-10 text-center text-slate-400">
               No clients exist yet. Provision a client to get started.
             </p>
           </CardBody>
@@ -474,7 +474,7 @@ export default async function PortfoliosPage({
                 {order !== 'asc' && <input type="hidden" name="order" value={order} />}
                 <div className="relative">
                   <svg
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -486,7 +486,7 @@ export default async function PortfoliosPage({
                     name="search"
                     placeholder="Search by company, admin, or email..."
                     defaultValue={search}
-                    className="border-gray-700 bg-gray-900 pl-10 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                    className="border-gray-700 bg-gray-900 pl-10 text-gray-200 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
               </form>
@@ -560,7 +560,7 @@ export default async function PortfoliosPage({
                   <tbody>
                     {clientRows.length === 0 ? (
                       <TR className="border-gray-800">
-                        <TD colSpan={13} className="py-14 text-center text-gray-500">
+                        <TD colSpan={13} className="py-14 text-center text-slate-400">
                           {search || statusFilter !== 'all'
                             ? 'No clients match the current filters. Try adjusting your search or status filter.'
                             : 'No clients are visible to this platform operator.'}
@@ -577,7 +577,7 @@ export default async function PortfoliosPage({
                               {row.portfolio.company_name ?? 'Unnamed client'}
                             </Link>
                             {row.portfolio.address_city && (
-                              <div className="mt-0.5 text-xs text-gray-500">
+                              <div className="mt-0.5 text-xs text-slate-400">
                                 {row.portfolio.address_city}{row.portfolio.address_state ? `, ${row.portfolio.address_state}` : ''}
                               </div>
                             )}
@@ -587,7 +587,7 @@ export default async function PortfoliosPage({
                               {row.primaryAdmin?.full_name ?? row.primaryAdmin?.display_name ?? '-'}
                             </div>
                             {row.primaryAdmin?.hoa_role && (
-                              <div className="text-xs capitalize text-gray-500">{row.primaryAdmin.hoa_role}</div>
+                              <div className="text-xs capitalize text-slate-400">{row.primaryAdmin.hoa_role}</div>
                             )}
                           </TD>
                           <TD className="text-sm text-gray-400">{row.adminEmail}</TD>
@@ -619,7 +619,7 @@ export default async function PortfoliosPage({
             </Card>
 
             {/* Footer */}
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-slate-400">
               <span>
                 Showing {clientRows.length} of {allPortfolios.length} client{allPortfolios.length !== 1 ? 's' : ''}
               </span>
@@ -664,7 +664,7 @@ function StatDark({ label, value, sub }: { label: string; value: React.ReactNode
     <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</div>
       <div className="mt-1 text-2xl font-semibold text-gray-100">{value}</div>
-      {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }

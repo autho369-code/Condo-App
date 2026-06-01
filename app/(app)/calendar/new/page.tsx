@@ -32,13 +32,13 @@ export default async function NewCalendarEventPage({
     <div className="mx-auto h-full max-w-5xl overflow-y-auto px-8 py-6">
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
-          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <nav className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
             <Link href="/calendar" className="hover:text-brand-600">Calendar</Link>
             <span className="mx-2">/</span>
             New Event
           </nav>
           <h1 className="text-2xl font-semibold text-gray-900">Create association calendar event</h1>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
             Schedule the event once, then generate reminders, owner notices, vendor confirmations, and follow-up work from the same record.
           </p>
         </div>
@@ -161,7 +161,7 @@ export default async function NewCalendarEventPage({
                   {reminderLabel(minutes)}
                 </label>
               )) : (
-                <p className="text-sm text-gray-500">No default reminders. Add this event, then customize reminders in Automation Center.</p>
+                <p className="text-sm text-slate-400">No default reminders. Add this event, then customize reminders in Automation Center.</p>
               )}
             </div>
           </section>

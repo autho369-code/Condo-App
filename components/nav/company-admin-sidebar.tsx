@@ -34,7 +34,7 @@ export default function CompanyAdminSidebar({
         <div className="truncate text-sm font-semibold text-white">
           {companyName ?? 'Portier'}
         </div>
-        <div className="mt-0.5 text-xs text-slate-500">Company Admin</div>
+        <div className="mt-0.5 text-xs text-slate-400">Company Admin</div>
       </div>
 
       {/* Navigation */}
@@ -46,7 +46,7 @@ export default function CompanyAdminSidebar({
             className={
               'block px-4 py-2 text-sm ' +
               (active(module.href)
-                ? 'bg-emerald-500/10 font-medium text-emerald-400 border-r-2 border-emerald-500'
+                ? 'bg-emerald-500/20 font-medium text-emerald-400 border-r-2 border-emerald-500'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')
             }
           >
@@ -57,10 +57,10 @@ export default function CompanyAdminSidebar({
 
       {/* User footer */}
       <div className="border-t border-slate-800 px-4 py-3">
-        <div className="mb-1 truncate text-xs text-slate-500">{userEmail}</div>
+        <div className="mb-1 truncate text-xs text-slate-400">{userEmail}</div>
         <button
           onClick={handleLogout}
-          className="text-xs text-slate-500 hover:text-slate-300"
+          className="text-xs text-slate-400 hover:text-slate-300"
         >
           Log out
         </button>

@@ -32,7 +32,7 @@ export default async function DiagnosticsPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {tiles.map((t) => (
           <div key={t.label} className="rounded border border-gray-200 bg-white p-4">
-            <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{t.label}</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-slate-400">{t.label}</div>
             <div className={'mt-1 text-2xl font-semibold tabular-nums ' + (Number(t.value) > 0 ? 'text-red-700' : 'text-gray-900')}>{t.value}</div>
           </div>
         ))}
@@ -45,7 +45,7 @@ export default async function DiagnosticsPage() {
           <li><Link href="/reports/email_delivery_errors" className="text-brand-600 hover:underline">Email delivery errors →</Link></li>
           <li><Link href="/reports/users_and_permissions" className="text-brand-600 hover:underline">User roles &amp; permissions →</Link></li>
         </ul>
-        <p className="mt-3 text-xs text-gray-500">
+        <p className="mt-3 text-xs text-slate-400">
           Scans run via the <code className="rounded bg-gray-100 px-1">scan_data_diagnostics</code> and <code className="rounded bg-gray-100 px-1">scan_financial_diagnostics</code> functions on a nightly cron.
         </p>
       </div>

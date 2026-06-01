@@ -24,9 +24,9 @@ export default async function JournalEntriesPage() {
             {rows.map((j: any) => (
               <TR key={j.id}>
                 <TD className="whitespace-nowrap text-sm">{date(j.entry_date)}</TD>
-                <TD className="font-mono text-xs text-gray-600">{j.reference_number ?? '—'}</TD>
+                <TD className="font-mono text-xs text-slate-400">{j.reference_number ?? '—'}</TD>
                 <TD className="max-w-md truncate">{j.memo ?? '—'}</TD>
-                <TD className="text-xs capitalize text-gray-500">{j.source_type?.replace(/_/g, ' ') ?? 'manual'}</TD>
+                <TD className="text-xs capitalize text-slate-400">{j.source_type?.replace(/_/g, ' ') ?? 'manual'}</TD>
                 <TD>
                   {j.posted
                     ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">posted</span>
@@ -37,7 +37,7 @@ export default async function JournalEntriesPage() {
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No journal entries posted.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No journal entries posted.</p>
       )}
     </ModulePage>
   );

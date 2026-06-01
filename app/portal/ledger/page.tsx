@@ -56,7 +56,7 @@ export default async function LedgerPage() {
               <TR key={p.id}>
                 <TD>{date(p.payment_date)}</TD>
                 <TD className="uppercase">{p.method}</TD>
-                <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
+                <TD className="text-slate-400">{p.reference ?? p.notes ?? '—'}</TD>
                 <TD className="text-right text-green-600">{money(p.amount)}</TD>
               </TR>
             ))}

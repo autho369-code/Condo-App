@@ -144,7 +144,7 @@ export default async function AssociationsPage({
             {companyFilter && <input type="hidden" name="company" value={companyFilter} />}
             <div className="relative">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
@@ -156,7 +156,7 @@ export default async function AssociationsPage({
                 name="search"
                 placeholder="Search by name, company, or location..."
                 defaultValue={search}
-                className="border-gray-700 bg-gray-900 pl-10 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                className="border-gray-700 bg-gray-900 pl-10 text-gray-200 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
           </form>
@@ -201,7 +201,7 @@ export default async function AssociationsPage({
               <tbody>
                 {rows.length === 0 ? (
                   <TR className="border-gray-800">
-                    <TD colSpan={6} className="py-14 text-center text-gray-500">
+                    <TD colSpan={6} className="py-14 text-center text-slate-400">
                       {search || companyFilter
                         ? 'No associations match the current filters. Try adjusting your search or company filter.'
                         : 'No associations found.'}
@@ -240,7 +240,7 @@ export default async function AssociationsPage({
         </Card>
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-slate-400">
           <span>
             Showing {rows.length} of {allAssociations.length} association{allAssociations.length !== 1 ? 's' : ''}
           </span>
@@ -257,7 +257,7 @@ function StatDark({ label, value, sub }: { label: string; value: React.ReactNode
     <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</div>
       <div className="mt-1 text-2xl font-semibold text-gray-100">{value}</div>
-      {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }

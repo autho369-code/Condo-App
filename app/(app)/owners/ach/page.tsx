@@ -67,7 +67,7 @@ export default async function OwnerAchPage({ searchParams }: { searchParams: Pro
               <TR key={owner.id}>
                 <TD>
                   <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
-                  <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                  <div className="mt-1 text-xs text-slate-400">{owner.email}</div>
                 </TD>
                 <TD>
                   <StatusChip tone={ach?.status === 'verified' ? 'success' : ach?.status === 'failed' ? 'warning' : ach ? 'info' : 'neutral'}>
@@ -75,8 +75,8 @@ export default async function OwnerAchPage({ searchParams }: { searchParams: Pro
                   </StatusChip>
                   {ach?.last_error && <div className="mt-1 text-xs text-red-500">{ach.last_error}</div>}
                 </TD>
-                <TD className="text-sm text-gray-500">{ach?.invited_at ? new Date(ach.invited_at).toLocaleDateString() : '—'}</TD>
-                <TD className="text-sm text-gray-500">{ach?.completed_at ? new Date(ach.completed_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-slate-400">{ach?.invited_at ? new Date(ach.invited_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-slate-400">{ach?.completed_at ? new Date(ach.completed_at).toLocaleDateString() : '—'}</TD>
                 <TD>
                   {stripeConnected ? (
                     <form action={sendACHInvite}>

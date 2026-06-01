@@ -59,7 +59,7 @@ export default async function BoardTab({
     >
       <Section title="Board Members">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-2 text-left font-semibold">Name</th>
               <th className="px-4 py-2 text-left font-semibold">Role</th>
@@ -72,7 +72,7 @@ export default async function BoardTab({
           </thead>
           <tbody>
             {current.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No active board members.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No active board members.</td></tr>
             ) : current.map((m: any) => (
               <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                 <td className="px-4 py-3"><span className="text-blue-700">{m.full_name}</span></td>
@@ -91,12 +91,12 @@ export default async function BoardTab({
       <Section>
         <details className="px-5 py-3">
           <summary className="cursor-pointer text-sm font-semibold text-gray-900 list-none flex items-center gap-1">
-            <span className="text-gray-500 text-xs">▸</span>
+            <span className="text-slate-400 text-xs">▸</span>
             Past Board Members
-            {past.length > 0 && <span className="font-normal text-gray-500">({past.length})</span>}
+            {past.length > 0 && <span className="font-normal text-slate-400">({past.length})</span>}
           </summary>
           <table className="mt-3 w-full text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold">Name</th>
                 <th className="px-4 py-2 text-left font-semibold">Role</th>
@@ -106,7 +106,7 @@ export default async function BoardTab({
             </thead>
             <tbody>
               {past.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">No past board members.</td></tr>
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-slate-400">No past board members.</td></tr>
               ) : past.map((m: any) => (
                 <tr key={m.id} className="border-b border-gray-100 last:border-b-0">
                   <td className="px-4 py-3 text-gray-700">{m.full_name}</td>
@@ -126,16 +126,16 @@ export default async function BoardTab({
         padded
       >
         <dl className="grid grid-cols-[200px_1fr] gap-y-2.5 text-sm">
-          <dt className="text-gray-500">Signatures Required</dt>
+          <dt className="text-slate-400">Signatures Required</dt>
           <dd className="text-gray-900">{sigsRequired ? 'Yes' : 'No'}</dd>
 
-          <dt className="text-gray-500">Default Board Members</dt>
+          <dt className="text-slate-400">Default Board Members</dt>
           <dd className="text-gray-900">{defaultMembersLabel}</dd>
 
-          <dt className="text-gray-500">Voting Scheme</dt>
+          <dt className="text-slate-400">Voting Scheme</dt>
           <dd className="text-gray-900">{votingScheme}</dd>
 
-          <dt className="text-gray-500">Sends Bills To Board</dt>
+          <dt className="text-slate-400">Sends Bills To Board</dt>
           <dd className="text-gray-900">{sendsBills}</dd>
         </dl>
       </Section>

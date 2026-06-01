@@ -34,14 +34,14 @@ export default function BankAccountRows({ glAccounts }: { glAccounts: GLAccount[
               placeholder="Start typing to search"
               className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400"
             />
-            <p className="mt-0.5 text-xs text-gray-500 text-center">(Operating and Escrow Account)</p>
+            <p className="mt-0.5 text-xs text-slate-400 text-center">(Operating and Escrow Account)</p>
           </div>
           <div className="col-span-1">
             {rows.length > 1 && (
               <button
                 type="button"
                 onClick={() => setRows((xs) => xs.filter((x) => x !== i))}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-slate-400 hover:bg-gray-300"
                 aria-label="Remove"
               >
                 ×

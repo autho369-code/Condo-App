@@ -67,13 +67,13 @@ export default async function NewUnitPage({
       }
       rail={
         <>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Required</div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Required</div>
           <ul className="mb-5 space-y-1 text-sm text-gray-700">
             <li>• Building</li>
             <li>• Unit number</li>
             <li>• Ownership percentage (for assessment math)</li>
           </ul>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Optional</div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Optional</div>
           <ul className="space-y-1 text-sm text-gray-700">
             <li>• Square footage</li>
             <li>• Bedrooms / bathrooms</li>
@@ -148,7 +148,7 @@ export default async function NewUnitPage({
 
             {/* --- Size --- */}
             <div className="border-t border-gray-100 pt-5">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Size & layout</div>
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Size & layout</div>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>
                   <Label htmlFor="bedrooms">Bedrooms</Label>
@@ -171,7 +171,7 @@ export default async function NewUnitPage({
 
             {/* --- Parking / storage --- */}
             <div className="border-t border-gray-100 pt-5">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Parking & storage</div>
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Parking & storage</div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="parking_spaces">Parking spaces</Label>
@@ -196,7 +196,7 @@ export default async function NewUnitPage({
 
             {/* --- Actions --- */}
             <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-              <Link href={contextAssociation ? `/associations/${contextAssociation.id}` : '/units'} className="text-sm text-gray-600 hover:text-gray-900">
+              <Link href={contextAssociation ? `/associations/${contextAssociation.id}` : '/units'} className="text-sm text-slate-400 hover:text-gray-900">
                 Cancel
               </Link>
               <Button type="submit" size="lg">Create unit</Button>

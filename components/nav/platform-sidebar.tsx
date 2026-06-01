@@ -24,7 +24,7 @@ export default function PlatformSidebar({ userEmail }: { userEmail?: string }) {
     <aside className="flex h-screen w-56 flex-shrink-0 flex-col overflow-hidden border-r border-slate-800 bg-[#0B1121]">
       <div className="border-b border-slate-800 px-4 py-4">
         <div className="truncate text-sm font-semibold text-white">Portier Admin</div>
-        <div className="mt-0.5 text-xs text-slate-500">Platform operator</div>
+        <div className="mt-0.5 text-xs text-slate-400">Platform operator</div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
@@ -35,7 +35,7 @@ export default function PlatformSidebar({ userEmail }: { userEmail?: string }) {
             className={
               'block px-4 py-2 text-sm ' +
               (active(module.href)
-                ? 'bg-emerald-500/10 font-medium text-emerald-400'
+                ? 'bg-emerald-500/20 font-medium text-emerald-400'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')
             }
           >
@@ -45,8 +45,8 @@ export default function PlatformSidebar({ userEmail }: { userEmail?: string }) {
       </nav>
 
       <div className="border-t border-slate-800 px-4 py-3">
-        <div className="mb-1 truncate text-xs text-slate-500">{userEmail}</div>
-        <button onClick={handleLogout} className="text-xs text-slate-500 hover:text-slate-300">
+        <div className="mb-1 truncate text-xs text-slate-400">{userEmail}</div>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-slate-300">
           Log out
         </button>
       </div>

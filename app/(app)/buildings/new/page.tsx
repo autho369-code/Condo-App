@@ -56,7 +56,7 @@ export default async function NewBuildingPage({
         </Link>
       </div>
       <h1 className="mb-1 text-2xl font-semibold text-gray-900">New Property</h1>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-slate-400">
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
 
@@ -172,7 +172,7 @@ export default async function NewBuildingPage({
           <CardTitle>Property Groups</CardTitle>
           <div className="space-y-3 px-5 py-4">
             {(propertyGroups ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-400">
                 No property groups defined. Create one in{' '}
                 <Link href="/settings" className="text-blue-700 hover:underline">Settings</Link>.
               </p>
@@ -189,7 +189,7 @@ export default async function NewBuildingPage({
 
         <div className="flex items-center gap-3 pt-2">
           <Button type="submit" size="lg">Save Property</Button>
-          <Link href={`/associations/${assoc.id}`} className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href={`/associations/${assoc.id}`} className="text-sm text-slate-400 hover:text-gray-900">Cancel</Link>
         </div>
       </form>
 
@@ -240,7 +240,7 @@ function Row({
 function MoneyInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
   return (
     <div className="relative max-w-[180px]">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
       <input
         name={name}
         type="number"

@@ -40,13 +40,13 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Link href="/units" className="hover:text-brand-600">Units</Link>
               {' Ã‚Â· '}
               <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
             </div>
             <h1 className="mt-1 text-xl font-semibold text-gray-900">Unit {unit.unit_number}</h1>
-            <div className="mt-1 text-sm text-gray-500">
+            <div className="mt-1 text-sm text-slate-400">
               {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` Ã‚Â· ${unit.bathrooms} ba` : ''}{unit.sqft ? ` Ã‚Â· ${unit.sqft} sqft` : ''}
             </div>
           </div>
@@ -83,7 +83,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                     <TD className="text-right">{money(s.amount)}</TD>
                     <TD className="capitalize">{s.frequency}</TD>
                     <TD>{date(s.next_post_date)}</TD>
-                    <TD className="text-gray-600 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
+                    <TD className="text-slate-400 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
                     <TD className="text-right">
                       <form action={unsubscribeUnit.bind(null, s.recurring_charge_id, unitId) as any}>
                         <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
@@ -94,7 +94,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
               </tbody>
             </Table>
           ) : (
-            <p className="text-sm text-gray-500">No active recurring charges.</p>
+            <p className="text-sm text-slate-400">No active recurring charges.</p>
           )}
 
           {/* Subscribe form */}
@@ -202,7 +202,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
                 <TR key={p.id}>
                   <TD>{date(p.payment_date)}</TD>
                   <TD className="uppercase">{p.method}</TD>
-                  <TD className="text-gray-600">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
+                  <TD className="text-slate-400">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
                   <TD className="text-right text-green-600">{money(p.amount)}</TD>
                   <TD className="text-right">
                     <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
@@ -239,7 +239,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest). Unapply above to redirect.</p>
+              <p className="mt-1 text-xs text-slate-400">Auto-applies to outstanding charges (late fees first, then oldest). Unapply above to redirect.</p>
             </div>
           </form>
         </CardBody>

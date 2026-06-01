@@ -239,7 +239,7 @@ export default async function PlatformUsersPage({
 
       {/* Filters */}
       <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
-        <label className="min-w-64 flex-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <label className="min-w-64 flex-1 text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="mb-1 flex items-center gap-1.5">
             <Search className="h-3 w-3" />
             Search
@@ -252,7 +252,7 @@ export default async function PlatformUsersPage({
           />
         </label>
 
-        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="mb-1 flex items-center gap-1.5">
             <ShieldCheck className="h-3 w-3" />
             Role
@@ -271,7 +271,7 @@ export default async function PlatformUsersPage({
           </select>
         </label>
 
-        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="mb-1 flex items-center gap-1.5">
             <Building2 className="h-3 w-3" />
             Company
@@ -301,7 +301,7 @@ export default async function PlatformUsersPage({
         {(search || roleFilter || companyFilter) && (
           <a
             href="/platform/users"
-            className="inline-flex h-9 items-center text-xs text-gray-500 hover:text-gray-700"
+            className="inline-flex h-9 items-center text-xs text-slate-400 hover:text-gray-700"
           >
             Clear all
           </a>
@@ -314,7 +314,7 @@ export default async function PlatformUsersPage({
           <CardBody>
             <div className="py-12 text-center">
               <Users className="mx-auto h-8 w-8 text-gray-300" />
-              <p className="mt-3 text-sm text-gray-500">
+              <p className="mt-3 text-sm text-slate-400">
                 {search || roleFilter || companyFilter
                   ? 'No users match your filters.'
                   : 'No users are visible.'}
@@ -362,7 +362,7 @@ export default async function PlatformUsersPage({
 
                       {/* Email */}
                       <TD>
-                        <span className="text-sm text-gray-600">{user.email ?? '—'}</span>
+                        <span className="text-sm text-slate-400">{user.email ?? '—'}</span>
                       </TD>
 
                       {/* Role */}
@@ -387,7 +387,7 @@ export default async function PlatformUsersPage({
                       </TD>
 
                       {/* Association */}
-                      <TD className="text-sm text-gray-600">{associationName}</TD>
+                      <TD className="text-sm text-slate-400">{associationName}</TD>
 
                       {/* Status */}
                       <TD>
@@ -395,7 +395,7 @@ export default async function PlatformUsersPage({
                       </TD>
 
                       {/* Last Login */}
-                      <TD className="text-sm tabular-nums text-gray-600">
+                      <TD className="text-sm tabular-nums text-slate-400">
                         {date(user.last_login_at)}
                       </TD>
 
@@ -479,7 +479,7 @@ export default async function PlatformUsersPage({
             </Table>
 
             {/* Row count */}
-            <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+            <div className="border-t border-gray-100 px-4 py-2 text-xs text-slate-400">
               Showing {filtered.length} of {totalProfiles} user{totalProfiles !== 1 ? 's' : ''}
               {(search || roleFilter || companyFilter) && ' (filtered)'}
             </div>

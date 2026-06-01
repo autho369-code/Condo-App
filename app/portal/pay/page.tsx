@@ -43,7 +43,7 @@ export default async function PayPage() {
 
       {!units?.length && (
         <Card><CardBody>
-          <p className="text-sm text-gray-500">We couldn&apos;t find a unit linked to your account. Ask your management company to finish the portal setup.</p>
+          <p className="text-sm text-slate-400">We couldn&apos;t find a unit linked to your account. Ask your management company to finish the portal setup.</p>
         </CardBody></Card>
       )}
 
@@ -51,7 +51,7 @@ export default async function PayPage() {
         <Card>
           <CardHeader>
             <CardTitle>{defaultUnit.association_name} · Unit {defaultUnit.unit_number}</CardTitle>
-            <p className="text-sm text-gray-500">Your current balance is
+            <p className="text-sm text-slate-400">Your current balance is
               <span className={`ml-1 font-semibold ${Number(defaultUnit.outstanding_balance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {money(defaultUnit.outstanding_balance)}
               </span>
@@ -94,7 +94,7 @@ export default async function PayPage() {
                   <Input id="amount" name="amount" type="number" step="0.01" min="1"
                          defaultValue={defaultAmount.toFixed(2)} className="pl-6" required />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Enter any amount. The system will apply it to your oldest open charges first.</p>
+                <p className="mt-1 text-xs text-slate-400">Enter any amount. The system will apply it to your oldest open charges first.</p>
               </div>
 
               {/* Payment method */}
@@ -105,7 +105,7 @@ export default async function PayPage() {
                   <input type="radio" name="method" value="ach" defaultChecked className="mt-0.5" />
                   <div className="flex-1">
                     <div className="font-medium">Bank account (ACH / eCheck)</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-slate-400">
                       {portfolioPolicy.mode === 'pass_through'
                         ? 'No fee. Funds settle in 3–5 business days.'
                         : 'Funds settle in 3–5 business days.'}
@@ -117,7 +117,7 @@ export default async function PayPage() {
                   <input type="radio" name="method" value="card" className="mt-0.5" />
                   <div className="flex-1">
                     <div className="font-medium">Debit or credit card</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-slate-400">
                       {portfolioPolicy.mode === 'pass_through'
                         ? `A ${portfolioPolicy.cardPct}% convenience fee is added at checkout. Posts immediately.`
                         : 'Posts immediately. No fee.'}
@@ -154,7 +154,7 @@ export default async function PayPage() {
                 <Button type="submit" size="lg">Continue to secure checkout</Button>
               </div>
 
-              <p className="text-center text-xs text-gray-500">
+              <p className="text-center text-xs text-slate-400">
                 Powered by Stripe. Your payment info never touches our servers.
               </p>
             </form>
@@ -169,7 +169,7 @@ export default async function PayPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Set up autopay</div>
-                <div className="text-sm text-gray-500">Pay dues automatically via ACH each month. No more late fees.</div>
+                <div className="text-sm text-slate-400">Pay dues automatically via ACH each month. No more late fees.</div>
               </div>
               <span className="text-brand-600">→</span>
             </div>

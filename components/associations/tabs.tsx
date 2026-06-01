@@ -34,7 +34,7 @@ export function AssociationTabs({
             className={`border-b-2 px-1 pb-2 text-sm whitespace-nowrap transition ${
               on
                 ? 'border-brand-600 font-semibold text-brand-700'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-slate-400 hover:text-gray-900'
             }`}
           >
             {tab.label}

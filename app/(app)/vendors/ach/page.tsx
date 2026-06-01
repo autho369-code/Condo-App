@@ -56,10 +56,10 @@ export default async function VendorAchPage({
               const hasBank = vendor.bank_routing_number && vendor.bank_account_number;
               return (
                 <TR key={vendor.id} className="hover:bg-gray-50">
-                  <TD><div className="font-medium text-gray-950">{vendor.name}</div><div className="mt-1 text-xs capitalize text-gray-500">{vendor.trade?.replace(/_/g, ' ')}</div></TD>
+                  <TD><div className="font-medium text-gray-950">{vendor.name}</div><div className="mt-1 text-xs capitalize text-slate-400">{vendor.trade?.replace(/_/g, ' ')}</div></TD>
                   <TD><StatusChip tone={vendor.payment_type === 'ach' ? 'success' : 'neutral'}>{vendor.payment_type?.replace(/_/g, ' ') ?? 'check'}</StatusChip>{vendor.hold_payments && <div className="mt-1"><StatusChip tone="danger">Payment hold</StatusChip></div>}</TD>
-                  <TD><StatusChip tone={hasBank ? 'success' : 'warning'}>{hasBank ? 'Bank info on file' : 'Missing bank info'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.savings_account ? 'Savings' : 'Checking'} account</div></TD>
-                  <TD><StatusChip tone={vendor.is_auto_pay ? 'info' : 'neutral'}>{vendor.is_auto_pay ? 'Enabled' : 'Not enabled'}</StatusChip><div className="mt-1 text-xs text-gray-500">Setup {date(vendor.auto_pay_setup_at)}</div></TD>
+                  <TD><StatusChip tone={hasBank ? 'success' : 'warning'}>{hasBank ? 'Bank info on file' : 'Missing bank info'}</StatusChip><div className="mt-1 text-xs text-slate-400">{vendor.savings_account ? 'Savings' : 'Checking'} account</div></TD>
+                  <TD><StatusChip tone={vendor.is_auto_pay ? 'info' : 'neutral'}>{vendor.is_auto_pay ? 'Enabled' : 'Not enabled'}</StatusChip><div className="mt-1 text-xs text-slate-400">Setup {date(vendor.auto_pay_setup_at)}</div></TD>
                   <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=vendor_bank_account`} className="text-sm font-medium text-blue-700 hover:underline">Prepare bank form</Link></TD>
                 </TR>
               );

@@ -110,7 +110,7 @@ function ExecRow({ label, value, sub, href }: { label: string; value: React.Reac
       <span className="text-sm text-slate-300">{label}</span>
       <div className="text-right">
         <span className="text-sm font-semibold tabular-nums text-white">{value}</span>
-        {sub && <span className="ml-1.5 text-xs text-slate-500">{sub}</span>}
+        {sub && <span className="ml-1.5 text-xs text-slate-400">{sub}</span>}
       </div>
     </div>
   );
@@ -156,7 +156,7 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5 transition hover:border-opacity-60 ${href ? 'cursor-pointer' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <div className="mt-1.5 flex items-baseline gap-2">
             <p className="text-2xl font-bold tabular-nums tracking-tight text-white">{value}</p>
             {delta && (
@@ -166,7 +166,7 @@ function StatCard({
               </span>
             )}
           </div>
-          {sub && <p className="mt-1 text-xs text-slate-600">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`ml-3 rounded-xl p-2.5 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -409,7 +409,7 @@ export default async function CommandCenterPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400/70">Platform Operator</p>
           <h1 className="mt-1 text-xl font-bold tracking-tight text-white">Portier369 Command Center</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Real-time operational overview across all management companies, revenue, and platform health.</p>
+          <p className="mt-0.5 text-sm text-slate-400">Real-time operational overview across all management companies, revenue, and platform health.</p>
         </div>
         <div className="flex items-center gap-3">
           <GlobalSearch />
@@ -533,10 +533,10 @@ export default async function CommandCenterPage() {
                       <Badge label={c.priority} tone={c.priority === 'critical' ? 'critical' : c.priority === 'high' ? 'high' : 'warning'} />
                       <p className="truncate text-sm font-medium text-white">{c.company}</p>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">{c.issue} · {c.detail}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{c.issue} · {c.detail}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-xs text-slate-600">{c.activity}</span>
+                    <span className="text-xs text-slate-400">{c.activity}</span>
                     <Link href={`/platform/portfolios/${c.portfolioId}`}>
                       <Button variant="secondary" size="sm" className="h-8 text-xs">View</Button>
                     </Link>
@@ -560,15 +560,15 @@ export default async function CommandCenterPage() {
             <div className="grid grid-cols-3 gap-3 px-5 py-4">
               <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-400">{healthyAssocs}</p>
-                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Healthy</p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Healthy</p>
               </div>
               <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-center">
                 <p className="text-2xl font-bold text-amber-400">{warningAssocs}</p>
-                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Warning</p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Warning</p>
               </div>
               <div className="rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{criticalAssocs}</p>
-                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Critical</p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Critical</p>
               </div>
             </div>
             <div className="space-y-0.5 px-5 py-3">
@@ -584,7 +584,7 @@ export default async function CommandCenterPage() {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Health distribution</span>
+                    <span className="text-slate-400">Health distribution</span>
                     <span className="text-slate-400">{healthyAssocs + warningAssocs + criticalAssocs} total</span>
                   </div>
                   <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.04]">
@@ -617,27 +617,27 @@ export default async function CommandCenterPage() {
           <div className="grid grid-cols-3 gap-4 px-5 py-4">
             <div className="rounded-lg border border-blue-400/20 bg-blue-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-blue-400">{pendingInvites}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Pending</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Pending</p>
             </div>
             <div className="rounded-lg border border-purple-400/20 bg-purple-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-purple-400">{trialSubs}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Trials</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Trials</p>
             </div>
             <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-emerald-400">{activeSubs}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Active</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Active</p>
             </div>
             <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-amber-400">{suspendedCompanies}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Suspended</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Suspended</p>
             </div>
             <div className="rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-red-400">{canceledSubs}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Cancelled</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Cancelled</p>
             </div>
             <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3 text-center">
               <p className="text-2xl font-bold text-emerald-400">{conversionRate}</p>
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">Conv. Rate</p>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Conv. Rate</p>
             </div>
           </div>
         </div>
@@ -649,13 +649,13 @@ export default async function CommandCenterPage() {
               <Zap className="h-4 w-4 text-slate-400" />
               <h3 className="text-sm font-semibold text-white">Platform Activity</h3>
             </div>
-            <span className="text-xs text-slate-600">{activityRows.length} events</span>
+            <span className="text-xs text-slate-400">{activityRows.length} events</span>
           </div>
           <div className="divide-y divide-white/[0.04] max-h-[440px] overflow-y-auto">
             {activityRows.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <Clock className="h-6 w-6 text-slate-600" />
-                <p className="text-sm text-slate-500">No recent activity</p>
+                <Clock className="h-6 w-6 text-slate-400" />
+                <p className="text-sm text-slate-400">No recent activity</p>
               </div>
             ) : (
               activityRows.slice(0, 12).map((a: any) => (
@@ -666,9 +666,9 @@ export default async function CommandCenterPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-300 truncate">
                       <span className="font-medium text-white">{a.agent ?? a.action}</span>
-                      {a.details && <span className="text-slate-500"> — {a.details}</span>}
+                      {a.details && <span className="text-slate-400"> — {a.details}</span>}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-600">{timeAgo(a.created_at)}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{timeAgo(a.created_at)}</p>
                   </div>
                 </div>
               ))
@@ -686,19 +686,19 @@ export default async function CommandCenterPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/platform/portfolios/new" className="group flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 transition hover:border-emerald-500/30 hover:bg-emerald-500/5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-400"><Plus className="h-4 w-4" /></div>
-            <div><p className="text-sm font-medium text-white group-hover:text-emerald-400 transition">Add Portfolio</p><p className="text-xs text-slate-500">Onboard a new management company</p></div>
+            <div><p className="text-sm font-medium text-white group-hover:text-emerald-400 transition">Add Portfolio</p><p className="text-xs text-slate-400">Onboard a new management company</p></div>
           </Link>
           <Link href="/platform/billing" className="group flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 transition hover:border-blue-500/30 hover:bg-blue-500/5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-400/10 text-blue-400"><CreditCard className="h-4 w-4" /></div>
-            <div><p className="text-sm font-medium text-white group-hover:text-blue-400 transition">Billing Overview</p><p className="text-xs text-slate-500">Subscriptions and revenue</p></div>
+            <div><p className="text-sm font-medium text-white group-hover:text-blue-400 transition">Billing Overview</p><p className="text-xs text-slate-400">Subscriptions and revenue</p></div>
           </Link>
           <Link href="/platform/system-health" className="group flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 transition hover:border-amber-500/30 hover:bg-amber-500/5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-400/10 text-amber-400"><Server className="h-4 w-4" /></div>
-            <div><p className="text-sm font-medium text-white group-hover:text-amber-400 transition">System Health</p><p className="text-xs text-slate-500">Monitor platform alerts</p></div>
+            <div><p className="text-sm font-medium text-white group-hover:text-amber-400 transition">System Health</p><p className="text-xs text-slate-400">Monitor platform alerts</p></div>
           </Link>
           <Link href="/platform/users" className="group flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 transition hover:border-slate-500/30 hover:bg-slate-500/5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-400/10 text-slate-400"><Users className="h-4 w-4" /></div>
-            <div><p className="text-sm font-medium text-white group-hover:text-slate-400 transition">User Directory</p><p className="text-xs text-slate-500">Manage platform users</p></div>
+            <div><p className="text-sm font-medium text-white group-hover:text-slate-400 transition">User Directory</p><p className="text-xs text-slate-400">Manage platform users</p></div>
           </Link>
         </div>
       </div>

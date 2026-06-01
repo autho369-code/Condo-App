@@ -31,7 +31,7 @@ export default async function CompliancePage() {
                 <TD className="text-sm text-gray-700">{v.associations?.name}</TD>
                 <TD className="text-sm">{v.units?.unit_number ? `Unit ${v.units.unit_number}` : '—'}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(v.date_observed)}</TD>
-                <TD className="whitespace-nowrap text-sm text-gray-600">{date(v.due_date)}</TD>
+                <TD className="whitespace-nowrap text-sm text-slate-400">{date(v.due_date)}</TD>
                 <TD className="text-right tabular-nums">{v.fine_amount ? money(v.fine_amount) : '—'}</TD>
                 <TD><span className={`rounded px-2 py-0.5 text-xs capitalize ${
                   v.status === 'resolved' || v.status === 'closed' ? 'bg-green-100 text-green-700' :
@@ -42,7 +42,7 @@ export default async function CompliancePage() {
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No violations on file.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No violations on file.</p>
       )}
     </ModulePage>
   );

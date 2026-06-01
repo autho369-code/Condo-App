@@ -81,7 +81,7 @@ export default async function AutopayPage() {
               </tbody>
             </Table>
           ) : (
-            <p className="text-sm text-gray-500">No autopay set up yet.</p>
+            <p className="text-sm text-slate-400">No autopay set up yet.</p>
           )}
         </CardBody>
       </Card>
@@ -89,7 +89,7 @@ export default async function AutopayPage() {
       <Card>
         <CardHeader>
           <CardTitle>Set up autopay</CardTitle>
-          <p className="text-sm text-gray-500">Pay your assessments automatically when they post. No more late fees.</p>
+          <p className="text-sm text-slate-400">Pay your assessments automatically when they post. No more late fees.</p>
         </CardHeader>
         <CardBody>
           {(!methods || methods.length === 0) ? (
@@ -127,7 +127,7 @@ export default async function AutopayPage() {
               <div>
                 <Label htmlFor="max_amount">Max amount per charge ($)</Label>
                 <Input id="max_amount" name="max_amount" type="number" step="0.01" min="1" defaultValue="500" required />
-                <p className="mt-1 text-xs text-gray-500">Safety cap. Anything above this won&apos;t be auto-paid.</p>
+                <p className="mt-1 text-xs text-slate-400">Safety cap. Anything above this won&apos;t be auto-paid.</p>
               </div>
               <div>
                 <Label htmlFor="frequency">Schedule</Label>
@@ -142,7 +142,7 @@ export default async function AutopayPage() {
               <div className="md:col-span-2 flex justify-end">
                 <Button type="submit">Enroll in autopay</Button>
               </div>
-              <p className="md:col-span-2 text-xs text-gray-500">
+              <p className="md:col-span-2 text-xs text-slate-400">
                 By enrolling you authorize {me.portfolio?.company_name ?? 'us'} to debit your selected payment method up to the maximum amount above for each posted assessment. You can cancel any time.
               </p>
             </form>

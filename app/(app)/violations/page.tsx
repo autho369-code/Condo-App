@@ -86,16 +86,16 @@ export default async function ViolationsPage({
         ]} />
 
         <FilterBar action="/violations" searchName="q" searchDefault={filters.q ?? ''} searchPlaceholder="Search title, rule, owner, or unit">
-          <label className="text-xs font-medium uppercase text-gray-500">Association<select name="association" defaultValue={filters.association ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">All</option>{(associations ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
-          <label className="text-xs font-medium uppercase text-gray-500">Status<select name="status" defaultValue={filters.status ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option><option value="open">Open lifecycle</option><option value="overdue">Overdue</option>{statusOptions.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}</select></label>
-          <label className="text-xs font-medium uppercase text-gray-500">Escalation<select name="escalation" defaultValue={filters.escalation ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option><option value="hearing">Hearing</option><option value="fined">Fined</option></select></label>
-          <label className="text-xs font-medium uppercase text-gray-500">Type<select name="type" defaultValue={filters.type ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option>{typeOptions.map((type) => <option key={type} value={type}>{formatStatus(type)}</option>)}</select></label>
-          <label className="text-xs font-medium uppercase text-gray-500">Observed<input type="date" name="observed_from" defaultValue={filters.observed_from ?? ''} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
+          <label className="text-xs font-medium uppercase text-slate-400">Association<select name="association" defaultValue={filters.association ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">All</option>{(associations ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
+          <label className="text-xs font-medium uppercase text-slate-400">Status<select name="status" defaultValue={filters.status ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option><option value="open">Open lifecycle</option><option value="overdue">Overdue</option>{statusOptions.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}</select></label>
+          <label className="text-xs font-medium uppercase text-slate-400">Escalation<select name="escalation" defaultValue={filters.escalation ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option><option value="hearing">Hearing</option><option value="fined">Fined</option></select></label>
+          <label className="text-xs font-medium uppercase text-slate-400">Type<select name="type" defaultValue={filters.type ?? ''} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"><option value="">Any</option>{typeOptions.map((type) => <option key={type} value={type}>{formatStatus(type)}</option>)}</select></label>
+          <label className="text-xs font-medium uppercase text-slate-400">Observed<input type="date" name="observed_from" defaultValue={filters.observed_from ?? ''} className="mt-1 h-9 rounded border border-gray-300 px-3 text-sm normal-case" /></label>
         </FilterBar>
 
         {filterSummary.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {filterSummary.map((item) => <span key={item} className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{item}</span>)}
+            {filterSummary.map((item) => <span key={item} className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-slate-400">{item}</span>)}
           </div>
         )}
 
@@ -107,14 +107,14 @@ export default async function ViolationsPage({
                 <TR key={violation.id}>
                   <TD>
                     <Link href={`/violations/${violation.id}`} className="font-medium text-blue-700 hover:underline">{violation.title}</Link>
-                    <div className="text-xs text-gray-500">{formatStatus(violation.violation_type)}</div>
+                    <div className="text-xs text-slate-400">{formatStatus(violation.violation_type)}</div>
                   </TD>
                   <TD>
                     <div className="text-sm text-gray-900">{violation.associations?.name ?? '-'}</div>
-                    <div className="text-xs text-gray-500">{violation.units?.unit_number ? `Unit ${violation.units.unit_number}` : 'No unit'}{violation.owners?.full_name ? ` - ${violation.owners.full_name}` : ''}</div>
+                    <div className="text-xs text-slate-400">{violation.units?.unit_number ? `Unit ${violation.units.unit_number}` : 'No unit'}{violation.owners?.full_name ? ` - ${violation.owners.full_name}` : ''}</div>
                   </TD>
                   <TD className="whitespace-nowrap text-sm">{date(violation.date_observed)}</TD>
-                  <TD className="text-sm"><div>Due: {date(violation.due_date)}</div><div className="text-xs text-gray-500">Hearing: {date(violation.hearing_date)}</div></TD>
+                  <TD className="text-sm"><div>Due: {date(violation.due_date)}</div><div className="text-xs text-slate-400">Hearing: {date(violation.hearing_date)}</div></TD>
                   <TD className="whitespace-nowrap text-sm tabular-nums">{violation.fine_amount ? money(violation.fine_amount) : '-'}</TD>
                   <TD><ViolationStatus status={violation.status} overdue={isOverdueViolation(violation, todayDate)} /></TD>
                 </TR>
@@ -122,7 +122,7 @@ export default async function ViolationsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-slate-400">
             No violations match the current filters.
           </div>
         )}
@@ -152,7 +152,7 @@ function ViolationRail() {
       </section>
       <section className="border-t border-gray-200 pt-5">
         <h2 className="text-sm font-semibold text-gray-950">Available lookup data</h2>
-        <p className="mt-2 text-sm text-gray-600">Owners and units are loaded for draft workflows; outbound notices stay in preview until explicitly sent.</p>
+        <p className="mt-2 text-sm text-slate-400">Owners and units are loaded for draft workflows; outbound notices stay in preview until explicitly sent.</p>
       </section>
     </div>
   );

@@ -15,7 +15,7 @@ export default async function PayCancel({ searchParams }: { searchParams: Promis
     <Card>
       <CardHeader><CardTitle>Payment canceled</CardTitle></CardHeader>
       <CardBody>
-        <p className="text-sm text-gray-600">No charge was made. You can try again at any time.</p>
+        <p className="text-sm text-slate-400">No charge was made. You can try again at any time.</p>
         <div className="mt-4 flex gap-2">
           <Link href="/portal/pay"><Button>Try again</Button></Link>
           <Link href="/portal"><Button variant="secondary">Back to portal</Button></Link>

@@ -44,12 +44,12 @@ export default async function MarketingLayout({ children }: { children: React.Re
           <div className="flex flex-wrap items-center justify-between gap-6 text-sm">
             <div>
               <span className="text-lg font-semibold text-white">Portier</span>
-              <p className="mt-1 text-slate-500">The operating system for condominium &amp; HOA management.</p>
+              <p className="mt-1 text-slate-400">The operating system for condominium &amp; HOA management.</p>
             </div>
             <div className="flex gap-8">
-              <Link href="/pricing" className="text-slate-500 transition-colors hover:text-white">Pricing</Link>
-              <Link href="/login" className="text-slate-500 transition-colors hover:text-white">Sign in</Link>
-              <Link href="/contact" className="text-slate-500 transition-colors hover:text-white">Contact</Link>
+              <Link href="/pricing" className="text-slate-400 transition-colors hover:text-white">Pricing</Link>
+              <Link href="/login" className="text-slate-400 transition-colors hover:text-white">Sign in</Link>
+              <Link href="/contact" className="text-slate-400 transition-colors hover:text-white">Contact</Link>
             </div>
           </div>
           <div className="mt-8 text-xs text-slate-700">

@@ -38,7 +38,7 @@ export default async function NewBillPage() {
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
             </div>
             <h1 className="mt-1 text-xl font-semibold text-gray-900">New bill</h1>
@@ -76,7 +76,7 @@ export default async function NewBillPage() {
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
+              <p className="mt-1 text-xs text-slate-400">The HOA the bill is billed to.</p>
             </div>
 
             {/* AMOUNT */}
@@ -136,7 +136,7 @@ export default async function NewBillPage() {
               <textarea id="memo" name="memo" rows={2}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
                 placeholder="e.g. Dec 2026 gas utility — Granville Tower" />
-              <p className="mt-1 text-xs text-gray-500">This shows on the printed check&apos;s memo line and on the check stub.</p>
+              <p className="mt-1 text-xs text-slate-400">This shows on the printed check&apos;s memo line and on the check stub.</p>
             </div>
 
             {/* STATUS + APPROVAL */}

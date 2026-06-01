@@ -13,14 +13,14 @@ const STATUS_BADGE: Record<string, string> = {
   open:      'bg-amber-100 text-amber-800',
   waiting:   'bg-blue-100 text-blue-700',
   completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500 line-through',
+  cancelled: 'bg-gray-100 text-slate-400 line-through',
 };
 
 const PRIORITY_BADGE: Record<string, string> = {
   emergency: 'bg-red-100 text-red-800',
   high:      'bg-orange-100 text-orange-800',
   normal:    'bg-gray-100 text-gray-700',
-  low:       'bg-gray-100 text-gray-500',
+  low:       'bg-gray-100 text-slate-400',
 };
 
 export default async function ServiceRequestsList({
@@ -48,7 +48,7 @@ export default async function ServiceRequestsList({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Service requests</h1>
-          <p className="text-sm text-gray-500">Report an issue or check on something you already submitted.</p>
+          <p className="text-sm text-slate-400">Report an issue or check on something you already submitted.</p>
         </div>
         <Link href="/portal/service-requests/new"><Button size="lg">+ New request</Button></Link>
       </div>
@@ -83,19 +83,19 @@ export default async function ServiceRequestsList({
                   const isOpen = r.status === 'open' || r.status === 'waiting';
                   return (
                     <TR key={r.id}>
-                      <TD className="whitespace-nowrap font-mono text-xs text-gray-500">
+                      <TD className="whitespace-nowrap font-mono text-xs text-slate-400">
                         {r.number ?? r.id.slice(0, 8)}
                       </TD>
                       <TD className="max-w-xs">
                         <div className="line-clamp-2 text-sm text-gray-900">{firstLine}</div>
                         {wo && (
-                          <div className="mt-0.5 text-xs text-gray-500">
+                          <div className="mt-0.5 text-xs text-slate-400">
                             â†’ Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
                           </div>
                         )}
                       </TD>
                       <TD className="whitespace-nowrap text-sm">
-                        {assoc?.name ? <span className="text-gray-500">{assoc.name} Â· </span> : null}
+                        {assoc?.name ? <span className="text-slate-400">{assoc.name} Â· </span> : null}
                         Unit {r.units?.unit_number ?? 'â€”'}
                       </TD>
                       <TD>
@@ -108,7 +108,7 @@ export default async function ServiceRequestsList({
                           {r.status}
                         </span>
                       </TD>
-                      <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.created_on ?? r.created_at)}</TD>
+                      <TD className="whitespace-nowrap text-sm text-slate-400">{date(r.created_on ?? r.created_at)}</TD>
                       <TD>
                         {isOpen && !wo && (
                           <form action={cancelServiceRequest.bind(null, r.id) as any}>
@@ -125,7 +125,7 @@ export default async function ServiceRequestsList({
             </Table>
           ) : (
             <div className="py-8 text-center">
-              <p className="text-sm text-gray-500">You haven&apos;t submitted any service requests yet.</p>
+              <p className="text-sm text-slate-400">You haven&apos;t submitted any service requests yet.</p>
               <Link href="/portal/service-requests/new" className="mt-2 inline-block text-sm text-brand-600 hover:underline">
                 Submit your first request â†’
               </Link>

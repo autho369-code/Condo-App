@@ -192,11 +192,11 @@ async function ARAgingView({
         }
       >
         {(rows ?? []).length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-gray-500">No open receivables. All units paid up.</p>
+          <p className="px-5 py-8 text-center text-sm text-slate-400">No open receivables. All units paid up.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Unit</th>
                   <th className="px-4 py-2 text-left font-semibold">Description</th>
@@ -212,13 +212,13 @@ async function ARAgingView({
                   <tr key={r.charge_id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-2">
                       <div className="font-medium text-gray-900">Unit {r.unit_number}</div>
-                      <div className="text-xs text-gray-500">{r.association_name}</div>
+                      <div className="text-xs text-slate-400">{r.association_name}</div>
                     </td>
                     <td className="px-4 py-2 text-gray-700">{r.description}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-gray-600">{date(r.due_date)}</td>
+                    <td className="whitespace-nowrap px-4 py-2 text-slate-400">{date(r.due_date)}</td>
                     <td className="px-4 py-2"><BucketPill bucket={r.aging_bucket} /></td>
                     <td className="px-4 py-2 text-right tabular-nums text-gray-700">{money(r.amount)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-gray-500">{money(r.total_paid)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-slate-400">{money(r.total_paid)}</td>
                     <td className="px-5 py-2 text-right font-semibold tabular-nums text-gray-900">{money(r.balance_due)}</td>
                   </tr>
                 ))}
@@ -272,7 +272,7 @@ function QueuedReportView({
       <Section title="About this report">
         <div className="px-5 py-4 text-sm leading-6 text-gray-700">
           <p>{def.description}</p>
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-3 text-xs text-slate-400">
             Available formats:
             <span className="ml-2 inline-flex gap-1">
               {(def.output_formats ?? []).map((f: string) => (
@@ -285,12 +285,12 @@ function QueuedReportView({
 
       <Section title="Recent runs" subtitle={`Last ${runs.length} for this report`}>
         {runs.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-gray-500">
+          <p className="px-5 py-8 text-center text-sm text-slate-400">
             No runs yet. Use the panel on the right to run this report.
           </p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-5 py-2 text-left font-semibold">Created</th>
                 <th className="px-4 py-2 text-left font-semibold">Format</th>
@@ -303,7 +303,7 @@ function QueuedReportView({
               {runs.map((r: any) => (
                 <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-5 py-2 text-gray-700">{date(r.created_at)}</td>
-                  <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
+                  <td className="px-4 py-2 text-xs uppercase text-slate-400">{r.output_format}</td>
                   <td className="px-4 py-2"><RunPill status={r.status} /></td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
                   <td className="px-5 py-2 text-right">
@@ -353,7 +353,7 @@ function RightRail({
 
   return (
     <>
-      <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
         {isLive ? 'Export snapshot' : 'Run this report'}
       </div>
 
@@ -392,7 +392,7 @@ function RightRail({
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="mb-0.5 block text-[11px] text-gray-500">Owner ID</label>
+            <label className="mb-0.5 block text-[11px] text-slate-400">Owner ID</label>
             <input
               name="param_owner_id"
               placeholder="Optional"
@@ -400,7 +400,7 @@ function RightRail({
             />
           </div>
           <div>
-            <label className="mb-0.5 block text-[11px] text-gray-500">Unit ID</label>
+            <label className="mb-0.5 block text-[11px] text-slate-400">Unit ID</label>
             <input
               name="param_unit_id"
               placeholder="Optional"
@@ -430,7 +430,7 @@ function RightRail({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">From</label>
+              <label className="mb-0.5 block text-[11px] text-slate-400">From</label>
               <input
                 type="date"
                 name="param_date_from"
@@ -439,7 +439,7 @@ function RightRail({
               />
             </div>
             <div>
-              <label className="mb-0.5 block text-[11px] text-gray-500">To</label>
+              <label className="mb-0.5 block text-[11px] text-slate-400">To</label>
               <input
                 type="date"
                 name="param_date_to"
@@ -448,7 +448,7 @@ function RightRail({
               />
             </div>
           </div>
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-[11px] text-slate-400">
             {period.label}: {period.from} â†’ {period.to}
           </p>
         </div>
@@ -481,9 +481,9 @@ function RightRail({
 
       {lastSuccess && (
         <div className="mt-6">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Latest output</div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Latest output</div>
           <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs">
-            <div className="font-mono uppercase text-gray-500">{lastSuccess.output_format}</div>
+            <div className="font-mono uppercase text-slate-400">{lastSuccess.output_format}</div>
             <div className="mt-1 text-gray-700">{date(lastSuccess.created_at)}</div>
             <div className="mt-1 tabular-nums text-gray-700">{lastSuccess.row_count?.toLocaleString()} rows</div>
             {lastSuccess.output_url && (
@@ -497,16 +497,16 @@ function RightRail({
       )}
 
       <div className="mt-6">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Recent runs</div>
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Recent runs</div>
         {runs.length === 0 ? (
-          <p className="text-xs text-gray-500">No runs yet.</p>
+          <p className="text-xs text-slate-400">No runs yet.</p>
         ) : (
           <ul className="space-y-1">
             {runs.slice(0, 5).map((r: any) => (
               <li key={r.id}>
                 <Link href={`/reports/runs/${r.id}`}
                   className="flex items-center justify-between rounded px-2 py-1 text-xs hover:bg-gray-100">
-                  <span className="text-gray-600">{date(r.created_at)}</span>
+                  <span className="text-slate-400">{date(r.created_at)}</span>
                   <RunPill status={r.status} />
                 </Link>
               </li>
@@ -520,7 +520,7 @@ function RightRail({
 
 function RunPill({ status }: { status: string }) {
   const m: Record<string, string> = {
-    queued:    'bg-gray-100 text-gray-600',
+    queued:    'bg-gray-100 text-slate-400',
     running:   'bg-blue-100 text-blue-700',
     succeeded: 'bg-green-100 text-green-700',
     failed:    'bg-red-100 text-red-700',

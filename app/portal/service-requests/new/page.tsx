@@ -38,13 +38,13 @@ export default async function NewServiceRequest() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 text-sm text-gray-500">
+      <div className="flex items-center gap-3 text-sm text-slate-400">
         <Link href="/portal/service-requests" className="hover:text-brand-600 hover:underline">← Back to service requests</Link>
       </div>
 
       <div>
         <h1 className="text-2xl font-semibold">Submit a service request</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-slate-400">
           Tell us what&apos;s going on. Your property manager reviews requests during business hours and
           dispatches a vendor when needed. For an active emergency — burst pipe, no heat in winter, fire, gas leak —
           <strong className="text-gray-700"> please also call your emergency maintenance line.</strong>
@@ -54,7 +54,7 @@ export default async function NewServiceRequest() {
       {unitOptions.length === 0 ? (
         <Card>
           <CardBody>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-400">
               You don&apos;t have a unit on file yet. Contact your property manager so they can link
               your account to your unit.
             </p>
@@ -100,7 +100,7 @@ export default async function NewServiceRequest() {
                   placeholder="Describe the problem — where in the unit, when it started, any sounds / leaks / smells, what you've already tried."
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">The more specific you are, the faster we can dispatch the right person.</p>
+                <p className="mt-1 text-xs text-slate-400">The more specific you are, the faster we can dispatch the right person.</p>
               </div>
 
               {/* --- Priority radio group --- */}
@@ -119,7 +119,7 @@ export default async function NewServiceRequest() {
                       />
                       <div>
                         <div className="text-sm font-medium capitalize">{p.label}</div>
-                        <div className="text-xs text-gray-500">{p.hint}</div>
+                        <div className="text-xs text-slate-400">{p.hint}</div>
                       </div>
                     </label>
                   ))}
@@ -132,7 +132,7 @@ export default async function NewServiceRequest() {
                   <input type="checkbox" name="permission_to_enter" className="mt-1" />
                   <div>
                     <div className="text-sm font-medium">Permission to enter my unit when I&apos;m not home</div>
-                    <div className="text-xs text-gray-600">
+                    <div className="text-xs text-slate-400">
                       If checked, the vendor can enter with the property manager&apos;s master key to
                       complete the work. Otherwise we&apos;ll coordinate a time with you.
                     </div>
@@ -151,7 +151,7 @@ export default async function NewServiceRequest() {
 
               {/* --- Actions --- */}
               <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-                <Link href="/portal/service-requests" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+                <Link href="/portal/service-requests" className="text-sm text-slate-400 hover:underline">Cancel</Link>
                 <Button type="submit" size="lg">Submit request</Button>
               </div>
             </form>

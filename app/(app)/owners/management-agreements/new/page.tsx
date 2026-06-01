@@ -101,7 +101,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-600',
+    draft: 'bg-gray-100 text-slate-400',
     sent: 'bg-blue-100 text-blue-700',
     signed_by_owner: 'bg-amber-100 text-amber-700',
     signed_by_manager: 'bg-amber-100 text-amber-700',

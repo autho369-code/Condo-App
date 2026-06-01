@@ -25,16 +25,16 @@ export default async function LettersPage() {
               <TR key={t.id}>
                 <TD className="font-medium">{t.name}</TD>
                 <TD className="text-sm text-gray-700">{t.letter_type}</TD>
-                <TD className="text-sm capitalize text-gray-600">{t.template_category}</TD>
+                <TD className="text-sm capitalize text-slate-400">{t.template_category}</TD>
                 <TD>{t.active
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">active</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">archived</span>}</TD>
+                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">archived</span>}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No letter templates yet.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No letter templates yet.</p>
       )}
     </ModulePage>
   );

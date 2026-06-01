@@ -55,7 +55,7 @@ export default async function NewOwnerPage() {
         </div>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Mailing address</div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Mailing address</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
@@ -66,12 +66,12 @@ export default async function NewOwnerPage() {
 
         {/* Board Member Section */}
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Board Member</div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Board Member</div>
           <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
             <input type="checkbox" name="is_board_member" value="1" className="mt-1" />
             <span>
               <span className="block text-sm font-medium text-gray-900">Designate as board member</span>
-              <span className="block text-xs text-gray-500">Board members are owners with governance rights for a specific association.</span>
+              <span className="block text-xs text-slate-400">Board members are owners with governance rights for a specific association.</span>
             </span>
           </label>
 
@@ -87,7 +87,7 @@ export default async function NewOwnerPage() {
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-gray-500">Only applies when &quot;Designate as board member&quot; is checked above.</p>
+            <p className="mt-1 text-xs text-slate-400">Only applies when &quot;Designate as board member&quot; is checked above.</p>
           </div>
         </section>
 
@@ -104,7 +104,7 @@ export default async function NewOwnerPage() {
             </div>
             <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
               <input type="checkbox" name="electronic_consent_requested" className="mt-1" />
-              <span><span className="block text-sm font-medium text-gray-900">Request electronic consent after save</span><span className="block text-xs text-gray-500">Use the owner form workflow to stage the request.</span></span>
+              <span><span className="block text-sm font-medium text-gray-900">Request electronic consent after save</span><span className="block text-xs text-slate-400">Use the owner form workflow to stage the request.</span></span>
             </label>
           </div>
         </section>
@@ -115,7 +115,7 @@ export default async function NewOwnerPage() {
         </section>
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-          <Link href="/owners" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href="/owners" className="text-sm text-slate-400 hover:text-gray-900">Cancel</Link>
           <Button type="submit" size="lg">Create owner</Button>
         </div>
       </form>

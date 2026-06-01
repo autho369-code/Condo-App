@@ -47,9 +47,9 @@ export function WorkspaceHeader({
   return (
     <div className="flex items-start justify-between gap-6">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">{eyebrow}</div>}
+        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">{eyebrow}</div>}
         <h1 className="truncate text-xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+        {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -76,7 +76,7 @@ export function Section({
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
           <div>
             {title && <h2 className="text-sm font-semibold text-gray-900">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
@@ -106,9 +106,9 @@ export function Tile({
   };
   return (
     <div className="rounded-md border border-gray-200 bg-white px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{label}</div>
       <div className={'mt-1 text-xl font-semibold tabular-nums ' + toneClasses[tone]}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }

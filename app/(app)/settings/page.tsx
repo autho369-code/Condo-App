@@ -81,7 +81,7 @@ export default async function SettingsPage() {
               <Label htmlFor="reminder_days">Payment reminder schedule (days before/after due)</Label>
               <Input id="reminder_days" name="reminder_days"
                 defaultValue={(portfolio?.default_payment_reminder_days ?? [14,7,1,-7,-30]).join(', ')} />
-              <p className="mt-1 text-xs text-gray-500">Comma-separated. Positive = before due, negative = after due.</p>
+              <p className="mt-1 text-xs text-slate-400">Comma-separated. Positive = before due, negative = after due.</p>
             </div>
 
             <div className="md:col-span-2 border-t border-gray-100 pt-4">

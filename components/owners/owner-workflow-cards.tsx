@@ -124,7 +124,7 @@ export default function OwnerWorkflowCards({ ownerId }: { ownerId: string }) {
               <span className="text-sm font-medium text-gray-900">{card.title}</span>
               <StatusBadge status={card.status} />
             </div>
-            <p className="mt-0.5 text-xs text-gray-500">{card.detail}</p>
+            <p className="mt-0.5 text-xs text-slate-400">{card.detail}</p>
           </div>
           <span className="ml-4 shrink-0 text-xs font-medium text-brand-600">
             {card.action} &rarr;

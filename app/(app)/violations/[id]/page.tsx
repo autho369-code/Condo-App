@@ -63,20 +63,20 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
             <div className="divide-y divide-gray-100">
               {(updates ?? []).map((update: any) => (
                 <div key={update.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between text-xs text-gray-500"><span>{update.profiles?.full_name ?? 'Staff'}</span><span>{date(update.created_at)}</span></div>
+                  <div className="flex items-center justify-between text-xs text-slate-400"><span>{update.profiles?.full_name ?? 'Staff'}</span><span>{date(update.created_at)}</span></div>
                   <p className="mt-2 text-sm text-gray-700">{update.note}</p>
                   {update.new_status && <div className="mt-2"><StatusChip tone="info">{formatStatus(update.new_status)}</StatusChip></div>}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="px-5 py-8 text-center text-sm text-gray-500">No updates recorded yet.</div>
+            <div className="px-5 py-8 text-center text-sm text-slate-400">No updates recorded yet.</div>
           )}
         </section>
 
         <section className="rounded border border-gray-200 bg-white p-5">
           <h2 className="text-sm font-semibold text-gray-950">Evidence and documents</h2>
-          <p className="mt-2 text-sm text-gray-500">{attachmentCount} attachment records on file. Upload and outbound delivery controls should require confirmation.</p>
+          <p className="mt-2 text-sm text-slate-400">{attachmentCount} attachment records on file. Upload and outbound delivery controls should require confirmation.</p>
         </section>
       </div>
     </DataWorkspace>
@@ -84,11 +84,11 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
 }
 
 function DetailRail() {
-  return <div className="space-y-3 text-sm text-gray-600"><h2 className="text-sm font-semibold text-gray-950">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Violation log report</Link></div>;
+  return <div className="space-y-3 text-sm text-slate-400"><h2 className="text-sm font-semibold text-gray-950">Next steps</h2><p>Review evidence, preview owner notice, confirm hearing date, then record follow-up updates.</p><Link href="/reports/violation_log" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Violation log report</Link></div>;
 }
 
 function Info({ label, value }: { label: string; value: ReactNode }) {
-  return <div><div className="text-xs font-medium uppercase text-gray-500">{label}</div><div className="mt-1 text-gray-900">{value}</div></div>;
+  return <div><div className="text-xs font-medium uppercase text-slate-400">{label}</div><div className="mt-1 text-gray-900">{value}</div></div>;
 }
 
 function formatStatus(value: string | null | undefined) {

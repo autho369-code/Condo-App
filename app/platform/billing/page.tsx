@@ -81,7 +81,7 @@ function KpiTile({
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</p>
-          {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
         </div>
         {Icon && (
           <div className={`ml-3 mt-0.5 rounded-lg bg-white/5 p-2 ${iconColorMap[accent] ?? iconColorMap.slate}`}>
@@ -357,7 +357,7 @@ export default async function PlatformBillingPage({
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Platform Operator
             </p>
             <h1 className="text-xl font-semibold text-white">Billing Monitor</h1>
@@ -405,7 +405,7 @@ export default async function PlatformBillingPage({
         {/* Filter tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <FilterTabs current={statusFilter} />
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-400">
             {billingRows.length} subscription{billingRows.length !== 1 ? 's' : ''} shown
           </span>
         </div>
@@ -432,8 +432,8 @@ export default async function PlatformBillingPage({
               <tbody className="divide-y divide-white/[0.04]">
                 {billingRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
-                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                    <td colSpan={11} className="px-4 py-16 text-center text-slate-400">
+                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                       <p>No subscription records match the selected filter.</p>
                     </td>
                   </tr>
@@ -456,7 +456,7 @@ export default async function PlatformBillingPage({
                             Suspended
                           </span>
                         )}
-                        <div className="mt-0.5 text-xs text-slate-500">
+                        <div className="mt-0.5 text-xs text-slate-400">
                           {row.subscription.billing_email ?? 'No billing email'}
                         </div>
                       </td>
@@ -476,7 +476,7 @@ export default async function PlatformBillingPage({
                         {row.doorsAddedThisMonth > 0 ? (
                           <span className="text-emerald-400">+{row.doorsAddedThisMonth}</span>
                         ) : (
-                          <span className="text-slate-600">0</span>
+                          <span className="text-slate-400">0</span>
                         )}
                       </td>
 
@@ -485,7 +485,7 @@ export default async function PlatformBillingPage({
                         {row.doorsRemovedThisMonth > 0 ? (
                           <span className="text-red-400">-{row.doorsRemovedThisMonth}</span>
                         ) : (
-                          <span className="text-slate-600">0</span>
+                          <span className="text-slate-400">0</span>
                         )}
                       </td>
 
@@ -496,7 +496,7 @@ export default async function PlatformBillingPage({
                           <TierChangeBadge sub={row.subscription} portfolio={row.portfolio} />
                         </div>
                         {row.subscription.units_limit != null && (
-                          <div className="mt-0.5 text-[10px] text-slate-500">
+                          <div className="mt-0.5 text-[10px] text-slate-400">
                             {row.totalDoors} / {row.subscription.units_limit} units
                             {row.totalDoors > row.subscription.units_limit && (
                               <span className="ml-1 text-amber-400">(over)</span>
@@ -516,7 +516,7 @@ export default async function PlatformBillingPage({
                       </td>
 
                       {/* Stripe Customer ID */}
-                      <td className="px-4 py-3 align-top font-mono text-xs text-slate-500">
+                      <td className="px-4 py-3 align-top font-mono text-xs text-slate-400">
                         {row.stripeCustomerId ? (
                           <span className="text-slate-400" title={row.stripeCustomerId}>
                             {row.stripeCustomerId.length > 16
@@ -549,7 +549,7 @@ export default async function PlatformBillingPage({
                             Stripe →
                           </Link>
                         ) : (
-                          <span className="text-xs text-slate-600">—</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
                     </tr>

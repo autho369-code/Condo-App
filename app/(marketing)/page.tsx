@@ -38,7 +38,7 @@ export default function Landing() {
                 See how it works
               </Link>
             </div>
-            <p className="mt-5 text-sm text-slate-600">No credit card required &middot; Cancel any time &middot; Your data stays yours</p>
+            <p className="mt-5 text-sm text-slate-400">No credit card required &middot; Cancel any time &middot; Your data stays yours</p>
           </div>
 
           {/* Metrics */}
@@ -51,7 +51,7 @@ export default function Landing() {
             ].map(([n, l]) => (
               <div key={l}>
                 <div className="text-4xl font-light tracking-[-0.02em] text-white">{n}</div>
-                <div className="mt-1 text-xs font-medium uppercase tracking-widest text-slate-500">{l}</div>
+                <div className="mt-1 text-xs font-medium uppercase tracking-widest text-slate-400">{l}</div>
               </div>
             ))}
           </div>
@@ -65,7 +65,7 @@ export default function Landing() {
       <section className="border-t border-slate-800 bg-[#0B1121] py-28">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How it works</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">How it works</span>
             <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
               Onboard an association in an afternoon.
             </h2>

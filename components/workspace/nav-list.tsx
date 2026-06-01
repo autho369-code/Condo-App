@@ -14,7 +14,7 @@ export type NavItem = {
 };
 
 const BADGE_TONE: Record<string, string> = {
-  neutral:  'bg-gray-100 text-gray-600',
+  neutral:  'bg-gray-100 text-slate-400',
   danger:   'bg-red-100 text-red-700',
   warning:  'bg-amber-100 text-amber-700',
   positive: 'bg-green-100 text-green-700',
@@ -75,7 +75,7 @@ export default function NavList({
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
       </div>
 
       {topActions && (
@@ -111,7 +111,7 @@ export default function NavList({
 
         {orderedGroupKeys.map((g) => (
           <div key={g} className="mb-4">
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
               {groupLabels?.[g] ?? g}
               <span className="ml-1 font-normal tabular-nums text-gray-400">({groups.grouped.get(g)!.length})</span>
             </div>
@@ -124,7 +124,7 @@ export default function NavList({
         ))}
 
         {filtered.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-gray-500">{query ? `No matches for "${query}".` : emptyMessage}</p>
+          <p className="px-3 py-4 text-center text-sm text-slate-400">{query ? `No matches for "${query}".` : emptyMessage}</p>
         )}
       </nav>
     </div>
@@ -148,13 +148,13 @@ function Row({ item, active, pinned = false }: { item: NavItem; active: boolean;
         <span className="min-w-0 flex-1">
           <span className="block truncate">{item.label}</span>
           {item.sub && (
-            <span className={'block truncate text-xs ' + (active ? 'text-white/80' : 'text-gray-500')}>{item.sub}</span>
+            <span className={'block truncate text-xs ' + (active ? 'text-white/80' : 'text-slate-400')}>{item.sub}</span>
           )}
         </span>
 
         <span className="flex shrink-0 items-center gap-1.5">
           {item.rightLabel && (
-            <span className={'tabular-nums ' + (active ? 'text-white/80 text-xs' : 'text-xs text-gray-500')}>
+            <span className={'tabular-nums ' + (active ? 'text-white/80 text-xs' : 'text-xs text-slate-400')}>
               {item.rightLabel}
             </span>
           )}

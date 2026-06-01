@@ -16,7 +16,7 @@ export default async function BankReconcilePage() {
     <DataWorkspace
       title="Bank reconciliation"
       description="Statement inputs, cleared balances, deposits, checks, notes, and attachments in one reconciliation workspace."
-      rail={<p className="text-sm leading-6 text-gray-600">Reconcile only after statement balance and cleared transactions match.</p>}
+      rail={<p className="text-sm leading-6 text-slate-400">Reconcile only after statement balance and cleared transactions match.</p>}
     >
       <div className="space-y-6">
         <section className="rounded border border-gray-200 bg-white p-5">
@@ -44,7 +44,7 @@ function WorkspaceTable({ title }: { title: string }) {
   return (
     <section className="rounded border border-gray-200 bg-white">
       <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-950">{title}</div>
-      <div className="px-4 py-8 text-center text-sm text-gray-500">Transactions will appear after selecting an account and statement period.</div>
+      <div className="px-4 py-8 text-center text-sm text-slate-400">Transactions will appear after selecting an account and statement period.</div>
     </section>
   );
 }

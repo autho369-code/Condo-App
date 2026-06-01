@@ -36,7 +36,7 @@ export default async function PlatformOwnersPage() {
     <div className="space-y-7">
       <header>
         <h1 className="text-2xl font-semibold text-gray-950">Owners</h1>
-        <p className="mt-1 text-sm text-gray-500">Owner directory by client and property. This is visibility, not daily owner operations.</p>
+        <p className="mt-1 text-sm text-slate-400">Owner directory by client and property. This is visibility, not daily owner operations.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -60,7 +60,7 @@ export default async function PlatformOwnersPage() {
             <tbody>
               {(owners ?? []).length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-10 text-center text-gray-500">No owners are visible.</TD>
+                  <TD colSpan={5} className="py-10 text-center text-slate-400">No owners are visible.</TD>
                 </TR>
               ) : (
                 (owners ?? []).map((owner: any) => {
@@ -71,7 +71,7 @@ export default async function PlatformOwnersPage() {
                     <TR key={owner.id} className="hover:bg-gray-50">
                       <TD>
                         <div className="font-medium text-gray-950">{owner.full_name}</div>
-                        <div className="mt-1 text-xs text-gray-500">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
+                        <div className="mt-1 text-xs text-slate-400">{owner.email ?? owner.phone ?? 'No contact on file'}</div>
                       </TD>
                       <TD>
                         {portfolioId ? (
@@ -84,7 +84,7 @@ export default async function PlatformOwnersPage() {
                       </TD>
                       <TD>
                         <div>{association?.name ?? '-'}</div>
-                        <div className="mt-1 text-xs text-gray-500">{occupancy?.units?.unit_number ? `Unit ${occupancy.units.unit_number}` : 'No unit link'}</div>
+                        <div className="mt-1 text-xs text-slate-400">{occupancy?.units?.unit_number ? `Unit ${occupancy.units.unit_number}` : 'No unit link'}</div>
                       </TD>
                       <TD>{owner.portal_activated ? 'Active' : 'Not active'}</TD>
                       <TD>{date(owner.portal_login_last_at)}</TD>

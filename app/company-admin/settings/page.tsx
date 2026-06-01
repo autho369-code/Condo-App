@@ -16,7 +16,7 @@ export default async function CompanySettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -53,13 +53,13 @@ export default async function CompanySettingsPage() {
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4 text-slate-500" />
+            <Settings className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Company:</span>
             <span className="font-semibold text-white">{portfolio?.company_name ?? me.portfolio?.company_name ?? '—'}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-400">Portfolio ID:</span>
-            <span className="font-mono text-xs text-slate-500">{portfolioId}</span>
+            <span className="font-mono text-xs text-slate-400">{portfolioId}</span>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ export function FilterBar({
 }) {
   return (
     <form action={action} className="flex flex-wrap items-end gap-3 rounded border border-gray-200 bg-white p-3">
-      <label className="min-w-64 flex-1 text-xs font-medium uppercase text-gray-500">
+      <label className="min-w-64 flex-1 text-xs font-medium uppercase text-slate-400">
         Search
         <input
           name={searchName}

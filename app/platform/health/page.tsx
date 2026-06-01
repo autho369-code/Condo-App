@@ -162,7 +162,7 @@ export default async function HealthPage({
         <div className="px-8 py-6">
           <Card className="border-gray-800 bg-gray-900">
             <CardBody>
-              <p className="py-10 text-center text-gray-500">No associations exist yet. Create associations to monitor their health.</p>
+              <p className="py-10 text-center text-slate-400">No associations exist yet. Create associations to monitor their health.</p>
             </CardBody>
           </Card>
         </div>
@@ -440,7 +440,7 @@ export default async function HealthPage({
             {(companyFilter || healthFilter) && (
               <Link
                 href="/platform/health"
-                className="rounded-md px-3 py-1.5 text-sm text-gray-500 hover:text-gray-300 transition"
+                className="rounded-md px-3 py-1.5 text-sm text-slate-400 hover:text-gray-300 transition"
               >
                 Clear
               </Link>
@@ -471,7 +471,7 @@ export default async function HealthPage({
                 <tbody>
                   {healthRows.length === 0 ? (
                     <TR className="border-gray-800">
-                      <TD colSpan={11} className="py-14 text-center text-gray-500">
+                      <TD colSpan={11} className="py-14 text-center text-slate-400">
                         {companyFilter || healthFilter
                           ? 'No associations match the current filters.'
                           : 'No health data available.'}
@@ -521,13 +521,13 @@ export default async function HealthPage({
                               <span className={row.daysSinceActivity !== null && row.daysSinceActivity > 14 ? 'text-rose-300 font-medium' : ''}>
                                 {date(row.lastManagerActivity)}
                                 {row.daysSinceActivity !== null && row.daysSinceActivity > 0 && (
-                                  <span className="ml-1 text-xs text-gray-500">
+                                  <span className="ml-1 text-xs text-slate-400">
                                     ({row.daysSinceActivity}d ago)
                                   </span>
                                 )}
                               </span>
                             ) : (
-                              <span className="text-gray-600">Never</span>
+                              <span className="text-slate-400">Never</span>
                             )}
                           </TD>
                           <TD>
@@ -544,11 +544,11 @@ export default async function HealthPage({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-slate-400">
           <span>
             Showing {healthRows.length} of {allAssociations.length} association{allAssociations.length !== 1 ? 's' : ''}
           </span>
-          <span className="text-gray-600">
+          <span className="text-slate-400">
             Score = open SRs (×1) + overdue SRs (×2) + violations (×1) + arch reviews (×1) + unanswered &gt;48h (×2) + vendor tix (×1) + stale activity
           </span>
         </div>
@@ -596,7 +596,7 @@ function StatDark({
     <div className={`rounded-lg border ${borderColorMap[accent]} ${bgColorMap[accent]} p-4`}>
       <div className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</div>
       <div className={`mt-1 text-2xl font-semibold ${valueColorMap[accent]}`}>{value}</div>
-      {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }

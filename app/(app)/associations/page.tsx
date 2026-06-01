@@ -46,7 +46,7 @@ export default function AssociationsPage() {
         <Link href="/associations" className="text-blue-600 hover:underline">Associations</Link>
       </div>
       <h1 className="text-2xl font-normal text-gray-800 mb-1">Associations</h1>
-      <p className="text-sm text-gray-500 mb-4">Click on any row to view association information.</p>
+      <p className="text-sm text-slate-400 mb-4">Click on any row to view association information.</p>
 
       <table className="w-full text-sm border-collapse">
         <thead>
@@ -68,8 +68,8 @@ export default function AssociationsPage() {
             <tr key={a.id} className={`border-b border-gray-200 hover:bg-blue-50 ${i % 2 === 0 ? '' : 'bg-gray-50'}`}>
               <td className="py-2 px-3">
                 <Link href={`/associations/${a.id}`} className="text-blue-600 hover:underline font-medium">{a.name}</Link>
-                <div className="text-xs text-gray-500">{a.address}</div>
-                <div className="text-xs text-gray-500">{a.city}, {a.state} {a.zip}</div>
+                <div className="text-xs text-slate-400">{a.address}</div>
+                <div className="text-xs text-slate-400">{a.city}, {a.state} {a.zip}</div>
               </td>
               <td className="py-2 px-3 text-gray-700 align-top pt-3">{a.unit_count ?? '—'}</td>
             </tr>
@@ -78,7 +78,7 @@ export default function AssociationsPage() {
       </table>
 
       {!loading && associations.length > 0 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-400">
           <span>Displaying: {(page-1)*PAGE_SIZE+1}-{Math.min(page*PAGE_SIZE, associations.length)} of {associations.length}</span>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(1)} disabled={page===1} className="px-2 py-1 border rounded disabled:opacity-40 hover:bg-gray-100">«</button>

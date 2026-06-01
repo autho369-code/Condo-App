@@ -30,13 +30,13 @@ export default async function RecurringWOPage() {
                 <TD className="whitespace-nowrap text-sm">{date(r.next_due_date)}</TD>
                 <TD>{r.auto_generate
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">auto</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">manual</span>}</TD>
+                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">manual</span>}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No recurring work orders defined.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No recurring work orders defined.</p>
       )}
     </ModulePage>
   );

@@ -34,7 +34,7 @@ export default async function InspectionsPage() {
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No inspections scheduled.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No inspections scheduled.</p>
       )}
     </ModulePage>
   );

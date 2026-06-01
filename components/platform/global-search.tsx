@@ -110,7 +110,7 @@ export default function GlobalSearch() {
   return (
     <div ref={containerRef} className="relative w-full max-w-xl">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           ref={inputRef}
           type="text"
@@ -118,10 +118,10 @@ export default function GlobalSearch() {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          className="h-10 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] pl-10 pr-10 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition"
+          className="h-10 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] pl-10 pr-10 text-sm text-white placeholder:text-slate-400 focus:border-emerald-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+          <button onClick={() => { setQuery(''); setOpen(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -129,9 +129,9 @@ export default function GlobalSearch() {
 
       {open && (query.length >= 2) && (
         <div className="absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0B1121] shadow-2xl shadow-black/50">
-          {loading && <div className="px-4 py-3 text-sm text-slate-500">Searching...</div>}
+          {loading && <div className="px-4 py-3 text-sm text-slate-400">Searching...</div>}
           {!loading && results.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-slate-500">No results found for "{query}"</div>
+            <div className="px-4 py-6 text-center text-sm text-slate-400">No results found for "{query}"</div>
           )}
           {!loading && results.length > 0 && (
             <div className="max-h-80 overflow-y-auto">
@@ -149,7 +149,7 @@ export default function GlobalSearch() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-white">{r.label}</p>
-                      <p className="text-xs text-slate-500">{r.subtitle}</p>
+                      <p className="text-xs text-slate-400">{r.subtitle}</p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${typeColors[r.type]}`}>
                       {r.type}

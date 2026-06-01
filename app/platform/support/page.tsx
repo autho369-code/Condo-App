@@ -84,7 +84,7 @@ function StatDark({
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</p>
-          {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
         </div>
         {Icon && (
           <div className={`ml-3 mt-0.5 rounded-lg bg-white/5 p-2 ${iconColorMap[accent]}`}>
@@ -231,7 +231,7 @@ export default async function SupportPage({
     <div className="-mx-8 -my-8 min-h-[calc(100vh-64px)] bg-[#060B18]">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="[&_h1]:text-white [&_.text-gray-500]:text-slate-400 [&_.text-gray-900]:text-white">
+        <div className="[&_h1]:text-white [&_.text-slate-400]:text-slate-400 [&_.text-gray-900]:text-white">
           <WorkspaceHeader
             eyebrow="Customer Support"
             title="Support / Help Desk"
@@ -302,7 +302,7 @@ export default async function SupportPage({
                   {tab.label}
                   <span
                     className={`ml-1.5 text-xs ${
-                      isActive ? 'text-slate-400' : 'text-slate-600'
+                      isActive ? 'text-slate-400' : 'text-slate-400'
                     }`}
                   >
                     {tab.count}
@@ -318,12 +318,12 @@ export default async function SupportPage({
               <input type="hidden" name="tab" value={activeTab} />
             )}
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 name="q"
                 placeholder="Search by title or description..."
                 defaultValue={search}
-                className="border-gray-700 bg-gray-900 pl-10 text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
+                className="border-gray-700 bg-gray-900 pl-10 text-slate-200 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
           </form>
@@ -343,7 +343,7 @@ export default async function SupportPage({
           <CardBody className="p-0">
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
-                <Ticket className="h-8 w-8 text-slate-600" />
+                <Ticket className="h-8 w-8 text-slate-400" />
                 <p className="text-sm text-slate-400">
                   {search || activeTab !== 'all'
                     ? 'No tickets match your current filters.'
@@ -401,14 +401,14 @@ export default async function SupportPage({
 
             {/* Footer */}
             {filtered.length > 0 && (
-              <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3 text-xs text-slate-500">
+              <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3 text-xs text-slate-400">
                 <span>
                   Showing {filtered.length} of {allTickets.length} ticket
                   {allTickets.length !== 1 ? 's' : ''}
                   {(search || activeTab !== 'all') && ' (filtered)'}
                 </span>
                 {allTickets.length >= 500 && (
-                  <span className="text-slate-600">Limited to 500 results</span>
+                  <span className="text-slate-400">Limited to 500 results</span>
                 )}
               </div>
             )}

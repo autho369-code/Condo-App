@@ -73,9 +73,9 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -125,7 +125,7 @@ export default async function RevenuePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">
             Contact the platform operator to set up your company.
@@ -206,7 +206,7 @@ export default async function RevenuePage() {
         <div className="flex items-center gap-2">
           <Link
             href="/company-admin/billing"
-            className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1"
+            className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
           >
             View Billing
             <ArrowRight className="h-3 w-3" />
@@ -263,7 +263,7 @@ export default async function RevenuePage() {
 
         {assocList.length === 0 ? (
           <div className="px-5 py-10 text-center">
-            <Building2 className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+            <Building2 className="h-8 w-8 text-slate-400 mx-auto mb-3" />
             <p className="text-sm text-slate-400">No associations found</p>
           </div>
         ) : (
@@ -340,11 +340,11 @@ export default async function RevenuePage() {
                     }}
                   />
                 </div>
-                <span className="text-xs text-slate-500">{m.month}</span>
+                <span className="text-xs text-slate-400">{m.month}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-600 text-center mt-4">
+          <p className="text-xs text-slate-400 text-center mt-4">
             Estimated based on active subscriptions — real figures will populate from billing data
           </p>
         </div>
@@ -367,7 +367,7 @@ export default async function RevenuePage() {
                 <span className="text-sm font-semibold tabular-nums text-emerald-300">
                   {fmtCents(Math.round(projectedNext))}
                 </span>
-                <span className="text-xs text-slate-500 ml-1.5">+5% est.</span>
+                <span className="text-xs text-slate-400 ml-1.5">+5% est.</span>
               </div>
             </div>
             <div className="flex items-center justify-between px-5 py-3">
@@ -402,9 +402,9 @@ export default async function RevenuePage() {
             </h3>
           </div>
           <div className="px-5 py-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+            <AlertTriangle className="h-8 w-8 text-slate-400 mx-auto mb-3" />
             <p className="text-sm text-slate-400">No associations flagged</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Financial risk monitoring will be available when accounting data is connected
             </p>
           </div>
@@ -420,9 +420,9 @@ export default async function RevenuePage() {
           </h3>
         </div>
         <div className="px-5 py-8 text-center">
-          <Clock className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+          <Clock className="h-8 w-8 text-slate-400 mx-auto mb-3" />
           <p className="text-sm text-slate-400">Delinquency data not available</p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Owner delinquency tracking requires accounting integration
           </p>
         </div>
@@ -430,7 +430,7 @@ export default async function RevenuePage() {
 
       {/* Filter note */}
       <div className="flex items-center gap-2 px-1">
-        <span className="text-xs text-slate-600">
+        <span className="text-xs text-slate-400">
           Filter by association and date range coming soon
         </span>
       </div>

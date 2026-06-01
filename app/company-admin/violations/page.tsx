@@ -98,9 +98,9 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -137,7 +137,7 @@ export default async function ViolationsPage({
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -265,17 +265,17 @@ export default async function ViolationsPage({
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-slate-500" />
+            <Clock className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Open:</span>
             <span className="font-semibold text-white tabular-nums">{openCount}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Gavel className="h-4 w-4 text-slate-500" />
+            <Gavel className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Pending Hearings:</span>
             <span className="font-semibold text-white tabular-nums">{pendingHearingCount}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Hash className="h-4 w-4 text-slate-500" />
+            <Hash className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Total:</span>
             <span className="font-semibold text-white tabular-nums">{totalViolations ?? 0}</span>
           </div>
@@ -286,7 +286,7 @@ export default async function ViolationsPage({
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <form className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
+            <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Filters</span>
           </div>
           <select
@@ -323,7 +323,7 @@ export default async function ViolationsPage({
             ))}
           </select>
           <div className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <Calendar className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
               name="from"
@@ -331,7 +331,7 @@ export default async function ViolationsPage({
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50"
               placeholder="From"
             />
-            <span className="text-xs text-slate-600">to</span>
+            <span className="text-xs text-slate-400">to</span>
             <input
               type="date"
               name="to"
@@ -348,7 +348,7 @@ export default async function ViolationsPage({
             Apply
           </button>
           {(filterStatus || filterType || filterAssociation || params.from || params.to) && (
-            <a href="/company-admin/violations" className="text-xs text-slate-500 hover:text-slate-400 transition">
+            <a href="/company-admin/violations" className="text-xs text-slate-400 hover:text-slate-400 transition">
               Clear filters
             </a>
           )}
@@ -375,7 +375,7 @@ export default async function ViolationsPage({
             <tbody className="divide-y divide-white/[0.04]">
               {(violations ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-400">
                     {totalViolations === 0 ? 'No violations found for this portfolio.' : 'No violations match the current filters.'}
                   </td>
                 </tr>
@@ -407,7 +407,7 @@ export default async function ViolationsPage({
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-white/[0.04] px-4 py-3">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Showing {from + 1}–{Math.min(to + 1, totalViolations ?? 0)} of {totalViolations}
             </p>
             <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ export default async function ViolationsPage({
                   <ChevronLeft className="h-3 w-3" /> Prev
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-600 cursor-not-allowed">
+                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-400 cursor-not-allowed">
                   <ChevronLeft className="h-3 w-3" /> Prev
                 </span>
               )}
@@ -432,7 +432,7 @@ export default async function ViolationsPage({
                   Next <ChevronRight className="h-3 w-3" />
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-600 cursor-not-allowed">
+                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-400 cursor-not-allowed">
                   Next <ChevronRight className="h-3 w-3" />
                 </span>
               )}

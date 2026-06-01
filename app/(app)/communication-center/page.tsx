@@ -11,7 +11,7 @@ const statusTone: Record<string, string> = {
   queued: 'bg-blue-100 text-blue-700',
   sent: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
-  canceled: 'bg-gray-100 text-gray-600',
+  canceled: 'bg-gray-100 text-slate-400',
 };
 
 function formatDate(value: string | null) {
@@ -38,9 +38,9 @@ export default async function CommunicationCenterPage() {
     <div className="h-full overflow-y-auto bg-gray-50 px-8 py-6">
       <div className="mb-6 flex items-start justify-between gap-6">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Communication Center</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Communication Center</div>
           <h1 className="mt-1 text-2xl font-semibold text-gray-900">Owner, tenant, board, and vendor communication</h1>
-          <p className="mt-1 max-w-3xl text-sm text-gray-500">
+          <p className="mt-1 max-w-3xl text-sm text-slate-400">
             Central queue for event notices, vendor confirmations, SMS drafts, board reminders, and communication history.
           </p>
         </div>
@@ -72,18 +72,18 @@ export default async function CommunicationCenterPage() {
             {rows.map((message: any) => (
               <TR key={message.id}>
                 <TD className="whitespace-nowrap text-sm">{formatDate(message.created_at)}</TD>
-                <TD className="uppercase text-xs font-semibold text-gray-600">{message.channel}</TD>
+                <TD className="uppercase text-xs font-semibold text-slate-400">{message.channel}</TD>
                 <TD>
                   <div className="text-sm capitalize text-gray-900">{String(message.recipient_group ?? '').replaceAll('_', ' ')}</div>
-                  <div className="text-xs text-gray-500">{message.recipient_email ?? message.recipient_phone ?? 'Resolved at send time'}</div>
+                  <div className="text-xs text-slate-400">{message.recipient_email ?? message.recipient_phone ?? 'Resolved at send time'}</div>
                 </TD>
                 <TD className="text-sm text-gray-700">{message.associations?.name ?? 'Portfolio-wide'}</TD>
                 <TD className="max-w-xl">
                   <div className="font-medium text-gray-900">{message.subject ?? 'No subject'}</div>
-                  <div className="mt-1 line-clamp-2 text-sm text-gray-500">{message.body}</div>
+                  <div className="mt-1 line-clamp-2 text-sm text-slate-400">{message.body}</div>
                 </TD>
                 <TD>
-                  <span className={`rounded px-2 py-0.5 text-xs capitalize ${statusTone[message.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`rounded px-2 py-0.5 text-xs capitalize ${statusTone[message.status] ?? 'bg-gray-100 text-slate-400'}`}>
                     {message.status}
                   </span>
                 </TD>
@@ -94,7 +94,7 @@ export default async function CommunicationCenterPage() {
       ) : (
         <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
           <h2 className="text-base font-semibold text-gray-900">No communications yet</h2>
-          <p className="mt-1 text-sm text-gray-500">Calendar events and manual emails will create draft messages here.</p>
+          <p className="mt-1 text-sm text-slate-400">Calendar events and manual emails will create draft messages here.</p>
         </div>
       )}
     </div>
@@ -104,7 +104,7 @@ export default async function CommunicationCenterPage() {
 function Metric({ label, value, tone = 'text-gray-900' }: { label: string; value: number; tone?: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</div>
     </div>
   );

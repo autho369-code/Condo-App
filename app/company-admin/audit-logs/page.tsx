@@ -77,7 +77,7 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
@@ -114,7 +114,7 @@ export default async function AuditLogsPage({
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -243,7 +243,7 @@ export default async function AuditLogsPage({
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <form className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
+            <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Filters</span>
           </div>
           <select
@@ -264,14 +264,14 @@ export default async function AuditLogsPage({
             className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50"
           />
           <div className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <Calendar className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
               name="from"
               defaultValue={params.from ?? ''}
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50"
             />
-            <span className="text-xs text-slate-600">to</span>
+            <span className="text-xs text-slate-400">to</span>
             <input
               type="date"
               name="to"
@@ -287,7 +287,7 @@ export default async function AuditLogsPage({
             Apply
           </button>
           {(filterAction || filterActor || params.from || params.to) && (
-            <a href="/company-admin/audit-logs" className="text-xs text-slate-500 hover:text-slate-400 transition">
+            <a href="/company-admin/audit-logs" className="text-xs text-slate-400 hover:text-slate-400 transition">
               Clear filters
             </a>
           )}
@@ -311,7 +311,7 @@ export default async function AuditLogsPage({
             <tbody className="divide-y divide-white/[0.04]">
               {logList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">
                     {totalCount === 0
                       ? 'No audit log entries found for this portfolio.'
                       : 'No entries match the current filters.'}
@@ -324,7 +324,7 @@ export default async function AuditLogsPage({
                       <div className="text-sm text-slate-300 tabular-nums">
                         {entry.created_at ? date(entry.created_at) : '—'}
                       </div>
-                      <div className="text-xs text-slate-500">{timeAgo(entry.created_at)}</div>
+                      <div className="text-xs text-slate-400">{timeAgo(entry.created_at)}</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-300">
                       {entry.actor_email || '—'}
@@ -338,7 +338,7 @@ export default async function AuditLogsPage({
                     <td className="px-4 py-3 text-sm text-slate-400 font-mono text-xs">
                       {truncate(entry.entity_id, 12)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500 font-mono text-xs">
+                    <td className="px-4 py-3 text-sm text-slate-400 font-mono text-xs">
                       {entry.ip_address || '—'}
                     </td>
                   </tr>
@@ -351,7 +351,7 @@ export default async function AuditLogsPage({
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-white/[0.04] px-4 py-3">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Showing {from + 1}–{Math.min(to + 1, totalCount ?? 0)} of {totalCount}
             </p>
             <div className="flex items-center gap-2">
@@ -363,7 +363,7 @@ export default async function AuditLogsPage({
                   <ChevronLeft className="h-3 w-3" /> Prev
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-600 cursor-not-allowed">
+                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-400 cursor-not-allowed">
                   <ChevronLeft className="h-3 w-3" /> Prev
                 </span>
               )}
@@ -376,7 +376,7 @@ export default async function AuditLogsPage({
                   Next <ChevronRight className="h-3 w-3" />
                 </a>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-600 cursor-not-allowed">
+                <span className="inline-flex items-center gap-1 rounded-lg border border-slate-800 px-2 py-1 text-xs text-slate-400 cursor-not-allowed">
                   Next <ChevronRight className="h-3 w-3" />
                 </span>
               )}

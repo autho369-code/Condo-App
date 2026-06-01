@@ -63,15 +63,15 @@ export default async function OwnerActivationsPage({ searchParams }: { searchPar
               <TR key={owner.id}>
                 <TD>
                   <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
-                  <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
+                  <div className="mt-1 text-xs text-slate-400">{owner.email}</div>
                 </TD>
                 <TD>
                   <StatusChip tone={invite?.status === 'active' ? 'success' : invite?.status === 'sent' ? 'info' : 'neutral'}>
                     {invite?.status?.replace(/_/g, ' ') ?? 'Not invited'}
                   </StatusChip>
                 </TD>
-                <TD className="text-sm text-gray-500">{invite?.sent_at ? new Date(invite.sent_at).toLocaleDateString() : '—'}</TD>
-                <TD className="text-sm text-gray-500">{invite?.last_login_at ? new Date(invite.last_login_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-slate-400">{invite?.sent_at ? new Date(invite.sent_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-slate-400">{invite?.last_login_at ? new Date(invite.last_login_at).toLocaleDateString() : '—'}</TD>
                 <TD>
                   <form action={sendPortalActivation}>
                     <input type="hidden" name="owner_id" value={owner.id} />

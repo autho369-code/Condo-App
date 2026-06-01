@@ -259,7 +259,7 @@ export default async function SystemControlsPage({
     <div className="-mx-8 -my-8 min-h-[calc(100vh-64px)] bg-[#060B18]">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="[&_h1]:text-white [&_.text-gray-500]:text-slate-400 [&_.text-gray-900]:text-white">
+        <div className="[&_h1]:text-white [&_.text-slate-400]:text-slate-400 [&_.text-gray-900]:text-white">
           <WorkspaceHeader
             eyebrow="Platform Operator"
             title="System Controls"
@@ -354,7 +354,7 @@ export default async function SystemControlsPage({
                   name="reason"
                   type="text"
                   placeholder="Reason (optional)"
-                  className="w-full h-9 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-600 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                  className="w-full h-9 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-400 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
                 />
                 <button
                   type="submit"
@@ -411,7 +411,7 @@ export default async function SystemControlsPage({
                   type="email"
                   required
                   placeholder="user@company.com"
-                  className="w-full h-9 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                  className="w-full h-9 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 text-sm text-slate-200 placeholder:text-slate-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                 />
                 <button
                   type="submit"
@@ -490,7 +490,7 @@ export default async function SystemControlsPage({
                   required
                   rows={3}
                   placeholder="Internal note text…"
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:border-slate-500/50 focus:outline-none focus:ring-1 focus:ring-slate-500/50 resize-none"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-400 focus:border-slate-500/50 focus:outline-none focus:ring-1 focus:ring-slate-500/50 resize-none"
                 />
                 <button
                   type="submit"
@@ -586,17 +586,17 @@ export default async function SystemControlsPage({
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-slate-400" />
               <h2 className="text-sm font-semibold text-white">All Companies</h2>
-              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-500">
+              <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-slate-400">
                 {filteredPortfolios.length}
               </span>
             </div>
             <form className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 name="search"
                 defaultValue={search}
                 placeholder="Search companies…"
-                className="h-8 w-56 rounded-lg border border-white/[0.08] bg-white/[0.04] pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-600 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                className="h-8 w-56 rounded-lg border border-white/[0.08] bg-white/[0.04] pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-400 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
               />
             </form>
           </div>
@@ -605,8 +605,8 @@ export default async function SystemControlsPage({
           <div className="divide-y divide-white/[0.04]">
             {filteredPortfolios.length === 0 ? (
               <div className="py-14 text-center">
-                <Building2 className="mx-auto h-6 w-6 text-slate-600" />
-                <p className="mt-3 text-sm text-slate-500">
+                <Building2 className="mx-auto h-6 w-6 text-slate-400" />
+                <p className="mt-3 text-sm text-slate-400">
                   {search ? 'No companies match your search.' : 'No companies exist yet.'}
                 </p>
               </div>
@@ -644,7 +644,7 @@ export default async function SystemControlsPage({
                         <p className="text-sm font-medium text-white truncate">
                           {p.company_name}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-400">
                           Tier: {p.tier ?? 'starter'} · Created{' '}
                           {new Date(p.created_at).toLocaleDateString('en-US', {
                             month: 'short',
@@ -691,14 +691,14 @@ export default async function SystemControlsPage({
                             <button
                               type="submit"
                               title="Reactivate"
-                              className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-emerald-400/10 hover:text-emerald-400 transition"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-emerald-400/10 hover:text-emerald-400 transition"
                             >
                               <PlayCircle className="h-4 w-4" />
                             </button>
                           </form>
                         ) : (
                           <details className="relative">
-                            <summary className="inline-flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 transition">
+                            <summary className="inline-flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded text-slate-400 hover:bg-white/[0.06] hover:text-slate-300 transition">
                               <RefreshCw className="h-3.5 w-3.5" />
                             </summary>
                             <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-white/[0.08] bg-[#111827] py-1 shadow-xl">
@@ -739,7 +739,7 @@ export default async function SystemControlsPage({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-white/[0.04] px-4 py-2 text-xs text-slate-600">
+          <div className="border-t border-white/[0.04] px-4 py-2 text-xs text-slate-400">
             Showing {filteredPortfolios.length} of {totalCompanies} companies
             {search && ' (filtered)'}
           </div>

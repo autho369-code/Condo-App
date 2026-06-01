@@ -47,7 +47,7 @@ export default async function NewVendorPage() {
         </div>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact and remit-to address</div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Contact and remit-to address</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>
             <div className="md:col-span-2"><Label htmlFor="address_city">City</Label><Input id="address_city" name="address_city" /></div>
@@ -57,23 +57,23 @@ export default async function NewVendorPage() {
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax and 1099</div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Tax and 1099</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9" /></div>
             <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" placeholder="EIN or SSN" /></div>
             <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
               <input type="checkbox" name="send_1099" className="mt-1" />
-              <span><span className="block text-sm font-medium text-gray-900">Send 1099 at year-end</span><span className="block text-xs text-gray-500">Use for service vendors paid at or above the filing threshold.</span></span>
+              <span><span className="block text-sm font-medium text-gray-900">Send 1099 at year-end</span><span className="block text-xs text-slate-400">Use for service vendors paid at or above the filing threshold.</span></span>
             </label>
             <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
               <input type="checkbox" name="is_utility" className="mt-1" />
-              <span><span className="block text-sm font-medium text-gray-900">Utility vendor</span><span className="block text-xs text-gray-500">Utility vendors are tracked separately in reports.</span></span>
+              <span><span className="block text-sm font-medium text-gray-900">Utility vendor</span><span className="block text-xs text-slate-400">Utility vendors are tracked separately in reports.</span></span>
             </label>
           </div>
         </section>
 
         <section className="border-t border-gray-100 pt-5">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Payment defaults</div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Payment defaults</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="payment_type">Preferred payment method</Label>
@@ -91,7 +91,7 @@ export default async function NewVendorPage() {
         </section>
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-          <Link href="/vendors" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
+          <Link href="/vendors" className="text-sm text-slate-400 hover:text-gray-900">Cancel</Link>
           <Button type="submit" size="lg">Create vendor</Button>
         </div>
       </form>

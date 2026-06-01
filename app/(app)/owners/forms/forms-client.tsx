@@ -30,7 +30,7 @@ export default function OwnerFormsClient({ owners, submissions }: { owners: any[
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Owner Forms</h1>
-          <p className="mt-1 text-sm text-gray-500">Fillable in-app forms saved to owner profile. No PDFs, no fake text.</p>
+          <p className="mt-1 text-sm text-slate-400">Fillable in-app forms saved to owner profile. No PDFs, no fake text.</p>
         </div>
         <Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>
       </div>
@@ -46,7 +46,7 @@ export default function OwnerFormsClient({ owners, submissions }: { owners: any[
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.key ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t.key ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400 hover:text-gray-700'
             }`}
           >
             {t.label}
@@ -112,7 +112,7 @@ export default function OwnerFormsClient({ owners, submissions }: { owners: any[
               <div key={ft.key} className="flex items-center justify-between rounded border border-gray-200 bg-white p-3">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{ft.label}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-400">
                     {sub ? `Submitted ${new Date(sub.submitted_at).toLocaleDateString()}` : 'Not submitted'}
                   </p>
                 </div>
@@ -216,7 +216,7 @@ function EmergencyContactForm({ existing }: { existing?: Record<string, any> }) 
 function TenantInfoForm({ existing }: { existing?: Record<string, any> }) {
   return (
     <div className="space-y-4">
-      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-slate-400">
         Record current tenant and lease information. This data is visible only to authorized staff.
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -236,7 +236,7 @@ function VehicleParkingForm({ existing }: { existing?: Record<string, any> }) {
   const vehicles = existing?.vehicles || [{ make: '', model: '', year: '', plate: '', color: '', parking_spot: '' }];
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">Add vehicles registered to this unit.</p>
+      <p className="text-xs text-slate-400">Add vehicles registered to this unit.</p>
       {vehicles.map((v: any, i: number) => (
         <div key={i} className="grid gap-3 md:grid-cols-3 rounded border border-gray-100 bg-gray-50 p-3">
           {field('Make', `vehicle_${i}_make`, v.make || '')}
@@ -256,7 +256,7 @@ function PetEsaForm({ existing }: { existing?: Record<string, any> }) {
   const pets = existing?.pets || [{ name: '', type: '', breed: '', weight: '', esa: false, service: false }];
   return (
     <div className="space-y-4">
-      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-slate-400">
         Record pets, ESAs, and service animals. Service animals are not pets per ADA/FHA — note them separately.
       </div>
       {pets.map((p: any, i: number) => (
@@ -316,7 +316,7 @@ function AchSetupForm({ existing }: { existing?: Record<string, any> }) {
 function ManagementIntakeForm({ existing }: { existing?: Record<string, any> }) {
   return (
     <div className="space-y-4">
-      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+      <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-slate-400">
         Pre-agreement intake. A formal Management Agreement can be created from this data in the Agreements section.
       </div>
       <div className="grid gap-4 md:grid-cols-2">

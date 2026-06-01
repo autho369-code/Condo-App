@@ -86,9 +86,9 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
           {delta && (
             <div className="flex items-center gap-1">
               {delta.up ? (
@@ -153,7 +153,7 @@ export default async function BillingPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">
             Contact the platform operator to set up your company.
@@ -398,12 +398,12 @@ export default async function BillingPage() {
                 )}
               </div>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {additionalDoors > 0
                     ? `${additionalDoors} over limit`
                     : `${doorLimit - activeDoors} doors remaining`}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {doorLimit > 0
                     ? `${Math.round((activeDoors / doorLimit) * 100)}% utilized`
                     : 'no limit'}
@@ -413,12 +413,12 @@ export default async function BillingPage() {
 
             {/* Association breakdown */}
             <div className="border-t border-white/[0.04] pt-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
                 By Association
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {(associations ?? []).length === 0 ? (
-                  <p className="text-sm text-slate-500">No associations found</p>
+                  <p className="text-sm text-slate-400">No associations found</p>
                 ) : (
                   (associations ?? []).map((a) => (
                     <div
@@ -447,9 +447,9 @@ export default async function BillingPage() {
           </h3>
         </div>
         <div className="px-5 py-8 text-center">
-          <Receipt className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+          <Receipt className="h-8 w-8 text-slate-400 mx-auto mb-3" />
           <p className="text-sm text-slate-400">No invoice history available</p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Invoices will appear here once payment processing is configured
           </p>
         </div>
@@ -466,9 +466,9 @@ export default async function BillingPage() {
             </h3>
           </div>
           <div className="px-5 py-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+            <AlertTriangle className="h-8 w-8 text-slate-400 mx-auto mb-3" />
             <p className="text-sm text-slate-400">No failed payments</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Failed payment records will appear here
             </p>
           </div>
@@ -483,15 +483,15 @@ export default async function BillingPage() {
             </h3>
           </div>
           <div className="px-5 py-6 text-center">
-            <CreditCard className="h-8 w-8 text-slate-600 mx-auto mb-3" />
+            <CreditCard className="h-8 w-8 text-slate-400 mx-auto mb-3" />
             <p className="text-sm text-slate-400">No payment method on file</p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               {(sub as any)?.stripe_customer_id
                 ? 'Stripe customer connected'
                 : 'Not yet configured'}
             </p>
             {(sub as any)?.stripe_customer_id && (
-              <p className="text-xs text-slate-600 mt-1 font-mono">
+              <p className="text-xs text-slate-400 mt-1 font-mono">
                 {(sub as any).stripe_customer_id}
               </p>
             )}
@@ -549,7 +549,7 @@ export default async function BillingPage() {
             </Button>
           </Link>
         </div>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-slate-400">
           All billing changes must be submitted through Platform Requests for review.
         </p>
       </div>

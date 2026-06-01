@@ -224,7 +224,7 @@ export default async function PlatformInvitationsPage({
             <div className="grid gap-4 md:grid-cols-2">
               {/* Email */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
                   <Mail className="h-3 w-3" />
                   Email
                 </label>
@@ -239,7 +239,7 @@ export default async function PlatformInvitationsPage({
 
               {/* Company (Portfolio) */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
                   <Building2 className="h-3 w-3" />
                   Company
                 </label>
@@ -259,7 +259,7 @@ export default async function PlatformInvitationsPage({
 
               {/* Role */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
                   <ShieldCheck className="h-3 w-3" />
                   Role
                 </label>
@@ -279,7 +279,7 @@ export default async function PlatformInvitationsPage({
 
               {/* Expiration Date */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
                   <Clock className="h-3 w-3" />
                   Expiration Date
                 </label>
@@ -296,7 +296,7 @@ export default async function PlatformInvitationsPage({
 
             {/* Optional Message */}
             <div>
-              <label className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+              <label className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
                 Message (optional)
               </label>
               <textarea
@@ -320,7 +320,7 @@ export default async function PlatformInvitationsPage({
 
       {/* Filters */}
       <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
-        <label className="min-w-64 flex-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <label className="min-w-64 flex-1 text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="mb-1 flex items-center gap-1.5">
             <Search className="h-3 w-3" />
             Search
@@ -333,7 +333,7 @@ export default async function PlatformInvitationsPage({
           />
         </label>
 
-        <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="mb-1 flex items-center gap-1.5">
             <Filter className="h-3 w-3" />
             Status
@@ -362,7 +362,7 @@ export default async function PlatformInvitationsPage({
         {(search || statusFilter) && (
           <a
             href="/platform/invitations"
-            className="inline-flex h-9 items-center text-xs text-gray-500 hover:text-gray-700"
+            className="inline-flex h-9 items-center text-xs text-slate-400 hover:text-gray-700"
           >
             Clear all
           </a>
@@ -375,7 +375,7 @@ export default async function PlatformInvitationsPage({
           <CardBody>
             <div className="py-12 text-center">
               <Mail className="mx-auto h-8 w-8 text-gray-300" />
-              <p className="mt-3 text-sm text-gray-500">
+              <p className="mt-3 text-sm text-slate-400">
                 {search || statusFilter
                   ? 'No invitations match your filters.'
                   : 'No invitations yet. Create one above.'}
@@ -424,7 +424,7 @@ export default async function PlatformInvitationsPage({
                       </TD>
 
                       {/* Company */}
-                      <TD className="text-sm text-gray-600">{companyName}</TD>
+                      <TD className="text-sm text-slate-400">{companyName}</TD>
 
                       {/* Status */}
                       <TD>
@@ -432,12 +432,12 @@ export default async function PlatformInvitationsPage({
                       </TD>
 
                       {/* Sent Date */}
-                      <TD className="text-sm tabular-nums text-gray-600">
+                      <TD className="text-sm tabular-nums text-slate-400">
                         {date(inv.created_at)}
                       </TD>
 
                       {/* Expires */}
-                      <TD className="text-sm tabular-nums text-gray-600">
+                      <TD className="text-sm tabular-nums text-slate-400">
                         {date(inv.expires_at)}
                       </TD>
 
@@ -480,7 +480,7 @@ export default async function PlatformInvitationsPage({
             </Table>
 
             {/* Row count */}
-            <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+            <div className="border-t border-gray-100 px-4 py-2 text-xs text-slate-400">
               Showing {filtered.length} of {totalSent} invitation{totalSent !== 1 ? 's' : ''}
               {(search || statusFilter) && ' (filtered)'}
             </div>

@@ -95,7 +95,7 @@ function KpiCard({
             <p className="text-2xl font-bold tabular-nums text-white">{value}</p>
             {TrendIcon && <TrendIcon className={`h-4 w-4 ${trendColor}`} />}
           </div>
-          {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
         </div>
         {Icon && (
           <div className={`ml-3 mt-0.5 rounded-lg bg-white/5 p-2 ${iconColorMap[accent] ?? iconColorMap.slate}`}>
@@ -350,7 +350,7 @@ export default async function PlatformRevenuePage() {
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
               Platform Operator
             </p>
             <h1 className="text-xl font-semibold text-white">Revenue Dashboard</h1>
@@ -445,15 +445,15 @@ export default async function PlatformRevenuePage() {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] p-4">
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Last Month MRR</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider">Last Month MRR</p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white">{fmtMonthly(lastMonthMRR)}</p>
               </div>
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] p-4">
-                <p className="text-xs text-slate-500 uppercase tracking-wider">This Month MRR</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider">This Month MRR</p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-white">{fmtMonthly(thisMonthMRR)}</p>
               </div>
               <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] p-4">
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Change</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider">Change</p>
                 <p
                   className={`mt-1 text-lg font-bold tabular-nums ${
                     momChange >= 0 ? 'text-emerald-400' : 'text-red-400'
@@ -472,7 +472,7 @@ export default async function PlatformRevenuePage() {
           <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-4">
             <Building2 className="h-4 w-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-white">Revenue by Company</h3>
-            <span className="ml-auto text-xs text-slate-500">{revenueByCompany.length} companies</span>
+            <span className="ml-auto text-xs text-slate-400">{revenueByCompany.length} companies</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -489,8 +489,8 @@ export default async function PlatformRevenuePage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {revenueByCompany.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center text-slate-500">
-                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                    <td colSpan={6} className="px-4 py-16 text-center text-slate-400">
+                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                       <p>No revenue data available.</p>
                     </td>
                   </tr>
@@ -533,7 +533,7 @@ export default async function PlatformRevenuePage() {
           <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-4">
             <BarChart3 className="h-4 w-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-white">Revenue by Tier</h3>
-            <span className="ml-auto text-xs text-slate-500">
+            <span className="ml-auto text-xs text-slate-400">
               {revenueByTier.reduce((s, t) => s + t.count, 0)} active subscriptions
             </span>
           </div>
@@ -551,8 +551,8 @@ export default async function PlatformRevenuePage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {revenueByTier.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-16 text-center text-slate-500">
-                      <BarChart3 className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                    <td colSpan={5} className="px-4 py-16 text-center text-slate-400">
+                      <BarChart3 className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                       <p>No tier data available.</p>
                     </td>
                   </tr>

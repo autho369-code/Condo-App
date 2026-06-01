@@ -54,47 +54,47 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
       }
       rail={
         <>
-          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">Details</div>
+          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Details</div>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-[11px] uppercase tracking-wider text-gray-500">Status</dt>
+              <dt className="text-[11px] uppercase tracking-wider text-slate-400">Status</dt>
               <dd className="mt-1"><BigStatusPill status={run.status} /></dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wider text-gray-500">Format</dt>
+              <dt className="text-[11px] uppercase tracking-wider text-slate-400">Format</dt>
               <dd className="mt-0.5 font-mono uppercase text-gray-800">{run.output_format}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wider text-gray-500">Created</dt>
+              <dt className="text-[11px] uppercase tracking-wider text-slate-400">Created</dt>
               <dd className="mt-0.5 text-gray-800">{date(run.created_at)}</dd>
             </div>
             {run.started_at && (
               <div>
-                <dt className="text-[11px] uppercase tracking-wider text-gray-500">Started</dt>
+                <dt className="text-[11px] uppercase tracking-wider text-slate-400">Started</dt>
                 <dd className="mt-0.5 text-gray-800">{date(run.started_at)}</dd>
               </div>
             )}
             {run.finished_at && (
               <div>
-                <dt className="text-[11px] uppercase tracking-wider text-gray-500">Finished</dt>
+                <dt className="text-[11px] uppercase tracking-wider text-slate-400">Finished</dt>
                 <dd className="mt-0.5 text-gray-800">{date(run.finished_at)}</dd>
               </div>
             )}
             {run.duration_ms !== null && (
               <div>
-                <dt className="text-[11px] uppercase tracking-wider text-gray-500">Duration</dt>
+                <dt className="text-[11px] uppercase tracking-wider text-slate-400">Duration</dt>
                 <dd className="mt-0.5 tabular-nums text-gray-800">{formatDuration(run.duration_ms)}</dd>
               </div>
             )}
             {run.row_count !== null && (
               <div>
-                <dt className="text-[11px] uppercase tracking-wider text-gray-500">Rows</dt>
+                <dt className="text-[11px] uppercase tracking-wider text-slate-400">Rows</dt>
                 <dd className="mt-0.5 tabular-nums text-gray-800">{run.row_count?.toLocaleString()}</dd>
               </div>
             )}
             {run.output_size_bytes !== null && (
               <div>
-                <dt className="text-[11px] uppercase tracking-wider text-gray-500">Size</dt>
+                <dt className="text-[11px] uppercase tracking-wider text-slate-400">Size</dt>
                 <dd className="mt-0.5 tabular-nums text-gray-800">{formatBytes(run.output_size_bytes)}</dd>
               </div>
             )}
@@ -145,7 +145,7 @@ function BigStatusPill({ status }: { status: string }) {
     running:   'bg-blue-100 text-blue-800',
     succeeded: 'bg-green-100 text-green-800',
     failed:    'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-100 text-gray-500',
+    cancelled: 'bg-gray-100 text-slate-400',
   };
   return <span className={`inline-block rounded-md px-3 py-1 text-sm font-semibold capitalize ${m[status] ?? m.queued}`}>{status}</span>;
 }

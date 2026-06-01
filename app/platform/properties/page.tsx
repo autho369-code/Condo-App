@@ -26,7 +26,7 @@ export default async function PlatformPropertiesPage() {
     <div className="space-y-7">
       <header>
         <h1 className="text-2xl font-semibold text-gray-950">Properties</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-slate-400">
           Global property list across clients. Use client drilldown for owners, users, and billing context.
         </p>
       </header>
@@ -51,7 +51,7 @@ export default async function PlatformPropertiesPage() {
             <tbody>
               {(properties ?? []).length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-10 text-center text-gray-500">No properties are visible.</TD>
+                  <TD colSpan={4} className="py-10 text-center text-slate-400">No properties are visible.</TD>
                 </TR>
               ) : (
                 (properties ?? []).map((property: any) => {
@@ -60,7 +60,7 @@ export default async function PlatformPropertiesPage() {
                     <TR key={property.id} className="hover:bg-gray-50">
                       <TD>
                         <div className="font-medium text-gray-950">{property.name}</div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-xs text-slate-400">
                           {[property.address, property.city, property.state, property.zip].filter(Boolean).join(', ')}
                         </div>
                       </TD>

@@ -20,7 +20,7 @@ export default async function PlatformSystemHealthPage() {
     <div className="space-y-7">
       <header>
         <h1 className="text-2xl font-semibold text-gray-950">System Health</h1>
-        <p className="mt-1 text-sm text-gray-500">Platform-level alerts and account health signals.</p>
+        <p className="mt-1 text-sm text-slate-400">Platform-level alerts and account health signals.</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-4">
@@ -45,7 +45,7 @@ export default async function PlatformSystemHealthPage() {
             <tbody>
               {alerts.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-10 text-center text-gray-500">No platform health alerts right now.</TD>
+                  <TD colSpan={5} className="py-10 text-center text-slate-400">No platform health alerts right now.</TD>
                 </TR>
               ) : (
                 alerts.map((row) => (

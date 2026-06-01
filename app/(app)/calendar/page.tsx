@@ -12,7 +12,7 @@ const statusTone: Record<string, string> = {
   notice_sent: 'bg-cyan-100 text-cyan-700',
   reminder_sent: 'bg-indigo-100 text-indigo-700',
   completed: 'bg-green-100 text-green-700',
-  canceled: 'bg-gray-100 text-gray-600',
+  canceled: 'bg-gray-100 text-slate-400',
   failed_notification: 'bg-red-100 text-red-700',
 };
 
@@ -66,9 +66,9 @@ export default async function CalendarPage({
       <main className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
         <div className="mb-6 flex items-start justify-between gap-6">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Operations Calendar</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Operations Calendar</div>
             <h1 className="mt-1 text-2xl font-semibold text-gray-900">Association calendar</h1>
-            <p className="mt-1 max-w-3xl text-sm text-gray-500">
+            <p className="mt-1 max-w-3xl text-sm text-slate-400">
               One workspace for board meetings, vendor visits, water shutoffs, move-ins, inspections, renewals, notices, reminders, and follow-up work.
             </p>
           </div>
@@ -100,7 +100,7 @@ export default async function CalendarPage({
             </select>
             <Button size="sm" type="submit">Filter</Button>
             {(sp.assoc || sp.type) && (
-              <Link href="/calendar" className="text-sm text-gray-500 hover:text-gray-900">Clear</Link>
+              <Link href="/calendar" className="text-sm text-slate-400 hover:text-gray-900">Clear</Link>
             )}
           </form>
         </div>
@@ -123,16 +123,16 @@ export default async function CalendarPage({
                   <TD className="whitespace-nowrap text-sm">{formatWhen(event.start_datetime)}</TD>
                   <TD>
                     <div className="font-medium text-gray-900">{event.title}</div>
-                    <div className="text-xs text-gray-500">{eventTypeLabel(event.event_type)}</div>
+                    <div className="text-xs text-slate-400">{eventTypeLabel(event.event_type)}</div>
                   </TD>
                   <TD className="text-sm text-gray-700">{event.associations?.name ?? 'Portfolio-wide'}</TD>
-                  <TD className="text-sm text-gray-600">{event.location ?? '-'}</TD>
+                  <TD className="text-sm text-slate-400">{event.location ?? '-'}</TD>
                   <TD>
-                    <span className={`rounded px-2 py-0.5 text-xs capitalize ${statusTone[event.operations_status ?? 'scheduled'] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`rounded px-2 py-0.5 text-xs capitalize ${statusTone[event.operations_status ?? 'scheduled'] ?? 'bg-gray-100 text-slate-400'}`}>
                       {(event.operations_status ?? 'scheduled').replaceAll('_', ' ')}
                     </span>
                   </TD>
-                  <TD className="max-w-md text-sm text-gray-600">
+                  <TD className="max-w-md text-sm text-slate-400">
                     {event.public_notice_text ? <span className="line-clamp-2">{event.public_notice_text}</span> : <span className="text-red-600">Needs draft</span>}
                   </TD>
                 </TR>
@@ -142,14 +142,14 @@ export default async function CalendarPage({
         ) : (
           <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
             <h2 className="text-base font-semibold text-gray-900">No upcoming events found</h2>
-            <p className="mt-1 text-sm text-gray-500">Create the first event to generate notices, reminders, and follow-up tasks.</p>
+            <p className="mt-1 text-sm text-slate-400">Create the first event to generate notices, reminders, and follow-up tasks.</p>
           </div>
         )}
       </main>
 
       <aside className="w-80 shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-6 py-6">
         <h2 className="text-sm font-semibold text-gray-900">AIOS workflow examples</h2>
-        <div className="mt-4 space-y-3 text-sm text-gray-600">
+        <div className="mt-4 space-y-3 text-sm text-slate-400">
           <Prompt text="Schedule water shutoff for AACA on April 22 from 8 AM to noon for plumbing repairs." />
           <Prompt text="Create board meeting reminder for Lakeview Towers next Thursday at 6 PM." />
           <Prompt text="Set contract renewal reminder 90, 60, and 30 days before elevator agreement expires." />
@@ -165,7 +165,7 @@ export default async function CalendarPage({
 function Metric({ label, value, tone = 'text-gray-900' }: { label: string; value: number; tone?: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</div>
     </div>
   );

@@ -60,7 +60,7 @@ export default async function SendEmailPage({
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h1 className="text-xl font-semibold text-gray-900">Send Email</h1>
           <Link href={sp.return_to && sp.return_to.startsWith('/') ? sp.return_to : '/associations'}
-            className="text-gray-400 hover:text-gray-600" aria-label="Close">×</Link>
+            className="text-gray-400 hover:text-slate-400" aria-label="Close">×</Link>
         </div>
 
         <form action={sendEmail as any} className="space-y-5 px-6 py-5">
@@ -110,7 +110,7 @@ export default async function SendEmailPage({
               <RecipientOption value="both" label="Owners + Tenants" count={ownerCount + tenantCount} defaultChecked />
               <RecipientOption value="board" label="Board members" count={boardCount} />
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-400">
               A separate email will be sent to each recipient for privacy. Only people with an email address on file receive it.
             </p>
           </div>
@@ -171,7 +171,7 @@ export default async function SendEmailPage({
           {/* Attachments — placeholder; actual upload via storage bucket is tracked in FINAL_INTEGRATION.md */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Attachments</label>
-            <div className="rounded border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
+            <div className="rounded border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-slate-400">
               <strong>Drag Files Here</strong>
               <span className="mx-3 text-gray-400">or</span>
               <label className="inline-block cursor-pointer rounded border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">
@@ -220,7 +220,7 @@ function RecipientOption({
       <input type="radio" name="recipient_type" value={value} defaultChecked={defaultChecked} className="mt-1" />
       <div className="flex-1 text-sm">
         <div className="font-medium text-gray-900">{label}</div>
-        <div className="text-xs text-gray-500">{count} recipient{count === 1 ? '' : 's'} with email on file</div>
+        <div className="text-xs text-slate-400">{count} recipient{count === 1 ? '' : 's'} with email on file</div>
       </div>
     </label>
   );

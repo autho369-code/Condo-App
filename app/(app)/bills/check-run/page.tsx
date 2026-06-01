@@ -31,11 +31,11 @@ export default async function CheckRunPage() {
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
             </div>
             <h1 className="mt-1 text-xl font-semibold text-gray-900">Check run</h1>
-            <p className="mt-1 text-sm text-gray-500">Select approved bills to pay in this check run.</p>
+            <p className="mt-1 text-sm text-slate-400">Select approved bills to pay in this check run.</p>
           </div>
           <Link href="/bills"><Button variant="secondary" size="sm">Cancel</Button></Link>
         </div>
@@ -73,7 +73,7 @@ export default async function CheckRunPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Approved bills to pay</CardTitle>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-slate-400">
                 {queue?.length ?? 0} bills · <span className="font-semibold">{money(total)}</span>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default async function CheckRunPage() {
                     <TD><input type="checkbox" name="bill_ids" value={b.bill_id} defaultChecked /></TD>
                     <TD className="font-medium">{b.vendor_name}</TD>
                     <TD>{b.association_name ?? '—'}</TD>
-                    <TD className="max-w-sm truncate text-gray-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
+                    <TD className="max-w-sm truncate text-slate-400" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
                     <TD className="text-right">{money(b.amount)}</TD>
                     <TD>{date(b.due_date)}</TD>
                   </TR>
@@ -99,7 +99,7 @@ export default async function CheckRunPage() {
               </tbody>
             </Table>
             {!queue?.length && (
-              <div className="p-6 text-center text-sm text-gray-500">
+              <div className="p-6 text-center text-sm text-slate-400">
                 No approved, unpaid bills for vendors that pay by check.
               </div>
             )}

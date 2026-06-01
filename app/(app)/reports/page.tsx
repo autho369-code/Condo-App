@@ -100,7 +100,7 @@ export default async function ReportsIndex({
                   className="rounded border border-gray-200 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50"
                 >
                   <div className="font-medium text-blue-700">{definition.name}</div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{definition.description ?? 'Scoped report workspace'}</p>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{definition.description ?? 'Scoped report workspace'}</p>
                 </Link>
               ))}
             </div>
@@ -114,7 +114,7 @@ export default async function ReportsIndex({
         )}
 
         {groups.length === 0 && favorites.length === 0 && (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-slate-400">
             No reports match "{q}".
           </div>
         )}
@@ -137,7 +137,7 @@ function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
       </section>
       <section className="border-t border-gray-200 pt-5">
         <h2 className="text-sm font-semibold text-gray-950">Scope discipline</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-600">
+        <p className="mt-2 text-sm leading-6 text-slate-400">
           Every run captures portfolio, association, owner, or unit scope plus dates so saved and scheduled reports can be reproduced.
         </p>
       </section>
@@ -158,7 +158,7 @@ function ReportSection({
     <section className="rounded border border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">{count}</span>
+        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-400">{count}</span>
       </div>
       {children}
     </section>
@@ -176,11 +176,11 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
               <Link href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'} className="truncate text-sm font-medium text-blue-700 hover:underline">
                 {report.name || report.report_definitions?.name || 'Untitled report'}
               </Link>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-slate-400">
                 Created by {report.profiles?.full_name ?? 'Unknown'}{report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
               </p>
             </div>
-            <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{report.run_count ?? 0} runs</span>
+            <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">{report.run_count ?? 0} runs</span>
           </div>
         );
       })}

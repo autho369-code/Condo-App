@@ -57,7 +57,7 @@ export default async function VendorsPage({
     >
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
-          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Owners</Link>
+          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-slate-400 hover:text-gray-900">Owners</Link>
           <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
         </nav>
 
@@ -71,7 +71,7 @@ export default async function VendorsPage({
         />
 
         <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-slate-400">
             Trade
             <select name="trade" defaultValue={trade} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
               <option value="all">All trades</option>
@@ -92,13 +92,13 @@ export default async function VendorsPage({
           </THead>
           <tbody>
             {rows.length === 0 ? (
-              <TR><TD colSpan={5} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
+              <TR><TD colSpan={5} className="py-10 text-center text-slate-400">No vendors match this filter.</TD></TR>
             ) : (
               rows.map((vendor: any) => (
                 <TR key={vendor.id} className="hover:bg-gray-50">
                   <TD>
                     <div className="font-medium text-gray-950">{vendor.name}</div>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
+                    <div className="mt-1 text-xs text-slate-400">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
                   </TD>
                   <TD className="capitalize">{vendor.trade?.replace(/_/g, ' ') ?? 'other'}</TD>
                   <TD>
@@ -109,7 +109,7 @@ export default async function VendorsPage({
                       {vendor.is_auto_pay && <StatusChip tone="info">Auto-pay</StatusChip>}
                       {vendor.hold_payments && <StatusChip tone="danger">Hold</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">{vendor.payment_terms ?? 'No terms'}</div>
+                    <div className="mt-1 text-xs text-slate-400">{vendor.payment_terms ?? 'No terms'}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">

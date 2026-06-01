@@ -17,7 +17,7 @@ export function ModulePage({
     <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
       <div className="space-y-6">
         {breadcrumb && (
-          <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <nav className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             {breadcrumb.map((b, i) => (
               <span key={b.href}>
                 {i > 0 && <span className="mx-1">/</span>}
@@ -29,7 +29,7 @@ export function ModulePage({
         <div className="flex items-start justify-between gap-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-            {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+            {description && <p className="mt-1 text-sm text-slate-400">{description}</p>}
           </div>
           {newHref && (
             <Link href={newHref}><Button size="sm">{newLabel ?? '+ New'}</Button></Link>

@@ -23,12 +23,12 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">Units</nav>
+      <nav className="text-xs font-semibold uppercase tracking-wider text-slate-400">Units</nav>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">Units</h1>
         <Link href="/units/new"><Button>+ New unit</Button></Link>
       </div>
-      <p className="text-sm text-gray-500">{filtered.length} units · {money(outstanding)} outstanding.</p>
+      <p className="text-sm text-slate-400">{filtered.length} units · {money(outstanding)} outstanding.</p>
 
       <form action="/units" method="get" className="flex flex-wrap items-center gap-2 rounded border border-gray-200 bg-white px-4 py-3">
         <select name="assoc" defaultValue={assoc ?? ''} className="h-9 rounded border border-gray-300 bg-white px-3 text-sm">
@@ -59,7 +59,7 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
             ))}
           </tbody>
         </Table>
-      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No units match this filter.</p>}
+      ) : <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No units match this filter.</p>}
     </div>
   );
 }

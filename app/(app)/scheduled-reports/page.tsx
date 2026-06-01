@@ -27,18 +27,18 @@ export default async function ScheduledReportsPage() {
                 <TD className="text-sm text-gray-700">{s.report_definitions?.name}</TD>
                 <TD className="text-sm capitalize">{s.frequency?.replace(/_/g, ' ')}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(s.next_run_at)}</TD>
-                <TD className="whitespace-nowrap text-sm text-gray-600">{date(s.last_run_at)}</TD>
-                <TD className="text-xs uppercase text-gray-500">{s.output_format}</TD>
+                <TD className="whitespace-nowrap text-sm text-slate-400">{date(s.last_run_at)}</TD>
+                <TD className="text-xs uppercase text-slate-400">{s.output_format}</TD>
                 <TD className="text-sm capitalize text-gray-700">{s.delivery_channel}</TD>
                 <TD>{s.active
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">active</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">paused</span>}</TD>
+                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">paused</span>}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No scheduled reports configured.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No scheduled reports configured.</p>
       )}
     </ModulePage>
   );

@@ -27,14 +27,14 @@ export default async function SurveysPage() {
                 <TD className="text-sm capitalize text-gray-700">{s.survey_type}</TD>
                 <TD>{s.active
                   ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">active</span>
-                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">paused</span>}</TD>
+                  : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">paused</span>}</TD>
                 <TD className="whitespace-nowrap text-sm">{date(s.created_at)}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No surveys configured.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No surveys configured.</p>
       )}
     </ModulePage>
   );

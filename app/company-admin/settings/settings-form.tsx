@@ -75,9 +75,9 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 type="text"
                 disabled
                 defaultValue={p.company_name ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-400 cursor-not-allowed"
               />
-              <p className="text-xs text-slate-600 mt-1">Set by Platform Operator</p>
+              <p className="text-xs text-slate-400 mt-1">Set by Platform Operator</p>
             </div>
             <div>
               <label htmlFor="phone" className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
@@ -88,7 +88,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="phone"
                 type="text"
                 defaultValue={s.phone ?? p.phone_number ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -103,7 +103,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="office_address"
                 type="text"
                 defaultValue={s.office_address ?? p.address_street ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="123 Main Street"
               />
             </div>
@@ -116,7 +116,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="billing_email"
                 type="email"
                 defaultValue={s.billing_email ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="billing@company.com"
               />
             </div>
@@ -131,7 +131,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="office_city"
                 type="text"
                 defaultValue={s.office_city ?? p.address_city ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="City"
               />
             </div>
@@ -144,7 +144,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="office_state"
                 type="text"
                 defaultValue={s.office_state ?? p.address_state ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="State"
               />
             </div>
@@ -157,7 +157,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                 name="office_zip"
                 type="text"
                 defaultValue={s.office_zip ?? p.address_zip ?? ''}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
                 placeholder="Zip"
               />
             </div>
@@ -186,7 +186,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Manager Permission Defaults</span>
         </div>
         <div className="p-5 space-y-1">
-          <p className="text-xs text-slate-500 mb-2">Set default permissions for newly invited managers.</p>
+          <p className="text-xs text-slate-400 mb-2">Set default permissions for newly invited managers.</p>
           <ToggleField name="can_manage_associations" label="Manage Associations" defaultChecked={managerPerms.can_manage_associations ?? true} />
           <ToggleField name="can_manage_owners" label="Manage Owners" defaultChecked={managerPerms.can_manage_owners ?? true} />
           <ToggleField name="can_manage_vendors" label="Manage Vendors" defaultChecked={managerPerms.can_manage_vendors ?? true} />
@@ -202,7 +202,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Owner Invite Defaults</span>
         </div>
         <div className="p-5 space-y-1">
-          <p className="text-xs text-slate-500 mb-2">Configure default options when inviting new owners.</p>
+          <p className="text-xs text-slate-400 mb-2">Configure default options when inviting new owners.</p>
           <ToggleField name="owner_portal_access" label="Grant Portal Access" defaultChecked={ownerInvite.portal_access ?? true} />
           <ToggleField name="owner_email_invite" label="Send Email Invite" defaultChecked={ownerInvite.email_invite ?? true} />
           <ToggleField name="owner_sms_invite" label="Send SMS Invite" defaultChecked={ownerInvite.sms_invite ?? false} />
@@ -215,7 +215,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Vendor Invite Defaults</span>
         </div>
         <div className="p-5 space-y-1">
-          <p className="text-xs text-slate-500 mb-2">Configure default options when inviting new vendors.</p>
+          <p className="text-xs text-slate-400 mb-2">Configure default options when inviting new vendors.</p>
           <ToggleField name="vendor_portal_access" label="Grant Portal Access" defaultChecked={vendorInvite.portal_access ?? true} />
           <ToggleField name="vendor_email_invite" label="Send Email Invite" defaultChecked={vendorInvite.email_invite ?? true} />
         </div>
@@ -236,7 +236,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
               name="logo_url"
               type="text"
               defaultValue={branding.logo_url ?? ''}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
               placeholder="https://example.com/logo.png"
             />
             {branding.logo_url && (
@@ -251,7 +251,7 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
                     (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                   }}
                 />
-                <span className="hidden text-xs text-slate-500">Unable to load logo preview</span>
+                <span className="hidden text-xs text-slate-400">Unable to load logo preview</span>
               </div>
             )}
           </div>
@@ -260,14 +260,14 @@ export default function SettingsForm({ portfolio, settings }: SettingsFormProps)
 
       {/* Error message */}
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/20 px-4 py-3">
           <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
       {/* Success message */}
       {saved && (
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 flex items-center gap-2">
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/20 px-4 py-3 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           <p className="text-sm text-emerald-400">Settings saved successfully.</p>
         </div>

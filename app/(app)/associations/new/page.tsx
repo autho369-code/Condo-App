@@ -210,7 +210,7 @@ function FormRow({
 }) {
   return (
     <div className="mb-3 grid grid-cols-[200px_1fr] items-start gap-x-3 gap-y-1">
-      <label className="pt-1.5 text-sm text-gray-600">
+      <label className="pt-1.5 text-sm text-slate-400">
         {label}{label && required && <span className="ml-0.5 text-red-600">*</span>}
       </label>
       <div>{children}</div>
@@ -221,7 +221,7 @@ function FormRow({
 function CurrencyInput({ name, defaultValue }: { name: string; defaultValue?: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-gray-500">$</span>
+      <span className="text-slate-400">$</span>
       <input
         type="number"
         step="0.01"

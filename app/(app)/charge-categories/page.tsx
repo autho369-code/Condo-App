@@ -26,7 +26,7 @@ export default async function ChargeCategoriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Charge categories</h1>
-          <p className="text-sm text-gray-500">The catalog of chargeable items — dues, assessments, fees, amenities. Each unit can subscribe to any of these on a recurring schedule.</p>
+          <p className="text-sm text-slate-400">The catalog of chargeable items — dues, assessments, fees, amenities. Each unit can subscribe to any of these on a recurring schedule.</p>
         </div>
         <Link href="/charge-categories/new"><Button>+ New category</Button></Link>
       </div>
@@ -46,7 +46,7 @@ export default async function ChargeCategoriesPage() {
               {(rows ?? []).map((c: any) => (
                 <TR key={c.id}>
                   <TD className="font-medium"><Link href={`/charge-categories/${c.id}`} className="text-brand-600 hover:underline">{c.name}</Link></TD>
-                  <TD className="font-mono text-xs text-gray-600">{c.code ?? '—'}</TD>
+                  <TD className="font-mono text-xs text-slate-400">{c.code ?? '—'}</TD>
                   <TD className="text-right">{money(c.default_amount)}</TD>
                   <TD className="capitalize">{c.default_frequency.replace('_',' ')}</TD>
                   <TD>
@@ -55,7 +55,7 @@ export default async function ChargeCategoriesPage() {
                       {c.is_fee && <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-800">Fee</span>}
                     </div>
                   </TD>
-                  <TD>{c.is_system ? <span className="text-xs text-gray-500">seeded</span> : <span className="text-xs text-green-700">custom</span>}</TD>
+                  <TD>{c.is_system ? <span className="text-xs text-slate-400">seeded</span> : <span className="text-xs text-green-700">custom</span>}</TD>
                 </TR>
               ))}
             </tbody>

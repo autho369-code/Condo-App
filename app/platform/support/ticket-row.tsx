@@ -130,7 +130,7 @@ export function TicketRowClient({
         <TD>
           <div className="flex items-center gap-2">
             <span className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
-              <ChevronRight className="h-4 w-4 text-slate-500" />
+              <ChevronRight className="h-4 w-4 text-slate-400" />
             </span>
             <span className="font-mono text-xs text-slate-400">#{ticket.id}</span>
           </div>
@@ -156,8 +156,8 @@ export function TicketRowClient({
         <TD className="text-sm tabular-nums text-slate-400">
           {ticket.dueDate ? date(ticket.dueDate) : '—'}
         </TD>
-        <TD className="text-sm tabular-nums text-slate-500">{date(ticket.updatedAt)}</TD>
-        <TD className="text-sm tabular-nums text-slate-500">{date(ticket.createdAt)}</TD>
+        <TD className="text-sm tabular-nums text-slate-400">{date(ticket.updatedAt)}</TD>
+        <TD className="text-sm tabular-nums text-slate-400">{date(ticket.createdAt)}</TD>
       </tr>
 
       {/* Expanded detail row */}
@@ -178,19 +178,19 @@ export function TicketRowClient({
               {/* Ticket metadata */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Category</p>
+                  <p className="text-xs text-slate-400 mb-0.5">Category</p>
                   <p className="text-sm capitalize text-slate-300">{ticket.category ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Priority</p>
+                  <p className="text-xs text-slate-400 mb-0.5">Priority</p>
                   <PriorityBadge priority={ticket.priority} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Status</p>
+                  <p className="text-xs text-slate-400 mb-0.5">Status</p>
                   <StatusBadge status={ticket.status} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Due Date</p>
+                  <p className="text-xs text-slate-400 mb-0.5">Due Date</p>
                   <p className="text-sm text-slate-300">
                     {ticket.dueDate ? date(ticket.dueDate, 'long') : '—'}
                   </p>
@@ -204,7 +204,7 @@ export function TicketRowClient({
                   Comments ({comments.length})
                 </h4>
                 {comments.length === 0 ? (
-                  <p className="text-sm text-slate-500 italic">No comments yet.</p>
+                  <p className="text-sm text-slate-400 italic">No comments yet.</p>
                 ) : (
                   <div className="space-y-3">
                     {comments.map((c) => (
@@ -219,8 +219,8 @@ export function TicketRowClient({
                           <span className="text-xs font-medium text-slate-300">
                             {c.author_id ?? 'Internal Note'}
                           </span>
-                          <span className="text-xs text-slate-600">·</span>
-                          <span className="text-xs text-slate-500">{date(c.created_at)}</span>
+                          <span className="text-xs text-slate-400">·</span>
+                          <span className="text-xs text-slate-400">{date(c.created_at)}</span>
                         </div>
                         <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap">
                           {c.body}
@@ -240,7 +240,7 @@ export function TicketRowClient({
                     placeholder="Add an internal note..."
                     value={noteBody}
                     onChange={(e) => setNoteBody(e.target.value)}
-                    className="border-gray-700 bg-gray-900 text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 flex-1"
+                    className="border-gray-700 bg-gray-900 text-slate-200 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 flex-1"
                   />
                   <Button
                     type="submit"
@@ -263,7 +263,7 @@ export function TicketRowClient({
                     onClick={handleResolve}
                     variant="ghost"
                     size="sm"
-                    className="border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                    className="border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-1.5" />
                     Mark Resolved

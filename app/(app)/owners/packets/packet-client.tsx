@@ -82,7 +82,7 @@ export default function OwnerPacketClient({ owners, packets }: { owners: any[]; 
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Owner Packet Builder</h1>
-          <p className="mt-1 text-sm text-gray-500">Complete onboarding packet in-app. No PDFs unless exported later.</p>
+          <p className="mt-1 text-sm text-slate-400">Complete onboarding packet in-app. No PDFs unless exported later.</p>
         </div>
         <Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>
       </div>
@@ -97,7 +97,7 @@ export default function OwnerPacketClient({ owners, packets }: { owners: any[]; 
           <option value="">Select owner...</option>
           {owners.map((o: any) => <option key={o.id} value={o.id}>{o.full_name} — {o.email}</option>)}
         </select>
-        {existing && <p className="mt-1 text-xs text-gray-500">Status: {existing.status} {existing.submitted_at ? `(${new Date(existing.submitted_at).toLocaleDateString()})` : ''}</p>}
+        {existing && <p className="mt-1 text-xs text-slate-400">Status: {existing.status} {existing.submitted_at ? `(${new Date(existing.submitted_at).toLocaleDateString()})` : ''}</p>}
       </div>
 
       {!ownerId && <p className="text-sm text-gray-400">Select an owner to build their packet.</p>}
@@ -147,7 +147,7 @@ export default function OwnerPacketClient({ owners, packets }: { owners: any[]; 
 
             {step === 3 && (
               <div className="space-y-4">
-                <p className="text-xs text-gray-500">Vehicles registered to this unit.</p>
+                <p className="text-xs text-slate-400">Vehicles registered to this unit.</p>
                 {[0, 1, 2].map(i => (
                   <div key={i} className="grid gap-3 md:grid-cols-3 rounded border border-gray-100 bg-gray-50 p-3">
                     <Field label="Make" name={`vh_${i}_make`} dv={(vi[i] || {}).make || ''} />
@@ -163,7 +163,7 @@ export default function OwnerPacketClient({ owners, packets }: { owners: any[]; 
 
             {step === 4 && (
               <div className="space-y-4">
-                <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+                <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-slate-400">
                   Record pets, ESAs, and service animals. Service animals are not pets per ADA/FHA.
                 </div>
                 {[0, 1, 2].map(i => (
@@ -202,7 +202,7 @@ export default function OwnerPacketClient({ owners, packets }: { owners: any[]; 
 
             {step === 6 && (
               <div className="space-y-4">
-                <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+                <div className="rounded border border-gray-100 bg-gray-50 p-3 text-xs text-slate-400">
                   Required acknowledgments. Check all to complete the packet.
                 </div>
                 {[
@@ -248,7 +248,7 @@ function Field({ label, name, dv, type = 'text', required = false }: { label: st
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 uppercase">{label}</p>
+      <p className="text-xs font-medium text-slate-400 uppercase">{label}</p>
       <p className="text-sm text-gray-900">{value}</p>
     </div>
   );

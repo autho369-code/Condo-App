@@ -14,7 +14,7 @@ export default async function NewBankAdjustmentPage() {
     <DataWorkspace
       title="Bank adjustment"
       description="Create a bank-only adjustment draft with notes and attachments. Adjustments do not affect GL balances."
-      rail={<p className="text-sm leading-6 text-gray-600">Use journal entries for accounting-impacting corrections.</p>}
+      rail={<p className="text-sm leading-6 text-slate-400">Use journal entries for accounting-impacting corrections.</p>}
     >
       <form className="space-y-5">
         <section className="rounded border border-blue-200 bg-blue-50 p-5">
@@ -28,7 +28,7 @@ export default async function NewBankAdjustmentPage() {
           </div>
           <textarea className="mt-4 w-full rounded border border-gray-300 px-3 py-2 text-sm" rows={3} placeholder="Description" />
         </section>
-        <section className="rounded border border-gray-200 bg-white p-5 text-sm text-gray-500">History, notes, and attachments will be recorded after save.</section>
+        <section className="rounded border border-gray-200 bg-white p-5 text-sm text-slate-400">History, notes, and attachments will be recorded after save.</section>
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary">Cancel</Button><Button type="button">Save adjustment draft</Button></div>
       </form>
     </DataWorkspace>

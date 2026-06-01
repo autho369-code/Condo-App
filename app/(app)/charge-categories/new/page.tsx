@@ -34,7 +34,7 @@ export default async function NewChargeCategory() {
             <div>
               <Label htmlFor="code">Short code</Label>
               <Input id="code" name="code" maxLength={20} placeholder="BOATSLIP" style={{ textTransform: 'uppercase' }} />
-              <p className="mt-1 text-xs text-gray-500">Short identifier, uppercase, used in reports.</p>
+              <p className="mt-1 text-xs text-slate-400">Short identifier, uppercase, used in reports.</p>
             </div>
             <div>
               <Label htmlFor="default_amount">Default amount</Label>

@@ -72,7 +72,7 @@ export default async function ArchitecturalReviewsTab({
 
         <Section title="Board Approval Defaults" padded>
           <div className="mb-3">
-            <label className="mb-1 block text-sm text-gray-600">Select Participants</label>
+            <label className="mb-1 block text-sm text-slate-400">Select Participants</label>
             <select name="default_committee_id" defaultValue={settings?.default_committee_id ?? ''} className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">â€” Select a committee â€”</option>
               {(committees ?? []).map((c: any) => (
@@ -93,7 +93,7 @@ export default async function ArchitecturalReviewsTab({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-600">Voting Scheme</label>
+            <label className="mb-1 block text-sm text-slate-400">Voting Scheme</label>
             <select name="default_voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="majority_approval_required">Majority Approval Required</option>
               <option value="unanimous_approval_required">Unanimous Approval Required</option>
@@ -143,7 +143,7 @@ function RichTextSection({
       actions={<button type="button" className="text-sm text-blue-700 hover:underline">Preview</button>}
       padded
     >
-      <p className="mb-2 text-sm text-gray-600">{help}</p>
+      <p className="mb-2 text-sm text-slate-400">{help}</p>
       <textarea
         name={name}
         defaultValue={defaultValue}

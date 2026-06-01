@@ -35,7 +35,7 @@ function WorkloadBar({ pct }: { pct: number }) {
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
-      <span className="text-xs text-slate-500 tabular-nums w-8 text-right">{pct}%</span>
+      <span className="text-xs text-slate-400 tabular-nums w-8 text-right">{pct}%</span>
     </div>
   );
 }
@@ -61,7 +61,7 @@ export default async function AssignmentEnginePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -271,7 +271,7 @@ export default async function AssignmentEnginePage() {
           </form>
           <form action="/api/company-admin/assignments/remove" method="POST" className="contents">
             <input type="hidden" name="action" value="remove" />
-            <Button type="submit" variant="secondary" size="sm" className="gap-2 border-slate-700 text-red-400 hover:bg-red-500/10">
+            <Button type="submit" variant="secondary" size="sm" className="gap-2 border-slate-700 text-red-400 hover:bg-red-500/20">
               <Link2Off className="h-4 w-4" />
               Remove
             </Button>
@@ -296,7 +296,7 @@ export default async function AssignmentEnginePage() {
             {enrichedUnassigned.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <CheckCircle2 className="h-6 w-6 text-emerald-500 mx-auto mb-2" />
-                <p className="text-xs text-slate-500">All associations are assigned</p>
+                <p className="text-xs text-slate-400">All associations are assigned</p>
               </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
@@ -306,8 +306,8 @@ export default async function AssignmentEnginePage() {
                       <HealthDot score={a.healthScore} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white truncate">{a.name}</p>
-                        <p className="text-xs text-slate-500">{a.city}, {a.state}</p>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
+                        <p className="text-xs text-slate-400">{a.city}, {a.state}</p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
                           <span className="flex items-center gap-1">
                             <DoorOpen className="h-3 w-3" />
                             {a.unit_count ?? 0}
@@ -348,8 +348,8 @@ export default async function AssignmentEnginePage() {
           <div className="max-h-[500px] overflow-y-auto">
             {enrichedManagers.length === 0 ? (
               <div className="px-4 py-10 text-center">
-                <Users className="h-6 w-6 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-500">No managers found</p>
+                <Users className="h-6 w-6 text-slate-400 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">No managers found</p>
                 <Link href="/company-admin/managers" className="text-xs text-emerald-400 hover:text-emerald-300 mt-1 inline-block">
                   Invite a manager →
                 </Link>
@@ -361,9 +361,9 @@ export default async function AssignmentEnginePage() {
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-white truncate">{m.full_name || 'Unnamed'}</p>
-                        <p className="text-xs text-slate-500 truncate">{m.email}</p>
+                        <p className="text-xs text-slate-400 truncate">{m.email}</p>
                       </div>
-                      <span className="text-xs text-slate-600">{m.last_login_at ? 'active' : 'inactive'}</span>
+                      <span className="text-xs text-slate-400">{m.last_login_at ? 'active' : 'inactive'}</span>
                     </div>
                     <div className="flex items-center gap-4 mt-2 text-xs">
                       <span className="flex items-center gap-1 text-slate-400">
@@ -399,9 +399,9 @@ export default async function AssignmentEnginePage() {
           <div className="max-h-[500px] overflow-y-auto">
             {currentAssignments.length === 0 ? (
               <div className="px-4 py-10 text-center">
-                <Link2 className="h-6 w-6 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-500">No assignments yet</p>
-                <p className="text-xs text-slate-600 mt-1">Select an association and manager above</p>
+                <Link2 className="h-6 w-6 text-slate-400 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">No assignments yet</p>
+                <p className="text-xs text-slate-400 mt-1">Select an association and manager above</p>
               </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
@@ -410,23 +410,23 @@ export default async function AssignmentEnginePage() {
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                          <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           <p className="text-sm font-medium text-white truncate">{ca.associationName}</p>
                         </div>
-                        <p className="text-xs text-slate-500 ml-5">{ca.associationCity}</p>
+                        <p className="text-xs text-slate-400 ml-5">{ca.associationCity}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button className="p-1 text-slate-500 hover:text-red-400 transition" title="Remove">
+                        <button className="p-1 text-slate-400 hover:text-red-400 transition" title="Remove">
                           <XCircle className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 ml-5 mt-1">
-                      <ChevronRight className="h-3 w-3 text-slate-600" />
-                      <Users className="h-3 w-3 text-slate-500" />
+                      <ChevronRight className="h-3 w-3 text-slate-400" />
+                      <Users className="h-3 w-3 text-slate-400" />
                       <span className="text-xs text-slate-400 truncate">{ca.managerName}</span>
                     </div>
-                    <div className="flex items-center gap-3 ml-5 mt-1.5 text-xs text-slate-600">
+                    <div className="flex items-center gap-3 ml-5 mt-1.5 text-xs text-slate-400">
                       <span>{ca.unitCount} doors</span>
                       {ca.openWOs > 0 && (
                         <span className="text-amber-400">{ca.openWOs} open</span>
@@ -447,31 +447,31 @@ export default async function AssignmentEnginePage() {
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Associations</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Total Associations</p>
             <p className="text-lg font-bold text-white">{assocList.length}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Managers</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Total Managers</p>
             <p className="text-lg font-bold text-white">{managerList.length}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Assigned</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Assigned</p>
             <p className="text-lg font-bold text-emerald-400">{currentAssignments.length}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Unassigned</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Unassigned</p>
             <p className={`text-lg font-bold ${enrichedUnassigned.length > 0 ? 'text-amber-400' : 'text-white'}`}>
               {enrichedUnassigned.length}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Doors</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Total Doors</p>
             <p className="text-lg font-bold text-white">
               {assocList.reduce((sum, a) => sum + (a.unit_count ?? 0), 0)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Avg Doors/Manager</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider">Avg Doors/Manager</p>
             <p className="text-lg font-bold text-white">
               {managerList.length > 0
                 ? Math.round(assocList.reduce((sum, a) => sum + (a.unit_count ?? 0), 0) / managerList.length)

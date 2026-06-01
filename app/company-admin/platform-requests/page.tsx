@@ -78,7 +78,7 @@ export default async function PlatformRequestsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -173,7 +173,7 @@ export default async function PlatformRequestsPage() {
             <tbody className="divide-y divide-white/[0.04]">
               {requestList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-400">
                     No platform requests yet. Submit your first request above.
                   </td>
                 </tr>

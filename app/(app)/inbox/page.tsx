@@ -28,13 +28,13 @@ export default async function InboxPage() {
                 <TD className="font-mono text-xs">{m.from_number}</TD>
                 <TD className="font-mono text-xs">{m.to_number}</TD>
                 <TD className="max-w-md truncate">{m.body}</TD>
-                <TD className="text-xs capitalize text-gray-500">{m.status}</TD>
+                <TD className="text-xs capitalize text-slate-400">{m.status}</TD>
               </TR>
             ))}
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No SMS activity.</p>
+        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-slate-400">No SMS activity.</p>
       )}
     </ModulePage>
   );

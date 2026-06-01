@@ -54,7 +54,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-4 py-3">
         <h2 className="text-base font-semibold text-gray-900">Reports</h2>
-        <p className="mt-0.5 text-xs text-gray-500">{items.length} available</p>
+        <p className="mt-0.5 text-xs text-slate-400">{items.length} available</p>
       </div>
 
       <div className="border-b border-gray-100 px-3 py-2">
@@ -84,7 +84,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
 
         {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((cat) => (
           <div key={cat} className="mb-4">
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
               {CATEGORY_LABELS[cat] ?? cat}
             </div>
             <ul>
@@ -121,7 +121,7 @@ export default function ReportsNav({ items }: { items: ReportNavItem[] }) {
         ))}
 
         {filtered.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-gray-500">No reports match "{query}".</p>
+          <p className="px-3 py-4 text-center text-sm text-slate-400">No reports match "{query}".</p>
         )}
       </nav>
     </div>

@@ -94,7 +94,7 @@ export default async function BudgetTab({
       <Section>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: 1100 }}>
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="min-w-[220px] px-3 py-2 text-left font-semibold">GL Account</th>
                 <th className="min-w-[150px] px-3 py-2 text-left font-semibold">Calculation Method</th>
@@ -109,14 +109,14 @@ export default async function BudgetTab({
               <ParentRow label="EXPENSE" annualPrior={expenseAnnualPrior} annualBudget={expenseAnnualBudget} months={sumColumns(expenseRows.map((r) => r.monthly))} />
               {expenseRows.map((r: any) => <ChildRow key={r.acct.id} acct={r.acct} prior={r.prior} monthly={r.monthly} />)}
               {totalRows === 2 && (
-                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm italic text-gray-500">No GL accounts configured for this association.</td></tr>
+                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm italic text-slate-400">No GL accounts configured for this association.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </Section>
 
-      <div className="mt-3 text-sm text-gray-600">
+      <div className="mt-3 text-sm text-slate-400">
         Displaying: <span className="tabular-nums">{totalRows}</span> of <span className="tabular-nums">{totalRows}</span>
       </div>
     </Workspace>

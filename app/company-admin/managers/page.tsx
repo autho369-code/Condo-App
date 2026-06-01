@@ -52,7 +52,7 @@ function StatusBadge({ status }: { status: string | null }) {
     disabled: { color: 'text-slate-400 bg-slate-400/10', label: 'Disabled' },
     suspended: { color: 'text-amber-400 bg-amber-400/10', label: 'Suspended' },
   };
-  const s = (status && map[status]) ? map[status] : { color: 'text-slate-500 bg-slate-500/10', label: status ?? 'Unknown' };
+  const s = (status && map[status]) ? map[status] : { color: 'text-slate-400 bg-slate-500/10', label: status ?? 'Unknown' };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${s.color}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -81,7 +81,7 @@ function InviteManagerSection() {
               name="email"
               required
               placeholder="manager@company.com"
-              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
           <div>
@@ -91,7 +91,7 @@ function InviteManagerSection() {
               name="full_name"
               required
               placeholder="Jane Smith"
-              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
           <div>
@@ -100,7 +100,7 @@ function InviteManagerSection() {
               type="tel"
               name="phone"
               placeholder="+1 (555) 000-0000"
-              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
         </div>
@@ -109,7 +109,7 @@ function InviteManagerSection() {
             <Send className="h-4 w-4" />
             Send Invitation
           </Button>
-          <p className="text-xs text-slate-500">An email will be sent with login instructions.</p>
+          <p className="text-xs text-slate-400">An email will be sent with login instructions.</p>
         </div>
       </form>
     </div>
@@ -130,7 +130,7 @@ export default async function ManagerOversightPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -294,10 +294,10 @@ export default async function ManagerOversightPage() {
                 <div className="flex items-center gap-3">
                   <div className="h-2 w-2 rounded-full bg-blue-400" />
                   <span className="text-sm text-slate-300">{inv.full_name || inv.email}</span>
-                  <span className="text-xs text-slate-500">{inv.email}</span>
+                  <span className="text-xs text-slate-400">{inv.email}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-600">{timeAgo(inv.created_at)}</span>
+                  <span className="text-xs text-slate-400">{timeAgo(inv.created_at)}</span>
                   <Button variant="secondary" size="sm" className="text-xs h-7 border-slate-700 text-slate-400 hover:text-white">
                     Resend
                   </Button>
@@ -311,11 +311,11 @@ export default async function ManagerOversightPage() {
       {/* Search + Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[260px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search managers..."
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-10 pr-4 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-10 pr-4 py-2 text-sm text-slate-300 placeholder:text-slate-400 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
         <Button variant="secondary" size="sm" className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800">
@@ -333,7 +333,7 @@ export default async function ManagerOversightPage() {
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-16 text-center">
           <Users className="h-10 w-10 text-slate-700 mx-auto mb-4" />
           <p className="text-sm font-medium text-slate-400">No managers found</p>
-          <p className="text-xs text-slate-600 mt-1">Invite your first manager to get started.</p>
+          <p className="text-xs text-slate-400 mt-1">Invite your first manager to get started.</p>
           <div className="mt-4">
             <Link href="#invite-section">
               <Button size="sm" className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700">
@@ -401,7 +401,7 @@ export default async function ManagerOversightPage() {
                           {m.openWOs}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-600">0</span>
+                        <span className="text-xs text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -411,7 +411,7 @@ export default async function ManagerOversightPage() {
                           {m.overdueWOs}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-600">0</span>
+                        <span className="text-xs text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -423,7 +423,7 @@ export default async function ManagerOversightPage() {
                           {m.openViolations}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-600">0</span>
+                        <span className="text-xs text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -438,12 +438,12 @@ export default async function ManagerOversightPage() {
                             style={{ width: `${m.workloadScore}%` }}
                           />
                         </div>
-                        <span className="text-xs text-slate-500 tabular-nums">{m.workloadScore}%</span>
+                        <span className="text-xs text-slate-400 tabular-nums">{m.workloadScore}%</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-slate-600" />
+                        <Clock className="h-3 w-3 text-slate-400" />
                         <span className="text-xs text-slate-400">{timeAgo(m.last_login_at)}</span>
                       </div>
                     </td>
@@ -480,7 +480,7 @@ export default async function ManagerOversightPage() {
       {/* Manager detail expandable sections — shown as cards below if managers exist */}
       {enriched.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 px-1">Manager Details</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">Manager Details</h3>
           {enriched.map((m) => (
             <details key={m.id} className="group rounded-xl border border-white/[0.06] bg-white/[0.02]">
               <summary className="flex items-center justify-between px-5 py-4 cursor-pointer list-none hover:bg-white/[0.01]">
@@ -490,44 +490,44 @@ export default async function ManagerOversightPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{m.full_name || 'Unnamed'}</p>
-                    <p className="text-xs text-slate-500">{m.email}</p>
+                    <p className="text-xs text-slate-400">{m.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs text-slate-500">Associations</p>
+                    <p className="text-xs text-slate-400">Associations</p>
                     <p className="text-sm font-semibold text-white">{m.assocCount}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-slate-500">Doors</p>
+                    <p className="text-xs text-slate-400">Doors</p>
                     <p className="text-sm font-semibold text-white">{m.totalDoors}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-slate-500">Workload</p>
+                    <p className="text-xs text-slate-400">Workload</p>
                     <p className={`text-sm font-semibold ${
                       m.workloadScore > 70 ? 'text-red-400' :
                       m.workloadScore > 40 ? 'text-amber-400' :
                       'text-emerald-400'
                     }`}>{m.workloadScore}%</p>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-slate-600 group-open:hidden" />
-                  <ChevronUp className="h-4 w-4 text-slate-600 hidden group-open:block" />
+                  <ChevronDown className="h-4 w-4 text-slate-400 group-open:hidden" />
+                  <ChevronUp className="h-4 w-4 text-slate-400 hidden group-open:block" />
                 </div>
               </summary>
               <div className="border-t border-white/[0.04] px-5 py-4 space-y-4">
                 {/* Assigned Associations */}
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Assigned Associations</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Assigned Associations</h4>
                   {m.assocDetails.length === 0 ? (
-                    <p className="text-xs text-slate-600 italic">No associations assigned</p>
+                    <p className="text-xs text-slate-400 italic">No associations assigned</p>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                       {m.assocDetails.map((a, i) => (
                         <div key={i} className="flex items-center gap-2 rounded-lg border border-white/[0.04] px-3 py-2">
-                          <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                          <Building2 className="h-3.5 w-3.5 text-slate-400" />
                           <div className="min-w-0">
                             <p className="text-xs text-slate-300 truncate">{a.name}</p>
-                            <p className="text-xs text-slate-600">{a.unit_count ?? '—'} doors</p>
+                            <p className="text-xs text-slate-400">{a.unit_count ?? '—'} doors</p>
                           </div>
                         </div>
                       ))}
@@ -538,19 +538,19 @@ export default async function ManagerOversightPage() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="rounded-lg border border-white/[0.04] bg-white/[0.01] px-3 py-2">
-                    <p className="text-xs text-slate-500">Open Tasks</p>
+                    <p className="text-xs text-slate-400">Open Tasks</p>
                     <p className="text-sm font-semibold text-white">{m.openWOs}</p>
                   </div>
                   <div className="rounded-lg border border-white/[0.04] bg-white/[0.01] px-3 py-2">
-                    <p className="text-xs text-slate-500">Overdue Tasks</p>
+                    <p className="text-xs text-slate-400">Overdue Tasks</p>
                     <p className={`text-sm font-semibold ${m.overdueWOs > 0 ? 'text-red-400' : 'text-white'}`}>{m.overdueWOs}</p>
                   </div>
                   <div className="rounded-lg border border-white/[0.04] bg-white/[0.01] px-3 py-2">
-                    <p className="text-xs text-slate-500">Open Violations</p>
+                    <p className="text-xs text-slate-400">Open Violations</p>
                     <p className="text-sm font-semibold text-white">{m.openViolations}</p>
                   </div>
                   <div className="rounded-lg border border-white/[0.04] bg-white/[0.01] px-3 py-2">
-                    <p className="text-xs text-slate-500">Last Active</p>
+                    <p className="text-xs text-slate-400">Last Active</p>
                     <p className="text-sm font-semibold text-white">{timeAgo(m.last_login_at)}</p>
                   </div>
                 </div>

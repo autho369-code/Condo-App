@@ -97,7 +97,7 @@ function KpiTile({
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</p>
-          {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
         </div>
         {Icon && (
           <div className={`ml-3 mt-0.5 rounded-lg bg-white/5 p-2 ${iconColorMap[accent] ?? iconColorMap.slate}`}>
@@ -291,7 +291,7 @@ export default async function CommunicationsPage() {
     <div className="-mx-8 -my-8 min-h-[calc(100vh-64px)] bg-[#060B18]">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="[&_h1]:text-white [&_.text-gray-500]:text-slate-400 [&_.text-gray-900]:text-white">
+        <div className="[&_h1]:text-white [&_.text-slate-400]:text-slate-400 [&_.text-gray-900]:text-white">
           <WorkspaceHeader
             eyebrow="Platform Operator"
             title="Communications Monitor"
@@ -372,7 +372,7 @@ export default async function CommunicationsPage() {
           <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-4">
             <BarChart3 className="h-4 w-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-white">Monthly Volume by Company</h3>
-            <span className="ml-auto text-xs text-slate-500">
+            <span className="ml-auto text-xs text-slate-400">
               {now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
           </div>
@@ -393,10 +393,10 @@ export default async function CommunicationsPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {companyRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center text-slate-500">
-                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                    <td colSpan={7} className="px-5 py-16 text-center text-slate-400">
+                      <Building2 className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                       <p className="text-sm">No communication activity across any portfolio.</p>
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-slate-400">
                         Communications will appear here once emails or SMS messages are sent.
                       </p>
                     </td>
@@ -423,14 +423,14 @@ export default async function CommunicationsPage() {
 
                         {/* Emails This Month */}
                         <td className="px-5 py-3 text-right align-top tabular-nums">
-                          <span className={row.emailsThisMonth > 0 ? 'text-slate-200' : 'text-slate-600'}>
+                          <span className={row.emailsThisMonth > 0 ? 'text-slate-200' : 'text-slate-400'}>
                             {row.emailsThisMonth.toLocaleString()}
                           </span>
                         </td>
 
                         {/* SMS This Month */}
                         <td className="px-5 py-3 text-right align-top tabular-nums">
-                          <span className={row.smsThisMonth > 0 ? 'text-slate-200' : 'text-slate-600'}>
+                          <span className={row.smsThisMonth > 0 ? 'text-slate-200' : 'text-slate-400'}>
                             {row.smsThisMonth.toLocaleString()}
                           </span>
                         </td>
@@ -445,7 +445,7 @@ export default async function CommunicationsPage() {
                           {row.failedCount > 0 ? (
                             <span className="text-red-400">{row.failedCount.toLocaleString()}</span>
                           ) : (
-                            <span className="text-slate-600">0</span>
+                            <span className="text-slate-400">0</span>
                           )}
                         </td>
 
@@ -454,14 +454,14 @@ export default async function CommunicationsPage() {
                           <span className={`font-medium ${rateColor}`}>
                             {row.deliveryRate}%
                           </span>
-                          <div className="text-[10px] text-slate-600">
+                          <div className="text-[10px] text-slate-400">
                             {row.totalSent}/{attempted}
                           </div>
                         </td>
 
                         {/* Abuse Warnings */}
                         <td className="px-5 py-3 align-top">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs text-slate-500 ring-1 ring-inset ring-slate-500/20">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs text-slate-400 ring-1 ring-inset ring-slate-500/20">
                             <AlertTriangle className="h-3 w-3" />
                             None
                           </span>
@@ -475,7 +475,7 @@ export default async function CommunicationsPage() {
           </div>
 
           {companyRows.length > 0 && (
-            <div className="border-t border-white/[0.06] px-5 py-3 text-xs text-slate-600">
+            <div className="border-t border-white/[0.06] px-5 py-3 text-xs text-slate-400">
               {companyRows.length} portfolio{companyRows.length !== 1 ? 's' : ''} with communication activity
             </div>
           )}

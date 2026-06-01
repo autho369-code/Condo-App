@@ -32,27 +32,27 @@ export default async function ReportRunsHistory() {
       }
       rail={
         <>
-          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">Summary</div>
+          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Summary</div>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-              <span className="text-gray-600">Succeeded</span>
+              <span className="text-slate-400">Succeeded</span>
               <span className="font-semibold tabular-nums text-green-700">{byStatus('succeeded')}</span>
             </li>
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-              <span className="text-gray-600">Running</span>
+              <span className="text-slate-400">Running</span>
               <span className="font-semibold tabular-nums text-blue-700">{byStatus('running')}</span>
             </li>
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-              <span className="text-gray-600">Queued</span>
+              <span className="text-slate-400">Queued</span>
               <span className="font-semibold tabular-nums text-gray-700">{byStatus('queued')}</span>
             </li>
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-              <span className="text-gray-600">Failed</span>
+              <span className="text-slate-400">Failed</span>
               <span className="font-semibold tabular-nums text-red-700">{byStatus('failed')}</span>
             </li>
             <li className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
-              <span className="text-gray-600">Cancelled</span>
-              <span className="font-semibold tabular-nums text-gray-500">{byStatus('cancelled')}</span>
+              <span className="text-slate-400">Cancelled</span>
+              <span className="font-semibold tabular-nums text-slate-400">{byStatus('cancelled')}</span>
             </li>
           </ul>
         </>
@@ -62,7 +62,7 @@ export default async function ReportRunsHistory() {
         {runs && runs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-5 py-2 text-left font-semibold">Report</th>
                   <th className="px-4 py-2 text-left font-semibold">Format</th>
@@ -80,13 +80,13 @@ export default async function ReportRunsHistory() {
                       <Link href={`/reports/runs/${r.id}`} className="font-medium text-gray-900 hover:text-brand-600 hover:underline">
                         {r.report_definitions?.name ?? 'Unknown'}
                       </Link>
-                      <div className="text-xs text-gray-500 capitalize">{r.report_definitions?.category?.replace(/_/g, ' ')}</div>
+                      <div className="text-xs text-slate-400 capitalize">{r.report_definitions?.category?.replace(/_/g, ' ')}</div>
                     </td>
-                    <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
+                    <td className="px-4 py-2 text-xs uppercase text-slate-400">{r.output_format}</td>
                     <td className="px-4 py-2"><StatusPill status={r.status} /></td>
                     <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
-                    <td className="px-4 py-2 text-right text-gray-600">{formatDuration(r.duration_ms)}</td>
-                    <td className="px-4 py-2 text-gray-600">{date(r.started_at ?? r.created_at)}</td>
+                    <td className="px-4 py-2 text-right text-slate-400">{formatDuration(r.duration_ms)}</td>
+                    <td className="px-4 py-2 text-slate-400">{date(r.started_at ?? r.created_at)}</td>
                     <td className="whitespace-nowrap px-5 py-2 text-right">
                       {r.status === 'succeeded' && r.output_url && (
                         <a href={r.output_url} target="_blank" rel="noopener" className="text-xs text-brand-600 hover:underline">Download</a>
@@ -104,7 +104,7 @@ export default async function ReportRunsHistory() {
           </div>
         ) : (
           <div className="px-5 py-8 text-center">
-            <p className="text-sm text-gray-500">No runs yet.</p>
+            <p className="text-sm text-slate-400">No runs yet.</p>
             <Link href="/reports" className="mt-2 inline-block text-sm text-brand-600 hover:underline">Run your first report â†’</Link>
           </div>
         )}
@@ -115,7 +115,7 @@ export default async function ReportRunsHistory() {
 
 function StatusPill({ status }: { status: string }) {
   const m: Record<string, string> = {
-    queued:    'bg-gray-100 text-gray-600',
+    queued:    'bg-gray-100 text-slate-400',
     running:   'bg-blue-100 text-blue-700',
     succeeded: 'bg-green-100 text-green-700',
     failed:    'bg-red-100 text-red-700',

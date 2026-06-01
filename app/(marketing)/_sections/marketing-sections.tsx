@@ -29,7 +29,7 @@ export function FeaturesSection() {
     <section className="border-t border-slate-800 bg-[#0B1121] py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">The Operating System</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">The Operating System</span>
           <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
             Every workflow. One platform.
           </h2>
@@ -151,7 +151,7 @@ export function PricingSection() {
     <section className="border-t border-slate-800 bg-[#060B18] py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Pricing</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Pricing</span>
           <h2 className="mt-4 text-4xl font-light tracking-tight text-white md:text-5xl">
             Pricing built for portfolios, not seats.
           </h2>
@@ -171,7 +171,7 @@ export function PricingSection() {
               }`}
             >
               {plan.featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
                   Most Popular
                 </span>
               )}
@@ -181,7 +181,7 @@ export function PricingSection() {
 
               <div className="mt-6">
                 <span className="text-5xl font-light tracking-tight text-white">{plan.price}</span>
-                <span className="ml-1 text-lg text-slate-500">{plan.period}</span>
+                <span className="ml-1 text-lg text-slate-400">{plan.period}</span>
               </div>
 
               {/* Product preview badges */}
@@ -210,7 +210,7 @@ export function PricingSection() {
           ))}
         </div>
 
-        <p className="mx-auto mt-10 max-w-xl text-center text-sm text-slate-600">
+        <p className="mx-auto mt-10 max-w-xl text-center text-sm text-slate-400">
           All plans include a 30-day free trial. No credit card required. Migrate your data in 48 hours. Cancel any time.
         </p>
       </div>
@@ -271,7 +271,7 @@ export function CTASection() {
         >
           Start your 30-day free trial &rarr;
         </Link>
-        <p className="mt-4 text-sm text-slate-600">No credit card · Cancel any time · Your data stays yours</p>
+        <p className="mt-4 text-sm text-slate-400">No credit card · Cancel any time · Your data stays yours</p>
       </div>
     </section>
   );

@@ -89,9 +89,9 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -115,7 +115,7 @@ export default async function OwnersPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -274,7 +274,7 @@ export default async function OwnersPage() {
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <form className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
+            <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Filters</span>
           </div>
           <select
@@ -297,12 +297,12 @@ export default async function OwnersPage() {
             <option value="pending">Pending</option>
           </select>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
               name="search"
               placeholder="Search by name..."
-              className="rounded-lg border border-slate-700 bg-slate-900 pl-9 pr-3 py-1.5 text-xs text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 w-48"
+              className="rounded-lg border border-slate-700 bg-slate-900 pl-9 pr-3 py-1.5 text-xs text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 w-48"
             />
           </div>
           <button
@@ -320,7 +320,7 @@ export default async function OwnersPage() {
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-16 text-center">
           <Users className="h-10 w-10 text-slate-700 mx-auto mb-4" />
           <p className="text-sm font-medium text-slate-400">No owners found</p>
-          <p className="text-xs text-slate-600 mt-1">Owners will appear here once added to your portfolio.</p>
+          <p className="text-xs text-slate-400 mt-1">Owners will appear here once added to your portfolio.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-white/[0.06] overflow-hidden">
@@ -347,21 +347,21 @@ export default async function OwnersPage() {
                           <p className="text-sm font-medium text-white">{owner.full_name}</p>
                           {owner.mailing_address && (
                             <div className="flex items-center gap-1 mt-0.5">
-                              <MapPin className="h-3 w-3 text-slate-600" />
-                              <p className="text-xs text-slate-500 truncate max-w-[180px]">{owner.mailing_address}</p>
+                              <MapPin className="h-3 w-3 text-slate-400" />
+                              <p className="text-xs text-slate-400 truncate max-w-[180px]">{owner.mailing_address}</p>
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 text-slate-500" />
+                          <Mail className="h-3.5 w-3.5 text-slate-400" />
                           <span className="text-sm text-slate-300">{owner.email ?? '—'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-slate-500" />
+                          <Phone className="h-3.5 w-3.5 text-slate-400" />
                           <span className="text-sm text-slate-300">{owner.phone ?? '—'}</span>
                         </div>
                       </td>
@@ -378,11 +378,11 @@ export default async function OwnersPage() {
                               </span>
                             ))}
                             {assocNames.length > 2 && (
-                              <span className="text-xs text-slate-500">+{assocNames.length - 2} more</span>
+                              <span className="text-xs text-slate-400">+{assocNames.length - 2} more</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-600 italic">None</span>
+                          <span className="text-xs text-slate-400 italic">None</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -423,19 +423,19 @@ export default async function OwnersPage() {
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Total</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Total</p>
               <p className="text-lg font-bold text-white">{totalOwners}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Activated</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Activated</p>
               <p className="text-lg font-bold text-white">{portalActivated}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Pending</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Pending</p>
               <p className="text-lg font-bold text-white">{pendingActivation}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Active This Month</p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Active This Month</p>
               <p className="text-lg font-bold text-white">{activeThisMonth}</p>
             </div>
           </div>

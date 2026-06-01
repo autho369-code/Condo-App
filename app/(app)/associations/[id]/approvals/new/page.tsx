@@ -106,7 +106,7 @@ export default async function NewApprovalPage({
 
           <FormRow label="Amount">
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">$</span>
+              <span className="text-slate-400">$</span>
               <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </FormRow>
@@ -122,7 +122,7 @@ export default async function NewApprovalPage({
           <FormRow label="Board Members" required>
             <div className="flex flex-col gap-1.5">
               {(members ?? []).length === 0 ? (
-                <div className="text-sm italic text-gray-500">
+                <div className="text-sm italic text-slate-400">
                   No active board members. Add some on the Board of Directors tab.
                 </div>
               ) : (members ?? []).map((m: any) => (
@@ -133,7 +133,7 @@ export default async function NewApprovalPage({
                     value={m.id}
                     defaultChecked={initiallyChecked.has(m.id)}
                   />
-                  {m.full_name} <span className="text-gray-500">({humanRole(m.role)})</span>
+                  {m.full_name} <span className="text-slate-400">({humanRole(m.role)})</span>
                 </label>
               ))}
             </div>
@@ -162,7 +162,7 @@ export default async function NewApprovalPage({
         </Section>
 
         <Section title="Attachments" padded>
-          <div className="rounded border-2 border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
+          <div className="rounded border-2 border-dashed border-gray-300 py-8 text-center text-sm text-slate-400">
             Drag Files Here&nbsp;&nbsp;or&nbsp;&nbsp;
             <Button type="button" size="sm" variant="secondary" disabled>Choose Files to Add</Button>
             <div className="mt-1 text-xs text-gray-400">Attachment upload pending Storage bucket wiring</div>
@@ -180,7 +180,7 @@ function FormRow({
 }) {
   return (
     <div className="mb-3 grid grid-cols-[140px_1fr] items-start gap-x-3 gap-y-1">
-      <label className="pt-1.5 text-sm text-gray-600">
+      <label className="pt-1.5 text-sm text-slate-400">
         {label}{required && <span className="ml-0.5 text-red-600">*</span>}
       </label>
       <div>{children}</div>

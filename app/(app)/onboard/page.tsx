@@ -60,11 +60,11 @@ export default async function OnboardPage() {
       <div className="space-y-8">
       <header>
         <h1 className="text-3xl font-bold">Welcome to {me.portfolio.company_name}</h1>
-        <p className="mt-2 text-gray-600">Let&apos;s get your first association running. Should take about 30 minutes.</p>
+        <p className="mt-2 text-slate-400">Let&apos;s get your first association running. Should take about 30 minutes.</p>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
           <div className="h-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <div className="mt-1 text-xs text-gray-500">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
+        <div className="mt-1 text-xs text-slate-400">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
       </header>
 
       {/* Trial countdown */}
@@ -85,7 +85,7 @@ export default async function OnboardPage() {
         </CardHeader>
         <CardBody>
           {steps[0].done ? (
-            <p className="text-sm text-gray-600">Great — you have {associationCount} association{(associationCount ?? 0) === 1 ? '' : 's'} set up.
+            <p className="text-sm text-slate-400">Great — you have {associationCount} association{(associationCount ?? 0) === 1 ? '' : 's'} set up.
               <Link href="/associations" className="ml-1 text-brand-600 hover:underline">Manage</Link></p>
           ) : (
             <form action={createAssociation as any} className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -131,7 +131,7 @@ export default async function OnboardPage() {
             </div>
           </CardHeader>
           <CardBody>
-            <p className="text-sm text-gray-600">{s.desc}</p>
+            <p className="text-sm text-slate-400">{s.desc}</p>
             <div className="mt-4">
               <Link href={s.href}>
                 <Button variant={s.done ? 'secondary' : 'default'}>
@@ -147,7 +147,7 @@ export default async function OnboardPage() {
       <Card>
         <CardHeader><CardTitle>5 — Connect Stripe (optional but recommended)</CardTitle></CardHeader>
         <CardBody>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-400">
             Connect a Stripe account so owners can pay assessments online via ACH or card.
             You can also skip this and use manual check entry only.
           </p>

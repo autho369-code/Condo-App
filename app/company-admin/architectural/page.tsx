@@ -85,9 +85,9 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-400">{sub}</p>}
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
           <Icon className="h-5 w-5" />
@@ -111,7 +111,7 @@ export default async function ArchitecturalReviewsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -249,7 +249,7 @@ export default async function ArchitecturalReviewsPage() {
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-16 text-center">
               <FileText className="h-10 w-10 text-slate-700 mx-auto mb-4" />
               <p className="text-sm font-medium text-slate-400">No architectural requests found</p>
-              <p className="text-xs text-slate-600 mt-1">Requests will appear here once submitted by residents.</p>
+              <p className="text-xs text-slate-400 mt-1">Requests will appear here once submitted by residents.</p>
             </div>
           ) : (
             <div className="rounded-xl border border-white/[0.06] overflow-hidden">
@@ -271,13 +271,13 @@ export default async function ArchitecturalReviewsPage() {
                       <tr key={req.id} className="hover:bg-white/[0.01] transition">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                            <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                             <span className="text-sm text-slate-300">{associationMap.get(req.association_id) ?? '—'}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
-                            <DoorOpen className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                            <DoorOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                             <span className="text-sm text-slate-300">{req.unit_number ?? req.unit_id ?? '—'}</span>
                           </div>
                         </td>
@@ -317,7 +317,7 @@ export default async function ArchitecturalReviewsPage() {
           {totalCount > 0 && (
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
               <div className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 text-slate-500" />
+                <FileText className="h-4 w-4 text-slate-400" />
                 <span className="text-slate-400">Total Requests:</span>
                 <span className="font-semibold text-white tabular-nums">{totalCount}</span>
               </div>

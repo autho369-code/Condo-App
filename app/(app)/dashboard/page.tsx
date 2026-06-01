@@ -195,7 +195,7 @@ export default async function DashboardPage({
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-950">Focus queue</h2>
-              <p className="mt-1 text-xs text-gray-500">Highest leverage items needing staff attention.</p>
+              <p className="mt-1 text-xs text-slate-400">Highest leverage items needing staff attention.</p>
             </div>
             <Link href="/inbox" className="text-sm font-medium text-blue-700 hover:underline">Open inbox</Link>
           </div>
@@ -209,7 +209,7 @@ export default async function DashboardPage({
                         <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>{item.type}</span>
                         <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
+                      <p className="mt-1 text-xs text-slate-400">{item.detail}</p>
                     </div>
                     <span className="shrink-0 text-sm text-blue-700">Review</span>
                   </Link>
@@ -217,7 +217,7 @@ export default async function DashboardPage({
               ))}
             </ul>
           ) : (
-            <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
+            <div className="px-5 py-10 text-center text-sm text-slate-400">No urgent operating items in the queue.</div>
           )}
         </section>
       </div>

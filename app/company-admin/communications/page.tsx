@@ -53,7 +53,7 @@ function StatCard({
     <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${gradient[accent]} p-5`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
           <p className="text-2xl font-bold tracking-tight text-white tabular-nums">{value}</p>
         </div>
         <div className={`rounded-lg p-2 ${iconBg[accent]}`}>
@@ -78,7 +78,7 @@ export default async function CommunicationsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Mail className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-white">No company assigned</h2>
           <p className="text-sm text-slate-400 mt-1">Contact the platform operator to set up your company.</p>
         </div>
@@ -222,22 +222,22 @@ export default async function CommunicationsPage() {
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-slate-500" />
+            <Clock className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Total emails:</span>
             <span className="font-semibold text-white tabular-nums">{emails.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-slate-500" />
+            <Mail className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Sent:</span>
             <span className="font-semibold text-white tabular-nums">{sentEmails.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <MailX className="h-4 w-4 text-slate-500" />
+            <MailX className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Failed:</span>
             <span className="font-semibold text-white tabular-nums">{failedEmails.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-slate-500" />
+            <Building2 className="h-4 w-4 text-slate-400" />
             <span className="text-slate-400">Active associations:</span>
             <span className="font-semibold text-white tabular-nums">{byAssociation.size}</span>
           </div>
@@ -264,7 +264,7 @@ export default async function CommunicationsPage() {
             <tbody className="divide-y divide-white/[0.04]">
               {associationRows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-400">
                     No communication data available for this portfolio.
                   </td>
                 </tr>
@@ -279,7 +279,7 @@ export default async function CommunicationsPage() {
                       {stats.failed > 0 ? (
                         <span className="text-red-400">{stats.failed}</span>
                       ) : (
-                        <span className="text-slate-500">0</span>
+                        <span className="text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-400 text-right tabular-nums">
@@ -312,7 +312,7 @@ export default async function CommunicationsPage() {
             <tbody className="divide-y divide-white/[0.04]">
               {managerRows.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={3} className="px-4 py-12 text-center text-sm text-slate-400">
                     No manager communication data available.
                   </td>
                 </tr>

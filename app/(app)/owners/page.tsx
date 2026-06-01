@@ -158,7 +158,7 @@ export default async function OwnersPage({
             <Link
               key={tab.href}
               href={tab.href}
-              className={`border-b-2 px-1 pb-2 ${tab.active ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+              className={`border-b-2 px-1 pb-2 ${tab.active ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-slate-400 hover:text-gray-900'}`}
             >
               {tab.label}
             </Link>
@@ -175,7 +175,7 @@ export default async function OwnersPage({
         />
 
         <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
-          <label className="text-xs font-medium uppercase text-gray-500">
+          <label className="text-xs font-medium uppercase text-slate-400">
             Letter
             <select name="letter" defaultValue={letter} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
               <option value="all">All</option>
@@ -216,22 +216,22 @@ export default async function OwnersPage({
           <tbody>
             {rows.length === 0 ? (
               <TR>
-                <TD colSpan={5} className="py-10 text-center text-gray-500">No owner records match this filter.</TD>
+                <TD colSpan={5} className="py-10 text-center text-slate-400">No owner records match this filter.</TD>
               </TR>
             ) : (
               rows.map((row) => (
                 <TR key={row.id} className="hover:bg-gray-50">
                   <TD>
                     <Link href={`/owners/${row.id}`} className="font-medium text-blue-700 hover:underline">{row.name}</Link>
-                    <div className="mt-1 text-xs text-gray-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
+                    <div className="mt-1 text-xs text-slate-400">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
                   </TD>
                   <TD>
                     <div className="text-gray-900">{row.email ?? 'No email on file'}</div>
-                    <div className="mt-1 text-xs text-gray-500">{row.phone ?? 'No phone'}</div>
+                    <div className="mt-1 text-xs text-slate-400">{row.phone ?? 'No phone'}</div>
                   </TD>
                   <TD>
                     <div className="font-medium text-gray-900">{row.associationName ?? 'No current association'}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="mt-1 text-xs text-slate-400">
                       {row.unitNumber ? `Unit ${row.unitNumber}` : 'No unit link'}
                       {row.associationAddress ? ` - ${row.associationAddress}` : ''}
                     </div>
@@ -243,7 +243,7 @@ export default async function OwnersPage({
                       </StatusChip>
                       {row.electronicConsent && <StatusChip tone="info">E-consent</StatusChip>}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">Last login {date(row.portalLastLogin)}</div>
+                    <div className="mt-1 text-xs text-slate-400">Last login {date(row.portalLastLogin)}</div>
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">

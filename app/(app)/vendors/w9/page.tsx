@@ -68,10 +68,10 @@ export default async function VendorW9Page({
           <tbody>
             {rows.map(({ vendor, latest }) => (
               <TR key={vendor.id} className="hover:bg-gray-50">
-                <TD><div className="font-medium text-gray-950">{vendor.name}</div>{vendor.is_utility && <div className="mt-1 text-xs text-gray-500">Utility</div>}</TD>
+                <TD><div className="font-medium text-gray-950">{vendor.name}</div>{vendor.is_utility && <div className="mt-1 text-xs text-slate-400">Utility</div>}</TD>
                 <TD><StatusChip tone={vendor.send_1099 ? 'warning' : 'neutral'}>{vendor.send_1099 ? 'Needs 1099 review' : 'Not marked'}</StatusChip></TD>
-                <TD><StatusChip tone={vendor.taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
-                <TD><div className="capitalize">{latest?.status?.replace(/_/g, ' ') ?? 'No request'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
+                <TD><StatusChip tone={vendor.taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-slate-400">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
+                <TD><div className="capitalize">{latest?.status?.replace(/_/g, ' ') ?? 'No request'}</div><div className="mt-1 text-xs text-slate-400">{date(latest?.requested_at)}</div></TD>
                 <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=w9_request`} className="text-sm font-medium text-blue-700 hover:underline">Stage request</Link></TD>
               </TR>
             ))}

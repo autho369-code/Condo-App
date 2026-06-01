@@ -27,7 +27,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
               {' · '}
               <span className="text-gray-400">{b.vendors?.name}</span>
@@ -46,27 +46,27 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               b.status === 'paid'             ? 'bg-green-100 text-green-700'
               : b.status === 'approved'       ? 'bg-blue-100 text-blue-700'
               : b.status === 'pending_approval' ? 'bg-amber-100 text-amber-800'
-              : b.status === 'void'           ? 'bg-gray-100 text-gray-500 line-through'
+              : b.status === 'void'           ? 'bg-gray-100 text-slate-400 line-through'
               : 'bg-gray-100 text-gray-700'
             }`}>{b.status}</span>
           </div>
         </CardHeader>
         <CardBody>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div><dt className="text-gray-500">Vendor</dt><dd className="font-medium">{b.vendors?.name}</dd></div>
-            <div><dt className="text-gray-500">Pay by</dt><dd className="uppercase">{b.vendors?.payment_type}</dd></div>
-            <div><dt className="text-gray-500">Association</dt><dd>{b.associations?.name ?? '— Portfolio-wide —'}</dd></div>
-            <div><dt className="text-gray-500">Amount</dt><dd className="font-semibold">{money(b.amount)}</dd></div>
-            <div><dt className="text-gray-500">Bill date</dt><dd>{date(b.bill_date)}</dd></div>
-            <div><dt className="text-gray-500">Due date</dt><dd>{date(b.due_date)}</dd></div>
-            <div><dt className="text-gray-500">GL account</dt><dd>{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">Bank account</dt><dd>{b.bank_accounts?.name ?? '—'}</dd></div>
+            <div><dt className="text-slate-400">Vendor</dt><dd className="font-medium">{b.vendors?.name}</dd></div>
+            <div><dt className="text-slate-400">Pay by</dt><dd className="uppercase">{b.vendors?.payment_type}</dd></div>
+            <div><dt className="text-slate-400">Association</dt><dd>{b.associations?.name ?? '— Portfolio-wide —'}</dd></div>
+            <div><dt className="text-slate-400">Amount</dt><dd className="font-semibold">{money(b.amount)}</dd></div>
+            <div><dt className="text-slate-400">Bill date</dt><dd>{date(b.bill_date)}</dd></div>
+            <div><dt className="text-slate-400">Due date</dt><dd>{date(b.due_date)}</dd></div>
+            <div><dt className="text-slate-400">GL account</dt><dd>{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
+            <div><dt className="text-slate-400">Bank account</dt><dd>{b.bank_accounts?.name ?? '—'}</dd></div>
             <div className="col-span-2">
-              <dt className="text-gray-500">Memo (prints on check)</dt>
+              <dt className="text-slate-400">Memo (prints on check)</dt>
               <dd className="mt-1 rounded bg-gray-50 p-2 font-mono text-xs">{b.memo ?? '—'}</dd>
             </div>
-            <div><dt className="text-gray-500">Approved</dt><dd>{b.approved_at ? date(b.approved_at) : '—'}</dd></div>
-            <div><dt className="text-gray-500">Paid</dt><dd>{b.paid_at ? date(b.paid_at) : '—'}</dd></div>
+            <div><dt className="text-slate-400">Approved</dt><dd>{b.approved_at ? date(b.approved_at) : '—'}</dd></div>
+            <div><dt className="text-slate-400">Paid</dt><dd>{b.paid_at ? date(b.paid_at) : '—'}</dd></div>
           </dl>
         </CardBody>
       </Card>

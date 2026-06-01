@@ -56,7 +56,7 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="mx-auto max-w-5xl px-8 py-6 space-y-4">
       {/* Breadcrumb */}
-      <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <nav className="text-xs font-semibold uppercase tracking-wider text-slate-400">
         <Link href="/owners" className="hover:text-brand-600">Owners</Link> Â· {displayName}
       </nav>
 
@@ -64,10 +64,10 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{displayName}</h1>
-          <div className="mt-1 text-sm text-gray-500">
+          <div className="mt-1 text-sm text-slate-400">
             {owner.portal_activated
               ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Portal active</span>
-              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">Portal not activated</span>}
+              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-slate-400">Portal not activated</span>}
             {owner.portal_login_last_at && (
               <span className="ml-2">Last login: {date(owner.portal_login_last_at)}</span>
             )}
@@ -79,41 +79,41 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
       <Section title="Contact">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-sm">
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Email</dt>
+            <dt className="text-xs uppercase tracking-wider text-slate-400">Email</dt>
             <dd className="mt-0.5">
               {owner.email ? <a href={`mailto:${owner.email}`} className="text-blue-700 hover:underline">{owner.email}</a> : 'â€”'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Phone</dt>
+            <dt className="text-xs uppercase tracking-wider text-slate-400">Phone</dt>
             <dd className="mt-0.5">
               {phones.length > 0
                 ? phones.map((p: any, i: number) => (
                     <div key={i}>
                       <a href={`tel:${p.number ?? p.value}`} className="text-blue-700 hover:underline">{p.number ?? p.value}</a>
-                      {p.type && <span className="ml-1 text-xs text-gray-500">({p.type})</span>}
+                      {p.type && <span className="ml-1 text-xs text-slate-400">({p.type})</span>}
                     </div>
                   ))
                 : owner.phone ? <a href={`tel:${owner.phone}`} className="text-blue-700 hover:underline">{owner.phone}</a> : 'â€”'}
             </dd>
           </div>
           <div className="col-span-2">
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Mailing address</dt>
+            <dt className="text-xs uppercase tracking-wider text-slate-400">Mailing address</dt>
             <dd className="mt-0.5">
               {[owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ') || 'â€”'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Preferred comm</dt>
+            <dt className="text-xs uppercase tracking-wider text-slate-400">Preferred comm</dt>
             <dd className="mt-0.5 capitalize">{owner.preferred_comm ?? 'â€”'}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-gray-500">Added</dt>
+            <dt className="text-xs uppercase tracking-wider text-slate-400">Added</dt>
             <dd className="mt-0.5">{date(owner.created_at)}</dd>
           </div>
           {owner.notes && (
             <div className="col-span-2">
-              <dt className="text-xs uppercase tracking-wider text-gray-500">Notes</dt>
+              <dt className="text-xs uppercase tracking-wider text-slate-400">Notes</dt>
               <dd className="mt-0.5 whitespace-pre-wrap">{owner.notes}</dd>
             </div>
           )}
@@ -171,12 +171,12 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
 
       {/* Occupancies â€” unit links */}
       <Section title="Units owned / occupied"
-        right={<span className="text-xs text-gray-500">{currentOccs.length} current Â· {pastOccs.length} past</span>}>
+        right={<span className="text-xs text-slate-400">{currentOccs.length} current Â· {pastOccs.length} past</span>}>
         {(occs ?? []).length === 0 ? (
-          <p className="px-5 py-6 text-center text-sm text-gray-500">Not yet linked to any units. Use the form below.</p>
+          <p className="px-5 py-6 text-center text-sm text-slate-400">Not yet linked to any units. Use the form below.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold">Unit</th>
                 <th className="px-4 py-2 text-left font-semibold">Association</th>
@@ -196,13 +196,13 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                   </td>
                   <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? 'â€”'}</td>
                   <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-400">{date(o.move_in_date)}</td>
                   <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : 'â€”'}</td>
                   <td className="px-4 py-2">
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${
                       o.status === 'current' ? 'bg-green-100 text-green-700' :
                       o.status === 'future'  ? 'bg-blue-100 text-blue-700'  :
-                      'bg-gray-100 text-gray-500'
+                      'bg-gray-100 text-slate-400'
                     }`}>{o.status}</span>
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -286,16 +286,16 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                     <span className="font-medium">SR {s.number ?? s.id.slice(0, 8)}</span>
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${
                       s.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      s.status === 'cancelled' ? 'bg-gray-100 text-gray-500' :
+                      s.status === 'cancelled' ? 'bg-gray-100 text-slate-400' :
                       'bg-amber-100 text-amber-800'
                     }`}>{s.status}</span>
                   </div>
-                  <div className="truncate text-xs text-gray-500">{(s.description ?? '').split('\n')[0]}</div>
+                  <div className="truncate text-xs text-slate-400">{(s.description ?? '').split('\n')[0]}</div>
                   <div className="text-xs text-gray-400">Unit {s.units?.unit_number} Â· {date(s.created_at)}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No service requests on file.</p>}
+          ) : <p className="px-4 py-6 text-center text-sm text-slate-400">No service requests on file.</p>}
         </Section>
 
         <Section title={`Violations (${violations?.length ?? 0})`}>
@@ -307,11 +307,11 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
                     <span className="font-medium">{v.title}</span>
                     {v.fine_amount != null && <span className="text-xs tabular-nums text-gray-700">{money(v.fine_amount)}</span>}
                   </div>
-                  <div className="text-xs text-gray-500">{v.associations?.name} Â· {date(v.date_observed)}</div>
+                  <div className="text-xs text-slate-400">{v.associations?.name} Â· {date(v.date_observed)}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No violations on file.</p>}
+          ) : <p className="px-4 py-6 text-center text-sm text-slate-400">No violations on file.</p>}
         </Section>
       </div>
     </div>
