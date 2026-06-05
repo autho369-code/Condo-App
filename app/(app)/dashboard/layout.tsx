@@ -2,7 +2,7 @@ import { ContextPanel, PanelSection, PanelLink, PanelDropdown } from '@/componen
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-[#060B18]">
+    <div className="flex h-screen bg-[#faf6f1]">
       <div className="flex-1 overflow-y-auto">{children}</div>
       <ContextPanel>
         <PanelSection title="Setup">

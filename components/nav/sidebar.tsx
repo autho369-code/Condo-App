@@ -10,7 +10,7 @@ function ChevronDown({ open }: { open: boolean }) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
       aria-hidden="true"
-      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
       <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
@@ -51,24 +51,17 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
   }
 
   return (
-    <aside className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-slate-800/80 bg-[#0B1121] overflow-hidden">
-      <div className="border-b border-slate-800/80 px-4 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex-shrink-0 shadow-lg shadow-emerald-500/20">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-bold text-white truncate">{portfolioName ?? 'Portier'}</div>
-            <div className="text-[10px] text-slate-500 font-medium">Operations workspace</div>
-          </div>
-        </div>
+    <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-slate-800 bg-[#0B1121] overflow-hidden">
+      <div className="border-b border-slate-800 px-4 py-3 flex-shrink-0">
+        <div className="text-sm font-semibold text-white truncate">{portfolioName ?? 'Portier'}</div>
+        <div className="text-xs text-slate-400 mt-0.5">Operations workspace</div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-2.5">
+      <nav className="flex-1 overflow-y-auto py-1">
         {appModules.map((s) => {
           if (!s.children) return (
             <Link key={s.label} href={s.href}
-              className={"flex items-center px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all " + (active(s.href) ? 'bg-emerald-500/15 text-emerald-400 shadow-sm shadow-emerald-500/5' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200')}>
+              className={"flex items-center px-4 py-2 text-sm " + (active(s.href) ? 'bg-emerald-500/20 text-emerald-400 font-medium border-r-2 border-emerald-500' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
               {s.label}
             </Link>
           )
@@ -80,15 +73,15 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
               <button onClick={() => toggle(s.label)}
                 aria-expanded={!!isOpen}
                 aria-controls={submenuId}
-                className={"flex w-full items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all " + (isActive ? 'text-emerald-400' : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200')}>
+                className={"flex w-full items-center justify-between px-4 py-2 text-sm " + (isActive ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
                 <span>{s.label}</span>
                 <ChevronDown open={isOpen} />
               </button>
               {isOpen && (
-                <div id={submenuId} className="border-l border-slate-800/60 ml-[18px] pl-3.5 mt-0.5 space-y-0.5">
+                <div id={submenuId} className="border-l-2 border-slate-700 ml-4 bg-[#060B18]">
                   {s.children.map((c: any) => (
                     <Link key={c.href} href={c.href}
-                      className={"block px-3 py-[7px] rounded-lg text-[13px] transition-all " + (active(c.href) ? 'text-emerald-400 font-medium bg-emerald-500/15 shadow-sm shadow-emerald-500/5' : 'text-slate-500 hover:bg-slate-800/40 hover:text-slate-200')}>
+                      className={"block px-4 py-1.5 text-sm " + (active(c.href) ? 'text-emerald-400 font-medium bg-emerald-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200')}>
                       {c.label}
                     </Link>
                   ))}
@@ -99,9 +92,9 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
         })}
       </nav>
 
-      <div className="border-t border-slate-800/80 px-4 py-3.5 flex-shrink-0">
-        <div className="text-xs font-medium text-slate-500 truncate mb-2">{userEmail}</div>
-        <button onClick={handleLogout} className="text-[13px] font-medium text-slate-500 hover:text-red-400 transition-colors">Log out</button>
+      <div className="border-t border-slate-800 px-4 py-3 flex-shrink-0">
+        <div className="text-xs text-slate-400 truncate mb-1">{userEmail}</div>
+        <button onClick={handleLogout} className="text-xs text-slate-400 hover:text-slate-300">Log out</button>
       </div>
     </aside>
   )

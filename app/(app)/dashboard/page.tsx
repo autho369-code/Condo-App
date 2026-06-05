@@ -119,12 +119,12 @@ export default async function DashboardPage({
   const linkedMetrics = commandMetrics.map((metric) => ({
     label: metric.label,
     value: (
-      <Link href={metric.href} className="hover:text-emerald-400 transition-colors">
+      <Link href={metric.href} className="hover:text-brand-700 hover:underline">
         {metric.value}
       </Link>
     ),
     sublabel: (
-      <Link href={metric.href} className="text-emerald-500/60 hover:text-emerald-400 transition-colors flex items-center gap-1">
+      <Link href={metric.href} className="text-blue-700 hover:underline">
         Open list
       </Link>
     ),
@@ -175,7 +175,7 @@ export default async function DashboardPage({
             <select
               name="assoc"
               defaultValue={assocFilter}
-              className="h-10 rounded-xl border border-slate-700 bg-[#0B1121] px-3 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 appearance-none cursor-pointer transition-colors"
+              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value="">All associations</option>
               {(associations ?? []).map((association: any) => (
@@ -191,36 +191,33 @@ export default async function DashboardPage({
       <div className="space-y-6">
         <MetricStrip metrics={linkedMetrics} />
 
-        <section className="rounded-xl border border-slate-800 bg-[#0B1121] overflow-hidden hover:border-slate-700/80 transition-colors">
-          <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
+        <section className="rounded border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="text-base font-bold text-white">Focus queue</h2>
+              <h2 className="text-sm font-semibold text-gray-950">Focus queue</h2>
               <p className="mt-1 text-xs text-slate-400">Highest leverage items needing staff attention.</p>
             </div>
-            <Link href="/inbox" className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 hover:bg-emerald-500/15">Open inbox</Link>
+            <Link href="/inbox" className="text-sm font-medium text-blue-700 hover:underline">Open inbox</Link>
           </div>
           {focusItems.length > 0 ? (
-            <ul className="divide-y divide-slate-800/50">
+            <ul className="divide-y divide-gray-100">
               {focusItems.map((item) => (
                 <li key={item.key}>
-                  <Link href={item.href} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-800/20 transition-colors group">
+                  <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2.5">
-                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${toneClass(item.tone)}`}>{item.type}</span>
-                        <span className="truncate text-sm font-medium text-white">{item.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>{item.type}</span>
+                        <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">{item.detail}</p>
+                      <p className="mt-1 text-xs text-slate-400">{item.detail}</p>
                     </div>
-                    <span className="shrink-0 text-xs font-medium text-slate-500 group-hover:text-emerald-400 transition-colors">Review</span>
+                    <span className="shrink-0 text-sm text-blue-700">Review</span>
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="px-6 py-16 text-center">
-              <div className="text-sm font-medium text-slate-300">All clear</div>
-              <div className="text-xs text-slate-500 mt-1">No urgent operating items in the queue.</div>
-            </div>
+            <div className="px-5 py-10 text-center text-sm text-slate-400">No urgent operating items in the queue.</div>
           )}
         </section>
       </div>
@@ -279,10 +276,10 @@ function buildReportQueue(db: any, todayIso: string) {
 
 function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate') {
   const classes = {
-    red: 'bg-red-500/15 text-red-400 border border-red-500/25',
-    amber: 'bg-amber-500/15 text-amber-400 border border-amber-500/25',
-    blue: 'bg-blue-500/15 text-blue-400 border border-blue-500/25',
-    slate: 'bg-slate-500/15 text-slate-400 border border-slate-500/25',
+    red: 'bg-red-100 text-red-700',
+    amber: 'bg-amber-100 text-amber-800',
+    blue: 'bg-blue-100 text-blue-700',
+    slate: 'bg-slate-100 text-slate-700',
   };
   return classes[tone];
 }
