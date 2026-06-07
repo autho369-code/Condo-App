@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'ManageOps',
+  title: 'Portier',
   description: 'Property management platform',
 };
 
