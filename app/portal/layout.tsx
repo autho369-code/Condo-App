@@ -1,14 +1,14 @@
-import Sidebar from '@/components/nav/sidebar';
-import { requireAuth } from '@/lib/auth/me';
+import OwnerSidebar from '@/components/nav/owner-sidebar'
+import { requireOwner } from '@/lib/auth/me'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  await requireAuth();
+  const me = await requireOwner()
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
+    <div className="flex min-h-screen bg-stone-50">
+      <OwnerSidebar userName={me.profile?.full_name ?? me.email ?? undefined} />
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-6 py-8">{children}</div>
+        <div className="mx-auto max-w-5xl px-6 py-8">{children}</div>
       </main>
     </div>
-  );
+  )
 }

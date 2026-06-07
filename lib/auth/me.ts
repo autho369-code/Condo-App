@@ -89,3 +89,9 @@ export async function requireBoard(): Promise<MeResult> {
   if (!me.is_board && !me.is_platform_operator) redirect('/portal');
   return me;
 }
+
+export async function requireOwner(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.owner_id) redirect('/login?mode=owner');
+  return me;
+}
