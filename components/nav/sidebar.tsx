@@ -16,7 +16,12 @@ function ChevronDown({ open }: { open: boolean }) {
   )
 }
 
-export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: string; userEmail?: string }) {
+export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail }: {
+  portfolioName?: string;
+  logoUrl?: string | null;
+  brandColor?: string;
+  userEmail?: string;
+}) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -53,7 +58,11 @@ export default function Sidebar({ portfolioName, userEmail }: { portfolioName?: 
   return (
     <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
       <div className="border-b border-gray-200 px-4 py-3 flex-shrink-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{portfolioName ?? 'ManageOps'}</div>
+        {logoUrl ? (
+          <img src={logoUrl} alt={portfolioName ?? 'Portal'} className="h-8 object-contain mb-1" />
+        ) : (
+          <div className="text-sm font-semibold text-gray-900 truncate">{portfolioName ?? 'ManageOps'}</div>
+        )}
         <div className="text-xs text-gray-400 mt-0.5">Operations workspace</div>
       </div>
 
