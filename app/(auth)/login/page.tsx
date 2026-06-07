@@ -100,12 +100,6 @@ export default async function LoginPage({
         })}
       </Card>
 
-      {!isAdminMode && !tenant && (
-        <div className="text-center">
-          <Link href="/login?mode=admin" className="text-xs text-gray-400 hover:text-gray-600">Platform admin sign in</Link>
-        </div>
-      )}
-
       <div className="space-y-3 text-center">
         {localPreview && (
           <Link
