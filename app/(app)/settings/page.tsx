@@ -161,7 +161,7 @@ export default async function SettingsPage() {
       <section>
         <h2 className="mb-3 text-lg font-semibold">Team</h2>
         <Table>
-          <THead><TR><TH>Email</TH><TH>Name</TH><TH>HOA role</TH><TH>Last login</TH></TR></THead>
+          <THead><TR><TH>Email</TH><TH>Name</TH><TH>HOA role</TH><TH>Last login</TH><TH className="w-32">Actions</TH></TR></THead>
           <tbody>
             {(team ?? []).map((m: any) => (
               <TR key={m.id}>
@@ -169,6 +169,28 @@ export default async function SettingsPage() {
                 <TD>{m.full_name ?? '—'}</TD>
                 <TD className="uppercase">{m.hoa_role}</TD>
                 <TD>{date(m.last_login_at) ?? '—'}</TD>
+                <TD>
+                  <form action={async (fd: FormData) => {
+                    'use server';
+                    const supabase = await (await import('@/lib/supabase/server')).createClient();
+                    const role = fd.get('role') as string;
+                    if (role) {
+                      await (supabase as any).rpc('assign_role', { p_profile_id: fd.get('profile_id') as string, p_role_name: role });
+                    }
+                    if (fd.get('action') === 'remove') {
+                      await (supabase as any).rpc('remove_staff_member', { p_profile_id: fd.get('profile_id') as string, p_reason: 'Removed by admin' });
+                    }
+                    revalidatePath('/settings');
+                  }} className="flex gap-1">
+                    <input type="hidden" name="profile_id" value={m.id} />
+                    <select name="role" className="h-8 rounded border border-gray-200 text-xs px-1">
+                      <option value="">Change role</option>
+                      <option>President</option><option>Property Manager</option><option>Accountant</option>
+                      <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
+                    </select>
+                    <button type="submit" name="action" value="remove" className="h-8 rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50">Remove</button>
+                  </form>
+                </TD>
               </TR>
             ))}
           </tbody>
