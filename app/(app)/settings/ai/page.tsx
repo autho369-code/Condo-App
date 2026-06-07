@@ -30,17 +30,8 @@ async function saveAIProvider(formData: FormData) {
     ai_provider: provider,
     ai_model: model,
     ai_endpoint: endpoint || null,
+    ai_api_key: apiKey || null,
   }).eq('id', me.portfolio.id);
-
-  // Store API key in Vault if provided
-  if (apiKey && apiKey.trim() && !apiKey.includes('•')) {
-    const secretName = `ai_key_${me.portfolio.id}`;
-    await (supabase as any).rpc('upsert_vault_secret', {
-      p_name: secretName,
-      p_secret: apiKey,
-      p_description: `AI API key for portfolio ${me.portfolio.id} (${provider})`,
-    });
-  }
 
   revalidatePath('/settings/ai');
 }

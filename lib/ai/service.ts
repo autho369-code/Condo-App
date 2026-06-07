@@ -30,23 +30,16 @@ export async function getAIConfig(portfolioId: string): Promise<AIConfig | null>
 
   const { data: portfolio } = await db
     .from('portfolios')
-    .select('ai_provider, ai_model, ai_endpoint')
+    .select('ai_provider, ai_model, ai_endpoint, ai_api_key')
     .eq('id', portfolioId)
     .single();
 
-  if (!portfolio?.ai_provider) return null;
-
-  // Get API key from Vault
-  const { data: secret } = await db.rpc('read_vault_secret', {
-    p_name: `ai_key_${portfolioId}`,
-  });
-
-  if (!secret) return null;
+  if (!portfolio?.ai_provider || !portfolio?.ai_api_key) return null;
 
   return {
     provider: portfolio.ai_provider,
     model: portfolio.ai_model || 'gpt-4o',
-    apiKey: secret,
+    apiKey: portfolio.ai_api_key,
     endpoint: portfolio.ai_endpoint || undefined,
   };
 }
