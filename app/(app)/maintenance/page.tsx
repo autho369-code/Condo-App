@@ -12,11 +12,12 @@ const FREQUENCY_LABELS: Record<string, string> = {
   quarterly: 'Quarterly', semiannual: 'Semi-annual', annual: 'Annual', custom: 'Custom',
 };
 
-export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ assoc?: string; category?: string }> }) {
+export default async function MaintenancePage(props: any) {
+  const searchParams = await props.searchParams;
+  const sp = (searchParams ?? {}) as { assoc?: string; category?: string };
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
-  const sp = await searchParams;
 
   // Filters
   const [{ data: tasks }, { data: associations }, { data: templates }] = await Promise.all([
