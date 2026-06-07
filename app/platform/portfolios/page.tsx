@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle, Stat } from '@/components/ui/card';
@@ -29,15 +30,14 @@ async function provisionPortfolio(formData: FormData) {
     p_trial_days: parseInt(formData.get('trial_days') as string) || 14,
   });
   if (error) return { error: error.message };
-
   revalidatePath('/platform/portfolios');
-  // Return the invitation link so the platform operator can share it
+
   const token = data?.invitation_token;
-  const email = formData.get('email') as string;
   if (token) {
-    return { success: true, inviteUrl: `${process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com'}/invite?token=${token}`, email };
+    const redirectUrl = `/platform/portfolios?invited=1&token=${encodeURIComponent(token)}`;
+    redirect(redirectUrl);
   }
-  return { success: true };
+  redirect('/platform/portfolios');
 }
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
@@ -48,14 +48,36 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
   );
 }
 
-export default async function PortfoliosPage() {
+export default async function PortfoliosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invited?: string; token?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
   const { data } = await (supabase as any).from('v_portfolio_health').select('*').order('company_name');
   const rows = (data ?? []) as PortfolioHealthRow[];
   const summary = summarizePortfolioHealth(rows);
 
+  const inviteUrl = sp.token ? `https://portier369.com/invite?token=${sp.token}` : null;
+
   return (
     <div className="space-y-7">
+      {sp.invited === '1' && inviteUrl && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold text-green-900">Company provisioned</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Share this link with the company admin to set their password:
+              </p>
+              <div className="mt-2">
+                <code className="rounded bg-white px-3 py-1.5 text-sm font-mono text-gray-900 border border-gray-200 break-all select-all">{inviteUrl}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-950">Clients</h1>
