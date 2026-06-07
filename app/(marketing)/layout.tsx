@@ -25,8 +25,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
             ) : (
               <>
                 <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Sign in</Link>
-                <Link href="/signup" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
-                  Start free
+                <Link href="/demo" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
+                  Request demo
                 </Link>
               </>
             )}
@@ -50,7 +50,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <div className="space-y-2 text-sm">
                   <Link href="/pricing" className="block text-gray-600 hover:text-gray-900">Pricing</Link>
                   <Link href="/demo" className="block text-gray-600 hover:text-gray-900">Demo</Link>
-                  <Link href="/signup" className="block text-gray-600 hover:text-gray-900">Free Trial</Link>
                 </div>
               </div>
               <div>

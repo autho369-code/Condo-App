@@ -1,294 +1,339 @@
-import Link from 'next/link';
+import Link from 'next/link'
 
-export const metadata = { title: 'condo-app — HOA & condo management, reimagined' };
-
-function Check() {
+export default function HomePage() {
   return (
-    <svg className="h-5 w-5 flex-none text-brand-600" viewBox="0 0 20 20" fill="currentColor">
-      <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" />
-    </svg>
-  );
-}
-
-export default function Landing() {
-  return (
-    <>
-      {/* ============ HERO ============ */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-50 to-white" />
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
-              Built for modern management companies
-            </span>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 md:text-6xl">
-              Run your HOAs like it&apos;s 2030,<br/>
-              <span className="text-brand-600">not 2005.</span>
-            </h1>
-            <p className="mt-6 text-lg text-gray-600 md:text-xl">
-              The complete operating system for property management companies. Collect dues, write checks,
-              manage work orders, keep boards informed — all in one place. Half the price of AppFolio.
-              Ten times the user experience.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/signup"
-                className="inline-flex h-12 items-center rounded-md bg-brand-600 px-6 text-base font-semibold text-white shadow-sm hover:bg-brand-700">
-                Start your 30-day free trial
-              </Link>
-              <Link href="#demo"
-                className="inline-flex h-12 items-center rounded-md border border-gray-300 bg-white px-6 text-base font-medium text-gray-900 hover:bg-gray-50">
-                Watch 2-minute demo
-              </Link>
-            </div>
-            <p className="mt-4 text-xs text-gray-500">No credit card required · Cancel any time · Your data stays yours</p>
+    <div className="bg-white">
+      {/* ──────────────────────────────────────────────
+          HERO — Problem → Value Prop
+          ────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-white pt-20 pb-12 lg:pt-32 lg:pb-20">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(30,58,95,0.06),transparent)]" />
+        <div className="relative mx-auto max-w-5xl px-6 text-center">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-4 py-1.5 text-sm text-gray-600 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+            Purpose-built for professional property managers
           </div>
-
-          {/* Social proof row */}
-          <div className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-6 text-center md:grid-cols-4">
-            {[
-              ['1,200+', 'units under management'],
-              ['$3M+',   'dues processed yearly'],
-              ['30',     'management companies'],
-              ['99.98%', 'uptime SLA'],
-            ].map(([n, l]) => (
-              <div key={l}>
-                <div className="text-3xl font-bold text-gray-900">{n}</div>
-                <div className="text-sm text-gray-500">{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ FEATURES ============ */}
-      <section id="features" className="border-t border-gray-100 bg-white py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">Everything AppFolio does. Without the bloat.</h2>
-            <p className="mt-4 text-gray-600">
-              Accounting, maintenance, communication, compliance, reporting — one login, one bill,
-              no month-long onboarding.
-            </p>
-          </div>
-
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
-            {[
-              {
-                title: 'Collect dues without bleeding on fees',
-                desc: 'ACH at 0.8% (capped $5), card convenience fees passed through to the owner. Autopay enrollment in one tap. Paper checks still welcome via manual entry or lockbox scan.',
-                icon: '💳',
-              },
-              {
-                title: 'Write checks that actually print',
-                desc: 'AP queue to check-run wizard to #10 window-envelope ready printable. Sequential check numbers assigned automatically. Memo prints on the stub.',
-                icon: '🧾',
-              },
-              {
-                title: 'Maintenance that closes itself',
-                desc: 'Service request → work order → vendor assignment → labor entry → vendor bill → payment → done. With webhook events so your tools stay in sync.',
-                icon: '🔧',
-              },
-              {
-                title: 'Dashboards your board members actually read',
-                desc: 'Delinquency aging, insurance expirations, pending approvals, occupancy — surfaced once, never stale. Board portal shows their association only.',
-                icon: '📊',
-              },
-              {
-                title: 'Compliance that does itself',
-                desc: '1099 generation, audit log, GDPR/CCPA data exports, soft-delete restore, privacy action tracking — built in, not bolted on.',
-                icon: '🛡️',
-              },
-              {
-                title: 'APIs and webhooks, not a walled garden',
-                desc: 'Scoped API keys with 20+ webhook events. Integrate QuickBooks, Mailchimp, whatever your operators already use. Your data, your rules.',
-                icon: '🔌',
-              },
-            ].map((f) => (
-              <div key={f.title} className="rounded-lg border border-gray-200 p-6">
-                <div className="text-3xl">{f.icon}</div>
-                <h3 className="mt-4 font-semibold text-gray-900">{f.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ HOW IT WORKS ============ */}
-      <section className="border-t border-gray-100 bg-gray-50 py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">Onboard an association in an afternoon.</h2>
-            <p className="mt-4 text-gray-600">
-              Most property management platforms take 90 days to implement. We take 3 hours.
-            </p>
-          </div>
-
-          <div className="mt-16 grid gap-8 md:grid-cols-4">
-            {[
-              ['1', 'Sign up', 'Create your management company account. 30-day free trial, no card required.'],
-              ['2', 'Import', 'Drag in a CSV of units and owners. We handle the rest.'],
-              ['3', 'Configure', 'Set assessment amounts, late fees, and banking. Connect Stripe in 2 minutes.'],
-              ['4', 'Go live', 'Invite your team, owners, and board. Send your first statements.'],
-            ].map(([n, title, desc]) => (
-              <div key={n}>
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 font-semibold text-white">{n}</div>
-                <h3 className="mt-3 font-semibold text-gray-900">{title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ PRICING ============ */}
-      <section id="pricing" className="border-t border-gray-100 bg-white py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">Simple pricing, scaled to your portfolio.</h2>
-            <p className="mt-4 text-gray-600">
-              No per-unit fees. No implementation fees. No &quot;call sales for pricing.&quot; Pick a tier and go.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
-            {/* CORE */}
-            <div className="flex flex-col rounded-lg border border-gray-200 p-8">
-              <h3 className="text-lg font-semibold text-gray-900">Core</h3>
-              <p className="mt-1 text-sm text-gray-500">For managers with up to 5 associations.</p>
-              <div className="mt-6">
-                <span className="text-4xl font-bold">$149</span>
-                <span className="ml-1 text-gray-500">/month</span>
-              </div>
-              <ul className="mt-6 flex-1 space-y-2 text-sm text-gray-700">
-                {[
-                  'Up to 5 user seats',
-                  'Unlimited associations + units',
-                  'ACH + card payment processing',
-                  'Owner portal',
-                  'Standard reports',
-                  'Email support',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><Check />{f}</li>
-                ))}
-              </ul>
-              <Link href="/signup?tier=core"
-                className="mt-8 inline-flex h-11 items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 hover:bg-gray-50">
-                Start free trial
-              </Link>
-            </div>
-
-            {/* PLUS — featured */}
-            <div className="flex flex-col rounded-lg border-2 border-brand-600 p-8 shadow-lg relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold uppercase text-white">Most popular</span>
-              <h3 className="text-lg font-semibold text-gray-900">Plus</h3>
-              <p className="mt-1 text-sm text-gray-500">For growing management companies.</p>
-              <div className="mt-6">
-                <span className="text-4xl font-bold">$299</span>
-                <span className="ml-1 text-gray-500">/month</span>
-              </div>
-              <ul className="mt-6 flex-1 space-y-2 text-sm text-gray-700">
-                {[
-                  'Everything in Core, plus:',
-                  'Up to 15 user seats',
-                  'Vendor portal + compliance tracking',
-                  'Custom user roles',
-                  'API access + webhooks',
-                  'Scheduled reports',
-                  'SMS texting inbox',
-                  'Bill + PO approval workflows',
-                  'Fixed assets + depreciation',
-                  'Priority support',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><Check />{f}</li>
-                ))}
-              </ul>
-              <Link href="/signup?tier=plus"
-                className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
-                Start free trial
-              </Link>
-            </div>
-
-            {/* MAX */}
-            <div className="flex flex-col rounded-lg border border-gray-200 p-8">
-              <h3 className="text-lg font-semibold text-gray-900">Max</h3>
-              <p className="mt-1 text-sm text-gray-500">For enterprise operators &amp; regulated verticals.</p>
-              <div className="mt-6">
-                <span className="text-4xl font-bold">$699</span>
-                <span className="ml-1 text-gray-500">/month</span>
-              </div>
-              <ul className="mt-6 flex-1 space-y-2 text-sm text-gray-700">
-                {[
-                  'Everything in Plus, plus:',
-                  'Unlimited seats',
-                  'Per-role GL account permissions',
-                  'SSO / SAML',
-                  '7-year audit log retention',
-                  'Full data export (JSON/CSV)',
-                  'Custom domain + branding',
-                  '24/7 support with 1hr SLA',
-                  'Dedicated implementation manager',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2"><Check />{f}</li>
-                ))}
-              </ul>
-              <Link href="/signup?tier=max"
-                className="mt-8 inline-flex h-11 items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-900 hover:bg-gray-50">
-                Talk to sales
-              </Link>
-            </div>
-          </div>
-
-          <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-gray-500">
-            Compare to AppFolio: <span className="line-through">$1.40/unit/month × 500 units = $700/month</span>.
-            With us, Plus at $299/month covers 15 users and as many units as you can manage.
-            Save $400+/month from day one.
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-7xl">
+            The operating system
+            <br />
+            <span className="text-[#1E3A5F]">for community management</span>
+          </h1>
+          <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-gray-500 sm:text-xl">
+            Most platforms force you to choose between power and simplicity. Portier369 gives you both —
+            every tool your team needs across associations, boards, owners, and vendors, in a single interface
+            that actually makes sense.
           </p>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1E3A5F] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#162D4A] transition"
+            >
+              Request a demo
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-8 py-3.5 text-base font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              View pricing
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* ============ FAQ ============ */}
-      <section id="faq" className="border-t border-gray-100 bg-gray-50 py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-3xl font-bold text-gray-900 md:text-4xl text-center">Frequently asked</h2>
-          <dl className="mt-12 space-y-8">
+      {/* ──────────────────────────────────────────────
+          THE PROBLEM
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20 items-center">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">The challenge</span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Managing communities shouldn&apos;t require five different systems.
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-gray-500">
+                Property managers juggle accounting software, maintenance tracking, violation logs,
+                board communications, and vendor management — often across separate tools that
+                don&apos;t talk to each other. Information gets lost. Response times suffer. Boards get frustrated.
+              </p>
+              <div className="mt-8 space-y-4">
+                {[
+                  'Disconnected systems create data silos across associations',
+                  'Board members lack visibility into violations and finances',
+                  'Owners have no self-service portal for payments or requests',
+                  'Vendor compliance tracking is manual and error-prone',
+                  'Onboarding new management companies takes months',
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-3">
+                    <div className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="text-red-500 text-xs font-bold">&times;</span>
+                    </div>
+                    <span className="text-gray-600">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+                <div className="space-y-3">
+                  {['Accounting Software', 'Maintenance Tracker', 'Violation Log', 'Board Portal', 'Vendor Spreadsheet', 'Owner Database'].map((label) => (
+                    <div key={label} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                      <span className="text-sm text-gray-500">{label}</span>
+                      <span className="text-xs text-red-400">Disconnected</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 rounded-lg bg-[#1E3A5F]/5 border border-[#1E3A5F]/10 p-4 text-center">
+                  <span className="text-sm font-medium text-[#1E3A5F]">Portier369 unifies all of this into one platform</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────
+          THE PLATFORM — Dashboard Showcase
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center mb-16">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">The platform</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Five portals. One platform. Complete visibility.
+            </h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+              Every stakeholder gets exactly the tools they need — from the CEO to the homeowner.
+            </p>
+          </div>
+
+          {/* Dashboard Preview Grid */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             {[
-              ['How do you compare to AppFolio and Buildium?',
-               'AppFolio and Buildium built for the property-management market in the 2000s, and it shows. We rebuilt the same feature set — accounting, maintenance, comms, compliance — on a modern stack (Postgres + TypeScript + Stripe) with half the surface area and double the API coverage. Price is ~40% lower at similar scale.'],
-              ['Can we migrate our existing data?',
-               'Yes. Send us a CSV export from your current system (AppFolio, Buildium, Yardi, or QuickBooks) and we\'ll land it in your account within 48 hours. We currently migrate ~30 associations / 1,200 units in a single weekend for a typical customer.'],
-              ['What about payment processing fees?',
-               '0.8% for ACH (capped at $5/transaction), 2.9% + 30¢ for cards — both via Stripe. You choose whether to absorb or pass through the card fee to owners as a "convenience fee." Most customers pass it through. ACH remains free to the owner.'],
-              ['Is it secure? What about compliance?',
-               'Row-level security is enforced at the database for every query. No one outside a portfolio can ever see another portfolio\'s data. SOC 2 Type II (in progress). GDPR + CCPA compliance: data export, right-to-delete, anonymization — built-in. All sensitive credentials (bank routing + account numbers, taxpayer IDs) stored in Supabase Vault.'],
-              ['Can owners pay by check?',
-               'Absolutely. Manual check entry takes 20 seconds per payment. For high-volume associations, we integrate with lockbox services (CheckAlt, Remit Plus) that scan paper checks and ACH-deposit them automatically. You get a CSV feed we import into your run.'],
-              ['Do you support HOAs, condos, and co-ops?',
-               'Yes — association management is our primary market. We also handle rental property management (single-family, multi-family), and mixed portfolios. Condos and co-ops use the same workflow with different labels.'],
-            ].map(([q, a]) => (
-              <div key={q}>
-                <dt className="font-semibold text-gray-900">{q}</dt>
-                <dd className="mt-2 text-sm text-gray-600">{a}</dd>
+              { name: 'Platform Operator', desc: 'CEO-level visibility across all management companies. Revenue, door usage, company health, provisioning.', color: '#1E3A5F', stats: '14 companies · $24.8K MRR · 3,200 doors' },
+              { name: 'Company Admin', desc: 'Portfolio-wide control. Associations, managers, billing, platform requests.', color: '#0F766E', stats: '12 associations · 8 managers · $8.2K revenue' },
+              { name: 'Manager', desc: 'Day-to-day operations. Work orders, violations, maintenance, vendors.', color: '#2563EB', stats: '3 associations · 142 units · 18 open WO' },
+              { name: 'Board Member', desc: 'Governance oversight. Violations, financials, budget, architectural reviews.', color: '#7C3AED', stats: '1 association · 4 open violations · $12K reserves' },
+              { name: 'Owner', desc: 'Self-service. Payments, work orders, documents, insurance, calendar.', color: '#059669', stats: 'Unit 204 · $450 due Jun 1 · 0 open violations' },
+            ].map((portal, i) => (
+              <div key={portal.name} className={`lg:col-span-${i === 0 ? '2' : '1'}`} style={i === 0 ? { gridColumn: 'span 2' } : {}}>
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition overflow-hidden group">
+                  {/* Dashboard mockup */}
+                  <div className="p-4 border-b border-gray-100" style={{ backgroundColor: portal.color + '08' }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex gap-1.5">
+                        <div className="h-2.5 w-2.5 rounded-full bg-red-300" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                      </div>
+                      <span className="text-[10px] font-medium text-gray-400 ml-2 uppercase tracking-wider">{portal.name}</span>
+                    </div>
+                    {/* Mini dashboard cards */}
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      {portal.stats.split(' · ').map((stat) => (
+                        <div key={stat} className="rounded-md px-2 py-2 text-center" style={{ backgroundColor: portal.color + '10' }}>
+                          <div className="text-[10px] font-semibold" style={{ color: portal.color }}>{stat.split(' ')[0]}</div>
+                          <div className="text-[9px] text-gray-400 mt-0.5 truncate">{stat.split(' ').slice(1).join(' ')}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Mini table */}
+                    <div className="space-y-1">
+                      {[1, 2, 3].map((r) => (
+                        <div key={r} className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded" style={{ backgroundColor: portal.color + '15' }} />
+                          <div className="h-1.5 w-8 rounded" style={{ backgroundColor: portal.color + '25' }} />
+                          <div className="h-1.5 w-6 rounded" style={{ backgroundColor: portal.color + '10' }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <h3 className="text-sm font-semibold text-gray-900">{portal.name}</h3>
+                    <p className="mt-1 text-xs text-gray-500 leading-relaxed">{portal.desc}</p>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: portal.color }} />
+                      <span className="text-[10px] text-gray-400">Live dashboard</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
-          </dl>
+          </div>
         </div>
       </section>
 
-      {/* ============ CTA ============ */}
-      <section className="bg-brand-600">
-        <div className="mx-auto max-w-4xl px-6 py-16 text-center">
-          <h2 className="text-3xl font-bold text-white md:text-4xl">Ready to give your portfolio a better OS?</h2>
-          <p className="mt-4 text-brand-100">
-            Start free. Add your first association today. Your team will notice by Friday.
+      {/* ──────────────────────────────────────────────
+          DIFFERENTIATION
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-16">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Why Portier369</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Built differently. Priced differently.
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {[
+              { title: 'Door-based pricing', body: 'Pay based on active units, not user seats. Unlimited owners, board members, and vendors on every plan. Your costs scale with your portfolio — not your headcount.', stat: 'Unlimited users on every plan' },
+              { title: 'White glove onboarding', body: 'Data migration, association setup, owner and vendor imports, document organization, team training — handled by our team. Most companies go live in under a week.', stat: 'Go live in under a week' },
+              { title: 'Everything included', body: 'Work orders, violations, maintenance, compliance, communications, documents, board management, and AI automation — no paid modules, no surprise charges.', stat: 'Zero paid modules' },
+              { title: 'Bring your own AI', body: 'Connect your OpenAI, Claude, or Gemini API key. Auto-generate notices, draft responses, summarize meetings, and detect violations — all running on your own credentials.', stat: 'Your AI, your data' },
+              { title: 'Association health scoring', body: 'Every association gets a real-time health score based on open work orders, violations, delinquency, manager response time, and vendor compliance.', stat: 'Real-time health monitoring' },
+              { title: 'Built by property managers', body: 'Every feature was designed with input from active property managers. We understand assessment cycles, board politics, maintenance seasons, and the 4pm Friday emergency.', stat: 'Industry-informed design' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div className="text-xs font-semibold text-[#1E3A5F] uppercase tracking-wider mb-2">{item.stat}</div>
+                <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                <p className="mt-3 text-sm text-gray-500 leading-relaxed">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────
+          CAPABILITIES
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Operations</span>
+              <h3 className="mt-2 text-2xl font-bold text-gray-900">Everything your team needs to run the day-to-day.</h3>
+              <div className="mt-8 space-y-6">
+                {[
+                  { title: 'Work Orders & Maintenance', desc: 'Service request to vendor payment — one continuous workflow. Preventive maintenance calendars with automated reminders.' },
+                  { title: 'Violations & Compliance', desc: 'Issue, track, and resolve violations. Board hearings, fines, notices, and owner communication — all in one place.' },
+                  { title: 'Vendor Management', desc: 'Track insurance, licenses, and compliance for every vendor. Automated expiration alerts and 1099-ready records.' },
+                  { title: 'Architectural Reviews', desc: 'Submit, review, approve, or deny modification requests. Attach plans, photos, and board decisions.' },
+                ].map((f) => (
+                  <div key={f.title}>
+                    <h4 className="font-semibold text-gray-900">{f.title}</h4>
+                    <p className="mt-1 text-sm text-gray-500">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Governance & Finance</span>
+              <h3 className="mt-2 text-2xl font-bold text-gray-900">Everything your board and owners expect.</h3>
+              <div className="mt-8 space-y-6">
+                {[
+                  { title: 'Board Portal', desc: 'Association-scoped dashboard with financials, violations, budget vs actual, and delinquency tracking.' },
+                  { title: 'Owner Portal', desc: 'Self-service payments, work order requests, violation viewing, document access, and insurance upload.' },
+                  { title: 'Financial Management', desc: 'Assessments, payments, late fees, bank reconciliation, GL accounts, and reporting.' },
+                  { title: 'Communications', desc: 'Email and SMS to owners, board announcements, vendor messages — with delivery tracking.' },
+                ].map((f) => (
+                  <div key={f.title}>
+                    <h4 className="font-semibold text-gray-900">{f.title}</h4>
+                    <p className="mt-1 text-sm text-gray-500">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────
+          TRUST
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-[#1E3A5F]">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Built for the people who manage communities.
+          </h2>
+          <p className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto">
+            Every feature in Portier369 came from conversations with property managers.
+            We understand the weight of managing other people&apos;s homes and investments.
           </p>
-          <Link href="/signup"
-            className="mt-8 inline-flex h-12 items-center rounded-md bg-white px-6 text-base font-semibold text-brand-700 hover:bg-brand-50">
-            Start your 30-day free trial →
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {[
+              { label: 'Row-Level Security', desc: 'Supabase RLS enforced on every query. No portfolio can ever access another portfolio\'s data.' },
+              { label: 'Data Ownership', desc: 'Export your data anytime. Your records are yours — no vendor lock-in.' },
+              { label: 'Enterprise Infrastructure', desc: 'Hosted on AWS via Vercel. 99.9% uptime. Automatic backups and point-in-time recovery.' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl bg-white/10 border border-white/10 p-6 text-left">
+                <h3 className="font-semibold text-white">{item.label}</h3>
+                <p className="mt-2 text-sm text-gray-300 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────
+          PRICING SUMMARY
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Pricing</span>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Simple. Door-based. Everything included.
+          </h2>
+          <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+            Four plans based on active units. No per-seat fees. No paid modules. No long-term contracts.
+          </p>
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { name: 'Foundation', price: '$157', doors: 'Up to 250 units', best: 'Small companies' },
+              { name: 'Growth', price: '$282+', doors: '251 – 1,000 units', best: 'Growing portfolios', featured: true },
+              { name: 'Portfolio', price: '$1,800', doors: 'Up to 4,000 units', best: 'Established firms' },
+              { name: 'Enterprise', price: '$3,600', doors: 'Up to 10,000 units', best: 'Large operations' },
+            ].map((plan) => (
+              <div key={plan.name} className={`relative rounded-2xl border bg-white p-6 text-left shadow-sm ${plan.featured ? 'border-[#1E3A5F] ring-1 ring-[#1E3A5F]' : 'border-gray-200'}`}>
+                {plan.featured && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#1E3A5F] px-3 py-0.5 text-[10px] font-semibold text-white">Most Popular</div>
+                )}
+                <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
+                  <span className="text-sm text-gray-500">/month</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">{plan.doors}</p>
+                <p className="mt-2 text-xs text-gray-400">{plan.best}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/pricing" className="mt-8 inline-flex items-center gap-1 text-sm font-medium text-[#1E3A5F] hover:text-[#162D4A]">
+            See full pricing details &rarr;
           </Link>
-          <p className="mt-3 text-xs text-brand-200">No credit card · Cancel any time</p>
         </div>
       </section>
-    </>
-  );
+
+      {/* ──────────────────────────────────────────────
+          DEMO CTA
+          ────────────────────────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            See Portier369 in action.
+          </h2>
+          <p className="mt-4 text-lg text-gray-500">
+            Walk through a live dashboard with your portfolio data. We&apos;ll show you how your team,
+            board, owners, and vendors would use the platform every day.
+          </p>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1E3A5F] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#162D4A] transition"
+            >
+              Request a demo
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-8 py-3.5 text-base font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              View pricing
+            </Link>
+          </div>
+          <p className="mt-6 text-sm text-gray-400">
+            White glove setup included. No long-term contract required.
+          </p>
+        </div>
+      </section>
+    </div>
+  )
 }
