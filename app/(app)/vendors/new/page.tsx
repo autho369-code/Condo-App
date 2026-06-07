@@ -82,6 +82,18 @@ export default async function NewVendorPage() {
         </section>
 
         <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Compliance & insurance tracking</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div><Label htmlFor="workers_comp_expiration">Workers comp expires</Label><Input id="workers_comp_expiration" name="workers_comp_expiration" type="date" /></div>
+            <div><Label htmlFor="general_liability_expiration">General liability expires</Label><Input id="general_liability_expiration" name="general_liability_expiration" type="date" /></div>
+            <div><Label htmlFor="auto_insurance_expiration">Auto insurance expires</Label><Input id="auto_insurance_expiration" name="auto_insurance_expiration" type="date" /></div>
+            <div><Label htmlFor="epa_certification_expiration">EPA cert expires</Label><Input id="epa_certification_expiration" name="epa_certification_expiration" type="date" /></div>
+            <div><Label htmlFor="state_license_expiration">State license expires</Label><Input id="state_license_expiration" name="state_license_expiration" type="date" /></div>
+            <div><Label htmlFor="contract_expiration">Contract expires</Label><Input id="contract_expiration" name="contract_expiration" type="date" /></div>
+          </div>
+        </section>
+
+        <section className="border-t border-gray-100 pt-5">
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax and 1099</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9" /></div>

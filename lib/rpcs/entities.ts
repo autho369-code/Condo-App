@@ -541,6 +541,12 @@ export async function createVendor(formData: FormData) {
     payment_terms:  str(formData, 'payment_terms'),
     is_utility:     formData.get('is_utility') === 'on',
     notes:          str(formData, 'notes'),
+    workers_comp_expiration:       str(formData, 'workers_comp_expiration'),
+    general_liability_expiration:  str(formData, 'general_liability_expiration'),
+    epa_certification_expiration:  str(formData, 'epa_certification_expiration'),
+    auto_insurance_expiration:     str(formData, 'auto_insurance_expiration'),
+    state_license_expiration:      str(formData, 'state_license_expiration'),
+    contract_expiration:           str(formData, 'contract_expiration'),
     created_by:     me.auth_user_id,
   };
 
@@ -581,6 +587,12 @@ export async function updateVendor(id: string, formData: FormData) {
     payment_terms: str(formData, 'payment_terms'),
     is_utility:    formData.get('is_utility') === 'on',
     notes:         str(formData, 'notes'),
+    workers_comp_expiration:       str(formData, 'workers_comp_expiration'),
+    general_liability_expiration:  str(formData, 'general_liability_expiration'),
+    epa_certification_expiration:  str(formData, 'epa_certification_expiration'),
+    auto_insurance_expiration:     str(formData, 'auto_insurance_expiration'),
+    state_license_expiration:      str(formData, 'state_license_expiration'),
+    contract_expiration:           str(formData, 'contract_expiration'),
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
   const { error } = await (supabase as any).from('vendors').update(patch).eq('id', id);

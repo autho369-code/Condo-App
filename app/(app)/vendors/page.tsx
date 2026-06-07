@@ -11,6 +11,35 @@ import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
 
+function ComplianceBadges({ vendor }: { vendor: any }) {
+  const expirations = [
+    { label: 'WC', date: vendor.workers_comp_expiration },
+    { label: 'GL', date: vendor.general_liability_expiration },
+    { label: 'Lic', date: vendor.state_license_expiration },
+    { label: 'Auto', date: vendor.auto_insurance_expiration },
+    { label: 'Ctr', date: vendor.contract_expiration },
+  ].filter(e => e.date);
+  const now = new Date();
+  const soon = new Date(now.getTime() + 30 * 86400000);
+
+  if (expirations.length === 0) return <span className="text-xs text-gray-400">—</span>;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {expirations.map((e) => {
+        const d = new Date(e.date);
+        const expired = d < now;
+        const expiring = d <= soon && !expired;
+        return (
+          <span key={e.label} className={`rounded px-1.5 py-0.5 text-xs font-medium ${expired ? 'bg-red-100 text-red-700' : expiring ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+            {e.label}: {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default async function VendorsPage({
   searchParams,
 }: {
@@ -24,7 +53,7 @@ export default async function VendorsPage({
   const supabase = await createClient();
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, archived_at')
+    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
     .is('archived_at', null)
     .order('name');
 
@@ -98,12 +127,13 @@ export default async function VendorsPage({
               <TH>Trade</TH>
               <TH>Payment</TH>
               <TH>Compliance</TH>
+              <TH>Documentation</TH>
               <TH>Workflows</TH>
             </TR>
           </THead>
           <tbody>
             {rows.length === 0 ? (
-              <TR><TD colSpan={5} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
+              <TR><TD colSpan={6} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
             ) : (
               rows.map((vendor: any) => (
                 <TR key={vendor.id} className="hover:bg-gray-50">
@@ -134,6 +164,9 @@ export default async function VendorsPage({
                       {vendor.send_1099 && <StatusChip tone={vendor.taxpayer_id ? 'success' : 'warning'}>{vendor.taxpayer_id ? 'W-9 ready' : 'Need W-9'}</StatusChip>}
                       {vendor.portal_activated && <StatusChip tone="success">Portal</StatusChip>}
                     </div>
+                  </TD>
+                  <TD>
+                    <ComplianceBadges vendor={vendor} />
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">
