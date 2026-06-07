@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/types/database';
 
 const APEX_DOMAIN = 'portier369.com';
-const PUBLIC_PATHS = ['/', '/pricing', '/features', '/login', '/signup', '/accept-invitation', '/api/auth/callback', '/portal/violations/report', '/portal/violations/confirmation'];
+const PUBLIC_PATHS = ['/', '/pricing', '/features', '/login', '/signup', '/accept-invitation', '/api/auth/callback', '/report-violation'];
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || APEX_DOMAIN;
