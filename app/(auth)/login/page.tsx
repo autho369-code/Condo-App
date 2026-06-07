@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { Card } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
 import { getLoginModeConfig, getLoginNext, getVisibleLoginModes, type LoginModeId } from '@/lib/auth/login-modes';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export default async function LoginPage({
   searchParams,
@@ -17,14 +19,29 @@ export default async function LoginPage({
   const modes = getVisibleLoginModes(params.mode);
   const isAdminMode = mode.id === 'admin';
 
+  // Tenant branding from subdomain
+  const h = await headers();
+  const tenant = tenantFromHeaders(h);
+
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <div className="text-xl font-semibold text-brand-600">Portier</div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">Portier Login Instructions</h1>
+        {tenant?.logoUrl ? (
+          <img src={tenant.logoUrl} alt={tenant.companyName} className="mx-auto h-10 object-contain" />
+        ) : (
+          <div className="text-xl font-semibold text-brand-600">{tenant?.companyName ?? 'Portier'}</div>
+        )}
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">
+          {tenant ? `${tenant.companyName} Portal` : 'Sign In'}
+        </h1>
         <p className="mt-2 text-sm text-gray-500">
-          {isAdminMode ? 'Restricted platform access.' : 'Choose the workspace that matches your account.'}
+          {isAdminMode ? 'Restricted platform access.' : tenant ? `Access your association's management portal.` : 'Choose the workspace that matches your account.'}
         </p>
+        {tenant && (
+          <div className="mt-2 text-xs text-gray-400">
+            Powered by <span className="font-medium text-brand-600">Portier</span>
+          </div>
+        )}
       </header>
 
       <Card className="overflow-hidden rounded-md shadow-sm">
