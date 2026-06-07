@@ -182,7 +182,15 @@ export default async function SettingsPage() {
                       await (supabase as any).rpc('remove_staff_member', { p_profile_id: fd.get('profile_id') as string, p_reason: 'Removed by admin' });
                     }
                     if (action === 'reset_password') {
-                      await (supabase as any).rpc('admin_reset_password', { p_email: fd.get('email') as string });
+                      const adminClient = (await import('@supabase/supabase-js')).createClient(
+                        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                        { auth: { autoRefreshToken: false, persistSession: false } }
+                      );
+                      await adminClient.auth.admin.generateLink({
+                        type: 'recovery',
+                        email: fd.get('email') as string,
+                      });
                     }
                     revalidatePath('/settings');
                   }} className="flex flex-wrap gap-1">
