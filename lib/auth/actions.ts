@@ -14,6 +14,13 @@ export async function loginWithPassword(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/login?mode=${mode}&error=${encodeURIComponent(error.message)}`);
 
+  // Check if user is a board member and redirect to board portal
+  const { data: me } = await (supabase as any).rpc('me');
+  if (me?.is_board && next === '/portal') {
+    revalidatePath('/', 'layout');
+    redirect('/board');
+  }
+
   revalidatePath('/', 'layout');
   redirect(next);
 }

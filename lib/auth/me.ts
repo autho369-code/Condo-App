@@ -83,3 +83,9 @@ export async function requireStaff(): Promise<MeResult> {
   if (!me.is_staff && !me.is_platform_operator) redirect('/portal');
   return me;
 }
+
+export async function requireBoard(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_board && !me.is_platform_operator) redirect('/portal');
+  return me;
+}
