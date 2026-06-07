@@ -21,23 +21,102 @@ export const dynamic = 'force-dynamic';
 async function provisionPortfolio(formData: FormData) {
   'use server';
   const supabase = await createClient();
+  const companyName = formData.get('name') as string;
+  const adminEmail = formData.get('email') as string;
+  const adminName = (formData.get('admin_name') as string) || undefined;
+  const trialDays = parseInt(formData.get('trial_days') as string) || 14;
+
   const { data, error } = await (supabase as any).rpc('provision_portfolio', {
-    p_company_name: formData.get('name') as string,
-    p_first_admin_email: formData.get('email') as string,
-    p_first_admin_name: (formData.get('admin_name') as string) || undefined,
+    p_company_name: companyName,
+    p_first_admin_email: adminEmail,
+    p_first_admin_name: adminName,
     p_tier: (formData.get('tier') as any) || 'core',
     p_seats: parseInt(formData.get('seats') as string) || 5,
-    p_trial_days: parseInt(formData.get('trial_days') as string) || 14,
+    p_trial_days: trialDays,
   });
   if (error) return { error: error.message };
   revalidatePath('/platform/portfolios');
 
   const token = data?.invitation_token;
+  const inviteUrl = token ? `https://portier369.com/invite?token=${encodeURIComponent(token)}` : null;
+
+  // Queue the invitation email
+  if (inviteUrl) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + trialDays);
+    const expiryDate = expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    await (supabase as any).from('email_queue').insert({
+      to_email: adminEmail,
+      to_name: adminName ?? companyName,
+      subject: `Welcome to Portier369 — Set up your ${companyName} account`,
+      body: `\
+<p>Hello${adminName ? ' ' + adminName : ''},</p>
+<p>You've been invited to join <strong>Portier369</strong> as the administrator for <strong>${companyName}</strong>.</p>
+<p><a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background-color:#10B981;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Set up your account</a></p>
+<p>Or copy this link into your browser:</p>
+<p><code>${inviteUrl}</code></p>
+<p>This invitation expires on <strong>${expiryDate}</strong>.</p>
+<p>— The Portier369 Team</p>`.trim(),
+      status: 'pending',
+    });
+  }
+
   if (token) {
     const redirectUrl = `/platform/portfolios?invited=1&token=${encodeURIComponent(token)}`;
     redirect(redirectUrl);
   }
   redirect('/platform/portfolios');
+}
+
+async function resendPortfolioInvites(formData: FormData) {
+  'use server';
+  const portfolioId = formData.get('portfolio_id') as string;
+  const supabase = await createClient();
+
+  const { data: invitations } = await (supabase as any)
+    .from('user_invitations')
+    .select('id, email, token, expires_at')
+    .eq('portfolio_id', portfolioId)
+    .eq('status', 'pending')
+    .is('used_at', null);
+
+  if (!invitations || invitations.length === 0) {
+    return { error: 'No pending invitations.' };
+  }
+
+  const { data: portfolio } = await (supabase as any)
+    .from('portfolios')
+    .select('company_name')
+    .eq('id', portfolioId)
+    .single();
+
+  const companyName = portfolio?.company_name ?? 'Your company';
+
+  for (const inv of invitations) {
+    if (!inv.email || !inv.token) continue;
+    const inviteUrl = `https://portier369.com/invite?token=${encodeURIComponent(inv.token)}`;
+    const expiryDate = inv.expires_at
+      ? new Date(inv.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'soon';
+
+    await (supabase as any).from('email_queue').insert({
+      to_email: inv.email,
+      subject: `Reminder: Set up your ${companyName} Portier369 account`,
+      body: `\
+<p>Hello,</p>
+<p>This is a reminder that you have a pending invitation to join <strong>${companyName}</strong> on <strong>Portier369</strong>.</p>
+<p><a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background-color:#10B981;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Set up your account</a></p>
+<p>Or copy this link into your browser:</p>
+<p><code>${inviteUrl}</code></p>
+<p>This invitation expires on <strong>${expiryDate}</strong>.</p>
+<p>— The Portier369 Team</p>`.trim(),
+      status: 'pending',
+    });
+  }
+
+  revalidatePath('/platform/portfolios');
+  redirect('/platform/portfolios?resent=1');
 }
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
@@ -51,7 +130,7 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 export default async function PortfoliosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ invited?: string; token?: string }>;
+  searchParams: Promise<{ invited?: string; token?: string; resent?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -76,6 +155,14 @@ export default async function PortfoliosPage({
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {sp.resent === '1' && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <h3 className="font-semibold text-green-900">Invites resent</h3>
+          <p className="text-sm text-green-700 mt-1">
+            Invitation emails have been queued for all pending invites.
+          </p>
         </div>
       )}
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -157,12 +244,13 @@ export default async function PortfoliosPage({
               <TH className="text-right">Seats</TH>
               <TH className="text-right">Pending invites</TH>
               <TH className="text-right">Failed logins</TH>
+              <TH></TH>
             </TR>
           </THead>
           <tbody>
             {rows.length === 0 ? (
               <TR>
-                <TD colSpan={8} className="py-10 text-center text-gray-500">
+                <TD colSpan={9} className="py-10 text-center text-gray-500">
                   No clients are visible to this platform operator.
                 </TD>
               </TR>
@@ -186,6 +274,12 @@ export default async function PortfoliosPage({
                     <TD className="text-right">{p.pending_invitations ?? 0}</TD>
                     <TD className={`text-right ${toCount(p.failed_logins_24h) > 0 ? 'font-medium text-red-600' : ''}`}>
                       {p.failed_logins_24h ?? 0}
+                    </TD>
+                    <TD className="text-right">
+                      <form action={resendPortfolioInvites as any}>
+                        <input type="hidden" name="portfolio_id" value={p.portfolio_id ?? ''} />
+                        <Button type="submit" variant="ghost" size="sm">Resend</Button>
+                      </form>
                     </TD>
                   </TR>
                 );

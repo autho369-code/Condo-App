@@ -655,6 +655,76 @@ export async function updateVendor(id: string, formData: FormData) {
 }
 
 // ============================================================================
+// VENDOR ACH AUTHORIZATION
+// ============================================================================
+
+export async function verifyVendorAch(formData: FormData): Promise<void> {
+  'use server';
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const vendorId = req(formData, 'vendor_id');
+
+  const { error } = await (supabase as any)
+    .from('vendors')
+    .update({
+      ach_status: 'verified',
+      ach_verified_at: new Date().toISOString(),
+      ach_verified_by: me.auth_user_id,
+    })
+    .eq('id', vendorId);
+
+  if (error) { console.error('verifyVendorAch failed:', error.message); return; }
+  revalidatePath('/vendors/ach');
+  revalidatePath('/vendors');
+}
+
+export async function activateVendorAch(formData: FormData): Promise<void> {
+  'use server';
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const vendorId = req(formData, 'vendor_id');
+
+  const { error } = await (supabase as any)
+    .from('vendors')
+    .update({
+      ach_status: 'active',
+      ach_activated_at: new Date().toISOString(),
+      ach_activated_by: me.auth_user_id,
+      is_auto_pay: true,
+      auto_pay_setup_at: new Date().toISOString(),
+    })
+    .eq('id', vendorId);
+
+  if (error) { console.error('activateVendorAch failed:', error.message); return; }
+  revalidatePath('/vendors/ach');
+  revalidatePath('/vendors');
+}
+
+export async function revokeVendorAch(formData: FormData): Promise<void> {
+  'use server';
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const vendorId = req(formData, 'vendor_id');
+
+  const { error } = await (supabase as any)
+    .from('vendors')
+    .update({
+      ach_status: 'pending',
+      ach_verified_at: null,
+      ach_verified_by: null,
+      ach_activated_at: null,
+      ach_activated_by: null,
+      is_auto_pay: false,
+      auto_pay_setup_at: null,
+    })
+    .eq('id', vendorId);
+
+  if (error) { console.error('revokeVendorAch failed:', error.message); return; }
+  revalidatePath('/vendors/ach');
+  revalidatePath('/vendors');
+}
+
+// ============================================================================
 // BULK STATEMENT SETTINGS — mirrors AppFolio's /bulk_statement_settings/new
 // ============================================================================
 

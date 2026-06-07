@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { updatePortfolioPolicy } from '@/lib/rpcs/portfolio';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { randomBytes } from 'crypto';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -23,14 +25,67 @@ async function inviteStaff(formData: FormData) {
   revalidatePath('/settings');
 }
 
-export default async function SettingsPage() {
+async function resetStaffPassword(formData: FormData) {
+  'use server';
+  const authUserId = formData.get('auth_user_id') as string;
+  const email = formData.get('email') as string;
+
+  if (!authUserId) {
+    redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=no_auth_user');
+  }
+
+  // Generate a secure random temporary password: 12 chars, alphanumeric
+  const tempPassword = randomBytes(9).toString('base64url').slice(0, 12);
+
+  const adminClient = (await import('@/lib/supabase/server')).createServiceClient();
+  const { error } = await (adminClient.auth as any).admin.updateUserById(authUserId, {
+    password: tempPassword,
+    email_confirm: true,
+  });
+
+  if (error) {
+    redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=' + encodeURIComponent(error.message));
+  }
+
+  redirect('/settings?reset_success=' + encodeURIComponent(email) + '&temp_password=' + encodeURIComponent(tempPassword));
+}
+
+async function removeStaffMember(formData: FormData) {
+  'use server';
+  const supabase = await (await import('@/lib/supabase/server')).createClient();
+  await (supabase as any).rpc('remove_staff_member', {
+    p_profile_id: formData.get('profile_id') as string,
+    p_reason: 'Removed by admin',
+  });
+  revalidatePath('/settings');
+}
+
+async function changeStaffRole(formData: FormData) {
+  'use server';
+  const supabase = await (await import('@/lib/supabase/server')).createClient();
+  const role = formData.get('role') as string;
+  if (role) {
+    await (supabase as any).rpc('assign_role', {
+      p_profile_id: formData.get('profile_id') as string,
+      p_role_name: role,
+    });
+  }
+  revalidatePath('/settings');
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset_success?: string; temp_password?: string; reset_error?: string; reason?: string }>;
+}) {
+  const sp = await searchParams;
   const me = await requirePortfolioAdmin();
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id as string;
 
   const [{ data: portfolio }, { data: team }, { data: invites }] = await Promise.all([
     (supabase as any).from('portfolios').select('*').eq('id', portfolioId).single(),
-    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
+    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at, auth_user_id').eq('portfolio_id', portfolioId).order('full_name'),
     (supabase as any).from('v_pending_invitations').select('*'),
   ]);
 
@@ -40,6 +95,23 @@ export default async function SettingsPage() {
     <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
       <div className="space-y-8">
       <header><h1 className="text-2xl font-semibold">Settings</h1></header>
+
+      {/* ======== PASSWORD RESET FEEDBACK ======== */}
+      {sp.reset_success && (
+        <div className="rounded-md border border-green-200 bg-green-50 p-4">
+          <p className="text-sm font-medium text-green-800">Password reset for {sp.reset_success}</p>
+          <p className="mt-1 text-sm text-green-700">
+            Temporary password: <code className="rounded bg-green-100 px-2 py-0.5 font-mono font-bold">{sp.temp_password}</code>
+          </p>
+          <p className="mt-1 text-xs text-green-600">Share this password with the team member. They will be prompted to change it on next login.</p>
+        </div>
+      )}
+      {sp.reset_error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-medium text-red-800">Failed to reset password for {sp.reset_error}</p>
+          {sp.reason && <p className="mt-1 text-xs text-red-600">{sp.reason}</p>}
+        </div>
+      )}
 
       {/* ======== PORTFOLIO POLICY ======== */}
       <Card>
@@ -170,40 +242,27 @@ export default async function SettingsPage() {
                 <TD className="uppercase">{m.hoa_role}</TD>
                 <TD>{date(m.last_login_at) ?? '—'}</TD>
                 <TD>
-                  <form action={async (fd: FormData) => {
-                    'use server';
-                    const supabase = await (await import('@/lib/supabase/server')).createClient();
-                    const role = fd.get('role') as string;
-                    const action = fd.get('action') as string;
-                    if (role) {
-                      await (supabase as any).rpc('assign_role', { p_profile_id: fd.get('profile_id') as string, p_role_name: role });
-                    }
-                    if (action === 'remove') {
-                      await (supabase as any).rpc('remove_staff_member', { p_profile_id: fd.get('profile_id') as string, p_reason: 'Removed by admin' });
-                    }
-                    if (action === 'reset_password') {
-                      const adminClient = (await import('@supabase/supabase-js')).createClient(
-                        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-                        { auth: { autoRefreshToken: false, persistSession: false } }
-                      );
-                      await adminClient.auth.admin.generateLink({
-                        type: 'recovery',
-                        email: fd.get('email') as string,
-                      });
-                    }
-                    revalidatePath('/settings');
-                  }} className="flex flex-wrap gap-1">
-                    <input type="hidden" name="profile_id" value={m.id} />
-                    <input type="hidden" name="email" value={m.email} />
-                    <select name="role" className="h-8 rounded border border-gray-200 text-xs px-1">
-                      <option value="">Change role</option>
-                      <option>President</option><option>Property Manager</option><option>Accountant</option>
-                      <option>On-Site Manager</option>
-                    </select>
-                    <button type="submit" name="action" value="reset_password" className="h-8 rounded border border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50">Reset PW</button>
-                    <button type="submit" name="action" value="remove" className="h-8 rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50">Remove</button>
-                  </form>
+                  <div className="flex flex-wrap gap-1">
+                    <form action={changeStaffRole}>
+                      <input type="hidden" name="profile_id" value={m.id} />
+                      <select name="role" className="h-8 rounded border border-gray-200 text-xs px-1" defaultValue=""
+                        onChange={(e) => { if (e.target.value) (e.target.form as HTMLFormElement).requestSubmit(); }}>
+                        <option value="">Change role</option>
+                        <option>President</option><option>Property Manager</option><option>Accountant</option>
+                        <option>On-Site Manager</option>
+                      </select>
+                      <noscript><button type="submit" className="ml-1 h-8 rounded border px-1 text-xs">Go</button></noscript>
+                    </form>
+                    <form action={resetStaffPassword}>
+                      <input type="hidden" name="auth_user_id" value={m.auth_user_id ?? ''} />
+                      <input type="hidden" name="email" value={m.email} />
+                      <button type="submit" className="h-8 rounded border border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50">Reset PW</button>
+                    </form>
+                    <form action={removeStaffMember}>
+                      <input type="hidden" name="profile_id" value={m.id} />
+                      <button type="submit" className="h-8 rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50">Remove</button>
+                    </form>
+                  </div>
                 </TD>
               </TR>
             ))}

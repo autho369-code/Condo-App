@@ -112,7 +112,7 @@ export default async function InvitePage({
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8">
         <h1 className="text-xl font-semibold text-gray-900">Accept your invitation</h1>
         <p className="mt-1 text-sm text-gray-500">
-          You've been invited to join as <strong>{invite.hoa_role || 'staff'}</strong>.
+          You&apos;ve been invited to join as <strong>{invite.hoa_role || 'staff'}</strong>.
         </p>
         <p className="mt-1 text-sm text-gray-500">Set your password to activate your account.</p>
 

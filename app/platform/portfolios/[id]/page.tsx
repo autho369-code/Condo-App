@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 
+import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle, Stat } from '@/components/ui/card';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { formatSeatUsage, platformStatus, statusClass, type PortfolioHealthRow } from '@/lib/platform/metrics';
@@ -8,6 +10,61 @@ import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+async function resendInvites(formData: FormData) {
+  'use server';
+  const portfolioId = formData.get('portfolio_id') as string;
+  const supabase = await createClient();
+
+  // Fetch pending invitations for this portfolio
+  const { data: invitations } = await (supabase as any)
+    .from('user_invitations')
+    .select('id, email, token, expires_at, portfolio_id')
+    .eq('portfolio_id', portfolioId)
+    .eq('status', 'pending')
+    .is('used_at', null);
+
+  if (!invitations || invitations.length === 0) {
+    return { error: 'No pending invitations found for this client.' };
+  }
+
+  // Fetch portfolio name for the email
+  const { data: portfolio } = await (supabase as any)
+    .from('portfolios')
+    .select('company_name')
+    .eq('id', portfolioId)
+    .single();
+
+  const companyName = portfolio?.company_name ?? 'Your company';
+  let queued = 0;
+
+  for (const inv of invitations) {
+    if (!inv.email || !inv.token) continue;
+
+    const inviteUrl = `https://portier369.com/invite?token=${encodeURIComponent(inv.token)}`;
+    const expiryDate = inv.expires_at
+      ? new Date(inv.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'soon';
+
+    await (supabase as any).from('email_queue').insert({
+      to_email: inv.email,
+      subject: `Reminder: Set up your ${companyName} Portier369 account`,
+      body: `\
+<p>Hello,</p>
+<p>This is a reminder that you have a pending invitation to join <strong>${companyName}</strong> on <strong>Portier369</strong>.</p>
+<p><a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background-color:#10B981;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Set up your account</a></p>
+<p>Or copy this link into your browser:</p>
+<p><code>${inviteUrl}</code></p>
+<p>This invitation expires on <strong>${expiryDate}</strong>.</p>
+<p>— The Portier369 Team</p>`.trim(),
+      status: 'pending',
+    });
+    queued++;
+  }
+
+  revalidatePath(`/platform/portfolios/${portfolioId}`);
+  redirect(`/platform/portfolios/${portfolioId}?resent=${queued}`);
+}
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
   return (
@@ -21,8 +78,15 @@ function isOpenStatus(status: string | null | undefined) {
   return !['closed', 'complete', 'completed', 'canceled', 'cancelled', 'cured'].includes((status ?? '').toLowerCase());
 }
 
-export default async function PortfolioDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PortfolioDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ resent?: string }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [{ data: portfolio }, { data: healthRows }, { data: properties }, { data: owners }, { data: users }, { data: subscription }, { data: workOrders }] =
@@ -105,9 +169,26 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
               Client oversight: properties, owners, users, billing, and operational volume.
             </p>
           </div>
-          <Badge className={statusClass(status)}>{status.replace(/_/g, ' ')}</Badge>
+          <div className="flex items-center gap-3">
+            <form action={resendInvites as any}>
+              <input type="hidden" name="portfolio_id" value={id} />
+              <Button type="submit" variant="secondary" size="sm">
+                Resend invites
+              </Button>
+            </form>
+            <Badge className={statusClass(status)}>{status.replace(/_/g, ' ')}</Badge>
+          </div>
         </div>
       </header>
+
+      {sp.resent && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <h3 className="font-semibold text-green-900">Invites resent</h3>
+          <p className="text-sm text-green-700 mt-1">
+            {sp.resent} invitation email{sp.resent !== '1' ? 's' : ''} queued for delivery.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Properties" value={health.association_count ?? properties?.length ?? 0} sub="Associations" />
