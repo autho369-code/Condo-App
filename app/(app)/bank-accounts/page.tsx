@@ -33,9 +33,8 @@ export default async function BankAccountsPage({
 
   const { data: rows } = await query;
   const accounts = rows ?? [];
-  const unreconciled = accounts.filter((row: any) => !row.last_reconciliation_date).length;
+  const needsReconciliation = accounts.filter((row: any) => !row.last_reconciliation_date).length;
   const paymentsEnabled = accounts.filter((row: any) => row.payments_enabled).length;
-  const autoRec = accounts.filter((row: any) => row.auto_reconciliation).length;
 
   return (
     <DataWorkspace
@@ -47,10 +46,9 @@ export default async function BankAccountsPage({
       <div className="space-y-6">
         <MetricStrip
           metrics={[
-            { label: 'Accounts', value: accounts.length, sublabel: 'Visible in current view' },
-            { label: 'Unreconciled', value: unreconciled, sublabel: <Link href="/bank-accounts?filter=unreconciled" className="text-blue-700 hover:underline">Open queue</Link> },
+            { label: 'Total accounts', value: accounts.length, sublabel: 'Visible in current view' },
             { label: 'Payments enabled', value: paymentsEnabled, sublabel: 'Online payment targets' },
-            { label: 'Auto reconciliation', value: autoRec, sublabel: 'Feed-assisted accounts' },
+            { label: 'Needs reconciliation', value: needsReconciliation, sublabel: <Link href="/bank-accounts?filter=unreconciled" className="text-blue-700 hover:underline">Open queue</Link> },
           ]}
         />
 
@@ -77,31 +75,52 @@ export default async function BankAccountsPage({
           <Table>
             <THead>
               <TR>
-                <TH>Account</TH>
+                <TH>Account Name</TH>
                 <TH>Bank</TH>
-                <TH>Association</TH>
-                <TH>Last reconciled</TH>
-                <TH>Identifiers</TH>
-                <TH>Payments</TH>
-                <TH>Auto-rec</TH>
+                <TH>Account Number</TH>
+                <TH>Last Reconciliation</TH>
+                <TH>Payments Enabled</TH>
+                <TH>Auto-Reconciliation</TH>
               </TR>
             </THead>
             <tbody>
               {accounts.map((account: any) => (
-                <TR key={account.id}>
+                <TR key={account.id} className="cursor-pointer hover:bg-gray-50">
                   <TD>
-                    <div className="font-medium text-gray-900">{account.name}</div>
-                    <div className="text-xs capitalize text-gray-500">{account.account_type?.replace(/_/g, ' ')}</div>
+                    <Link href={`/bank-accounts/${account.id}`} className="block text-gray-900 hover:text-brand-700">
+                      <div className="font-medium">{account.name}</div>
+                      <div className="text-xs capitalize text-gray-500">{account.account_type?.replace(/_/g, ' ')}</div>
+                    </Link>
                   </TD>
-                  <TD className="text-sm text-gray-700">{account.bank_name ?? 'Not provided'}</TD>
-                  <TD className="text-sm text-gray-600">{account.associations?.name ?? 'Portfolio-level'}</TD>
-                  <TD className="text-sm text-gray-600">{date(account.last_reconciliation_date)}</TD>
-                  <TD className="text-xs text-gray-600">
-                    <div>Acct {maskBankNumber(account.account_number)}</div>
-                    <div>Routing {maskBankNumber(account.routing_number)}</div>
+                  <TD className="text-sm text-gray-700">
+                    <Link href={`/bank-accounts/${account.id}`} className="block text-gray-700 hover:text-brand-700">
+                      {account.bank_name ?? 'Not provided'}
+                    </Link>
                   </TD>
-                  <TD><StatusChip tone={account.payments_enabled ? 'success' : 'neutral'}>{account.payments_enabled ? 'Enabled' : 'Not enabled'}</StatusChip></TD>
-                  <TD><StatusChip tone={account.auto_reconciliation ? 'info' : 'neutral'}>{account.auto_reconciliation ? 'Enabled' : 'Not enabled'}</StatusChip></TD>
+                  <TD className="text-sm font-mono text-gray-700">
+                    <Link href={`/bank-accounts/${account.id}`} className="block text-gray-700 hover:text-brand-700">
+                      {account.account_number ? maskBankNumber(account.account_number) : 'Not provided'}
+                    </Link>
+                  </TD>
+                  <TD className="text-sm text-gray-600">
+                    <Link href={`/bank-accounts/${account.id}`} className="block text-gray-600 hover:text-brand-700">
+                      {date(account.last_reconciliation_date)}
+                    </Link>
+                  </TD>
+                  <TD>
+                    <Link href={`/bank-accounts/${account.id}`} className="block">
+                      <StatusChip tone={account.payments_enabled ? 'success' : 'neutral'}>
+                        {account.payments_enabled ? 'Enabled' : 'Not enabled'}
+                      </StatusChip>
+                    </Link>
+                  </TD>
+                  <TD>
+                    <Link href={`/bank-accounts/${account.id}`} className="block">
+                      <StatusChip tone={account.auto_reconciliation ? 'info' : 'neutral'}>
+                        {account.auto_reconciliation ? 'Enabled' : 'Not enabled'}
+                      </StatusChip>
+                    </Link>
+                  </TD>
                 </TR>
               ))}
             </tbody>
@@ -122,20 +141,22 @@ function BankRail() {
       <section>
         <h2 className="text-sm font-semibold text-gray-950">Banking tasks</h2>
         <div className="mt-3 grid gap-2">
-          <RailLink href="/bank-accounts/new" label="New bank account" />
-          <RailLink href="/bank-accounts/deposits/new" label="New bank deposit" />
-          <RailLink href="/bank-accounts/feeds" label="Bank feed" />
-          <RailLink href="/bank-accounts/reconcile" label="Reconcile" />
-          <RailLink href="/bank-accounts/adjustments/new" label="Bank adjustment" />
+          <RailLink href="/bank-accounts/new" label="New Bank Account" />
+          <RailLink href="/bank-accounts/deposits/new" label="New Bank Deposit" />
+          <RailLink href="/bank-accounts/feeds" label="Bank Feed" />
+          <RailLink href="/bank-accounts/reconcile" label="Bank Reconciliation" />
+          <RailLink href="/bank-accounts/close-period" label="Close Accounting Period" />
+          <RailLink href="/bank-accounts/enable-payments" label="Enable Bank Accounts for Online Payments" />
+          <RailLink href="/bank-accounts/link-bank" label="Link With Bank (Plaid)" />
         </div>
       </section>
       <section className="border-t border-gray-200 pt-5">
         <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
         <div className="mt-3 grid gap-2">
-          <RailLink href="/bank-accounts/activity" label="Bank account activity" />
-          <RailLink href="/reports/check_register" label="Check register" />
-          <RailLink href="/reports/deposit_register" label="Deposit register" />
-          <RailLink href="/reports/bank_reconciliation" label="Bank reconciliation" />
+          <RailLink href="/reports/check_register" label="Check Register" />
+          <RailLink href="/reports/deposit_register" label="Deposit Register" />
+          <RailLink href="/reports/trust_account_balance" label="Trust Account Balance" />
+          <RailLink href="/reports/bank_account_association" label="Bank Account Association" />
         </div>
       </section>
     </div>
