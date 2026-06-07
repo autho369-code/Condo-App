@@ -37,7 +37,7 @@ export default async function TemplatesPage() {
 
       <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
         <strong>How templates work:</strong> Templates are starting points. When you apply one, it creates an editable copy for your association.
-        Modify frequencies, vendors, reminders — each association's copy is independent.
+        Modify frequencies, vendors, reminders — each association&apos;s copy is independent.
       </div>
 
       {Object.keys(grouped).length === 0 ? (

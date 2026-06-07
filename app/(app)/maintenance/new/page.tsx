@@ -110,7 +110,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
             <div>
               <Label htmlFor="custom_interval_days">Custom interval (days)</Label>
               <Input id="custom_interval_days" name="custom_interval_days" type="number" min="1" placeholder="e.g. 45, 90, 120" />
-              <p className="mt-1 text-xs text-ink-400">Only used when frequency is "Custom interval"</p>
+              <p className="mt-1 text-xs text-ink-400">Only used when frequency is &quot;Custom interval&quot;</p>
             </div>
 
             <div>
