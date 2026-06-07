@@ -220,7 +220,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
