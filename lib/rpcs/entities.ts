@@ -512,11 +512,24 @@ export async function createVendor(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
 
+  // Build phone_numbers array from landline/mobile fields
+  const phones: Array<{type: string; number: string}> = [];
+  const landline = str(formData, 'phone_landline');
+  const mobile = str(formData, 'phone_mobile');
+  if (landline) phones.push({ type: 'landline', number: landline });
+  if (mobile) phones.push({ type: 'mobile', number: mobile });
+
+  // Build emails array
+  const emailVal = str(formData, 'email');
+  const emails: string[] = emailVal ? [emailVal] : [];
+
   const payload = {
     portfolio_id:   me.portfolio?.id,
     name:           req(formData, 'name'),
     vendor_type:    str(formData, 'vendor_type') ?? 'general',
     trade:          str(formData, 'trade') ?? 'other',
+    phone_numbers:  phones,
+    emails:         emails,
     address_street: str(formData, 'address_street'),
     address_city:   str(formData, 'address_city'),
     address_state:  str(formData, 'address_state'),
@@ -541,10 +554,22 @@ export async function createVendor(formData: FormData) {
 export async function updateVendor(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+
+  const phones: Array<{type: string; number: string}> = [];
+  const landline = str(formData, 'phone_landline');
+  const mobile = str(formData, 'phone_mobile');
+  if (landline) phones.push({ type: 'landline', number: landline });
+  if (mobile) phones.push({ type: 'mobile', number: mobile });
+
+  const emailVal = str(formData, 'email');
+  const emails: string[] = emailVal ? [emailVal] : [];
+
   const patch: Record<string, unknown> = {
     name:         str(formData, 'name'),
     vendor_type:  str(formData, 'vendor_type'),
     trade:        str(formData, 'trade'),
+    phone_numbers: phones,
+    emails:        emails,
     address_street: str(formData, 'address_street'),
     address_city:   str(formData, 'address_city'),
     address_state:  str(formData, 'address_state'),

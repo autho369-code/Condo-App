@@ -63,6 +63,15 @@ export default async function NewVendorPage() {
         </div>
 
         <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" placeholder="vendor@example.com" /></div>
+            <div><Label htmlFor="phone_landline">Phone (landline)</Label><Input id="phone_landline" name="phone_landline" type="tel" placeholder="312-555-0100" /></div>
+            <div><Label htmlFor="phone_mobile">Phone (mobile)</Label><Input id="phone_mobile" name="phone_mobile" type="tel" placeholder="312-555-0200" /></div>
+          </div>
+        </section>
+
+        <section className="border-t border-gray-100 pt-5">
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact and remit-to address</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-4"><Label htmlFor="address_street">Street</Label><Input id="address_street" name="address_street" /></div>

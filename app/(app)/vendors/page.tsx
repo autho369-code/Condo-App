@@ -24,7 +24,7 @@ export default async function VendorsPage({
   const supabase = await createClient();
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, archived_at')
+    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, archived_at')
     .is('archived_at', null)
     .order('name');
 
@@ -110,6 +110,12 @@ export default async function VendorsPage({
                   <TD>
                     <div className="font-medium text-gray-950">{vendor.name}</div>
                     <div className="mt-1 text-xs text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
+                    {(vendor.emails?.length > 0 || vendor.phone_numbers?.length > 0) && (
+                      <div className="mt-1 space-y-0.5">
+                        {vendor.emails?.map((e: string) => <div key={e} className="text-xs text-gray-500">{e}</div>)}
+                        {vendor.phone_numbers?.map((p: any) => <div key={p.number} className="text-xs text-gray-500">{p.type}: {p.number}</div>)}
+                      </div>
+                    )}
                   </TD>
                   <TD className="capitalize">{vendor.trade?.replace(/_/g, ' ') ?? 'other'}</TD>
                   <TD>
