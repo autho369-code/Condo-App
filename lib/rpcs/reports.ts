@@ -66,3 +66,101 @@ export async function cancelReportRun(runId: string) {
   revalidatePath('/reports/runs');
   revalidatePath(`/reports/runs/${runId}`);
 }
+
+// ── Scheduled report actions ──
+
+export async function toggleSchedule(formData: FormData) {
+  'use server';
+  const supabase = await createClient();
+  const id = formData.get('id') as string;
+  const active = formData.get('active') === 'true';
+  const { error } = await (supabase as any)
+    .from('scheduled_reports')
+    .update({ active: !active })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/scheduled-reports');
+  revalidatePath('/reports');
+}
+
+export async function deleteSchedule(formData: FormData) {
+  'use server';
+  const supabase = await createClient();
+  const id = formData.get('id') as string;
+  const { error } = await (supabase as any)
+    .from('scheduled_reports')
+    .update({ archived_at: new Date().toISOString(), active: false })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/scheduled-reports');
+  revalidatePath('/reports');
+}
+
+export async function runScheduleNow(formData: FormData) {
+  'use server';
+  const supabase = await createClient();
+  const id = formData.get('id') as string;
+  // Force next_run_at to now so the enqueuer picks it up
+  const { error } = await (supabase as any)
+    .from('scheduled_reports')
+    .update({ next_run_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/scheduled-reports');
+  revalidatePath('/reports/runs');
+}
+
+export async function createSchedule(formData: FormData) {
+  'use server';
+  const supabase = await createClient();
+  const definition_id = formData.get('definition_id') as string;
+  const name = formData.get('name') as string;
+  const frequency = formData.get('frequency') as string;
+  const recipients = formData.get('recipients') as string;
+  const output_format = (formData.get('output_format') as string) || 'pdf';
+  const delivery_channel = (formData.get('delivery_channel') as string) || 'email';
+
+  if (!definition_id || !name || !frequency) {
+    return { error: 'definition_id, name, and frequency are required' };
+  }
+
+  // Parse recipients from comma-separated string
+  const recipientList = recipients
+    ? recipients.split(',').map((e) => e.trim()).filter(Boolean)
+    : [];
+
+  // Compute next_run_at — simple heuristic: next hour
+  const now = new Date();
+  const nextRun = new Date(now);
+  nextRun.setHours(nextRun.getHours() + 1, 0, 0, 0);
+
+  const { data: portfolioData } = await (supabase as any)
+    .from('portfolios')
+    .select('id')
+    .limit(1)
+    .single();
+
+  const portfolio_id = portfolioData?.id;
+  if (!portfolio_id) return { error: 'No portfolio found' };
+
+  const { error } = await (supabase as any)
+    .from('scheduled_reports')
+    .insert({
+      definition_id,
+      name,
+      frequency,
+      delivery_targets: recipientList,
+      delivery_channel,
+      output_format,
+      next_run_at: nextRun.toISOString(),
+      portfolio_id,
+      active: true,
+      hour_utc: nextRun.getUTCHours(),
+    });
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/scheduled-reports');
+  revalidatePath('/reports');
+  redirect('/scheduled-reports');
+}
