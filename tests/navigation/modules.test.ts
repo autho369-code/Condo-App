@@ -5,7 +5,7 @@ import { platformModules } from '@/lib/navigation/platform-modules';
 describe('appModules', () => {
   it('includes the core operating modules', () => {
     const labels = appModules.map((module) => module.label);
-    expect(labels).toContain('Command');
+    expect(labels).toContain('Dashboard');
     expect(labels).toContain('Associations');
     expect(labels).toContain('Accounting');
     expect(labels).toContain('Reports');

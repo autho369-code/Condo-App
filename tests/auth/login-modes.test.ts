@@ -11,8 +11,8 @@ import {
 describe('login mode routing', () => {
   it('defaults unknown modes to manager sign in', () => {
     expect(normalizeLoginMode(undefined)).toBe('manager');
-    expect(normalizeLoginMode('vendor')).toBe('manager');
-    expect(getLoginModeConfig('vendor').title).toBe('Manager Sign In');
+    expect(normalizeLoginMode('unknown')).toBe('manager');
+    expect(getLoginModeConfig('unknown').title).toBe('Manager Sign In');
   });
 
   it('sets role-specific default destinations', () => {
@@ -29,8 +29,8 @@ describe('login mode routing', () => {
   });
 
   it('hides admin sign in from public login choices', () => {
-    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner']);
-    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner']);
+    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner', 'vendor']);
+    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner', 'vendor']);
     expect(getVisibleLoginModes('admin').map((mode) => mode.id)).toEqual(['admin']);
   });
 });
