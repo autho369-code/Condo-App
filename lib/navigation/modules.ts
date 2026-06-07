@@ -31,6 +31,7 @@ export const appModules: AppModule[] = [
   },
   { label: 'Reports', href: '/reports' },
   { label: 'Violations', href: '/violations' },
+  { label: 'Insurance', href: '/insurance' },
   { label: 'People', href: '/owners' },
   { label: 'Vendors', href: '/vendors' },
   { label: 'Maintenance', href: '/work-orders' },

@@ -77,8 +77,6 @@ export default function SettingsHelpPage() {
           <li><strong>Property Manager</strong> — Day-to-day operations: work orders, violations, owner communication.</li>
           <li><strong>Accountant</strong> — Financial access: bills, payments, bank reconciliation, GL accounts.</li>
           <li><strong>On-Site Manager</strong> — Maintenance and unit-level operations for assigned properties.</li>
-          <li><strong>Leasing Agent</strong> — Owner onboarding, unit assignments, occupancy tracking.</li>
-          <li><strong>Accounts Payable</strong> — Bill entry, vendor payments, check runs.</li>
         </ul>
         <p className="mt-3 text-sm text-ink-600">
           Each team member receives an email invitation. Once they accept, they appear in the team table

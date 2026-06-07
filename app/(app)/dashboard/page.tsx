@@ -7,6 +7,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { InsuranceExpirationWidget } from '@/components/dashboard/insurance-expiration-widget';
 
 export const dynamic = 'force-dynamic';
 
@@ -220,6 +221,8 @@ export default async function DashboardPage({
             <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
           )}
         </section>
+
+        <InsuranceExpirationWidget />
       </div>
     </DataWorkspace>
   );

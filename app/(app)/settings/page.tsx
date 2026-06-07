@@ -143,9 +143,9 @@ export default async function SettingsPage() {
             </div>
             <div>
               <Label htmlFor="role_name">Role</Label>
-              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" defaultValue="Property Manager">
+              <select id="role_name" name="role_name" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" defaultValue="President">
                 <option>President</option><option>Property Manager</option><option>Accountant</option>
-                <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
+                <option>On-Site Manager</option>
               </select>
             </div>
             <div className="flex items-end"><Button type="submit" className="w-full">Send invite</Button></div>
@@ -199,7 +199,7 @@ export default async function SettingsPage() {
                     <select name="role" className="h-8 rounded border border-gray-200 text-xs px-1">
                       <option value="">Change role</option>
                       <option>President</option><option>Property Manager</option><option>Accountant</option>
-                      <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
+                      <option>On-Site Manager</option>
                     </select>
                     <button type="submit" name="action" value="reset_password" className="h-8 rounded border border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50">Reset PW</button>
                     <button type="submit" name="action" value="remove" className="h-8 rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50">Remove</button>
