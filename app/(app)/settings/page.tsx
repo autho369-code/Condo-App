@@ -60,22 +60,13 @@ export default async function SettingsPage() {
             </div>
 
             <div className="md:col-span-2 border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Late fee &amp; NSF</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">NSF fee</h3>
             </div>
             <div>
-              <Label htmlFor="late_fee_amount">Default late fee ($)</Label>
-              <Input id="late_fee_amount" name="late_fee_amount" type="number" step="0.01" min="0"
-                defaultValue={portfolio?.default_late_fee_amount ?? 25} />
-            </div>
-            <div>
-              <Label htmlFor="late_fee_grace_days">Grace period (days)</Label>
-              <Input id="late_fee_grace_days" name="late_fee_grace_days" type="number" min="0" max="60"
-                defaultValue={portfolio?.default_late_fee_grace_days ?? 10} />
-            </div>
-            <div>
-              <Label htmlFor="nsf_fee_amount">NSF fee ($)</Label>
+              <Label htmlFor="nsf_fee_amount">NSF fee ($) — auto-applied to owner account</Label>
               <Input id="nsf_fee_amount" name="nsf_fee_amount" type="number" step="0.01" min="0"
                 defaultValue={portfolio?.default_nsf_fee_amount ?? 35} />
+              <p className="mt-1 text-xs text-gray-500">Charged automatically when a payment is returned. Applied per-occurrence to the owner ledger.</p>
             </div>
             <div>
               <Label htmlFor="reminder_days">Payment reminder schedule (days before/after due)</Label>
