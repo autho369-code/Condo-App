@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { date } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
+import type { CalendarEventType } from '@/lib/operations/calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,42 @@ const CATS = ['Safety','Plumbing','Exterior','Interior','Grounds','HVAC','Mechan
 const FREQS = ['weekly','monthly','bimonthly','quarterly','semiannual','annual','custom'];
 const REMINDERS = [30,14,10,7,5,3,1];
 
+// Map maintenance categories to calendar event types
+const CATEGORY_EVENT_TYPE: Record<string, CalendarEventType> = {
+  Safety: 'inspection', Plumbing: 'vendor_service', Exterior: 'landscaping',
+  Interior: 'vendor_service', Grounds: 'landscaping', HVAC: 'vendor_service',
+  Mechanical: 'vendor_service', Electrical: 'vendor_service',
+  Operations: 'custom_event', Other: 'custom_event',
+};
+
+async function syncCalendarEvent(
+  db: any, portfolioId: string, taskId: string, assocId: string | null, vendorId: string | null,
+  title: string, category: string, dueDate: string, endDate: string | null,
+  notes: string | null, createdBy: string | null
+) {
+  const eventType = CATEGORY_EVENT_TYPE[category] || 'custom_event';
+  const start = dueDate ? `${dueDate}T09:00:00` : new Date().toISOString();
+  const end = endDate ? `${endDate}T17:00:00` : null;
+  await db.from('calendar_events').insert({
+    portfolio_id: portfolioId,
+    association_id: assocId, vendor_id: vendorId,
+    maintenance_task_id: taskId,
+    title: `🔧 ${title}`, event_type: eventType,
+    calendar_scope: 'daily',
+    start_datetime: start, end_datetime: end,
+    location: null, description: notes?.slice(0,200) || null,
+    operations_status: 'scheduled',
+    notification_recipients: ['management_office'],
+    reminder_rules: [{ minutes_before: 10080, actions: ['notify_management_office'] }],
+    created_by: createdBy,
+  });
+}
+
 async function addTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
+  const me = await requireStaff();
   const freq = formData.get('frequency') as string;
-  await db.from('maintenance_tasks').insert({
+  const { data: task } = await db.from('maintenance_tasks').insert({
     association_id: formData.get('association_id'), task_name: formData.get('task_name'),
     category: formData.get('category'), frequency: freq,
     custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,
@@ -25,13 +58,29 @@ async function addTask(formData: FormData) {'use server';
     priority: formData.get('priority')||'normal',
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
     next_due_date: formData.get('start_date'), notes: (formData.get('notes') as string)||null,
-  });
+  }).select('id').single();
+
+  if (task && me.portfolio?.id) {
+    await syncCalendarEvent(
+      db, me.portfolio.id, task.id,
+      formData.get('association_id') as string,
+      formData.get('vendor_id') as string|null,
+      formData.get('task_name') as string,
+      formData.get('category') as string,
+      formData.get('start_date') as string,
+      formData.get('end_date') as string|null,
+      formData.get('notes') as string|null,
+      me.auth_user_id
+    );
+  }
   revalidatePath('/maintenance');
+  revalidatePath('/calendar');
 }
 
 async function updateTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
+  const id = formData.get('id') as string;
   await db.from('maintenance_tasks').update({
     task_name: formData.get('task_name'), category: formData.get('category'),
     frequency: freq, custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,
@@ -41,20 +90,37 @@ async function updateTask(formData: FormData) {'use server';
     priority: formData.get('priority')||'normal',
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
     notes: (formData.get('notes') as string)||null,
-  }).eq('id', formData.get('id') as string);
+  }).eq('id', id);
+  // Update linked calendar event
+  const eventType = CATEGORY_EVENT_TYPE[formData.get('category') as string] || 'custom_event';
+  const start = formData.get('start_date') as string;
+  await db.from('calendar_events').update({
+    title: `🔧 ${formData.get('task_name')}`,
+    event_type: eventType,
+    start_datetime: start ? `${start}T09:00:00` : undefined,
+    end_datetime: formData.get('end_date') ? `${formData.get('end_date')}T17:00:00` : null,
+    vendor_id: (formData.get('vendor_id') as string)||null,
+    description: (formData.get('notes') as string)?.slice(0,200)||null,
+  }).eq('maintenance_task_id', id).is('archived_at', null).is('operations_status', 'scheduled');
   revalidatePath('/maintenance');
+  revalidatePath('/calendar');
 }
 
 async function deleteTask(formData: FormData) {'use server';
   const supabase = await createClient();
-  await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', formData.get('id') as string);
+  const id = formData.get('id') as string;
+  await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  // Cancel linked calendar events
+  await (supabase as any).from('calendar_events').update({ operations_status: 'canceled' }).eq('maintenance_task_id', id).is('archived_at', null);
   revalidatePath('/maintenance');
+  revalidatePath('/calendar');
 }
 
 async function completeTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
+  const me = await requireStaff();
   const id = formData.get('id') as string;
-  const { data: task } = await db.from('maintenance_tasks').select('*, profiles!assigned_staff_id(full_name)').eq('id',id).single();
+  const { data: task } = await db.from('maintenance_tasks').select('*').eq('id',id).single();
   if(!task) { revalidatePath('/maintenance'); return; }
 
   const now = new Date().toISOString();
@@ -66,6 +132,9 @@ async function completeTask(formData: FormData) {'use server';
     notes: task.notes,
     vendor_id: task.vendor_id,
   });
+
+  // Mark existing calendar event as completed
+  await db.from('calendar_events').update({ operations_status: 'completed' }).eq('maintenance_task_id', id).is('archived_at', null).is('operations_status', 'scheduled');
 
   // Calculate next due date for auto-recurring
   if(task.next_due_date && task.frequency){
@@ -84,30 +153,54 @@ async function completeTask(formData: FormData) {'use server';
       next_due_date: nd,
       status: 'active',
     }).eq('id',id);
+
+    // Create calendar event for the next occurrence
+    if (me.portfolio?.id) {
+      await syncCalendarEvent(
+        db, me.portfolio.id, id, task.association_id, task.vendor_id,
+        task.task_name, task.category, nd, task.end_date,
+        task.notes, me.auth_user_id
+      );
+    }
   } else {
-    // No frequency or no due date — just mark completed
+    // No frequency — mark task completed
     await db.from('maintenance_tasks').update({
       last_completed_at: now,
       status: 'completed',
     }).eq('id',id);
   }
   revalidatePath('/maintenance');
+  revalidatePath('/calendar');
 }
 
 async function cloneGroup(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
+  const me = await requireStaff();
+  const assocId = formData.get('association_id') as string;
   const { data: templates } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string);
   if(templates){
     const today = new Date().toISOString().slice(0,10);
-    await db.from('maintenance_tasks').insert(templates.map((t:any)=>({
-      association_id: formData.get('association_id'), template_id: t.id,
+    const tasks = templates.map((t:any)=>({
+      association_id: assocId, template_id: t.id,
       task_name: t.name, category: t.category,
-      frequency: 'monthly', // default frequency for cloned tasks
+      frequency: 'monthly',
       priority: 'normal',
       start_date: today, next_due_date: today, notes: t.description,
-    })));
+    }));
+    const { data: created } = await db.from('maintenance_tasks').insert(tasks).select('id,category,task_name,notes');
+    // Create calendar events for each cloned task
+    if (created && me.portfolio?.id) {
+      for (const t of created) {
+        await syncCalendarEvent(
+          db, me.portfolio.id, t.id, assocId, null,
+          t.task_name, t.category, today, null,
+          t.notes, me.auth_user_id
+        );
+      }
+    }
   }
   revalidatePath('/maintenance');
+  revalidatePath('/calendar');
 }
 
 export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ assoc?: string; tab?: string; edit?: string; add?: string }> }) {
