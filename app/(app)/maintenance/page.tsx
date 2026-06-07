@@ -194,7 +194,9 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
-                  {rows.map((t: any) => (
+                  {rows.map((t: any) => {
+                    const isOverdue = t.next_due_date && new Date(t.next_due_date) < new Date();
+                    return (
                     <tr key={t.id} className="hover:bg-cream-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-ink-900">{t.task_name}</div>
@@ -205,7 +207,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                       <td className="px-4 py-3 text-ink-600">{t.vendors?.name||'—'}</td>
                       <td className="px-4 py-3">
                         {t.next_due_date ? (
-                          <span className={new Date(t.next_due_date) < new Date() ? 'text-bordeaux-700 font-medium' : 'text-ink-700'}>
+                          <span className={isOverdue ? 'text-bordeaux-700 font-medium' : 'text-ink-700'}>
                             {date(t.next_due_date)}
                           </span>
                         ) : <span className="text-ink-400">—</span>}
