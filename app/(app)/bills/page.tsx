@@ -79,13 +79,11 @@ export default async function BillsPage({
     // Bills tab: all non-archived bills
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(code, name), bank_accounts(name)')
-      .is('archived_at', null)
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(500),
     // Payments tab: paid bills
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')
-      .is('archived_at', null)
       .eq('status', 'paid')
       .order('paid_at', { ascending: false, nullsFirst: false })
       .limit(500),
