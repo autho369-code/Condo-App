@@ -19,6 +19,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   communication: 'Communication',
 };
 
+// ── Slugs that render live inline reports ──
+const LIVE_REPORT_SLUGS = [
+  'trial_balance',
+  'balance_sheet',
+  'income_statement',
+  'cash_flow',
+  'general_ledger',
+] as const;
+
+type LiveReportSlug = (typeof LIVE_REPORT_SLUGS)[number];
+
 export default async function ReportView({
   params,
   searchParams,
@@ -51,7 +62,6 @@ export default async function ReportView({
       .order('name'),
   ]);
 
-  // Compute default period from preset
   const period = computePeriod(sp.preset ?? 'this_month', sp.from, sp.to);
 
   const ctx = {
@@ -64,61 +74,841 @@ export default async function ReportView({
     selectedScope: sp.scope ?? 'association',
   };
 
+  // ── Dispatch to live report or queued view ──
   if (def.slug === 'ar_aging') {
     return <ARAgingView {...ctx} />;
+  }
+  if ((LIVE_REPORT_SLUGS as readonly string[]).includes(def.slug)) {
+    return <LiveReportView {...ctx} slug={def.slug as LiveReportSlug} />;
   }
   return <QueuedReportView {...ctx} />;
 }
 
-// ---------- period presets ----------
-type Period = { from: string; to: string; label: string };
-
-function computePeriod(preset: string, customFrom?: string, customTo?: string): Period {
-  const today = new Date();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const firstOfMonth = (y: number, m: number) => new Date(y, m, 1);
-  const lastOfMonth  = (y: number, m: number) => new Date(y, m + 1, 0);
-
-  if (preset === 'custom') {
-    return {
-      from:  customFrom ?? fmt(firstOfMonth(today.getFullYear(), today.getMonth())),
-      to:    customTo   ?? fmt(today),
-      label: 'Custom',
-    };
+// ═══════════════════════════════════════════════════════════════
+// LIVE REPORT DISPATCHER
+// ═══════════════════════════════════════════════════════════════
+async function LiveReportView(
+  ctx: ReportContext & { slug: LiveReportSlug },
+) {
+  switch (ctx.slug) {
+    case 'trial_balance':     return <TrialBalanceView {...ctx} />;
+    case 'balance_sheet':     return <BalanceSheetView {...ctx} />;
+    case 'income_statement':  return <IncomeStatementView {...ctx} />;
+    case 'cash_flow':         return <CashFlowView {...ctx} />;
+    case 'general_ledger':    return <GeneralLedgerView {...ctx} />;
+    default:                  return <QueuedReportView {...ctx} />;
   }
-  if (preset === 'last_month') {
-    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    return { from: fmt(firstOfMonth(d.getFullYear(), d.getMonth())), to: fmt(lastOfMonth(d.getFullYear(), d.getMonth())), label: 'Last month' };
-  }
-  if (preset === 'this_quarter') {
-    const q = Math.floor(today.getMonth() / 3) * 3;
-    return { from: fmt(firstOfMonth(today.getFullYear(), q)), to: fmt(today), label: 'This quarter' };
-  }
-  if (preset === 'last_quarter') {
-    const q = Math.floor(today.getMonth() / 3) * 3 - 3;
-    const y = q < 0 ? today.getFullYear() - 1 : today.getFullYear();
-    const m = (q + 12) % 12;
-    return { from: fmt(firstOfMonth(y, m)), to: fmt(lastOfMonth(y, m + 2)), label: 'Last quarter' };
-  }
-  if (preset === 'ytd') {
-    return { from: fmt(new Date(today.getFullYear(), 0, 1)), to: fmt(today), label: 'Year to date' };
-  }
-  if (preset === 'last_year') {
-    return { from: fmt(new Date(today.getFullYear() - 1, 0, 1)), to: fmt(new Date(today.getFullYear() - 1, 11, 31)), label: 'Last year' };
-  }
-  // default: this_month
-  return { from: fmt(firstOfMonth(today.getFullYear(), today.getMonth())), to: fmt(today), label: 'This month' };
 }
 
-// ============================================================================
-// LIVE VIEW â€” A/R Aging (renders aged_receivables inline)
-// ============================================================================
-async function ARAgingView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
-}: {
+type ReportContext = {
   def: any; runs: any[]; associations: any[]; period: Period;
   selectedAssociation: string; selectedPreset: string; selectedScope: string;
-}) {
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 1. TRIAL BALANCE
+// ═══════════════════════════════════════════════════════════════
+async function TrialBalanceView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  // Fetch active GL accounts with their journal line totals
+  let q = db
+    .from('gl_accounts')
+    .select('id, number, name, account_type, active')
+    .eq('active', true)
+    .order('number');
+
+  const { data: glAccounts } = await q;
+  const accounts = (glAccounts ?? []) as any[];
+
+  // Fetch journal_lines joined with journal_entries for the period
+  let lineQuery = db
+    .from('journal_lines')
+    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
+    .eq('journal_entries.posted', true);
+
+  if (selectedAssociation) {
+    lineQuery = lineQuery.eq('association_id', selectedAssociation);
+  }
+  lineQuery = lineQuery
+    .gte('journal_entries.entry_date', period.from)
+    .lte('journal_entries.entry_date', period.to);
+
+  const { data: lines } = await lineQuery;
+  const journalLines = (lines ?? []) as any[];
+
+  // Aggregate debits/credits per gl_account
+  const totals: Record<string, { debit: number; credit: number }> = {};
+  for (const acc of accounts) {
+    totals[acc.id] = { debit: 0, credit: 0 };
+  }
+  for (const line of journalLines) {
+    const accId = line.gl_account_id;
+    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
+    totals[accId].debit  += Number(line.debit_amount ?? 0);
+    totals[accId].credit += Number(line.credit_amount ?? 0);
+  }
+
+  // Compute balance: Assets/Expenses = debit-positive; Liabilities/Equity/Income = credit-positive
+  const getBalance = (acc: any) => {
+    const t = totals[acc.id] ?? { debit: 0, credit: 0 };
+    return { debit: t.debit, credit: t.credit, net: t.debit - t.credit };
+  };
+
+  const totalDebit  = accounts.reduce((s, a) => s + getBalance(a).debit, 0);
+  const totalCredit = accounts.reduce((s, a) => s + getBalance(a).credit, 0);
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              {' \u00B7 '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' \u00B7 '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={def.description}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        {/* Summary tiles */}
+        <div className="grid grid-cols-4 gap-3">
+          <Tile label="Total Debits"  value={money(totalDebit)}  tone="neutral" sub="Sum of all debit entries" />
+          <Tile label="Total Credits" value={money(totalCredit)} tone="neutral" sub="Sum of all credit entries" />
+          <Tile label="GL Accounts"   value={accounts.length}     tone="neutral" sub="Active accounts" />
+          <Tile label="Period"        value={period.label}        tone="neutral" sub={`${period.from} \u2192 ${period.to}`} />
+        </div>
+
+        {/* Account balance table */}
+        <Section title="Trial Balance" subtitle={`${accounts.length} accounts with journal activity in period`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr>
+                  <th className="px-5 py-2 text-left font-semibold">Account #</th>
+                  <th className="px-4 py-2 text-left font-semibold">Name</th>
+                  <th className="px-4 py-2 text-left font-semibold">Type</th>
+                  <th className="px-4 py-2 text-right font-semibold">Debit</th>
+                  <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                  <th className="px-5 py-2 text-right font-semibold">Net Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((acc: any) => {
+                  const b = getBalance(acc);
+                  const hasActivity = b.debit > 0 || b.credit > 0;
+                  return (
+                    <tr key={acc.id} className={`border-t border-gray-100 ${hasActivity ? '' : 'text-gray-400'}`}>
+                      <td className="px-5 py-2 font-mono tabular-nums text-xs text-gray-600">{acc.number}</td>
+                      <td className="px-4 py-2 font-medium text-gray-900">{acc.name}</td>
+                      <td className="px-4 py-2 text-xs capitalize text-gray-500">{acc.account_type?.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-gray-700">{b.debit > 0 ? money(b.debit) : ''}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-gray-700">{b.credit > 0 ? money(b.credit) : ''}</td>
+                      <td className={`px-5 py-2 text-right tabular-nums font-medium ${b.net >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                        {hasActivity ? money(Math.abs(b.net)) : ''}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {/* Totals row */}
+                <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
+                  <td className="px-5 py-2" colSpan={3}>Totals</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(totalDebit)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(totalCredit)}</td>
+                  <td className="px-5 py-2 text-right tabular-nums text-gray-900">
+                    {money(Math.abs(totalDebit - totalCredit))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 2. BALANCE SHEET
+// ═══════════════════════════════════════════════════════════════
+async function BalanceSheetView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  // Fetch active GL accounts
+  const { data: glAccounts } = await db
+    .from('gl_accounts')
+    .select('id, number, name, account_type, active')
+    .eq('active', true)
+    .order('number');
+
+  const accounts = (glAccounts ?? []) as any[];
+
+  // Fetch all journal_lines up to period.to (As Of date)
+  let lineQuery = db
+    .from('journal_lines')
+    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
+    .eq('journal_entries.posted', true)
+    .lte('journal_entries.entry_date', period.to);
+
+  if (selectedAssociation) {
+    lineQuery = lineQuery.eq('association_id', selectedAssociation);
+  }
+
+  const { data: lines } = await lineQuery;
+  const journalLines = (lines ?? []) as any[];
+
+  // Aggregate
+  const totals: Record<string, { debit: number; credit: number }> = {};
+  for (const line of journalLines) {
+    const accId = line.gl_account_id;
+    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
+    totals[accId].debit  += Number(line.debit_amount ?? 0);
+    totals[accId].credit += Number(line.credit_amount ?? 0);
+  }
+
+  const getNetBalance = (accId: string, accountType: string) => {
+    const t = totals[accId] ?? { debit: 0, credit: 0 };
+    // Asset/Expense: debit positive; Liability/Equity/Income: credit positive
+    if (['asset', 'cash', 'expense', 'cost_of_goods_sold'].includes(accountType ?? '')) {
+      return t.debit - t.credit;
+    }
+    return t.credit - t.debit;
+  };
+
+  const classify = (acc: any) => {
+    const n = acc.number;
+    if (n < 2000) return 'Assets';
+    if (n < 3000) return 'Liabilities';
+    if (n < 4000) return 'Equity';
+    return null; // non-balance-sheet
+  };
+
+  const assets      = accounts.filter((a) => classify(a) === 'Assets');
+  const liabilities = accounts.filter((a) => classify(a) === 'Liabilities');
+  const equity      = accounts.filter((a) => classify(a) === 'Equity');
+
+  const sumBalance = (list: any[]) => list.reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0);
+  const totalAssets      = sumBalance(assets);
+  const totalLiabilities = sumBalance(liabilities);
+  const totalEquity      = sumBalance(equity);
+  const totalLE          = totalLiabilities + totalEquity;
+
+  const renderSection = (title: string, items: any[], total: number) => (
+    <Section key={title} title={title} subtitle={`${items.length} accounts`}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+            <tr>
+              <th className="px-5 py-2 text-left font-semibold">Account</th>
+              <th className="px-5 py-2 text-right font-semibold">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((a: any) => {
+              const bal = getNetBalance(a.id, a.account_type);
+              return (
+                <tr key={a.id} className="border-t border-gray-100">
+                  <td className="px-5 py-2">
+                    <span className="font-mono text-xs text-gray-500 mr-2">{a.number}</span>
+                    <span className="font-medium text-gray-900">{a.name}</span>
+                  </td>
+                  <td className={`px-5 py-2 text-right tabular-nums font-medium ${bal >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                    {money(bal)}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+              <td className="px-5 py-2">Total {title}</td>
+              <td className={`px-5 py-2 text-right tabular-nums ${total >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                {money(total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              {' \u00B7 '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' \u00B7 '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={`As of ${date(period.to)}`}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <Tile label="Total Assets"      value={money(totalAssets)}      tone="neutral" />
+          <Tile label="Total Liabilities" value={money(totalLiabilities)} tone="warning" />
+          <Tile label="Total Equity"      value={money(totalEquity)}      tone="positive" />
+        </div>
+
+        {renderSection('Assets', assets, totalAssets)}
+        {renderSection('Liabilities', liabilities, totalLiabilities)}
+        {renderSection('Equity', equity, totalEquity)}
+
+        <Section title="Balance Check">
+          <div className="px-5 py-4">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center"><div className="text-xs text-gray-500">Assets</div><div className="font-semibold text-gray-900">{money(totalAssets)}</div></div>
+              <div className="text-center"><div className="text-xs text-gray-500">Liabilities + Equity</div><div className="font-semibold text-gray-900">{money(totalLE)}</div></div>
+              <div className="text-center"><div className="text-xs text-gray-500">Difference</div>
+                <div className={`font-semibold ${Math.abs(totalAssets - totalLE) < 0.01 ? 'text-green-700' : 'text-red-600'}`}>
+                  {Math.abs(totalAssets - totalLE) < 0.01 ? '\u2714 Balanced' : money(totalAssets - totalLE)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3. INCOME STATEMENT
+// ═══════════════════════════════════════════════════════════════
+async function IncomeStatementView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  // Fetch income (4000-4999, 7000-7999) and expense (5000-6999, 8000-9999) accounts
+  const { data: glAccounts } = await db
+    .from('gl_accounts')
+    .select('id, number, name, account_type, active')
+    .eq('active', true)
+    .order('number');
+
+  const allAccounts = (glAccounts ?? []) as any[];
+
+  // Fetch journal lines for the period
+  let lineQuery = db
+    .from('journal_lines')
+    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
+    .eq('journal_entries.posted', true)
+    .gte('journal_entries.entry_date', period.from)
+    .lte('journal_entries.entry_date', period.to);
+
+  if (selectedAssociation) {
+    lineQuery = lineQuery.eq('association_id', selectedAssociation);
+  }
+
+  const { data: lines } = await lineQuery;
+  const journalLines = (lines ?? []) as any[];
+
+  const totals: Record<string, { debit: number; credit: number }> = {};
+  for (const line of journalLines) {
+    const accId = line.gl_account_id;
+    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
+    totals[accId].debit  += Number(line.debit_amount ?? 0);
+    totals[accId].credit += Number(line.credit_amount ?? 0);
+  }
+
+  // For income: net = credit - debit (revenue goes to credit)
+  // For expense: net = debit - credit (expense goes to debit)
+  const getISBalance = (acc: any) => {
+    const t = totals[acc.id] ?? { debit: 0, credit: 0 };
+    const type = acc.account_type ?? '';
+    if (type === 'income' || type === 'other_income') {
+      return t.credit - t.debit; // revenue: credit positive
+    }
+    return t.debit - t.credit; // expense: debit positive
+  };
+
+  const classifyIS = (acc: any) => {
+    const n = acc.number;
+    if (n >= 4000 && n < 5000) return 'Operating Revenue';
+    if (n >= 7000 && n < 8000) return 'Other Revenue';
+    if (n >= 5000 && n < 6000) return 'Cost of Goods Sold';
+    if (n >= 6000 && n < 7000) return 'Operating Expenses';
+    if (n >= 8000 && n < 9000) return 'Other Expenses';
+    if (n >= 9000 && n < 10000) return 'Non-Operating';
+    return null;
+  };
+
+  const incomeAccounts = allAccounts.filter((a) => classifyIS(a) && a.number < 5000 || (a.number >= 7000 && a.number < 8000));
+  const expenseAccounts = allAccounts.filter((a) => classifyIS(a) && a.number >= 5000 && a.number < 7000 || (a.number >= 8000));
+
+  // Detailed classification
+  const revenueSections = [
+    { label: 'Operating Revenue', items: allAccounts.filter((a) => a.number >= 4000 && a.number < 5000) },
+    { label: 'Other Revenue',     items: allAccounts.filter((a) => a.number >= 7000 && a.number < 8000) },
+  ];
+
+  const expenseSections = [
+    { label: 'Cost of Goods Sold',  items: allAccounts.filter((a) => a.number >= 5000 && a.number < 6000) },
+    { label: 'Operating Expenses',  items: allAccounts.filter((a) => a.number >= 6000 && a.number < 7000) },
+    { label: 'Other Expenses',      items: allAccounts.filter((a) => a.number >= 8000 && a.number < 9000) },
+    { label: 'Non-Operating',       items: allAccounts.filter((a) => a.number >= 9000 && a.number < 10000) },
+  ];
+
+  const totalRevenue  = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number < 5000 || (a.number >= 7000 && a.number < 8000)) ? getISBalance(a) : 0), 0);
+  const totalExpenses = allAccounts.reduce((s, a) => s + (classifyIS(a) && a.number >= 5000 && a.number < 7000 || a.number >= 8000 ? Math.abs(getISBalance(a)) : 0), 0);
+  const netIncome = totalRevenue - totalExpenses;
+
+  const renderISSection = (label: string, items: any[], showValues = true) => {
+    const total = items.reduce((s, a) => s + getISBalance(a), 0);
+    const absTotal = items.reduce((s, a) => s + Math.abs(getISBalance(a)), 0);
+    return (
+      <Section key={label} title={label} subtitle={`${items.length} accounts`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Account</th>
+                <th className="px-5 py-2 text-right font-semibold">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((a: any) => {
+                const bal = getISBalance(a);
+                if (bal === 0 && !showValues) return null;
+                return (
+                  <tr key={a.id} className="border-t border-gray-100">
+                    <td className="px-5 py-2">
+                      <span className="font-mono text-xs text-gray-500 mr-2">{a.number}</span>
+                      <span className="font-medium text-gray-900">{a.name}</span>
+                    </td>
+                    <td className="px-5 py-2 text-right tabular-nums font-medium text-gray-900">
+                      {money(Math.abs(bal))}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                <td className="px-5 py-2">Total {label}</td>
+                <td className="px-5 py-2 text-right tabular-nums text-gray-900">
+                  {money(absTotal > 0 ? absTotal : Math.abs(total))}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    );
+  };
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              {' \u00B7 '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' \u00B7 '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={`${period.from} \u2192 ${period.to}`}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        {/* Summary tiles */}
+        <div className="grid grid-cols-4 gap-3">
+          <Tile label="Total Revenue"      value={money(totalRevenue)}  tone="positive" />
+          <Tile label="Total Expenses"     value={money(totalExpenses)} tone="danger" />
+          <Tile label="Net Income (NOI)"   value={money(netIncome)}     tone={netIncome >= 0 ? 'positive' : 'danger'} />
+          <Tile label="Period"             value={period.label}         tone="neutral" sub={`${period.from} \u2192 ${period.to}`} />
+        </div>
+
+        {revenueSections.map((s) => renderISSection(s.label, s.items))}
+        {expenseSections.map((s) => renderISSection(s.label, s.items))}
+
+        {/* Net Income summary */}
+        <Section title="Net Operating Income">
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <div className="text-xs text-gray-500">Total Revenue - Total Expenses</div>
+              </div>
+              <div className={`text-lg font-bold tabular-nums ${netIncome >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                {money(netIncome)}
+              </div>
+            </div>
+          </div>
+        </Section>
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 4. CASH FLOW
+// ═══════════════════════════════════════════════════════════════
+async function CashFlowView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  // Fetch bank accounts
+  const { data: bankAccounts } = await db
+    .from('bank_accounts')
+    .select('id, name, bank_name, account_type, current_balance')
+    .order('name');
+  const bAccounts = (bankAccounts ?? []) as any[];
+
+  // Fetch bank transfers in period
+  let transferQuery = db
+    .from('bank_transfers')
+    .select('id, amount, transfer_date, reference_number, memo, journal_entry_id, from_bank_account_id, to_bank_account_id')
+    .gte('transfer_date', period.from)
+    .lte('transfer_date', period.to)
+    .order('transfer_date', { ascending: false });
+
+  const { data: transfers } = await transferQuery;
+  const bankTransfers = (transfers ?? []) as any[];
+
+  // Fetch cash-related journal lines (accounts 1000-1999)
+  const { data: cashLines } = await db
+    .from('journal_lines')
+    .select('id, debit_amount, credit_amount, gl_account_id, association_id, journal_entries!inner(entry_date, posted, memo, description)')
+    .eq('journal_entries.posted', true)
+    .gte('journal_entries.entry_date', period.from)
+    .lte('journal_entries.entry_date', period.to);
+
+  const cashJournalLines = (cashLines ?? []) as any[];
+
+  // Get cash account IDs
+  const { data: cashAccounts } = await db
+    .from('gl_accounts')
+    .select('id, number, name')
+    .gte('number', 1000)
+    .lte('number', 1999)
+    .eq('active', true);
+
+  const cashAccountIds = new Set(((cashAccounts ?? []) as any[]).map((a: any) => a.id));
+
+  // Filter cash lines
+  const cashActivity = cashJournalLines.filter((l: any) => cashAccountIds.has(l.gl_account_id));
+
+  // Operating inflows: credits to cash (payments received)
+  const operatingInflows = cashActivity.reduce((s: number, l: any) => {
+    return s + Number(l.credit_amount ?? 0);
+  }, 0);
+
+  // Operating outflows: debits from cash (payments made)
+  const operatingOutflows = cashActivity.reduce((s: number, l: any) => {
+    return s + Number(l.debit_amount ?? 0);
+  }, 0);
+
+  const netCashFlow = operatingInflows - operatingOutflows;
+
+  // Transfer totals
+  const totalTransfers = bankTransfers.reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
+  const completedTransfers = bankTransfers.filter((t: any) => t.journal_entry_id).length;
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              {' \u00B7 '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' \u00B7 '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={`${period.from} \u2192 ${period.to}`}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        {/* Summary tiles */}
+        <div className="grid grid-cols-4 gap-3">
+          <Tile label="Operating Inflows"  value={money(operatingInflows)}  tone="positive" sub="Cash received" />
+          <Tile label="Operating Outflows" value={money(operatingOutflows)} tone="danger"  sub="Cash paid out" />
+          <Tile label="Net Cash Flow"      value={money(netCashFlow)}       tone={netCashFlow >= 0 ? 'positive' : 'danger'} />
+          <Tile label="Period"             value={period.label}             tone="neutral" sub={`${period.from} \u2192 ${period.to}`} />
+        </div>
+
+        {/* Bank account balances */}
+        <Section title="Bank Account Balances" subtitle={`${bAccounts.length} accounts`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr>
+                  <th className="px-5 py-2 text-left font-semibold">Account</th>
+                  <th className="px-4 py-2 text-left font-semibold">Bank</th>
+                  <th className="px-4 py-2 text-left font-semibold">Type</th>
+                  <th className="px-5 py-2 text-right font-semibold">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bAccounts.map((a: any) => (
+                  <tr key={a.id} className="border-t border-gray-100">
+                    <td className="px-5 py-2 font-medium text-gray-900">{a.name}</td>
+                    <td className="px-4 py-2 text-sm text-gray-600">{a.bank_name ?? '\u2014'}</td>
+                    <td className="px-4 py-2 text-xs capitalize text-gray-500">{a.account_type?.replace(/_/g, ' ') ?? '\u2014'}</td>
+                    <td className={`px-5 py-2 text-right tabular-nums font-medium ${(a.current_balance ?? 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                      {money(a.current_balance)}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                  <td className="px-5 py-2" colSpan={3}>Total Cash</td>
+                  <td className="px-5 py-2 text-right tabular-nums text-gray-900">
+                    {money(bAccounts.reduce((s: number, a: any) => s + Number(a.current_balance ?? 0), 0))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        {/* Bank transfers */}
+        <Section title="Bank Transfers" subtitle={`${bankTransfers.length} transfers in period`}>
+          {bankTransfers.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-gray-500">No bank transfers in this period.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-5 py-2 text-left font-semibold">Date</th>
+                    <th className="px-4 py-2 text-left font-semibold">Reference</th>
+                    <th className="px-4 py-2 text-left font-semibold">Memo</th>
+                    <th className="px-4 py-2 text-right font-semibold">Amount</th>
+                    <th className="px-5 py-2 text-center font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bankTransfers.slice(0, 100).map((t: any) => (
+                    <tr key={t.id} className="border-t border-gray-100">
+                      <td className="whitespace-nowrap px-5 py-2 text-xs text-gray-600">{date(t.transfer_date)}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-gray-500">{t.reference_number ?? '\u2014'}</td>
+                      <td className="max-w-xs truncate px-4 py-2 text-sm text-gray-600">{t.memo ?? '\u2014'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium text-gray-900">{money(t.amount)}</td>
+                      <td className="px-5 py-2 text-center">
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${t.journal_entry_id ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {t.journal_entry_id ? 'Posted' : 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        {/* Cash Flow Summary */}
+        <Section title="Cash Flow Summary">
+          <div className="px-5 py-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Operating inflows (credits to cash)</span>
+              <span className="tabular-nums font-medium text-green-700">{money(operatingInflows)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Operating outflows (debits from cash)</span>
+              <span className="tabular-nums font-medium text-red-600">({money(operatingOutflows)})</span>
+            </div>
+            <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold">
+              <span className="text-gray-900">Net cash from operations</span>
+              <span className={`tabular-nums ${netCashFlow >= 0 ? 'text-green-700' : 'text-red-600'}`}>{money(netCashFlow)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Bank transfers in period</span>
+              <span className="tabular-nums font-medium text-gray-700">{money(totalTransfers)}</span>
+            </div>
+          </div>
+        </Section>
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 5. GENERAL LEDGER
+// ═══════════════════════════════════════════════════════════════
+async function GeneralLedgerView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  // Fetch all journal lines with entries for the period, grouped by GL account
+  const { data: glAccounts } = await db
+    .from('gl_accounts')
+    .select('id, number, name, account_type')
+    .eq('active', true)
+    .order('number');
+
+  const accounts = (glAccounts ?? []) as any[];
+
+  // Fetch journal_lines with entry info
+  let lineQuery = db
+    .from('journal_lines')
+    .select(`id, debit_amount, credit_amount, memo, gl_account_id, entry_id,
+      journal_entries!inner(id, entry_date, description, memo, reference_number, posted)`)
+    .eq('journal_entries.posted', true)
+    .gte('journal_entries.entry_date', period.from)
+    .lte('journal_entries.entry_date', period.to)
+    .order('sort_order');
+
+  if (selectedAssociation) {
+    lineQuery = lineQuery.eq('association_id', selectedAssociation);
+  }
+
+  const { data: lines } = await lineQuery;
+  const journalLines = (lines ?? []) as any[];
+
+  // Group lines by gl_account_id
+  const grouped = new Map<string, any[]>();
+  for (const line of journalLines) {
+    const accId = line.gl_account_id;
+    if (!grouped.has(accId)) grouped.set(accId, []);
+    grouped.get(accId)!.push(line);
+  }
+
+  // Build account map
+  const accountMap = new Map<string, any>();
+  for (const acc of accounts) accountMap.set(acc.id, acc);
+
+  // Only show accounts that have activity
+  const activeAccountIds = new Set(grouped.keys());
+  const activeAccounts = accounts.filter((a) => activeAccountIds.has(a.id));
+
+  const totalDebit  = journalLines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
+  const totalCredit = journalLines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);
+  const totalEntries = new Set(journalLines.map((l: any) => l.entry_id)).size;
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              {' \u00B7 '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' \u00B7 '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={`${period.from} \u2192 ${period.to}`}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-4 gap-3">
+          <Tile label="Total Debits"    value={money(totalDebit)}    tone="neutral" />
+          <Tile label="Total Credits"   value={money(totalCredit)}   tone="neutral" />
+          <Tile label="Journal Entries" value={totalEntries}         tone="neutral" sub="Posted entries" />
+          <Tile label="Line Items"      value={journalLines.length}  tone="neutral" />
+        </div>
+
+        {activeAccounts.length === 0 ? (
+          <Section title="General Ledger">
+            <p className="px-5 py-8 text-center text-sm text-gray-500">
+              No journal activity found in this period. Try selecting a different date range.
+            </p>
+          </Section>
+        ) : (
+          activeAccounts.map((acc: any) => {
+            const lines = grouped.get(acc.id) ?? [];
+            const sumDebit  = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
+            const sumCredit = lines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);
+            return (
+              <Section
+                key={acc.id}
+                title={`${acc.number} \u2014 ${acc.name}`}
+                subtitle={`${lines.length} line${lines.length !== 1 ? 's' : ''} \u00B7 Debits: ${money(sumDebit)} \u00B7 Credits: ${money(sumCredit)}`}
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                      <tr>
+                        <th className="px-5 py-2 text-left font-semibold w-28">Date</th>
+                        <th className="px-4 py-2 text-left font-semibold">Description</th>
+                        <th className="px-4 py-2 text-left font-semibold">Reference</th>
+                        <th className="px-4 py-2 text-right font-semibold">Debit</th>
+                        <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((l: any) => {
+                        const entry = l.journal_entries;
+                        return (
+                          <tr key={l.id} className="border-t border-gray-100 hover:bg-gray-50">
+                            <td className="whitespace-nowrap px-5 py-2 text-xs text-gray-600">{date(entry?.entry_date)}</td>
+                            <td className="max-w-md px-4 py-2">
+                              <div className="text-gray-900">{entry?.description ?? l.memo ?? '\u2014'}</div>
+                              {entry?.memo && <div className="text-xs text-gray-500">{entry.memo}</div>}
+                            </td>
+                            <td className="px-4 py-2 font-mono text-xs text-gray-500">{entry?.reference_number ?? '\u2014'}</td>
+                            <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.debit_amount > 0 ? money(l.debit_amount) : ''}</td>
+                            <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.credit_amount > 0 ? money(l.credit_amount) : ''}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold text-xs">
+                        <td className="px-5 py-2" colSpan={3}>Account Total</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumDebit)}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumCredit)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </Section>
+            );
+          })
+        )}
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXISTING: A/R AGING LIVE VIEW
+// ═══════════════════════════════════════════════════════════════
+async function ARAgingView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
   const supabase = await createClient();
 
   let q = (supabase as any).from('aged_receivables').select('*').order('due_date');
@@ -145,9 +935,9 @@ async function ARAgingView({
           eyebrow={
             <>
               <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-              {' Â· '}
+              {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
-              {' Â· '}
+              {' \u00B7 '}
               <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
             </>
           }
@@ -155,7 +945,7 @@ async function ARAgingView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="grid grid-cols-5 gap-3">
         {BUCKETS.map((b) => (
@@ -243,15 +1033,12 @@ function BucketPill({ bucket }: { bucket: string }) {
   return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{bucket === 'current' ? 'current' : `${bucket}d`}</span>;
 }
 
-// ============================================================================
-// QUEUED REPORT VIEW â€” Run form + recent runs for this definition
-// ============================================================================
-function QueuedReportView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
-}: {
-  def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string;
-}) {
+// ═══════════════════════════════════════════════════════════════
+// QUEUED REPORT VIEW — Run form + recent runs for this definition
+// ═══════════════════════════════════════════════════════════════
+function QueuedReportView(ctx: ReportContext) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope } = ctx;
+
   return (
     <Workspace
       header={
@@ -259,7 +1046,7 @@ function QueuedReportView({
           eyebrow={
             <>
               <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-              {' Â· '}
+              {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
             </>
           }
@@ -267,7 +1054,7 @@ function QueuedReportView({
           subtitle={def.description}
         />
       }
-      rail={<RightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} />}
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} />}
     >
       <Section title="About this report">
         <div className="px-5 py-4 text-sm leading-6 text-gray-700">
@@ -305,7 +1092,7 @@ function QueuedReportView({
                   <td className="px-5 py-2 text-gray-700">{date(r.created_at)}</td>
                   <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
                   <td className="px-4 py-2"><RunPill status={r.status} /></td>
-                  <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '\u2014'}</td>
                   <td className="px-5 py-2 text-right">
                     <Link href={`/reports/runs/${r.id}`} className="text-xs text-brand-600 hover:underline">
                       {r.status === 'succeeded' ? 'Download' : 'Open'}
@@ -321,10 +1108,10 @@ function QueuedReportView({
   );
 }
 
-// ============================================================================
-// RIGHT RAIL â€” Run form + quick stats
-// ============================================================================
-function RightRail({
+// ═══════════════════════════════════════════════════════════════
+// RIGHT RAIL — Run form + quick stats
+// ═══════════════════════════════════════════════════════════════
+function ReportRightRail({
   def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
@@ -375,15 +1162,13 @@ function RightRail({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">
-            Association
-          </label>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Association</label>
           <select
             name="param_association_id"
             defaultValue={selectedAssociation}
             className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
-            <option value="">Selectâ€¦</option>
+            <option value="">Select...</option>
             {associations.map((a: any) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
@@ -449,7 +1234,7 @@ function RightRail({
             </div>
           </div>
           <p className="mt-1 text-[11px] text-gray-500">
-            {period.label}: {period.from} â†’ {period.to}
+            {period.label}: {period.from} &rarr; {period.to}
           </p>
         </div>
 
@@ -475,7 +1260,7 @@ function RightRail({
       {inFlight && (
         <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
           A run is currently <strong>{inFlight.status}</strong>.
-          <Link href={`/reports/runs/${inFlight.id}`} className="ml-1 font-semibold hover:underline">View â†’</Link>
+          <Link href={`/reports/runs/${inFlight.id}`} className="ml-1 font-semibold hover:underline">View &rarr;</Link>
         </div>
       )}
 
@@ -489,7 +1274,7 @@ function RightRail({
             {lastSuccess.output_url && (
               <a href={lastSuccess.output_url} target="_blank" rel="noopener"
                 className="mt-2 inline-block text-brand-600 hover:underline">
-                Download â†’
+                Download &rarr;
               </a>
             )}
           </div>
@@ -527,4 +1312,46 @@ function RunPill({ status }: { status: string }) {
     cancelled: 'bg-gray-100 text-gray-400 line-through',
   };
   return <span className={`rounded px-2 py-0.5 text-[10px] font-medium capitalize ${m[status] ?? m.queued}`}>{status}</span>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERIOD COMPUTATION
+// ═══════════════════════════════════════════════════════════════
+type Period = { from: string; to: string; label: string };
+
+function computePeriod(preset: string, customFrom?: string, customTo?: string): Period {
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const firstOfMonth = (y: number, m: number) => new Date(y, m, 1);
+  const lastOfMonth  = (y: number, m: number) => new Date(y, m + 1, 0);
+
+  if (preset === 'custom') {
+    return {
+      from:  customFrom ?? fmt(firstOfMonth(today.getFullYear(), today.getMonth())),
+      to:    customTo   ?? fmt(today),
+      label: 'Custom',
+    };
+  }
+  if (preset === 'last_month') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    return { from: fmt(firstOfMonth(d.getFullYear(), d.getMonth())), to: fmt(lastOfMonth(d.getFullYear(), d.getMonth())), label: 'Last month' };
+  }
+  if (preset === 'this_quarter') {
+    const q = Math.floor(today.getMonth() / 3) * 3;
+    return { from: fmt(firstOfMonth(today.getFullYear(), q)), to: fmt(today), label: 'This quarter' };
+  }
+  if (preset === 'last_quarter') {
+    const q = Math.floor(today.getMonth() / 3) * 3 - 3;
+    const y = q < 0 ? today.getFullYear() - 1 : today.getFullYear();
+    const m = (q + 12) % 12;
+    return { from: fmt(firstOfMonth(y, m)), to: fmt(lastOfMonth(y, m + 2)), label: 'Last quarter' };
+  }
+  if (preset === 'ytd') {
+    return { from: fmt(new Date(today.getFullYear(), 0, 1)), to: fmt(today), label: 'Year to date' };
+  }
+  if (preset === 'last_year') {
+    return { from: fmt(new Date(today.getFullYear() - 1, 0, 1)), to: fmt(new Date(today.getFullYear() - 1, 11, 31)), label: 'Last year' };
+  }
+  // default: this_month
+  return { from: fmt(firstOfMonth(today.getFullYear(), today.getMonth())), to: fmt(today), label: 'This month' };
 }
