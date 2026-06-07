@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { date } from '@/lib/utils';
@@ -15,7 +14,6 @@ const FREQUENCY_LABELS: Record<string, string> = {
 export default async function MaintenancePage(props: any) {
   const searchParams = await props.searchParams;
   const sp = (searchParams ?? {}) as { assoc?: string; category?: string };
-  const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
 
