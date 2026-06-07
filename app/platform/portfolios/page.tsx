@@ -1,88 +1,169 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { revalidatePath } from 'next/cache';
+
 import { Button } from '@/components/ui/button';
-import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { date } from '@/lib/utils';
+import { Card, CardBody, CardHeader, CardTitle, Stat } from '@/components/ui/card';
+import { Input, Label } from '@/components/ui/input';
+import { Table, TD, TH, THead, TR } from '@/components/ui/table';
+import {
+  formatSeatUsage,
+  platformStatus,
+  statusClass,
+  toCount,
+  summarizePortfolioHealth,
+  type PortfolioHealthRow,
+} from '@/lib/platform/metrics';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PlatformPortfoliosPage() {
-  const me = await requireStaff();
+async function provisionPortfolio(formData: FormData) {
+  'use server';
   const supabase = await createClient();
-  const db = supabase as any;
+  const { error } = await (supabase as any).rpc('provision_portfolio', {
+    p_company_name: formData.get('name') as string,
+    p_first_admin_email: formData.get('email') as string,
+    p_first_admin_name: (formData.get('admin_name') as string) || undefined,
+    p_tier: (formData.get('tier') as any) || 'core',
+    p_seats: parseInt(formData.get('seats') as string) || 5,
+    p_trial_days: parseInt(formData.get('trial_days') as string) || 14,
+  });
+  if (error) return { error: error.message };
+  revalidatePath('/platform/portfolios');
+}
 
-  if (!me.is_platform_operator) {
-    return <div className="p-8 text-gray-500">Access denied. Platform operators only.</div>;
-  }
+function Badge({ children, className }: { children: React.ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${className}`}>
+      {children}
+    </span>
+  );
+}
 
-  const [{ data: portfolios }, { data: subscriptions }] = await Promise.all([
-    db.from('portfolios').select('*, profiles:profiles(count)').is('archived_at', null).order('company_name'),
-    db.from('subscriptions').select('*').is('canceled_at', null),
-  ]);
-
-  const getSub = (pid: string) => (subscriptions ?? []).find((s: any) => s.portfolio_id === pid);
+export default async function PortfoliosPage() {
+  const supabase = await createClient();
+  const { data } = await (supabase as any).from('v_portfolio_health').select('*').order('company_name');
+  const rows = (data ?? []) as PortfolioHealthRow[];
+  const summary = summarizePortfolioHealth(rows);
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-7">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Platform — Management Companies</h1>
-          <p className="text-sm text-gray-500 mt-1">Provision and manage property management companies on the platform.</p>
+          <h1 className="text-2xl font-semibold text-gray-950">Clients</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Platform control across every management company, property, seat, and billing state.
+          </p>
         </div>
-        <Link href="/platform/portfolios/new"><Button>+ New company</Button></Link>
+        <Link href="/platform/system-health" className="text-sm font-medium text-blue-700 hover:underline">
+          Review platform health
+        </Link>
+      </header>
+
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Stat label="Clients" value={summary.totalClients} sub={`${summary.paidAccounts} paid, ${summary.trialAccounts} trial`} />
+        <Stat label="Properties" value={summary.totalProperties} sub="Association records" />
+        <Stat label="Units" value={summary.totalUnits} sub="Across all clients" />
+        <Stat label="Seats" value={`${summary.activeSeats} / ${summary.includedSeats || '-'}`} sub="Used seats" />
+        <Stat label="Invites" value={summary.pendingInvitations} sub="Pending activation" />
+        <Stat label="Alerts" value={summary.alertCount} sub={`${summary.failedLogins24h} failed logins`} />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <Card>
+        <CardHeader>
+          <CardTitle>Provision client</CardTitle>
+          <p className="text-xs text-gray-500">Create the client shell, first manager admin, tier, seats, and trial window.</p>
+        </CardHeader>
+        <CardBody>
+          <form action={provisionPortfolio as any} className="grid gap-3 md:grid-cols-3">
+            <div>
+              <Label htmlFor="name">Company name</Label>
+              <Input id="name" name="name" required />
+            </div>
+            <div>
+              <Label htmlFor="email">First admin email</Label>
+              <Input id="email" name="email" type="email" required />
+            </div>
+            <div>
+              <Label htmlFor="admin_name">Admin name (optional)</Label>
+              <Input id="admin_name" name="admin_name" />
+            </div>
+            <div>
+              <Label htmlFor="tier">Tier</Label>
+              <select id="tier" name="tier" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                <option value="core">Core</option>
+                <option value="plus">Plus</option>
+                <option value="max">Max</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="seats">Seats</Label>
+              <Input id="seats" name="seats" type="number" defaultValue={5} min={1} />
+            </div>
+            <div>
+              <Label htmlFor="trial_days">Trial days</Label>
+              <Input id="trial_days" name="trial_days" type="number" defaultValue={14} min={0} />
+            </div>
+            <div className="col-span-full">
+              <Button type="submit">Provision</Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-950">Client directory</h2>
+          <p className="text-sm text-gray-500">Drill into a client to review properties, owners, users, and billing.</p>
+        </div>
         <Table>
           <THead>
             <TR>
-              <TH>Company</TH>
+              <TH>Client</TH>
               <TH>Tier</TH>
-              <TH>Domain</TH>
-              <TH>Staff</TH>
-              <TH>Created</TH>
-              <TH>Actions</TH>
+              <TH>Status</TH>
+              <TH className="text-right">Properties</TH>
+              <TH className="text-right">Units</TH>
+              <TH className="text-right">Seats</TH>
+              <TH className="text-right">Pending invites</TH>
+              <TH className="text-right">Failed logins</TH>
             </TR>
           </THead>
           <tbody>
-            {(portfolios ?? []).map((p: any) => {
-              const sub = getSub(p.id);
-              return (
-                <TR key={p.id}>
-                  <TD>
-                    <div className="font-medium text-gray-900">{p.company_name}</div>
-                    <div className="text-xs text-gray-500">{p.support_email || 'No support email'}</div>
-                  </TD>
-                  <TD>
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      p.tier === 'max' ? 'bg-purple-100 text-purple-700' :
-                      p.tier === 'plus' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>{p.tier || 'core'}</span>
-                    {sub && <span className={`ml-1 rounded px-2 py-0.5 text-xs ${sub.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{sub.status}</span>}
-                  </TD>
-                  <TD className="text-sm text-gray-600">
-                    {p.custom_domain ? (
-                      <a href={`https://${p.custom_domain}`} className="text-blue-600 hover:underline" target="_blank">{p.custom_domain}</a>
-                    ) : p.slug ? (
-                      <a href={`https://${p.slug}.portier369.com`} className="text-blue-600 hover:underline" target="_blank">{p.slug}.portier369.com</a>
-                    ) : <span className="text-gray-400">—</span>}
-                  </TD>
-                  <TD className="text-sm text-gray-600">{p.profiles?.count || 0} users</TD>
-                  <TD className="text-sm text-gray-500">{date(p.created_at)}</TD>
-                  <TD>
-                    <div className="flex gap-2">
-                      <Link href={`/platform/portfolios/${p.id}`} className="text-xs text-blue-600 hover:underline">Manage</Link>
-                      <Link href={`https://${p.slug}.portier369.com`} className="text-xs text-gray-500 hover:underline" target="_blank">Visit</Link>
-                    </div>
-                  </TD>
-                </TR>
-              );
-            })}
+            {rows.length === 0 ? (
+              <TR>
+                <TD colSpan={8} className="py-10 text-center text-gray-500">
+                  No clients are visible to this platform operator.
+                </TD>
+              </TR>
+            ) : (
+              rows.map((p) => {
+                const status = platformStatus(p);
+                return (
+                  <TR key={p.portfolio_id} className="hover:bg-gray-50">
+                    <TD>
+                      <Link href={`/platform/portfolios/${p.portfolio_id}`} className="font-medium text-blue-700 hover:underline">
+                        {p.company_name ?? 'Unnamed client'}
+                      </Link>
+                    </TD>
+                    <TD className="uppercase">{p.tier ?? '-'}</TD>
+                    <TD>
+                      <Badge className={statusClass(status)}>{status.replace(/_/g, ' ')}</Badge>
+                    </TD>
+                    <TD className="text-right">{p.association_count ?? 0}</TD>
+                    <TD className="text-right">{p.unit_count ?? 0}</TD>
+                    <TD className="text-right">{formatSeatUsage(p)}</TD>
+                    <TD className="text-right">{p.pending_invitations ?? 0}</TD>
+                    <TD className={`text-right ${toCount(p.failed_logins_24h) > 0 ? 'font-medium text-red-600' : ''}`}>
+                      {p.failed_logins_24h ?? 0}
+                    </TD>
+                  </TR>
+                );
+              })
+            )}
           </tbody>
         </Table>
-      </div>
+      </section>
     </div>
   );
 }
