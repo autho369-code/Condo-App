@@ -34,7 +34,7 @@ export default async function LoginPage({
         {tenant ? (
           <>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-950">{tenant.companyName}</h1>
-            <p className="mt-2 text-sm text-gray-500">Access your association's management portal.</p>
+            <p className="mt-2 text-sm text-gray-500">Access your association&apos;s management portal.</p>
             <div className="mt-3 text-xs text-gray-400">
               Powered by <span className="font-semibold text-brand-600">Portier369</span>
             </div>
