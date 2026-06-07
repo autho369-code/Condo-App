@@ -126,7 +126,7 @@ export function AssociationsPanel() {
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-          <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
+          <PanelLink href="/reports?slug=homeowner-directory">Owner Directory</PanelLink>
           <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
           <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
           <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
@@ -186,7 +186,7 @@ export function AssociationsPanel() {
         <PanelLink href="#bulk-update-board-reports">Bulk Update Board Reports</PanelLink>
       </PanelSection>
       <PanelSection title="Reports">
-        <PanelLink href="/reports?slug=homeowner-directory">Homeowner Directory</PanelLink>
+        <PanelLink href="/reports?slug=homeowner-directory">Owner Directory</PanelLink>
         <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
         <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
         <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
@@ -199,7 +199,7 @@ export function AssociationsPanel() {
         <PanelLink href="/help/import-association">Import a New Association</PanelLink>
         <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
         <PanelLink href="/help/property-groups">Managing Property Groups</PanelLink>
-        <PanelLink href="/help/owner-statements">Sending Homeowner Statements</PanelLink>
+        <PanelLink href="/help/owner-statements">Sending Owner Statements</PanelLink>
       </PanelSection>
     </ContextPanel>
   );

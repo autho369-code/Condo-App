@@ -139,7 +139,7 @@ export default async function AssociationUnitsTab({
           <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
             <tr>
               <th className="w-20 px-4 py-2 text-left font-semibold">Unit</th>
-              <th className="px-4 py-2 text-left font-semibold">Homeowner</th>
+              <th className="px-4 py-2 text-left font-semibold">Owner</th>
               <th className="px-4 py-2 text-left font-semibold">Renter Occupied</th>
               <th className="px-4 py-2 text-left font-semibold">Ownership Percentage</th>
               <th className="px-4 py-2 text-left font-semibold">Dues</th>

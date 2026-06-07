@@ -129,7 +129,7 @@ export default async function OwnersPage({
   );
 
   const tabs = [
-    { label: 'Homeowners', href: '/owners', active: view === 'homeowners' },
+    { label: 'Owners', href: '/owners', active: view === 'homeowners' },
     { label: 'Owners', href: '/owners?view=directory', active: view === 'directory' },
     { label: 'Tenants', href: '/owners?view=tenants', active: view === 'tenants' },
     { label: 'Vendors', href: '/vendors', active: false },
@@ -146,7 +146,7 @@ export default async function OwnersPage({
 
   return (
     <DataWorkspace
-      title={view === 'tenants' ? 'Tenants' : view === 'directory' ? 'Owner Directory' : 'Homeowners'}
+      title={view === 'tenants' ? 'Tenants' : view === 'directory' ? 'Owner Directory' : 'Owners'}
       description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
       actions={
         <>
