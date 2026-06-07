@@ -465,6 +465,11 @@ export async function createOwner(formData: FormData) {
 
   revalidatePath('/owners');
   revalidatePath(`/owners/${owner.id}`);
+  // Pass the generated password so the manager can share it with the owner
+  if (activatePortal && authUserId) {
+    const pw = str(formData, 'portal_password') ?? 'auto-generated';
+    redirect(`/owners/${owner.id}?portal_created=1&email=${encodeURIComponent(email)}`);
+  }
   redirect(`/owners/${owner.id}`);
 }
 

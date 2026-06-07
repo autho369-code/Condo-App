@@ -16,9 +16,10 @@ function formatName(first?: string | null, last?: string | null, full?: string |
   return full ?? [last, first].filter(Boolean).join(', ') ?? '—';
 }
 
-export default async function OwnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string }> }) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -211,7 +212,21 @@ export default async function OwnerDetailPage({ params }: { params: Promise<{ id
   }).join(', ');
 
   return (
-    <DataWorkspace
+    <>
+      {sp.portal_created === '1' && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold text-green-900">Portal account created</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Owner can now sign in at <strong>/login</strong> with email <strong>{sp.email}</strong>.
+                A password was auto-generated. The owner should reset it on first sign-in.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      <DataWorkspace
       title={displayName}
       description={`Owner portal — ${owner.email}${unitNames ? ` · ${unitNames}` : ''}`}
       actions={
