@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         brandColor={brandColor}
         userEmail={me.email ?? undefined}
       />
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden pt-12 lg:pt-0">
         {children}
       </main>
     </div>

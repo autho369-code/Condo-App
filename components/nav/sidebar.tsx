@@ -16,6 +16,20 @@ function ChevronDown({ open }: { open: boolean }) {
   )
 }
 
+function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-md bg-white border border-gray-200 shadow-sm" aria-label="Toggle menu">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        {open ? (
+          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        ) : (
+          <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        )}
+      </svg>
+    </button>
+  )
+}
+
 export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail }: {
   portfolioName?: string;
   logoUrl?: string | null;
@@ -24,6 +38,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const defaults: Record<string, boolean> = {}
   appModules.forEach((s) => {
@@ -41,6 +56,8 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
       })
       return next
     })
+    // Close mobile menu on navigation
+    setMobileOpen(false)
   }, [pathname])
 
   const toggle = (label: string) => setOpen(p => ({ ...p, [label]: !p[label] }))
@@ -55,7 +72,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
     router.push('/login')
   }
 
-  return (
+  const sidebarContent = (
     <aside className="flex h-screen w-52 flex-shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
       <div className="border-b border-gray-200 px-4 py-3 flex-shrink-0">
         {logoUrl ? (
@@ -106,5 +123,19 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
         <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">Log out</button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      <Hamburger open={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)} />
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileOpen(false)} />
+      )}
+      {/* Desktop: always visible. Mobile: slide in when open */}
+      <div className={`fixed lg:static inset-y-0 left-0 z-40 transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        {sidebarContent}
+      </div>
+    </>
   )
 }
