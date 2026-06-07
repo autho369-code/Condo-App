@@ -7,6 +7,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { AssociationHealthScore } from '@/components/dashboard/association-health-score';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,6 +177,13 @@ export default async function DashboardPage({
           />
         ))}
       </div>
+
+      {/* ---- AI Health Score ------------------------------------------- */}
+      {me.portfolio?.id && (
+        <div className="mt-4">
+          <AssociationHealthScore portfolioId={me.portfolio.id} />
+        </div>
+      )}
 
       {/* ---- Financial snapshot ----------------------------------------- */}
       {dashSummary && (

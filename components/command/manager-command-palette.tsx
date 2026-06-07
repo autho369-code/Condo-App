@@ -10,7 +10,7 @@ export function ManagerCommandPalette() {
 
   const items: CommandItem[] = [
     // ---------- Workspace ----------
-    { id: 'go.dashboard', label: 'Command centre', group: 'Workspace', hint: 'Cmd+1', perform: go('/dashboard'), keywords: ['home', 'overview'] },
+    { id: 'go.dashboard', label: 'Dashboard', group: 'Workspace', hint: 'Cmd+1', perform: go('/dashboard'), keywords: ['home', 'overview', 'command'] },
     { id: 'go.inbox', label: 'Inbox', group: 'Workspace', perform: go('/inbox') },
     { id: 'go.calendar', label: 'Calendar', group: 'Workspace', perform: go('/calendar') },
     { id: 'go.metrics', label: 'Metrics', group: 'Workspace', perform: go('/metrics') },
