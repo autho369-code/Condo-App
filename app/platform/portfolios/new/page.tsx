@@ -12,12 +12,12 @@ async function createPortfolio(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const me = await requireStaff();
-  if (!me.is_platform_operator) return { error: 'Access denied' };
+  if (!me.is_platform_operator) return;
 
   const companyName = formData.get('company_name') as string;
-  if (!companyName) return { error: 'Company name required' };
+  if (!companyName) return;
 
-  const { data: portfolio, error } = await (supabase as any).from('portfolios').insert({
+  await (supabase as any).from('portfolios').insert({
     company_name: companyName,
     support_email: formData.get('support_email') as string || null,
     support_phone: formData.get('support_phone') as string || null,
@@ -25,10 +25,8 @@ async function createPortfolio(formData: FormData) {
     created_by: me.auth_user_id,
   }).select('id').single();
 
-  if (error) return { error: error.message };
-
   revalidatePath('/platform/portfolios');
-  redirect(`/platform/portfolios/${portfolio.id}`);
+  redirect('/platform/portfolios');
 }
 
 export default async function NewPortfolioPage() {
