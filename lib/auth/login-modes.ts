@@ -1,4 +1,4 @@
-export type LoginModeId = 'manager' | 'owner' | 'admin';
+export type LoginModeId = 'manager' | 'owner' | 'vendor' | 'admin';
 
 export interface LoginModeConfig {
   id: LoginModeId;
@@ -29,6 +29,15 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
     submitLabel: 'Sign in as owner',
     note: 'Owner access is controlled by the portal profile connected to your unit.',
   },
+  vendor: {
+    id: 'vendor',
+    label: 'Vendor',
+    title: 'Vendor Sign In',
+    description: 'For contractors and service providers — view work orders, submit invoices, update compliance docs.',
+    defaultNext: '/portal',
+    submitLabel: 'Sign in as vendor',
+    note: 'Vendor access requires an active vendor profile with portal access.',
+  },
   admin: {
     id: 'admin',
     label: 'Admin',
@@ -42,7 +51,7 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
 
 export function normalizeLoginMode(value?: FormDataEntryValue | string | string[] | null): LoginModeId {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === 'owner' || raw === 'admin' ? raw : 'manager';
+  return raw === 'owner' || raw === 'vendor' || raw === 'admin' ? raw : 'manager';
 }
 
 export function safeInternalNext(value?: FormDataEntryValue | string | string[] | null): string | null {
@@ -65,5 +74,5 @@ export function getLoginNext(params: { mode?: string | string[] | null; next?: s
 export function getVisibleLoginModes(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig[] {
   const mode = normalizeLoginMode(value);
   if (mode === 'admin') return [loginModes.admin];
-  return [loginModes.manager, loginModes.owner];
+  return [loginModes.manager, loginModes.owner, loginModes.vendor];
 }
