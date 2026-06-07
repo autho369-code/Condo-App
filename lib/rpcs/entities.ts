@@ -403,19 +403,41 @@ export async function createOwner(formData: FormData) {
   const lastName  = str(formData, 'last_name');
   const fullName  = str(formData, 'full_name') ?? [firstName, lastName].filter(Boolean).join(' ');
   if (!fullName) return { error: 'Name is required' };
+  const email = req(formData, 'email');
+
+  // Create Supabase auth user if portal activated
+  let authUserId: string | null = null;
+  const activatePortal = formData.get('activate_portal') === 'on';
+  if (activatePortal) {
+    const password = str(formData, 'portal_password') ?? generatePassword();
+    const { data: authUser, error: authErr } = await (supabase as any).auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName, role: 'owner' },
+    });
+    if (authErr) {
+      console.error('Auth user creation failed:', authErr.message);
+      // Continue anyway — owner record still gets created
+    } else {
+      authUserId = authUser?.user?.id ?? null;
+    }
+  }
 
   const payload = {
     portfolio_id: me.portfolio?.id,
     first_name: firstName,
     last_name:  lastName,
     full_name:  fullName,
-    email:      req(formData, 'email'),
+    email,
     phone:      str(formData, 'phone'),
     address_street: str(formData, 'address_street'),
     address_city:   str(formData, 'address_city'),
     address_state:  str(formData, 'address_state'),
     address_zip:    str(formData, 'address_zip'),
     preferred_comm: str(formData, 'preferred_comm') ?? 'email',
+    portal_activated: activatePortal,
+    auth_user_id: authUserId,
     notes:          str(formData, 'notes'),
     created_by:     me.auth_user_id,
   };
@@ -423,8 +445,34 @@ export async function createOwner(formData: FormData) {
   const { data: owner, error } = await (supabase as any).from('owners').insert(payload).select('id').single();
   if (error || !owner) return { error: error?.message ?? 'Failed to create owner' };
 
+  // Create occupancy link if unit is specified
+  const unitId = str(formData, 'unit_id');
+  const associationId = str(formData, 'association_id');
+  if (unitId && associationId) {
+    await (supabase as any).from('occupancies').insert({
+      owner_id: owner.id,
+      unit_id: unitId,
+      association_id: associationId,
+      occupancy_type: 'owner',
+      status: 'current',
+      move_in_date: str(formData, 'move_in_date') ?? new Date().toISOString().slice(0, 10),
+      dues_amount: str(formData, 'dues_amount') ? Number(str(formData, 'dues_amount')) : null,
+      dues_frequency: 'monthly',
+      share_pct: str(formData, 'ownership_pct') ? Number(str(formData, 'ownership_pct')) : 100,
+      is_primary: true,
+    });
+  }
+
   revalidatePath('/owners');
+  revalidatePath(`/owners/${owner.id}`);
   redirect(`/owners/${owner.id}`);
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < 12; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  return pw;
 }
 
 export async function updateOwner(id: string, formData: FormData) {

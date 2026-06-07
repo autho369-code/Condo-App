@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
 import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
 import { createOwner } from '@/lib/rpcs/entities';
 
@@ -11,16 +12,22 @@ export const dynamic = 'force-dynamic';
 
 export default async function NewOwnerPage() {
   await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+  const [{ data: associations }, { data: units }] = await Promise.all([
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number'),
+  ]);
 
   return (
     <DataWorkspace
       title="New Owner"
-      description="Create the owner profile, then connect unit ownership, portal activation, ACH, and packet workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
+      description="Create the owner profile with association and unit assignment, portal activation, and ownership details."
+      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
       rail={
         <div className="space-y-4">
           <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
-            Add a clean owner record first. Unit links, portal invites, and packets can be staged once the owner exists.
+            Creating an owner also links them to their unit via occupancy record. Portal access can be enabled to let them sign in.
           </div>
           <div>
             <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
@@ -49,9 +56,59 @@ export default async function NewOwnerPage() {
           </div>
           <div>
             <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" name="phone" type="tel" placeholder="(555) 555-5555" />
+            <Input id="phone" name="phone" type="tel" placeholder="(312) 555-0100" />
           </div>
         </div>
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Property assignment</div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
+              <select id="association_id" name="association_id" required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                <option value="">Select association</option>
+                {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
+              <select id="unit_id" name="unit_id" required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                <option value="">Select unit</option>
+                {(units ?? []).map((u: any) => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="ownership_pct">Ownership %</Label>
+              <Input id="ownership_pct" name="ownership_pct" type="number" min="0" max="100" defaultValue="100" placeholder="100" />
+            </div>
+            <div>
+              <Label htmlFor="dues_amount">Monthly dues</Label>
+              <Input id="dues_amount" name="dues_amount" type="number" min="0" step="0.01" placeholder="350.00" />
+            </div>
+            <div>
+              <Label htmlFor="move_in_date">Move-in date</Label>
+              <Input id="move_in_date" name="move_in_date" type="date" />
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portal access</div>
+          <div className="grid grid-cols-1 gap-4">
+            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <input type="checkbox" name="activate_portal" className="mt-1" defaultChecked />
+              <span>
+                <span className="block text-sm font-medium text-gray-900">Activate owner portal</span>
+                <span className="block text-xs text-gray-500">Creates a login account so the owner can view their balance, pay dues, and submit maintenance requests.</span>
+              </span>
+            </label>
+            <div>
+              <Label htmlFor="portal_password">Portal password</Label>
+              <Input id="portal_password" name="portal_password" type="text" placeholder="Auto-generated if left blank" />
+              <p className="mt-1 text-xs text-gray-400">Leave blank for a random secure password. The owner can reset it later.</p>
+            </div>
+          </div>
+        </section>
 
         <section className="border-t border-gray-100 pt-5">
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Mailing address</div>
@@ -74,10 +131,6 @@ export default async function NewOwnerPage() {
                 <option value="portal">Portal</option>
               </select>
             </div>
-            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-              <input type="checkbox" name="electronic_consent_requested" className="mt-1" />
-              <span><span className="block text-sm font-medium text-gray-900">Request electronic consent after save</span><span className="block text-xs text-gray-500">Use the owner form workflow to stage the request.</span></span>
-            </label>
           </div>
         </section>
 
