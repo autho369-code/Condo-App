@@ -26,8 +26,8 @@ export default function SettingsHelpPage() {
       <section>
         <h2 className="text-lg font-semibold text-ink-900">NSF fee</h2>
         <p className="mt-1 text-sm text-ink-600">
-          Set the fee charged when an owner's payment is returned by their bank. This amount is automatically
-          added to the owner's ledger each time a payment fails. Most companies set this between $25 and $50.
+          Set the fee charged when an owner&apos;s payment is returned by their bank. This amount is automatically
+          added to the owner&apos;s ledger each time a payment fails. Most companies set this between $25 and $50.
         </p>
       </section>
 
