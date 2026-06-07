@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 async function provisionPortfolio(formData: FormData) {
   'use server';
   const supabase = await createClient();
-  const { error } = await (supabase as any).rpc('provision_portfolio', {
+  const { data, error } = await (supabase as any).rpc('provision_portfolio', {
     p_company_name: formData.get('name') as string,
     p_first_admin_email: formData.get('email') as string,
     p_first_admin_name: (formData.get('admin_name') as string) || undefined,
@@ -29,7 +29,15 @@ async function provisionPortfolio(formData: FormData) {
     p_trial_days: parseInt(formData.get('trial_days') as string) || 14,
   });
   if (error) return { error: error.message };
+
   revalidatePath('/platform/portfolios');
+  // Return the invitation link so the platform operator can share it
+  const token = data?.invitation_token;
+  const email = formData.get('email') as string;
+  if (token) {
+    return { success: true, inviteUrl: `${process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com'}/invite?token=${token}`, email };
+  }
+  return { success: true };
 }
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
