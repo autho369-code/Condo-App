@@ -116,7 +116,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const sp = await searchParams;
 
   const [{ data: tasks }, { data: associations }, { data: groups }, { data: vendors }, { data: staff }] = await Promise.all([
-    db.from('maintenance_tasks').select('*, associations!inner(name), vendors(name,email), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
+    db.from('maintenance_tasks').select('*, associations!inner(name), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
     db.from('vendors').select('id,name,trade,email').is('archived_at',null).order('name'),
