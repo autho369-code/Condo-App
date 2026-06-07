@@ -174,20 +174,26 @@ export default async function SettingsPage() {
                     'use server';
                     const supabase = await (await import('@/lib/supabase/server')).createClient();
                     const role = fd.get('role') as string;
+                    const action = fd.get('action') as string;
                     if (role) {
                       await (supabase as any).rpc('assign_role', { p_profile_id: fd.get('profile_id') as string, p_role_name: role });
                     }
-                    if (fd.get('action') === 'remove') {
+                    if (action === 'remove') {
                       await (supabase as any).rpc('remove_staff_member', { p_profile_id: fd.get('profile_id') as string, p_reason: 'Removed by admin' });
                     }
+                    if (action === 'reset_password') {
+                      await (supabase as any).rpc('admin_reset_password', { p_email: fd.get('email') as string });
+                    }
                     revalidatePath('/settings');
-                  }} className="flex gap-1">
+                  }} className="flex flex-wrap gap-1">
                     <input type="hidden" name="profile_id" value={m.id} />
+                    <input type="hidden" name="email" value={m.email} />
                     <select name="role" className="h-8 rounded border border-gray-200 text-xs px-1">
                       <option value="">Change role</option>
                       <option>President</option><option>Property Manager</option><option>Accountant</option>
                       <option>On-Site Manager</option><option>Leasing Agent</option><option>Accounts Payable</option>
                     </select>
+                    <button type="submit" name="action" value="reset_password" className="h-8 rounded border border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50">Reset PW</button>
                     <button type="submit" name="action" value="remove" className="h-8 rounded border border-red-200 px-2 text-xs text-red-600 hover:bg-red-50">Remove</button>
                   </form>
                 </TD>
