@@ -7,6 +7,7 @@ export default function SectionLayout({ children }: { children: React.ReactNode 
       <ContextPanel title="Tasks">
         <PanelSection title="Quick actions">
           <PanelLink href="/associations/new">+ New Association</PanelLink>
+          <PanelLink href="/settings/ai">⚡ AI Configuration</PanelLink>
           <PanelLink href="/onboard">Onboarding checklist</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
