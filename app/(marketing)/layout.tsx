@@ -1,10 +1,6 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 
-export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
+export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
@@ -18,18 +14,10 @@ export default async function MarketingLayout({ children }: { children: React.Re
             <Link href="/demo" className="text-gray-600 hover:text-gray-900 transition">Demo</Link>
           </nav>
           <div className="flex items-center gap-3">
-            {user ? (
-              <Link href="/dashboard" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
-                Go to app &rarr;
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Sign in</Link>
-                <Link href="/demo" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
-                  Request demo
-                </Link>
-              </>
-            )}
+            <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Sign in</Link>
+            <Link href="/demo" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
+              Request demo
+            </Link>
           </div>
         </div>
       </header>
