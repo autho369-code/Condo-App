@@ -18,7 +18,7 @@ export const appModules: AppModule[] = [
   },
   {
     label: 'Accounting',
-    href: '/bank-accounts',
+    href: '/accounting',
     children: [
       { label: 'Receivables', href: '/charges' },
       { label: 'Payables', href: '/bills' },

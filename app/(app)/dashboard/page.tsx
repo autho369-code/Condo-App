@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { date, money } from '@/lib/utils';
 import { InsuranceExpirationWidget } from '@/components/dashboard/insurance-expiration-widget';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +43,15 @@ export default async function DashboardPage({
   const todayIso = today.toISOString();
   const todayDate = todayIso.slice(0, 10);
 
+  // Calculate end of week (Sunday 23:59:59)
+  const dayOfWeek = today.getDay();
+  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const endOfWeek = new Date(today);
+  endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
+  endOfWeek.setHours(23, 59, 59, 999);
+  const endOfWeekIso = endOfWeek.toISOString();
+
+  // ── Existing command-center queries ──────────────────────────
   const openViolationsQuery = db
     .from('violations')
     .select('id', { count: 'exact', head: true })
@@ -76,12 +85,83 @@ export default async function DashboardPage({
     .is('archived_at', null)
     .not('status', 'in', '("completed","closed","cancelled")');
 
+  // ── NEW: Demo-worthy real-time metrics ────────────────────────
+  // 1. Open violations (already covered above in openViolationsQuery)
+  // 2. Maintenance overdue: work_orders past scheduled_date, not completed/closed/cancelled
+  const overdueMaintenanceQuery = db
+    .from('work_orders')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .not('status', 'in', '("completed","closed","cancelled")')
+    .lt('scheduled_date', todayDate);
+
+  // 3. Bills awaiting payment: payable_bills approved but not paid
+  const awaitingPaymentQuery = db
+    .from('payable_bills')
+    .select('id, amount', { count: 'exact', head: false })
+    .is('archived_at', null)
+    .eq('status', 'approved');
+
+  // 4. AR balance: sum of unit_balances where balance > 0
+  const arBalanceQuery = db
+    .from('unit_balances')
+    .select('balance')
+    .gt('balance', 0);
+
+  // 5. Upcoming calendar events this week
+  const upcomingEventsQuery = db
+    .from('calendar_events')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .gte('start_datetime', todayIso)
+    .lte('start_datetime', endOfWeekIso);
+
+  // Apply association filter to new queries
   if (assocFilter) {
     openViolationsQuery.eq('association_id', assocFilter);
     overdueViolationsQuery.eq('association_id', assocFilter);
     pendingBillsQuery.eq('association_id', assocFilter);
     unreconciledAccountsQuery.eq('association_id', assocFilter);
     openWorkOrdersQuery.eq('association_id', assocFilter);
+    overdueMaintenanceQuery.eq('association_id', assocFilter);
+    awaitingPaymentQuery.eq('association_id', assocFilter);
+    upcomingEventsQuery.eq('association_id', assocFilter);
+    arBalanceQuery.eq('association_id', assocFilter);
+  }
+
+  // ── Activity feed queries ─────────────────────────────────────
+  const recentViolationsQuery = db
+    .from('violations')
+    .select('id, title, status, created_at, associations(name)')
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const recentWorkOrdersQuery = db
+    .from('work_orders')
+    .select('id, title, status, created_at, associations(name)')
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const recentBillsQuery = db
+    .from('payable_bills')
+    .select('id, memo, amount, status, created_at, associations(name), vendors(name)')
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const recentPaymentsQuery = db
+    .from('receivable_payments_ledger')
+    .select('payment_id, amount, owner_name, unit_number, created_at, payment_date')
+    .order('created_at', { ascending: false, nullsFirst: false })
+    .limit(5);
+
+  if (assocFilter) {
+    recentViolationsQuery.eq('association_id', assocFilter);
+    recentWorkOrdersQuery.eq('association_id', assocFilter);
+    recentBillsQuery.eq('association_id', assocFilter);
+    recentPaymentsQuery.eq('association_id', assocFilter);
   }
 
   const [
@@ -91,10 +171,18 @@ export default async function DashboardPage({
     { count: unreconciledBankAccounts },
     { count: scheduledReportsDue },
     { count: openWorkOrders },
+    { count: overdueMaintenance },
+    { data: awaitingPaymentBills },
+    { data: arBalanceRows },
+    { count: upcomingEvents },
     { data: focusViolations },
     { data: focusWorkOrders },
     { data: focusBills },
     { data: focusReports },
+    { data: recentViolations },
+    { data: recentWorkOrders },
+    { data: recentBills },
+    { data: recentPayments },
   ] = await Promise.all([
     openViolationsQuery,
     overdueViolationsQuery,
@@ -102,10 +190,18 @@ export default async function DashboardPage({
     unreconciledAccountsQuery,
     reportsDueQuery,
     openWorkOrdersQuery,
+    overdueMaintenanceQuery,
+    awaitingPaymentQuery,
+    arBalanceQuery,
+    upcomingEventsQuery,
     buildViolationQueue(db, assocFilter, todayDate),
     buildWorkOrderQueue(db, assocFilter),
     buildBillQueue(db, assocFilter),
     buildReportQueue(db, todayIso),
+    recentViolationsQuery,
+    recentWorkOrdersQuery,
+    recentBillsQuery,
+    recentPaymentsQuery,
   ]);
 
   const commandMetrics = buildCommandMetrics({
@@ -126,6 +222,58 @@ export default async function DashboardPage({
     ),
     sublabel: (
       <Link href={metric.href} className="text-blue-700 hover:underline">
+        Open list
+      </Link>
+    ),
+  }));
+
+  // ── Demo-worthy metrics row ──────────────────────────────────
+  const arBalanceTotal = (arBalanceRows ?? []).reduce(
+    (sum: number, row: any) => sum + (row.balance ?? 0),
+    0,
+  );
+  const billsAwaitingTotal = (awaitingPaymentBills ?? []).reduce(
+    (sum: number, row: any) => sum + (row.amount ?? 0),
+    0,
+  );
+
+  const demoMetrics = [
+    {
+      label: 'Open violations',
+      value: openViolations ?? 0,
+      href: '/violations?status=open',
+    },
+    {
+      label: 'Maintenance overdue',
+      value: overdueMaintenance ?? 0,
+      href: '/work-orders?status=overdue',
+    },
+    {
+      label: 'Bills awaiting',
+      value: billsAwaitingTotal,
+      href: '/bills?status=approved',
+    },
+    {
+      label: 'AR balance',
+      value: arBalanceTotal,
+      href: '/charges',
+    },
+    {
+      label: 'Events this week',
+      value: upcomingEvents ?? 0,
+      href: '/calendar',
+    },
+  ].map((m) => ({
+    label: m.label,
+    value: (
+      <Link href={m.href} className="hover:text-brand-700 hover:underline">
+        {m.label === 'AR balance' || m.label === 'Bills awaiting'
+          ? money(m.value)
+          : m.value}
+      </Link>
+    ),
+    sublabel: (
+      <Link href={m.href} className="text-blue-700 hover:underline">
         Open list
       </Link>
     ),
@@ -166,6 +314,58 @@ export default async function DashboardPage({
     })),
   ].slice(0, 10);
 
+  // ── Build activity feed ──────────────────────────────────────
+  type ActivityItem = {
+    id: string;
+    type: 'violation' | 'work_order' | 'bill' | 'payment';
+    label: string;
+    detail: string;
+    created_at: string;
+    tone: 'red' | 'green' | 'amber' | 'blue';
+    href: string;
+  };
+
+  const activityFeed: ActivityItem[] = [
+    ...(recentViolations ?? []).map((v: any) => ({
+      id: `v-${v.id}`,
+      type: 'violation' as const,
+      label: `New violation: ${v.title}`,
+      detail: `${v.associations?.name ?? 'Association'} — ${formatStatus(v.status)}`,
+      created_at: v.created_at,
+      tone: 'red' as const,
+      href: `/violations/${v.id}`,
+    })),
+    ...(recentWorkOrders ?? []).map((w: any) => ({
+      id: `wo-${w.id}`,
+      type: 'work_order' as const,
+      label: `Work order: ${w.title}`,
+      detail: `${w.associations?.name ?? 'Association'} — ${formatStatus(w.status)}`,
+      created_at: w.created_at,
+      tone: w.status === 'completed' ? 'green' as const : 'blue' as const,
+      href: `/work-orders/${w.id}`,
+    })),
+    ...(recentBills ?? []).map((b: any) => ({
+      id: `bill-${b.id}`,
+      type: 'bill' as const,
+      label: `Bill: ${b.vendors?.name ?? b.memo ?? 'Untitled'}`,
+      detail: `${b.associations?.name ?? 'Portfolio'} — ${money(b.amount)} — ${formatStatus(b.status)}`,
+      created_at: b.created_at,
+      tone: 'amber' as const,
+      href: `/bills?status=${b.status}`,
+    })),
+    ...(recentPayments ?? []).map((p: any) => ({
+      id: `pmt-${p.payment_id}`,
+      type: 'payment' as const,
+      label: `Payment received`,
+      detail: `${p.owner_name ?? 'Owner'} — ${p.unit_number ? `Unit ${p.unit_number} — ` : ''}${money(p.amount)}`,
+      created_at: p.created_at ?? p.payment_date,
+      tone: 'green' as const,
+      href: `/charges`,
+    })),
+  ]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10);
+
   return (
     <DataWorkspace
       title={activeAssoc ? `${activeAssoc.name} command center` : 'Command center'}
@@ -192,6 +392,35 @@ export default async function DashboardPage({
       <div className="space-y-6">
         <MetricStrip metrics={linkedMetrics} />
 
+        {/* ── Quick Actions ────────────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Quick actions</span>
+          <Link href="/violations/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + Report Violation
+            </Button>
+          </Link>
+          <Link href="/maintenance/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + Add Maintenance
+            </Button>
+          </Link>
+          <Link href="/bills/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + Create Bill
+            </Button>
+          </Link>
+          <Link href="/calendar/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + Schedule Event
+            </Button>
+          </Link>
+        </div>
+
+        {/* ── Demo Metrics Row ─────────────────────────────── */}
+        <MetricStrip metrics={demoMetrics} />
+
+        {/* ── Focus queue ──────────────────────────────────── */}
         <section className="rounded border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
@@ -219,6 +448,38 @@ export default async function DashboardPage({
             </ul>
           ) : (
             <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
+          )}
+        </section>
+
+        {/* ── Recent Activity Feed ──────────────────────────── */}
+        <section className="rounded border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-950">Recent activity</h2>
+              <p className="mt-1 text-xs text-gray-500">Latest events across violations, maintenance, bills, and payments.</p>
+            </div>
+          </div>
+          {activityFeed.length > 0 ? (
+            <ul className="divide-y divide-gray-100">
+              {activityFeed.map((item) => (
+                <li key={item.id}>
+                  <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>
+                          {item.type === 'violation' ? 'Violation' : item.type === 'work_order' ? 'Maintenance' : item.type === 'bill' ? 'Bill' : 'Payment'}
+                        </span>
+                        <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-gray-400">{timeAgo(item.created_at)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-5 py-10 text-center text-sm text-gray-500">No recent activity to display.</div>
           )}
         </section>
 
@@ -277,16 +538,32 @@ function buildReportQueue(db: any, todayIso: string) {
     .limit(4);
 }
 
-function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate') {
+function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate' | 'green') {
   const classes = {
     red: 'bg-red-100 text-red-700',
     amber: 'bg-amber-100 text-amber-800',
     blue: 'bg-blue-100 text-blue-700',
     slate: 'bg-slate-100 text-slate-700',
+    green: 'bg-green-100 text-green-700',
   };
   return classes[tone];
 }
 
 function formatStatus(status: string | null | undefined) {
   return status ? status.replace(/_/g, ' ') : 'not set';
+}
+
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date(dateStr);
 }
