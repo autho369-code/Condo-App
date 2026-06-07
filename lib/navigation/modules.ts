@@ -5,7 +5,8 @@ export type AppModule = {
 };
 
 export const appModules: AppModule[] = [
-  { label: 'Command', href: '/dashboard' },
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Calendar', href: '/calendar' },
   {
     label: 'Associations',
     href: '/associations',
