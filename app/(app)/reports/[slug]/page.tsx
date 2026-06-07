@@ -473,7 +473,7 @@ async function IncomeStatementView({
   ];
 
   const totalRevenue  = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number < 5000 || (a.number >= 7000 && a.number < 8000)) ? getISBalance(a) : 0), 0);
-  const totalExpenses = allAccounts.reduce((s, a) => s + (classifyIS(a) && a.number >= 5000 && a.number < 7000 || a.number >= 8000 ? Math.abs(getISBalance(a)) : 0), 0);
+  const totalExpenses = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number >= 5000 && a.number < 7000 || a.number >= 8000) ? Math.abs(getISBalance(a)) : 0), 0);
   const netIncome = totalRevenue - totalExpenses;
 
   const renderISSection = (label: string, items: any[], showValues = true) => {
@@ -596,12 +596,18 @@ async function CashFlowView({
   const bankTransfers = (transfers ?? []) as any[];
 
   // Fetch cash-related journal lines (accounts 1000-1999)
-  const { data: cashLines } = await db
+  let cashLineQuery = db
     .from('journal_lines')
     .select('id, debit_amount, credit_amount, gl_account_id, association_id, journal_entries!inner(entry_date, posted, memo, description)')
     .eq('journal_entries.posted', true)
     .gte('journal_entries.entry_date', period.from)
     .lte('journal_entries.entry_date', period.to);
+
+  if (selectedAssociation) {
+    cashLineQuery = cashLineQuery.eq('association_id', selectedAssociation);
+  }
+
+  const { data: cashLines } = await cashLineQuery;
 
   const cashJournalLines = (cashLines ?? []) as any[];
 
