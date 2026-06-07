@@ -54,8 +54,21 @@ async function deleteTask(formData: FormData) {'use server';
 async function completeTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const id = formData.get('id') as string;
-  const { data: task } = await db.from('maintenance_tasks').select('frequency,custom_interval_days,next_due_date').eq('id',id).single();
-  if(task?.next_due_date){
+  const { data: task } = await db.from('maintenance_tasks').select('*, profiles!assigned_staff_id(full_name)').eq('id',id).single();
+  if(!task) { revalidatePath('/maintenance'); return; }
+
+  const now = new Date().toISOString();
+  // Record completion in history
+  await db.from('maintenance_task_history').insert({
+    task_id: id,
+    status: 'completed',
+    completed_date: now,
+    notes: task.notes,
+    vendor_id: task.vendor_id,
+  });
+
+  // Calculate next due date for auto-recurring
+  if(task.next_due_date && task.frequency){
     const d = new Date(task.next_due_date);
     const freq = task.frequency; const cd = task.custom_interval_days;
     if(freq==='weekly') d.setDate(d.getDate()+7);
@@ -66,22 +79,32 @@ async function completeTask(formData: FormData) {'use server';
     else if(freq==='annual') d.setFullYear(d.getFullYear()+1);
     else if(freq==='custom'&&cd) d.setDate(d.getDate()+cd);
     const nd = d.toISOString().slice(0,10);
-    await db.from('maintenance_task_history').insert({task_id:id,next_due_date:nd});
-    await db.from('maintenance_tasks').update({last_completed_at:new Date().toISOString(),next_due_date:nd}).eq('id',id);
+    await db.from('maintenance_tasks').update({
+      last_completed_at: now,
+      next_due_date: nd,
+      status: 'active',
+    }).eq('id',id);
+  } else {
+    // No frequency or no due date — just mark completed
+    await db.from('maintenance_tasks').update({
+      last_completed_at: now,
+      status: 'completed',
+    }).eq('id',id);
   }
   revalidatePath('/maintenance');
 }
 
 async function cloneGroup(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
-  const { data: templates } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string).order('sort_order');
+  const { data: templates } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string);
   if(templates){
     const today = new Date().toISOString().slice(0,10);
     await db.from('maintenance_tasks').insert(templates.map((t:any)=>({
       association_id: formData.get('association_id'), template_id: t.id,
-      task_name: t.task_name, category: t.category, frequency: t.frequency,
-      custom_interval_days: t.custom_interval_days, reminder_days: t.reminder_days,
-      priority: t.priority, start_date: today, next_due_date: today, notes: t.notes,
+      task_name: t.name, category: t.category,
+      frequency: 'monthly', // default frequency for cloned tasks
+      priority: 'normal',
+      start_date: today, next_due_date: today, notes: t.description,
     })));
   }
   revalidatePath('/maintenance');
@@ -212,7 +235,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
               <h2 className="text-lg font-semibold text-ink-900 mb-1">{g.name}</h2>
               <p className="text-sm text-ink-500 mb-4">{g.description} · {(g.templates??[]).length} tasks</p>
               <div className="grid grid-cols-3 gap-2">
-                {(g.templates??[]).map((t:any)=>(<div key={t.id} className="rounded border border-ink-100 p-3 text-sm"><div className="font-medium text-ink-900">{t.task_name}</div><div className="mt-1 flex gap-2 text-xs text-ink-500"><span>{t.category}</span><span>·</span><span>{FREQ[t.frequency]||t.frequency}</span><span>·</span><span>{t.priority}</span></div></div>))}
+                {(g.templates??[]).map((t:any)=>(<div key={t.id} className="rounded border border-ink-100 p-3 text-sm"><div className="font-medium text-ink-900">{t.name}</div><div className="mt-1 text-xs text-ink-500"><span>{t.category}</span>{t.description && <><span> · </span><span>{t.description.slice(0,60)}{t.description.length>60?'...':''}</span></>}</div></div>))}
               </div>
             </section>
           ))}
