@@ -8,8 +8,8 @@ const plans = [
     period: '/month',
     doors: 'Up to 250 units',
     best: 'Small management companies and self-managed associations',
-    cta: 'Start Free Trial',
-    href: '/signup?plan=foundation',
+    cta: 'Schedule Demo',
+    href: '/demo',
     featured: false,
     features: ['Owner Portal', 'Board Portal', 'Manager Dashboard', 'Work Orders', 'Violations', 'Document Management', 'Email Support', 'White Glove Setup'],
   },
@@ -19,8 +19,8 @@ const plans = [
     period: '/month',
     doors: '251 – 1,000 units',
     best: 'Growing management companies scaling their portfolio',
-    cta: 'Start Free Trial',
-    href: '/signup?plan=growth',
+    cta: 'Schedule Demo',
+    href: '/demo',
     featured: true,
     features: ['Everything in Foundation', 'Vendor Portal', 'Maintenance Calendar', 'Compliance Tracking', 'Vendor Coordination', 'Association Health Scores', 'SMS Notifications', 'Priority Support'],
   },
@@ -101,8 +101,8 @@ export default function PricingPage() {
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-lg bg-[#1E3A5F] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#162D4A] transition">
               Schedule Demo <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
-              Start Free Trial
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
+              View pricing
             </Link>
           </div>
         </div>
@@ -263,17 +263,17 @@ export default function PricingPage() {
       <section className="border-t border-gray-100 bg-gray-50 py-16">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Ready to see how much simpler property management can be?
+            See how Portier369 runs your entire portfolio.
           </h2>
           <p className="mt-3 text-gray-600">
-            30-day free trial. No credit card required. White glove setup included.
+            White glove setup included. No long-term contract required.
           </p>
           <div className="mt-8 flex items-center justify-center gap-4">
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-lg bg-[#1E3A5F] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#162D4A] transition">
               Schedule Demo <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
-              Start Free Trial
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
+              View pricing
             </Link>
           </div>
         </div>

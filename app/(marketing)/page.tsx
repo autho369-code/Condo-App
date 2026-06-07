@@ -174,12 +174,12 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: 'Association Health Scores', body: 'Every community gets a real-time health score. Open work orders, overdue violations, delinquency, and manager response times — weighted into a single number that tells you where to focus.', stat: 'Proactive, not reactive' },
-              { label: 'Maintenance Planning', body: 'Track annual, monthly, seasonal, and vendor maintenance across every association. Automated reminders prevent missed deadlines before they become expensive problems.', stat: 'Prevent, don\'t repair' },
-              { label: 'Compliance Tracking', body: 'Monitor inspections, renewals, certificates, and filings for every vendor. Expiration alerts, 1099-ready records, and audit-trail documentation.', stat: 'Audit-ready always' },
-              { label: 'Board Governance', body: 'Give boards financial visibility, documents, minutes, calendars, violations, and reports — without giving them operational control over the management company.', stat: 'Visibility without risk' },
-              { label: 'Portfolio Oversight', body: 'Company Admins oversee every manager, association, door count, workload, performance, and revenue stream from a single control center.', stat: 'Full portfolio clarity' },
-              { label: 'Bring Your Own AI', body: 'Connect your own OpenAI, Claude, or Gemini key. Draft notices, summarize meetings, prepare responses — automation that runs on your credentials, your data.', stat: 'Your AI, your rules' },
+              { label: 'Association Health Scores', body: 'Every community gets a real-time health score. Open work orders, overdue violations, delinquency, and manager response times — weighted into a single number that tells you where to focus. Spot problems before boards start calling.', stat: 'Proactive, not reactive' },
+              { label: 'Annual Maintenance Calendar', body: 'Plan and track every recurring maintenance task — HVAC seasonal service, gutter cleaning, pool opening, fire inspections, elevator certifications. Automated reminders ensure nothing gets missed across any association.', stat: 'Never miss a deadline' },
+              { label: 'Automated Violation Workflow', body: 'From photo capture to notice generation to hearing scheduling — the entire violation lifecycle is automated. Managers spend less time on paperwork and more time resolving issues. Owners receive consistent, timely communication at every step.', stat: 'Close violations faster' },
+              { label: 'Compliance Tracking', body: 'Monitor insurance, licenses, certifications, and contract expirations for every vendor. Automated alerts before deadlines. 1099-ready records and complete audit trails built in.', stat: 'Audit-ready always' },
+              { label: 'Board Governance', body: 'Give boards financial visibility, documents, minutes, calendars, violations, and reports — without giving them operational control over the management company. Association-scoped access only.', stat: 'Visibility without risk' },
+              { label: 'Bring Your Own AI', body: 'Connect your own OpenAI, Claude, or Gemini key. Auto-draft violation notices, summarize board meetings, generate owner responses — automation that runs on your credentials, your data.', stat: 'Your AI, your rules' },
             ].map(item => (
               <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-[#0D9488] mb-2">{item.stat}</div>
