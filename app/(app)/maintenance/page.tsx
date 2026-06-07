@@ -31,7 +31,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
 
   const overdue = rows.filter((t: any) => t.days_until_due < 0).length;
   const upcoming = rows.filter((t: any) => t.days_until_due >= 0 && t.days_until_due <= 14).length;
-  const categories = [...new Set(rows.map((t: any) => t.category))].sort();
+  const categories: string[] = [...new Set(rows.map((t: any) => t.category as string))].sort();
 
   return (
     <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
