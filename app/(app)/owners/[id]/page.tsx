@@ -657,6 +657,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         </div>
       </div>
     </DataWorkspace>
+    </>
   );
 }
 
