@@ -31,16 +31,21 @@ export default async function LoginPage({
         ) : (
           <div className="text-xl font-semibold text-brand-600">{tenant?.companyName ?? 'Portier'}</div>
         )}
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">
-          {tenant ? `${tenant.companyName} Portal` : 'Sign In'}
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          {isAdminMode ? 'Restricted platform access.' : tenant ? `Access your association's management portal.` : 'Choose the workspace that matches your account.'}
-        </p>
-        {tenant && (
-          <div className="mt-2 text-xs text-gray-400">
-            Powered by <span className="font-medium text-brand-600">Portier</span>
-          </div>
+        {tenant ? (
+          <>
+            <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-950">{tenant.companyName}</h1>
+            <p className="mt-2 text-sm text-gray-500">Access your association's management portal.</p>
+            <div className="mt-3 text-xs text-gray-400">
+              Powered by <span className="font-semibold text-brand-600">Portier369</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">Sign In</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {isAdminMode ? 'Restricted platform access.' : 'Choose the workspace that matches your account.'}
+            </p>
+          </>
         )}
       </header>
 
