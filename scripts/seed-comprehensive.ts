@@ -203,7 +203,7 @@ async function seed() {
       const status = pick(['pending_approval','pending_approval','approved','approved','paid']);
       const amount = cents(200, 8500);
       await db.from('payable_bills').insert({
-        id: uid(), association_id: assoc.id,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         vendor_id: vendorIds[vendorData.indexOf(vendor)],
         gl_account_id: glMap.get(glAcct),
         bill_date: daysAgo(between(1, 45)),
@@ -270,7 +270,7 @@ async function seed() {
     for (let i = 0; i < between(3, 6); i++) {
       const vendor = pick(vendorData);
       await db.from('work_orders').insert({
-        id: uid(), association_id: assoc.id,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         unit_id: pick(unitIds),
         vendor_id: vendorIds[vendorData.indexOf(vendor)],
         title: pick(woTypes),
@@ -294,7 +294,7 @@ async function seed() {
       const poId = uid();
       const poTotal = cents(500, 15000);
       await db.from('purchase_orders').insert({
-        id: poId, association_id: assoc.id,
+        id: poId, portfolio_id: portfolioId, association_id: assoc.id,
         vendor_id: vendorIds[vendorData.indexOf(vendor)],
         number: `PO-${String(between(100,999))}`,
         status: pick(['open','approved','billed']),
@@ -319,7 +319,7 @@ async function seed() {
       const dueDate = daysAgo(between(-10, 30));
       const isOpen = dueDate < daysAgo(0) && Math.random() > 0.3;
       await db.from('violations').insert({
-        id: uid(), association_id: assoc.id,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         title: pick(violationTypes),
         description: `${pick(['First','Second','Final'])} notice — ${pick(['Owner notified','Board review pending','Photos attached','Witness reported'])}`,
         status: isOpen ? 'open' : pick(['closed','cured']),
@@ -348,7 +348,7 @@ async function seed() {
   for (const assoc of associations.slice(0, 3)) {
     for (const rule of rules) {
       await db.from('house_rules').insert({
-        id: uid(), association_id: assoc.id,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         title: rule.title, description: rule.description, category: rule.category,
         status: 'active',
       });
@@ -365,7 +365,7 @@ async function seed() {
       const inspId = uid();
       const status = pick(['scheduled','in_progress','completed','completed']);
       await db.from('inspections').insert({
-        id: inspId, association_id: assoc.id,
+        id: inspId, portfolio_id: portfolioId, association_id: assoc.id,
         unit_id: pick(unitIds),
         type: pick(inspectionTypes),
         scheduled_date: futureDays(between(-5, 20)),
@@ -395,7 +395,7 @@ async function seed() {
     for (let i = 0; i < between(2, 3); i++) {
       const purchasePrice = cents(2000, 50000);
       await db.from('fixed_assets').insert({
-        id: uid(), association_id: assoc.id,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         name: `${pick(['Main','Secondary','Emergency','Replacement'])} ${pick(assetCategories)} ${pick(['System','Unit','Equipment'])}`,
         category: pick(assetCategories),
         purchase_date: daysAgo(between(90, 1825)),
@@ -436,8 +436,7 @@ async function seed() {
       const type = pick(eventTypes);
       const startDate = futureDays(between(3, 60));
       await db.from('calendar_events').insert({
-        id: uid(), association_id: assoc.id,
-        portfolio_id: portfolioId,
+        id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         title: type === 'board_meeting' ? `${assoc.name} Board Meeting` : `${type.replace(/_/g,' ')} — ${assoc.name}`,
         event_type: type,
         calendar_scope: 'daily',
@@ -473,7 +472,7 @@ async function seed() {
       const dueDate = futureDays(between(-5, 30));
       const mtId = uid();
       await db.from('maintenance_tasks').insert({
-        id: mtId, association_id: assoc.id,
+        id: mtId, portfolio_id: portfolioId, association_id: assoc.id,
         task_name: taskName, category: cat,
         frequency: pick(['monthly','quarterly','semiannual','annual']),
         priority: pick(['normal','high']),

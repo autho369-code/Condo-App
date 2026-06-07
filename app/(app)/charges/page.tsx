@@ -651,7 +651,7 @@ function ReceivablesRail() {
         <div className="mt-3 grid gap-2">
           <RailLink href="/reports/aged-receivables" label="Aged Receivables" />
           <RailLink href="/reports/dues-roll" label="Dues Roll" />
-          <RailLink href="/reports/delinquency" label="Homeowner Delinquency" />
+          <RailLink href="/reports/owner-delinquency">Owner Delinquency</RailLink>
           <RailLink href="/reports/deposit_register" label="Deposit Register" />
           <RailLink href="/reports/payment_register" label="Payment Register" />
         </div>
