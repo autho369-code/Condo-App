@@ -253,6 +253,46 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
+          PREMIUM SERVICES
+          ═══════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-28 bg-white">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-14">
+            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-400">Premium services</span>
+            <h2 className="mt-4 text-[32px] font-bold leading-[1.15] tracking-[-0.02em] text-gray-900 sm:text-[40px]">
+              Hands-on services when you need them.
+            </h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+              Beyond the software. Expert services for management companies that want white-glove support, custom development, or operational outsourcing.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { title: 'Data migration', desc: 'Full portfolio migration from any legacy system. Units, owners, vendors, documents, financial history.' },
+              { title: 'AI document assistant', desc: 'Custom AI workflows trained on your documents. Auto-classify, extract, summarize, and organize.' },
+              { title: 'Custom website development', desc: 'Branded association websites, owner portals, and board communication hubs.' },
+              { title: 'White-label mobile app', desc: 'Your management company brand on iOS and Android. Owners and boards access everything from their phone.' },
+              { title: 'Accounting outsourcing', desc: 'Turn over your books. Assessments, payables, reconciliation, financial reporting.' },
+              { title: 'Full-service onboarding', desc: 'We set up every association, import every record, train every team member. You go live running.' },
+              { title: 'Bulk document digitization', desc: 'Decades of paper records scanned, OCR\'d, organized, and uploaded into your document center.' },
+              { title: 'Dedicated account manager', desc: 'A named point of contact who knows your portfolio, handles escalations, and manages your account.' },
+            ].map(svc => (
+              <div key={svc.title} className="rounded-xl border border-gray-200 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
+                <h3 className="font-semibold text-gray-900 text-[15px]">{svc.title}</h3>
+                <p className="mt-2 text-[13px] text-gray-500 leading-relaxed">{svc.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <a href="mailto:hello@portier369.com" className="inline-flex items-center gap-2 rounded-lg border border-[#1E3A5F]/20 bg-[#1E3A5F]/5 px-6 py-3 text-[15px] font-semibold text-[#1E3A5F] hover:bg-[#1E3A5F]/10 transition">
+              Contact hello@portier369.com for service pricing
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           TRUST
           ═══════════════════════════════════════════════ */}
       <section className="py-20 sm:py-28" style={{ backgroundColor: '#F5F4F1' }}>

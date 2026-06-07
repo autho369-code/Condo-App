@@ -259,6 +259,41 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* ── Premium Services ─────────────────────────── */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Premium services
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+              Expert hands-on services for management companies that need more than software.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              'Data migration — full portfolio migration from any legacy system',
+              'AI document assistant — custom AI workflows trained on your documents',
+              'Custom website development — branded sites, portals, communication hubs',
+              'White-label mobile app — your brand on iOS and Android',
+              'Accounting outsourcing — assessments, payables, reconciliation, reporting',
+              'Full-service onboarding — setup, import, training, go live running',
+              'Bulk document digitization — scan, OCR, organize decades of records',
+              'Dedicated account manager — named contact who knows your portfolio',
+            ].map(svc => (
+              <div key={svc} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm text-sm text-gray-600 leading-relaxed">
+                {svc}
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <a href="mailto:hello@portier369.com" className="inline-flex items-center gap-2 rounded-lg border border-[#1E3A5F]/20 bg-[#1E3A5F]/5 px-6 py-3 text-sm font-semibold text-[#1E3A5F] hover:bg-[#1E3A5F]/10 transition">
+              Contact hello@portier369.com for service pricing
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Bottom CTA ──────────────────────────────── */}
       <section className="border-t border-gray-100 bg-gray-50 py-16">
         <div className="mx-auto max-w-3xl px-6 text-center">
