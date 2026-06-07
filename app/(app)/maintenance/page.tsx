@@ -204,9 +204,11 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                       <td className="px-4 py-3 text-ink-600 text-xs">{FREQ[t.frequency]||t.frequency}</td>
                       <td className="px-4 py-3 text-ink-600">{t.vendors?.name||'—'}</td>
                       <td className="px-4 py-3">
-                        <span className={t.next_due_date && new Date(t.next_due_date) < new Date() ? 'text-bordeaux-700 font-medium' : 'text-ink-700'}>
-                          {date(t.next_due_date)||'—'}
-                        </span>
+                        {t.next_due_date ? (
+                          <span className={new Date(t.next_due_date) < new Date() ? 'text-bordeaux-700 font-medium' : 'text-ink-700'}>
+                            {date(t.next_due_date)}
+                          </span>
+                        ) : <span className="text-ink-400">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
