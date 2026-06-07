@@ -87,9 +87,11 @@ export default async function LoginPage({
                     {params.error && <p className="text-sm text-red-600">{params.error}</p>}
                     <p className="text-xs leading-5 text-gray-600">{item.note}</p>
                     <Button type="submit" className="w-full">{item.submitLabel}</Button>
-                    <div className="text-center text-sm text-gray-600">
-                      Need a new account? <Link href="/signup" className="text-brand-600 hover:underline">Request access</Link>
-                    </div>
+                    {item.id !== 'admin' && (
+                      <div className="text-center text-sm text-gray-600">
+                        Need a new account? <Link href="/signup" className="text-brand-600 hover:underline">Request access</Link>
+                      </div>
+                    )}
                   </form>
                 )}
               </div>
@@ -97,6 +99,12 @@ export default async function LoginPage({
           );
         })}
       </Card>
+
+      {!isAdminMode && !tenant && (
+        <div className="text-center">
+          <Link href="/login?mode=admin" className="text-xs text-gray-400 hover:text-gray-600">Platform admin sign in</Link>
+        </div>
+      )}
 
       <div className="space-y-3 text-center">
         {localPreview && (
