@@ -173,7 +173,6 @@ export async function sendBulkComms(formData: FormData) {
       commRows.push({
         portfolio_id: me.portfolio?.id,
         channel: 'email',
-        context: 'maintenance',
         status: 'queued',
         recipient_group: commType,
         recipient_email: r.email,
@@ -202,24 +201,12 @@ export async function sendBulkComms(formData: FormData) {
       commRows.push({
         portfolio_id: me.portfolio?.id,
         channel: 'sms',
-        context: 'maintenance',
         status: 'queued',
         recipient_group: commType,
         recipient_phone: r.phone,
         recipient_name: r.vendorName,
         body: personalizedBody.substring(0, 1600),
         created_by: me.auth_user_id,
-      });
-
-      smsMessageRows.push({
-        portfolio_id: me.portfolio?.id,
-        vendor_id: r.vendorId,
-        to_phone: r.phone,
-        body: personalizedBody.substring(0, 1600),
-        direction: 'outbound',
-        status: 'pending',
-        context: 'maintenance',
-        context_type: commType,
       });
 
       smsCount++;
@@ -236,21 +223,6 @@ export async function sendBulkComms(formData: FormData) {
   if (emailRows.length > 0) {
     const { error: emailErr } = await db.from('email_queue').insert(emailRows);
     if (emailErr) return { success: false, error: `Failed to queue emails: ${emailErr.message}` };
-  }
-
-  if (smsMessageRows.length > 0) {
-    // Insert into sms_messages (requires conversation context; use a flat queue approach)
-    for (const sms of smsMessageRows) {
-      await db.from('sms_messages').insert({
-        portfolio_id: sms.portfolio_id,
-        body: sms.body,
-        to_number: sms.to_phone,
-        from_number: me.portfolio?.phone_number ?? '+10000000000',
-        direction: 'outbound',
-        status: 'pending',
-        created_by: me.auth_user_id,
-      }).select('id');
-    }
   }
 
   // Revalidate paths

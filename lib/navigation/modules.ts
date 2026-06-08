@@ -26,6 +26,8 @@ export const appModules: AppModule[] = [
       { label: 'Journal entries', href: '/journal-entries' },
       { label: 'Bank transfers', href: '/bank-transfers' },
       { label: 'GL accounts', href: '/gl-accounts' },
+      { label: 'Budget', href: '/budget' },
+      { label: 'Budget vs Actuals', href: '/budget-vs-actuals' },
       { label: 'Diagnostics', href: '/diagnostics' },
       { label: '1099 Reporting', href: '/accounting/1099' },
     ],

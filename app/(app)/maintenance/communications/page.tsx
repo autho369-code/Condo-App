@@ -48,11 +48,11 @@ export default async function MaintenanceCommunicationsPage({
     .order('name')
     .limit(200);
 
-  // Fetch past maintenance communications
+  // Fetch past maintenance communications (all recent messages)
   const { data: messages } = await db
     .from('communication_messages')
     .select('id, channel, status, recipient_group, recipient_email, recipient_phone, subject, body, created_at, sent_at')
-    .eq('context', 'maintenance')
+    .eq('portfolio_id', me.portfolio?.id)
     .order('created_at', { ascending: false })
     .limit(100);
 
