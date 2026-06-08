@@ -15,15 +15,6 @@ export default async function ProposalPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased">
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
-        <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A5F] text-sm font-bold text-white">P</div>
-            <span className="text-lg font-semibold text-gray-900">Portier369</span>
-          </Link>
-        </div>
-      </header>
-
       {/* Hero */}
       <section className="bg-white pt-16 pb-8 sm:pt-24 sm:pb-12">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
