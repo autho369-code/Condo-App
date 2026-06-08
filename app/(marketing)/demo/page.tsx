@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 
 export const metadata = { title: 'Request a Personalized Proposal — Portier369' }
 
@@ -32,9 +31,9 @@ export default async function ProposalPage({ searchParams }: { searchParams: Pro
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-500 shadow-sm">Demo Association</span>
               <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
-                50 East Chestnut Condominium Association
+                Demo Association
               </h1>
-              <p className="mt-3 text-lg text-gray-500">Chicago, Illinois</p>
+              <p className="mt-3 text-lg text-gray-500">Sample community — representative data shown</p>
 
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {[
@@ -58,11 +57,19 @@ export default async function ProposalPage({ searchParams }: { searchParams: Pro
             </div>
 
             <div className="space-y-4">
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <Image src="/demo-chestnut.jpg" alt="50 East Chestnut exterior" fill className="object-cover" />
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gradient-to-br from-[#1E3A5F]/10 via-[#1E3A5F]/5 to-white flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-5xl mb-2">🏢</div>
+                  <div className="text-sm font-medium text-[#1E3A5F]">Demo Association</div>
+                  <div className="text-xs text-gray-400 mt-1">Sample community dashboard</div>
+                </div>
               </div>
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <Image src="/demo-lobby.jpg" alt="50 East Chestnut lobby" fill className="object-cover" />
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gradient-to-br from-emerald-50 via-white to-[#1E3A5F]/5 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">📊</div>
+                  <div className="text-sm font-medium text-emerald-700">Platform Preview</div>
+                  <div className="text-xs text-gray-400 mt-1">Management dashboard</div>
+                </div>
               </div>
             </div>
           </div>
