@@ -20,11 +20,13 @@ import {
   LogOut,
   Menu,
   X,
+  Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { label: 'Dashboard', href: '/board', icon: LayoutDashboard },
+  { label: 'Meetings', href: '/board/meetings', icon: Calendar },
   { label: 'Financials', href: '/board/financials', icon: DollarSign },
   { label: 'Budget vs Actual', href: '/board/budget', icon: BarChart3 },
   { label: 'Delinquencies', href: '/board/delinquencies', icon: AlertCircle },

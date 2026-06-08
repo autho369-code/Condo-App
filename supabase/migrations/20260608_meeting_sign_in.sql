@@ -279,8 +279,8 @@ $$;
 -- 12. Function to record attendance with optional signature
 CREATE OR REPLACE FUNCTION record_meeting_attendance(
   p_meeting_id uuid,
-  p_owner_id uuid DEFAULT NULL,
   p_attendee_name text,
+  p_owner_id uuid DEFAULT NULL,
   p_attendee_role text DEFAULT 'owner',
   p_signature_data text DEFAULT NULL,
   p_voting_eligible boolean DEFAULT true,
