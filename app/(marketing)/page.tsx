@@ -27,29 +27,26 @@ export default async function HomePage() {
           ═══════════════════════════════════════════════ */}
       <section className="relative overflow-hidden bg-white pt-20 pb-16 sm:pt-32 sm:pb-24">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(30,58,95,0.05),transparent)]" />
-        <div className="relative mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="max-w-4xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-500 shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Software built from 29 years in the field — not from a conference room.
-            </span>
-            <h1 className="mt-8 text-5xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-900 sm:text-6xl lg:text-7xl">
-              Run your entire property management company
-              <br />
-              <span className="text-[#1E3A5F]">from one platform.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 sm:text-xl">
-              Every workflow inside Portier369 comes from actual condominium and HOA operations, including violations, maintenance, board approvals, owner communications, budgeting, and vendor management.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">
-                Request Proposal
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </Link>
-              <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition">
-                View pricing
-              </Link>
-            </div>
+        <div className="relative mx-auto max-w-[1280px] px-6 lg:px-8 text-center">
+          <h1 className="text-5xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-900 sm:text-6xl lg:text-7xl">
+            Run your entire property management company
+            <br />
+            <span className="text-[#1E3A5F]">from one platform.</span>
+          </h1>
+          <p className="mt-6 mx-auto max-w-4xl text-xl leading-relaxed text-gray-700 sm:text-2xl font-medium">
+            Software built from 29 years in the field — not from a conference room.
+          </p>
+          <p className="mt-5 mx-auto max-w-2xl text-lg leading-relaxed text-gray-500">
+            Every workflow inside Portier369 comes from actual condominium and HOA operations, including violations, maintenance, board approvals, owner communications, budgeting, and vendor management.
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">
+              Request Proposal
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </Link>
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition">
+              View pricing
+            </Link>
           </div>
 
           {/* Product Preview */}
