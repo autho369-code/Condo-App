@@ -69,6 +69,20 @@ export type Database = {
             foreignKeyName: "accounting_periods_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "accounting_periods_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "accounting_periods_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -181,6 +195,20 @@ export type Database = {
             foreignKeyName: "amenity_tags_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "amenity_tags_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "amenity_tags_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -255,6 +283,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "api_keys_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "api_keys_portfolio_id_fkey"
@@ -439,6 +481,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "approval_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "approval_requests_portfolio_id_fkey"
@@ -957,6 +1013,149 @@ export type Database = {
           },
         ]
       }
+      association_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          association_id: string
+          id: string
+          manager_id: string | null
+          portfolio_id: string | null
+          role: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          association_id: string
+          id?: string
+          manager_id?: string | null
+          portfolio_id?: string | null
+          role?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          association_id?: string
+          id?: string
+          manager_id?: string | null
+          portfolio_id?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "association_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "association_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "association_assignments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "association_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "association_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
       association_attachments: {
         Row: {
           archived_at: string | null
@@ -1309,6 +1508,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "association_managers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "association_managers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "association_managers_portfolio_id_fkey"
@@ -1815,6 +2028,20 @@ export type Database = {
             foreignKeyName: "associations_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -1853,7 +2080,50 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "associations_site_manager_user_id_fkey"
+            columns: ["site_manager_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
         ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          changes: Json | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changes?: Json | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: []
       }
       automation_tasks: {
         Row: {
@@ -2140,6 +2410,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopay_mandates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "autopay_mandates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "autopay_mandates_portfolio_id_fkey"
@@ -2507,6 +2791,20 @@ export type Database = {
             foreignKeyName: "bank_accounts_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -2516,6 +2814,242 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      bank_reconciliation_items: {
+        Row: {
+          amount: number
+          cleared_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_cleared: boolean
+          journal_line_id: string | null
+          reconciliation_id: string
+          sort_order: number
+          type: string
+        }
+        Insert: {
+          amount?: number
+          cleared_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_cleared?: boolean
+          journal_line_id?: string | null
+          reconciliation_id: string
+          sort_order?: number
+          type?: string
+        }
+        Update: {
+          amount?: number
+          cleared_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_cleared?: boolean
+          journal_line_id?: string | null
+          reconciliation_id?: string
+          sort_order?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_items_journal_line_id_fkey"
+            columns: ["journal_line_id"]
+            isOneToOne: false
+            referencedRelation: "journal_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          bank_account_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          difference: number | null
+          ending_book_balance: number
+          id: string
+          notes: string | null
+          portfolio_id: string
+          reconciled_balance: number | null
+          statement_balance: number
+          statement_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bank_account_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          difference?: number | null
+          ending_book_balance?: number
+          id?: string
+          notes?: string | null
+          portfolio_id: string
+          reconciled_balance?: number | null
+          statement_balance?: number
+          statement_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bank_account_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          difference?: number | null
+          ending_book_balance?: number
+          id?: string
+          notes?: string | null
+          portfolio_id?: string
+          reconciled_balance?: number | null
+          statement_balance?: number
+          statement_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category: string | null
+          category_detail: string | null
+          created_at: string
+          date: string
+          gl_account_id: string | null
+          id: string
+          iso_currency_code: string | null
+          match_confidence: number | null
+          match_method: string | null
+          matched_at: string | null
+          merchant_name: string | null
+          name: string
+          pending: boolean
+          plaid_item_id: string | null
+          plaid_transaction_id: string
+          portfolio_id: string
+          reviewed: boolean
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category?: string | null
+          category_detail?: string | null
+          created_at?: string
+          date: string
+          gl_account_id?: string | null
+          id?: string
+          iso_currency_code?: string | null
+          match_confidence?: number | null
+          match_method?: string | null
+          matched_at?: string | null
+          merchant_name?: string | null
+          name: string
+          pending?: boolean
+          plaid_item_id?: string | null
+          plaid_transaction_id: string
+          portfolio_id: string
+          reviewed?: boolean
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category?: string | null
+          category_detail?: string | null
+          created_at?: string
+          date?: string
+          gl_account_id?: string | null
+          id?: string
+          iso_currency_code?: string | null
+          match_confidence?: number | null
+          match_method?: string | null
+          matched_at?: string | null
+          merchant_name?: string | null
+          name?: string
+          pending?: boolean
+          plaid_item_id?: string | null
+          plaid_transaction_id?: string
+          portfolio_id?: string
+          reviewed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_plaid_item_id_fkey"
+            columns: ["plaid_item_id"]
+            isOneToOne: false
+            referencedRelation: "plaid_items"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2588,6 +3122,20 @@ export type Database = {
             foreignKeyName: "bank_transfers_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_transfers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "bank_transfers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -2603,6 +3151,94 @@ export type Database = {
             columns: ["to_bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_usage: {
+        Row: {
+          created_at: string | null
+          doors_active: number | null
+          doors_limit: number | null
+          doors_overage: number | null
+          id: string
+          period_end: string
+          period_start: string
+          portfolio_id: string
+          price_per_door_cents: number | null
+          status: string | null
+          subscription_id: string | null
+          total_charge_cents: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          doors_active?: number | null
+          doors_limit?: number | null
+          doors_overage?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          portfolio_id: string
+          price_per_door_cents?: number | null
+          status?: string | null
+          subscription_id?: string | null
+          total_charge_cents?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          doors_active?: number | null
+          doors_limit?: number | null
+          doors_overage?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          portfolio_id?: string
+          price_per_door_cents?: number | null
+          status?: string | null
+          subscription_id?: string | null
+          total_charge_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_usage_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_usage_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "billing_usage_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "billing_usage_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "billing_usage_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "billing_usage_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -2690,6 +3326,99 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_homeowner_ledgers"
             referencedColumns: ["association_id"]
+          },
+        ]
+      }
+      board_comments: {
+        Row: {
+          association_id: string
+          author_id: string
+          author_name: string | null
+          comment: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          violation_id: string | null
+          visibility: string
+        }
+        Insert: {
+          association_id: string
+          author_id: string
+          author_name?: string | null
+          comment: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          violation_id?: string | null
+          visibility?: string
+        }
+        Update: {
+          association_id?: string
+          author_id?: string
+          author_name?: string | null
+          comment?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          violation_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "board_comments_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "violations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2808,6 +3537,79 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_homeowner_ledgers"
             referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          attendee_email: string | null
+          attendee_name: string
+          cal_event_id: string | null
+          cal_event_uid: string | null
+          created_at: string
+          end_time: string
+          id: string
+          lead_id: string | null
+          notes: string | null
+          provider_id: string | null
+          service_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendee_email?: string | null
+          attendee_name: string
+          cal_event_id?: string | null
+          cal_event_uid?: string | null
+          created_at?: string
+          end_time: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          provider_id?: string | null
+          service_id?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attendee_email?: string | null
+          attendee_name?: string
+          cal_event_id?: string | null
+          cal_event_uid?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          provider_id?: string | null
+          service_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3168,6 +3970,7 @@ export type Database = {
           maintenance_instructions: string | null
           maintenance_notified_at: string | null
           maintenance_notify_error: string | null
+          maintenance_task_id: string | null
           notification_recipients: Json
           notify_maintenance: boolean
           notify_sms: boolean
@@ -3208,6 +4011,7 @@ export type Database = {
           maintenance_instructions?: string | null
           maintenance_notified_at?: string | null
           maintenance_notify_error?: string | null
+          maintenance_task_id?: string | null
           notification_recipients?: Json
           notify_maintenance?: boolean
           notify_sms?: boolean
@@ -3248,6 +4052,7 @@ export type Database = {
           maintenance_instructions?: string | null
           maintenance_notified_at?: string | null
           maintenance_notify_error?: string | null
+          maintenance_task_id?: string | null
           notification_recipients?: Json
           notify_maintenance?: boolean
           notify_sms?: boolean
@@ -3321,11 +4126,39 @@ export type Database = {
             referencedColumns: ["association_id"]
           },
           {
+            foreignKeyName: "calendar_events_maintenance_task_id_fkey"
+            columns: ["maintenance_task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_maintenance_task_id_fkey"
+            columns: ["maintenance_task_id"]
+            isOneToOne: false
+            referencedRelation: "v_upcoming_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "calendar_events_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "calendar_events_portfolio_id_fkey"
@@ -3482,6 +4315,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_categories_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "charge_categories_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "charge_categories_portfolio_id_fkey"
@@ -3976,6 +4823,20 @@ export type Database = {
             foreignKeyName: "communication_triggers_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "communication_triggers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "communication_triggers_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -3992,6 +4853,271 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "document_templates"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications_log: {
+        Row: {
+          association_id: string | null
+          channel: string
+          created_at: string | null
+          direction: string
+          error_message: string | null
+          id: string
+          portfolio_id: string
+          recipient_count: number | null
+          sender_id: string | null
+          status: string | null
+          subject: string | null
+        }
+        Insert: {
+          association_id?: string | null
+          channel?: string
+          created_at?: string | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          portfolio_id: string
+          recipient_count?: number | null
+          sender_id?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Update: {
+          association_id?: string | null
+          channel?: string
+          created_at?: string | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          portfolio_id?: string
+          recipient_count?: number | null
+          sender_id?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "communications_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "communications_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "communications_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "communications_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          brandColor: string | null
+          createdAt: string
+          email: string | null
+          id: number
+          isActive: boolean
+          logoUrl: string | null
+          name: string
+          phone: string | null
+          slug: string
+          tier: Database["public"]["Enums"]["tier"]
+          updatedAt: string
+        }
+        Insert: {
+          address?: string | null
+          brandColor?: string | null
+          createdAt?: string
+          email?: string | null
+          id?: number
+          isActive?: boolean
+          logoUrl?: string | null
+          name: string
+          phone?: string | null
+          slug: string
+          tier?: Database["public"]["Enums"]["tier"]
+          updatedAt?: string
+        }
+        Update: {
+          address?: string | null
+          brandColor?: string | null
+          createdAt?: string
+          email?: string | null
+          id?: number
+          isActive?: boolean
+          logoUrl?: string | null
+          name?: string
+          phone?: string | null
+          slug?: string
+          tier?: Database["public"]["Enums"]["tier"]
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      company_settings: {
+        Row: {
+          billing_email: string | null
+          branding: Json | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          manager_permission_defaults: Json | null
+          notification_defaults: Json | null
+          office_address: string | null
+          office_city: string | null
+          office_state: string | null
+          office_zip: string | null
+          owner_invite_defaults: Json | null
+          phone: string | null
+          portfolio_id: string
+          updated_at: string | null
+          vendor_invite_defaults: Json | null
+        }
+        Insert: {
+          billing_email?: string | null
+          branding?: Json | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          manager_permission_defaults?: Json | null
+          notification_defaults?: Json | null
+          office_address?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          owner_invite_defaults?: Json | null
+          phone?: string | null
+          portfolio_id: string
+          updated_at?: string | null
+          vendor_invite_defaults?: Json | null
+        }
+        Update: {
+          billing_email?: string | null
+          branding?: Json | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          manager_permission_defaults?: Json | null
+          notification_defaults?: Json | null
+          office_address?: string | null
+          office_city?: string | null
+          office_state?: string | null
+          office_zip?: string | null
+          owner_invite_defaults?: Json | null
+          phone?: string | null
+          portfolio_id?: string
+          updated_at?: string | null
+          vendor_invite_defaults?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "company_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "company_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "company_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
           },
         ]
       }
@@ -4048,6 +5174,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_diagnostics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "data_diagnostics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "data_diagnostics_portfolio_id_fkey"
@@ -4132,6 +5272,20 @@ export type Database = {
             foreignKeyName: "data_export_requests_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "data_export_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "data_export_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -4191,6 +5345,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      diagnostic_flags: {
+        Row: {
+          description: string | null
+          detectedAt: string
+          flagType: string
+          id: number
+          manusResolutionDraft: string | null
+          propertyId: number
+          resolvedAt: string | null
+          severity: Database["public"]["Enums"]["severity"]
+        }
+        Insert: {
+          description?: string | null
+          detectedAt?: string
+          flagType: string
+          id?: number
+          manusResolutionDraft?: string | null
+          propertyId: number
+          resolvedAt?: string | null
+          severity?: Database["public"]["Enums"]["severity"]
+        }
+        Update: {
+          description?: string | null
+          detectedAt?: string
+          flagType?: string
+          id?: number
+          manusResolutionDraft?: string | null
+          propertyId?: number
+          resolvedAt?: string | null
+          severity?: Database["public"]["Enums"]["severity"]
+        }
+        Relationships: []
       }
       document_requests: {
         Row: {
@@ -4279,6 +5466,20 @@ export type Database = {
             foreignKeyName: "document_requests_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "document_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "document_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -4361,6 +5562,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "document_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "document_templates_portfolio_id_fkey"
@@ -4617,6 +5832,20 @@ export type Database = {
             foreignKeyName: "dues_increases_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "dues_increases_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "dues_increases_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -4629,14 +5858,66 @@ export type Database = {
           },
         ]
       }
+      email_connections: {
+        Row: {
+          accessToken: string
+          accountEmail: string
+          companyId: number
+          createdAt: string
+          expiresAt: string | null
+          id: number
+          isActive: boolean
+          lastSyncedAt: string | null
+          provider: Database["public"]["Enums"]["email_provider"]
+          refreshToken: string | null
+          syncCursor: string | null
+          updatedAt: string
+          userId: number
+        }
+        Insert: {
+          accessToken: string
+          accountEmail: string
+          companyId: number
+          createdAt?: string
+          expiresAt?: string | null
+          id?: number
+          isActive?: boolean
+          lastSyncedAt?: string | null
+          provider: Database["public"]["Enums"]["email_provider"]
+          refreshToken?: string | null
+          syncCursor?: string | null
+          updatedAt?: string
+          userId: number
+        }
+        Update: {
+          accessToken?: string
+          accountEmail?: string
+          companyId?: number
+          createdAt?: string
+          expiresAt?: string | null
+          id?: number
+          isActive?: boolean
+          lastSyncedAt?: string | null
+          provider?: Database["public"]["Enums"]["email_provider"]
+          refreshToken?: string | null
+          syncCursor?: string | null
+          updatedAt?: string
+          userId?: number
+        }
+        Relationships: []
+      }
       email_queue: {
         Row: {
           association_id: string | null
           body: string
           created_at: string
           error_message: string | null
+          from_address: string | null
+          from_name: string | null
           id: string
           notice_id: string | null
+          portfolio_id: string | null
+          reply_to: string | null
           sent_at: string | null
           sent_by: string | null
           status: string
@@ -4650,8 +5931,12 @@ export type Database = {
           body: string
           created_at?: string
           error_message?: string | null
+          from_address?: string | null
+          from_name?: string | null
           id?: string
           notice_id?: string | null
+          portfolio_id?: string | null
+          reply_to?: string | null
           sent_at?: string | null
           sent_by?: string | null
           status?: string
@@ -4665,8 +5950,12 @@ export type Database = {
           body?: string
           created_at?: string
           error_message?: string | null
+          from_address?: string | null
+          from_name?: string | null
           id?: string
           notice_id?: string | null
+          portfolio_id?: string | null
+          reply_to?: string | null
           sent_at?: string | null
           sent_by?: string | null
           status?: string
@@ -4733,6 +6022,41 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "email_queue_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_queue_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "email_queue_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "email_queue_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "email_queue_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
             foreignKeyName: "email_queue_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -4740,6 +6064,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_threads: {
+        Row: {
+          aiCategorizedAt: string | null
+          aiCategory: Database["public"]["Enums"]["ai_category"] | null
+          aiConfidence: number | null
+          aiDraftReply: string | null
+          aiMatchedPropertyId: number | null
+          aiReasoning: string | null
+          aiSummary: string | null
+          aiUrgency: Database["public"]["Enums"]["ai_urgency"] | null
+          bodyPreview: string | null
+          companyId: number
+          convertedToTicketId: number | null
+          createdAt: string
+          fromAddress: string | null
+          fullBody: string | null
+          id: number
+          isRead: boolean
+          propertyId: number | null
+          receivedAt: string
+          source: Database["public"]["Enums"]["email_source"]
+          subject: string | null
+          ticketId: number | null
+          toAddresses: string | null
+        }
+        Insert: {
+          aiCategorizedAt?: string | null
+          aiCategory?: Database["public"]["Enums"]["ai_category"] | null
+          aiConfidence?: number | null
+          aiDraftReply?: string | null
+          aiMatchedPropertyId?: number | null
+          aiReasoning?: string | null
+          aiSummary?: string | null
+          aiUrgency?: Database["public"]["Enums"]["ai_urgency"] | null
+          bodyPreview?: string | null
+          companyId: number
+          convertedToTicketId?: number | null
+          createdAt?: string
+          fromAddress?: string | null
+          fullBody?: string | null
+          id?: number
+          isRead?: boolean
+          propertyId?: number | null
+          receivedAt?: string
+          source?: Database["public"]["Enums"]["email_source"]
+          subject?: string | null
+          ticketId?: number | null
+          toAddresses?: string | null
+        }
+        Update: {
+          aiCategorizedAt?: string | null
+          aiCategory?: Database["public"]["Enums"]["ai_category"] | null
+          aiConfidence?: number | null
+          aiDraftReply?: string | null
+          aiMatchedPropertyId?: number | null
+          aiReasoning?: string | null
+          aiSummary?: string | null
+          aiUrgency?: Database["public"]["Enums"]["ai_urgency"] | null
+          bodyPreview?: string | null
+          companyId?: number
+          convertedToTicketId?: number | null
+          createdAt?: string
+          fromAddress?: string | null
+          fullBody?: string | null
+          id?: number
+          isRead?: boolean
+          propertyId?: number | null
+          receivedAt?: string
+          source?: Database["public"]["Enums"]["email_source"]
+          subject?: string | null
+          ticketId?: number | null
+          toAddresses?: string | null
+        }
+        Relationships: []
       }
       feature_entitlements: {
         Row: {
@@ -4909,6 +6308,20 @@ export type Database = {
             foreignKeyName: "fixed_assets_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -5003,6 +6416,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "form_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "form_templates_portfolio_id_fkey"
@@ -5172,6 +6599,20 @@ export type Database = {
             foreignKeyName: "gl_accounts_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "gl_accounts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "gl_accounts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -5188,6 +6629,101 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gl_accounts"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_rules: {
+        Row: {
+          active: boolean | null
+          association_id: string
+          category: string
+          created_at: string | null
+          description: string
+          fine_amount: number | null
+          id: string
+          penalty_type: string | null
+          rule_number: string
+          sort_order: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          association_id: string
+          category: string
+          created_at?: string | null
+          description: string
+          fine_amount?: number | null
+          id?: string
+          penalty_type?: string | null
+          rule_number: string
+          sort_order?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          association_id?: string
+          category?: string
+          created_at?: string | null
+          description?: string
+          fine_amount?: number | null
+          id?: string
+          penalty_type?: string | null
+          rule_number?: string
+          sort_order?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "house_rules_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
           },
         ]
       }
@@ -5332,6 +6868,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_recertifications_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "income_recertifications_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "income_recertifications_portfolio_id_fkey"
@@ -5574,6 +7124,20 @@ export type Database = {
             foreignKeyName: "inspections_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "inspections_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "inspections_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -5618,6 +7182,282 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_unit_account_summary"
             referencedColumns: ["unit_id"]
+          },
+        ]
+      }
+      insurance_policies: {
+        Row: {
+          archived_at: string | null
+          association_id: string | null
+          certificate_file_url: string | null
+          coverage_amount: number | null
+          created_at: string | null
+          deductible_amount: number | null
+          effective_date: string
+          expiration_date: string
+          extracted_fields: Json | null
+          extraction_status: string | null
+          id: string
+          insurance_company: string
+          liability_amount: number | null
+          notes: string | null
+          owner_id: string
+          policy_number: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          association_id?: string | null
+          certificate_file_url?: string | null
+          coverage_amount?: number | null
+          created_at?: string | null
+          deductible_amount?: number | null
+          effective_date: string
+          expiration_date: string
+          extracted_fields?: Json | null
+          extraction_status?: string | null
+          id?: string
+          insurance_company: string
+          liability_amount?: number | null
+          notes?: string | null
+          owner_id: string
+          policy_number: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          association_id?: string | null
+          certificate_file_url?: string | null
+          coverage_amount?: number | null
+          created_at?: string | null
+          deductible_amount?: number | null
+          effective_date?: string
+          expiration_date?: string
+          extracted_fields?: Json | null
+          extraction_status?: string | null
+          id?: string
+          insurance_company?: string
+          liability_amount?: number | null
+          notes?: string | null
+          owner_id?: string
+          policy_number?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          acceptedAt: string | null
+          assignedPropertyIds: Json | null
+          companyId: number | null
+          createdAt: string
+          email: string
+          expiresAt: string
+          id: number
+          invitedBy: number
+          role: Database["public"]["Enums"]["invitation_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Insert: {
+          acceptedAt?: string | null
+          assignedPropertyIds?: Json | null
+          companyId?: number | null
+          createdAt?: string
+          email: string
+          expiresAt: string
+          id?: number
+          invitedBy: number
+          role: Database["public"]["Enums"]["invitation_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Update: {
+          acceptedAt?: string | null
+          assignedPropertyIds?: Json | null
+          companyId?: number | null
+          createdAt?: string
+          email?: string
+          expiresAt?: string
+          id?: number
+          invitedBy?: number
+          role?: Database["public"]["Enums"]["invitation_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          billing_usage_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          number: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          portfolio_id: string
+          status: string | null
+          stripe_invoice_id: string | null
+          stripe_invoice_url: string | null
+          subscription_id: string | null
+          subtotal_cents: number | null
+          tax_cents: number | null
+          total_cents: number | null
+        }
+        Insert: {
+          billing_usage_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          portfolio_id: string
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_invoice_url?: string | null
+          subscription_id?: string | null
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          total_cents?: number | null
+        }
+        Update: {
+          billing_usage_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          portfolio_id?: string
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_invoice_url?: string | null
+          subscription_id?: string | null
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          total_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_billing_usage_id_fkey"
+            columns: ["billing_usage_id"]
+            isOneToOne: false
+            referencedRelation: "billing_usage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "invoices_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "invoices_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "invoices_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5684,6 +7524,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "journal_entries_portfolio_id_fkey"
@@ -5765,6 +7619,20 @@ export type Database = {
             foreignKeyName: "journal_entry_batches_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "journal_entry_batches_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "journal_entry_batches_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -5776,6 +7644,33 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      journal_entry_lines: {
+        Row: {
+          credit: number | null
+          debit: number | null
+          glAccountId: number
+          id: number
+          memo: string | null
+          transactionId: number
+        }
+        Insert: {
+          credit?: number | null
+          debit?: number | null
+          glAccountId: number
+          id?: number
+          memo?: string | null
+          transactionId: number
+        }
+        Update: {
+          credit?: number | null
+          debit?: number | null
+          glAccountId?: number
+          id?: number
+          memo?: string | null
+          transactionId?: number
+        }
+        Relationships: []
       }
       journal_lines: {
         Row: {
@@ -5877,6 +7772,77 @@ export type Database = {
           },
         ]
       }
+      lead_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          lead_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          conversation_summary: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          qualification_data: Json | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_summary?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          qualification_data?: Json | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_summary?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          qualification_data?: Json | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lockbox_batches: {
         Row: {
           bank_account_id: string | null
@@ -5946,6 +7912,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lockbox_batches_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lockbox_batches_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "lockbox_batches_portfolio_id_fkey"
@@ -6127,6 +8107,20 @@ export type Database = {
             foreignKeyName: "lockbox_items_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lockbox_items_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lockbox_items_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -6223,6 +8217,20 @@ export type Database = {
             foreignKeyName: "login_attempts_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "login_attempts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "login_attempts_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -6235,8 +8243,346 @@ export type Database = {
           },
         ]
       }
+      maintenance_task_history: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string
+          next_due_date: string | null
+          notes: string | null
+          task_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          task_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          task_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_task_history_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_task_history_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "maintenance_task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "v_upcoming_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_task_history_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "v_insurance_expirations"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "maintenance_task_history_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_tasks: {
+        Row: {
+          archived_at: string | null
+          assigned_staff_id: string | null
+          association_id: string
+          category: string
+          created_at: string | null
+          custom_interval_days: number | null
+          end_date: string | null
+          frequency: string
+          id: string
+          last_completed_at: string | null
+          next_due_date: string | null
+          notes: string | null
+          priority: string | null
+          reminder_days: number[] | null
+          start_date: string
+          status: string | null
+          task_name: string
+          template_id: string | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          assigned_staff_id?: string | null
+          association_id: string
+          category: string
+          created_at?: string | null
+          custom_interval_days?: number | null
+          end_date?: string | null
+          frequency: string
+          id?: string
+          last_completed_at?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          priority?: string | null
+          reminder_days?: number[] | null
+          start_date?: string
+          status?: string | null
+          task_name: string
+          template_id?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          assigned_staff_id?: string | null
+          association_id?: string
+          category?: string
+          created_at?: string | null
+          custom_interval_days?: number | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          last_completed_at?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          priority?: string | null
+          reminder_days?: number[] | null
+          start_date?: string
+          status?: string | null
+          task_name?: string
+          template_id?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "v_insurance_expirations"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_template_groups: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          portfolio_id: string | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          portfolio_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          portfolio_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_template_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_template_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "maintenance_template_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "maintenance_template_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "maintenance_template_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      maintenance_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          group_id: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_templates_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_template_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       management_agreements: {
         Row: {
+          agreement_data: Json | null
           archived_at: string | null
           association_id: string | null
           auto_renew: boolean
@@ -6246,9 +8592,13 @@ export type Database = {
           end_date: string | null
           id: string
           management_fee_schedule_id: string | null
+          manager_signature: string | null
+          manager_signed_at: string | null
           name: string
           notes: string | null
           owner_id: string | null
+          owner_signature: string | null
+          owner_signed_at: string | null
           portfolio_id: string
           renewal_term_months: number | null
           signed_at: string | null
@@ -6258,9 +8608,11 @@ export type Database = {
           status: Database["public"]["Enums"]["agreement_status"]
           termination_notice_days: number | null
           terms: Json
+          unit_id: string | null
           updated_at: string
         }
         Insert: {
+          agreement_data?: Json | null
           archived_at?: string | null
           association_id?: string | null
           auto_renew?: boolean
@@ -6270,9 +8622,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           management_fee_schedule_id?: string | null
+          manager_signature?: string | null
+          manager_signed_at?: string | null
           name: string
           notes?: string | null
           owner_id?: string | null
+          owner_signature?: string | null
+          owner_signed_at?: string | null
           portfolio_id: string
           renewal_term_months?: number | null
           signed_at?: string | null
@@ -6282,9 +8638,11 @@ export type Database = {
           status?: Database["public"]["Enums"]["agreement_status"]
           termination_notice_days?: number | null
           terms?: Json
+          unit_id?: string | null
           updated_at?: string
         }
         Update: {
+          agreement_data?: Json | null
           archived_at?: string | null
           association_id?: string | null
           auto_renew?: boolean
@@ -6294,9 +8652,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           management_fee_schedule_id?: string | null
+          manager_signature?: string | null
+          manager_signed_at?: string | null
           name?: string
           notes?: string | null
           owner_id?: string | null
+          owner_signature?: string | null
+          owner_signed_at?: string | null
           portfolio_id?: string
           renewal_term_months?: number | null
           signed_at?: string | null
@@ -6306,6 +8668,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["agreement_status"]
           termination_notice_days?: number | null
           terms?: Json
+          unit_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -6368,14 +8731,14 @@ export type Database = {
           {
             foreignKeyName: "management_agreements_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "owners"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "management_agreements_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "v_homeowner_ledgers"
             referencedColumns: ["owner_id"]
           },
@@ -6385,6 +8748,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_agreements_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_agreements_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "management_agreements_portfolio_id_fkey"
@@ -6540,11 +8917,427 @@ export type Database = {
             foreignKeyName: "management_fee_schedules_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_fee_schedules_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_fee_schedules_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "management_fee_schedules_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      management_fees: {
+        Row: {
+          association_id: string
+          avg_per_door_cents: number | null
+          collected_cents: number | null
+          created_at: string | null
+          delinquent_cents: number | null
+          door_count: number | null
+          fee_amount_cents: number | null
+          id: string
+          month: string
+          portfolio_id: string
+        }
+        Insert: {
+          association_id: string
+          avg_per_door_cents?: number | null
+          collected_cents?: number | null
+          created_at?: string | null
+          delinquent_cents?: number | null
+          door_count?: number | null
+          fee_amount_cents?: number | null
+          id?: string
+          month: string
+          portfolio_id: string
+        }
+        Update: {
+          association_id?: string
+          avg_per_door_cents?: number | null
+          collected_cents?: number | null
+          created_at?: string | null
+          delinquent_cents?: number | null
+          door_count?: number | null
+          fee_amount_cents?: number | null
+          id?: string
+          month?: string
+          portfolio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "management_fees_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_fees_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_fees_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_fees_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "management_fees_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      marketing_leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          converted_portfolio_id: string | null
+          created_at: string
+          current_platform: string | null
+          id: string
+          message: string | null
+          notes: string | null
+          portfolio_size: string | null
+          source_url: string | null
+          status: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          converted_portfolio_id?: string | null
+          created_at?: string
+          current_platform?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          portfolio_size?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          converted_portfolio_id?: string | null
+          created_at?: string
+          current_platform?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          portfolio_size?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "marketing_leads_converted_portfolio_id_fkey"
+            columns: ["converted_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      meeting_action_items: {
+        Row: {
+          assignedToId: number | null
+          completedAt: string | null
+          createdAt: string
+          dueDate: string | null
+          id: number
+          isCompleted: boolean
+          meetingId: number
+          title: string
+        }
+        Insert: {
+          assignedToId?: number | null
+          completedAt?: string | null
+          createdAt?: string
+          dueDate?: string | null
+          id?: number
+          isCompleted?: boolean
+          meetingId: number
+          title: string
+        }
+        Update: {
+          assignedToId?: number | null
+          completedAt?: string | null
+          createdAt?: string
+          dueDate?: string | null
+          id?: number
+          isCompleted?: boolean
+          meetingId?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      meetings: {
+        Row: {
+          agenda: string | null
+          aiSummary: string | null
+          attendees: string | null
+          companyId: number
+          createdAt: string
+          createdById: number | null
+          id: number
+          location: string | null
+          meetingType: Database["public"]["Enums"]["meeting_type"]
+          minutes: string | null
+          propertyId: number
+          scheduledAt: string | null
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updatedAt: string
+        }
+        Insert: {
+          agenda?: string | null
+          aiSummary?: string | null
+          attendees?: string | null
+          companyId: number
+          createdAt?: string
+          createdById?: number | null
+          id?: number
+          location?: string | null
+          meetingType?: Database["public"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          propertyId: number
+          scheduledAt?: string | null
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updatedAt?: string
+        }
+        Update: {
+          agenda?: string | null
+          aiSummary?: string | null
+          attendees?: string | null
+          companyId?: number
+          createdAt?: string
+          createdById?: number | null
+          id?: number
+          location?: string | null
+          meetingType?: Database["public"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          propertyId?: number
+          scheduledAt?: string | null
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          body: string
+          category: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          portfolio_id: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          portfolio_id: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          portfolio_id?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "message_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "message_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "message_templates_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "message_templates_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
@@ -6709,6 +9502,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
           },
           {
             foreignKeyName: "notices_template_id_fkey"
@@ -6899,6 +9699,420 @@ export type Database = {
           },
         ]
       }
+      owner_accounts: {
+        Row: {
+          balanceCents: number
+          companyId: number
+          createdAt: string
+          currency: string
+          id: number
+          notes: string | null
+          ownerId: number
+          propertyId: number
+          updatedAt: string
+        }
+        Insert: {
+          balanceCents?: number
+          companyId: number
+          createdAt?: string
+          currency?: string
+          id?: number
+          notes?: string | null
+          ownerId: number
+          propertyId: number
+          updatedAt?: string
+        }
+        Update: {
+          balanceCents?: number
+          companyId?: number
+          createdAt?: string
+          currency?: string
+          id?: number
+          notes?: string | null
+          ownerId?: number
+          propertyId?: number
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      owner_ach_status: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          invited_at: string | null
+          last_error: string | null
+          metadata: Json | null
+          owner_id: string
+          payment_method_id: string | null
+          status: string | null
+          updated_at: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          last_error?: string | null
+          metadata?: Json | null
+          owner_id: string
+          payment_method_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          last_error?: string | null
+          metadata?: Json | null
+          owner_id?: string
+          payment_method_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_ach_status_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_ach_status_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      owner_form_submissions: {
+        Row: {
+          created_at: string | null
+          form_data: Json | null
+          form_type: string
+          id: string
+          notes: string | null
+          owner_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          form_data?: Json | null
+          form_type: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          form_data?: Json | null
+          form_type?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_form_submissions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_form_submissions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      owner_messages: {
+        Row: {
+          body: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          companyId: number
+          createdAt: string
+          direction: Database["public"]["Enums"]["message_direction"]
+          id: number
+          isRead: boolean
+          isReadByManager: boolean
+          managerId: number | null
+          ownerId: number
+          propertyId: number
+          subject: string | null
+          threadKey: string | null
+        }
+        Insert: {
+          body: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          companyId: number
+          createdAt?: string
+          direction: Database["public"]["Enums"]["message_direction"]
+          id?: number
+          isRead?: boolean
+          isReadByManager?: boolean
+          managerId?: number | null
+          ownerId: number
+          propertyId: number
+          subject?: string | null
+          threadKey?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          companyId?: number
+          createdAt?: string
+          direction?: Database["public"]["Enums"]["message_direction"]
+          id?: number
+          isRead?: boolean
+          isReadByManager?: boolean
+          managerId?: number | null
+          ownerId?: number
+          propertyId?: number
+          subject?: string | null
+          threadKey?: string | null
+        }
+        Relationships: []
+      }
+      owner_notification_prefs: {
+        Row: {
+          createdAt: string
+          docSharedEmail: boolean
+          docSharedInApp: boolean
+          id: number
+          msgReceivedEmail: boolean
+          msgReceivedInApp: boolean
+          ownerId: number
+          paymentDueEmail: boolean
+          paymentDueInApp: boolean
+          ticketUpdateEmail: boolean
+          ticketUpdateInApp: boolean
+          updatedAt: string
+        }
+        Insert: {
+          createdAt?: string
+          docSharedEmail?: boolean
+          docSharedInApp?: boolean
+          id?: number
+          msgReceivedEmail?: boolean
+          msgReceivedInApp?: boolean
+          ownerId: number
+          paymentDueEmail?: boolean
+          paymentDueInApp?: boolean
+          ticketUpdateEmail?: boolean
+          ticketUpdateInApp?: boolean
+          updatedAt?: string
+        }
+        Update: {
+          createdAt?: string
+          docSharedEmail?: boolean
+          docSharedInApp?: boolean
+          id?: number
+          msgReceivedEmail?: boolean
+          msgReceivedInApp?: boolean
+          ownerId?: number
+          paymentDueEmail?: boolean
+          paymentDueInApp?: boolean
+          ticketUpdateEmail?: boolean
+          ticketUpdateInApp?: boolean
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      owner_notifications: {
+        Row: {
+          body: string
+          companyId: number
+          createdAt: string
+          documentId: number | null
+          emailSent: boolean
+          emailSentAt: string | null
+          id: number
+          isRead: boolean
+          ownerId: number
+          propertyId: number
+          readAt: string | null
+          ticketId: number | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          body: string
+          companyId: number
+          createdAt?: string
+          documentId?: number | null
+          emailSent?: boolean
+          emailSentAt?: string | null
+          id?: number
+          isRead?: boolean
+          ownerId: number
+          propertyId: number
+          readAt?: string | null
+          ticketId?: number | null
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          body?: string
+          companyId?: number
+          createdAt?: string
+          documentId?: number | null
+          emailSent?: boolean
+          emailSentAt?: string | null
+          id?: number
+          isRead?: boolean
+          ownerId?: number
+          propertyId?: number
+          readAt?: string | null
+          ticketId?: number | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: []
+      }
+      owner_packets: {
+        Row: {
+          acknowledgments: Json | null
+          communication_pref: string | null
+          created_at: string | null
+          emergency_contact: Json | null
+          id: string
+          owner_id: string
+          owner_info: Json | null
+          pet_info: Json | null
+          status: string
+          submitted_at: string | null
+          unit_info: Json | null
+          updated_at: string | null
+          vehicle_info: Json | null
+        }
+        Insert: {
+          acknowledgments?: Json | null
+          communication_pref?: string | null
+          created_at?: string | null
+          emergency_contact?: Json | null
+          id?: string
+          owner_id: string
+          owner_info?: Json | null
+          pet_info?: Json | null
+          status?: string
+          submitted_at?: string | null
+          unit_info?: Json | null
+          updated_at?: string | null
+          vehicle_info?: Json | null
+        }
+        Update: {
+          acknowledgments?: Json | null
+          communication_pref?: string | null
+          created_at?: string | null
+          emergency_contact?: Json | null
+          id?: string
+          owner_id?: string
+          owner_info?: Json | null
+          pet_info?: Json | null
+          status?: string
+          submitted_at?: string | null
+          unit_info?: Json | null
+          updated_at?: string | null
+          vehicle_info?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_packets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_packets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      owner_portal_invites: {
+        Row: {
+          activated_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          last_login_at: string | null
+          owner_id: string
+          sent_at: string | null
+          status: string
+          token: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          owner_id: string
+          sent_at?: string | null
+          status?: string
+          token?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          owner_id?: string
+          sent_at?: string | null
+          status?: string
+          token?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_portal_invites_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_portal_invites_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
       owners: {
         Row: {
           address_city: string | null
@@ -6985,6 +10199,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owners_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "owners_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "owners_portfolio_id_fkey"
@@ -7259,6 +10487,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "payable_bills_portfolio_id_fkey"
@@ -7627,6 +10869,20 @@ export type Database = {
             foreignKeyName: "payment_methods_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payment_methods_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payment_methods_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -7715,6 +10971,20 @@ export type Database = {
             foreignKeyName: "payment_processor_configs_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payment_processor_configs_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payment_processor_configs_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -7726,6 +10996,60 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      payment_transactions: {
+        Row: {
+          amountCents: number
+          companyId: number
+          confirmedAt: string | null
+          createdAt: string
+          description: string | null
+          id: number
+          memo: string | null
+          method: Database["public"]["Enums"]["payment_method"]
+          ownerAccountId: number
+          ownerId: number
+          propertyId: number
+          referenceNumber: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          type: Database["public"]["Enums"]["payment_type"]
+          updatedAt: string
+        }
+        Insert: {
+          amountCents: number
+          companyId: number
+          confirmedAt?: string | null
+          createdAt?: string
+          description?: string | null
+          id?: number
+          memo?: string | null
+          method?: Database["public"]["Enums"]["payment_method"]
+          ownerAccountId: number
+          ownerId: number
+          propertyId: number
+          referenceNumber?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          type?: Database["public"]["Enums"]["payment_type"]
+          updatedAt?: string
+        }
+        Update: {
+          amountCents?: number
+          companyId?: number
+          confirmedAt?: string | null
+          createdAt?: string
+          description?: string | null
+          id?: number
+          memo?: string | null
+          method?: Database["public"]["Enums"]["payment_method"]
+          ownerAccountId?: number
+          ownerId?: number
+          propertyId?: number
+          referenceNumber?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          type?: Database["public"]["Enums"]["payment_type"]
+          updatedAt?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -7898,6 +11222,20 @@ export type Database = {
             foreignKeyName: "permission_audit_log_actor_portfolio_id_fkey"
             columns: ["actor_portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "permission_audit_log_actor_portfolio_id_fkey"
+            columns: ["actor_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "permission_audit_log_actor_portfolio_id_fkey"
+            columns: ["actor_portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -7907,6 +11245,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      plaid_items: {
+        Row: {
+          bank_account_id: string | null
+          created_at: string
+          cursor: string | null
+          error_message: string | null
+          id: string
+          last_sync_at: string | null
+          plaid_access_token: string
+          plaid_institution_id: string | null
+          plaid_institution_name: string | null
+          plaid_item_id: string
+          portfolio_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          created_at?: string
+          cursor?: string | null
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          plaid_access_token: string
+          plaid_institution_id?: string | null
+          plaid_institution_name?: string | null
+          plaid_item_id: string
+          portfolio_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          created_at?: string
+          cursor?: string | null
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          plaid_access_token?: string
+          plaid_institution_id?: string | null
+          plaid_institution_name?: string | null
+          plaid_item_id?: string
+          portfolio_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plaid_items_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -7957,6 +11351,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_impersonation_log_impersonated_portfolio_id_fkey"
+            columns: ["impersonated_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "platform_impersonation_log_impersonated_portfolio_id_fkey"
+            columns: ["impersonated_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "platform_impersonation_log_impersonated_portfolio_id_fkey"
@@ -8023,14 +11431,192 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          internal_notes: string | null
+          platform_response: string | null
+          portfolio_id: string
+          priority: string | null
+          request_type: string
+          resolved_at: string | null
+          status: string | null
+          submitted_by: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          internal_notes?: string | null
+          platform_response?: string | null
+          portfolio_id: string
+          priority?: string | null
+          request_type: string
+          resolved_at?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          internal_notes?: string | null
+          platform_response?: string | null
+          portfolio_id?: string
+          priority?: string | null
+          request_type?: string
+          resolved_at?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "platform_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "platform_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "platform_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      portfolio_settings: {
+        Row: {
+          billing_email: string | null
+          branding_enabled: boolean | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          manager_defaults: Json | null
+          notification_prefs: Json | null
+          office_address: string | null
+          office_phone: string | null
+          owner_invite_defaults: Json | null
+          portfolio_id: string
+          updated_at: string | null
+          vendor_invite_defaults: Json | null
+        }
+        Insert: {
+          billing_email?: string | null
+          branding_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          manager_defaults?: Json | null
+          notification_prefs?: Json | null
+          office_address?: string | null
+          office_phone?: string | null
+          owner_invite_defaults?: Json | null
+          portfolio_id: string
+          updated_at?: string | null
+          vendor_invite_defaults?: Json | null
+        }
+        Update: {
+          billing_email?: string | null
+          branding_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          manager_defaults?: Json | null
+          notification_prefs?: Json | null
+          office_address?: string | null
+          office_phone?: string | null
+          owner_invite_defaults?: Json | null
+          portfolio_id?: string
+          updated_at?: string | null
+          vendor_invite_defaults?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "portfolio_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "portfolio_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "portfolio_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
       portfolios: {
         Row: {
           address_city: string | null
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          ai_api_key: string | null
+          ai_endpoint: string | null
+          ai_model: string | null
+          ai_provider: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_color: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -8041,33 +11627,49 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
+          email_settings: Json | null
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
+          public_website: string | null
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
+          support_email: string | null
+          support_phone: string | null
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         Insert: {
           address_city?: string | null
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          ai_api_key?: string | null
+          ai_endpoint?: string | null
+          ai_model?: string | null
+          ai_provider?: string | null
           allowed_email_domains?: string[]
           archived_at?: string | null
+          billing_email_from?: string | null
+          brand_color?: string | null
+          brand_email?: string | null
           company_name: string
           convenience_fee_ach_fixed_cents?: number
           convenience_fee_ach_pct?: number
@@ -8078,33 +11680,49 @@ export type Database = {
           convenience_fee_mode?: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
           default_late_fee_amount?: number
           default_late_fee_grace_days?: number
           default_nsf_fee_amount?: number
           default_payment_reminder_days?: number[]
+          email_settings?: Json | null
           entitlements?: string[]
+          favicon_url?: string | null
           fiscal_year_start_month?: number
           id?: string
+          logo_url?: string | null
           password_min_length?: number
           phone_number?: string | null
           profile_type?: Database["public"]["Enums"]["portfolio_profile_type"]
+          public_website?: string | null
           require_mfa_for_admins?: boolean
           require_mfa_for_staff?: boolean
           session_timeout_minutes?: number
+          slug: string
           statement_generation_day?: number
+          support_email?: string | null
+          support_phone?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           texting_phone_number?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address_city?: string | null
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
+          ai_api_key?: string | null
+          ai_endpoint?: string | null
+          ai_model?: string | null
+          ai_provider?: string | null
           allowed_email_domains?: string[]
           archived_at?: string | null
+          billing_email_from?: string | null
+          brand_color?: string | null
+          brand_email?: string | null
           company_name?: string
           convenience_fee_ach_fixed_cents?: number
           convenience_fee_ach_pct?: number
@@ -8115,25 +11733,34 @@ export type Database = {
           convenience_fee_mode?: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at?: string
           created_by?: string | null
+          custom_domain?: string | null
           default_late_fee_amount?: number
           default_late_fee_grace_days?: number
           default_nsf_fee_amount?: number
           default_payment_reminder_days?: number[]
+          email_settings?: Json | null
           entitlements?: string[]
+          favicon_url?: string | null
           fiscal_year_start_month?: number
           id?: string
+          logo_url?: string | null
           password_min_length?: number
           phone_number?: string | null
           profile_type?: Database["public"]["Enums"]["portfolio_profile_type"]
+          public_website?: string | null
           require_mfa_for_admins?: boolean
           require_mfa_for_staff?: boolean
           session_timeout_minutes?: number
+          slug?: string
           statement_generation_day?: number
+          support_email?: string | null
+          support_phone?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           texting_phone_number?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -8208,6 +11835,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "privacy_actions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "privacy_actions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "privacy_actions_portfolio_id_fkey"
@@ -8315,6 +11956,20 @@ export type Database = {
             foreignKeyName: "profiles_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "profiles_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "profiles_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -8333,6 +11988,141 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      properties: {
+        Row: {
+          address: string | null
+          amenities: string | null
+          city: string | null
+          companyId: number
+          country: string | null
+          createdAt: string
+          id: number
+          isActive: boolean
+          name: string
+          notes: string | null
+          propertyType: string | null
+          state: string | null
+          totalUnits: number | null
+          updatedAt: string
+          yearBuilt: number | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          amenities?: string | null
+          city?: string | null
+          companyId: number
+          country?: string | null
+          createdAt?: string
+          id?: number
+          isActive?: boolean
+          name: string
+          notes?: string | null
+          propertyType?: string | null
+          state?: string | null
+          totalUnits?: number | null
+          updatedAt?: string
+          yearBuilt?: number | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          amenities?: string | null
+          city?: string | null
+          companyId?: number
+          country?: string | null
+          createdAt?: string
+          id?: number
+          isActive?: boolean
+          name?: string
+          notes?: string | null
+          propertyType?: string | null
+          state?: string | null
+          totalUnits?: number | null
+          updatedAt?: string
+          yearBuilt?: number | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      property_assignments: {
+        Row: {
+          assignedAt: string
+          id: number
+          propertyId: number
+          role: Database["public"]["Enums"]["portier_role"] | null
+          userId: number
+        }
+        Insert: {
+          assignedAt?: string
+          id?: number
+          propertyId: number
+          role?: Database["public"]["Enums"]["portier_role"] | null
+          userId: number
+        }
+        Update: {
+          assignedAt?: string
+          id?: number
+          propertyId?: number
+          role?: Database["public"]["Enums"]["portier_role"] | null
+          userId?: number
+        }
+        Relationships: []
+      }
+      property_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          companyId: number
+          createdAt: string
+          description: string | null
+          fileKey: string
+          fileName: string
+          fileSize: number
+          fileUrl: string
+          id: number
+          isSharedWithOwners: boolean
+          mimeType: string
+          propertyId: number
+          title: string
+          updatedAt: string
+          uploadedById: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["document_category"]
+          companyId: number
+          createdAt?: string
+          description?: string | null
+          fileKey: string
+          fileName: string
+          fileSize: number
+          fileUrl: string
+          id?: number
+          isSharedWithOwners?: boolean
+          mimeType: string
+          propertyId: number
+          title: string
+          updatedAt?: string
+          uploadedById: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          companyId?: number
+          createdAt?: string
+          description?: string | null
+          fileKey?: string
+          fileName?: string
+          fileSize?: number
+          fileUrl?: string
+          id?: number
+          isSharedWithOwners?: boolean
+          mimeType?: string
+          propertyId?: number
+          title?: string
+          updatedAt?: string
+          uploadedById?: number
+        }
+        Relationships: []
       }
       property_groups: {
         Row: {
@@ -8371,6 +12161,20 @@ export type Database = {
             foreignKeyName: "property_groups_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "property_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "property_groups_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -8382,6 +12186,107 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      provider_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          provider_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          provider_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          provider_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_availability_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_services: {
+        Row: {
+          provider_id: string
+          service_id: string
+        }
+        Insert: {
+          provider_id: string
+          service_id: string
+        }
+        Update: {
+          provider_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      providers: {
+        Row: {
+          bio: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       purchase_order_line_items: {
         Row: {
@@ -8547,6 +12452,20 @@ export type Database = {
             foreignKeyName: "purchase_orders_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -8579,6 +12498,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recent_activity: {
+        Row: {
+          activityType: Database["public"]["Enums"]["activity_type"]
+          createdAt: string
+          description: string | null
+          id: number
+          metadata: Json | null
+          propertyId: number | null
+          title: string
+          userId: number
+        }
+        Insert: {
+          activityType: Database["public"]["Enums"]["activity_type"]
+          createdAt?: string
+          description?: string | null
+          id?: number
+          metadata?: Json | null
+          propertyId?: number | null
+          title: string
+          userId: number
+        }
+        Update: {
+          activityType?: Database["public"]["Enums"]["activity_type"]
+          createdAt?: string
+          description?: string | null
+          id?: number
+          metadata?: Json | null
+          propertyId?: number | null
+          title?: string
+          userId?: number
+        }
+        Relationships: []
       }
       recurring_bills: {
         Row: {
@@ -8725,6 +12677,20 @@ export type Database = {
             foreignKeyName: "recurring_bills_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "recurring_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "recurring_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -8807,6 +12773,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_journal_entries_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "recurring_journal_entries_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "recurring_journal_entries_portfolio_id_fkey"
@@ -8965,6 +12945,20 @@ export type Database = {
             foreignKeyName: "recurring_work_orders_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "recurring_work_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "recurring_work_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -9084,6 +13078,20 @@ export type Database = {
             foreignKeyName: "report_definitions_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "report_definitions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "report_definitions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -9171,6 +13179,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_runs_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "report_runs_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "report_runs_portfolio_id_fkey"
@@ -9364,6 +13386,20 @@ export type Database = {
             foreignKeyName: "saved_reports_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "saved_reports_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -9375,6 +13411,63 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      schedule_events: {
+        Row: {
+          assignedToId: number | null
+          companyId: number
+          createdAt: string
+          createdById: number | null
+          description: string | null
+          endTime: string | null
+          eventType: Database["public"]["Enums"]["event_type"]
+          id: number
+          isAllDay: boolean
+          isRecurring: boolean
+          propertyId: number
+          recurringPattern: string | null
+          startTime: string
+          ticketId: number | null
+          title: string
+          updatedAt: string
+        }
+        Insert: {
+          assignedToId?: number | null
+          companyId: number
+          createdAt?: string
+          createdById?: number | null
+          description?: string | null
+          endTime?: string | null
+          eventType?: Database["public"]["Enums"]["event_type"]
+          id?: number
+          isAllDay?: boolean
+          isRecurring?: boolean
+          propertyId: number
+          recurringPattern?: string | null
+          startTime: string
+          ticketId?: number | null
+          title: string
+          updatedAt?: string
+        }
+        Update: {
+          assignedToId?: number | null
+          companyId?: number
+          createdAt?: string
+          createdById?: number | null
+          description?: string | null
+          endTime?: string | null
+          eventType?: Database["public"]["Enums"]["event_type"]
+          id?: number
+          isAllDay?: boolean
+          isRecurring?: boolean
+          propertyId?: number
+          recurringPattern?: string | null
+          startTime?: string
+          ticketId?: number | null
+          title?: string
+          updatedAt?: string
+        }
+        Relationships: []
       }
       scheduled_reports: {
         Row: {
@@ -9457,6 +13550,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_reports_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "scheduled_reports_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "scheduled_reports_portfolio_id_fkey"
@@ -9655,6 +13762,20 @@ export type Database = {
             foreignKeyName: "service_requests_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "service_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "service_requests_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -9701,6 +13822,42 @@ export type Database = {
             referencedColumns: ["unit_id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents?: number | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       shares: {
         Row: {
@@ -9854,6 +14011,20 @@ export type Database = {
             foreignKeyName: "sms_conversations_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "sms_conversations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "sms_conversations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -9937,6 +14108,87 @@ export type Database = {
           },
         ]
       }
+      sms_opt_ins: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          notes: string | null
+          opted_in: boolean
+          opted_in_at: string | null
+          opted_out_at: string | null
+          phone_number: string
+          portfolio_id: string
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          notes?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          phone_number: string
+          portfolio_id: string
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          notes?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          phone_number?: string
+          portfolio_id?: string
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_opt_ins_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_opt_ins_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "sms_opt_ins_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "sms_opt_ins_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "sms_opt_ins_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
       soft_delete_log: {
         Row: {
           archived_at: string
@@ -9975,6 +14227,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "soft_delete_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "soft_delete_log_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "soft_delete_log_portfolio_id_fkey"
@@ -10145,6 +14411,162 @@ export type Database = {
           },
         ]
       }
+      stripe_customers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          stripe_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          stripe_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          stripe_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stripe_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          paid_at: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_invoice_id: string | null
+          stripe_payment_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_invoice_id?: string | null
+          stripe_payment_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stripe_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          trial_end: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json | null
+          status: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          stripe_subscription_id: string
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_price_id?: string
+          stripe_subscription_id?: string
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          processed: boolean | null
+          processed_at: string | null
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          processed_at?: string | null
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
       subscription_events: {
         Row: {
           actor_user_id: string | null
@@ -10199,6 +14621,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "subscription_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "subscription_events_portfolio_id_fkey"
@@ -10305,6 +14741,20 @@ export type Database = {
             foreignKeyName: "subscriptions_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: true
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -10312,6 +14762,72 @@ export type Database = {
             foreignKeyName: "subscriptions_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: true
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      superadmin_notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          note_type: string | null
+          portfolio_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note_type?: string | null
+          portfolio_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note_type?: string | null
+          portfolio_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_notes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "superadmin_notes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "superadmin_notes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "superadmin_notes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "superadmin_notes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
           },
@@ -10440,6 +14956,20 @@ export type Database = {
             foreignKeyName: "surveys_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "surveys_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "surveys_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -10522,6 +15052,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tags_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "tags_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "tags_portfolio_id_fkey"
@@ -10613,6 +15157,189 @@ export type Database = {
             referencedColumns: ["unit_id"]
           },
         ]
+      }
+      ticket_attachments: {
+        Row: {
+          companyId: number
+          createdAt: string
+          fileKey: string
+          fileName: string
+          fileSize: number
+          fileUrl: string
+          id: number
+          mimeType: string
+          ticketId: number
+          uploadedById: number
+        }
+        Insert: {
+          companyId: number
+          createdAt?: string
+          fileKey: string
+          fileName: string
+          fileSize: number
+          fileUrl: string
+          id?: number
+          mimeType: string
+          ticketId: number
+          uploadedById: number
+        }
+        Update: {
+          companyId?: number
+          createdAt?: string
+          fileKey?: string
+          fileName?: string
+          fileSize?: number
+          fileUrl?: string
+          id?: number
+          mimeType?: string
+          ticketId?: number
+          uploadedById?: number
+        }
+        Relationships: []
+      }
+      ticket_comments: {
+        Row: {
+          authorId: number
+          content: string
+          createdAt: string
+          id: number
+          isInternal: boolean
+          ticketId: number
+        }
+        Insert: {
+          authorId: number
+          content: string
+          createdAt?: string
+          id?: number
+          isInternal?: boolean
+          ticketId: number
+        }
+        Update: {
+          authorId?: number
+          content?: string
+          createdAt?: string
+          id?: number
+          isInternal?: boolean
+          ticketId?: number
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          assignedToId: number | null
+          category: Database["public"]["Enums"]["ticket_category"]
+          companyId: number
+          createdAt: string
+          description: string | null
+          dueDate: string | null
+          id: number
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          propertyId: number
+          reportedById: number | null
+          resolvedAt: string | null
+          source: Database["public"]["Enums"]["ticket_source"]
+          sourceEmailId: number | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          title: string
+          unitNumber: string | null
+          updatedAt: string
+        }
+        Insert: {
+          assignedToId?: number | null
+          category?: Database["public"]["Enums"]["ticket_category"]
+          companyId: number
+          createdAt?: string
+          description?: string | null
+          dueDate?: string | null
+          id?: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          propertyId: number
+          reportedById?: number | null
+          resolvedAt?: string | null
+          source?: Database["public"]["Enums"]["ticket_source"]
+          sourceEmailId?: number | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          title: string
+          unitNumber?: string | null
+          updatedAt?: string
+        }
+        Update: {
+          assignedToId?: number | null
+          category?: Database["public"]["Enums"]["ticket_category"]
+          companyId?: number
+          createdAt?: string
+          description?: string | null
+          dueDate?: string | null
+          id?: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          propertyId?: number
+          reportedById?: number | null
+          resolvedAt?: string | null
+          source?: Database["public"]["Enums"]["ticket_source"]
+          sourceEmailId?: number | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          title?: string
+          unitNumber?: string | null
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          cashAccountId: number | null
+          createdAt: string
+          createdBy: number | null
+          date: string
+          description: string | null
+          glAccountId: number | null
+          id: number
+          manusAutoCreated: boolean | null
+          ownerId: number | null
+          propertyId: number
+          referenceNumber: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          transactionType: Database["public"]["Enums"]["transaction_type"]
+          updatedAt: string
+          vendorId: number | null
+        }
+        Insert: {
+          amount: number
+          cashAccountId?: number | null
+          createdAt?: string
+          createdBy?: number | null
+          date: string
+          description?: string | null
+          glAccountId?: number | null
+          id?: number
+          manusAutoCreated?: boolean | null
+          ownerId?: number | null
+          propertyId: number
+          referenceNumber?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          transactionType: Database["public"]["Enums"]["transaction_type"]
+          updatedAt?: string
+          vendorId?: number | null
+        }
+        Update: {
+          amount?: number
+          cashAccountId?: number | null
+          createdAt?: string
+          createdBy?: number | null
+          date?: string
+          description?: string | null
+          glAccountId?: number | null
+          id?: number
+          manusAutoCreated?: boolean | null
+          ownerId?: number | null
+          propertyId?: number
+          referenceNumber?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          transactionType?: Database["public"]["Enums"]["transaction_type"]
+          updatedAt?: string
+          vendorId?: number | null
+        }
+        Relationships: []
       }
       unit_amenities: {
         Row: {
@@ -11013,6 +15740,20 @@ export type Database = {
             foreignKeyName: "usage_metrics_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "usage_metrics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "usage_metrics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -11027,8 +15768,11 @@ export type Database = {
       }
       user_invitations: {
         Row: {
+          accepted_at: string | null
+          association_id: string | null
           association_ids: string[]
           created_at: string
+          created_by: string | null
           email: string
           expires_at: string
           full_name: string | null
@@ -11036,8 +15780,10 @@ export type Database = {
           id: string
           invited_by: string | null
           message: string | null
+          metadata: Json | null
           mvp_role: Database["public"]["Enums"]["mvp_company_role"] | null
           portfolio_id: string
+          role: string | null
           role_id: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
@@ -11047,8 +15793,11 @@ export type Database = {
           used_by: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          association_id?: string | null
           association_ids?: string[]
           created_at?: string
+          created_by?: string | null
           email: string
           expires_at?: string
           full_name?: string | null
@@ -11056,8 +15805,10 @@ export type Database = {
           id?: string
           invited_by?: string | null
           message?: string | null
+          metadata?: Json | null
           mvp_role?: Database["public"]["Enums"]["mvp_company_role"] | null
           portfolio_id: string
+          role?: string | null
           role_id?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
@@ -11067,8 +15818,11 @@ export type Database = {
           used_by?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          association_id?: string | null
           association_ids?: string[]
           created_at?: string
+          created_by?: string | null
           email?: string
           expires_at?: string
           full_name?: string | null
@@ -11076,8 +15830,10 @@ export type Database = {
           id?: string
           invited_by?: string | null
           message?: string | null
+          metadata?: Json | null
           mvp_role?: Database["public"]["Enums"]["mvp_company_role"] | null
           portfolio_id?: string
+          role?: string | null
           role_id?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
@@ -11088,11 +15844,74 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
             foreignKeyName: "user_invitations_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "user_invitations_portfolio_id_fkey"
@@ -11198,6 +16017,20 @@ export type Database = {
             foreignKeyName: "user_roles_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_roles_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_roles_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -11262,6 +16095,20 @@ export type Database = {
             foreignKeyName: "user_sessions_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_sessions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_sessions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -11273,6 +16120,54 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      users: {
+        Row: {
+          avatarUrl: string | null
+          companyId: number | null
+          createdAt: string
+          email: string | null
+          id: number
+          isActive: boolean
+          lastSignedIn: string
+          loginMethod: string | null
+          name: string | null
+          openId: string
+          portierRole: Database["public"]["Enums"]["portier_role"] | null
+          role: string
+          updatedAt: string
+        }
+        Insert: {
+          avatarUrl?: string | null
+          companyId?: number | null
+          createdAt?: string
+          email?: string | null
+          id?: number
+          isActive?: boolean
+          lastSignedIn?: string
+          loginMethod?: string | null
+          name?: string | null
+          openId: string
+          portierRole?: Database["public"]["Enums"]["portier_role"] | null
+          role?: string
+          updatedAt?: string
+        }
+        Update: {
+          avatarUrl?: string | null
+          companyId?: number | null
+          createdAt?: string
+          email?: string | null
+          id?: number
+          isActive?: boolean
+          lastSignedIn?: string
+          loginMethod?: string | null
+          name?: string | null
+          openId?: string
+          portierRole?: Database["public"]["Enums"]["portier_role"] | null
+          role?: string
+          updatedAt?: string
+        }
+        Relationships: []
       }
       vendor_compliance: {
         Row: {
@@ -11324,24 +16219,33 @@ export type Database = {
       }
       vendors: {
         Row: {
+          ach_activated_at: string | null
+          ach_activated_by: string | null
+          ach_status: string
+          ach_verified_at: string | null
+          ach_verified_by: string | null
           address_city: string | null
           address_state: string | null
           address_street: string | null
           address_zip: string | null
           archived_at: string | null
           auth_user_id: string | null
+          auto_insurance_expiration: string | null
           auto_pay_notes: string | null
           auto_pay_setup_at: string | null
           bank_account_number: string | null
           bank_routing_number: string | null
           check_consolidation: string | null
           check_stub_breakdown: string | null
+          contract_expiration: string | null
           created_at: string
           created_by: string | null
           default_check_memo: string | null
           default_gl_account_id: string | null
           email_echeck_receipt: boolean
           emails: Json
+          epa_certification_expiration: string | null
+          general_liability_expiration: string | null
           hold_payments: boolean
           id: string
           is_auto_pay: boolean
@@ -11358,6 +16262,7 @@ export type Database = {
           portfolio_id: string
           savings_account: boolean
           send_1099: boolean
+          state_license_expiration: string | null
           tax_account_number: string | null
           taxpayer_id: string | null
           taxpayer_name: string | null
@@ -11365,26 +16270,36 @@ export type Database = {
           updated_at: string
           vendor_type: Database["public"]["Enums"]["vendor_type"]
           work_order_adjustment: number
+          workers_comp_expiration: string | null
         }
         Insert: {
+          ach_activated_at?: string | null
+          ach_activated_by?: string | null
+          ach_status?: string
+          ach_verified_at?: string | null
+          ach_verified_by?: string | null
           address_city?: string | null
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
           archived_at?: string | null
           auth_user_id?: string | null
+          auto_insurance_expiration?: string | null
           auto_pay_notes?: string | null
           auto_pay_setup_at?: string | null
           bank_account_number?: string | null
           bank_routing_number?: string | null
           check_consolidation?: string | null
           check_stub_breakdown?: string | null
+          contract_expiration?: string | null
           created_at?: string
           created_by?: string | null
           default_check_memo?: string | null
           default_gl_account_id?: string | null
           email_echeck_receipt?: boolean
           emails?: Json
+          epa_certification_expiration?: string | null
+          general_liability_expiration?: string | null
           hold_payments?: boolean
           id?: string
           is_auto_pay?: boolean
@@ -11401,6 +16316,7 @@ export type Database = {
           portfolio_id: string
           savings_account?: boolean
           send_1099?: boolean
+          state_license_expiration?: string | null
           tax_account_number?: string | null
           taxpayer_id?: string | null
           taxpayer_name?: string | null
@@ -11408,26 +16324,36 @@ export type Database = {
           updated_at?: string
           vendor_type?: Database["public"]["Enums"]["vendor_type"]
           work_order_adjustment?: number
+          workers_comp_expiration?: string | null
         }
         Update: {
+          ach_activated_at?: string | null
+          ach_activated_by?: string | null
+          ach_status?: string
+          ach_verified_at?: string | null
+          ach_verified_by?: string | null
           address_city?: string | null
           address_state?: string | null
           address_street?: string | null
           address_zip?: string | null
           archived_at?: string | null
           auth_user_id?: string | null
+          auto_insurance_expiration?: string | null
           auto_pay_notes?: string | null
           auto_pay_setup_at?: string | null
           bank_account_number?: string | null
           bank_routing_number?: string | null
           check_consolidation?: string | null
           check_stub_breakdown?: string | null
+          contract_expiration?: string | null
           created_at?: string
           created_by?: string | null
           default_check_memo?: string | null
           default_gl_account_id?: string | null
           email_echeck_receipt?: boolean
           emails?: Json
+          epa_certification_expiration?: string | null
+          general_liability_expiration?: string | null
           hold_payments?: boolean
           id?: string
           is_auto_pay?: boolean
@@ -11444,6 +16370,7 @@ export type Database = {
           portfolio_id?: string
           savings_account?: boolean
           send_1099?: boolean
+          state_license_expiration?: string | null
           tax_account_number?: string | null
           taxpayer_id?: string | null
           taxpayer_name?: string | null
@@ -11451,6 +16378,7 @@ export type Database = {
           updated_at?: string
           vendor_type?: Database["public"]["Enums"]["vendor_type"]
           work_order_adjustment?: number
+          workers_comp_expiration?: string | null
         }
         Relationships: [
           {
@@ -11471,6 +16399,20 @@ export type Database = {
             foreignKeyName: "vendors_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "vendors_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "vendors_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -11480,6 +16422,197 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      violation_cases: {
+        Row: {
+          ack_may_contact: boolean | null
+          ack_share_info: boolean | null
+          ack_true_accurate: boolean | null
+          ai_confidence: number | null
+          ai_severity: string | null
+          archived_at: string | null
+          association_id: string
+          created_at: string | null
+          dates_times: string | null
+          determination_notes: string | null
+          determined_at: string | null
+          determined_by: string | null
+          fine_amount: number | null
+          fine_applied_at: string | null
+          hearing_date: string | null
+          hearing_location: string | null
+          hearing_requested_at: string | null
+          hearing_type: string | null
+          house_rule_id: string | null
+          id: string
+          notice_sent_at: string | null
+          owner_contested: boolean | null
+          previously_reported: boolean | null
+          reported_at: string | null
+          reporter_contact: string
+          reporter_is_owner: boolean | null
+          reporter_name: string
+          reporter_signature: string
+          reporter_unit: string | null
+          requested_action: string | null
+          status: string | null
+          updated_at: string | null
+          violation_description: string
+          violation_type: string
+          violator_name: string | null
+          violator_unit: string | null
+          witnesses: string | null
+        }
+        Insert: {
+          ack_may_contact?: boolean | null
+          ack_share_info?: boolean | null
+          ack_true_accurate?: boolean | null
+          ai_confidence?: number | null
+          ai_severity?: string | null
+          archived_at?: string | null
+          association_id: string
+          created_at?: string | null
+          dates_times?: string | null
+          determination_notes?: string | null
+          determined_at?: string | null
+          determined_by?: string | null
+          fine_amount?: number | null
+          fine_applied_at?: string | null
+          hearing_date?: string | null
+          hearing_location?: string | null
+          hearing_requested_at?: string | null
+          hearing_type?: string | null
+          house_rule_id?: string | null
+          id?: string
+          notice_sent_at?: string | null
+          owner_contested?: boolean | null
+          previously_reported?: boolean | null
+          reported_at?: string | null
+          reporter_contact: string
+          reporter_is_owner?: boolean | null
+          reporter_name: string
+          reporter_signature: string
+          reporter_unit?: string | null
+          requested_action?: string | null
+          status?: string | null
+          updated_at?: string | null
+          violation_description: string
+          violation_type: string
+          violator_name?: string | null
+          violator_unit?: string | null
+          witnesses?: string | null
+        }
+        Update: {
+          ack_may_contact?: boolean | null
+          ack_share_info?: boolean | null
+          ack_true_accurate?: boolean | null
+          ai_confidence?: number | null
+          ai_severity?: string | null
+          archived_at?: string | null
+          association_id?: string
+          created_at?: string | null
+          dates_times?: string | null
+          determination_notes?: string | null
+          determined_at?: string | null
+          determined_by?: string | null
+          fine_amount?: number | null
+          fine_applied_at?: string | null
+          hearing_date?: string | null
+          hearing_location?: string | null
+          hearing_requested_at?: string | null
+          hearing_type?: string | null
+          house_rule_id?: string | null
+          id?: string
+          notice_sent_at?: string | null
+          owner_contested?: boolean | null
+          previously_reported?: boolean | null
+          reported_at?: string | null
+          reporter_contact?: string
+          reporter_is_owner?: boolean | null
+          reporter_name?: string
+          reporter_signature?: string
+          reporter_unit?: string | null
+          requested_action?: string | null
+          status?: string | null
+          updated_at?: string | null
+          violation_description?: string
+          violation_type?: string
+          violator_name?: string | null
+          violator_unit?: string | null
+          witnesses?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_determined_by_fkey"
+            columns: ["determined_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "violation_cases_determined_by_fkey"
+            columns: ["determined_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "violation_cases_house_rule_id_fkey"
+            columns: ["house_rule_id"]
+            isOneToOne: false
+            referencedRelation: "house_rules"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11624,6 +16757,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "violation_updates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
           },
           {
             foreignKeyName: "violation_updates_violation_id_fkey"
@@ -11787,6 +16927,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "violations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
           },
           {
             foreignKeyName: "violations_owner_id_fkey"
@@ -12052,6 +17199,20 @@ export type Database = {
             foreignKeyName: "webhook_endpoints_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "webhook_endpoints_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "webhook_endpoints_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -12216,6 +17377,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_updates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
           },
           {
             foreignKeyName: "work_order_updates_work_order_id_fkey"
@@ -12384,11 +17552,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "work_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
             foreignKeyName: "work_orders_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "work_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "work_orders_portfolio_id_fkey"
@@ -13138,6 +18327,20 @@ export type Database = {
             foreignKeyName: "associations_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -13245,6 +18448,20 @@ export type Database = {
             foreignKeyName: "payable_bills_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "payable_bills_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -13270,6 +18487,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_company_health: {
+        Row: {
+          avg_response_hours: number | null
+          critical_count: number | null
+          delinquency_total_cents: number | null
+          healthy_count: number | null
+          open_violations: number | null
+          open_work_orders: number | null
+          overdue_work_orders: number | null
+          portfolio_id: string | null
+          total_associations: number | null
+          total_doors: number | null
+          warning_count: number | null
+        }
+        Relationships: []
+      }
+      v_company_metrics: {
+        Row: {
+          active_managers: number | null
+          doors_limit: number | null
+          doors_used: number | null
+          management_fee_income_cents: number | null
+          period: string | null
+          portfolio_id: string | null
+          subscription_status: string | null
+          total_doors: number | null
+          total_revenue_cents: number | null
+        }
+        Relationships: []
       }
       v_dashboard_summary: {
         Row: {
@@ -13425,6 +18672,20 @@ export type Database = {
             foreignKeyName: "calendar_events_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -13459,6 +18720,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "associations_portfolio_id_fkey"
@@ -13500,6 +18775,20 @@ export type Database = {
             foreignKeyName: "vendors_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "vendors_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "vendors_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -13511,6 +18800,21 @@ export type Database = {
             referencedColumns: ["portfolio_id"]
           },
         ]
+      }
+      v_manager_workload: {
+        Row: {
+          assigned_associations: number | null
+          last_login: string | null
+          manager_email: string | null
+          manager_id: string | null
+          manager_name: string | null
+          open_arch_reviews: number | null
+          open_violations: number | null
+          open_work_orders: number | null
+          overdue_work_orders: number | null
+          total_doors_managed: number | null
+        }
+        Relationships: []
       }
       v_pending_invitations: {
         Row: {
@@ -13532,6 +18836,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "user_invitations_portfolio_id_fkey"
@@ -13671,6 +18989,20 @@ export type Database = {
             foreignKeyName: "associations_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
             referencedRelation: "v_dashboard_summary"
             referencedColumns: ["portfolio_id"]
           },
@@ -13762,6 +19094,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "associations_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
           },
           {
             foreignKeyName: "associations_portfolio_id_fkey"
@@ -13863,6 +19209,210 @@ export type Database = {
           },
         ]
       }
+      v_upcoming_expirations: {
+        Row: {
+          archived_at: string | null
+          association_id: string | null
+          association_name: string | null
+          certificate_file_url: string | null
+          coverage_amount: number | null
+          created_at: string | null
+          days_remaining: number | null
+          deductible_amount: number | null
+          effective_date: string | null
+          expiration_date: string | null
+          extracted_fields: Json | null
+          extraction_status: string | null
+          id: string | null
+          insurance_company: string | null
+          liability_amount: number | null
+          notes: string | null
+          owner_email: string | null
+          owner_id: string | null
+          owner_name: string | null
+          policy_number: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_policies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      v_upcoming_maintenance: {
+        Row: {
+          archived_at: string | null
+          assigned_staff_id: string | null
+          association_id: string | null
+          association_name: string | null
+          category: string | null
+          created_at: string | null
+          custom_interval_days: number | null
+          days_until_due: number | null
+          end_date: string | null
+          frequency: string | null
+          id: string | null
+          last_completed_at: string | null
+          next_due_date: string | null
+          notes: string | null
+          priority: string | null
+          reminder_days: number[] | null
+          start_date: string | null
+          status: string | null
+          task_name: string | null
+          template_id: string | null
+          updated_at: string | null
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "v_insurance_expirations"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
@@ -13946,6 +19496,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      calc_next_maintenance_due: {
+        Args: {
+          p_custom_interval_days: number
+          p_frequency: string
+          p_from_date: string
+        }
+        Returns: string
+      }
       calculate_convenience_fee: {
         Args: {
           p_amount_cents: number
@@ -14003,6 +19561,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      confirm_owner_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: Json
+      }
       create_api_key: {
         Args: {
           p_expires_days?: number
@@ -14022,8 +19584,11 @@ export type Database = {
           p_role_id?: string
         }
         Returns: {
+          accepted_at: string | null
+          association_id: string | null
           association_ids: string[]
           created_at: string
+          created_by: string | null
           email: string
           expires_at: string
           full_name: string | null
@@ -14031,8 +19596,10 @@ export type Database = {
           id: string
           invited_by: string | null
           message: string | null
+          metadata: Json | null
           mvp_role: Database["public"]["Enums"]["mvp_company_role"] | null
           portfolio_id: string
+          role: string | null
           role_id: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
@@ -14122,6 +19689,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      generate_invite_token: { Args: never; Returns: string }
       generate_monthly_statements: {
         Args: { p_month?: number; p_year?: number }
         Returns: number
@@ -14134,6 +19702,24 @@ export type Database = {
         Returns: boolean
       }
       has_role: { Args: { role_name: string }; Returns: boolean }
+      invite_board_member: {
+        Args: {
+          p_association_id: string
+          p_board_role?: string
+          p_email: string
+          p_full_name: string
+        }
+        Returns: Json
+      }
+      invite_company_admin: {
+        Args: {
+          p_company_name: string
+          p_email: string
+          p_full_name: string
+          p_portfolio_id?: string
+        }
+        Returns: Json
+      }
       invite_homeowner: {
         Args: {
           p_email?: string
@@ -14143,25 +19729,48 @@ export type Database = {
         }
         Returns: Json
       }
-      invite_staff: {
+      invite_owner: {
         Args: {
+          p_association_id: string
           p_email: string
-          p_expires_days?: number
-          p_message?: string
-          p_portfolio_id: string
-          p_role_name?: string
+          p_full_name: string
+          p_unit_number: string
         }
         Returns: Json
       }
-      invite_vendor: {
-        Args: {
-          p_email: string
-          p_message?: string
-          p_portfolio_id: string
-          p_vendor_id: string
-        }
+      invite_property_manager: {
+        Args: { p_email: string; p_full_name: string; p_unit_ids: string[] }
         Returns: Json
       }
+      invite_staff:
+        | {
+            Args: { p_email: string; p_full_name: string; p_role: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_email: string
+              p_expires_days?: number
+              p_message?: string
+              p_portfolio_id: string
+              p_role_name?: string
+            }
+            Returns: Json
+          }
+      invite_vendor:
+        | {
+            Args: { p_email: string; p_name: string; p_trade: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_email: string
+              p_message?: string
+              p_portfolio_id: string
+              p_vendor_id: string
+            }
+            Returns: Json
+          }
       invoke_edge_function: {
         Args: { body?: Json; fn_name: string }
         Returns: number
@@ -14176,8 +19785,21 @@ export type Database = {
       is_manager: { Args: never; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       is_platform_operator: { Args: never; Returns: boolean }
+      is_platform_operator_safe: { Args: never; Returns: boolean }
       is_portal_resident: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      list_company_invitations: {
+        Args: never
+        Returns: {
+          company_name: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          portfolio_id: string
+          status: string
+        }[]
+      }
       mark_webhook_delivery: {
         Args: {
           p_delivery_id: string
@@ -14290,8 +19912,15 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          ai_api_key: string | null
+          ai_endpoint: string | null
+          ai_model: string | null
+          ai_provider: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_color: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -14302,25 +19931,34 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
+          email_settings: Json | null
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
+          public_website: string | null
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
+          support_email: string | null
+          support_phone: string | null
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         SetofOptions: {
           from: "*"
@@ -14465,8 +20103,11 @@ export type Database = {
       resend_invitation: {
         Args: { p_invitation_id: string }
         Returns: {
+          accepted_at: string | null
+          association_id: string | null
           association_ids: string[]
           created_at: string
+          created_by: string | null
           email: string
           expires_at: string
           full_name: string | null
@@ -14474,8 +20115,10 @@ export type Database = {
           id: string
           invited_by: string | null
           message: string | null
+          metadata: Json | null
           mvp_role: Database["public"]["Enums"]["mvp_company_role"] | null
           portfolio_id: string
+          role: string | null
           role_id: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
@@ -14490,6 +20133,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      resolve_portfolio_for_host: {
+        Args: { p_host: string }
+        Returns: {
+          company_name: string
+          id: string
+          slug: string
+        }[]
       }
       revoke_invitation: {
         Args: { p_invitation_id: string }
@@ -14516,6 +20167,19 @@ export type Database = {
       setup_edge_function_secrets: {
         Args: { p_project_url: string; p_service_role_key: string }
         Returns: string
+      }
+      stage_owner_activation: {
+        Args: { p_message?: string; p_owner_id: string; p_subject?: string }
+        Returns: Json
+      }
+      stage_owner_form: {
+        Args: {
+          p_message?: string
+          p_owner_id: string
+          p_subject?: string
+          p_template?: string
+        }
+        Returns: Json
       }
       subscribe_association_to_charge: {
         Args: {
@@ -14565,8 +20229,15 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip: string | null
+          ai_api_key: string | null
+          ai_endpoint: string | null
+          ai_model: string | null
+          ai_provider: string | null
           allowed_email_domains: string[]
           archived_at: string | null
+          billing_email_from: string | null
+          brand_color: string | null
+          brand_email: string | null
           company_name: string
           convenience_fee_ach_fixed_cents: number
           convenience_fee_ach_pct: number
@@ -14577,25 +20248,34 @@ export type Database = {
           convenience_fee_mode: Database["public"]["Enums"]["convenience_fee_mode"]
           created_at: string
           created_by: string | null
+          custom_domain: string | null
           default_late_fee_amount: number
           default_late_fee_grace_days: number
           default_nsf_fee_amount: number
           default_payment_reminder_days: number[]
+          email_settings: Json | null
           entitlements: string[]
+          favicon_url: string | null
           fiscal_year_start_month: number
           id: string
+          logo_url: string | null
           password_min_length: number
           phone_number: string | null
           profile_type: Database["public"]["Enums"]["portfolio_profile_type"]
+          public_website: string | null
           require_mfa_for_admins: boolean
           require_mfa_for_staff: boolean
           session_timeout_minutes: number
+          slug: string
           statement_generation_day: number
+          support_email: string | null
+          support_phone: string | null
           suspended_at: string | null
           suspension_reason: string | null
           texting_phone_number: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           updated_at: string
+          website: string | null
         }
         SetofOptions: {
           from: "*"
@@ -14653,12 +20333,33 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type:
+        | "transaction_created"
+        | "report_run"
+        | "invoice_processed"
+        | "user_invited"
+        | "property_updated"
+        | "bill_approved"
+        | "diagnostic_resolved"
+        | "file_updated"
       agreement_status:
         | "draft"
         | "active"
         | "expired"
         | "terminated"
         | "renewing"
+      ai_category:
+        | "maintenance_request"
+        | "billing_payment"
+        | "noise_complaint"
+        | "amenity_booking"
+        | "vendor_communication"
+        | "board_matter"
+        | "emergency"
+        | "general_inquiry"
+        | "lease_ownership"
+        | "other"
+      ai_urgency: "critical" | "high" | "medium" | "low"
       amenity_pricing_mode: "flat" | "hourly"
       amenity_reserve_method: "email" | "platform_link"
       approval_request_status: "pending" | "approved" | "rejected" | "cancelled"
@@ -14732,6 +20433,15 @@ export type Database = {
         | "units_of_production"
         | "none"
       diagnostic_severity: "info" | "warning" | "error"
+      document_category:
+        | "governing_documents"
+        | "meeting_minutes"
+        | "financial_reports"
+        | "insurance"
+        | "contracts"
+        | "notices"
+        | "forms"
+        | "other"
       document_request_status:
         | "requested"
         | "in_progress"
@@ -14740,6 +20450,8 @@ export type Database = {
         | "rejected"
         | "expired"
       dues_increase_status: "draft" | "scheduled" | "posted" | "cancelled"
+      email_provider: "gmail" | "outlook"
+      email_source: "gmail" | "outlook" | "manual"
       event_type:
         | "administrative"
         | "announcements"
@@ -14766,6 +20478,7 @@ export type Database = {
         | "custom_event"
       export_scope: "portfolio_full" | "portfolio_finance" | "user_data"
       export_status: "pending" | "running" | "ready" | "failed" | "expired"
+      frequency: "daily" | "weekly" | "monthly" | "quarterly"
       gl_account_type:
         | "asset"
         | "liability"
@@ -14782,9 +20495,17 @@ export type Database = {
         | "fixed_asset"
       gl_fund_account: "operating" | "reserve" | "special_assessment"
       gl_permission: "full" | "read" | "none"
-      hoa_role: "manager" | "board" | "owner" | "tenant"
+      hoa_role: "manager" | "board" | "owner" | "tenant" | "company_admin"
       inspection_severity: "info" | "minor" | "moderate" | "major" | "critical"
       inspection_status: "scheduled" | "in_progress" | "completed" | "cancelled"
+      invitation_role:
+        | "super_admin"
+        | "company_admin"
+        | "portfolio_manager"
+        | "manager"
+        | "accountant"
+        | "assistant"
+        | "board_member"
       invitation_status: "pending" | "accepted" | "revoked" | "expired"
       je_batch_status:
         | "draft"
@@ -14801,6 +20522,16 @@ export type Database = {
         | "reconciled"
         | "rejected"
       management_fee_type: "per_unit" | "flat_monthly" | "percentage_of_income"
+      meeting_status: "scheduled" | "in_progress" | "completed" | "cancelled"
+      meeting_type:
+        | "board_meeting"
+        | "annual_meeting"
+        | "special_meeting"
+        | "committee_meeting"
+        | "vendor_meeting"
+        | "internal"
+      message_channel: "in_app" | "email" | "text"
+      message_direction: "owner_to_manager" | "manager_to_owner"
       mvp_company_role:
         | "company_admin"
         | "manager"
@@ -14817,6 +20548,12 @@ export type Database = {
         | "board_packet"
         | "emergency"
         | "other"
+      notification_type:
+        | "document_shared"
+        | "payment_due"
+        | "message_received"
+        | "ticket_update"
+        | "general"
       occupancy_status: "current" | "future" | "past"
       occupancy_type: "owner" | "tenant"
       payable_bill_status:
@@ -14825,6 +20562,7 @@ export type Database = {
         | "approved"
         | "paid"
         | "void"
+      payment_method: "ach" | "check" | "credit_card" | "cash" | "other"
       payment_method_type:
         | "bank_account_ach"
         | "bank_account_echeck"
@@ -14841,9 +20579,22 @@ export type Database = {
         | "square"
         | "paypal"
         | "manual"
+      payment_status: "pending" | "confirmed" | "failed" | "refunded"
+      payment_type: "payment" | "charge" | "credit" | "refund"
       period_status: "open" | "soft_closed" | "closed"
       portfolio_profile_type: "association_management" | "property_management"
       portfolio_tier: "core" | "plus" | "max"
+      portier_role:
+        | "super_admin"
+        | "company_admin"
+        | "portfolio_manager"
+        | "property_manager"
+        | "accountant"
+        | "assistant_manager"
+        | "owner"
+        | "vendor"
+        | "resident"
+        | "user"
       privacy_action_status:
         | "received"
         | "verified"
@@ -14857,6 +20608,8 @@ export type Database = {
         | "anonymization"
         | "access_report"
         | "consent_withdrawal"
+      property_status: "active" | "inactive"
+      property_type: "hoa" | "condo" | "commercial" | "residential"
       purchase_order_status: "open" | "approved" | "billed" | "cancelled"
       recert_status:
         | "scheduled"
@@ -14898,6 +20651,7 @@ export type Database = {
       service_request_priority: "low" | "normal" | "high" | "emergency"
       service_request_source: "resident" | "internal" | "recurring"
       service_request_status: "open" | "completed" | "cancelled" | "waiting"
+      severity: "low" | "medium" | "high" | "critical"
       sms_direction: "inbound" | "outbound"
       sms_status:
         | "queued"
@@ -14935,6 +20689,52 @@ export type Database = {
         | "applicant"
         | "statement"
         | "generic"
+      ticket_category:
+        | "common_area"
+        | "unit_related"
+        | "emergency"
+        | "vendor"
+        | "board_matter"
+        | "maintenance"
+        | "other"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_source: "portal" | "email" | "phone" | "manager" | "system"
+      ticket_status:
+        | "open"
+        | "in_progress"
+        | "pending_vendor"
+        | "resolved"
+        | "closed"
+      tier: "starter" | "growth" | "professional" | "enterprise"
+      transaction_status: "pending" | "approved" | "paid" | "void" | "posted"
+      transaction_type:
+        | "receipt"
+        | "charge"
+        | "bill"
+        | "payment"
+        | "journal_entry"
+        | "bank_deposit"
+        | "bank_transfer"
+      user_role:
+        | "super_admin"
+        | "company_admin"
+        | "portfolio_manager"
+        | "manager"
+        | "accountant"
+        | "assistant"
+        | "board_member"
+        | "user"
+        | "admin"
+      vendor_category:
+        | "plumbing"
+        | "electrical"
+        | "hvac"
+        | "landscaping"
+        | "cleaning"
+        | "security"
+        | "elevator"
+        | "general"
+        | "other"
       vendor_payment_type: "check" | "echeck" | "ach" | "online"
       vendor_trade:
         | "hvac"
@@ -15167,6 +20967,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: [
+        "transaction_created",
+        "report_run",
+        "invoice_processed",
+        "user_invited",
+        "property_updated",
+        "bill_approved",
+        "diagnostic_resolved",
+        "file_updated",
+      ],
       agreement_status: [
         "draft",
         "active",
@@ -15174,6 +20984,19 @@ export const Constants = {
         "terminated",
         "renewing",
       ],
+      ai_category: [
+        "maintenance_request",
+        "billing_payment",
+        "noise_complaint",
+        "amenity_booking",
+        "vendor_communication",
+        "board_matter",
+        "emergency",
+        "general_inquiry",
+        "lease_ownership",
+        "other",
+      ],
+      ai_urgency: ["critical", "high", "medium", "low"],
       amenity_pricing_mode: ["flat", "hourly"],
       amenity_reserve_method: ["email", "platform_link"],
       approval_request_status: ["pending", "approved", "rejected", "cancelled"],
@@ -15255,6 +21078,16 @@ export const Constants = {
         "none",
       ],
       diagnostic_severity: ["info", "warning", "error"],
+      document_category: [
+        "governing_documents",
+        "meeting_minutes",
+        "financial_reports",
+        "insurance",
+        "contracts",
+        "notices",
+        "forms",
+        "other",
+      ],
       document_request_status: [
         "requested",
         "in_progress",
@@ -15264,6 +21097,8 @@ export const Constants = {
         "expired",
       ],
       dues_increase_status: ["draft", "scheduled", "posted", "cancelled"],
+      email_provider: ["gmail", "outlook"],
+      email_source: ["gmail", "outlook", "manual"],
       event_type: [
         "administrative",
         "announcements",
@@ -15291,6 +21126,7 @@ export const Constants = {
       ],
       export_scope: ["portfolio_full", "portfolio_finance", "user_data"],
       export_status: ["pending", "running", "ready", "failed", "expired"],
+      frequency: ["daily", "weekly", "monthly", "quarterly"],
       gl_account_type: [
         "asset",
         "liability",
@@ -15308,9 +21144,18 @@ export const Constants = {
       ],
       gl_fund_account: ["operating", "reserve", "special_assessment"],
       gl_permission: ["full", "read", "none"],
-      hoa_role: ["manager", "board", "owner", "tenant"],
+      hoa_role: ["manager", "board", "owner", "tenant", "company_admin"],
       inspection_severity: ["info", "minor", "moderate", "major", "critical"],
       inspection_status: ["scheduled", "in_progress", "completed", "cancelled"],
+      invitation_role: [
+        "super_admin",
+        "company_admin",
+        "portfolio_manager",
+        "manager",
+        "accountant",
+        "assistant",
+        "board_member",
+      ],
       invitation_status: ["pending", "accepted", "revoked", "expired"],
       je_batch_status: ["draft", "validating", "validated", "posted", "failed"],
       lease_generation_method: [
@@ -15326,6 +21171,17 @@ export const Constants = {
         "rejected",
       ],
       management_fee_type: ["per_unit", "flat_monthly", "percentage_of_income"],
+      meeting_status: ["scheduled", "in_progress", "completed", "cancelled"],
+      meeting_type: [
+        "board_meeting",
+        "annual_meeting",
+        "special_meeting",
+        "committee_meeting",
+        "vendor_meeting",
+        "internal",
+      ],
+      message_channel: ["in_app", "email", "text"],
+      message_direction: ["owner_to_manager", "manager_to_owner"],
       mvp_company_role: [
         "company_admin",
         "manager",
@@ -15344,6 +21200,13 @@ export const Constants = {
         "emergency",
         "other",
       ],
+      notification_type: [
+        "document_shared",
+        "payment_due",
+        "message_received",
+        "ticket_update",
+        "general",
+      ],
       occupancy_status: ["current", "future", "past"],
       occupancy_type: ["owner", "tenant"],
       payable_bill_status: [
@@ -15353,6 +21216,7 @@ export const Constants = {
         "paid",
         "void",
       ],
+      payment_method: ["ach", "check", "credit_card", "cash", "other"],
       payment_method_type: [
         "bank_account_ach",
         "bank_account_echeck",
@@ -15371,9 +21235,23 @@ export const Constants = {
         "paypal",
         "manual",
       ],
+      payment_status: ["pending", "confirmed", "failed", "refunded"],
+      payment_type: ["payment", "charge", "credit", "refund"],
       period_status: ["open", "soft_closed", "closed"],
       portfolio_profile_type: ["association_management", "property_management"],
       portfolio_tier: ["core", "plus", "max"],
+      portier_role: [
+        "super_admin",
+        "company_admin",
+        "portfolio_manager",
+        "property_manager",
+        "accountant",
+        "assistant_manager",
+        "owner",
+        "vendor",
+        "resident",
+        "user",
+      ],
       privacy_action_status: [
         "received",
         "verified",
@@ -15389,6 +21267,8 @@ export const Constants = {
         "access_report",
         "consent_withdrawal",
       ],
+      property_status: ["active", "inactive"],
+      property_type: ["hoa", "condo", "commercial", "residential"],
       purchase_order_status: ["open", "approved", "billed", "cancelled"],
       recert_status: [
         "scheduled",
@@ -15435,6 +21315,7 @@ export const Constants = {
       service_request_priority: ["low", "normal", "high", "emergency"],
       service_request_source: ["resident", "internal", "recurring"],
       service_request_status: ["open", "completed", "cancelled", "waiting"],
+      severity: ["low", "medium", "high", "critical"],
       sms_direction: ["inbound", "outbound"],
       sms_status: [
         "queued",
@@ -15475,6 +21356,57 @@ export const Constants = {
         "applicant",
         "statement",
         "generic",
+      ],
+      ticket_category: [
+        "common_area",
+        "unit_related",
+        "emergency",
+        "vendor",
+        "board_matter",
+        "maintenance",
+        "other",
+      ],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_source: ["portal", "email", "phone", "manager", "system"],
+      ticket_status: [
+        "open",
+        "in_progress",
+        "pending_vendor",
+        "resolved",
+        "closed",
+      ],
+      tier: ["starter", "growth", "professional", "enterprise"],
+      transaction_status: ["pending", "approved", "paid", "void", "posted"],
+      transaction_type: [
+        "receipt",
+        "charge",
+        "bill",
+        "payment",
+        "journal_entry",
+        "bank_deposit",
+        "bank_transfer",
+      ],
+      user_role: [
+        "super_admin",
+        "company_admin",
+        "portfolio_manager",
+        "manager",
+        "accountant",
+        "assistant",
+        "board_member",
+        "user",
+        "admin",
+      ],
+      vendor_category: [
+        "plumbing",
+        "electrical",
+        "hvac",
+        "landscaping",
+        "cleaning",
+        "security",
+        "elevator",
+        "general",
+        "other",
       ],
       vendor_payment_type: ["check", "echeck", "ach", "online"],
       vendor_trade: [
