@@ -1,6 +1,25 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const supabase = await createClient()
+  const db = supabase as any
+
+  // Fetch real platform stats
+  const [portfoliosRes, assocRes, unitsRes, subsRes] = await Promise.all([
+    db.from('portfolios').select('id', { count: 'exact', head: true }),
+    db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    db.from('subscriptions').select('tier, status, price_monthly_cents'),
+  ])
+
+  const companyCount = portfoliosRes?.count ?? 0
+  const assocCount = assocRes?.count ?? 0
+  const doorCount = unitsRes?.count ?? 0
+  const activeSubs = (subsRes?.data ?? []).filter((s: any) => s.status === 'active' || s.status === 'trialing')
+  const mrr = activeSubs.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100
   return (
     <div className="bg-white font-sans antialiased">
       {/* ═══════════════════════════════════════════════
@@ -44,9 +63,9 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-5 divide-x divide-gray-100">
                 {[
-                  { name: 'Platform Operator', stats: ['2 companies', '$299 MRR', '575 doors'], color: '#1E3A5F' },
-                  { name: 'Company Admin', stats: ['5 associations', '3 managers', 'Portfolio view'], color: '#0D9488' },
-                  { name: 'Manager', stats: ['3 associations', '18 open WO', 'Day-to-day ops'], color: '#2563EB' },
+                  { name: 'Platform Operator', stats: [`${companyCount} companies`, `$${mrr.toLocaleString()} MRR`, `${doorCount.toLocaleString()} doors`], color: '#1E3A5F' },
+                  { name: 'Company Admin', stats: [`${assocCount} associations`, 'Portfolio view', 'Billing control'], color: '#0D9488' },
+                  { name: 'Manager', stats: ['Work orders', 'Violations', 'Maintenance'], color: '#2563EB' },
                   { name: 'Board Member', stats: ['Financials', 'Violations', 'Documents'], color: '#7C3AED' },
                   { name: 'Owner Portal', stats: ['Payments', 'Requests', 'Calendar'], color: '#059669' },
                 ].map(p => (
