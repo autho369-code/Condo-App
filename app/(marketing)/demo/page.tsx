@@ -28,9 +28,9 @@ export default async function ProposalPage({ searchParams }: { searchParams: Pro
 
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Units', value: '34' }, { label: 'Stories', value: '12' },
-                  { label: 'Built', value: '2007' }, { label: 'Elevators', value: '3' },
-                  { label: 'Owner Occupied', value: '28' }, { label: 'Tenant Occupied', value: '6' },
+                  { label: 'Units', value: '42' }, { label: 'Stories', value: '5' },
+                  { label: 'Built', value: '2012' }, { label: 'Elevators', value: '2' },
+                  { label: 'Owner Occupied', value: '36' }, { label: 'Tenant Occupied', value: '6' },
                 ].map(s => (
                   <div key={s.label} className="rounded-xl bg-gray-50 border border-gray-100 p-4">
                     <div className="text-xs text-gray-400 uppercase tracking-wider">{s.label}</div>
@@ -41,7 +41,7 @@ export default async function ProposalPage({ searchParams }: { searchParams: Pro
 
               <div className="mt-6 space-y-2">
                 <h4 className="text-sm font-semibold text-gray-900">Upcoming Maintenance</h4>
-                {[{ date: 'Jun 15', task: 'Elevator Preventive Maintenance' },{ date: 'Jun 20', task: 'Kitchen Line Rodding' },{ date: 'Jun 25', task: 'Roof Inspection' },{ date: 'Jul 1', task: 'Window Washing' }].map(m => (
+                {[{ date: 'Jul 15', task: 'Elevator Safety Inspection' },{ date: 'Jul 20', task: 'Common Area Deep Clean' },{ date: 'Jul 25', task: 'Roof Drainage Check' },{ date: 'Aug 1', task: 'Exterior Power Washing' }].map(m => (
                   <div key={m.task} className="flex items-center gap-3 text-sm"><span className="text-xs font-semibold text-[#1E3A5F] bg-[#1E3A5F]/5 rounded px-2 py-0.5 w-14 text-center">{m.date}</span><span className="text-gray-600">{m.task}</span></div>
                 ))}
               </div>
