@@ -35,6 +35,28 @@ export const appModules: AppModule[] = [
   { label: 'People', href: '/owners' },
   { label: 'Vendors', href: '/vendors' },
   { label: 'Maintenance', href: '/maintenance' },
-  { label: 'Communication', href: '/communication-center' },
+  {
+    label: 'Documents',
+    href: '/documents',
+    children: [
+      { label: 'All Documents', href: '/documents' },
+      { label: 'Generate', href: '/documents/generate' },
+      { label: 'Templates', href: '/documents?tab=templates' },
+      { label: 'Notices', href: '/documents?tab=notices' },
+    ],
+  },
+  {
+    label: 'Communication',
+    href: '/communication-center',
+    children: [
+      { label: 'Center', href: '/communication-center' },
+      { label: 'Send email', href: '/send-email' },
+      { label: 'SMS', href: '/sms' },
+      { label: 'Templates', href: '/sms/templates' },
+      { label: 'Opt-Ins', href: '/sms/opt-ins' },
+      { label: 'Inbox', href: '/inbox' },
+      { label: 'Letters', href: '/letters' },
+    ],
+  },
   { label: 'Settings', href: '/settings' },
 ];
