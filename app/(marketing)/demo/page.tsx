@@ -2,7 +2,9 @@ import Link from 'next/link'
 
 export const metadata = { title: 'Request a Demo — Portier369' }
 
-export default function DemoPage() {
+export default async function DemoPage({ searchParams }: { searchParams: Promise<{ submitted?: string }> }) {
+  const sp = await searchParams
+  const submitted = sp.submitted === '1'
   return (
     <div className="min-h-screen bg-white font-sans antialiased">
       <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
@@ -22,8 +24,14 @@ export default function DemoPage() {
           <p className="mt-4 text-lg text-gray-500">
             Fill out the form below and we&apos;ll schedule a personalized walkthrough of the platform with your portfolio in mind.
           </p>
+          {submitted && (
+            <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700 font-medium">
+              Thank you. Your request has been sent to hello@portier369.com. We&apos;ll reach out within one business day.
+            </div>
+          )}
         </div>
 
+        {!submitted && (
         <form action="/api/demo-request" method="POST" className="space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <label className="block">
@@ -76,6 +84,7 @@ export default function DemoPage() {
             </p>
           </div>
         </form>
+        )}
       </main>
     </div>
   )

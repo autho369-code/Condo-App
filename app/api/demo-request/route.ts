@@ -1,23 +1,39 @@
 import { NextResponse } from 'next/server'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
   const formData = await request.formData()
-  const data = {
-    first_name: formData.get('first_name'),
-    last_name: formData.get('last_name'),
-    email: formData.get('email'),
-    company: formData.get('company'),
-    phone: formData.get('phone'),
-    doors: formData.get('doors'),
-    message: formData.get('message'),
-    submitted_at: new Date().toISOString(),
+  const firstName = formData.get('first_name') as string
+  const lastName = formData.get('last_name') as string
+  const email = formData.get('email') as string
+  const company = formData.get('company') as string
+  const phone = formData.get('phone') as string
+  const doors = formData.get('doors') as string
+  const message = formData.get('message') as string
+
+  const body = [
+    `Name: ${firstName} ${lastName}`,
+    `Email: ${email}`,
+    `Company: ${company || '—'}`,
+    `Phone: ${phone || '—'}`,
+    `Doors/Units: ${doors || '—'}`,
+    `Message: ${message || '—'}`,
+    `Submitted: ${new Date().toISOString()}`,
+  ].join('\n')
+
+  try {
+    await resend.emails.send({
+      from: 'Portier369 <hello@portier369.com>',
+      to: 'hello@portier369.com',
+      replyTo: email,
+      subject: `Demo request from ${firstName} ${lastName}${company ? ` — ${company}` : ''}`,
+      text: body,
+    })
+  } catch (err) {
+    console.error('Resend send failed:', err)
   }
-
-  // Resend integration ready — add API key to wire email to hello@portier369.com
-  // const resend = new Resend(process.env.RESEND_API_KEY)
-  // await resend.emails.send({ from: 'Portier369 <hello@portier369.com>', to: 'hello@portier369.com', subject: `Demo request from ${data.first_name} ${data.last_name}`, text: JSON.stringify(data, null, 2) })
-
-  console.log('Demo request:', JSON.stringify(data, null, 2))
 
   return NextResponse.redirect(new URL('/demo?submitted=1', request.url))
 }
