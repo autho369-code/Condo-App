@@ -60,7 +60,7 @@ export async function resolveTenant(hostname: string): Promise<TenantBranding | 
 function mapBranding(row: any): TenantBranding {
   return {
     portfolioId: row.id,
-    companyName: row.company_name ?? 'Portier',
+    companyName: row.company_name ?? 'Portier369',
     logoUrl: row.logo_url ?? null,
     brandColor: row.brand_color ?? '#10B981',
     supportEmail: row.support_email ?? null,
@@ -78,7 +78,7 @@ export function tenantFromHeaders(headers: Headers): TenantBranding | null {
   if (!id) return null;
   return {
     portfolioId: id,
-    companyName: headers.get('x-portfolio-name') ?? 'Portier',
+    companyName: headers.get('x-portfolio-name') ?? 'Portier369',
     logoUrl: headers.get('x-portfolio-logo') || null,
     brandColor: headers.get('x-portfolio-color') ?? '#10B981',
     supportEmail: headers.get('x-portfolio-support-email') || null,

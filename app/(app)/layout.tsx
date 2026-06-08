@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const h = await headers();
   const tenant = tenantFromHeaders(h);
 
-  const displayName = tenant?.companyName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier';
+  const displayName = tenant?.companyName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369';
   const logoUrl = tenant?.logoUrl ?? me.portfolio?.logo_url ?? null;
   const brandColor = tenant?.brandColor ?? me.portfolio?.brand_color ?? '#10B981';
 

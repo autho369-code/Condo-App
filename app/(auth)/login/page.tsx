@@ -29,7 +29,7 @@ export default async function LoginPage({
         {tenant?.logoUrl ? (
           <img src={tenant.logoUrl} alt={tenant.companyName} className="mx-auto h-10 object-contain" />
         ) : (
-          <div className="text-xl font-semibold text-brand-600">{tenant?.companyName ?? 'Portier'}</div>
+          <div className="text-xl font-semibold text-brand-600">{tenant?.companyName ?? 'Portier369'}</div>
         )}
         {tenant ? (
           <>
