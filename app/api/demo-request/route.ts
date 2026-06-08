@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       from: 'Portier369 <hello@portier369.com>',
       to: 'hello@portier369.com',
       replyTo: (fd.get('email') as string) || undefined,
-      subject: `Portfolio Assessment — ${company} (${fd.get('total_doors') || '?'} doors)`,
+      subject: `Proposal request — ${company} (${fd.get('total_doors') || '?'} doors)`,
       text: lines.join('\n'),
     })
   } catch (err) {

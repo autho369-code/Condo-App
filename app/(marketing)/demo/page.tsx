@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Request a Portfolio Assessment — Portier369' }
+export const metadata = { title: 'Request a Proposal — Portier369' }
 
 const assocRanges = ['1–10','11–25','26–50','51–100','100+']
 const doorRanges = ['Under 250','251–1,000','1,001–4,000','4,001–10,000','10,000+']
@@ -25,11 +25,15 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-500 shadow-sm">Built for property management companies</span>
               <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
-                Request a Portfolio Assessment
+                Request a Proposal
               </h1>
               <p className="mt-4 text-lg text-gray-500">
                 See how Portier369 can streamline operations, reduce administrative workload, and support your growing portfolio.
               </p>
+              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <p className="text-sm font-semibold text-amber-800">We onboard 6 property management companies a week.</p>
+                <p className="text-sm text-amber-700 mt-1">Submit your proposal now to secure current pricing and your onboarding slot.</p>
+              </div>
               {submitted && (
                 <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700 font-medium">
                   Thank you. Your portfolio assessment request has been sent to hello@portier369.com. We&apos;ll prepare a customized plan and reach out within one business day.
@@ -214,7 +218,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
               </div>
             </label>
 
-            <button type="submit" className="w-full rounded-xl bg-[#1E3A5F] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/15 hover:bg-[#152940] transition">Request My Portfolio Assessment</button>
+            <button type="submit" className="w-full rounded-xl bg-[#1E3A5F] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/15 hover:bg-[#152940] transition">Request My Proposal</button>
             <p className="text-center text-sm text-gray-400">Prefer to talk first? <a href="mailto:hello@portier369.com" className="text-[#1E3A5F] font-medium hover:underline">Book a Discovery Call</a></p>
           </form>
           )}
