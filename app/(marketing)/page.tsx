@@ -331,19 +331,29 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          TRUST
+          ABOUT — 29 Years Experience
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20 bg-white">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
-              Built by property managers, not just developers.
+          <div className="max-w-3xl">
+            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Built on 29 Years of Property Management Experience</span>
+            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+              Portier369 wasn&apos;t designed in a software conference room.
             </h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-              Every feature came from real condominium, HOA, and townhome management workflows. We understand board expectations, vendor follow-up, compliance deadlines, and the 4pm Friday emergency.
+            <p className="mt-6 text-lg text-gray-500 leading-relaxed">
+              It was built from nearly three decades of real-world condominium and HOA management experience by a CAM, CMCA, and AMS professional who has managed thousands of units, worked with hundreds of board members, coordinated major capital projects, resolved violations, handled emergencies, and navigated the daily realities of community management.
+            </p>
+            <p className="mt-4 text-lg text-gray-500 leading-relaxed">
+              Every workflow inside Portier369 reflects how property managers actually work. Not how software developers think they work.
+            </p>
+            <p className="mt-4 text-lg text-gray-500 leading-relaxed">
+              From violations and maintenance tracking to board approvals, owner communication, vendor coordination, and preventive maintenance, every feature was designed to eliminate administrative friction and give managers more time to focus on serving their communities.
+            </p>
+            <p className="mt-4 text-lg text-gray-500 leading-relaxed">
+              Portier369 combines operational experience with modern automation so management companies can run more associations, respond faster, and deliver a better experience to boards and owners.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {[
               { title: 'Row-level security', desc: 'Supabase RLS enforced on every database query. No portfolio can access another portfolio\'s data. Period.' },
               { title: 'Your data, portable', desc: 'Export anything, anytime. No vendor lock-in. Your records belong to you — always.' },
