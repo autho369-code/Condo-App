@@ -124,6 +124,56 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
               </div>
             </fieldset>
 
+            {/* Plan Selection */}
+            <fieldset className="space-y-4 pt-2 border-t border-gray-100">
+              <legend className="text-base font-semibold text-gray-900">Select Your Plan</legend>
+              <p className="text-sm text-gray-500">Which plan fits your portfolio? Pricing is based on active doors. All plans include unlimited owners, board members, and vendors.</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  { name: 'Foundation', price: '$157/mo', doors: 'Up to 200 units', desc: 'Owner Portal, Board Portal, Manager Dashboard, Work Orders, Violations, Document Management, White Glove Setup' },
+                  { name: 'Growth', price: '$382/mo', doors: 'Up to 600 units', desc: 'Everything in Foundation + Vendor Portal, Maintenance Calendar, Compliance Tracking, Association Health Scores, SMS Notifications' },
+                  { name: 'Portfolio', price: '$642/mo', doors: 'Up to 1,000 units', desc: 'Everything in Growth + Company Admin Dashboard, Architectural Reviews, AI Automation, Advanced Reporting, API Access' },
+                  { name: 'Enterprise', price: 'Custom', doors: '1,000+ units', desc: 'Everything in Portfolio + Multi-Office, Custom Integrations, SLA Guarantee, Volume Pricing' },
+                ].map(plan => (
+                  <label key={plan.name} className={`relative flex flex-col rounded-xl border p-4 cursor-pointer hover:border-[#1E3A5F]/40 transition has-[:checked]:border-[#1E3A5F] has-[:checked]:bg-[#1E3A5F]/5 has-[:checked]:ring-2 has-[:checked]:ring-[#1E3A5F] ${plan.name === 'Growth' ? 'border-gray-300' : 'border-gray-200'}`}>
+                    <input type="radio" name="selected_plan" value={plan.name} className="sr-only" />
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-gray-900">{plan.name}</span>
+                      <span className="text-lg font-bold text-[#1E3A5F]">{plan.price}</span>
+                    </div>
+                    <span className="text-xs text-gray-500 mb-2">{plan.doors}</span>
+                    <span className="text-[11px] text-gray-400 leading-relaxed">{plan.desc}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {/* Premium Add-On Services */}
+            <fieldset className="space-y-3 pt-2 border-t border-gray-100">
+              <legend className="text-base font-semibold text-gray-900">Premium Add-On Services</legend>
+              <p className="text-sm text-gray-500">Optional services available at additional cost. Select any you&apos;re interested in.</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {[
+                  { name: 'Data migration', desc: 'Full portfolio migration from any legacy system — units, owners, vendors, documents, financial history.' },
+                  { name: 'AI document assistant', desc: 'Custom AI workflows trained on your documents. Auto-classify, extract, summarize, and organize.' },
+                  { name: 'Custom website development', desc: 'Branded association websites, owner portals, and board communication hubs.' },
+                  { name: 'White-label mobile app', desc: 'Your management company brand on iOS and Android — owners and boards access from their phone.' },
+                  { name: 'Accounting outsourcing', desc: 'Turn over your books. Assessments, payables, reconciliation, financial reporting.' },
+                  { name: 'Full-service onboarding', desc: 'We set up every association, import every record, train every team member.' },
+                  { name: 'Bulk document digitization', desc: 'Decades of paper records scanned, OCR\'d, organized, and uploaded into your document center.' },
+                  { name: 'Dedicated account manager', desc: 'A named contact who knows your portfolio, handles escalations, and manages your account.' },
+                ].map(svc => (
+                  <label key={svc.name} className="flex items-start gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm cursor-pointer hover:border-[#1E3A5F]/30 transition has-[:checked]:border-[#1E3A5F] has-[:checked]:bg-[#1E3A5F]/5">
+                    <input type="checkbox" name="addon_services" value={svc.name} className="sr-only" />
+                    <div>
+                      <span className="font-medium text-gray-900">{svc.name}</span>
+                      <span className="text-xs text-gray-500 block mt-0.5 leading-relaxed">{svc.desc}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
             {/* Implementation */}
             <fieldset className="space-y-4 pt-2 border-t border-gray-100">
               <legend className="text-base font-semibold text-gray-900">Implementation Needs</legend>
