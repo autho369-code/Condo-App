@@ -4,7 +4,7 @@ import type { Database } from '@/lib/types/database'
 
 const APEX_DOMAIN = 'portier369.com'
 const MARKETING_PATHS = ['/pricing', '/features']
-const PUBLIC_PATHS = ['/login', '/signup', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo']
+const PUBLIC_PATHS = ['/login', '/signup', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo', '/api/maintenance/send-reminders']
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || APEX_DOMAIN

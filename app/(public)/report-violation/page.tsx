@@ -28,8 +28,14 @@ async function submitReport(formData: FormData) {
     ack_may_contact: formData.get('ack_may_contact') === 'on',
   };
 
+  // Save AI analysis data if provided
+  const aiSeverity = formData.get('ai_severity') as string || null;
+  const aiConfidence = formData.get('ai_confidence') as string || null;
+  if (aiSeverity) (report as any).ai_severity = aiSeverity;
+  if (aiConfidence) (report as any).ai_confidence = parseInt(aiConfidence, 10);
+
   await (supabase as any).from('violation_cases').insert(report);
-  redirect('/portal/violations/confirmation');
+  redirect('/report-violation/confirmation');
 }
 
 export default async function ReportViolationPage({ searchParams }: { searchParams: Promise<{ assoc?: string }> }) {
