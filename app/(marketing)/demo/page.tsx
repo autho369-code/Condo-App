@@ -31,7 +31,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
                 See how Portier369 can streamline operations, reduce administrative workload, and support your growing portfolio.
               </p>
               <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                <p className="text-sm font-semibold text-amber-800">We onboard 6 property management companies a week.</p>
+                <p className="text-sm font-semibold text-amber-800">We onboard 2 property management companies a week.</p>
                 <p className="text-sm text-amber-700 mt-1">Submit your proposal now to secure current pricing and your onboarding slot.</p>
               </div>
               {submitted && (
