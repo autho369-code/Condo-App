@@ -11,21 +11,19 @@ export async function POST(request: Request) {
   const fd = await request.formData()
 
   const lines = [
-    `=== PROPOSAL REQUEST ===`,
+    `=== MANAGEMENT COMPANY PROPOSAL REQUEST ===`,
     ``,
-    `COMMUNITY INFORMATION`,
-    `Association: ${fd.get('association_name') || '—'}`,
+    `COMPANY`,
+    `Name: ${fd.get('company_name') || '—'}`,
     `City: ${fd.get('city') || '—'}`,
     `State: ${fd.get('state') || '—'}`,
+    `Website: ${fd.get('website') || '—'}`,
     ``,
-    `COMMUNITY PROFILE`,
-    `Type: ${fd.get('association_type') || '—'}`,
-    `Units: ${fd.get('units') || '—'}`,
-    `Buildings: ${fd.get('buildings') || '—'}`,
-    `Elevators: ${fd.get('elevators') || '—'}`,
-    `Onsite Staff: ${fd.get('onsite_staff') || '—'}`,
-    `Has Management Company: ${fd.get('has_mgmt_company') || '—'}`,
-    `Management Company: ${fd.get('mgmt_company') || '—'}`,
+    `PORTFOLIO`,
+    `Associations: ${fd.get('num_associations') || '—'}`,
+    `Total Doors: ${fd.get('total_doors') || '—'}`,
+    `Managers: ${fd.get('num_managers') || '—'}`,
+    `Community Types: ${getList(fd, 'community_types') || '—'}`,
     ``,
     `CURRENT SOFTWARE`,
     getList(fd, 'current_software') || '—',
@@ -46,12 +44,14 @@ export async function POST(request: Request) {
     `Submitted: ${new Date().toISOString()}`,
   ]
 
+  const company = fd.get('company_name') || 'New Lead'
+
   try {
     await resend.emails.send({
       from: 'Portier369 <hello@portier369.com>',
       to: 'hello@portier369.com',
       replyTo: (fd.get('email') as string) || undefined,
-      subject: `Proposal request from ${fd.get('first_name') || ''} ${fd.get('last_name') || ''} — ${fd.get('association_name') || 'New Lead'}`,
+      subject: `Proposal request — ${company} (${fd.get('total_doors') || '?'} doors)`,
       text: lines.join('\n'),
     })
   } catch (err) {
