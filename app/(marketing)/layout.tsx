@@ -11,7 +11,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
-            <Link href="/demo" className="text-gray-600 hover:text-gray-900 transition">Assessment</Link>
+            <Link href="/company" className="text-gray-600 hover:text-gray-900 transition">Company</Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Sign in</Link>
