@@ -239,34 +239,47 @@ export default function HomePage() {
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20 bg-white">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          {/* Everything Included banner */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-6 py-2.5 text-base font-semibold text-emerald-700 shadow-sm">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+              Everything Included. No Hidden Modules. No Implementation Fees. No Long-Term Contracts.
+            </div>
+          </div>
+
           <div className="text-center mb-12">
-            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Pricing</span>
-            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
-              Simple door-based pricing. Everything included.
+            <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+              Simple door-based pricing.
             </h2>
-            <p className="mt-4 text-lg text-gray-500">No per-seat fees. No paid modules. No long-term contracts.</p>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { name: 'Foundation', price: '$157', doors: 'Up to 250 units', desc: 'Small management companies and self-managed associations.', modules: 'Owner Portal, Board Portal, Manager Dashboard, Work Orders, Violations, Document Management, Email Support' },
-              { name: 'Growth', price: '$282+', doors: '251 – 1,000 units', desc: 'Growing management companies scaling their portfolio.', modules: 'Everything in Foundation + Vendor Portal, Maintenance Calendar, Compliance Tracking, SMS Notifications, Priority Support', featured: true },
-              { name: 'Portfolio', price: '$1,800', doors: 'Up to 4,000 units', desc: 'Established management firms with multiple associations.', modules: 'Everything in Growth + Company Admin Dashboard, AI Automation, Advanced Reporting, API Access, Dedicated Account Manager' },
-              { name: 'Enterprise', price: '$3,600', doors: 'Up to 10,000 units', desc: 'Large multi-office operations needing scale.', modules: 'Everything in Portfolio + Multi-Office, Custom Integrations, SLA Guarantee, Volume Pricing' },
+              { name: 'Foundation', price: '$157', doors: 'Up to 200 Units', desc: 'For self-managed associations and smaller management companies.', cta: 'See the Platform', href: '/demo', features: ['Owner Portal', 'Board Portal', 'Manager Dashboard', 'Work Orders', 'Violations', 'Document Management', 'Assessment Tracking', 'Email Communications', 'White Glove Setup'] },
+              { name: 'Growth', price: '$382', doors: 'Up to 600 Units', desc: 'For growing management companies that need stronger operational control.', cta: 'Book a Platform Tour', href: '/demo', featured: true, features: ['Everything in Foundation', 'Vendor Portal', 'Maintenance Calendar', 'Compliance Tracking', 'Vendor Coordination', 'Association Health Scores', 'SMS Notifications', 'Portfolio Visibility', 'Priority Support'] },
+              { name: 'Portfolio', price: '$642', doors: 'Up to 1,000 Units', desc: 'For established management companies managing multiple associations.', cta: 'Request a Portfolio Review', href: '/demo', features: ['Everything in Growth', 'Company Admin Dashboard', 'Architectural Reviews', 'Board Management Tools', 'AI Automation', 'Advanced Reporting', 'API Access', 'Multi-Manager Oversight', 'Dedicated Success Manager'] },
+              { name: 'Enterprise', price: 'Custom', doors: '1,000+ Units', desc: 'For large management companies and multi-office operations.', cta: 'Talk to Our Team', href: '/demo', features: ['Everything in Portfolio', 'Multi-Office Support', 'Custom Integrations', 'Custom AI Workflows', 'Enterprise Security Controls', 'Dedicated Support Team', 'SLA Guarantee', 'Custom Onboarding', 'Volume Pricing'] },
             ].map(plan => (
-              <div key={plan.name} className={`relative rounded-2xl border bg-white p-6 shadow-sm ${plan.featured ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F] shadow-[0_12px_40px_rgba(30,58,95,0.12)] scale-[1.03]' : 'border-gray-200 shadow-[0_4px_20px_rgba(0,0,0,0.04)]'}`}>
-                {plan.featured && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#1E3A5F] px-4 py-1 text-xs font-semibold text-white">Most popular</div>}
+              <div key={plan.name} className={`relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${plan.featured ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F] shadow-[0_12px_40px_rgba(30,58,95,0.12)] scale-[1.03]' : 'border-gray-200 shadow-[0_4px_20px_rgba(0,0,0,0.04)]'}`}>
+                {plan.featured && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#1E3A5F] px-4 py-1 text-xs font-semibold text-white">Most Popular</div>}
                 <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-base text-gray-400">/month</span>
+                  {plan.price !== 'Custom' && <span className="text-base text-gray-400">/month</span>}
                 </div>
                 <p className="mt-2 text-sm text-gray-500">{plan.doors}</p>
                 <p className="mt-3 text-sm text-gray-500 leading-relaxed">{plan.desc}</p>
-                <Link href="/demo" className={`mt-5 flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition w-full ${plan.featured ? 'bg-[#1E3A5F] text-white hover:bg-[#152940]' : 'border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
-                  Schedule demo
+                <Link href={plan.href} className={`mt-5 flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition w-full ${plan.featured ? 'bg-[#1E3A5F] text-white hover:bg-[#152940]' : 'border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}>
+                  {plan.cta}
                 </Link>
-                <div className="mt-5 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-400 leading-relaxed">{plan.modules}</p>
+                <div className="mt-5 pt-4 border-t border-gray-100 flex-1">
+                  <ul className="space-y-2">
+                    {plan.features.map((f: string) => (
+                      <li key={f} className="flex items-start gap-2 text-xs text-gray-500 leading-relaxed">
+                        <svg className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ))}
