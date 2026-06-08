@@ -48,8 +48,7 @@ export default async function AccountingPage() {
   // GL accounts count
   const glAccountsQuery = db
     .from('gl_accounts')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null);
+    .select('id', { count: 'exact', head: true });
 
   const [
     { count: openBills },

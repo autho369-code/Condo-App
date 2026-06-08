@@ -22,7 +22,7 @@ export default async function NewCalendarEventPage({
 
   const [{ data: associations }, { data: vendors }, { data: owners }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name, email, phone').is('archived_at', null).order('name').limit(200),
+    db.from('vendors').select('id, name, emails, phone_numbers').is('archived_at', null).order('name').limit(200),
     db.from('owners').select('id, full_name, email, phone').is('archived_at', null).order('full_name').limit(200),
   ]);
 

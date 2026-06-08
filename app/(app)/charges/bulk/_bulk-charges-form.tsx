@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { createBulkCharges } from '@/lib/rpcs/bulk-operations';
 import { money } from '@/lib/utils';
 
@@ -105,9 +106,9 @@ export function BulkChargesForm({
             className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700">
             Create Another Batch
           </button>
-          <a href="/charges" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+          <Link href="/charges" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
             Back to Receivables
-          </a>
+          </Link>
         </div>
       </div>
     );

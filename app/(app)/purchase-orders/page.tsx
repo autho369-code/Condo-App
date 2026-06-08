@@ -31,7 +31,7 @@ export default async function PurchaseOrdersPage({
       .order('created_at', { ascending: false })
       .limit(500),
     db.from('purchase_order_line_items')
-      .select('id, purchase_order_id, description, qty, unit_price, line_total, sort_order, gl_account_id, gl_accounts(code, name)')
+      .select('id, purchase_order_id, description, qty, unit_price, line_total, sort_order, gl_account_id, gl_accounts(number, name)')
       .order('sort_order', { ascending: true })
       .limit(5000),
   ]);
@@ -285,7 +285,7 @@ function LineItemsSummary({
                       <td className="py-1.5 text-right tabular-nums text-gray-600">{money(li.unit_price)}</td>
                       <td className="py-1.5 text-right tabular-nums font-medium text-gray-900">{money(li.line_total)}</td>
                       <td className="py-1.5 text-gray-600">
-                        {li.gl_accounts ? `${li.gl_accounts.code}: ${li.gl_accounts.name}` : '—'}
+                        {li.gl_accounts ? `${li.gl_accounts.number}: ${li.gl_accounts.name}` : '—'}
                       </td>
                     </tr>
                   ))}

@@ -39,6 +39,7 @@ export const appModules: AppModule[] = [
   { label: 'People', href: '/owners' },
   { label: 'Vendors', href: '/vendors' },
   { label: 'Maintenance', href: '/maintenance' },
+  { label: 'Lock Boxes', href: '/lock-boxes' },
   {
     label: 'Documents',
     href: '/documents',

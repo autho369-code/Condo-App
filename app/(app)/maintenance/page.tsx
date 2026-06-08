@@ -212,7 +212,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     db.from('maintenance_tasks').select('*, associations!inner(name), vendors(name), profiles(full_name)').is('archived_at',null).order('next_due_date',{ascending:true,nullsFirst:false}),
     db.from('associations').select('id,name').is('archived_at',null).order('name'),
     db.from('maintenance_template_groups').select('*, templates:maintenance_templates(*)').order('sort_order'),
-    db.from('vendors').select('id,name,trade,email').is('archived_at',null).order('name'),
+    db.from('vendors').select('id,name,trade,emails').is('archived_at',null).order('name'),
     db.from('profiles').select('id,full_name,email').order('full_name'),
   ]);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { queueBulkReports } from '@/lib/rpcs/bulk-operations';
 
 interface Association { id: string; name: string; }
@@ -70,8 +71,8 @@ export function BulkReportsForm({
         </p>
         <div className="mt-4 flex justify-center gap-3">
           <button onClick={() => { setResult(null); }} className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700">Queue Another Batch</button>
-          <a href="/reports" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Back to Reports</a>
-          <a href="/reports/runs" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">View Runs</a>
+          <Link href="/reports" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Back to Reports</Link>
+          <Link href="/reports/runs" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">View Runs</Link>
         </div>
       </div>
     );

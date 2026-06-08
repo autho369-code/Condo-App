@@ -446,7 +446,7 @@ function PayablesRail() {
           <RailLink href="/bills/new?type=credit" label="Enter Credit" placeholder />
           <RailLink href="/bills/check-run" label="Pay Bills" />
           <RailLink href="/bills/pay-management-fees" label="Pay Management Fees" placeholder />
-          <RailLink href="/bills/owner-payable" label="Owner Payable" placeholder />
+          <RailLink href="/bills/owner-payable" label="Owner Payable" />
           <RailLink href="/bank-transfers/new" label="Transfer Funds Between Cash Accounts" placeholder />
           <RailLink href="/bills/new?recurring=true" label="New Recurring Bill" placeholder />
           <RailLink href="/bills/manual-post" label="Manually Post Bills" placeholder />

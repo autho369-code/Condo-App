@@ -151,7 +151,7 @@ function AddAttendeeForm({ meetingId, owners, onAdded }: { meetingId: string; ow
       return;
     }
 
-    const { error: rpcError } = await supabase.rpc("record_meeting_attendance", {
+    const { error: rpcError } = await (supabase as any).rpc("record_meeting_attendance", {
       p_meeting_id: meetingId,
       p_attendee_name: form.attendee_name,
       p_owner_id: form.owner_id || null,
@@ -286,7 +286,7 @@ export default function MeetingDetailPage() {
   const [updating, setUpdating] = useState(false);
 
   const fetchMeeting = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("meetings")
       .select("*, associations(id, name, quorum_percentage, unit_count)")
       .eq("id", meetingId)
@@ -304,7 +304,7 @@ export default function MeetingDetailPage() {
   }, [supabase, meetingId]);
 
   const fetchQuorum = useCallback(async () => {
-    const { data } = await supabase.rpc("calculate_meeting_quorum", {
+    const { data } = await (supabase as any).rpc("calculate_meeting_quorum", {
       p_meeting_id: meetingId,
     });
     if (data) setQuorum(data);

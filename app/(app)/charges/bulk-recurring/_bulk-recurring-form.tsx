@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { createBulkRecurringCharges } from '@/lib/rpcs/bulk-operations';
 import { money } from '@/lib/utils';
 
 interface Association { id: string; name: string; }
-interface Category { id: string; name: string; code: string; charge_type: string; default_amount: number; default_frequency: string; }
+interface Category { id: string; name: string; code: string; charge_type: string; is_assessment: boolean; default_amount: number; default_frequency: string; }
 interface UnitInfo { unit_id: string; unit_number: string; owner_name: string | null; current_dues: number; }
 
 export function BulkRecurringForm({
@@ -28,7 +29,7 @@ export function BulkRecurringForm({
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const assessmentCategories = categories.filter((c) => c.is_assessment);
+  const assessmentCategories = categories.filter((c: any) => c.is_assessment);
 
   async function loadUnits(assocId: string) {
     setSelectedAssoc(assocId);
@@ -83,7 +84,7 @@ export function BulkRecurringForm({
         <div className="mt-4 flex justify-center gap-3">
           <button onClick={() => { setResult(null); setSelectedUnits(new Set()); setAmount(''); setMemo(''); }}
             className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700">Create Another Batch</button>
-          <a href="/charges" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Back to Receivables</a>
+          <Link href="/charges" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Back to Receivables</Link>
         </div>
       </div>
     );
