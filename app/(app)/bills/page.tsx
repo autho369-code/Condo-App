@@ -78,7 +78,7 @@ export default async function BillsPage({
   ] = await Promise.all([
     // Bills tab: all non-archived bills
     db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(code, name), bank_accounts(name)')
+      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)')
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(500),
     // Payments tab: paid bills
@@ -99,9 +99,8 @@ export default async function BillsPage({
       .order('name'),
     // GL accounts for context
     db.from('gl_accounts')
-      .select('id, code, name')
-      .is('archived_at', null)
-      .order('code'),
+      .select('id, number, name')
+      .order('number'),
     // Bank accounts for context
     db.from('bank_accounts')
       .select('id, name, bank_name')
@@ -317,7 +316,7 @@ export default async function BillsPage({
                         {b.associations?.name ?? '—'}
                       </TD>
                       <TD className="text-sm text-gray-600">
-                        {b.gl_accounts ? `${b.gl_accounts.code}: ${b.gl_accounts.name}` : '—'}
+                        {b.gl_accounts ? `${b.gl_accounts.number}: ${b.gl_accounts.name}` : '—'}
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">
                         {date(b.due_date)}

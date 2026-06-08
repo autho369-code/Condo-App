@@ -283,7 +283,8 @@ async function BalanceSheetView({
   const getNetBalance = (accId: string, accountType: string) => {
     const t = totals[accId] ?? { debit: 0, credit: 0 };
     // Asset/Expense: debit positive; Liability/Equity/Income: credit positive
-    if (['asset', 'cash', 'expense', 'cost_of_goods_sold'].includes(accountType ?? '')) {
+    const assetLike = ['asset', 'cash', 'expense', 'cost_of_goods_sold', 'accounts_receivable', 'fixed_asset'];
+    if (assetLike.includes(accountType ?? '')) {
       return t.debit - t.credit;
     }
     return t.credit - t.debit;

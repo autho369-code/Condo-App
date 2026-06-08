@@ -59,7 +59,7 @@ export default async function JournalEntriesPage({
   ] = await Promise.all([
     // Journal entries with their lines for History tab
     db.from('journal_entries')
-      .select('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(code, name))')
+      .select('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))')
       .order('entry_date', { ascending: false })
       .limit(500),
     // Recurring journal entries
@@ -80,9 +80,8 @@ export default async function JournalEntriesPage({
       .order('name'),
     // GL accounts for filter
     db.from('gl_accounts')
-      .select('id, code, name')
-      .is('archived_at', null)
-      .order('code'),
+      .select('id, number, name')
+      .order('number'),
   ]);
 
   // ── FILTER: journal entries ──
@@ -97,7 +96,7 @@ export default async function JournalEntriesPage({
         (l: any) =>
           (l.associations?.name ?? '').toLowerCase().includes(ql) ||
           (l.gl_accounts?.name ?? '').toLowerCase().includes(ql) ||
-          (l.gl_accounts?.code ?? '').toLowerCase().includes(ql),
+          (l.gl_accounts?.number ?? '').toLowerCase().includes(ql),
       );
       return (
         (je.reference_number ?? '').toLowerCase().includes(ql) ||
@@ -262,7 +261,7 @@ export default async function JournalEntriesPage({
               >
                 <option value="">All GL accounts</option>
                 {(glAccounts ?? []).map((g: any) => (
-                  <option key={g.id} value={g.id}>{g.code}: {g.name}</option>
+                  <option key={g.id} value={g.id}>{g.number}: {g.name}</option>
                 ))}
               </select>
             </label>
@@ -344,7 +343,7 @@ export default async function JournalEntriesPage({
                     const totalCredit = lines.reduce((s: number, l: any) => s + Number(l.credit_amount ?? 0), 0);
                     // Collect unique associations and GL accounts
                     const assocNames = [...new Set(lines.map((l: any) => l.associations?.name).filter(Boolean))];
-                    const glNames = [...new Set(lines.map((l: any) => l.gl_accounts ? `${l.gl_accounts.code}: ${l.gl_accounts.name}` : null).filter(Boolean))];
+                    const glNames = [...new Set(lines.map((l: any) => l.gl_accounts ? `${l.gl_accounts.number}: ${l.gl_accounts.name}` : null).filter(Boolean))];
 
                     return (
                       <TR key={je.id}>
