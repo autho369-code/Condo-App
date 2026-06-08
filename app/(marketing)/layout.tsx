@@ -4,26 +4,26 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A5F] text-sm font-bold text-white">P</div>
             <span className="text-lg font-semibold text-gray-900">Portier369</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
-            <Link href="/demo" className="text-gray-600 hover:text-gray-900 transition">Demo</Link>
+            <Link href="/demo" className="text-gray-600 hover:text-gray-900 transition">Assessment</Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Sign in</Link>
             <Link href="/demo" className="inline-flex h-9 items-center rounded-lg bg-[#1E3A5F] px-4 text-sm font-medium text-white hover:bg-[#162D4A] transition">
-              Request a Proposal
+              Request Assessment
             </Link>
           </div>
         </div>
       </header>
       <main>{children}</main>
       <footer className="border-t border-gray-100 bg-gray-50">
-        <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="mx-auto max-w-[1280px] px-6 py-12">
           <div className="flex flex-wrap items-start justify-between gap-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -37,7 +37,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Product</div>
                 <div className="space-y-2 text-sm">
                   <Link href="/pricing" className="block text-gray-600 hover:text-gray-900">Pricing</Link>
-                  <Link href="/demo" className="block text-gray-600 hover:text-gray-900">Demo</Link>
+                  <Link href="/demo" className="block text-gray-600 hover:text-gray-900">Portfolio Assessment</Link>
                 </div>
               </div>
               <div>

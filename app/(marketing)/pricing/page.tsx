@@ -5,25 +5,25 @@ const plans = [
   {
     name: 'Foundation', price: '$157', doors: 'Up to 200 Units',
     desc: 'For self-managed associations and smaller management companies.',
-    cta: 'Request a Proposal', href: '/demo',
+    cta: 'Request Assessment', href: '/demo',
     features: ['Owner Portal', 'Board Portal', 'Manager Dashboard', 'Work Orders', 'Violations', 'Document Management', 'Assessment Tracking', 'Email Communications', 'White Glove Setup'],
   },
   {
     name: 'Growth', price: '$382', doors: 'Up to 600 Units',
     desc: 'For growing management companies that need stronger operational control.',
-    cta: 'Request a Proposal', href: '/demo', featured: true,
+    cta: 'Request Assessment', href: '/demo', featured: true,
     features: ['Everything in Foundation', 'Vendor Portal', 'Maintenance Calendar', 'Compliance Tracking', 'Vendor Coordination', 'Association Health Scores', 'SMS Notifications', 'Portfolio Visibility', 'Priority Support'],
   },
   {
     name: 'Portfolio', price: '$642', doors: 'Up to 1,000 Units',
     desc: 'For established management companies managing multiple associations.',
-    cta: 'Request a Proposal', href: '/demo',
+    cta: 'Request Assessment', href: '/demo',
     features: ['Everything in Growth', 'Company Admin Dashboard', 'Architectural Reviews', 'Board Management Tools', 'AI Automation', 'Advanced Reporting', 'API Access', 'Multi-Manager Oversight', 'Dedicated Success Manager'],
   },
   {
     name: 'Enterprise', price: 'Custom', doors: '1,000+ Units',
     desc: 'For large management companies and multi-office operations.',
-    cta: 'Request a Proposal', href: '/demo',
+    cta: 'Request Assessment', href: '/demo',
     features: ['Everything in Portfolio', 'Multi-Office Support', 'Custom Integrations', 'Custom AI Workflows', 'Enterprise Security Controls', 'Dedicated Support Team', 'SLA Guarantee', 'Custom Onboarding', 'Volume Pricing'],
   },
 ]
@@ -167,7 +167,7 @@ export default function PricingPage() {
           <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">Run your entire portfolio from one platform.</h2>
           <p className="mt-4 text-lg text-gray-500">White glove setup included. No long-term contract required.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">Request a Proposal</Link>
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">Request Assessment</Link>
             <a href="mailto:hello@portier369.com" className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition">Contact sales</a>
           </div>
         </div>
