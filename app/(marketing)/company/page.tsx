@@ -1,40 +1,148 @@
-import Link from 'next/link'
+import { Metadata } from 'next';
+import Link from 'next/link';
 
-export const metadata = { title: 'Our Story — Portier369' }
+export const metadata: Metadata = {
+  title: 'Company — Portier369',
+  description: 'Built by property managers, for property managers. Portier369 replaces fragmented systems with one unified platform.',
+};
 
 export default function CompanyPage() {
   return (
-    <div className="min-h-screen bg-white font-sans antialiased">
-      <section className="py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-6 lg:px-8">
-          <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Our Story</span>
-          <h1 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
-            Why we built Portier369
-          </h1>
-          <div className="mt-10 space-y-6 text-lg text-gray-600 leading-relaxed">
-            <p>
-              After 29 years in condominium and HOA management — as a CAM, CMCA, and AMS — we saw the same problems everywhere. Property managers juggling five different systems. Boards frustrated by lack of visibility. Owners with no self-service options. Vendors whose compliance slipped through the cracks. And software that felt like it was designed by developers who had never actually managed a community.
+    <div className="bg-white">
+      {/* Hero */}
+      <section className="max-w-[1280px] mx-auto px-6 pt-20 pb-16 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-1.5 text-sm font-medium text-gray-500 mb-6">
+          About Portier369
+        </div>
+        <h1 className="text-[64px] leading-[1.05] tracking-[-0.03em] font-bold text-gray-900 max-w-4xl mx-auto">
+          Software built from 29 years in the field — not from a conference room.
+        </h1>
+        <p className="mt-6 text-lg text-gray-500 max-w-2xl mx-auto">
+          Portier369 was founded by a CAM, CMCA, and AMS professional who has managed thousands of units, worked with hundreds of board members, coordinated major capital projects, resolved violations, handled emergencies, and navigated the daily realities of community management.
+        </p>
+      </section>
+
+      {/* Story */}
+      <section className="bg-[#F5F4F1] py-16 sm:py-20">
+        <div className="max-w-[1280px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className="text-[40px] leading-[1.1] tracking-[-0.02em] font-bold text-gray-900">
+              Every workflow reflects how property managers actually work.
+            </h2>
+            <p className="mt-6 text-lg text-gray-600 leading-relaxed">
+              After nearly three decades in the trenches — managing associations, handling emergencies at 2 AM, chasing vendors for insurance certificates, preparing board packets at midnight — the founder knew exactly what the industry was missing. Not another generic property management system. Not a tool designed by software developers who have never walked an association property. Something built from real experience.
             </p>
-            <p>
-              The existing platforms were either too complex (requiring months of training) or too simple (missing core workflows like violations, maintenance planning, and board governance). None of them combined operational depth with modern automation.
-            </p>
-            <p>
-              So we built Portier369 — the operating system for community management. Every workflow comes from real experience: managing thousands of units, coordinating hundreds of board members, handling emergencies at 4pm on a Friday, and navigating the daily realities that property managers face.
-            </p>
-            <p>
-              We designed Portier369 to give management companies portfolio-level visibility, to automate repetitive tasks, to give boards and owners self-service access, and to make compliance and maintenance planning part of the daily workflow — not something you scramble to catch up on.
-            </p>
-            <p>
-              Built by property managers. For property managers. Not from a conference room.
+            <p className="mt-4 text-lg text-gray-600 leading-relaxed">
+              Portier369 is the operating system that should have existed decades ago. One platform that replaces the six disconnected systems most management companies juggle. Workflows that mirror how managers actually think and operate. AI that is genuinely useful — not a bolt-on checkbox feature.
             </p>
           </div>
-          <div className="mt-12 pt-8 border-t border-gray-100">
-            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-6 py-3 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/15 hover:bg-[#152940] transition">
+          <div className="rounded-2xl bg-white border border-gray-200 p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15)]">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Portier369 vs Traditional Software</h3>
+            <div className="space-y-0">
+              {[
+                { traditional: 'Complex setup', portier: 'White-glove onboarding' },
+                { traditional: 'Multiple systems', portier: 'One platform' },
+                { traditional: 'Generic workflows', portier: 'HOA-focused workflows' },
+                { traditional: 'Limited support', portier: 'Direct access to experts' },
+                { traditional: 'Expensive scaling', portier: 'Predictable pricing' },
+                { traditional: 'Built by software companies', portier: 'Built by managers' },
+              ].map((row, i) => (
+                <div key={i} className={`flex items-center py-3 ${i < 5 ? 'border-b border-gray-100' : ''}`}>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-red-400 text-sm">✕</span>
+                    <span className="text-sm text-gray-500">{row.traditional}</span>
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-emerald-500 text-sm">✓</span>
+                    <span className="text-sm font-medium text-gray-900">{row.portier}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="py-16 sm:py-20">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <h2 className="text-[40px] leading-[1.1] tracking-[-0.02em] font-bold text-gray-900 text-center mb-12">
+            What drives us
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Manager-first design',
+                body: 'Every feature starts with the question: "Would this make a property manager\'s day easier?" If the answer is no, we do not build it.',
+              },
+              {
+                title: 'Operational excellence',
+                body: 'We believe property management software should prevent problems, not just document them. Proactive alerts, automated workflows, and AI that catches issues before they escalate.',
+              },
+              {
+                title: 'Radical transparency',
+                body: 'No hidden modules. No implementation fees. No long-term contracts. Predictable, door-based pricing that scales with your portfolio — not your headaches.',
+              },
+            ]}
+              .map((v, i) => (
+                <div key={i} className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{v.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{v.body}</p>
+                </div>
+              ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Credentials */}
+      <section className="bg-[#1E3A5F] py-16 sm:py-20">
+        <div className="max-w-[1280px] mx-auto px-6 text-center">
+          <h2 className="text-[40px] leading-[1.1] tracking-[-0.02em] font-bold text-white mb-6">
+            Industry credentials that matter
+          </h2>
+          <p className="text-lg text-blue-200 max-w-2xl mx-auto mb-12">
+            The Portier369 founding team holds CAM, CMCA, and AMS designations — the highest professional credentials in community association management.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {[
+              { label: 'CAM', full: 'Certified Association Manager' },
+              { label: 'CMCA', full: 'Certified Manager of Community Associations' },
+              { label: 'AMS', full: 'Association Management Specialist' },
+            ].map((c, i) => (
+              <div key={i} className="rounded-xl bg-white/10 border border-white/10 p-6">
+                <div className="text-2xl font-bold text-white mb-1">{c.label}</div>
+                <div className="text-sm text-blue-200">{c.full}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-16 sm:py-20">
+        <div className="max-w-[1280px] mx-auto px-6 text-center">
+          <h2 className="text-[40px] leading-[1.1] tracking-[-0.02em] font-bold text-gray-900">
+            Talk with someone who understands your business.
+          </h2>
+          <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">
+            Our team has managed associations, not just built software for them.
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link
+              href="/demo"
+              className="inline-flex items-center justify-center h-12 px-8 rounded-xl bg-[#1E3A5F] text-white font-semibold hover:bg-[#152d4a] transition"
+            >
               Request a Proposal
             </Link>
+            <a
+              href="mailto:hello@portier369.com"
+              className="inline-flex items-center justify-center h-12 px-8 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+            >
+              Book a Discovery Call
+            </a>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }
