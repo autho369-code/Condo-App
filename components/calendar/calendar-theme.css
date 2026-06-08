@@ -1,0 +1,146 @@
+/* FullCalendar dark theme customization for Portier369 manager dashboard
+   FullCalendar v6 injects its own styles at runtime — these are overrides only. */
+
+.fc {
+  --fc-border-color: #1E293B;
+  --fc-page-bg-color: #060B18;
+  --fc-neutral-bg-color: #0B1121;
+  --fc-neutral-text-color: #94A3B8;
+  --fc-button-bg-color: #1E293B;
+  --fc-button-border-color: #334155;
+  --fc-button-text-color: #E2E8F0;
+  --fc-button-hover-bg-color: #334155;
+  --fc-button-hover-border-color: #475569;
+  --fc-button-active-bg-color: rgba(16, 185, 129, 0.15);
+  --fc-button-active-border-color: #10B981;
+  --fc-button-active-text-color: #10B981;
+  --fc-today-bg-color: rgba(16, 185, 129, 0.05);
+  --fc-now-indicator-color: #10B981;
+  --fc-event-bg-color: #0B1121;
+  --fc-event-border-color: #1E293B;
+  --fc-event-text-color: #E2E8F0;
+  --fc-list-event-hover-bg-color: #1E293B;
+
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: #94A3B8;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #94A3B8;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 0.5rem;
+}
+
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: #475569;
+}
+
+.fc .fc-timegrid-slot {
+  border-color: #1E293B;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  color: #64748B;
+  font-size: 0.7rem;
+}
+
+.fc .fc-timegrid-axis-cushion {
+  color: #64748B;
+  font-size: 0.7rem;
+}
+
+/* Event styling */
+.fc .fc-event {
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 1px 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.fc .fc-event:hover {
+  opacity: 0.85;
+}
+
+.fc .fc-event-main {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fc .fc-timegrid-event {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.fc .fc-timegrid-event .fc-event-main {
+  padding: 2px 4px;
+}
+
+/* Popover for "+N more" */
+.fc .fc-more-popover {
+  background: #0B1121;
+  border: 1px solid #1E293B;
+  border-radius: 8px;
+}
+
+.fc .fc-more-popover .fc-popover-header {
+  background: #1E293B;
+}
+
+.fc .fc-popover-title {
+  color: #E2E8F0;
+}
+
+/* Scrollbar styling */
+.fc .fc-scroller::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-track {
+  background: #060B18;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+/* Highlighting today */
+.fc .fc-day-today {
+  background: rgba(16, 185, 129, 0.04) !important;
+}
+
+/* Faded non-current month days */
+.fc .fc-day-other {
+  opacity: 0.55;
+}
+
+/* Timegrid now indicator */
+.fc .fc-timegrid-now-indicator-line {
+  border-color: #10B981;
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: #10B981;
+}
+
+/* Drag ghost */
+.fc .fc-event-dragging {
+  opacity: 0.7;
+}
+
+/* All-day slot in timegrid */
+.fc .fc-timegrid-axis,
+.fc .fc-timegrid-slot-lane {
+  border-color: #1E293B;
+}

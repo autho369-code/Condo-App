@@ -51,6 +51,7 @@ export const appModules: AppModule[] = [
     href: '/communication-center',
     children: [
       { label: 'Center', href: '/communication-center' },
+      { label: 'Maintenance Comms', href: '/maintenance/communications' },
       { label: 'Send email', href: '/send-email' },
       { label: 'SMS', href: '/sms' },
       { label: 'Templates', href: '/sms/templates' },

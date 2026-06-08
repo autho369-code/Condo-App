@@ -174,6 +174,27 @@ export async function deleteCalendarEvent(eventId: string) {
   revalidatePath('/calendar');
 }
 
+export async function updateCalendarEventDates(
+  eventId: string,
+  start: string,
+  end: string | null,
+  allDay: boolean,
+) {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+  const { error } = await db.from('calendar_events')
+    .update({
+      start_datetime: start,
+      end_datetime: end,
+      all_day: allDay,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', eventId);
+  if (error) return { error: error.message };
+  revalidatePath('/calendar');
+}
+
 export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   const me = await requireStaff();
   const supabase = await createClient();
