@@ -34,8 +34,6 @@ const NAV: NavSection[] = [
     icon: '◇',
     items: [
       { label: 'Owners', href: '/owners' },
-      { label: 'Occupancies', href: '/occupancies' },
-      { label: 'Portal', href: '/portal' },
     ],
   },
   {
@@ -74,9 +72,7 @@ const NAV: NavSection[] = [
     label: 'Board Center',
     icon: '▷',
     items: [
-      { label: 'Board Members', href: '/board-members' },
       { label: 'Meetings', href: '/meetings' },
-      { label: 'Approvals', href: '/approval-requests' },
     ],
   },
   {
