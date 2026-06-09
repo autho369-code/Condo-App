@@ -17,7 +17,6 @@ const WORKSPACES = {
       { label: 'Purchase Orders', href: '/purchase-orders' },
       { label: 'Inventory', href: '/inventory' },
       { label: 'Fixed Assets', href: '/fixed-assets' },
-      { label: 'Emergency Response', href: '/emergency' },
     ],
   },
   FINANCIAL: {
@@ -25,15 +24,14 @@ const WORKSPACES = {
     icon: '$',
     items: [
       { label: 'Assessments', href: '/charges' },
-      { label: 'Accounts Receivable', href: '/charges' },
       { label: 'Accounts Payable', href: '/bills' },
-      { label: 'Bank Reconciliation', href: '/bank-accounts' },
+      { label: 'Bank Accounts', href: '/bank-accounts' },
       { label: 'Bank Transfers', href: '/bank-transfers' },
       { label: 'GL Accounts', href: '/gl-accounts' },
       { label: 'Journal Entries', href: '/journal-entries' },
       { label: 'Budgets', href: '/budget' },
       { label: 'Budget vs Actuals', href: '/budget-vs-actuals' },
-      { label: 'Financial Reports', href: '/reports' },
+      { label: 'Reports', href: '/reports' },
       { label: '1099 Reporting', href: '/accounting/1099' },
       { label: 'Diagnostics', href: '/diagnostics' },
     ],
@@ -43,12 +41,8 @@ const WORKSPACES = {
     icon: '👥',
     items: [
       { label: 'Owners', href: '/owners' },
-      { label: 'Tenants', href: '/tenants' },
-      { label: 'Board Members', href: '/board-members' },
-      { label: 'Move Ins / Move Outs', href: '/move-ins' },
-      { label: 'Resident Requests', href: '/service-requests' },
-      { label: 'Resident Directory', href: '/owners' },
-      { label: 'Owner Portal', href: '/portal' },
+      { label: 'Units', href: '/units' },
+      { label: 'Associations', href: '/associations' },
     ],
   },
   COMPLIANCE: {
@@ -56,10 +50,8 @@ const WORKSPACES = {
     icon: '🛡️',
     items: [
       { label: 'Violations', href: '/violations' },
-      { label: 'Hearings', href: '/hearings' },
-      { label: 'Architectural Reviews', href: '/architectural-reviews' },
       { label: 'Insurance Tracking', href: '/insurance' },
-      { label: 'Document Compliance', href: '/documents' },
+      { label: 'Documents', href: '/documents' },
     ],
   },
   VENDORS: {
@@ -67,10 +59,8 @@ const WORKSPACES = {
     icon: '🏗️',
     items: [
       { label: 'Vendors', href: '/vendors' },
-      { label: 'Contracts', href: '/vendor-contracts' },
-      { label: 'Insurance Certificates', href: '/insurance' },
-      { label: 'Service Requests', href: '/work-orders' },
-      { label: 'Vendor Performance', href: '/vendor-performance' },
+      { label: 'Work Orders', href: '/work-orders' },
+      { label: 'Purchase Orders', href: '/purchase-orders' },
     ],
   },
 } as const;
@@ -91,7 +81,6 @@ export function WorkspaceNav({ portfolioName, userEmail }: { portfolioName: stri
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-[#e4e4e7] truncate">{portfolioName}</div>
-            <div className="text-[11px] text-[#71717a]">Command Center</div>
           </div>
         )}
         <button
@@ -141,7 +130,6 @@ export function WorkspaceNav({ portfolioName, userEmail }: { portfolioName: stri
                 )}
               </button>
 
-              {/* Flyout items */}
               {isActive && !collapsed && (
                 <div className="ml-9 mt-0.5 mb-1 border-l border-[#1a1b1e]">
                   {ws.items.map((item) => (
@@ -164,7 +152,7 @@ export function WorkspaceNav({ portfolioName, userEmail }: { portfolioName: stri
         })}
       </div>
 
-      {/* Settings + User */}
+      {/* Footer */}
       <div className="border-t border-[#1a1b1e] px-2 py-3 space-y-1">
         <Link
           href="/settings"
@@ -174,15 +162,6 @@ export function WorkspaceNav({ portfolioName, userEmail }: { portfolioName: stri
         >
           <span className="text-sm flex-shrink-0">⚙</span>
           {!collapsed && <span>Settings</span>}
-        </Link>
-        <Link
-          href="/communication-center"
-          className={`flex items-center gap-3 px-3 h-8 rounded-lg text-sm text-[#71717a] hover:text-[#e4e4e7] hover:bg-[#18181b] transition-colors ${
-            pathname.startsWith('/communication-center') ? 'text-[#e4e4e7] bg-[#18181b]' : ''
-          }`}
-        >
-          <span className="text-sm flex-shrink-0">✉</span>
-          {!collapsed && <span>Communications</span>}
         </Link>
         {!collapsed && userEmail && (
           <div className="px-3 pt-2 text-[11px] text-[#52525b] truncate">{userEmail}</div>
