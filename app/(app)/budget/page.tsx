@@ -13,24 +13,28 @@ export default async function BudgetPage({
 }: {
   searchParams: Promise<{ association?: string; year?: string }>;
 }) {
-  const me = await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
-  const { association, year } = await searchParams;
-  const selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
-
   let error: string | null = null;
+  let me: any = null;
   let associations: any[] = [];
   let glAccounts: any[] = [];
   let lines: any[] = [];
+  let selectedYear = new Date().getFullYear();
+  let selectedAssociation = '';
 
   try {
+    me = await requireStaff();
+    const supabase = await createClient();
+    const db = supabase as any;
+    const params = await searchParams;
+    const { association } = params;
+    const year = params.year;
+    selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
     // Fetch associations
     const assocResult = await db.from('associations').select('id, name').order('name');
     if (assocResult.error) throw new Error('associations: ' + assocResult.error.message);
     associations = assocResult.data ?? [];
 
-    const selectedAssociation = association ?? associations?.[0]?.id ?? '';
+    selectedAssociation = association ?? associations?.[0]?.id ?? '';
 
     // Fetch GL accounts
     const glResult = await db.from('gl_accounts').select('id, number, name, account_type').order('number');
@@ -50,7 +54,9 @@ export default async function BudgetPage({
     error = e.message || String(e);
   }
 
-  const selectedAssociation = association ?? associations?.[0]?.id ?? '';
+  if (!selectedAssociation && associations.length > 0) {
+    selectedAssociation = associations[0].id;
+  }
   const incomeLines = lines.filter((l: any) => l.category === 'income');
   const expenseLines = lines.filter((l: any) => l.category === 'expense');
   const totalIncomeBudget = incomeLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
