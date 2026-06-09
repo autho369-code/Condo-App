@@ -14,14 +14,12 @@ export function Workspace({
   rail?: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#f5f6f8] min-h-full">
-      <div className="px-6 py-4">
-        <div className="shrink-0 mb-4">
-          {header}
-        </div>
-        <div data-workspace-main>
-          {children}
-        </div>
+    <div className="min-h-full">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+        {header}
+      </div>
+      <div data-workspace-main className="bg-gray-50 px-8 py-6">
+        {children}
       </div>
     </div>
   );
