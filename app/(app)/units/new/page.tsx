@@ -62,7 +62,7 @@ export default async function NewUnitPage({
             </>
           }
           title="New unit"
-          subtitle={preBuilding ? `In building: ${(preBuilding as any).name}` : 'Tell us which building and the unit number.'}
+          subtitle={preBuilding ? `In building: ${(preBuilding as any).name}` : 'Tell us which association and the unit number.'}
         />
       }
       rail={
@@ -125,7 +125,7 @@ export default async function NewUnitPage({
                 <Label htmlFor="building_id">Building <span className="text-red-500">*</span></Label>
                 <select id="building_id" name="building_id" required
                   className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  <option value="">Choose a building…</option>
+                  <option value="">Choose an association…</option>
                   {(buildings ?? []).map((b: any) => (
                     <option key={b.id} value={b.id}>
                       {b.name} {b.associations?.name ? `— ${b.associations.name}` : ''}
