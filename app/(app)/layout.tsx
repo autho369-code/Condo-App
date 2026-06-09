@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import { requireAuth } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { WorkspaceNav } from '@/components/command-center/workspace-nav';
-import { InsightsPanel } from '@/components/command-center/insights-panel';
+import { ManagerSidebar } from '@/components/command-center/manager-sidebar';
 import { CommandBar } from '@/components/command-center/command-bar';
 import { QuickActions } from '@/components/command-center/quick-actions';
 
@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* Right: Insights Panel */}
-      <InsightsPanel />
+      <ManagerSidebar />
 
       {/* Global Overlays */}
       <CommandBar />
