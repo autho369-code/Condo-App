@@ -30,7 +30,7 @@ const NAV: NavSection[] = [
     ],
   },
   {
-    label: 'Owners & Residents',
+    label: 'Owners',
     icon: '◇',
     items: [
       { label: 'Owners', href: '/owners' },
