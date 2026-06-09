@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getMe, requireStaff } from '@/lib/auth/me';
+import { BankAccountsSection } from '@/components/associations/bank-accounts-section';
 import { Section } from '@/components/workspace/shell';
 import { Button } from '@/components/ui/button';
 
@@ -103,7 +104,6 @@ export default async function NewPropertyPage() {
         maintenance_notes: (formData.get('maintenance_notes') as string) || null,
         online_maintenance_request_instructions: (formData.get('online_maintenance_request_instructions') as string) || null,
         property_group_id: (formData.get('property_group_id') as string) || null,
-        operating_bank_account_id: (formData.get('operating_bank_account_id') as string) || null,
       })
       .select('id')
       .single();
@@ -112,7 +112,7 @@ export default async function NewPropertyPage() {
     const newId = assoc!.id;
 
     // Insert bank accounts from the multi-account form
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 20; i++) {
       const name = (formData.get(`bank_name_${i}`) as string)?.trim();
       if (!name) continue;
       await (supabase as any).from('bank_accounts').insert({
@@ -202,42 +202,7 @@ export default async function NewPropertyPage() {
         </Section>
 
         <Section title="Bank Accounts" padded>
-          <p className="mb-3 text-xs text-gray-500">Add bank accounts for this association. These appear on income statements and financial reports.</p>
-          <div className="space-y-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded border border-gray-200 bg-gray-50 p-4">
-                <p className="mb-3 text-xs font-semibold text-gray-600">Account {i + 1}</p>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Account Name</label>
-                    <input type="text" name={`bank_name_${i}`} placeholder="Operating, Reserve, etc." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Bank Name</label>
-                    <input type="text" name={`bank_bank_name_${i}`} placeholder="Chase, BofA..." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Purpose</label>
-                    <select name={`bank_purpose_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none">
-                      <option value="">— Select —</option>
-                      <option value="operating">Operating</option>
-                      <option value="reserve">Reserve</option>
-                      <option value="special_assessment">Special Assessment</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Account Number</label>
-                    <input type="text" name={`bank_account_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Routing Number</label>
-                    <input type="text" name={`bank_routing_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <BankAccountsSection />
         </Section>
 
         <div className="flex items-center gap-2 pt-2">
