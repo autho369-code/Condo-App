@@ -70,26 +70,18 @@ export default function CompanyPage() {
             What drives us
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Manager-first design',
-                body: 'Every feature starts with the question: "Would this make a property manager\'s day easier?" If the answer is no, we do not build it.',
-              },
-              {
-                title: 'Operational excellence',
-                body: 'We believe property management software should prevent problems, not just document them. Proactive alerts, automated workflows, and AI that catches issues before they escalate.',
-              },
-              {
-                title: 'Radical transparency',
-                body: 'No hidden modules. No implementation fees. No long-term contracts. Predictable, door-based pricing that scales with your portfolio — not your headaches.',
-              },
-            ]}
-              .map((v, i) => (
-                <div key={i} className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{v.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{v.body}</p>
-                </div>
-              ))}
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Manager-first design</h3>
+              <p className="text-gray-600 leading-relaxed">Every feature starts with the question: &ldquo;Would this make a property manager&apos;s day easier?&rdquo; If the answer is no, we do not build it.</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Operational excellence</h3>
+              <p className="text-gray-600 leading-relaxed">We believe property management software should prevent problems, not just document them. Proactive alerts, automated workflows, and AI that catches issues before they escalate.</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Radical transparency</h3>
+              <p className="text-gray-600 leading-relaxed">No hidden modules. No implementation fees. No long-term contracts. Predictable, door-based pricing that scales with your portfolio — not your headaches.</p>
+            </div>
           </div>
         </div>
       </section>

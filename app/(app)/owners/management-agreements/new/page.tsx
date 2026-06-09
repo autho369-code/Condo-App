@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { createAgreement } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +18,16 @@ export default async function NewManagementAgreementPage() {
 
   async function handleSubmit(formData: FormData) {
     'use server';
-    await createAgreement(formData);
+    const supabase = await createClient();
+    await (supabase as any).from('management_agreements').insert({
+      owner_id: formData.get('owner_id') || null,
+      association_id: formData.get('association_id') || null,
+      management_start_date: formData.get('management_start_date') || null,
+      agreement_signature_due_date: formData.get('agreement_signature_due_date') || null,
+      management_fee: formData.get('management_fee') ? parseFloat(formData.get('management_fee') as string) : null,
+      delivery_method: formData.get('delivery_method') || 'email',
+      terms: formData.get('terms') || '',
+    });
     redirect('/owners');
   }
 

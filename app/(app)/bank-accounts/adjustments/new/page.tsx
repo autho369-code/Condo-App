@@ -3,7 +3,6 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { createAdjustment } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +13,13 @@ export default async function NewBankAdjustmentPage() {
 
   async function handleSubmit(formData: FormData) {
     'use server';
-    await createAdjustment(formData);
+    const supabase = await createClient();
+    await (supabase as any).from('bank_adjustments').insert({
+      bank_account_id: formData.get('bank_account_id') || null,
+      amount: parseFloat(formData.get('amount') as string) || 0,
+      adjustment_date: formData.get('adjustment_date') || null,
+      description: formData.get('description') || '',
+    });
     redirect('/bank-accounts');
   }
 
@@ -46,7 +51,6 @@ export default async function NewBankAdjustmentPage() {
           <textarea name="description" className="mt-4 w-full rounded border border-gray-300 px-3 py-2 text-sm" rows={3} placeholder="Description" />
         </section>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={() => window.location.href = '/bank-accounts'}>Cancel</Button>
           <Button type="submit">Create adjustment</Button>
         </div>
       </form>

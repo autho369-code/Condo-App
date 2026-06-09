@@ -1,238 +1,78 @@
-"use client";
+import { redirect } from 'next/navigation';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Button } from '@/components/ui/button';
+import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+export const dynamic = 'force-dynamic';
 
-export default function NewMeetingPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [associations, setAssociations] = useState<any[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({
-    title: "",
-    meeting_type: "board_meeting",
-    association_id: "",
-    start_time: "",
-    end_time: "",
-    location: "",
-    agenda: "",
-    quorum_requirement: 0,
-  });
+export default async function NewMeetingPage() {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: associations } = await (supabase as any).from('associations').select('id, name').order('name');
 
-  useEffect(() => {
-    supabase
-      .from("associations")
-      .select("id, name, unit_count, quorum_percentage")
-      .order("name")
-      .then(({ data }: any) => {
-        if (data) setAssociations(data);
-      });
-  }, [supabase]);
-
-  function handleAssociationChange(assocId: string) {
-    const assoc = associations.find((a: any) => a.id === assocId);
-    const pct = assoc?.quorum_percentage || 51;
-    const units = assoc?.unit_count || 0;
-    const needed = Math.ceil(units * pct / 100);
-    setForm((f: any) => ({
-      ...f,
-      association_id: assocId,
-      quorum_requirement: needed,
-    }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSaving(true);
-
-    if (!form.title || !form.association_id || !form.start_time) {
-      setError("Title, association, and start time are required.");
-      setSaving(false);
-      return;
-    }
-
-    const { data, error: insertError } = await supabase
-      .from("meetings")
-      .insert({
-        title: form.title,
-        meetingType: form.meeting_type,
-        association_id: form.association_id,
-        scheduledAt: form.start_time ? new Date(form.start_time).toISOString() : null,
-        location: form.location || null,
-        agenda: form.agenda || null,
-        status: "scheduled",
-      })
-      .select("id")
-      .single();
-
-    if (insertError) {
-      setError(insertError.message);
-      setSaving(false);
-      return;
-    }
-
-    router.push(`/meetings/${data.id}`);
-  }
-
-  function setField(field: string, value: string | number) {
-    setForm((f: any) => ({ ...f, [field]: value }));
+  async function handleSubmit(formData: FormData) {
+    'use server';
+    const supabase = await createClient();
+    await (supabase as any).from('meetings').insert({
+      title: formData.get('title'),
+      meeting_type: formData.get('meeting_type') || 'board_meeting',
+      association_id: formData.get('association_id') || null,
+      start_time: formData.get('start_time') || null,
+      end_time: formData.get('end_time') || null,
+      location: formData.get('location') || '',
+      agenda: formData.get('agenda') || '',
+      description: formData.get('description') || '',
+      status: 'scheduled',
+    });
+    redirect('/meetings');
   }
 
   return (
-    <div className="min-h-screen bg-[#060B18] text-white p-6">
-      <div className="max-w-2xl mx-auto">
-        <button
-          onClick={() => router.back()}
-          className="text-sm text-slate-400 hover:text-white mb-4 flex items-center gap-1"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Back
-        </button>
-
-        <h1 className="text-2xl font-light tracking-tight mb-6">Schedule Meeting</h1>
-
-        {error && (
-          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-4 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="bg-[#0B1121] border border-[#1E293B] rounded-xl p-6 space-y-5">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Meeting Title *</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => setField("title", e.target.value)}
-              placeholder="e.g. Q2 Board Meeting"
-              className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-              required
-            />
-          </div>
-
-          {/* Type + Association */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Meeting Type</label>
-              <select
-                value={form.meeting_type}
-                onChange={(e) => setField("meeting_type", e.target.value)}
-                className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              >
-                <option value="board_meeting">Board Meeting</option>
-                <option value="annual_meeting">Annual Meeting</option>
-                <option value="special_meeting">Special Meeting</option>
-                <option value="committee_meeting">Committee Meeting</option>
-                <option value="executive_session">Executive Session</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Association *</label>
-              <select
-                value={form.association_id}
-                onChange={(e) => handleAssociationChange(e.target.value)}
-                className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-                required
-              >
-                <option value="">Select association...</option>
-                {associations.map((a: any) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Date/Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Start Time *</label>
-              <input
-                type="datetime-local"
-                value={form.start_time}
-                onChange={(e) => setField("start_time", e.target.value)}
-                className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">End Time</label>
-              <input
-                type="datetime-local"
-                value={form.end_time}
-                onChange={(e) => setField("end_time", e.target.value)}
-                className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Location</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => setField("location", e.target.value)}
-              placeholder="e.g. Clubhouse, Virtual (Zoom link)"
-              className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-            />
-          </div>
-
-          {/* Quorum Requirement */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Quorum Requirement ({associations.find((a: any) => a.id === form.association_id)?.quorum_percentage || 51}% of {associations.find((a: any) => a.id === form.association_id)?.unit_count || '—'} units)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={form.quorum_requirement}
-                onChange={(e) => setField("quorum_requirement", parseInt(e.target.value) || 0)}
-                min={0}
-                className="w-32 bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              />
-              <span className="text-sm text-slate-500">attendees needed</span>
-            </div>
-          </div>
-
-          {/* Agenda */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Agenda</label>
-            <textarea
-              value={form.agenda}
-              onChange={(e) => setField("agenda", e.target.value)}
-              rows={5}
-              placeholder="Meeting agenda items..."
-              className="w-full bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none"
-            />
-          </div>
-
-          {/* Submit */}
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {saving ? "Scheduling..." : "Schedule Meeting"}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <DataWorkspace
+      title="New meeting"
+      description="Schedule a board meeting, committee session, or association event."
+    >
+      <form action={handleSubmit} className="max-w-3xl space-y-5 rounded border border-gray-200 bg-white p-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="text-sm font-medium text-gray-700">Title
+            <input name="title" required className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="Board meeting, committee..." />
+          </label>
+          <label className="text-sm font-medium text-gray-700">Type
+            <select name="meeting_type" className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+              <option value="board_meeting">Board Meeting</option>
+              <option value="committee">Committee</option>
+              <option value="annual">Annual Meeting</option>
+              <option value="special">Special Meeting</option>
+              <option value="workshop">Workshop</option>
+            </select>
+          </label>
+          <label className="text-sm font-medium text-gray-700">Association
+            <select name="association_id" className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+              <option value="">Select association</option>
+              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-gray-700">Location
+            <input name="location" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="Board room, virtual..." />
+          </label>
+          <label className="text-sm font-medium text-gray-700">Start
+            <input name="start_time" type="datetime-local" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
+          </label>
+          <label className="text-sm font-medium text-gray-700">End
+            <input name="end_time" type="datetime-local" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
+          </label>
+        </div>
+        <label className="text-sm font-medium text-gray-700">Agenda
+          <textarea name="agenda" rows={5} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Agenda items..." />
+        </label>
+        <label className="text-sm font-medium text-gray-700">Description
+          <textarea name="description" rows={3} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Meeting description..." />
+        </label>
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button type="submit">Create meeting</Button>
+        </div>
+      </form>
+    </DataWorkspace>
   );
 }
