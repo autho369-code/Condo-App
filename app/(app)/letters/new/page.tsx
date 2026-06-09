@@ -163,7 +163,7 @@ export default function NewLetterPage() {
               onClick={() => handleSave(false)}
               disabled={saving}
             >
-              {saving ? 'Saving...' : 'Save as draft'}
+              {saving ? 'Saving...' : 'Save letter'}
             </Button>
             <Button
               onClick={() => handleSave(true)}

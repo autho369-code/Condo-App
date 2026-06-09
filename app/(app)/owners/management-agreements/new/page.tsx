@@ -1,10 +1,11 @@
 import Link from 'next/link';
-
+import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { createAgreement } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,18 +13,23 @@ export default async function NewManagementAgreementPage() {
   await requireStaff();
   const supabase = await createClient();
   const [{ data: owners }, { data: associations }] = await Promise.all([
-    (supabase as any).from('owners').select('id, full_name, email, archived_at').is('archived_at', null).order('full_name').limit(500),
-    (supabase as any).from('associations').select('id, name, archived_at').is('archived_at', null).order('name').limit(500),
+    (supabase as any).from('owners').select('id, full_name, email').order('full_name').limit(500),
+    (supabase as any).from('associations').select('id, name').order('name').limit(500),
   ]);
+
+  async function handleSubmit(formData: FormData) {
+    'use server';
+    await createAgreement(formData);
+    redirect('/owners');
+  }
 
   return (
     <DataWorkspace
       title="New Management Agreement"
-      description="Draft the owner and association agreement package, then route it through review and signature."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
-      rail={<div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">Agreement drafts should capture owner, association, fee schedule, management dates, and signature delivery method before any outbound send.</div>}
+      description="Create an owner and association management agreement with fee schedule and delivery method."
+      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
     >
-      <form className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
+      <form action={handleSubmit} className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
@@ -49,7 +55,7 @@ export default async function NewManagementAgreementPage() {
           </div>
           <div>
             <Label htmlFor="management_fee">Management fee</Label>
-            <Input id="management_fee" name="management_fee" placeholder="$0.00" />
+            <Input id="management_fee" name="management_fee" type="number" step="0.01" min="0" placeholder="$0.00" />
           </div>
           <div>
             <Label htmlFor="delivery_method">Delivery method</Label>
@@ -65,8 +71,8 @@ export default async function NewManagementAgreementPage() {
           <textarea id="terms" name="terms" rows={5} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
         </div>
         <div className="flex justify-end gap-2 border-t border-gray-100 pt-5">
-          <Button type="button" variant="secondary">Preview agreement</Button>
-          <Button type="button">Stage agreement</Button>
+          <Link href="/owners" className="inline-flex items-center justify-center h-10 px-4 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</Link>
+          <Button type="submit">Create agreement</Button>
         </div>
       </form>
     </DataWorkspace>
