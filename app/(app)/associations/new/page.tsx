@@ -20,7 +20,7 @@ const US_STATES = [
   'VA','WA','WV','WI','WY','DC',
 ];
 
-export default async function NewAssociationPage() {
+export default async function NewPropertyPage() {
   await requireStaff();
   const supabase = await createClient();
 
@@ -43,7 +43,7 @@ export default async function NewAssociationPage() {
     return t === 'asset' || t === 'bank' || t === 'cash';
   });
 
-  async function createAssociation(formData: FormData) {
+  async function createProperty(formData: FormData) {
     'use server';
     const supabase = await createClient();
     const m = await getMe();
@@ -53,7 +53,7 @@ export default async function NewAssociationPage() {
     const city = requiredString(formData, 'city', 'City');
     const state = requiredString(formData, 'state', 'State');
     const zip = requiredString(formData, 'zip', 'Zip');
-    if (!name) throw new Error('Association Name is required.');
+    if (!name) throw new Error('Property Name is required.');
     if (!address) throw new Error('Address is required.');
     if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
     if (!m.auth_user_id) throw new Error('Could not determine current user.');
@@ -117,12 +117,12 @@ export default async function NewAssociationPage() {
 
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <h1 className="text-2xl font-semibold text-gray-900">New Association</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">New Property</h1>
 
-      <form action={createAssociation as any} className="mt-6 space-y-5">
+      <form action={createProperty as any} className="mt-6 space-y-5">
 
-        <Section title="Association Name and Address" padded>
-          <FormRow label="Association Type" required>
+        <Section title="Property Name and Address" padded>
+          <FormRow label="Property Type" required>
             <select name="property_type" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">— Select —</option>
               <option value="condominium">Condominium</option>
@@ -133,7 +133,7 @@ export default async function NewAssociationPage() {
               <option value="hoa">HOA</option>
             </select>
           </FormRow>
-          <FormRow label="Association Name">
+          <FormRow label="Property Name">
             <input type="text" name="name" required className="w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
           <FormRow label="Address" required>
@@ -155,7 +155,7 @@ export default async function NewAssociationPage() {
           </FormRow>
         </Section>
 
-        <Section title="Association Information" padded>
+        <Section title="Property Information" padded>
           <FormRow label="Description">
             <textarea name="description" rows={3} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </FormRow>
