@@ -14,20 +14,15 @@ export function Workspace({
   rail?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+    <div className="bg-[#f5f6f8] min-h-full">
+      <div className="px-6 py-4">
+        <div className="shrink-0 mb-4">
           {header}
         </div>
-        <div data-workspace-main className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
+        <div data-workspace-main>
           {children}
         </div>
       </div>
-      {rail && (
-        <aside data-workspace-rail className="w-80 shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-6 py-6">
-          {rail}
-        </aside>
-      )}
     </div>
   );
 }
