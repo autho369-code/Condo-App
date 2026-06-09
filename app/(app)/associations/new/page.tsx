@@ -111,6 +111,21 @@ export default async function NewPropertyPage() {
     if (aErr) throw new Error(`Could not create property: ${aErr.message}`);
     const newId = assoc!.id;
 
+    // Insert bank accounts from the multi-account form
+    for (let i = 0; i < 3; i++) {
+      const name = (formData.get(`bank_name_${i}`) as string)?.trim();
+      if (!name) continue;
+      await (supabase as any).from('bank_accounts').insert({
+        association_id: newId,
+        portfolio_id: m.portfolio.id,
+        name,
+        bank_name: (formData.get(`bank_bank_name_${i}`) as string) || null,
+        purpose: (formData.get(`bank_purpose_${i}`) as string) || 'operating',
+        account_number: (formData.get(`bank_account_number_${i}`) as string) || null,
+        routing_number: (formData.get(`bank_routing_number_${i}`) as string) || null,
+      });
+    }
+
     revalidatePath('/associations');
     redirect(`/associations/${newId}/units`);
   }
@@ -187,14 +202,42 @@ export default async function NewPropertyPage() {
         </Section>
 
         <Section title="Bank Accounts" padded>
-          <FormRow label="Operating Bank Account">
-            <select name="operating_bank_account_id" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">— Select —</option>
-              {(bankAccounts ?? []).map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `(${b.bank_name})` : ''}</option>
-              ))}
-            </select>
-          </FormRow>
+          <p className="mb-3 text-xs text-gray-500">Add bank accounts for this association. These appear on income statements and financial reports.</p>
+          <div className="space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded border border-gray-200 bg-gray-50 p-4">
+                <p className="mb-3 text-xs font-semibold text-gray-600">Account {i + 1}</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Account Name</label>
+                    <input type="text" name={`bank_name_${i}`} placeholder="Operating, Reserve, etc." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Bank Name</label>
+                    <input type="text" name={`bank_bank_name_${i}`} placeholder="Chase, BofA..." className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Purpose</label>
+                    <select name={`bank_purpose_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none">
+                      <option value="">— Select —</option>
+                      <option value="operating">Operating</option>
+                      <option value="reserve">Reserve</option>
+                      <option value="special_assessment">Special Assessment</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Account Number</label>
+                    <input type="text" name={`bank_account_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Routing Number</label>
+                    <input type="text" name={`bank_routing_number_${i}`} className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </Section>
 
         <div className="flex items-center gap-2 pt-2">
