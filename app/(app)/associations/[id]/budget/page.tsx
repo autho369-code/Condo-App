@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +88,15 @@ export default async function BudgetTab({
           <WorkspaceHeader
             title="Budget"
             subtitle={`${assoc.name}${assoc.address ? ` — ${assoc.address}` : ''}`}
+            actions={
+              <Link
+                href={`/budget/new?association=${id}&year=${fiscalYear}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Add Budget Line
+              </Link>
+            }
           />
         </>
       }
@@ -109,7 +120,16 @@ export default async function BudgetTab({
               <ParentRow label="EXPENSE" annualPrior={expenseAnnualPrior} annualBudget={expenseAnnualBudget} months={sumColumns(expenseRows.map((r) => r.monthly))} />
               {expenseRows.map((r: any) => <ChildRow key={r.acct.id} acct={r.acct} prior={r.prior} monthly={r.monthly} />)}
               {totalRows === 2 && (
-                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm italic text-gray-500">No GL accounts configured for this association.</td></tr>
+                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <p>No budget lines for FY{fiscalYear}.</p>
+                  <Link
+                    href={`/budget/new?association=${id}&year=${fiscalYear}`}
+                    className="mt-2 inline-flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-500"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add your first budget line
+                  </Link>
+                </td></tr>
               )}
             </tbody>
           </table>
