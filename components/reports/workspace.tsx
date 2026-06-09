@@ -12,23 +12,13 @@ export function Workspace({
   rail?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full">
-      {/* MIDDLE */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
-          {header}
-        </div>
-        <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
-          {children}
-        </div>
+    <div className="min-h-full">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+        {header}
       </div>
-
-      {/* RIGHT RAIL */}
-      {rail && (
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-6 py-6">
-          {rail}
-        </aside>
-      )}
+      <div className="bg-gray-50 px-8 py-6">
+        {children}
+      </div>
     </div>
   );
 }
