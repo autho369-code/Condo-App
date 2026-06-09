@@ -19,31 +19,38 @@ export default async function BudgetPage({
   const { association, year } = await searchParams;
   const selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
 
-  // Fetch associations
-  const { data: associations } = await db
-    .from('associations')
-    .select('id, name')
-    .order('name');
+  let error: string | null = null;
+  let associations: any[] = [];
+  let glAccounts: any[] = [];
+  let lines: any[] = [];
 
-  const selectedAssociation = association ?? associations?.[0]?.id ?? '';
+  try {
+    // Fetch associations
+    const assocResult = await db.from('associations').select('id, name').order('name');
+    if (assocResult.error) throw new Error('associations: ' + assocResult.error.message);
+    associations = assocResult.data ?? [];
 
-  // Fetch GL accounts for the dropdown
-  const { data: glAccounts } = await db
-    .from('gl_accounts')
-    .select('id, number, name, account_type')
-    .order('number');
+    const selectedAssociation = association ?? associations?.[0]?.id ?? '';
 
-  // Fetch budget lines for selected association + year
-  const { data: budgetLines } = selectedAssociation
-    ? await db.rpc('list_budget_lines', {
+    // Fetch GL accounts
+    const glResult = await db.from('gl_accounts').select('id, number, name, account_type').order('number');
+    if (glResult.error) throw new Error('gl_accounts: ' + glResult.error.message);
+    glAccounts = glResult.data ?? [];
+
+    // Fetch budget lines
+    if (selectedAssociation) {
+      const blResult = await db.rpc('list_budget_lines', {
         p_association_id: selectedAssociation,
         p_fiscal_year: selectedYear,
-      })
-    : { data: [] };
+      });
+      if (blResult.error) throw new Error('list_budget_lines: ' + blResult.error.message);
+      lines = blResult.data ?? [];
+    }
+  } catch (e: any) {
+    error = e.message || String(e);
+  }
 
-  const lines = (budgetLines ?? []) as any[];
-
-  // Compute summary metrics
+  const selectedAssociation = association ?? associations?.[0]?.id ?? '';
   const incomeLines = lines.filter((l: any) => l.category === 'income');
   const expenseLines = lines.filter((l: any) => l.category === 'expense');
   const totalIncomeBudget = incomeLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
@@ -51,9 +58,14 @@ export default async function BudgetPage({
 
   return (
     <div className="flex h-screen">
-      {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="p-5 space-y-5">
+          {/* Debug: show errors */}
+          {error && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
