@@ -2,7 +2,6 @@ import { headers } from 'next/headers';
 import { requireAuth } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { CommandNav } from '@/components/command-center/command-nav';
-import { ManagerSidebar } from '@/components/command-center/manager-sidebar';
 import { CommandBar } from '@/components/command-center/command-bar';
 import { QuickActions } from '@/components/command-center/quick-actions';
 
@@ -21,12 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CommandNav portfolioName={displayName} />
 
       {/* Center: Command Center / Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-[#f5f6f8]">
         {children}
       </main>
-
-      {/* Right: Insights Panel */}
-      <ManagerSidebar />
 
       {/* Global Overlays */}
       <CommandBar />
