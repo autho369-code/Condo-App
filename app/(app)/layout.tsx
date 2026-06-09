@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { requireAuth } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
-import { WorkspaceNav } from '@/components/command-center/workspace-nav';
+import { CommandNav } from '@/components/command-center/command-nav';
 import { ManagerSidebar } from '@/components/command-center/manager-sidebar';
 import { CommandBar } from '@/components/command-center/command-bar';
 import { QuickActions } from '@/components/command-center/quick-actions';
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen bg-[#0a0b0d] overflow-hidden">
       {/* Left: Workspace Navigation */}
-      <WorkspaceNav portfolioName={displayName} userEmail={me.email ?? undefined} />
+      <CommandNav portfolioName={displayName} />
 
       {/* Center: Command Center / Content */}
       <main className="flex-1 overflow-y-auto">
