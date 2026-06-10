@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { Card } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
@@ -25,93 +24,133 @@ export default async function LoginPage({
 
   return (
     <div className="space-y-6">
-      <header className="text-center">
-        {tenant?.logoUrl ? (
-          <img src={tenant.logoUrl} alt={tenant.companyName} className="mx-auto h-10 object-contain" />
-        ) : (
-          <div className="text-xl font-semibold text-brand-600">{tenant?.companyName ?? 'Portier369'}</div>
-        )}
+      <header>
         {tenant ? (
           <>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-950">{tenant.companyName}</h1>
-            <p className="mt-2 text-sm text-gray-500">Access your association&apos;s management portal.</p>
-            <div className="mt-3 text-xs text-gray-400">
-              Powered by <span className="font-semibold text-brand-600">Portier369</span>
-            </div>
+            {tenant.logoUrl ? (
+              <img src={tenant.logoUrl} alt={tenant.companyName} className="h-10 object-contain" />
+            ) : (
+              <div className="text-lg font-semibold tracking-tight text-gray-950">{tenant.companyName}</div>
+            )}
+            <h1 className="mt-5 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">
+              Welcome back
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-gray-500">
+              Access your association&apos;s management portal.
+            </p>
           </>
         ) : (
           <>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950">Sign In</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              {isAdminMode ? 'Restricted platform access.' : 'Choose the workspace that matches your account.'}
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">
+              {isAdminMode ? 'Platform sign in' : 'Welcome back'}
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-gray-500">
+              {isAdminMode ? 'Restricted platform access.' : 'Sign in to your workspace.'}
             </p>
           </>
         )}
       </header>
 
-      <Card className="overflow-hidden rounded-md shadow-sm">
-        {modes.map((item, index) => {
-          const isActive = item.id === mode.id;
-          const href = `/login?mode=${item.id}`;
+      {/* Role switcher */}
+      {!isAdminMode && (
+        <nav
+          aria-label="Account type"
+          className="grid grid-cols-3 gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+        >
+          {modes.map((item) => {
+            const isActive = item.id === mode.id;
+            return (
+              <Link
+                key={item.id}
+                href={`/login?mode=${item.id}`}
+                aria-current={isActive ? 'page' : undefined}
+                className={
+                  'flex h-9 items-center justify-center rounded-lg text-[13px] font-medium transition-colors ' +
+                  (isActive
+                    ? 'bg-gray-950 text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900')
+                }
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
-          return (
-            <section
-              key={item.id}
-              className={
-                'grid gap-4 px-6 py-6 md:grid-cols-[220px_1fr] ' +
-                (index === modes.length - 1 ? '' : 'border-b border-gray-200')
-              }
+      {/* Sign-in card */}
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-7 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-12px_rgba(16,24,40,0.12)]">
+        <p className="text-[13px] leading-6 text-gray-500">{mode.description}</p>
+
+        <form action={loginWithPassword as any} className="mt-5 space-y-4">
+          <input type="hidden" name="mode" value={mode.id} />
+          <input type="hidden" name="next" value={next} />
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@company.com"
+            />
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {params.error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] leading-5 text-red-700"
             >
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
-                {item.id === 'admin' && <p className="mt-1 text-xs font-medium text-brand-600">Restricted access</p>}
-              </div>
-              <div className="space-y-3">
-                <p className="max-w-xl text-sm leading-6 text-gray-600">{item.description}</p>
-                {!isActive ? (
-                  <Link href={href} className="inline-flex items-center text-sm font-medium text-brand-600 hover:underline">
-                    {item.title} Here
-                  </Link>
-                ) : (
-                  <form action={loginWithPassword as any} className="max-w-md space-y-4 rounded-md border border-blue-200 bg-blue-50/40 p-4">
-                    <input type="hidden" name="mode" value={mode.id} />
-                    <input type="hidden" name="next" value={next} />
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" type="email" required autoComplete="email" />
-                    </div>
-                    <div>
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" name="password" type="password" required autoComplete="current-password" />
-                    </div>
-                    {params.error && <p className="text-sm text-red-600">{params.error}</p>}
-                    <p className="text-xs leading-5 text-gray-600">{item.note}</p>
-                    <Button type="submit" className="w-full">{item.submitLabel}</Button>
-                    {item.id !== 'admin' && (
-                      <div className="text-center text-sm text-gray-600">
-                        Need a new account? <Link href="/signup" className="text-brand-600 hover:underline">Request access</Link>
-                      </div>
-                    )}
-                  </form>
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </Card>
+              {params.error}
+            </p>
+          )}
 
+          <Button type="submit" className="h-11 w-full rounded-xl bg-gray-950 text-[14px] hover:bg-gray-800">
+            {mode.submitLabel}
+          </Button>
+        </form>
+
+        <p className="mt-4 text-[12px] leading-5 text-gray-400">{mode.note}</p>
+      </div>
+
+      {/* Below-card actions */}
       <div className="space-y-3 text-center">
+        {mode.id !== 'admin' && (
+          <p className="text-sm text-gray-500">
+            Need a new account?{' '}
+            <Link href="/signup" className="font-medium text-gray-900 underline-offset-4 hover:underline">
+              Request access
+            </Link>
+          </p>
+        )}
+        {isAdminMode && (
+          <p className="text-xs leading-5 text-gray-400">
+            Platform access requires an active platform operator record in Supabase.
+          </p>
+        )}
         {localPreview && (
           <Link
             href="/dashboard"
-            className="inline-flex h-9 items-center justify-center rounded bg-gray-950 px-4 text-sm font-medium text-white hover:bg-gray-800"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-gray-950 px-4 text-sm font-medium text-white hover:bg-gray-800"
           >
             Continue to local preview
           </Link>
         )}
-        {isAdminMode && (
-          <p className="text-xs leading-5 text-gray-500">
-            Platform access requires an active platform operator record in Supabase.
+        {tenant && (
+          <p className="text-[11px] text-gray-400">
+            Powered by <span className="font-medium text-gray-500">Portier369</span>
           </p>
         )}
       </div>
