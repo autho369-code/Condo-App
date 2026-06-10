@@ -113,7 +113,7 @@ export default function CalendarGrid({ events, associations, initialAssocId, ini
           nowIndicator={true} dayMaxEvents={3} contentHeight="100%"
           eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }} />
       </div>
-      </div>
+  
     </div>
   );
 }
