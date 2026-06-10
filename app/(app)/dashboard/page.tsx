@@ -239,11 +239,6 @@ export default async function DashboardPage({
 
   const demoMetrics = [
     {
-      label: 'Open violations',
-      value: openViolations ?? 0,
-      href: '/violations?status=open',
-    },
-    {
       label: 'Maintenance overdue',
       value: overdueMaintenance ?? 0,
       href: '/work-orders?status=overdue',
@@ -421,13 +416,13 @@ export default async function DashboardPage({
         <MetricStrip metrics={demoMetrics} />
 
         {/* ── Focus queue ──────────────────────────────────── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-950">Focus queue</h2>
-              <p className="mt-1 text-xs text-gray-500">Highest leverage items needing staff attention.</p>
+              <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Focus queue</h2>
+              <p className="mt-0.5 text-xs text-gray-500">Highest leverage items needing staff attention.</p>
             </div>
-            <Link href="/inbox" className="text-sm font-medium text-blue-700 hover:underline">Open inbox</Link>
+            <Link href="/inbox" className="text-[13px] font-medium text-gray-900 underline-offset-4 hover:underline">Open inbox</Link>
           </div>
           {focusItems.length > 0 ? (
             <ul className="divide-y divide-gray-100">
@@ -452,11 +447,11 @@ export default async function DashboardPage({
         </section>
 
         {/* ── Recent Activity Feed ──────────────────────────── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-950">Recent activity</h2>
-              <p className="mt-1 text-xs text-gray-500">Latest events across violations, maintenance, bills, and payments.</p>
+              <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Recent activity</h2>
+              <p className="mt-0.5 text-xs text-gray-500">Latest events across violations, maintenance, bills, and payments.</p>
             </div>
           </div>
           {activityFeed.length > 0 ? (

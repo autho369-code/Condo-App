@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend(): Resend | null {
+  const key = process.env.RESEND_API_KEY
+  if (!key) return null
+  return new Resend(key)
+}
 
 function getList(formData: FormData, key: string): string {
   return formData.getAll(key).filter(Boolean).join(', ')
@@ -50,13 +54,18 @@ export async function POST(request: Request) {
   const company = fd.get('company_name') || 'New Lead'
 
   try {
-    await resend.emails.send({
-      from: 'Portier369 <hello@portier369.com>',
-      to: 'hello@portier369.com',
-      replyTo: (fd.get('email') as string) || undefined,
-      subject: `Proposal request — ${company} (${fd.get('total_doors') || '?'} doors)`,
-      text: lines.join('\n'),
-    })
+    const resend = getResend()
+    if (resend) {
+      await resend.emails.send({
+        from: 'Portier369 <hello@portier369.com>',
+        to: 'hello@portier369.com',
+        replyTo: (fd.get('email') as string) || undefined,
+        subject: `Proposal request — ${company} (${fd.get('total_doors') || '?'} doors)`,
+        text: lines.join('\n'),
+      })
+    } else {
+      console.warn('RESEND_API_KEY not set — demo request logged but not emailed:', lines.join('\n'))
+    }
   } catch (err) {
     console.error('Resend error:', err)
   }
