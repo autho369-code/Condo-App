@@ -11,9 +11,15 @@ export default async function OwnerTimelinePage() {
   const db = supabase as any
   const ownerId = me.owner_id
 
+  // Work orders have no owner_id — resolve via the owner's units
+  const { data: myUnits } = await db.from('unit_owners').select('unit_id').eq('owner_id', ownerId)
+  const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
+
   const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([
-    db.from('receivable_payments').select('amount, payment_date, method, status').eq('owner_id', ownerId).order('payment_date', { ascending: false }).limit(30),
-    db.from('work_orders').select('id, title, status, created_at').eq('owner_id', ownerId).is('archived_at', null).order('created_at', { ascending: false }).limit(30),
+    db.from('receivable_payments_ledger').select('amount, payment_date, method').eq('owner_id', ownerId).order('payment_date', { ascending: false }).limit(30),
+    unitIds.length > 0
+      ? db.from('work_orders').select('id, title, status, created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
+      : Promise.resolve({ data: [] }),
     db.from('violations').select('id, title, status, date_observed').eq('owner_id', ownerId).is('archived_at', null).order('date_observed', { ascending: false }).limit(30),
     db.from('communications_log').select('subject, channel, status, created_at').eq('sender_id', ownerId).order('created_at', { ascending: false }).limit(30),
   ])
@@ -22,7 +28,7 @@ export default async function OwnerTimelinePage() {
   const entries: Entry[] = []
 
   for (const p of paymentsRes?.data ?? []) {
-    if (p.status === 'completed') entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
+    entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
   }
   for (const w of wosRes?.data ?? []) {
     entries.push({ date: w.created_at, icon: Wrench, title: `Work Order: ${w.title}`, detail: w.status.replace('_',' '), color: 'text-blue-600 bg-blue-50' })

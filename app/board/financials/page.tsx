@@ -74,78 +74,99 @@ export default async function BoardFinancialsPage() {
   const currentYear = today.getFullYear()
   const yearStart = `${currentYear}-01-01`
 
-  // ── YTD Income: Sum of charges/management_fees ──
+  // ── YTD Income & Expenses from posted journal lines ──
+  // income accounts: credit increases; expense accounts: debit increases
   let ytdIncome = 0
-  try {
-    const { data: charges } = await db
-      .from('charges')
-      .select('amount')
-      .in('association_id', boardAssocIds)
-      .gte('created_at', yearStart)
-      .is('archived_at', null)
-    ytdIncome = (charges ?? []).reduce((sum: number, c: any) => sum + (c.amount ?? 0), 0)
-  } catch { /* table may not exist */ }
-
-  // ── YTD Expenses: Sum of bills/payments ──
   let ytdExpenses = 0
   try {
-    const { data: bills } = await db
-      .from('bills')
-      .select('amount')
+    const { data: pnlLines } = await db
+      .from('journal_lines')
+      .select('debit_amount, credit_amount, gl_accounts!inner(account_type), journal_entries!inner(entry_date, posted)')
       .in('association_id', boardAssocIds)
-      .gte('created_at', yearStart)
-      .is('archived_at', null)
-    ytdExpenses = (bills ?? []).reduce((sum: number, b: any) => sum + (b.amount ?? 0), 0)
-  } catch { /* table may not exist */ }
-
-  const netOperatingIncome = ytdIncome - ytdExpenses
-
-  // ── Bank Balance: Sum of bank account balances ──
-  let bankBalance = 0
-  try {
-    const { data: accounts } = await db
-      .from('bank_accounts')
-      .select('balance')
-      .in('association_id', boardAssocIds)
-    bankBalance = (accounts ?? []).reduce((sum: number, a: any) => sum + (a.balance ?? 0), 0)
-  } catch { /* table may not exist */ }
-
-  // ── Reserve Balance ──
-  let reserveBalance = 0
-  try {
-    const { data: reserves } = await db
-      .from('bank_accounts')
-      .select('balance')
-      .in('association_id', boardAssocIds)
-      .eq('account_type', 'reserve')
-    reserveBalance = (reserves ?? []).reduce((sum: number, a: any) => sum + (a.balance ?? 0), 0)
-  } catch { /* may not exist */ }
-
-  // ── Budget Variance ──
-  let budgetVariancePct = 0
-  try {
-    const { data: budgets } = await db
-      .from('budgets')
-      .select('budgeted_amount, actual_amount')
-      .in('association_id', boardAssocIds)
-      .eq('fiscal_year', currentYear)
-    const totalBudgeted = (budgets ?? []).reduce((sum: number, b: any) => sum + (b.budgeted_amount ?? 0), 0)
-    const totalActual = (budgets ?? []).reduce((sum: number, b: any) => sum + (b.actual_amount ?? 0), 0)
-    if (totalBudgeted > 0) {
-      budgetVariancePct = Math.round(((totalActual - totalBudgeted) / totalBudgeted) * 100)
+      .in('gl_accounts.account_type', ['income', 'other_income', 'expense', 'other_expense'])
+      .eq('journal_entries.posted', true)
+      .gte('journal_entries.entry_date', yearStart)
+    for (const l of pnlLines ?? []) {
+      const t = l.gl_accounts?.account_type
+      const debit = Number(l.debit_amount ?? 0)
+      const credit = Number(l.credit_amount ?? 0)
+      if (t === 'income' || t === 'other_income') ytdIncome += credit - debit
+      else ytdExpenses += debit - credit
     }
   } catch { /* may not exist */ }
 
-  // ── Recent Transactions ──
+  const netOperatingIncome = ytdIncome - ytdExpenses
+
+  // ── Bank & Reserve balances: roll up posted journal lines on each
+  //    bank account's linked GL account ──
+  let bankBalance = 0
+  let reserveBalance = 0
+  try {
+    const { data: accounts } = await db
+      .from('bank_accounts')
+      .select('id, gl_account_id, purpose')
+      .in('association_id', boardAssocIds)
+      .is('archived_at', null)
+    const glIds = (accounts ?? []).map((a: any) => a.gl_account_id).filter(Boolean)
+    if (glIds.length > 0) {
+      const { data: cashLines } = await db
+        .from('journal_lines')
+        .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)')
+        .in('gl_account_id', glIds)
+        .in('association_id', boardAssocIds)
+        .eq('journal_entries.posted', true)
+      const balByGl: Record<string, number> = {}
+      for (const l of cashLines ?? []) {
+        balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0)
+      }
+      for (const a of accounts ?? []) {
+        const bal = balByGl[a.gl_account_id] ?? 0
+        bankBalance += bal
+        if (a.purpose === 'reserve') reserveBalance += bal
+      }
+    }
+  } catch { /* may not exist */ }
+
+  // ── Budget Variance: budget_lines (expense) vs YTD actual expenses ──
+  let budgetVariancePct = 0
+  try {
+    const { data: budgetLines } = await db
+      .from('budget_lines')
+      .select('annual_total, category')
+      .in('association_id', boardAssocIds)
+      .eq('fiscal_year', currentYear)
+      .eq('category', 'expense')
+    const totalBudgeted = (budgetLines ?? []).reduce((sum: number, b: any) => sum + Number(b.annual_total ?? 0), 0)
+    // Pro-rate annual budget to elapsed months so YTD vs YTD is fair
+    const elapsedMonths = today.getMonth() + 1
+    const budgetToDate = totalBudgeted * (elapsedMonths / 12)
+    if (budgetToDate > 0) {
+      budgetVariancePct = Math.round(((ytdExpenses - budgetToDate) / budgetToDate) * 100)
+    }
+  } catch { /* may not exist */ }
+
+  // ── Recent Transactions: latest posted journal lines ──
   let recentTransactions: any[] = []
   try {
     const { data: txns } = await db
-      .from('journal_entries')
-      .select(`id, description, amount, type, created_at, association_id, associations(name)`)
+      .from('journal_lines')
+      .select('id, memo, debit_amount, credit_amount, created_at, association_id, associations(name), journal_entries!inner(description, entry_date, posted)')
       .in('association_id', boardAssocIds)
+      .eq('journal_entries.posted', true)
       .order('created_at', { ascending: false })
       .limit(20)
-    recentTransactions = txns ?? []
+    recentTransactions = (txns ?? []).map((l: any) => {
+      const debit = Number(l.debit_amount ?? 0)
+      const credit = Number(l.credit_amount ?? 0)
+      return {
+        id: l.id,
+        description: l.memo || l.journal_entries?.description || 'Journal entry',
+        amount: debit > 0 ? debit : credit,
+        type: debit > 0 ? 'debit' : 'credit',
+        created_at: l.journal_entries?.entry_date ?? l.created_at,
+        associations: l.associations,
+      }
+    })
   } catch { /* may not exist */ }
 
   return (
