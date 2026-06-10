@@ -104,12 +104,15 @@ export default function CalendarGrid({ events, associations, initialAssocId, ini
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 overflow-hidden bg-white p-3">
+      <div className="h-[calc(100vh-330px)] min-h-[560px] overflow-hidden bg-white p-3">
         <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView={viewMode}
           events={fcEvents} editable={true} eventStartEditable={true} eventDurationEditable={true}
-          eventDrop={handleEventDrop} eventClick={handleEventClick} headerToolbar={false} height="100%"
+          eventDrop={handleEventDrop} eventClick={handleEventClick}
+          headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
+          height="100%"
           nowIndicator={true} dayMaxEvents={3} contentHeight="100%"
           eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }} />
+      </div>
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export default async function NewCalendarEventPage({
   searchParams,
 }: {
-  searchParams: Promise<{ assoc?: string; type?: string; start?: string; scope?: string; title?: string }>;
+  searchParams: Promise<{ assoc?: string; type?: string; start?: string; scope?: string; title?: string; error?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -46,6 +46,12 @@ export default async function NewCalendarEventPage({
           <Button type="button" variant="secondary">Cancel</Button>
         </Link>
       </div>
+
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create event:</span> {sp.error}
+        </div>
+      )}
 
       <form action={createCalendarEvent as any} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
         <input type="hidden" name="calendar_scope" value={sp.scope === 'annual' ? 'annual' : 'daily'} />

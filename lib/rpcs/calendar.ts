@@ -38,6 +38,15 @@ export async function createCalendarEvent(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
+  const failTo = (msg: string) => {
+    const back = str(formData, 'association_id');
+    redirect(`/calendar/new?${back ? `assoc=${back}&` : ''}error=${encodeURIComponent(msg)}`);
+  };
+
+  if (!me.portfolio?.id) {
+    failTo('Your account is not linked to a portfolio. Ask an administrator to assign your profile to a portfolio, then try again.');
+  }
+
   const eventType = (str(formData, 'event_type') ?? 'custom_event') as CalendarEventType;
   const title = req(formData, 'title');
   const start = req(formData, 'start_datetime');
@@ -89,7 +98,10 @@ export async function createCalendarEvent(formData: FormData) {
     created_by: me.auth_user_id,
   }).select('id').single();
 
-  if (error || !event) return { error: error?.message ?? 'Failed to create event' };
+  if (error || !event) {
+    failTo(error?.message ?? 'Failed to create event');
+    return;
+  }
 
   const startDate = new Date(start);
   const reminderRows = reminderMinutes.flatMap((minutes) => {
