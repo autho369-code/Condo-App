@@ -249,6 +249,15 @@ Priority order for pages to build next:
 
 ## Session Log
 
+### 2026-06-09
+- Computer was reset — recovered project from scratch on fresh machine
+- Cloned repo to new local path: `C:\Users\autho\Portier369`
+- Recreated `.env.local` (Supabase anon + service_role keys verified, HTTP 200)
+- Skipping Stripe for now (keys not configured — checkout flows inert)
+- `npm install` clean (626 packages), dev server verified at http://localhost:3000
+- Database intact: 7 associations confirmed via REST API
+- Git credentials + identity reconfigured (autho369-code)
+
 ### 2026-04-21
 - Fixed admin profile (no profile row = left nav disappeared)
 - Git connected to https://github.com/authou369-code/Condo-App
