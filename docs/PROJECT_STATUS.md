@@ -249,6 +249,16 @@ Priority order for pages to build next:
 
 ## Session Log
 
+### 2026-06-10 (Claude-assisted)
+- **Security:** Enabled RLS on all 19 previously exposed tables + schema_migrations (zero tables without RLS). Policies added for maintenance_template_groups (portfolio), maintenance_templates (system/global + group portfolio), inventory_items (staff-only — needs portfolio_id column later), bank_adjustments (finance via bank account portfolio). 15 unused tables locked to service_role pending keep/drop decision.
+- **Fixed broken queries (frontend↔DB mismatches):**
+  - board/financials: was querying nonexistent `bills`, `budgets`, `bank_accounts.balance`, `journal_entries.amount` — rewritten on posted journal_lines (income/expense by GL account_type), bank/reserve balances rolled up from journal lines per bank GL account, budget variance from budget_lines.annual_total pro-rated vs YTD actuals
+  - portal/insurance: now uses `insurance_policies` (was nonexistent `insurance_certificates` + phantom owner columns); upload inserts a policy row; added history list
+  - portal/timeline: payments via `receivable_payments_ledger` view (payments has no owner_id); work orders resolved through unit_owners → unit_ids
+- **Calendar fixed:** create-event action now redirects with visible error banner instead of silent `return {error}`; guards missing portfolio with clear message. CalendarGrid: fixed collapsed height (h-[calc(100vh-330px)] min-h-560px) and enabled prev/next/today + title toolbar (was headerToolbar={false} → no month navigation).
+- **Data/auth fixes:** mirsad@stellarpropertygroup.com profile → Stellar portfolio + manager/admin (was owner + null portfolio → silent insert failures); hello@portier369.com → Stellar portfolio; confirmed mirsad@ email in auth.users (no email provider wired yet — confirmation emails go nowhere; wire Resend soon, email_queue has 34 pending).
+- **Known follow-ups:** sweep remaining server actions returning silent `{error}`; consolidate /platform vs /platform-operator; build Vendor portal; design-system migration (1/214 pages compliant); see /mnt outputs doc "portier369-finish-line-plan".
+
 ### 2026-06-09
 - Computer was reset — recovered project from scratch on fresh machine
 - Cloned repo to new local path: `C:\Users\autho\Portier369`
