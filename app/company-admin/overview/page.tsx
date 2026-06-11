@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
+import { StatusChip } from '@/components/operations/status-chip'
 import {
   Building2,
   DoorOpen,
@@ -23,37 +24,29 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+
 function StatCard({
   label,
   value,
   sub,
   icon: Icon,
-  accent = 'emerald',
 }: {
   label: string
   value: React.ReactNode
   sub?: React.ReactNode
   icon: React.ElementType
-  accent?: 'emerald' | 'blue' | 'amber' | 'red' | 'violet'
 }) {
-  const accents: Record<string, string> = {
-    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red: 'bg-red-500/10 text-red-400 border-red-500/20',
-    violet: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  }
-
   return (
-    <div className="rounded-xl border border-[#1E293B] p-5 transition-colors hover:border-[#334155]" style={{ backgroundColor: '#0B1121' }}>
+    <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</div>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</div>
-          {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
+          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[accent]}`}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -64,8 +57,7 @@ function QuickActionButton({ children, href }: { children: React.ReactNode; href
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-lg border border-[#1E293B] px-4 py-2.5 text-sm text-slate-300 transition-colors hover:border-slate-600 hover:bg-white/5 hover:text-white"
-      style={{ backgroundColor: '#0B1121' }}
+      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:bg-gray-50 hover:text-gray-950"
     >
       {children}
     </Link>
@@ -279,66 +271,65 @@ export default async function OverviewPage() {
     <div className="space-y-6">
       {/* ── Page Header ────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Portfolio Overview</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Portfolio Overview</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Executive dashboard for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
 
       {/* ── Top Cards Grid ────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Total Associations" value={totalAssociations ?? 0} icon={Building2} accent="emerald" />
-        <StatCard label="Total Doors/Units" value={totalDoors.toLocaleString()} icon={DoorOpen} accent="blue" />
-        <StatCard label="Active Managers" value={activeManagers ?? 0} icon={Users} accent="violet" />
-        <StatCard label="Open Work Orders" value={openWorkOrders ?? 0} sub={`${overdueWorkOrders ?? 0} overdue`} icon={Wrench} accent={overdueWorkOrders && overdueWorkOrders > 0 ? 'amber' : 'emerald'} />
-        <StatCard label="Open Violations" value={openViolations ?? 0} icon={AlertTriangle} accent={openViolations && openViolations > 0 ? 'red' : 'emerald'} />
-        <StatCard label="Open Arch Reviews" value={openArchReviews ?? 0} icon={ClipboardCheck} accent="blue" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="Total Associations" value={totalAssociations ?? 0} icon={Building2} />
+        <StatCard label="Total Doors/Units" value={totalDoors.toLocaleString()} icon={DoorOpen} />
+        <StatCard label="Active Managers" value={activeManagers ?? 0} icon={Users} />
+        <StatCard label="Open Work Orders" value={openWorkOrders ?? 0} sub={`${overdueWorkOrders ?? 0} overdue`} icon={Wrench} />
+        <StatCard label="Open Violations" value={openViolations ?? 0} icon={AlertTriangle} />
+        <StatCard label="Open Arch Reviews" value={openArchReviews ?? 0} icon={ClipboardCheck} />
         <StatCard
           label="Monthly Revenue"
           value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(monthlyRevenue / 100)}
           icon={DollarSign}
-          accent="emerald"
         />
-        <StatCard label="Delinquent Accounts" value={delinquentCount ?? 0} icon={TrendingUp} accent={delinquentCount && delinquentCount > 0 ? 'amber' : 'emerald'} />
-        <StatCard label="Avg Health Score" value={`${avgHealthScore}%`} icon={Heart} accent={avgHealthScore >= 75 ? 'emerald' : avgHealthScore >= 50 ? 'amber' : 'red'} />
-        <StatCard label="Open Work Orders" value={openWorkOrders ?? 0} sub="Across all associations" icon={Clock} accent="amber" />
+        <StatCard label="Delinquent Accounts" value={delinquentCount ?? 0} icon={TrendingUp} />
+        <StatCard label="Avg Health Score" value={`${avgHealthScore}%`} icon={Heart} />
+        <StatCard label="Open Work Orders" value={openWorkOrders ?? 0} sub="Across all associations" icon={Clock} />
       </div>
 
       {/* ── Quick Actions ─────────────────────────────── */}
-      <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Quick Actions</div>
+      <div className={`${card} p-5`}>
+        <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Quick Actions</div>
         <div className="flex flex-wrap gap-3">
-          <QuickActionButton href="/settings?tab=managers"><UserPlus className="h-4 w-4" /> Invite Manager</QuickActionButton>
-          <QuickActionButton href="/onboard"><PlusCircle className="h-4 w-4" /> Add Association</QuickActionButton>
-          <QuickActionButton href="/company-admin/platform-requests/new"><Send className="h-4 w-4" /> Request More Doors</QuickActionButton>
-          <QuickActionButton href="/company-admin/platform-requests/new"><MessageSquare className="h-4 w-4" /> Contact Platform Operator</QuickActionButton>
-          <QuickActionButton href="/company-admin/billing"><CreditCard className="h-4 w-4" /> View Billing</QuickActionButton>
-          <QuickActionButton href="/company-admin/managers"><UserCog className="h-4 w-4" /> Reassign Manager</QuickActionButton>
+          <QuickActionButton href="/settings?tab=managers"><UserPlus className="h-4 w-4 text-gray-400" /> Invite Manager</QuickActionButton>
+          <QuickActionButton href="/onboard"><PlusCircle className="h-4 w-4 text-gray-400" /> Add Association</QuickActionButton>
+          <QuickActionButton href="/company-admin/platform-requests"><Send className="h-4 w-4 text-gray-400" /> Request More Doors</QuickActionButton>
+          <QuickActionButton href="/company-admin/platform-requests"><MessageSquare className="h-4 w-4 text-gray-400" /> Contact Platform Operator</QuickActionButton>
+          <QuickActionButton href="/company-admin/billing"><CreditCard className="h-4 w-4 text-gray-400" /> View Billing</QuickActionButton>
+          <QuickActionButton href="/company-admin/managers"><UserCog className="h-4 w-4 text-gray-400" /> Reassign Manager</QuickActionButton>
         </div>
       </div>
 
       {/* ── Charts Row ────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Revenue Trend</div>
-          <div className="mb-1 text-2xl font-bold text-white">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={`${card} p-5`}>
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Revenue Trend</div>
+          <div className="mb-1 text-2xl font-semibold tabular-nums text-gray-950">
             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(monthlyRevenue / 100)}
           </div>
-          <div className="mb-3 text-xs text-emerald-400">Last 6 months (estimated)</div>
+          <div className="mb-3 text-xs text-emerald-700">Last 6 months (estimated)</div>
           <Sparkline data={revenueTrend} />
-          <div className="mt-2 flex justify-between text-xs text-slate-600">
+          <div className="mt-2 flex justify-between text-xs text-gray-400">
             <span>{new Date(Date.now() - 5 * 30 * 86400000).toLocaleDateString('en-US', { month: 'short' })}</span>
             <span>{today.toLocaleDateString('en-US', { month: 'short' })}</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-          <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Health Score Distribution</div>
+        <div className={`${card} p-5`}>
+          <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Health Score Distribution</div>
           {totalWithHealth > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-8">
                 <svg viewBox="0 0 120 120" className="h-28 w-28">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#1E293B" strokeWidth="12" />
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#F3F4F6" strokeWidth="12" />
                   {(() => {
                     const healthyPct = totalWithHealth > 0 ? healthScoreDistribution.healthy / totalWithHealth : 0
                     const warningPct = totalWithHealth > 0 ? healthScoreDistribution.warning / totalWithHealth : 0
@@ -358,61 +349,61 @@ export default async function OverviewPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                    <span className="text-sm text-slate-300">Healthy: <strong className="text-emerald-400">{healthScoreDistribution.healthy}</strong></span>
+                    <span className="text-sm text-gray-700">Healthy: <strong className="text-gray-950">{healthScoreDistribution.healthy}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-amber-500" />
-                    <span className="text-sm text-slate-300">Warning: <strong className="text-amber-400">{healthScoreDistribution.warning}</strong></span>
+                    <span className="text-sm text-gray-700">Warning: <strong className="text-gray-950">{healthScoreDistribution.warning}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-red-500" />
-                    <span className="text-sm text-slate-300">Critical: <strong className="text-red-400">{healthScoreDistribution.critical}</strong></span>
+                    <span className="text-sm text-gray-700">Critical: <strong className="text-gray-950">{healthScoreDistribution.critical}</strong></span>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="py-6 text-center text-sm text-slate-500">No association health data available.</div>
+            <div className="py-6 text-center text-sm text-gray-500">No association health data available.</div>
           )}
         </div>
       </div>
 
       {/* ── Association Health Summary ────────────────── */}
-      <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-        <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
+      <div className={card}>
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-white">Association Health</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Quick health overview for each association in your portfolio</p>
+            <h2 className="text-sm font-semibold text-gray-950">Association Health</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Quick health overview for each association in your portfolio</p>
           </div>
-          <Link href="/company-admin/portfolio-health" className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:underline">
+          <Link href="/company-admin/portfolio-health" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
             View full report <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 text-left font-medium">Association</th>
-                <th className="px-5 py-3 text-left font-medium">Units</th>
-                <th className="px-5 py-3 text-left font-medium">Open WO</th>
-                <th className="px-5 py-3 text-left font-medium">Overdue WO</th>
-                <th className="px-5 py-3 text-left font-medium">Status</th>
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="px-5 py-2.5 text-left font-medium">Association</th>
+                <th className="px-5 py-2.5 text-left font-medium">Units</th>
+                <th className="px-5 py-2.5 text-left font-medium">Open WO</th>
+                <th className="px-5 py-2.5 text-left font-medium">Overdue WO</th>
+                <th className="px-5 py-2.5 text-left font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]">
+            <tbody>
               {(assocsForHealth ?? []).length === 0 ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">No associations found.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No associations found.</td></tr>
               ) : (
                 (assocsForHealth ?? []).map((assoc: any) => (
-                  <tr key={assoc.id} className="hover:bg-white/[0.02]">
+                  <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-5 py-3">
-                      <Link href={`/associations/${assoc.id}`} className="font-medium text-slate-200 hover:text-emerald-400">{assoc.name}</Link>
+                      <Link href={`/associations/${assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
                     </td>
-                    <td className="px-5 py-3 text-slate-400">{assoc.unit_count ?? '—'}</td>
-                    <td className="px-5 py-3 text-slate-400">—</td>
-                    <td className="px-5 py-3 text-slate-400">—</td>
+                    <td className="px-5 py-3 tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
+                    <td className="px-5 py-3 text-gray-400">—</td>
+                    <td className="px-5 py-3 text-gray-400">—</td>
                     <td className="px-5 py-3">
-                      <span className="inline-flex h-6 items-center rounded-full bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">Healthy</span>
+                      <StatusChip tone="success">Healthy</StatusChip>
                     </td>
                   </tr>
                 ))

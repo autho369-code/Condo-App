@@ -179,15 +179,15 @@
 - [x] `/company-admin/architectural-reviews`
 - [x] `/company-admin/associations`
 - [x] `/company-admin/audit-logs`
-- [ ] `/company-admin/billing`
-- [ ] `/company-admin/communications`
+- [x] `/company-admin/billing`
+- [x] `/company-admin/communications`
 - [x] `/company-admin/managers`
 - [x] `/company-admin/managers/[id]`
-- [ ] `/company-admin/overview`
+- [x] `/company-admin/overview`
 - [x] `/company-admin/owners`
-- [ ] `/company-admin/platform-requests`
+- [x] `/company-admin/platform-requests`
 - [x] `/company-admin/portfolio-health`
-- [ ] `/company-admin/revenue`
+- [x] `/company-admin/revenue`
 - [x] `/company-admin/settings`
 - [x] `/company-admin/vendors`
 - [x] `/company-admin/violations`

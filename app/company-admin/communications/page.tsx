@@ -1,39 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Mail, MessageSquare, AlertTriangle, Phone, User } from 'lucide-react'
+import { Badge } from '@/components/ui/shell'
+import { StatusChip } from '@/components/operations/status-chip'
+import { Mail, MessageSquare, AlertTriangle, Phone } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function StatCard({
   label,
   value,
   sub,
   icon: Icon,
-  accent = 'emerald',
 }: {
   label: string
   value: string | number
   sub?: string
   icon: React.ElementType
-  accent?: 'emerald' | 'blue' | 'amber' | 'red' | 'violet'
 }) {
-  const accents: Record<string, string> = {
-    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red: 'bg-red-500/10 text-red-400 border-red-500/20',
-    violet: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  }
   return (
-    <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
+    <div className={`${card} px-4 py-3.5`}>
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</div>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-white">{value}</div>
-          {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
+          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[accent]}`}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -41,7 +36,7 @@ function StatCard({
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">{children}</th>
+  return <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -126,37 +121,37 @@ export default async function CommunicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Communications</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Communication volume monitoring for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
         {tableEmpty && (
-          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-400 ring-1 ring-blue-500/20">
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700 ring-1 ring-inset ring-blue-600/15">
             Communication tracking is active — no data recorded yet this month.
           </div>
         )}
       </div>
 
       {/* ── Stats Cards ─────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Emails Sent (MTD)" value={emailsSent} sub={`${totalRecipients} total recipients`} icon={Mail} accent="blue" />
-        <StatCard label="SMS Sent (MTD)" value={smsSent} icon={MessageSquare} accent="emerald" />
-        <StatCard label="Phone Calls (MTD)" value={phoneCalls} icon={Phone} accent="violet" />
-        <StatCard label="Failed Emails" value={failedEmails} sub={emailsSent > 0 ? `${((failedEmails / emailsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} accent={failedEmails > 0 ? 'red' : 'emerald'} />
-        <StatCard label="Failed SMS" value={failedSms} sub={smsSent > 0 ? `${((failedSms / smsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} accent={failedSms > 0 ? 'red' : 'emerald'} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard label="Emails Sent (MTD)" value={emailsSent} sub={`${totalRecipients} total recipients`} icon={Mail} />
+        <StatCard label="SMS Sent (MTD)" value={smsSent} icon={MessageSquare} />
+        <StatCard label="Phone Calls (MTD)" value={phoneCalls} icon={Phone} />
+        <StatCard label="Failed Emails" value={failedEmails} sub={emailsSent > 0 ? `${((failedEmails / emailsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} />
+        <StatCard label="Failed SMS" value={failedSms} sub={smsSent > 0 ? `${((failedSms / smsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} />
       </div>
 
       {/* ── By Association / By Manager ──────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* By Association */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="border-b border-[#1E293B] px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">By Association</h2>
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">By Association</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1E293B]">
+              <thead className="border-b border-gray-100 bg-gray-50/60">
+                <tr>
                   <Th>Association</Th>
                   <Th>Emails</Th>
                   <Th>SMS</Th>
@@ -164,21 +159,21 @@ export default async function CommunicationsPage() {
                   <Th>Total</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B]">
+              <tbody>
                 {assocCommList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                       {tableEmpty ? 'No communications recorded this month.' : 'No associations match.'}
                     </td>
                   </tr>
                 ) : (
                   assocCommList.map((a) => (
-                    <tr key={a.name} className="hover:bg-white/[0.02]">
-                      <Td className="font-medium text-slate-200">{a.name}</Td>
-                      <Td className="tabular-nums text-slate-300">{a.emails > 0 ? a.emails : '—'}</Td>
-                      <Td className="tabular-nums text-slate-300">{a.sms > 0 ? a.sms : '—'}</Td>
-                      <Td className="tabular-nums text-slate-300">{a.phone > 0 ? a.phone : '—'}</Td>
-                      <Td className="tabular-nums font-medium text-white">{a.total > 0 ? a.total : '—'}</Td>
+                    <tr key={a.name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <Td className="font-medium text-gray-900">{a.name}</Td>
+                      <Td className="tabular-nums text-gray-700">{a.emails > 0 ? a.emails : '—'}</Td>
+                      <Td className="tabular-nums text-gray-700">{a.sms > 0 ? a.sms : '—'}</Td>
+                      <Td className="tabular-nums text-gray-700">{a.phone > 0 ? a.phone : '—'}</Td>
+                      <Td className="font-medium tabular-nums text-gray-950">{a.total > 0 ? a.total : '—'}</Td>
                     </tr>
                   ))
                 )}
@@ -188,14 +183,14 @@ export default async function CommunicationsPage() {
         </div>
 
         {/* By Manager */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="border-b border-[#1E293B] px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">By Manager</h2>
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">By Manager</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1E293B]">
+              <thead className="border-b border-gray-100 bg-gray-50/60">
+                <tr>
                   <Th>Manager</Th>
                   <Th>Emails</Th>
                   <Th>SMS</Th>
@@ -203,21 +198,21 @@ export default async function CommunicationsPage() {
                   <Th>Total</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B]">
+              <tbody>
                 {mgrCommList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                       {tableEmpty ? 'No communications recorded this month.' : 'No managers match.'}
                     </td>
                   </tr>
                 ) : (
                   mgrCommList.map((m) => (
-                    <tr key={m.name} className="hover:bg-white/[0.02]">
-                      <Td className="font-medium text-slate-200">{m.name}</Td>
-                      <Td className="tabular-nums text-slate-300">{m.emails > 0 ? m.emails : '—'}</Td>
-                      <Td className="tabular-nums text-slate-300">{m.sms > 0 ? m.sms : '—'}</Td>
-                      <Td className="tabular-nums text-slate-300">{m.phone > 0 ? m.phone : '—'}</Td>
-                      <Td className="tabular-nums font-medium text-white">{m.total > 0 ? m.total : '—'}</Td>
+                    <tr key={m.name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <Td className="font-medium text-gray-900">{m.name}</Td>
+                      <Td className="tabular-nums text-gray-700">{m.emails > 0 ? m.emails : '—'}</Td>
+                      <Td className="tabular-nums text-gray-700">{m.sms > 0 ? m.sms : '—'}</Td>
+                      <Td className="tabular-nums text-gray-700">{m.phone > 0 ? m.phone : '—'}</Td>
+                      <Td className="font-medium tabular-nums text-gray-950">{m.total > 0 ? m.total : '—'}</Td>
                     </tr>
                   ))
                 )}
@@ -229,14 +224,14 @@ export default async function CommunicationsPage() {
 
       {/* ── Recent Activity Feed ─────────────────────── */}
       {monthComms.length > 0 && (
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="border-b border-[#1E293B] px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">Recent Communications</h2>
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">Recent Communications</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1E293B]">
+              <thead className="border-b border-gray-100 bg-gray-50/60">
+                <tr>
                   <Th>Date</Th>
                   <Th>Channel</Th>
                   <Th>Direction</Th>
@@ -245,33 +240,21 @@ export default async function CommunicationsPage() {
                   <Th>Status</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B]">
+              <tbody>
                 {monthComms.slice(0, 50).map((c: any) => (
-                  <tr key={c.id} className="hover:bg-white/[0.02]">
-                    <Td className="whitespace-nowrap text-slate-400">
+                  <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <Td className="whitespace-nowrap tabular-nums text-gray-700">
                       {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                     </Td>
                     <Td>
-                      <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${
-                        c.channel === 'email' ? 'bg-blue-500/10 text-blue-400 ring-blue-500/20' :
-                        c.channel === 'sms' ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' :
-                        'bg-violet-500/10 text-violet-400 ring-violet-500/20'
-                      }`}>
+                      <StatusChip tone={c.channel === 'email' ? 'info' : c.channel === 'sms' ? 'success' : 'neutral'}>
                         {c.channel}
-                      </span>
+                      </StatusChip>
                     </Td>
-                    <Td className="text-slate-400">{c.direction ?? '—'}</Td>
-                    <Td className="max-w-xs truncate text-slate-300">{c.subject ?? '—'}</Td>
-                    <Td className="tabular-nums text-slate-400">{c.recipient_count ?? 0}</Td>
-                    <Td>
-                      <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${
-                        c.status === 'sent' || c.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' :
-                        c.status === 'failed' ? 'bg-red-500/10 text-red-400 ring-red-500/20' :
-                        'bg-slate-500/10 text-slate-400 ring-slate-500/20'
-                      }`}>
-                        {c.status ?? 'unknown'}
-                      </span>
-                    </Td>
+                    <Td className="capitalize text-gray-700">{c.direction ?? '—'}</Td>
+                    <Td className="max-w-xs truncate text-gray-900">{c.subject ?? '—'}</Td>
+                    <Td className="tabular-nums text-gray-700">{c.recipient_count ?? 0}</Td>
+                    <Td><Badge status={c.status ?? 'unknown'} /></Td>
                   </tr>
                 ))}
               </tbody>

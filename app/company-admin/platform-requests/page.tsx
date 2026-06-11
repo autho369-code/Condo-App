@@ -19,27 +19,28 @@ const REQUEST_TYPES = [
 
 const PRIORITIES = ['high', 'medium', 'low'] as const
 
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const inputCls = 'mt-1 block h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 placeholder:text-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
 function priorityBadge(p: string) {
   switch (p) {
-    case 'high': return 'bg-red-500/10 text-red-400 ring-red-500/20'
-    case 'medium': return 'bg-amber-500/10 text-amber-400 ring-amber-500/20'
-    case 'low': return 'bg-slate-500/10 text-slate-400 ring-slate-500/20'
-    default: return 'bg-slate-500/10 text-slate-400 ring-slate-500/20'
+    case 'high': return 'bg-red-50 text-red-700 ring-red-600/15'
+    case 'medium': return 'bg-amber-50 text-amber-700 ring-amber-600/15'
+    default: return 'bg-gray-100 text-gray-600 ring-gray-500/15'
   }
 }
 
 function statusBadge(s: string) {
   switch (s) {
-    case 'open': return 'bg-blue-500/10 text-blue-400 ring-blue-500/20'
-    case 'in_progress': return 'bg-amber-500/10 text-amber-400 ring-amber-500/20'
-    case 'resolved': return 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-    case 'closed': return 'bg-slate-500/10 text-slate-400 ring-slate-500/20'
-    default: return 'bg-slate-500/10 text-slate-400 ring-slate-500/20'
+    case 'open': return 'bg-blue-50 text-blue-700 ring-blue-600/15'
+    case 'in_progress': return 'bg-amber-50 text-amber-700 ring-amber-600/15'
+    case 'resolved': return 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'
+    default: return 'bg-gray-100 text-gray-600 ring-gray-500/15'
   }
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">{children}</th>
+  return <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -90,48 +91,48 @@ export default function PlatformRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Platform Requests</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Requests</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Submit and track requests to the platform operator
         </p>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 rounded-xl border border-[#1E293B] p-1 w-fit" style={{ backgroundColor: '#0B1121' }}>
+      <div className="flex w-fit gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <button
           onClick={() => { setActiveTab('submit'); setMsg(null) }}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'submit'
-              ? 'bg-emerald-600 text-white'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-gray-950 text-white shadow-sm'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
           }`}
         >
-          <Send className="inline h-4 w-4 mr-1.5" />
+          <Send className="mr-1.5 inline h-4 w-4" />
           Submit Request
         </button>
         <button
           onClick={() => { setActiveTab('history'); fetchRequests() }}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'history'
-              ? 'bg-emerald-600 text-white'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-gray-950 text-white shadow-sm'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
           }`}
         >
-          <Clock className="inline h-4 w-4 mr-1.5" />
+          <Clock className="mr-1.5 inline h-4 w-4" />
           Request History
         </button>
       </div>
 
       {/* Submit Request Tab */}
       {activeTab === 'submit' && (
-        <div className="rounded-xl border border-[#1E293B] p-6" style={{ backgroundColor: '#0B1121' }}>
-          <h2 className="mb-6 text-sm font-semibold text-white">New Platform Request</h2>
+        <div className={`${card} p-6`}>
+          <h2 className="mb-6 text-sm font-semibold text-gray-950">New Platform Request</h2>
 
           {msg && (
-            <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${
+            <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
               msg.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-red-200 bg-red-50 text-red-700'
             }`}>
               {msg.text}
             </div>
@@ -140,12 +141,8 @@ export default function PlatformRequestsPage() {
           <form ref={formRef} action={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium uppercase text-slate-500">Request Type</span>
-                <select
-                  name="request_type"
-                  required
-                  className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
+                <span className="text-xs font-medium text-gray-500">Request Type</span>
+                <select name="request_type" required className={inputCls}>
                   <option value="">Select type...</option>
                   {REQUEST_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -153,13 +150,8 @@ export default function PlatformRequestsPage() {
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium uppercase text-slate-500">Priority</span>
-                <select
-                  name="priority"
-                  required
-                  defaultValue="medium"
-                  className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
+                <span className="text-xs font-medium text-gray-500">Priority</span>
+                <select name="priority" required defaultValue="medium" className={inputCls}>
                   {PRIORITIES.map((p) => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
                   ))}
@@ -167,28 +159,28 @@ export default function PlatformRequestsPage() {
               </label>
             </div>
             <label className="block">
-              <span className="text-xs font-medium uppercase text-slate-500">Subject</span>
+              <span className="text-xs font-medium text-gray-500">Subject</span>
               <input
                 name="subject"
                 required
                 placeholder="Brief summary of your request"
-                className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={inputCls}
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium uppercase text-slate-500">Description</span>
+              <span className="text-xs font-medium text-gray-500">Description</span>
               <textarea
                 name="description"
                 required
                 rows={5}
                 placeholder="Provide detailed information about your request..."
-                className="mt-1 block w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-y"
+                className={`${inputCls} h-auto resize-y py-2`}
               />
             </label>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
               {submitting ? 'Submitting...' : 'Submit Request'}
@@ -199,12 +191,12 @@ export default function PlatformRequestsPage() {
 
       {/* Request History Tab */}
       {activeTab === 'history' && (
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">Request History</h2>
+        <div className={card}>
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">Request History</h2>
             <button
               onClick={fetchRequests}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-950"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -212,8 +204,8 @@ export default function PlatformRequestsPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1E293B]">
+              <thead className="border-b border-gray-100 bg-gray-50/60">
+                <tr>
                   <Th>Type</Th>
                   <Th>Subject</Th>
                   <Th>Priority</Th>
@@ -222,20 +214,20 @@ export default function PlatformRequestsPage() {
                   <Th>Response</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B]">
+              <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center text-slate-500">
-                      <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-slate-600" />
+                    <td colSpan={6} className="px-4 py-16 text-center text-sm text-gray-500">
+                      <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-gray-300" />
                       Loading requests...
                     </td>
                   </tr>
                 ) : requests.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-16 text-center">
-                      <MessageSquare className="mx-auto mb-3 h-8 w-8 text-slate-600" />
-                      <div className="text-sm text-slate-400">No platform requests yet.</div>
-                      <div className="mt-1 text-xs text-slate-600">
+                      <MessageSquare className="mx-auto mb-3 h-8 w-8 text-gray-300" />
+                      <div className="text-sm font-semibold text-gray-900">No platform requests yet.</div>
+                      <div className="mt-1 text-sm text-gray-500">
                         Use the Submit Request tab to send your first request.
                       </div>
                     </td>
@@ -244,23 +236,23 @@ export default function PlatformRequestsPage() {
                   requests.map((r: any) => {
                     const typeLabel = REQUEST_TYPES.find((t) => t.value === r.request_type)?.label ?? r.request_type?.replace(/_/g, ' ') ?? '—'
                     return (
-                      <tr key={r.id} className="hover:bg-white/[0.02]">
-                        <Td className="font-medium text-slate-200">{typeLabel}</Td>
-                        <Td className="max-w-xs truncate text-slate-200">{r.subject ?? '—'}</Td>
+                      <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                        <Td className="font-medium text-gray-900">{typeLabel}</Td>
+                        <Td className="max-w-xs truncate text-gray-900">{r.subject ?? '—'}</Td>
                         <Td>
-                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${priorityBadge(r.priority)}`}>
+                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ring-inset ${priorityBadge(r.priority)}`}>
                             {(r.priority ?? '—').charAt(0).toUpperCase() + (r.priority ?? '').slice(1)}
                           </span>
                         </Td>
                         <Td>
-                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${statusBadge(r.status)}`}>
+                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium capitalize ring-1 ring-inset ${statusBadge(r.status)}`}>
                             {(r.status ?? 'unknown').replace(/_/g, ' ')}
                           </span>
                         </Td>
-                        <Td className="whitespace-nowrap text-slate-400">
+                        <Td className="whitespace-nowrap tabular-nums text-gray-700">
                           {r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </Td>
-                        <Td className="max-w-xs truncate text-slate-400">{r.response ?? 'Awaiting response'}</Td>
+                        <Td className="max-w-xs truncate text-gray-500">{r.response ?? 'Awaiting response'}</Td>
                       </tr>
                     )
                   })
