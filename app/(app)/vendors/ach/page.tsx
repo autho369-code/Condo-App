@@ -36,13 +36,13 @@ function AchWorkflowBadge({ status }: { status: string }) {
         const isCurrent = i === currentIdx;
         return (
           <div key={step} className="flex items-center gap-1">
-            {i > 0 && <div className={`h-px w-6 ${isComplete ? 'bg-brand-500' : 'bg-gray-200'}`} />}
+            {i > 0 && <div className={`h-px w-6 ${isComplete ? 'bg-blue-500' : 'bg-gray-200'}`} />}
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 isComplete
                   ? isCurrent
-                    ? 'bg-brand-500 text-white ring-2 ring-brand-200'
-                    : 'bg-brand-100 text-brand-700'
+                    ? 'bg-blue-600 text-white ring-2 ring-blue-200'
+                    : 'bg-blue-50 text-blue-700'
                   : 'bg-gray-100 text-gray-400'
               }`}
             >
@@ -115,26 +115,15 @@ export default async function VendorAchPage({
         title="Vendor Bank Account Authorization"
         description={`Review and authorize ACH payments for ${focusVendor.name}.`}
         actions={
-          <div className="flex gap-2">
-            <Link href="/vendors/ach" className="text-sm font-medium text-blue-700 hover:underline">All vendors</Link>
-            <Link href="/vendors" className="text-sm text-gray-500 hover:underline">Back to vendors</Link>
-          </div>
-        }
-        rail={
-          <div className="space-y-4">
-            <div className="rounded border border-brand-200 bg-brand-50 p-3 text-sm text-brand-800">
-              <div className="font-semibold">Authorization workflow</div>
-              <div className="mt-1 text-xs">Pending → Verified → Active. Each step is audited and logged.</div>
-            </div>
-            <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-              Verifying the bank account confirms the routing and account numbers are correct. Activating enables auto-pay and ACH disbursements.
-            </div>
-          </div>
+          <>
+            <Link href="/vendors/ach"><Button variant="secondary">All vendors</Button></Link>
+            <Link href="/vendors"><Button variant="ghost">Back to vendors</Button></Link>
+          </>
         }
       >
         <div className="space-y-6">
           {/* Vendor header */}
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-950">{focusVendor.name}</h2>
@@ -151,13 +140,13 @@ export default async function VendorAchPage({
           </div>
 
           {/* Workflow progress */}
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Authorization Progress</div>
             <AchWorkflowBadge status={focusVendor.ach_status ?? 'pending'} />
           </div>
 
           {/* Bank details */}
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Bank Account Details</div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -193,7 +182,7 @@ export default async function VendorAchPage({
           </div>
 
           {/* Audit log */}
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Audit Log</div>
             <div className="space-y-3">
               {/* Bank info added — always shown if bank info exists */}
@@ -253,7 +242,7 @@ export default async function VendorAchPage({
           </div>
 
           {/* Action buttons */}
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Actions</div>
             <div className="flex flex-wrap gap-3">
               {canVerify && (
@@ -275,7 +264,7 @@ export default async function VendorAchPage({
                 </form>
               )}
               {focusVendor.ach_status === 'active' && (
-                <div className="rounded-md bg-green-50 px-4 py-2 text-sm text-green-700">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
                   ACH is active. Payments can be sent via ACH.
                 </div>
               )}
@@ -291,8 +280,7 @@ export default async function VendorAchPage({
     <DataWorkspace
       title="Vendor ACH Setup"
       description="Review bank readiness, payout method, auto-pay flags, and authorization status before enabling vendor ACH."
-      actions={<Link href="/vendors" className="text-sm font-medium text-blue-700 hover:underline">Back to vendors</Link>}
-      rail={<div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Vendor ACH setup is confirmation-gated because it changes bank payout behavior. Click a vendor to review and authorize.</div>}
+      actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[
@@ -311,7 +299,7 @@ export default async function VendorAchPage({
               return (
                 <TR key={vendor.id} className="hover:bg-gray-50">
                   <TD>
-                    <Link href={`/vendors/ach?vendor=${vendor.id}`} className="font-medium text-blue-700 hover:underline">
+                    <Link href={`/vendors/ach?vendor=${vendor.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                       {vendor.name}
                     </Link>
                     <div className="mt-1 text-xs capitalize text-gray-500">{vendor.trade?.replace(/_/g, ' ')}</div>
@@ -344,8 +332,8 @@ export default async function VendorAchPage({
                   </TD>
                   <TD>
                     {hasBank ? (
-                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="text-sm font-medium text-blue-700 hover:underline">
-                        Review authorization
+                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+                        Review authorization →
                       </Link>
                     ) : (
                       <span className="text-xs text-gray-400">Add bank details first</span>

@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -61,8 +62,7 @@ export default async function VendorCompliancePage({
     <DataWorkspace
       title="Request Vendor Documents"
       description="Track insurance, license, W-9, and compliance documents with expiration and request status."
-      actions={<Link href="/vendors/forms?template=document_request" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Request documents</Link>}
-      rail={<div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">Use this queue to prevent expired insurance and missing license documents before assigning work orders.</div>}
+      actions={<Link href="/vendors/forms?template=document_request"><Button>Request documents</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[
@@ -84,7 +84,7 @@ export default async function VendorCompliancePage({
                   <TD><StatusChip tone={docs.length ? 'success' : 'warning'}>{docs.length} on file</StatusChip><div className="mt-1 text-xs text-gray-500">{doc?.doc_type ?? 'No document uploaded'}</div></TD>
                   <TD><StatusChip tone={expirationTone(doc?.expires_at ?? null)}>{doc?.expires_at ? date(doc.expires_at) : 'No expiration'}</StatusChip></TD>
                   <TD><div className="capitalize">{request?.status?.replace(/_/g, ' ') ?? 'No open request'}</div><div className="mt-1 text-xs text-gray-500">Due {date(request?.due_date)}</div></TD>
-                  <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=document_request`} className="text-sm font-medium text-blue-700 hover:underline">Stage request</Link></TD>
+                  <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=document_request`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">Stage request →</Link></TD>
                 </TR>
               );
             })}

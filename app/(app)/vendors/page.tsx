@@ -1,13 +1,14 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { vendorWorkflowCards } from '@/lib/vendors/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
         const expired = d < now;
         const expiring = d <= soon && !expired;
         return (
-          <span key={e.label} className={`rounded px-1.5 py-0.5 text-xs font-medium ${expired ? 'bg-red-100 text-red-700' : expiring ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+          <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
             {e.label}: {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
         );
@@ -75,30 +76,17 @@ export default async function VendorsPage({
     <DataWorkspace
       title="Vendors"
       description="Manage contractors, utilities, W-9 readiness, ACH setup, compliance documents, and vendor forms."
-      rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Vendor workflows</div>
-            <div className="mt-2 space-y-2">
-              {vendorWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50">
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            Vendor ACH, W-9, and document requests are review-first workflows so bank and outbound actions require confirmation.
-          </div>
-        </div>
+      actions={
+        <Link href="/vendors/new">
+          <Button><Plus className="h-4 w-4" /> New vendor</Button>
+        </Link>
       }
     >
       <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
-          <Link href="/owners" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Owners</Link>
-          <Link href="/owners?view=directory" className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900">Directory</Link>
-          <Link href="/vendors" className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700">Vendors</Link>
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
+          <Link href="/owners" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Owners</Link>
+          <Link href="/owners?view=directory" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Directory</Link>
+          <Link href="/vendors" className="whitespace-nowrap border-b-2 border-gray-950 px-4 py-2.5 text-sm font-medium text-gray-950">Vendors</Link>
         </nav>
 
         <MetricStrip
@@ -111,13 +99,10 @@ export default async function VendorsPage({
         />
 
         <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Trade
-            <select name="trade" defaultValue={trade} className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900">
-              <option value="all">All trades</option>
-              {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
-            </select>
-          </label>
+          <FilterSelect label="Trade" name="trade" defaultValue={trade}>
+            <option value="all">All trades</option>
+            {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
+          </FilterSelect>
         </FilterBar>
 
         <Table>
@@ -170,9 +155,9 @@ export default async function VendorsPage({
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">ACH</Link>
-                      <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">W-9</Link>
-                      <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50">Docs</Link>
+                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">ACH</Link>
+                      <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">W-9</Link>
+                      <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">Docs</Link>
                     </div>
                   </TD>
                 </TR>

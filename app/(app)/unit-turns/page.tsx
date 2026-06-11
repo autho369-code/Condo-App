@@ -1,8 +1,11 @@
 import Link from 'next/link';
+import { DoorOpen, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -114,22 +117,18 @@ export default async function UnitTurnsPage({
       title="Unit Turns"
       description="Track unit move-out preparation, cleaning, inspection, and re-listing workflows."
       actions={
-        <Link
-          href="/work-orders/new"
-          className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          + New unit turn
+        <Link href="/work-orders/new">
+          <Button><Plus className="h-4 w-4" /> New unit turn</Button>
         </Link>
       }
-      rail={<UnitTurnsRail />}
     >
       <div className="space-y-6">
         <MetricStrip
           metrics={[
             { label: 'Total turns', value: total, sublabel: 'All tracked units' },
-            { label: 'Pending', value: pending, sublabel: <Link href="/unit-turns?status=pending" className="text-blue-700 hover:underline">Awaiting action</Link> },
-            { label: 'In Progress', value: inProgress, sublabel: <Link href="/unit-turns?status=in_progress" className="text-blue-700 hover:underline">Active work</Link> },
-            { label: 'Complete', value: complete, sublabel: <Link href="/unit-turns?status=complete" className="text-blue-700 hover:underline">Ready for move-in</Link> },
+            { label: 'Pending', value: pending, sublabel: <Link href="/unit-turns?status=pending" className="font-medium text-gray-500 transition-colors hover:text-gray-900">Awaiting action</Link> },
+            { label: 'In Progress', value: inProgress, sublabel: <Link href="/unit-turns?status=in_progress" className="font-medium text-gray-500 transition-colors hover:text-gray-900">Active work</Link> },
+            { label: 'Complete', value: complete, sublabel: <Link href="/unit-turns?status=complete" className="font-medium text-gray-500 transition-colors hover:text-gray-900">Ready for move-in</Link> },
           ]}
         />
 
@@ -139,33 +138,19 @@ export default async function UnitTurnsPage({
           searchDefault={q}
           searchPlaceholder="Search by title, unit number, association, or vendor..."
         >
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={status}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All statuses</option>
-              {TURN_STATUSES.map((s) => (
-                <option key={s} value={s}>{formatLabel(s)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All statuses</option>
+            {TURN_STATUSES.map((s) => (
+              <option key={s} value={s}>{formatLabel(s)}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association_id"
-              defaultValue={association_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -203,11 +188,11 @@ export default async function UnitTurnsPage({
                     <TD className="whitespace-nowrap text-sm text-gray-600">
                       {date(row.scheduled_date) ?? '—'}
                     </TD>
-                    <TD className="text-sm">
+                    <TD>
                       {row.vendors?.name ? (
                         <Link
                           href={`/vendors/${row.vendor_id}`}
-                          className="text-blue-700 hover:underline"
+                          className="text-gray-700 hover:text-gray-950 hover:underline"
                         >
                           {row.vendors.name}
                         </Link>
@@ -219,15 +204,15 @@ export default async function UnitTurnsPage({
                       <div className="flex flex-wrap gap-1">
                         <Link
                           href={`/work-orders/${row.id}`}
-                          className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
-                          Work Order
+                          Work order
                         </Link>
                         <Link
                           href={`/unit-turns/new?unit_id=${row.unit_id}`}
-                          className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
-                          New Turn
+                          New turn
                         </Link>
                       </div>
                     </TD>
@@ -237,64 +222,26 @@ export default async function UnitTurnsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No unit turns match the current filters.
-            {all.length === 0 && (
-              <div className="mt-2">
-                <p>Unit turns are derived from work orders assigned to units.</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Create a <Link href="/work-orders/new" className="text-blue-700 hover:underline">new work order</Link> assigned to a unit to populate this view.
-                </p>
-              </div>
-            )}
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={DoorOpen}
+              title="No unit turns match the current filters"
+              description={
+                all.length === 0
+                  ? 'Unit turns are derived from work orders assigned to units. Create a work order assigned to a unit to populate this view.'
+                  : undefined
+              }
+              action={
+                all.length === 0 && (
+                  <Link href="/work-orders/new">
+                    <Button><Plus className="h-4 w-4" /> New work order</Button>
+                  </Link>
+                )
+              }
+            />
           </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── DataWorkspace Rail (Task Panel) ──
-function UnitTurnsRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/unit-turns/new" label="+ New Unit Turn" />
-          <RailLink href="/work-orders/new" label="+ New Work Order" />
-          <RailLink href="/unit-turns?status=pending" label="Pending Queue" />
-          <RailLink href="/unit-turns?status=in_progress" label="In Progress" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/unit_turn" label="Unit Turn Report" />
-          <RailLink href="/reports/work_order" label="Work Order Report" />
-          <RailLink href="/reports/unit_availability" label="Unit Availability" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick Links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/work-orders" label="All Work Orders" />
-          <RailLink href="/vendors" label="Vendor Directory" />
-          <RailLink href="/inspections" label="Inspections" />
-          <RailLink href="/units" label="Units Directory" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
   );
 }

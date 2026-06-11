@@ -65,16 +65,16 @@
 - [x] `/(app)/settings/ai`
 - [x] `/(app)/settings/branding`
 - [x] `/(app)/sms`
-- [ ] `/(app)/sms/opt-ins`
-- [ ] `/(app)/sms/templates`
-- [ ] `/(app)/statements/bulk-settings`
-- [ ] `/(app)/statements/send`
-- [ ] `/(app)/surveys`
-- [ ] `/(app)/unit-turns`
-- [ ] `/(app)/units`
-- [ ] `/(app)/vendors`
-- [ ] `/(app)/vendors/ach`
-- [ ] `/(app)/vendors/compliance`
+- [x] `/(app)/sms/opt-ins`
+- [x] `/(app)/sms/templates`
+- [x] `/(app)/statements/bulk-settings`
+- [x] `/(app)/statements/send`
+- [x] `/(app)/surveys`
+- [x] `/(app)/unit-turns`
+- [x] `/(app)/units`
+- [x] `/(app)/vendors`
+- [x] `/(app)/vendors/ach`
+- [x] `/(app)/vendors/compliance`
 - [ ] `/(app)/vendors/forms`
 - [ ] `/(app)/vendors/w9`
 - [ ] `/(app)/violations`

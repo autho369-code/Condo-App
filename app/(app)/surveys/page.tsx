@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
+import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -98,7 +100,7 @@ export default async function SurveysPage() {
       description="Create and manage community surveys, maintenance satisfaction polls, and feedback forms. Track responses and completion rates."
       actions={
         <Link href="/surveys/new">
-          <Button>+ New Survey</Button>
+          <Button><Plus className="h-4 w-4" /> New survey</Button>
         </Link>
       }
     >
@@ -115,12 +117,12 @@ export default async function SurveysPage() {
 
         {/* ── Surveys Table ── */}
         {rows.length > 0 ? (
-          <section className="rounded border border-gray-200 bg-white">
+          <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <div>
                 <h2 className="text-sm font-semibold text-gray-950">All surveys</h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  {rows.length} survey{rows.length !== 1 ? 's' : ''} — click a row to view details
+                  {rows.length} survey{rows.length !== 1 ? 's' : ''} configured
                 </p>
               </div>
             </div>
@@ -135,30 +137,27 @@ export default async function SurveysPage() {
                     <TH className="text-right">Responses</TH>
                     <TH className="text-right">Completion Rate</TH>
                     <TH>Status</TH>
-                    <TH className="text-right">Actions</TH>
                   </TR>
                 </THead>
                 <tbody>
                   {rows.map((row) => (
                     <TR key={row.id}>
                       <TD className="font-medium text-gray-950">
-                        <Link href={`/surveys/${row.id}`} className="text-blue-700 hover:underline">
-                          {row.name}
-                        </Link>
+                        {row.name}
                         {row.description && (
                           <p className="mt-0.5 text-xs text-gray-500 line-clamp-1">{row.description}</p>
                         )}
                       </TD>
-                      <TD className="text-sm text-gray-700">{row.association_name ?? '—'}</TD>
-                      <TD className="text-sm capitalize text-gray-700">{row.survey_type.replace(/_/g, ' ')}</TD>
-                      <TD className="whitespace-nowrap text-sm text-gray-600">{date(row.sent_date)}</TD>
-                      <TD className="text-right tabular-nums text-sm font-medium text-gray-950">{row.response_count}</TD>
+                      <TD>{row.association_name ?? '—'}</TD>
+                      <TD className="capitalize">{row.survey_type.replace(/_/g, ' ')}</TD>
+                      <TD className="whitespace-nowrap text-gray-600">{date(row.sent_date)}</TD>
+                      <TD className="text-right tabular-nums font-medium text-gray-950">{row.response_count}</TD>
                       <TD className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {/* Progress bar */}
                           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
                             <div
-                              className="h-full rounded-full bg-brand-600 transition-all"
+                              className="h-full rounded-full bg-blue-600 transition-all"
                               style={{ width: `${row.completion_rate}%` }}
                             />
                           </div>
@@ -166,29 +165,9 @@ export default async function SurveysPage() {
                         </div>
                       </TD>
                       <TD>
-                        {row.active ? (
-                          <span className="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                            Paused
-                          </span>
-                        )}
-                      </TD>
-                      <TD className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/surveys/${row.id}/send`}>
-                            <Button variant="secondary" size="sm" className="text-xs">
-                              Send
-                            </Button>
-                          </Link>
-                          <Link href={`/surveys/${row.id}/results`}>
-                            <Button variant="secondary" size="sm" className="text-xs">
-                              View Results
-                            </Button>
-                          </Link>
-                        </div>
+                        <StatusChip tone={row.active ? 'success' : 'neutral'}>
+                          {row.active ? 'Active' : 'Paused'}
+                        </StatusChip>
                       </TD>
                     </TR>
                   ))}
@@ -197,42 +176,42 @@ export default async function SurveysPage() {
             </div>
           </section>
         ) : (
-          <section className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+          <section className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <p className="text-sm text-gray-500">No surveys configured yet.</p>
             <p className="mt-1 text-xs text-gray-400">Create a survey to start collecting owner feedback and community input.</p>
             <div className="mt-4">
               <Link href="/surveys/new">
-                <Button>+ Create First Survey</Button>
+                <Button><Plus className="h-4 w-4" /> Create first survey</Button>
               </Link>
             </div>
           </section>
         )}
 
         {/* ── Survey Types Quick Links ── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-950">Survey types</h2>
             <p className="mt-0.5 text-xs text-gray-500">Create different survey types for different needs</p>
           </div>
           <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
-            <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
               <div className="text-sm font-medium text-gray-900">Maintenance</div>
               <p className="mt-1 text-xs text-gray-500">Post-service satisfaction surveys tied to work orders</p>
-              <Link href="/surveys/new?type=maintenance" className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+              <Link href="/surveys/new?type=maintenance" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Create maintenance survey →
               </Link>
             </div>
-            <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
               <div className="text-sm font-medium text-gray-900">Leasing</div>
               <p className="mt-1 text-xs text-gray-500">Tenant experience and move-in/move-out feedback</p>
-              <Link href="/surveys/new?type=leasing" className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+              <Link href="/surveys/new?type=leasing" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Create leasing survey →
               </Link>
             </div>
-            <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
               <div className="text-sm font-medium text-gray-900">General</div>
               <p className="mt-1 text-xs text-gray-500">Community polls, board elections, and general feedback</p>
-              <Link href="/surveys/new?type=general" className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+              <Link href="/surveys/new?type=general" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Create general survey →
               </Link>
             </div>
@@ -240,24 +219,24 @@ export default async function SurveysPage() {
         </section>
 
         {/* ── Related Links ── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-950">Go deeper</h2>
           </div>
           <div className="grid grid-cols-1 gap-2 p-5 sm:grid-cols-2 xl:grid-cols-3">
-            <Link href="/reports/survey_results" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/reports/survey_results" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Survey Results report →
             </Link>
-            <Link href="/reports" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/reports" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Reports workspace →
             </Link>
-            <Link href="/owners" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/owners" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Owner directory →
             </Link>
-            <Link href="/communications" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
-              Communications →
+            <Link href="/communication-center" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
+              Communication Center →
             </Link>
-            <Link href="/metrics" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/metrics" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Metrics dashboard →
             </Link>
           </div>

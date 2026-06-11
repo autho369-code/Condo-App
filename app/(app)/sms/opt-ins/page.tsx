@@ -1,14 +1,19 @@
 import Link from 'next/link';
+import { PhoneCall } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { MetricStrip } from '@/components/operations/metric-strip';
+import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { toggleOptIn } from '@/lib/rpcs/sms';
 
 export const dynamic = 'force-dynamic';
 
 function formatDate(value: string | null) {
-  if (!value) return '-';
+  if (!value) return '—';
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -43,7 +48,6 @@ export default async function SmsOptInsPage() {
     .limit(500);
 
   const optInRows = optIns ?? [];
-  const optedInCount = optInRows.filter((o: any) => o.opted_in).length;
   const optedOutCount = optInRows.filter((o: any) => !o.opted_in).length;
 
   // Build a lookup: phone -> opt-in record
@@ -53,7 +57,7 @@ export default async function SmsOptInsPage() {
   });
 
   // Extract owners with phones
-  function extractPhones(entity: any, type: string): Array<{ id: string; name: string; phone: string; optedIn: boolean; entityId: string }> {
+  function extractPhones(entity: any): Array<{ id: string; name: string; phone: string; optedIn: boolean; entityId: string }> {
     const result: Array<{ id: string; name: string; phone: string; optedIn: boolean; entityId: string }> = [];
     const name = entity.full_name || entity.name || '';
     const phones: string[] = [];
@@ -87,12 +91,12 @@ export default async function SmsOptInsPage() {
 
   const ownerPhones: any[] = [];
   (owners ?? []).forEach((o: any) => {
-    ownerPhones.push(...extractPhones(o, 'owner').map(p => ({ ...p, entityType: 'owner' })));
+    ownerPhones.push(...extractPhones(o).map(p => ({ ...p, entityType: 'owner' })));
   });
 
   const vendorPhones: any[] = [];
   (vendors ?? []).forEach((v: any) => {
-    vendorPhones.push(...extractPhones(v, 'vendor').map(p => ({ ...p, entityType: 'vendor' })));
+    vendorPhones.push(...extractPhones(v).map(p => ({ ...p, entityType: 'vendor' })));
   });
 
   const allPhones = [...ownerPhones, ...vendorPhones];
@@ -100,98 +104,84 @@ export default async function SmsOptInsPage() {
   const notOptedIn = allPhones.filter(p => !p.optedIn).length;
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 px-8 py-6">
-      <div className="mb-6 flex items-start justify-between gap-6">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            <Link href="/sms" className="hover:text-brand-600">SMS</Link> / Opt-Ins
+    <DataWorkspace
+      title="SMS Opt-In Management"
+      description="Manage which owners and vendors have consented to receive SMS text messages."
+      actions={<Link href="/sms"><Button variant="secondary">Back to SMS</Button></Link>}
+    >
+      <div className="space-y-6">
+        <MetricStrip
+          metrics={[
+            { label: 'Total contacts', value: allPhones.length },
+            { label: 'Opted in', value: optedInFull },
+            { label: 'Not opted in', value: notOptedIn },
+            { label: 'Explicitly opted out', value: optedOutCount },
+          ]}
+        />
+
+        {allPhones.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={PhoneCall}
+              title="No contacts with phone numbers"
+              description="Add phone numbers to owners and vendors to manage their SMS opt-in status here."
+            />
           </div>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-900">SMS Opt-In Management</h1>
-          <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            Manage which owners and vendors have consented to receive SMS text messages.
-          </p>
-        </div>
-        <Link href="/sms"><Button variant="secondary">Back to SMS</Button></Link>
-      </div>
-
-      {/* Metrics */}
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Metric label="Total contacts" value={allPhones.length} />
-        <Metric label="Opted in" value={optedInFull} tone="text-green-700" />
-        <Metric label="Not opted in" value={notOptedIn} tone="text-amber-700" />
-        <Metric label="Explicitly opted out" value={optedOutCount} tone="text-red-700" />
-      </div>
-
-      {allPhones.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-          <h2 className="text-base font-semibold text-gray-900">No contacts with phone numbers</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Add phone numbers to owners and vendors to manage their SMS opt-in status here.
-          </p>
-        </div>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Name</TH>
-              <TH>Type</TH>
-              <TH>Phone number</TH>
-              <TH>Status</TH>
-              <TH>Last changed</TH>
-              <TH className="w-[120px]">Actions</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {allPhones.map((p: any) => {
-              const optRec = optInByPhone[p.phone];
-              return (
-                <TR key={p.id}>
-                  <TD className="font-medium text-gray-900">{p.name}</TD>
-                  <TD className="text-sm capitalize text-gray-600">{p.entityType}</TD>
-                  <TD className="font-mono text-sm text-gray-700">{p.phone}</TD>
-                  <TD>
-                    {p.optedIn ? (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Opted in</span>
-                    ) : optRec && !optRec.opted_in ? (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Opted out</span>
-                    ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Not set</span>
-                    )}
-                  </TD>
-                  <TD className="text-sm text-gray-500">
-                    {optRec?.opted_in_at ? `In: ${formatDate(optRec.opted_in_at)}` : optRec?.opted_out_at ? `Out: ${formatDate(optRec.opted_out_at)}` : '-'}
-                  </TD>
-                  <TD>
-                    <form action={toggleOptIn as any} className="inline">
-                      <input type="hidden" name="entity_type" value={p.entityType} />
-                      <input type="hidden" name="entity_id" value={p.entityId} />
-                      <input type="hidden" name="phone_number" value={p.phone} />
+        ) : (
+          <Table>
+            <THead>
+              <tr>
+                <TH>Name</TH>
+                <TH>Type</TH>
+                <TH>Phone number</TH>
+                <TH>Status</TH>
+                <TH>Last changed</TH>
+                <TH className="w-[120px]">Actions</TH>
+              </tr>
+            </THead>
+            <tbody>
+              {allPhones.map((p: any) => {
+                const optRec = optInByPhone[p.phone];
+                return (
+                  <TR key={p.id}>
+                    <TD className="font-medium text-gray-900">{p.name}</TD>
+                    <TD className="capitalize text-gray-600">{p.entityType}</TD>
+                    <TD className="font-mono text-gray-700">{p.phone}</TD>
+                    <TD>
                       {p.optedIn ? (
-                        <button type="submit" name="opted_in" value="false" className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50">
-                          Opt out
-                        </button>
+                        <StatusChip tone="success">Opted in</StatusChip>
+                      ) : optRec && !optRec.opted_in ? (
+                        <StatusChip tone="danger">Opted out</StatusChip>
                       ) : (
-                        <button type="submit" name="opted_in" value="true" className="rounded px-2 py-1 text-xs text-green-600 hover:bg-green-50">
-                          Opt in
-                        </button>
+                        <StatusChip tone="neutral">Not set</StatusChip>
                       )}
-                    </form>
-                  </TD>
-                </TR>
-              );
-            })}
-          </tbody>
-        </Table>
-      )}
-    </div>
-  );
-}
-
-function Metric({ label, value, tone = 'text-gray-900' }: { label: string; value: number; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</div>
-    </div>
+                    </TD>
+                    <TD className="text-gray-500">
+                      {optRec?.opted_in_at ? `In: ${formatDate(optRec.opted_in_at)}` : optRec?.opted_out_at ? `Out: ${formatDate(optRec.opted_out_at)}` : '—'}
+                    </TD>
+                    <TD>
+                      <form action={toggleOptIn as any} className="inline">
+                        <input type="hidden" name="entity_type" value={p.entityType} />
+                        <input type="hidden" name="entity_id" value={p.entityId} />
+                        <input type="hidden" name="phone_number" value={p.phone} />
+                        {p.optedIn ? (
+                          <button type="submit" name="opted_in" value="false" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">
+                            Opt out
+                          </button>
+                        ) : (
+                          <button type="submit" name="opted_in" value="true" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">
+                            Opt in
+                          </button>
+                        )}
+                      </form>
+                    </TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        )}
+      </div>
+    </DataWorkspace>
   );
 }

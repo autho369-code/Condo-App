@@ -74,15 +74,15 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
 
   if (result) {
     return (
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-8 text-center">
-        <div className="text-4xl mb-3">&#10003;</div>
-        <h3 className="text-lg font-semibold text-emerald-800">Settings Updated</h3>
-        <p className="mt-2 text-sm text-emerald-700">
+      <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
+        <h3 className="text-[15px] font-semibold text-gray-950">Settings updated</h3>
+        <p className="mt-1 text-sm text-gray-500">
           {result.updated_count} association{result.updated_count !== 1 ? 's' : ''} updated with {changedCount} setting{changedCount !== 1 ? 's' : ''}.
         </p>
-        <div className="mt-4 flex justify-center gap-3">
-          <button onClick={() => { setResult(null); setSettings({}); }} className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700">Update More</button>
-          <Link href="/reports" className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Back to Reports</Link>
+        <div className="mt-6 flex justify-center gap-2">
+          <button onClick={() => { setResult(null); setSettings({}); }} className="h-10 rounded-lg bg-gray-950 px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800">Update more</button>
+          <Link href="/reports" className="inline-flex h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-gray-50">Back to reports</Link>
         </div>
       </div>
     );
@@ -90,22 +90,22 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="rounded border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-gray-950">1. Select Associations</h3>
             <p className="mt-0.5 text-xs text-gray-500">Choose which associations to update</p>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={selectAll} className="text-xs text-emerald-600 hover:underline">Select all</button>
+            <button type="button" onClick={selectAll} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Select all</button>
             <button type="button" onClick={clearAll} className="text-xs text-gray-400 hover:underline">Clear</button>
           </div>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {associations.map((a) => (
-            <label key={a.id} className={`flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-sm hover:bg-gray-50 ${selectedAssocs.has(a.id) ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200'}`}>
+            <label key={a.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 ${selectedAssocs.has(a.id) ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200'}`}>
               <input type="checkbox" checked={selectedAssocs.has(a.id)} onChange={() => toggleAssoc(a.id)}
-                className="h-4 w-4 rounded border-gray-300 text-emerald-600" />
+                className="h-4 w-4 rounded border-gray-300 text-blue-600" />
               <span className="text-gray-900 truncate">{a.name}</span>
             </label>
           ))}
@@ -113,16 +113,16 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
         <p className="mt-3 text-xs text-gray-500">{selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''} selected</p>
       </div>
 
-      <div className="rounded border border-gray-200 bg-white p-5 space-y-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] space-y-4">
         <h3 className="text-sm font-semibold text-gray-950">2. Statement Settings</h3>
         <p className="text-xs text-gray-500">Changes apply only to the selected associations. Unchanged settings keep their current value.</p>
 
         {/* Boolean toggles */}
         <div className="space-y-2">
           {BOOL_FIELDS.map(({ key, label, description }) => (
-            <label key={key} className={`flex cursor-pointer items-start gap-3 rounded border p-3 hover:bg-gray-50 ${key in settings ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200'}`}>
+            <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-gray-50 ${key in settings ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200'}`}>
               <input type="checkbox" checked={key in settings} onChange={() => toggleSetting(key)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600" />
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600" />
               <div>
                 <span className="text-sm font-medium text-gray-900">{label}</span>
                 <p className="text-xs text-gray-500">{description}</p>
@@ -135,7 +135,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">Upcoming Charges Timeframe</label>
           <select onChange={(e) => e.target.value ? setTimeframe(e.target.value) : setSettings((p) => { const n = {...p}; delete n.upcoming_charges_timeframe; return n; })}
-            className="h-10 w-full max-w-xs rounded border border-gray-300 bg-white px-3 text-sm"
+            className="h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             value={(settings.upcoming_charges_timeframe as string) ?? ''}>
             <option value="">No change</option>
             <option value="next_month">Next Month</option>
@@ -148,7 +148,7 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-600">Charge History Includes</label>
           <select onChange={(e) => e.target.value ? setChargeHistory(e.target.value) : setSettings((p) => { const n = {...p}; delete n.charge_history_includes; return n; })}
-            className="h-10 w-full max-w-xs rounded border border-gray-300 bg-white px-3 text-sm"
+            className="h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             value={(settings.charge_history_includes as string) ?? ''}>
             <option value="">No change</option>
             <option value="all_past_due_charges">All Past Due Charges</option>
@@ -157,14 +157,14 @@ export function BulkStatementSettingsForm({ associations }: { associations: Asso
           </select>
         </div>
 
-        <div className="rounded border border-blue-200 bg-blue-50 p-4">
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <span className="text-sm font-medium text-blue-800">{changedCount} setting{changedCount !== 1 ? 's' : ''} will be updated across {selectedAssocs.size} association{selectedAssocs.size !== 1 ? 's' : ''}</span>
         </div>
 
-        {error && <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
         <button onClick={handleSubmit} disabled={sending || selectedAssocs.size === 0 || changedCount === 0}
-          className="rounded bg-gray-950 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="h-10 rounded-lg bg-gray-950 px-6 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
           {sending ? 'Updating...' : `Update ${selectedAssocs.size} Association${selectedAssocs.size !== 1 ? 's' : ''}`}
         </button>
       </div>
