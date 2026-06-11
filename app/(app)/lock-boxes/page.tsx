@@ -5,8 +5,8 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Alert } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { lockBoxWorkflowCards } from '@/lib/lock-boxes/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -247,28 +247,6 @@ export default async function LockBoxesPage({
     <DataWorkspace
       title="Lock Boxes"
       description="Manage physical lock boxes \u2014 locations, assignments, and key tracking per unit and building."
-      rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Lock Box Tasks</div>
-            <div className="mt-2 space-y-2">
-              {lockBoxWorkflowCards.map((card) => (
-                <Link
-                  key={card.href}
-                  href={card.href}
-                  className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50"
-                >
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            Lock box combinations should be treated as sensitive. Assignment records are permanently logged for audit.
-          </div>
-        </div>
-      }
     >
       <div className="space-y-4">
         {/* Metric strip */}
@@ -282,15 +260,15 @@ export default async function LockBoxesPage({
         />
 
         {/* Tab bar */}
-        <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => (
             <Link
               key={t.key}
               href={`/lock-boxes?tab=${t.key === 'all' ? '' : t.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
-              className={`border-b-2 px-1 pb-2 ${
+              className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab === t.key
-                  ? 'border-brand-600 font-semibold text-brand-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-900'
+                  ? 'border-gray-950 text-gray-950'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               {t.label}
@@ -308,14 +286,10 @@ export default async function LockBoxesPage({
         {tab === 'all' && (
           <>
             {lockBoxError ? (
-              <div className="rounded border border-amber-200 bg-amber-50 p-6 text-center">
-                <p className="font-medium text-amber-800">Lock boxes table not available</p>
-                <p className="mt-1 text-sm text-amber-700">
-                  The <code className="rounded bg-amber-100 px-1 text-xs">lock_boxes</code> table
-                  has not been created yet in Supabase. Run the migration to enable lock box management.
-                </p>
-                <p className="mt-1 text-xs text-amber-600">{lockBoxError}</p>
-              </div>
+              <Alert tone="warning" title="Lock boxes table not available.">
+                The lock_boxes table has not been created yet in Supabase. Run the migration to
+                enable lock box management. ({lockBoxError})
+              </Alert>
             ) : (
               <Table>
                 <THead>
@@ -382,14 +356,10 @@ export default async function LockBoxesPage({
         {tab === 'assignments' && (
           <>
             {assignmentError ? (
-              <div className="rounded border border-amber-200 bg-amber-50 p-6 text-center">
-                <p className="font-medium text-amber-800">Assignments table not available</p>
-                <p className="mt-1 text-sm text-amber-700">
-                  The <code className="rounded bg-amber-100 px-1 text-xs">lock_box_assignments</code> table
-                  has not been created yet. Run the migration.
-                </p>
-                <p className="mt-1 text-xs text-amber-600">{assignmentError}</p>
-              </div>
+              <Alert tone="warning" title="Assignments table not available.">
+                The lock_box_assignments table has not been created yet. Run the migration.
+                ({assignmentError})
+              </Alert>
             ) : (
               <Table>
                 <THead>
@@ -445,7 +415,7 @@ export default async function LockBoxesPage({
                         </TD>
                         <TD className="text-xs">
                           {a.contact_phone && <div>{a.contact_phone}</div>}
-                          {a.contact_email && <div className="text-blue-600">{a.contact_email}</div>}
+                          {a.contact_email && <div className="text-gray-600">{a.contact_email}</div>}
                           {!a.contact_phone && !a.contact_email && '\u2014'}
                         </TD>
                         <TD>
@@ -464,10 +434,9 @@ export default async function LockBoxesPage({
         {tab === 'keys' && (
           <>
             {lockBoxError ? (
-              <div className="rounded border border-amber-200 bg-amber-50 p-6 text-center">
-                <p className="font-medium text-amber-800">Lock boxes data not available</p>
-                <p className="mt-1 text-xs text-amber-600">{lockBoxError}</p>
-              </div>
+              <Alert tone="warning" title="Lock boxes data not available.">
+                {lockBoxError}
+              </Alert>
             ) : (
               <Table>
                 <THead>

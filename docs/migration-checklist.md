@@ -35,16 +35,16 @@
 - [x] `/(app)/forms`
 - [x] `/(app)/gl-accounts`
 - [x] `/(app)/inbox`
-- [ ] `/(app)/inspections`
-- [ ] `/(app)/insurance`
-- [ ] `/(app)/inventory`
-- [ ] `/(app)/journal-entries`
-- [ ] `/(app)/letters`
-- [ ] `/(app)/lock-boxes`
-- [ ] `/(app)/maintenance`
-- [ ] `/(app)/maintenance/communications`
-- [ ] `/(app)/maintenance/templates`
-- [ ] `/(app)/meetings`
+- [x] `/(app)/inspections`
+- [x] `/(app)/insurance`
+- [x] `/(app)/inventory`
+- [x] `/(app)/journal-entries`
+- [x] `/(app)/letters`
+- [x] `/(app)/lock-boxes`
+- [x] `/(app)/maintenance`
+- [x] `/(app)/maintenance/communications`
+- [x] `/(app)/maintenance/templates`
+- [x] `/(app)/meetings`
 - [ ] `/(app)/metrics`
 - [ ] `/(app)/onboard`
 - [ ] `/(app)/owners`

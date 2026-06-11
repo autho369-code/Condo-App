@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { BookText, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
@@ -200,29 +202,26 @@ export default async function JournalEntriesPage({
       title="Journal Entries"
       description="Create, review, and post journal entries. Manage recurring entries and upload batches."
       actions={
-        <div className="flex gap-2">
-          <Link href={filterParams({ tab: 'history' })}>
-            <Button variant={tab === 'history' ? 'primary' : 'secondary'} size="sm">+ New Entry</Button>
-          </Link>
-        </div>
+        <Link href={filterParams({ tab: 'history' })}>
+          <Button><Plus className="h-4 w-4" /> New entry</Button>
+        </Link>
       }
-      rail={<JournalEntriesRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         {/* ── MAIN TABS ── */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {JOURNAL_TABS.map((t) => {
             const active = t.key === tab;
             return (
               <Link
                 key={t.key}
                 href={filterParams({ tab: t.key })}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
@@ -239,57 +238,43 @@ export default async function JournalEntriesPage({
             searchPlaceholder="Search reference #, memo, description, association, GL account..."
           >
             <input type="hidden" name="tab" value="history" />
-            <label className="text-xs font-medium uppercase text-gray-500">
-              Association
-              <select
-                name="association_id"
-                defaultValue={association_id}
-                className="mt-1 h-9 w-full min-w-40 rounded border border-gray-300 px-2 text-sm normal-case text-gray-900"
-              >
-                <option value="">All associations</option>
-                {(associations ?? []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-medium uppercase text-gray-500">
-              GL Account
-              <select
-                name="gl_account_id"
-                defaultValue={gl_account_id}
-                className="mt-1 h-9 w-full min-w-40 rounded border border-gray-300 px-2 text-sm normal-case text-gray-900"
-              >
-                <option value="">All GL accounts</option>
-                {(glAccounts ?? []).map((g: any) => (
-                  <option key={g.id} value={g.id}>{g.number}: {g.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-medium uppercase text-gray-500">
+            <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+              <option value="">All associations</option>
+              {(associations ?? []).map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </FilterSelect>
+            <FilterSelect label="GL Account" name="gl_account_id" defaultValue={gl_account_id}>
+              <option value="">All GL accounts</option>
+              {(glAccounts ?? []).map((g: any) => (
+                <option key={g.id} value={g.id}>{g.number}: {g.name}</option>
+              ))}
+            </FilterSelect>
+            <label className="text-[12px] font-medium text-gray-500">
               Reference #
               <input
                 name="ref_number"
                 defaultValue={ref_number}
                 placeholder="e.g. JE-2026-001"
-                className="mt-1 h-9 w-full min-w-32 rounded border border-gray-300 px-3 text-sm normal-case text-gray-900"
+                className="mt-1 block h-10 min-w-32 rounded-lg border border-gray-300 bg-white px-3 text-sm font-normal text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
-            <label className="text-xs font-medium uppercase text-gray-500">
+            <label className="text-[12px] font-medium text-gray-500">
               From
               <input
                 name="date_from"
                 type="date"
                 defaultValue={date_from}
-                className="mt-1 h-9 w-full min-w-32 rounded border border-gray-300 px-3 text-sm normal-case text-gray-900"
+                className="mt-1 block h-10 min-w-32 rounded-lg border border-gray-300 bg-white px-3 text-sm font-normal text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
-            <label className="text-xs font-medium uppercase text-gray-500">
+            <label className="text-[12px] font-medium text-gray-500">
               To
               <input
                 name="date_to"
                 type="date"
                 defaultValue={date_to}
-                className="mt-1 h-9 w-full min-w-32 rounded border border-gray-300 px-3 text-sm normal-case text-gray-900"
+                className="mt-1 block h-10 min-w-32 rounded-lg border border-gray-300 bg-white px-3 text-sm font-normal text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
           </FilterBar>
@@ -373,11 +358,17 @@ export default async function JournalEntriesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                {q || association_id || gl_account_id || ref_number || date_from || date_to
-                  ? 'No journal entries match the current filters.'
-                  : 'No journal entries yet. Create your first journal entry to get started.'}
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={BookText}
+                  title={
+                    q || association_id || gl_account_id || ref_number || date_from || date_to
+                      ? 'No journal entries match the current filters'
+                      : 'No journal entries yet'
+                  }
+                  description="Manual and system-generated journal entries will appear here."
+                />
+              </div>
             )}
           </>
         )}
@@ -429,11 +420,17 @@ export default async function JournalEntriesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                {q
-                  ? 'No recurring journal entries match the current search.'
-                  : 'No recurring journal entries configured. Set up recurring entries for automatic posting.'}
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={BookText}
+                  title={
+                    q
+                      ? 'No recurring journal entries match the current search'
+                      : 'No recurring journal entries configured'
+                  }
+                  description="Set up recurring entries for automatic posting."
+                />
+              </div>
             )}
           </>
         )}
@@ -475,11 +472,13 @@ export default async function JournalEntriesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                {q
-                  ? 'No batches match the current search.'
-                  : 'No journal entry batches yet. Upload a batch to import multiple entries at once.'}
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={BookText}
+                  title={q ? 'No batches match the current search' : 'No journal entry batches yet'}
+                  description="Upload a batch to import multiple entries at once."
+                />
+              </div>
             )}
           </>
         )}
@@ -517,55 +516,3 @@ function BatchStatusChip({ status, errorMessage }: { status: string; errorMessag
   }
 }
 
-function JournalEntriesRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/journal-entries/new" label="New Journal Entry" />
-          <RailLink href="/journal-entries/post-gpr" label="Post GPR" placeholder />
-          <RailLink href="/journal-entries/new?recurring=true" label="New Recurring Journal Entry" placeholder />
-          <RailLink href="/journal-entries/upload-batch" label="Upload Journal Entry Batch" placeholder />
-          <RailLink href="/journal-entries?tab=batches" label="View Journal Entry Batches" />
-          <RailLink href="/journal-entries/manual-post" label="Manually Post Journal Entries" placeholder />
-        </div>
-      </section>
-
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports?slug=general-ledger" label="General Ledger" />
-          <RailLink href="/reports?slug=trial-balance" label="Trial Balance" />
-          <RailLink href="/reports?slug=journal-entry-register" label="Journal Entry Register" placeholder />
-        </div>
-      </section>
-
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Help Topics</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/help/journal-entries" label="Journal Entries" placeholder />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label, placeholder }: { href: string; label: string; placeholder?: boolean }) {
-  if (placeholder) {
-    return (
-      <span className="rounded border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        {label}
-        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
-  );
-}

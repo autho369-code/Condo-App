@@ -294,8 +294,8 @@ export function BulkCommsForm({
           ]).map((opt) => (
             <label
               key={opt.value}
-              className={`flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-sm hover:border-emerald-500 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 ${
-                commType === opt.value ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 ${
+                commType === opt.value ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200'
               }`}
             >
               <input
@@ -323,8 +323,8 @@ export function BulkCommsForm({
           ]).map((opt) => (
             <label
               key={opt.value}
-              className={`flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-sm hover:border-emerald-500 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50 ${
-                channel === opt.value ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 ${
+                channel === opt.value ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200'
               }`}
             >
               <input
@@ -351,7 +351,7 @@ export function BulkCommsForm({
             id="template_selector"
             value={selectedTemplate}
             onChange={(e) => handleTemplateChange(e.target.value)}
-            className="h-10 w-full max-w-md rounded border border-gray-300 bg-white px-3 text-sm"
+            className="h-10 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm"
           >
             <option value="">Choose a template...</option>
             {templates.map((t: any) => (
@@ -379,7 +379,7 @@ export function BulkCommsForm({
           )}
         </div>
         {hasWorkOrders ? (
-          <div className="max-h-48 overflow-y-auto rounded border border-gray-200 bg-white">
+          <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white">
             {workOrders.map((wo: any) => {
               const vendor = wo.vendors;
               const hasContact = vendor && (extractEmail(vendor) || extractPhone(vendor));
@@ -420,7 +420,7 @@ export function BulkCommsForm({
       {hasMaintenanceTasks && (
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Select by maintenance task</label>
-          <div className="max-h-40 overflow-y-auto rounded border border-gray-200 bg-white">
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white">
             {maintenanceTasks.map((task: any) => {
               const vendor = task.vendors;
               const hasContact = vendor && (extractEmail(vendor) || extractPhone(vendor));
@@ -462,7 +462,7 @@ export function BulkCommsForm({
           )}
         </div>
         {vendors.length > 0 ? (
-          <div className="max-h-40 overflow-y-auto rounded border border-gray-200 bg-white">
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white">
             {vendors.map((v: any) => {
               const hasContact = extractEmail(v) || extractPhone(v);
               return (
@@ -533,7 +533,7 @@ export function BulkCommsForm({
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="e.g., Work Order Status Update — 123 Main Street"
-          className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
         />
       </div>
 
@@ -550,7 +550,7 @@ export function BulkCommsForm({
           onChange={(e) => setBody(e.target.value)}
           rows={6}
           maxLength={5000}
-          className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
           placeholder="Compose your message to vendors..."
         />
         <div className="mt-1 flex justify-between text-xs text-gray-400">
@@ -561,7 +561,7 @@ export function BulkCommsForm({
 
       {/* Error */}
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
       {/* Actions */}

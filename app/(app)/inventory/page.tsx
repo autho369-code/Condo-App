@@ -1,13 +1,13 @@
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { inventoryWorkflowCards } from '@/lib/inventory/workflows';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,46 +99,24 @@ export default async function InventoryPage({
     <DataWorkspace
       title="Inventory"
       description="Consumables and parts kept on-hand for common maintenance — filters, bulbs, paint, hardware."
-      rail={
-        <div className="space-y-4">
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">Inventory tasks</div>
-            <div className="mt-2 space-y-2">
-              {inventoryWorkflowCards.map((card) => (
-                <Link
-                  key={card.href}
-                  href={card.href}
-                  className="block rounded border border-gray-200 p-3 hover:border-brand-300 hover:bg-brand-50"
-                >
-                  <div className="font-medium text-gray-950">{card.title}</div>
-                  <div className="mt-1 text-xs text-gray-500">{card.description}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            Stock adjustments and new items are review-first workflows. Changes are logged for audit.
-          </div>
-        </div>
-      }
     >
       <div className="space-y-4">
-        <nav className="flex flex-wrap gap-5 border-b border-gray-200 text-sm">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link
             href="/inventory"
-            className="border-b-2 border-brand-600 px-1 pb-2 font-semibold text-brand-700"
+            className="whitespace-nowrap border-b-2 border-gray-950 px-4 py-2.5 text-sm font-medium text-gray-950"
           >
             All Items
           </Link>
           <Link
             href="/inventory?view=categories"
-            className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900"
+            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
           >
             Categories
           </Link>
           <Link
             href="/reports/inventory"
-            className="border-b-2 border-transparent px-1 pb-2 text-gray-500 hover:text-gray-900"
+            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
           >
             Reports
           </Link>
@@ -168,32 +146,21 @@ export default async function InventoryPage({
           searchDefault={sp.q ?? ''}
           searchPlaceholder="Search item name, SKU, category, or location"
         >
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Category
-            <select
-              name="category"
-              defaultValue={category}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="all">All categories</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Category" name="category" defaultValue={category}>
+            <option value="all">All categories</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {queryError ? (
-          <div className="rounded border border-amber-200 bg-amber-50 p-6 text-center">
-            <p className="font-medium text-amber-800">Inventory table not available</p>
-            <p className="mt-1 text-sm text-amber-700">
-              The <code className="rounded bg-amber-100 px-1 text-xs">inventory_items</code> table
-              has not been created yet in Supabase. Run the migration to enable inventory management.
-            </p>
-            <p className="mt-1 text-xs text-amber-600">{queryError}</p>
-          </div>
+          <Alert tone="warning" title="Inventory table not available.">
+            The inventory_items table has not been created yet in Supabase. Run the migration to
+            enable inventory management. ({queryError})
+          </Alert>
         ) : (
           <Table>
             <THead>

@@ -1,17 +1,12 @@
+import { MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { BulkCommsForm } from './_bulk-comms-form';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Badge, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 
 export const dynamic = 'force-dynamic';
-
-const statusTone: Record<string, string> = {
-  draft: 'bg-amber-100 text-amber-700',
-  queued: 'bg-blue-100 text-blue-700',
-  sent: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  canceled: 'bg-gray-100 text-gray-600',
-};
 
 function formatDate(value: string | null) {
   if (!value) return '-';
@@ -77,75 +72,66 @@ export default async function MaintenanceCommunicationsPage({
   const woRows = workOrders ?? [];
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 px-8 py-6">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-6">
+    <DataWorkspace
+      title="Vendor Communications"
+      description="Send bulk email or SMS to vendors about work orders, status updates, and maintenance reminders. Messages are logged in the Communication Center."
+    >
+      <div className="space-y-6">
+        {/* Compose Section */}
+        <Surface>
+          <SectionTitle title="Compose bulk message" />
+          <BulkCommsForm
+            workOrders={woRows}
+            vendors={vendors ?? []}
+            templates={templates ?? []}
+            maintenanceTasks={maintenanceTasks ?? []}
+            preSelectedWoId={sp.work_order_id ?? ''}
+          />
+        </Surface>
+
+        {/* History Section */}
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">Maintenance / Communications</div>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-900">Vendor Communications</h1>
-          <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            Send bulk email or SMS to vendors about work orders, status updates, and maintenance reminders. Messages are logged in the Communication Center.
-          </p>
+          <SectionTitle title="Maintenance communications history" />
+          {messageRows.length ? (
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Created</TH>
+                  <TH>Channel</TH>
+                  <TH>Recipients</TH>
+                  <TH>Subject / Message</TH>
+                  <TH>Status</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {messageRows.map((msg: any) => (
+                  <TR key={msg.id}>
+                    <TD className="whitespace-nowrap">{formatDate(msg.created_at)}</TD>
+                    <TD className="text-xs font-semibold uppercase text-gray-600">{msg.channel}</TD>
+                    <TD>
+                      <div className="capitalize text-gray-900">{String(msg.recipient_group ?? 'vendor').replaceAll('_', ' ')}</div>
+                      <div className="text-xs text-gray-500">{msg.recipient_email ?? msg.recipient_phone ?? '—'}</div>
+                    </TD>
+                    <TD className="max-w-xl">
+                      <div className="font-medium text-gray-900">{msg.subject ?? 'No subject'}</div>
+                      <div className="mt-1 line-clamp-2 text-gray-500">{msg.body}</div>
+                    </TD>
+                    <TD><Badge status={msg.status} /></TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          ) : (
+            <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <EmptyState
+                icon={MessageSquare}
+                title="No maintenance communications yet"
+                description="Bulk messages sent to vendors about work orders and maintenance tasks will appear here."
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Compose Section */}
-      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Compose Bulk Message</h2>
-        <BulkCommsForm
-          workOrders={woRows}
-          vendors={vendors ?? []}
-          templates={templates ?? []}
-          maintenanceTasks={maintenanceTasks ?? []}
-          preSelectedWoId={sp.work_order_id ?? ''}
-        />
-      </div>
-
-      {/* History Section */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Maintenance Communications History</h2>
-        {messageRows.length ? (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Created</TH>
-                <TH>Channel</TH>
-                <TH>Recipients</TH>
-                <TH>Subject / Message</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <tbody>
-              {messageRows.map((msg: any) => (
-                <TR key={msg.id}>
-                  <TD className="whitespace-nowrap text-sm">{formatDate(msg.created_at)}</TD>
-                  <TD className="uppercase text-xs font-semibold text-gray-600">{msg.channel}</TD>
-                  <TD>
-                    <div className="text-sm capitalize text-gray-900">{String(msg.recipient_group ?? 'vendor').replaceAll('_', ' ')}</div>
-                    <div className="text-xs text-gray-500">{msg.recipient_email ?? msg.recipient_phone ?? '-'}</div>
-                  </TD>
-                  <TD className="max-w-xl">
-                    <div className="font-medium text-gray-900">{msg.subject ?? 'No subject'}</div>
-                    <div className="mt-1 line-clamp-2 text-sm text-gray-500">{msg.body}</div>
-                  </TD>
-                  <TD>
-                    <span className={`rounded px-2 py-0.5 text-xs capitalize ${statusTone[msg.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {msg.status}
-                    </span>
-                  </TD>
-                </TR>
-              ))}
-            </tbody>
-          </Table>
-        ) : (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <h2 className="text-base font-semibold text-gray-900">No maintenance communications yet</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Bulk messages sent to vendors about work orders and maintenance tasks will appear here.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+    </DataWorkspace>
   );
 }

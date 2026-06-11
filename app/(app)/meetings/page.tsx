@@ -2,7 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { CalendarDays, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/input';
+import { EmptyState, PageHeader, PageShell, Surface } from '@/components/ui/shell';
+import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 
 const MEETING_TYPE_LABELS: Record<string, string> = {
   board_meeting: 'Board Meeting',
@@ -19,11 +25,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'bg-blue-100 text-blue-800',
-  in_progress: 'bg-emerald-100 text-emerald-800',
-  completed: 'bg-slate-100 text-slate-800',
-  cancelled: 'bg-red-100 text-red-800',
+const STATUS_TONES: Record<string, Tone> = {
+  scheduled: 'info',
+  in_progress: 'success',
+  completed: 'neutral',
+  cancelled: 'danger',
 };
 
 export default function MeetingsPage() {
@@ -94,140 +100,129 @@ export default function MeetingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060B18] text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-light tracking-tight">Meetings</h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Board meetings, annual meetings, and sign-in tracking
-            </p>
-          </div>
-          <Link
-            href="/meetings/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            New Meeting
+    <PageShell>
+      <PageHeader
+        title="Meetings"
+        description="Board meetings, annual meetings, and sign-in tracking"
+        actions={
+          <Link href="/meetings/new">
+            <Button><Plus className="h-4 w-4" /> New meeting</Button>
           </Link>
-        </div>
+        }
+      />
 
-        {/* Filters */}
-        <div className="bg-[#0B1121] border border-[#1E293B] rounded-xl p-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <input
-              type="text"
-              placeholder="Search meetings..."
-              value={filters.search}
-              onChange={(e) => setFilters((f: any) => ({ ...f, search: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-            />
-            <select
-              value={filters.association_id}
-              onChange={(e) => setFilters((f: any) => ({ ...f, association_id: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              <option value="">All Associations</option>
-              {associations.map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-            <select
-              value={filters.meeting_type}
-              onChange={(e) => setFilters((f: any) => ({ ...f, meeting_type: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              <option value="">All Types</option>
-              {Object.entries(MEETING_TYPE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters((f: any) => ({ ...f, status: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              <option value="">All Statuses</option>
-              {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters((f: any) => ({ ...f, dateFrom: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              placeholder="From"
-            />
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => setFilters((f: any) => ({ ...f, dateTo: e.target.value }))}
-              className="bg-[#060B18] border border-[#1E293B] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              placeholder="To"
-            />
-          </div>
+      {/* Filters */}
+      <Surface padded={false} className="mb-6 p-3 sm:p-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <Input
+            type="text"
+            placeholder="Search meetings…"
+            aria-label="Search meetings"
+            value={filters.search}
+            onChange={(e) => setFilters((f: any) => ({ ...f, search: e.target.value }))}
+          />
+          <Select
+            value={filters.association_id}
+            aria-label="Association"
+            onChange={(e) => setFilters((f: any) => ({ ...f, association_id: e.target.value }))}
+          >
+            <option value="">All Associations</option>
+            {associations.map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </Select>
+          <Select
+            value={filters.meeting_type}
+            aria-label="Meeting type"
+            onChange={(e) => setFilters((f: any) => ({ ...f, meeting_type: e.target.value }))}
+          >
+            <option value="">All Types</option>
+            {Object.entries(MEETING_TYPE_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </Select>
+          <Select
+            value={filters.status}
+            aria-label="Status"
+            onChange={(e) => setFilters((f: any) => ({ ...f, status: e.target.value }))}
+          >
+            <option value="">All Statuses</option>
+            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </Select>
+          <Input
+            type="date"
+            aria-label="From date"
+            value={filters.dateFrom}
+            onChange={(e) => setFilters((f: any) => ({ ...f, dateFrom: e.target.value }))}
+          />
+          <Input
+            type="date"
+            aria-label="To date"
+            value={filters.dateTo}
+            onChange={(e) => setFilters((f: any) => ({ ...f, dateTo: e.target.value }))}
+          />
         </div>
+      </Surface>
 
-        {/* Table */}
-        <div className="bg-[#0B1121] border border-[#1E293B] rounded-xl overflow-hidden">
-          {loading ? (
-            <div className="p-12 text-center text-slate-400">Loading meetings...</div>
-          ) : meetings.length === 0 ? (
-            <div className="p-12 text-center text-slate-400">
-              <p className="text-lg font-medium mb-1">No meetings found</p>
-              <p className="text-sm">Meetings will appear here once created. Schedule a board meeting, annual meeting, or special session.</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#1E293B] text-left">
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Meeting</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Association</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Quorum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetings.map((m: any) => (
-                  <tr key={m.id} className="border-b border-[#1E293B]/50 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3">
-                      <Link href={`/meetings/${m.id}`} className="text-sm font-medium text-white hover:text-emerald-400 transition-colors">
-                        {m.title}
-                      </Link>
-                      {m.location && (
-                        <div className="text-xs text-slate-500 mt-0.5">{m.location}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-300">
-                      {m.associations?.name || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-400">
-                      {MEETING_TYPE_LABELS[m.meetingType] || m.meetingType}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-300">
-                      {formatDate(m.scheduledAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[m.status] || 'bg-slate-100 text-slate-800'}`}>
-                        {STATUS_LABELS[m.status] || m.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500">—</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {/* Table */}
+      {loading ? (
+        <div className="rounded-2xl border border-gray-200/70 bg-white py-16 text-center text-sm text-gray-400 shadow-sm">
+          Loading meetings…
         </div>
-      </div>
-    </div>
+      ) : meetings.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <EmptyState
+            icon={CalendarDays}
+            title="No meetings found"
+            description="Meetings will appear here once created. Schedule a board meeting, annual meeting, or special session."
+            action={
+              <Link href="/meetings/new">
+                <Button><Plus className="h-4 w-4" /> New meeting</Button>
+              </Link>
+            }
+          />
+        </div>
+      ) : (
+        <Table>
+          <THead>
+            <tr>
+              <TH>Meeting</TH>
+              <TH>Association</TH>
+              <TH>Type</TH>
+              <TH>Date & Time</TH>
+              <TH>Status</TH>
+              <TH>Quorum</TH>
+            </tr>
+          </THead>
+          <tbody>
+            {meetings.map((m: any) => (
+              <TR key={m.id}>
+                <TD>
+                  <Link href={`/meetings/${m.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
+                    {m.title}
+                  </Link>
+                  {m.location && (
+                    <div className="mt-0.5 text-xs text-gray-500">{m.location}</div>
+                  )}
+                </TD>
+                <TD>{m.associations?.name || '—'}</TD>
+                <TD className="text-gray-600">{MEETING_TYPE_LABELS[m.meetingType] || m.meetingType}</TD>
+                <TD className="whitespace-nowrap">{formatDate(m.scheduledAt)}</TD>
+                <TD>
+                  <StatusChip tone={STATUS_TONES[m.status] ?? 'neutral'}>
+                    {STATUS_LABELS[m.status] || m.status}
+                  </StatusChip>
+                </TD>
+                <TD>
+                  <span className="text-xs text-gray-400">—</span>
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      )}
+    </PageShell>
   );
 }

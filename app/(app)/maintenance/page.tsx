@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select, Textarea } from '@/components/ui/input';
+import { EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
+import { Wrench } from 'lucide-react';
 import type { CalendarEventType } from '@/lib/operations/calendar';
 
 export const dynamic = 'force-dynamic';
@@ -224,116 +229,155 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const tab = sp.tab||'tasks';
 
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
-      <div className="mb-6 flex items-start justify-between">
-        <div><h1 className="text-2xl font-semibold text-ink-900">Preventive maintenance</h1><p className="mt-1 text-sm text-ink-500">Template-driven. Fully editable. Auto-recurring.</p></div>
-      </div>
+    <DataWorkspace
+      title="Preventive maintenance"
+      description="Template-driven. Fully editable. Auto-recurring."
+    >
+      <div className="space-y-6">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
+          <a
+            href="/maintenance?tab=tasks"
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${tab === 'tasks' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Tasks ({rows.length})
+          </a>
+          <a
+            href="/maintenance?tab=templates"
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${tab === 'templates' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Templates ({(groups ?? []).reduce((s: number, g: any) => s + (g.templates?.length || 0), 0)})
+          </a>
+        </nav>
 
-      <nav className="mb-6 flex gap-6 border-b border-ink-100">
-        <a href="/maintenance?tab=tasks" className={`pb-2 text-sm font-medium border-b-2 ${tab==='tasks'?'border-brand-600 text-brand-700':'border-transparent text-ink-500'}`}>Tasks ({rows.length})</a>
-        <a href="/maintenance?tab=templates" className={`pb-2 text-sm font-medium border-b-2 ${tab==='templates'?'border-brand-600 text-brand-700':'border-transparent text-ink-500'}`}>Templates ({(groups??[]).reduce((s:number,g:any)=>s+(g.templates?.length||0),0)})</a>
-      </nav>
+        {tab === 'tasks' && (
+          <>
+            <MetricStrip
+              metrics={[
+                { label: 'Active', value: rows.filter((t: any) => t.status === 'active').length },
+                { label: 'Due soon', value: soon },
+                { label: 'Overdue', value: overdue },
+                { label: 'Paused', value: rows.filter((t: any) => t.status === 'paused').length },
+              ]}
+            />
 
-      {tab==='tasks' && (
-        <>
-          <div className="mb-6 grid grid-cols-4 gap-4">
-            <div className="rounded-lg border border-ink-100 bg-white px-4 py-3"><div className="text-xs font-medium uppercase text-ink-500">Active</div><div className="mt-1 text-2xl font-semibold text-ink-700">{rows.filter((t:any)=>t.status==='active').length}</div></div>
-            <div className="rounded-lg border border-ink-100 bg-white px-4 py-3"><div className="text-xs font-medium uppercase text-ink-500">Due soon</div><div className="mt-1 text-2xl font-semibold text-amber-700">{soon}</div></div>
-            <div className="rounded-lg border border-ink-100 bg-white px-4 py-3"><div className="text-xs font-medium uppercase text-ink-500">Overdue</div><div className="mt-1 text-2xl font-semibold text-bordeaux-700">{overdue}</div></div>
-            <div className="rounded-lg border border-ink-100 bg-white px-4 py-3"><div className="text-xs font-medium uppercase text-ink-500">Paused</div><div className="mt-1 text-2xl font-semibold text-slate-500">{rows.filter((t:any)=>t.status==='paused').length}</div></div>
-          </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <form action="/maintenance" method="get" className="flex flex-wrap items-center gap-3">
-              <input type="hidden" name="tab" value="tasks" />
-              <select name="assoc" defaultValue={sp.assoc??''} className="h-9 rounded border border-ink-200 bg-white px-3 text-sm">
-                <option value="">All associations</option>
-                {(associations??[]).map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-              <Button type="submit" size="sm" variant="secondary">Filter</Button>
-              {sp.assoc && <a href="/maintenance?tab=tasks" className="text-sm text-ink-500 hover:text-ink-900">Clear</a>}
-            </form>
-            <div className="flex-1" />
-            <a href={sp.assoc?`/maintenance?tab=tasks&assoc=${sp.assoc}&add=1`:'/maintenance?tab=tasks&add=1'}><Button>+ Add task</Button></a>
-          </div>
-
-          {(sp.edit||sp.add) && (
-            <form action={sp.edit?updateTask:addTask} className="mb-6 rounded-lg border border-brand-200 bg-brand-50/30 p-5 space-y-4">
-              <h3 className="font-semibold text-ink-900">{sp.edit?'Edit task':'Add task'}</h3>
-              {sp.edit && <input type="hidden" name="id" value={sp.edit} />}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2"><Label htmlFor="task_name">Task name *</Label><Input id="task_name" name="task_name" required defaultValue={editTask?.task_name} /></div>
-                <div><Label htmlFor="category">Category</Label><select id="category" name="category" defaultValue={editTask?.category||'Safety'} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{CATS.map(c=><option key={c}>{c}</option>)}</select></div>
-                <div><Label htmlFor="association_id">Association *</Label><select id="association_id" name="association_id" required defaultValue={editTask?.association_id||sp.assoc||''} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option value="">Select</option>{(associations??[]).map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
-                <div><Label htmlFor="frequency">Frequency</Label><select id="frequency" name="frequency" defaultValue={editTask?.frequency||'annual'} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm">{FREQS.map(f=><option key={f} value={f}>{FREQ[f]}</option>)}</select></div>
-                <div><Label htmlFor="custom_days">Custom days</Label><Input id="custom_days" name="custom_days" type="number" defaultValue={editTask?.custom_interval_days} placeholder="For custom freq" /></div>
-                <div><Label htmlFor="priority">Priority</Label><select id="priority" name="priority" defaultValue={editTask?.priority||'normal'} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option>low</option><option>normal</option><option>high</option><option>critical</option></select></div>
-                <div><Label htmlFor="vendor_id">Vendor</Label><select id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id||''} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option value="">None</option>{(vendors??[]).map((v:any)=><option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}</select></div>
-                <div><Label htmlFor="staff_id">Manager</Label><select id="staff_id" name="staff_id" defaultValue={editTask?.assigned_staff_id||''} className="h-10 w-full rounded border border-ink-200 bg-white px-3 text-sm"><option value="">None</option>{(staff??[]).map((s:any)=><option key={s.id} value={s.id}>{s.full_name||s.email}</option>)}</select></div>
-                <div><Label htmlFor="start_date">Start *</Label><Input id="start_date" name="start_date" type="date" required defaultValue={editTask?.start_date||new Date().toISOString().slice(0,10)} /></div>
-                <div><Label htmlFor="end_date">End</Label><Input id="end_date" name="end_date" type="date" defaultValue={editTask?.end_date} /></div>
-                <div className="col-span-3"><Label>Reminders</Label><div className="mt-1 flex flex-wrap gap-2">{REMINDERS.map(d=>(<label key={d} className="flex items-center gap-1 text-xs"><input type="checkbox" name="reminders" value={d} defaultChecked={(editTask?.reminder_days||[30,14,7]).includes(d)} />{d}d</label>))}</div></div>
-                <div className="col-span-3"><Label htmlFor="notes">Notes</Label><textarea id="notes" name="notes" rows={2} defaultValue={editTask?.notes} className="w-full rounded border border-ink-200 px-3 py-2 text-sm" /></div>
-              </div>
-              <div className="flex gap-2"><Button type="submit" size="sm">{sp.edit?'Save':'Add task'}</Button><a href={`/maintenance?tab=tasks${sp.assoc?`&assoc=${sp.assoc}`:''}`} className="text-sm text-ink-500 self-center hover:text-ink-900">Cancel</a></div>
-            </form>
-          )}
-
-          {rows.length===0 ? (
-            <div className="rounded-lg border border-dashed border-ink-200 bg-white px-6 py-12 text-center">
-              <h2 className="text-base font-semibold text-ink-900">No tasks yet</h2>
-              <div className="mt-4 flex justify-center gap-3"><a href="/maintenance?tab=templates"><Button variant="secondary">Browse templates</Button></a><a href="/maintenance?tab=tasks&add=1"><Button>Add first task</Button></a></div>
+            <div className="flex flex-wrap items-end gap-3">
+              <form action="/maintenance" method="get" className="flex flex-wrap items-end gap-3">
+                <input type="hidden" name="tab" value="tasks" />
+                <label className="text-[12px] font-medium text-gray-500">
+                  Association
+                  <Select name="assoc" defaultValue={sp.assoc ?? ''} className="mt-1 min-w-48">
+                    <option value="">All associations</option>
+                    {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </Select>
+                </label>
+                <Button type="submit" variant="secondary">Filter</Button>
+                {sp.assoc && <a href="/maintenance?tab=tasks" className="self-center text-sm font-medium text-gray-500 hover:text-gray-900">Clear</a>}
+              </form>
+              <div className="flex-1" />
+              <a href={sp.assoc ? `/maintenance?tab=tasks&assoc=${sp.assoc}&add=1` : '/maintenance?tab=tasks&add=1'}><Button>+ Add task</Button></a>
             </div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-ink-100 bg-white">
-              <table className="w-full text-sm">
-                <thead className="border-b border-ink-100 bg-cream-50">
-                  <tr><th className="px-4 py-2.5 text-left font-medium text-ink-600">Task</th><th className="px-4 py-2.5 text-left font-medium text-ink-600">Assoc</th><th className="px-4 py-2.5 text-left font-medium text-ink-600">Freq</th><th className="px-4 py-2.5 text-left font-medium text-ink-600">Vendor</th><th className="px-4 py-2.5 text-left font-medium text-ink-600">Due</th><th className="px-4 py-2.5 text-left font-medium text-ink-600">Actions</th></tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100">
-                  {rows.map((t:any)=>{
+
+            {(sp.edit || sp.add) && (
+              <Surface className="space-y-4">
+                <SectionTitle title={sp.edit ? 'Edit task' : 'Add task'} className="mb-0" />
+                <form action={sp.edit ? updateTask : addTask} className="space-y-4">
+                  {sp.edit && <input type="hidden" name="id" value={sp.edit} />}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="sm:col-span-2"><Label htmlFor="task_name">Task name *</Label><Input id="task_name" name="task_name" required defaultValue={editTask?.task_name} /></div>
+                    <div><Label htmlFor="category">Category</Label><Select id="category" name="category" defaultValue={editTask?.category || 'Safety'}>{CATS.map(c => <option key={c}>{c}</option>)}</Select></div>
+                    <div><Label htmlFor="association_id">Association *</Label><Select id="association_id" name="association_id" required defaultValue={editTask?.association_id || sp.assoc || ''}><option value="">Select</option>{(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></div>
+                    <div><Label htmlFor="frequency">Frequency</Label><Select id="frequency" name="frequency" defaultValue={editTask?.frequency || 'annual'}>{FREQS.map(f => <option key={f} value={f}>{FREQ[f]}</option>)}</Select></div>
+                    <div><Label htmlFor="custom_days">Custom days</Label><Input id="custom_days" name="custom_days" type="number" defaultValue={editTask?.custom_interval_days} placeholder="For custom freq" /></div>
+                    <div><Label htmlFor="priority">Priority</Label><Select id="priority" name="priority" defaultValue={editTask?.priority || 'normal'}><option>low</option><option>normal</option><option>high</option><option>critical</option></Select></div>
+                    <div><Label htmlFor="vendor_id">Vendor</Label><Select id="vendor_id" name="vendor_id" defaultValue={editTask?.vendor_id || ''}><option value="">None</option>{(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}</Select></div>
+                    <div><Label htmlFor="staff_id">Manager</Label><Select id="staff_id" name="staff_id" defaultValue={editTask?.assigned_staff_id || ''}><option value="">None</option>{(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}</Select></div>
+                    <div><Label htmlFor="start_date">Start *</Label><Input id="start_date" name="start_date" type="date" required defaultValue={editTask?.start_date || new Date().toISOString().slice(0, 10)} /></div>
+                    <div><Label htmlFor="end_date">End</Label><Input id="end_date" name="end_date" type="date" defaultValue={editTask?.end_date} /></div>
+                    <div className="sm:col-span-3"><Label>Reminders</Label><div className="mt-1 flex flex-wrap gap-3">{REMINDERS.map(d => (<label key={d} className="flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" name="reminders" value={d} defaultChecked={(editTask?.reminder_days || [30, 14, 7]).includes(d)} />{d}d</label>))}</div></div>
+                    <div className="sm:col-span-3"><Label htmlFor="notes">Notes</Label><Textarea id="notes" name="notes" rows={2} defaultValue={editTask?.notes} /></div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit">{sp.edit ? 'Save' : 'Add task'}</Button>
+                    <a href={`/maintenance?tab=tasks${sp.assoc ? `&assoc=${sp.assoc}` : ''}`} className="self-center text-sm font-medium text-gray-500 hover:text-gray-900">Cancel</a>
+                  </div>
+                </form>
+              </Surface>
+            )}
+
+            {rows.length === 0 ? (
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={Wrench}
+                  title="No tasks yet"
+                  description="Clone a template group or add your first preventive maintenance task."
+                  action={
+                    <div className="flex justify-center gap-2">
+                      <a href="/maintenance?tab=templates"><Button variant="secondary">Browse templates</Button></a>
+                      <a href="/maintenance?tab=tasks&add=1"><Button>Add first task</Button></a>
+                    </div>
+                  }
+                />
+              </div>
+            ) : (
+              <Table>
+                <THead>
+                  <tr><TH>Task</TH><TH>Association</TH><TH>Frequency</TH><TH>Vendor</TH><TH>Due</TH><TH>Actions</TH></tr>
+                </THead>
+                <tbody>
+                  {rows.map((t: any) => {
                     const over = t.next_due_date && new Date(t.next_due_date) < new Date();
-                    return (<tr key={t.id} className="hover:bg-cream-50">
-                      <td className="px-4 py-3"><div className="font-medium text-ink-900">{t.task_name}</div><div className="text-xs text-ink-500">{t.category} · {t.priority}</div></td>
-                      <td className="px-4 py-3 text-ink-600">{t.associations?.name}</td>
-                      <td className="px-4 py-3 text-ink-600 text-xs">{FREQ[t.frequency]||t.frequency}</td>
-                      <td className="px-4 py-3 text-ink-600">{t.vendors?.name||'—'}</td>
-                      <td className="px-4 py-3">{t.next_due_date?<span className={over?'text-bordeaux-700 font-medium':'text-ink-700'}>{date(t.next_due_date)}</span>:<span className="text-ink-400">—</span>}</td>
-                      <td className="px-4 py-3"><div className="flex gap-1">
-                        <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc?`&assoc=${sp.assoc}`:''}`} className="rounded border border-ink-200 px-2 py-1 text-xs hover:bg-cream-50">Edit</a>
-                        <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded border border-emerald-200 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50">Done</button></form>
-                        <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">Del</button></form>
-                      </div></td>
-                    </tr>);
+                    return (
+                      <TR key={t.id}>
+                        <TD><div className="font-medium text-gray-900">{t.task_name}</div><div className="text-xs text-gray-500">{t.category} · {t.priority}</div></TD>
+                        <TD>{t.associations?.name}</TD>
+                        <TD className="text-xs">{FREQ[t.frequency] || t.frequency}</TD>
+                        <TD>{t.vendors?.name || '—'}</TD>
+                        <TD>{t.next_due_date ? <span className={over ? 'font-medium text-red-700' : 'text-gray-700'}>{date(t.next_due_date)}</span> : <span className="text-gray-400">—</span>}</TD>
+                        <TD>
+                          <div className="flex gap-1">
+                            <a href={`/maintenance?tab=tasks&edit=${t.id}${sp.assoc ? `&assoc=${sp.assoc}` : ''}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Edit</a>
+                            <form action={completeTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">Done</button></form>
+                            <form action={deleteTask} className="inline"><input type="hidden" name="id" value={t.id} /><button className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50">Delete</button></form>
+                          </div>
+                        </TD>
+                      </TR>
+                    );
                   })}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
+              </Table>
+            )}
+          </>
+        )}
 
-      {tab==='templates' && (
-        <div className="space-y-8">
-          <form action={cloneGroup} className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h3 className="font-semibold text-blue-900 mb-3">Clone template group to association</h3>
-            <div className="flex flex-wrap items-end gap-3">
-              <div><Label htmlFor="group_id">Template group</Label><select id="group_id" name="group_id" required className="h-10 rounded border border-ink-200 bg-white px-3 text-sm"><option value="">Select</option>{(groups??[]).map((g:any)=><option key={g.id} value={g.id}>{g.name} ({(g.templates??[]).length})</option>)}</select></div>
-              <div><Label htmlFor="association_id">Target association</Label><select id="association_id" name="association_id" required className="h-10 rounded border border-ink-200 bg-white px-3 text-sm"><option value="">Select</option>{(associations??[]).map((a:any)=><option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
-              <Button type="submit" size="sm">Clone all tasks</Button>
-            </div>
-          </form>
-          {(groups??[]).map((g:any)=>(
-            <section key={g.id} className="rounded-lg border border-ink-100 bg-white p-6">
-              <h2 className="text-lg font-semibold text-ink-900 mb-1">{g.name}</h2>
-              <p className="text-sm text-ink-500 mb-4">{g.description} · {(g.templates??[]).length} tasks</p>
-              <div className="grid grid-cols-3 gap-2">
-                {(g.templates??[]).map((t:any)=>(<div key={t.id} className="rounded border border-ink-100 p-3 text-sm"><div className="font-medium text-ink-900">{t.name}</div><div className="mt-1 text-xs text-ink-500"><span>{t.category}</span>{t.description && <><span> · </span><span>{t.description.slice(0,60)}{t.description.length>60?'...':''}</span></>}</div></div>))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
+        {tab === 'templates' && (
+          <div className="space-y-6">
+            <Surface>
+              <SectionTitle title="Clone template group to association" />
+              <form action={cloneGroup} className="flex flex-wrap items-end gap-3">
+                <div><Label htmlFor="group_id">Template group</Label><Select id="group_id" name="group_id" required className="min-w-48"><option value="">Select</option>{(groups ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.name} ({(g.templates ?? []).length})</option>)}</Select></div>
+                <div><Label htmlFor="association_id">Target association</Label><Select id="association_id" name="association_id" required className="min-w-48"><option value="">Select</option>{(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></div>
+                <Button type="submit">Clone all tasks</Button>
+              </form>
+            </Surface>
+            {(groups ?? []).map((g: any) => (
+              <Surface key={g.id}>
+                <SectionTitle title={g.name} description={`${g.description ?? ''}${g.description ? ' · ' : ''}${(g.templates ?? []).length} tasks`} />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {(g.templates ?? []).map((t: any) => (
+                    <div key={t.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+                      <div className="font-medium text-gray-900">{t.name}</div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        <span>{t.category}</span>
+                        {t.description && <><span> · </span><span>{t.description.slice(0, 60)}{t.description.length > 60 ? '…' : ''}</span></>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Surface>
+            ))}
+          </div>
+        )}
+      </div>
+    </DataWorkspace>
   );
 }

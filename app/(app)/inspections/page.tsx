@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { ClipboardCheck, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 
@@ -169,8 +172,8 @@ export default async function InspectionsPage({
       title="Inspections"
       description="Schedule, track, and score property inspections across associations and units."
       actions={
-        <Link href="/inspections/new" className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-          + New Inspection
+        <Link href="/inspections/new">
+          <Button><Plus className="h-4 w-4" /> New inspection</Button>
         </Link>
       }
     >
@@ -178,7 +181,7 @@ export default async function InspectionsPage({
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => {
             const active = t.key === tab;
             const params = new URLSearchParams();
@@ -188,16 +191,16 @@ export default async function InspectionsPage({
               <Link
                 key={t.key}
                 href={`/inspections?${params.toString()}`}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
                 <span
-                  className={`ml-1.5 rounded px-1.5 text-xs tabular-nums ${
-                    active ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'
+                  className={`ml-1.5 rounded-full px-1.5 text-xs tabular-nums ${
+                    active ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {tabCounts[t.key]}
@@ -215,48 +218,27 @@ export default async function InspectionsPage({
         >
           <input type="hidden" name="tab" value={tab} />
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={status}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All statuses</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All statuses</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Type
-            <select
-              name="type"
-              defaultValue={type}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All types</option>
-              {types.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Type" name="type" defaultValue={type}>
+            <option value="">All types</option>
+            {types.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association_id"
-              defaultValue={association_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -280,9 +262,7 @@ export default async function InspectionsPage({
                 return (
                   <TR key={insp.id}>
                     <TD className="font-medium text-gray-900">
-                      <Link href={`/inspections/${insp.id}`} className="text-blue-700 hover:underline">
-                        {insp.inspection_type ?? 'Untitled'}
-                      </Link>
+                      {insp.inspection_type ?? 'Untitled'}
                     </TD>
                     <TD className="text-sm text-gray-700">{insp.associations?.name ?? '—'}</TD>
                     <TD className="text-sm text-gray-700">{insp.units?.unit_number ?? '—'}</TD>
@@ -300,9 +280,13 @@ export default async function InspectionsPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No inspections match this view.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={ClipboardCheck}
+              title="No inspections match this view"
+              description="Scheduled and completed property inspections will appear here."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
