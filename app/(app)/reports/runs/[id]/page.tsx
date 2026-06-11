@@ -31,9 +31,9 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
           <WorkspaceHeader
             eyebrow={
               <>
-                <Link href="/reports" className="hover:text-brand-600">Reports</Link>
-                {' Â· '}
-                <Link href="/reports/runs" className="hover:text-brand-600">Run history</Link>
+                <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
+                {' · '}
+                <Link href="/reports/runs" className="transition-colors hover:text-gray-700">Run history</Link>
               </>
             }
             title={def?.name ?? 'Report run'}
@@ -101,7 +101,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
           </dl>
 
           {isInFlight && (
-            <div className="mt-5 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+            <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
               Auto-refreshing every 3 seconds.
             </div>
           )}
@@ -114,7 +114,7 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
             {run.status === 'queued' && 'Waiting for the report worker to pick up this job.'}
             {run.status === 'running' && 'The report worker is generating your output.'}
             {run.status === 'succeeded' && `Completed in ${formatDuration(run.duration_ms)}. Output ready to download.`}
-            {run.status === 'failed' && 'This run failed â€” see the error below.'}
+            {run.status === 'failed' && 'This run failed — see the error below.'}
             {run.status === 'cancelled' && 'Cancelled before completion.'}
           </p>
         </div>
@@ -141,17 +141,17 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
 
 function BigStatusPill({ status }: { status: string }) {
   const m: Record<string, string> = {
-    queued:    'bg-gray-100 text-gray-700',
-    running:   'bg-blue-100 text-blue-800',
-    succeeded: 'bg-green-100 text-green-800',
-    failed:    'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-100 text-gray-500',
+    queued:    'bg-gray-100 text-gray-700 ring-gray-500/15',
+    running:   'bg-blue-50 text-blue-700 ring-blue-600/15',
+    succeeded: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+    failed:    'bg-red-50 text-red-700 ring-red-600/15',
+    cancelled: 'bg-gray-100 text-gray-500 ring-gray-500/15',
   };
-  return <span className={`inline-block rounded-md px-3 py-1 text-sm font-semibold capitalize ${m[status] ?? m.queued}`}>{status}</span>;
+  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
 }
 
 function formatDuration(ms: number | null) {
-  if (!ms) return 'â€”';
+  if (!ms) return '—';
   if (ms < 1000) return `${ms} ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)} s`;
@@ -159,7 +159,7 @@ function formatDuration(ms: number | null) {
 }
 
 function formatBytes(bytes: number | null) {
-  if (!bytes) return 'â€”';
+  if (!bytes) return '—';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`;

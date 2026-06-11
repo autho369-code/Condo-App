@@ -68,46 +68,46 @@ export default function NewLetterPage() {
   return (
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
       <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        <Link href="/letters" className="hover:text-emerald-600">Letters</Link>
+        <Link href="/letters" className="transition-colors hover:text-gray-700">Letters</Link>
         <span className="mx-1">/</span>
         <span className="text-gray-900">New template</span>
       </nav>
 
-      <h1 className="mb-6 text-2xl font-semibold text-ink-900">New letter template</h1>
+      <h1 className="mb-6 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New letter template</h1>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
       )}
 
       <div className="space-y-6">
         {/* Metadata fields */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-600">Template name *</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700">Template name *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Late Fee Notice"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-600">Type / code</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700">Type / code</label>
             <input
               type="text"
               value={letterType}
               onChange={(e) => setLetterType(e.target.value)}
               placeholder="e.g., late_fee_notice"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-600">Category</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700">Category</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm capitalize focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm capitalize text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -115,13 +115,13 @@ export default function NewLetterPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-600">Subject line</label>
+            <label className="mb-1.5 block text-[13px] font-medium text-gray-700">Subject line</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g., Important: Late Assessment Notice for {{owner_name}}"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="mt-1 text-xs text-gray-400">Use {'{{field_key}}'} for merge fields in subject.</p>
           </div>
@@ -129,7 +129,7 @@ export default function NewLetterPage() {
 
         {/* WYSIWYG editor */}
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-600">Letter body</label>
+          <label className="mb-2 block text-[13px] font-medium text-gray-700">Letter body</label>
           <MergeFieldEditor
             value={body}
             onChange={setBody}
@@ -138,13 +138,13 @@ export default function NewLetterPage() {
         </div>
 
         {/* Merge field reference */}
-        <details className="rounded-lg border border-gray-200 bg-gray-50">
-          <summary className="cursor-pointer px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-600">Available merge fields</summary>
+        <details className="rounded-xl border border-gray-200 bg-gray-50/60">
+          <summary className="cursor-pointer px-4 py-3 text-[13px] font-medium text-gray-700">Available merge fields</summary>
           <div className="border-t border-gray-200 px-4 py-3">
             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3">
               {MERGE_FIELDS.map((f) => (
                 <div key={f.key} className="text-xs">
-                  <code className="text-emerald-700">{`{{${f.key}}}`}</code>
+                  <code className="text-blue-700">{`{{${f.key}}}`}</code>
                   <span className="ml-1 text-gray-400">— {f.label}</span>
                 </div>
               ))}

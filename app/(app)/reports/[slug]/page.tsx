@@ -167,7 +167,7 @@ async function TrialBalanceView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -351,7 +351,7 @@ async function BalanceSheetView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -525,7 +525,7 @@ async function IncomeStatementView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -647,7 +647,7 @@ async function CashFlowView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -827,7 +827,7 @@ async function GeneralLedgerView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -941,7 +941,7 @@ async function ARAgingView({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
               {' \u00B7 '}
@@ -978,7 +978,7 @@ async function ARAgingView({
         subtitle="Every receivable with a positive balance"
         actions={
           <select
-            className="h-8 rounded-md border border-gray-300 bg-white px-2 text-xs focus:border-brand-500 focus:outline-none"
+            className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             defaultValue=""
           >
             <option value="">All associations</option>
@@ -1052,7 +1052,7 @@ function QueuedReportView(ctx: ReportContext) {
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/reports" className="hover:text-brand-600">Reports</Link>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
               {' \u00B7 '}
               <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
             </>
@@ -1101,7 +1101,7 @@ function QueuedReportView(ctx: ReportContext) {
                   <td className="px-4 py-2"><RunPill status={r.status} /></td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '\u2014'}</td>
                   <td className="px-5 py-2 text-right">
-                    <Link href={`/reports/runs/${r.id}`} className="text-xs text-brand-600 hover:underline">
+                    <Link href={`/reports/runs/${r.id}`} className="text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
                       {r.status === 'succeeded' ? 'Download' : 'Open'}
                     </Link>
                   </td>
@@ -1159,7 +1159,7 @@ function ReportRightRail({
           <select
             name="param_scope"
             defaultValue={selectedScope}
-            className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="portfolio">Portfolio</option>
             <option value="association">Association</option>
@@ -1173,7 +1173,7 @@ function ReportRightRail({
           <select
             name="param_association_id"
             defaultValue={selectedAssociation}
-            className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="">Select...</option>
             {associations.map((a: any) => (
@@ -1188,7 +1188,7 @@ function ReportRightRail({
             <input
               name="param_owner_id"
               placeholder="Optional"
-              className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+              className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>
@@ -1196,7 +1196,7 @@ function ReportRightRail({
             <input
               name="param_unit_id"
               placeholder="Optional"
-              className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+              className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
         </div>
@@ -1211,7 +1211,7 @@ function ReportRightRail({
                 href={presetHref(p.k)}
                 className={`rounded-full border px-2 py-0.5 text-xs ${
                   selectedPreset === p.k
-                    ? 'border-brand-600 bg-brand-600 text-white'
+                    ? 'border-gray-950 bg-gray-950 text-white'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -1227,7 +1227,7 @@ function ReportRightRail({
                 type="date"
                 name="param_date_from"
                 defaultValue={period.from}
-                className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
             <div>
@@ -1236,7 +1236,7 @@ function ReportRightRail({
                 type="date"
                 name="param_date_to"
                 defaultValue={period.to}
-                className="h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
+                className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
           </div>
@@ -1251,7 +1251,7 @@ function ReportRightRail({
           <select
             name="output_format"
             defaultValue={def.output_formats?.[0] ?? 'csv'}
-            className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             {(def.output_formats ?? ['csv']).map((f: string) => (
               <option key={f} value={f}>{f.toUpperCase()}</option>
@@ -1265,7 +1265,7 @@ function ReportRightRail({
       </form>
 
       {inFlight && (
-        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
           A run is currently <strong>{inFlight.status}</strong>.
           <Link href={`/reports/runs/${inFlight.id}`} className="ml-1 font-semibold hover:underline">View &rarr;</Link>
         </div>
@@ -1274,13 +1274,13 @@ function ReportRightRail({
       {lastSuccess && (
         <div className="mt-6">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Latest output</div>
-          <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs">
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs">
             <div className="font-mono uppercase text-gray-500">{lastSuccess.output_format}</div>
             <div className="mt-1 text-gray-700">{date(lastSuccess.created_at)}</div>
             <div className="mt-1 tabular-nums text-gray-700">{lastSuccess.row_count?.toLocaleString()} rows</div>
             {lastSuccess.output_url && (
               <a href={lastSuccess.output_url} target="_blank" rel="noopener"
-                className="mt-2 inline-block text-brand-600 hover:underline">
+                className="mt-2 inline-block font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Download &rarr;
               </a>
             )}
@@ -1312,13 +1312,13 @@ function ReportRightRail({
 
 function RunPill({ status }: { status: string }) {
   const m: Record<string, string> = {
-    queued:    'bg-gray-100 text-gray-600',
-    running:   'bg-blue-100 text-blue-700',
-    succeeded: 'bg-green-100 text-green-700',
-    failed:    'bg-red-100 text-red-700',
-    cancelled: 'bg-gray-100 text-gray-400 line-through',
+    queued:    'bg-gray-100 text-gray-600 ring-gray-500/15',
+    running:   'bg-blue-50 text-blue-700 ring-blue-600/15',
+    succeeded: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+    failed:    'bg-red-50 text-red-700 ring-red-600/15',
+    cancelled: 'bg-gray-100 text-gray-400 ring-gray-500/15 line-through',
   };
-  return <span className={`rounded px-2 py-0.5 text-[10px] font-medium capitalize ${m[status] ?? m.queued}`}>{status}</span>;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ring-1 ring-inset ${m[status] ?? m.queued}`}>{status}</span>;
 }
 
 // ═══════════════════════════════════════════════════════════════

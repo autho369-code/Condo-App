@@ -290,10 +290,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 {currentOccs.length > 0
                   ? currentOccs.map((o: any) => (
                       <div key={o.id}>
-                        <Link href={`/units/${o.units?.id}`} className="text-blue-700 hover:underline">
+                        <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                           {o.units?.buildings?.associations?.name ?? 'Association'} — Unit {o.units?.unit_number ?? '—'}
                         </Link>
-                        {o.is_primary && <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">primary</span>}
+                        {o.is_primary && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                       </div>
                     ))
                   : '—'}
@@ -438,18 +438,18 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 {(occs ?? []).map((o: any) => (
                   <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-2">
-                      <Link href={`/units/${o.units?.id}`} className="font-medium text-blue-700 hover:underline">Unit {o.units?.unit_number ?? '—'}</Link>
-                      {o.is_primary && <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">primary</span>}
+                      <Link href={`/units/${o.units?.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">Unit {o.units?.unit_number ?? '—'}</Link>
+                      {o.is_primary && <span className="ml-2 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">primary</span>}
                     </td>
                     <td className="px-4 py-2 text-gray-700">{o.units?.buildings?.associations?.name ?? '—'}</td>
                     <td className="px-4 py-2 text-sm capitalize">{o.occupancy_type}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{date(o.move_in_date)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{o.dues_amount ? money(o.dues_amount) : '—'}</td>
                     <td className="px-4 py-2">
-                      <span className={`rounded px-2 py-0.5 text-xs capitalize ${
-                        o.status === 'current' ? 'bg-green-100 text-green-700' :
-                        o.status === 'future'  ? 'bg-blue-100 text-blue-700'  :
-                        'bg-gray-100 text-gray-500'
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${
+                        o.status === 'current' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15' :
+                        o.status === 'future'  ? 'bg-blue-50 text-blue-700 ring-blue-600/15'  :
+                        'bg-gray-100 text-gray-500 ring-gray-500/15'
                       }`}>{o.status}</span>
                     </td>
                     <td className="px-4 py-2 text-right">
@@ -466,12 +466,12 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           )}
 
           <details className="border-t border-gray-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
-            <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">+ Link to a unit</summary>
+            <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">+ Link to a unit</summary>
             <form action={linkOccupancy.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="md:col-span-3">
                 <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
                 <select id="unit_id" name="unit_id" required
-                  className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="">Choose a unit…</option>
                   {(units ?? []).map((u: any) => (
                     <option key={u.id} value={u.id}>
@@ -484,7 +484,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div>
                 <Label htmlFor="occupancy_type">Type</Label>
                 <select id="occupancy_type" name="occupancy_type" defaultValue="owner"
-                  className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="owner">Owner</option>
                   <option value="tenant">Tenant</option>
                 </select>
@@ -500,7 +500,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div>
                 <Label htmlFor="dues_frequency">Dues frequency</Label>
                 <select id="dues_frequency" name="dues_frequency" defaultValue="monthly"
-                  className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
                   <option value="annual">Annual</option>
@@ -568,7 +568,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           </dl>
 
           <details className="border-t border-gray-100 px-5 py-4">
-            <summary className="cursor-pointer select-none text-sm font-medium text-blue-700 hover:underline">Edit contact</summary>
+            <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">Edit contact</summary>
             <form action={updateOwner.bind(null, id) as any} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="first_name">First name</Label>
@@ -607,7 +607,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               <div className="md:col-span-2">
                 <Label htmlFor="notes">Notes</Label>
                 <textarea id="notes" name="notes" rows={3} defaultValue={owner.notes ?? ''}
-                  className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" />
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
               <div className="md:col-span-2 flex justify-end">
                 <Button type="submit">Save changes</Button>
@@ -663,7 +663,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded border border-gray-200 bg-white">
+    <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {right}

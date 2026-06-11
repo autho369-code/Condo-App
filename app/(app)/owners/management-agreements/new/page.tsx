@@ -35,20 +35,20 @@ export default async function NewManagementAgreementPage() {
     <DataWorkspace
       title="New Management Agreement"
       description="Create an owner and association management agreement with fee schedule and delivery method."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
+      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
     >
-      <form action={handleSubmit} className="max-w-4xl space-y-5 rounded border border-gray-200 bg-white p-5">
+      <form action={handleSubmit} className="max-w-4xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="owner_id" name="owner_id" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">Select owner</option>
               {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}</option>)}
             </select>
           </div>
           <div>
             <Label htmlFor="association_id">Association</Label>
-            <select id="association_id" name="association_id" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="association_id" name="association_id" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">Select association</option>
               {(associations ?? []).map((association: any) => <option key={association.id} value={association.id}>{association.name}</option>)}
             </select>
@@ -67,7 +67,7 @@ export default async function NewManagementAgreementPage() {
           </div>
           <div>
             <Label htmlFor="delivery_method">Delivery method</Label>
-            <select id="delivery_method" name="delivery_method" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+            <select id="delivery_method" name="delivery_method" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="email">Email signature request</option>
               <option value="portal">Owner portal</option>
               <option value="mail">Mail packet</option>
@@ -76,7 +76,7 @@ export default async function NewManagementAgreementPage() {
         </div>
         <div>
           <Label htmlFor="terms">Agreement notes</Label>
-          <textarea id="terms" name="terms" rows={5} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
+          <textarea id="terms" name="terms" rows={5} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Scope, owner obligations, reserve policy, termination notes..." />
         </div>
         <div className="flex justify-end gap-2 border-t border-gray-100 pt-5">
           <Link href="/owners" className="inline-flex items-center justify-center h-10 px-4 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</Link>

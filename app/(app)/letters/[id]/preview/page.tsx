@@ -215,16 +215,16 @@ export default function PreviewLetterPage() {
       <nav className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
         <Link href="/letters" className="hover:text-emerald-600">Letters</Link>
         <span className="mx-1">/</span>
-        <Link href={`/letters/${id}/edit`} className="hover:text-emerald-600">{template.name}</Link>
+        <Link href={`/letters/${id}/edit`} className="transition-colors hover:text-gray-700">{template.name}</Link>
         <span className="mx-1">/</span>
         <span className="text-gray-900">Preview &amp; send</span>
       </nav>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
       )}
       {sent && (
-        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Letter sent successfully to {emailTo}.
         </div>
       )}
@@ -324,7 +324,7 @@ export default function PreviewLetterPage() {
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
                   placeholder="owner@example.com"
-                  className="w-full rounded border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <Button onClick={handleSendEmail} disabled={sending || !emailTo.trim()} className="w-full" size="sm">
                   {sending ? 'Sending...' : 'Send now'}

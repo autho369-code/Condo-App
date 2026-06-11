@@ -112,16 +112,16 @@
 - [x] `/(app)/documents/templates/new`
 - [x] `/(app)/insurance/new`
 - [x] `/(app)/letters/[id]/edit`
-- [ ] `/(app)/letters/[id]/preview`
-- [ ] `/(app)/letters/new`
-- [ ] `/(app)/maintenance/new`
-- [ ] `/(app)/meetings/[id]`
-- [ ] `/(app)/meetings/new`
-- [ ] `/(app)/owners/[id]`
-- [ ] `/(app)/owners/management-agreements/new`
-- [ ] `/(app)/owners/new`
-- [ ] `/(app)/reports/[slug]`
-- [ ] `/(app)/reports/runs/[id]`
+- [x] `/(app)/letters/[id]/preview`
+- [x] `/(app)/letters/new`
+- [x] `/(app)/maintenance/new`
+- [x] `/(app)/meetings/[id]`
+- [x] `/(app)/meetings/new`
+- [x] `/(app)/owners/[id]`
+- [x] `/(app)/owners/management-agreements/new`
+- [x] `/(app)/owners/new`
+- [x] `/(app)/reports/[slug]`
+- [x] `/(app)/reports/runs/[id]`
 - [ ] `/(app)/sms/templates/[id]/edit`
 - [ ] `/(app)/sms/templates/new`
 - [ ] `/(app)/units/[id]`

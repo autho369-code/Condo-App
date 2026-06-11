@@ -67,13 +67,13 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-8 py-6">
       <div>
-        <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-          <Link href="/maintenance" className="hover:text-ink-700">Maintenance</Link>
+        <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <Link href="/maintenance" className="hover:text-gray-700">Maintenance</Link>
           <span className="mx-2">/</span>
           New task
         </nav>
-        <h1 className="mt-2 text-2xl font-semibold text-ink-900">Add maintenance task</h1>
-        <p className="mt-1 text-sm text-ink-500">Tasks auto-recur based on frequency and appear on the association calendar.</p>
+        <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Add maintenance task</h1>
+        <p className="mt-1 text-sm text-gray-500">Tasks auto-recur based on frequency and appear on the association calendar.</p>
       </div>
 
       <form action={createTask as any} className="space-y-6">
@@ -86,7 +86,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
             <div>
               <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
-              <select id="association_id" name="association_id" required defaultValue={sp.assoc ?? ''} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="association_id" name="association_id" required defaultValue={sp.assoc ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Select association</option>
                 {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -94,7 +94,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
             <div>
               <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
-              <select id="category" name="category" required defaultValue={template?.category ?? ''} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="category" name="category" required defaultValue={template?.category ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Select category</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -102,7 +102,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
             <div>
               <Label htmlFor="frequency">Frequency <span className="text-red-500">*</span></Label>
-              <select id="frequency" name="frequency" required defaultValue="annual" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="frequency" name="frequency" required defaultValue="annual" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
             </div>
@@ -110,12 +110,12 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
             <div>
               <Label htmlFor="custom_interval_days">Custom interval (days)</Label>
               <Input id="custom_interval_days" name="custom_interval_days" type="number" min="1" placeholder="e.g. 45, 90, 120" />
-              <p className="mt-1 text-xs text-ink-400">Only used when frequency is &quot;Custom interval&quot;</p>
+              <p className="mt-1 text-xs text-gray-400">Only used when frequency is &quot;Custom interval&quot;</p>
             </div>
 
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <select id="priority" name="priority" defaultValue="normal" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="priority" name="priority" defaultValue="normal" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
                 <option value="high">High</option>
@@ -139,7 +139,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="vendor_id">Vendor</Label>
-              <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="vendor_id" name="vendor_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">No vendor assigned</option>
                 {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name} ({v.trade})</option>)}
               </select>
@@ -147,7 +147,7 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
 
             <div>
               <Label htmlFor="assigned_staff_id">Assigned manager</Label>
-              <select id="assigned_staff_id" name="assigned_staff_id" defaultValue="" className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <select id="assigned_staff_id" name="assigned_staff_id" defaultValue="" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Unassigned</option>
                 {(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
               </select>
@@ -156,10 +156,10 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
         </Section>
 
         <Section title="Reminders" padded>
-          <p className="mb-3 text-sm text-ink-500">Select when to send reminders before the due date. Multiple allowed.</p>
+          <p className="mb-3 text-sm text-gray-500">Select when to send reminders before the due date. Multiple allowed.</p>
           <div className="flex flex-wrap gap-3">
             {REMINDER_OPTIONS.map(d => (
-              <label key={d} className="flex items-center gap-2 rounded border border-ink-200 px-3 py-2 text-sm hover:bg-cream-50 cursor-pointer">
+              <label key={d} className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
                 <input type="checkbox" name="reminder_days" value={d} defaultChecked={[30,14,7].includes(d)} />
                 {d} days before
               </label>
@@ -170,13 +170,13 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
         <Section title="Notes" padded>
           <div>
             <Label htmlFor="notes">Internal notes</Label>
-            <textarea id="notes" name="notes" rows={3} className="w-full rounded-md border border-ink-200 px-3 py-2 text-sm" placeholder="Special instructions, access codes, equipment details..." />
+            <textarea id="notes" name="notes" rows={3} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Special instructions, access codes, equipment details..." />
           </div>
         </Section>
 
         <div className="flex items-center gap-3">
           <Button type="submit" size="lg">Create task</Button>
-          <Link href="/maintenance" className="text-sm text-ink-500 hover:text-ink-900">Cancel</Link>
+          <Link href="/maintenance" className="text-sm text-gray-500 hover:text-gray-900">Cancel</Link>
         </div>
       </form>
     </div>

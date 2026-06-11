@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { ownerWorkflowCards } from '@/lib/people/owner-workflows';
 import { createOwner } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
@@ -23,24 +22,9 @@ export default async function NewOwnerPage() {
     <DataWorkspace
       title="New Owner"
       description="Create the owner profile with association and unit assignment, portal activation, and ownership details."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to owners</Link>}
-      rail={
-        <div className="space-y-4">
-          <div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
-            Creating an owner also links them to their unit via occupancy record. Portal access can be enabled to let them sign in.
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase text-gray-500">After save</div>
-            <div className="mt-2 space-y-2">
-              {ownerWorkflowCards.map((card) => (
-                <Link key={card.href} href={card.href} className="block rounded border border-gray-200 p-3 text-sm hover:bg-gray-50">{card.title}</Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      }
+      actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
     >
-      <form action={createOwner as any} className="max-w-5xl space-y-6 rounded border border-gray-200 bg-white p-5">
+      <form action={createOwner as any} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="first_name">First name <span className="text-red-500">*</span></Label>
@@ -65,14 +49,14 @@ export default async function NewOwnerPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <Label htmlFor="association_id">Association <span className="text-red-500">*</span></Label>
-              <select id="association_id" name="association_id" required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="association_id" name="association_id" required className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Select association</option>
                 {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <div>
               <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
-              <select id="unit_id" name="unit_id" required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="unit_id" name="unit_id" required className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Select unit</option>
                 {(units ?? []).map((u: any) => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
               </select>
@@ -95,7 +79,7 @@ export default async function NewOwnerPage() {
         <section className="border-t border-gray-100 pt-5">
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portal access</div>
           <div className="grid grid-cols-1 gap-4">
-            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
               <input type="checkbox" name="activate_portal" className="mt-1" defaultChecked />
               <span>
                 <span className="block text-sm font-medium text-gray-900">Activate owner portal</span>
@@ -124,7 +108,7 @@ export default async function NewOwnerPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="preferred_comm">Preferred communication</Label>
-              <select id="preferred_comm" name="preferred_comm" defaultValue="email" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="preferred_comm" name="preferred_comm" defaultValue="email" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="email">Email</option>
                 <option value="mail">Postal mail</option>
                 <option value="phone">Phone</option>
@@ -136,7 +120,7 @@ export default async function NewOwnerPage() {
 
         <section className="border-t border-gray-100 pt-5">
           <Label htmlFor="notes">Internal notes</Label>
-          <textarea id="notes" name="notes" rows={3} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Language preference, accessibility needs, ownership context..." />
+          <textarea id="notes" name="notes" rows={3} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Language preference, accessibility needs, ownership context..." />
         </section>
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-5">
