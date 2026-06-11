@@ -50,7 +50,7 @@ export function ComingSoon({
   roadmapPhase?: string;
 }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
       <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-800">Coming soon</div>
       {reason && <p className="text-sm text-amber-900">{reason}</p>}
       <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">

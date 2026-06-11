@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
+import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { Surface, SectionTitle } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
@@ -23,34 +26,9 @@ const statusOrder: Record<CheckStatus, number> = { fail: 0, warning: 1, pass: 2 
 
 // ── Status badge component ───────────────────────────────────────
 function StatusBadge({ status }: { status: CheckStatus }) {
-  const colors: Record<CheckStatus, string> = {
-    pass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200',
-    fail: 'bg-red-50 text-red-700 border-red-200',
-  };
-  const dot: Record<CheckStatus, string> = {
-    pass: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    fail: 'bg-red-500',
-  };
-  const label: Record<CheckStatus, string> = {
-    pass: 'Pass',
-    warning: 'Warning',
-    fail: 'Fail',
-  };
-  return (
-    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${colors[status]}`}>
-      <span className={`inline-block h-2 w-2 rounded-full ${dot[status]}`} />
-      {label[status]}
-    </span>
-  );
-}
-
-// ── Card border helper ───────────────────────────────────────────
-function cardBorder(status: CheckStatus): string {
-  if (status === 'fail') return 'border-red-200 hover:border-red-300';
-  if (status === 'warning') return 'border-amber-200 hover:border-amber-300';
-  return 'border-gray-200 hover:border-gray-300';
+  const tone = { pass: 'success', warning: 'warning', fail: 'danger' } as const;
+  const label: Record<CheckStatus, string> = { pass: 'Pass', warning: 'Warning', fail: 'Fail' };
+  return <StatusChip tone={tone[status]}>{label[status]}</StatusChip>;
 }
 
 // ── Page ─────────────────────────────────────────────────────────
@@ -430,34 +408,28 @@ export default async function DiagnosticsPage() {
   return (
     <DataWorkspace
       title="Accounting diagnostics"
-      description="Read-only health checks for GL account structure, bank reconciliations, security deposits, escrow accounts, and additional fees per AppFolio Accounting Architecture §2.5."
+      description="Read-only health checks for GL account structure, bank reconciliations, security deposits, escrow accounts, and additional fees."
       actions={
-        <Link
-          href="/accounting"
-          className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Back to accounting
+        <Link href="/accounting">
+          <Button variant="secondary">Back to accounting</Button>
         </Link>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* ── Metric strip ──────────────────────────────────── */}
         <MetricStrip metrics={metrics} />
 
         {/* ── Diagnostic cards ──────────────────────────────── */}
         <section>
-          <h2 className="mb-4 text-sm font-semibold text-gray-950">Diagnostic checks</h2>
+          <SectionTitle title="Diagnostic checks" />
           {checks.length === 0 ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500">
+            <Surface padded={false} className="px-6 py-10 text-center text-sm text-gray-500">
               No diagnostics available. Run a data health scan to populate checks.
-            </div>
+            </Surface>
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {checks.map((check) => (
-                <div
-                  key={check.name}
-                  className={`rounded-lg border bg-white p-5 transition-colors ${cardBorder(check.status)}`}
-                >
+                <Surface key={check.name} padded={false} className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-gray-950">{check.name}</h3>
@@ -472,40 +444,40 @@ export default async function DiagnosticsPage() {
                     <div className="mt-3">
                       <Link
                         href={check.action.href}
-                        className="text-sm font-medium text-blue-700 hover:underline"
+                        className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950"
                       >
                         {check.action.label} &rarr;
                       </Link>
                     </div>
                   )}
-                </div>
+                </Surface>
               ))}
             </div>
           )}
         </section>
 
         {/* ── Legend ────────────────────────────────────────── */}
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-950">Status legend</h2>
+        <Surface padded={false} className="p-5">
+          <SectionTitle title="Status legend" className="mb-3" />
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              Pass — No issues detected
+              <StatusChip tone="success">Pass</StatusChip>
+              No issues detected
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" />
-              Warning — Needs attention
+              <StatusChip tone="warning">Warning</StatusChip>
+              Needs attention
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
-              Fail — Action required
+              <StatusChip tone="danger">Fail</StatusChip>
+              Action required
             </span>
           </div>
-        </section>
+        </Surface>
 
         {/* ── What gets checked ─────────────────────────────── */}
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-950">What gets checked</h2>
+        <Surface padded={false} className="p-5">
+          <SectionTitle title="What gets checked" className="mb-3" />
           <ul className="list-inside list-disc space-y-1.5 text-sm text-gray-600">
             <li>Security Deposit Funds — trust bank accounts linked to security deposit GL accounts</li>
             <li>Escrow / Reserve Cash Accounts — reserve bank accounts linked to reserve GL accounts</li>
@@ -515,7 +487,7 @@ export default async function DiagnosticsPage() {
             <li>Bank Reconciliation Lapses — all bank accounts reconciled within 60 days</li>
             <li>Persisted Diagnostics — issues from the data_diagnostics table</li>
           </ul>
-        </section>
+        </Surface>
       </div>
     </DataWorkspace>
   );

@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { ModulePage } from '@/components/workspace/module-page';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Badge, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { Inbox } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,15 +18,15 @@ export default async function InboxPage() {
     .limit(100);
 
   return (
-    <ModulePage title="Inbox" description="Two-way SMS with owners and vendors.">
+    <DataWorkspace title="Inbox" description="Two-way SMS with owners and vendors.">
       {rows && rows.length > 0 ? (
         <Table>
-          <THead><TR><TH>When</TH><TH>Dir</TH><TH>From</TH><TH>To</TH><TH>Message</TH><TH>Status</TH></TR></THead>
+          <THead><tr><TH>When</TH><TH>Direction</TH><TH>From</TH><TH>To</TH><TH>Message</TH><TH>Status</TH></tr></THead>
           <tbody>
             {rows.map((m: any) => (
               <TR key={m.id}>
-                <TD className="whitespace-nowrap text-sm">{date(m.sent_at)}</TD>
-                <TD><span className={`rounded px-2 py-0.5 text-xs ${m.direction === 'inbound' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{m.direction}</span></TD>
+                <TD className="whitespace-nowrap">{date(m.sent_at)}</TD>
+                <TD><Badge tone={m.direction === 'inbound' ? 'open' : 'inactive'}>{m.direction}</Badge></TD>
                 <TD className="font-mono text-xs">{m.from_number}</TD>
                 <TD className="font-mono text-xs">{m.to_number}</TD>
                 <TD className="max-w-md truncate">{m.body}</TD>
@@ -34,8 +36,14 @@ export default async function InboxPage() {
           </tbody>
         </Table>
       ) : (
-        <p className="rounded border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">No SMS activity.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <EmptyState
+            icon={Inbox}
+            title="No SMS activity"
+            description="Inbound and outbound text messages will appear here."
+          />
+        </div>
       )}
-    </ModulePage>
+    </DataWorkspace>
   );
 }

@@ -25,16 +25,16 @@
 - [x] `/(app)/charges`
 - [x] `/(app)/charges/bulk`
 - [x] `/(app)/charges/bulk-recurring`
-- [ ] `/(app)/communication-center`
-- [ ] `/(app)/compliance`
-- [ ] `/(app)/dashboard`
-- [ ] `/(app)/diagnostics`
-- [ ] `/(app)/documents`
-- [ ] `/(app)/documents/generate`
-- [ ] `/(app)/fixed-assets`
-- [ ] `/(app)/forms`
-- [ ] `/(app)/gl-accounts`
-- [ ] `/(app)/inbox`
+- [x] `/(app)/communication-center`
+- [x] `/(app)/compliance`
+- [x] `/(app)/dashboard`
+- [x] `/(app)/diagnostics`
+- [x] `/(app)/documents`
+- [x] `/(app)/documents/generate`
+- [x] `/(app)/fixed-assets`
+- [x] `/(app)/forms`
+- [x] `/(app)/gl-accounts`
+- [x] `/(app)/inbox`
 - [ ] `/(app)/inspections`
 - [ ] `/(app)/insurance`
 - [ ] `/(app)/inventory`

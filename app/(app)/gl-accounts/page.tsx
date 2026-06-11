@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { BookOpen, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
@@ -59,7 +61,7 @@ export default async function GLAccountsPage({
       description="Chart of accounts for the portfolio. Ranges follow standard accounting conventions (1xxx Assets, 2xxx Liabilities, 3xxx Equity, 4xxx Income, 5xxx COGS, 6xxx Expenses, 7xxx Other Income, 8xxx Other Expenses, 9xxx Non-Operating)."
       actions={
         <Link href="/gl-accounts/new">
-          <Button size="sm">+ New GL Account</Button>
+          <Button><Plus className="h-4 w-4" /> New GL account</Button>
         </Link>
       }
     >
@@ -76,57 +78,57 @@ export default async function GLAccountsPage({
         <FilterBar action="/gl-accounts" searchDefault={q} searchPlaceholder="Search by name or account number" />
 
         {accounts.length === 0 ? (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <p className="text-sm text-gray-500">
-              {q ? 'No GL accounts match your search.' : 'No GL accounts configured yet.'}
-            </p>
-            {!q && (
-              <Link href="/gl-accounts/new" className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline">
-                + Create your first GL account
-              </Link>
-            )}
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={BookOpen}
+              title={q ? 'No GL accounts match your search' : 'No GL accounts configured yet'}
+              description="The chart of accounts will appear here, grouped by account range."
+              action={!q && (
+                <Link href="/gl-accounts/new">
+                  <Button><Plus className="h-4 w-4" /> Create your first GL account</Button>
+                </Link>
+              )}
+            />
           </div>
         ) : grouped.length === 0 && q ? (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <p className="text-sm text-gray-500">No GL accounts match &ldquo;{q}&rdquo;.</p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState icon={BookOpen} title={`No GL accounts match “${q}”`} />
           </div>
         ) : (
           grouped.map((g) => (
-            <section key={g.label} className="rounded border border-gray-200 bg-white">
-              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
-                  {g.from}s — {g.label}
-                </h2>
-                <span className="text-xs text-gray-400">{g.items.length} account{g.items.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <THead>
-                    <TR>
-                      <TH>Number</TH>
-                      <TH>Name</TH>
-                      <TH>Account Type</TH>
-                      <TH>Fund Account</TH>
-                      <TH>Active</TH>
+            <section key={g.label}>
+              <SectionTitle
+                title={`${g.from}s — ${g.label}`}
+                actions={
+                  <span className="text-xs text-gray-400">{g.items.length} account{g.items.length !== 1 ? 's' : ''}</span>
+                }
+              />
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>Number</TH>
+                    <TH>Name</TH>
+                    <TH>Account Type</TH>
+                    <TH>Fund Account</TH>
+                    <TH>Active</TH>
+                  </tr>
+                </THead>
+                <tbody>
+                  {g.items.map((a: any) => (
+                    <TR key={a.id}>
+                      <TD className="font-mono tabular-nums">{a.number}</TD>
+                      <TD className="font-medium">{a.name}</TD>
+                      <TD className="capitalize">{a.account_type?.replace(/_/g, ' ')}</TD>
+                      <TD className="capitalize text-gray-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
+                      <TD>
+                        <StatusChip tone={a.active ? 'success' : 'neutral'}>
+                          {a.active ? 'Active' : 'Inactive'}
+                        </StatusChip>
+                      </TD>
                     </TR>
-                  </THead>
-                  <tbody>
-                    {g.items.map((a: any) => (
-                      <TR key={a.id} className="hover:bg-gray-50">
-                        <TD className="font-mono tabular-nums text-sm">{a.number}</TD>
-                        <TD className="font-medium">{a.name}</TD>
-                        <TD className="text-sm capitalize text-gray-700">{a.account_type?.replace(/_/g, ' ')}</TD>
-                        <TD className="text-sm capitalize text-gray-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
-                        <TD>
-                          <StatusChip tone={a.active ? 'success' : 'neutral'}>
-                            {a.active ? 'Active' : 'Inactive'}
-                          </StatusChip>
-                        </TD>
-                      </TR>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
+                  ))}
+                </tbody>
+              </Table>
             </section>
           ))
         )}

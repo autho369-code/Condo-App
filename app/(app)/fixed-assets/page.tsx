@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { Boxes, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
@@ -81,7 +84,7 @@ export default async function FixedAssetsPage({
       description="Track association property, equipment, and capital assets — purchase details, depreciation schedules, and disposal records."
       actions={
         <Link href="/fixed-assets/new">
-          <Button>+ New Asset</Button>
+          <Button><Plus className="h-4 w-4" /> New asset</Button>
         </Link>
       }
     >
@@ -123,30 +126,11 @@ export default async function FixedAssetsPage({
         </nav>
 
         {/* ── SEARCH ── */}
-        <form action="/fixed-assets" className="flex gap-2">
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Search asset name, category, association..."
-            className="rounded border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 w-80"
-          />
+        <FilterBar action="/fixed-assets" searchDefault={q} searchPlaceholder="Search asset name, category, association...">
           {statusParam && statusParam !== 'all' && (
             <input type="hidden" name="status" value={statusParam} />
           )}
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-          {q && (
-            <Link
-              href={`/fixed-assets${
-                statusParam && statusParam !== 'all' ? `?status=${statusParam}` : ''
-              }`}
-            >
-              <Button variant="ghost">Clear</Button>
-            </Link>
-          )}
-        </form>
+        </FilterBar>
 
         {/* ── FIXED ASSETS TABLE ── */}
         {filtered.length > 0 ? (
@@ -172,12 +156,7 @@ export default async function FixedAssetsPage({
                 return (
                   <TR key={asset.id}>
                     <TD className="font-medium text-gray-900">
-                      <Link
-                        href={`/fixed-assets/${asset.id}`}
-                        className="text-blue-700 hover:underline"
-                      >
-                        {asset.name}
-                      </Link>
+                      {asset.name}
                       {asset.description && (
                         <div className="text-xs text-gray-500 mt-0.5 max-w-[260px] truncate">
                           {asset.description}
@@ -218,11 +197,17 @@ export default async function FixedAssetsPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            {q || (statusParam && statusParam !== 'all')
-              ? 'No fixed assets match this filter.'
-              : 'No fixed assets recorded yet.'}
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Boxes}
+              title={
+                q || (statusParam && statusParam !== 'all')
+                  ? 'No fixed assets match this filter'
+                  : 'No fixed assets recorded yet'
+              }
+              description="Track association property, equipment, and capital assets here."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>

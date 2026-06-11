@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/input';
+import { Badge } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
@@ -215,13 +217,9 @@ export default async function DashboardPage({
 
   const linkedMetrics = commandMetrics.map((metric) => ({
     label: metric.label,
-    value: (
-      <Link href={metric.href} className="hover:text-brand-700 hover:underline">
-        {metric.value}
-      </Link>
-    ),
+    value: metric.value,
     sublabel: (
-      <Link href={metric.href} className="text-blue-700 hover:underline">
+      <Link href={metric.href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">
         Open list
       </Link>
     ),
@@ -260,15 +258,12 @@ export default async function DashboardPage({
     },
   ].map((m) => ({
     label: m.label,
-    value: (
-      <Link href={m.href} className="hover:text-brand-700 hover:underline">
-        {m.label === 'AR balance' || m.label === 'Bills awaiting'
-          ? money(m.value)
-          : m.value}
-      </Link>
-    ),
+    value:
+      m.label === 'AR balance' || m.label === 'Bills awaiting'
+        ? money(m.value)
+        : m.value,
     sublabel: (
-      <Link href={m.href} className="text-blue-700 hover:underline">
+      <Link href={m.href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">
         Open list
       </Link>
     ),
@@ -368,16 +363,12 @@ export default async function DashboardPage({
       actions={
         <>
           <form action="/dashboard" method="get" className="flex items-center gap-2">
-            <select
-              name="assoc"
-              defaultValue={assocFilter}
-              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
+            <Select name="assoc" defaultValue={assocFilter} className="min-w-44" aria-label="Filter by association">
               <option value="">All associations</option>
               {(associations ?? []).map((association: any) => (
                 <option key={association.id} value={association.id}>{association.name}</option>
               ))}
-            </select>
+            </Select>
             <Button type="submit" variant="secondary">Apply</Button>
           </form>
           <Link href="/work-orders"><Button>Open work orders</Button></Link>
@@ -416,7 +407,7 @@ export default async function DashboardPage({
         <MetricStrip metrics={demoMetrics} />
 
         {/* ── Focus queue ──────────────────────────────────── */}
-        <section className="rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Focus queue</h2>
@@ -431,12 +422,12 @@ export default async function DashboardPage({
                   <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>{item.type}</span>
+                        <Badge tone={badgeTone(item.tone)}>{item.type}</Badge>
                         <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
                       </div>
                       <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
                     </div>
-                    <span className="shrink-0 text-sm text-blue-700">Review</span>
+                    <span className="shrink-0 text-[13px] font-medium text-gray-500">Review →</span>
                   </Link>
                 </li>
               ))}
@@ -447,7 +438,7 @@ export default async function DashboardPage({
         </section>
 
         {/* ── Recent Activity Feed ──────────────────────────── */}
-        <section className="rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Recent activity</h2>
@@ -461,9 +452,9 @@ export default async function DashboardPage({
                   <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${toneClass(item.tone)}`}>
+                        <Badge tone={badgeTone(item.tone)}>
                           {item.type === 'violation' ? 'Violation' : item.type === 'work_order' ? 'Maintenance' : item.type === 'bill' ? 'Bill' : 'Payment'}
-                        </span>
+                        </Badge>
                         <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
                       </div>
                       <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
@@ -533,15 +524,15 @@ function buildReportQueue(db: any, todayIso: string) {
     .limit(4);
 }
 
-function toneClass(tone: 'red' | 'amber' | 'blue' | 'slate' | 'green') {
-  const classes = {
-    red: 'bg-red-100 text-red-700',
-    amber: 'bg-amber-100 text-amber-800',
-    blue: 'bg-blue-100 text-blue-700',
-    slate: 'bg-slate-100 text-slate-700',
-    green: 'bg-green-100 text-green-700',
-  };
-  return classes[tone];
+function badgeTone(tone: 'red' | 'amber' | 'blue' | 'slate' | 'green') {
+  const tones = {
+    red: 'danger',
+    amber: 'pending',
+    blue: 'open',
+    slate: 'inactive',
+    green: 'complete',
+  } as const;
+  return tones[tone];
 }
 
 function formatStatus(status: string | null | undefined) {
