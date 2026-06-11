@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -47,8 +48,7 @@ export default async function OwnerPacketsPage({
     <DataWorkspace
       title="Send Owner Packets"
       description="Assemble packet-ready owners, confirm documents, and stage outbound owner packet delivery."
-      actions={<Link href="/owners/forms?template=owner_packet" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Prepare packet</Link>}
-      rail={<div className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">Packets should include association rules, payment setup, portal activation, emergency contacts, and any building-specific move instructions.</div>}
+      actions={<Link href="/owners/forms?template=owner_packet"><Button>Prepare packet</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[
@@ -65,11 +65,11 @@ export default async function OwnerPacketsPage({
               const latest = ownerRequests[0];
               return (
                 <TR key={owner.id} className="hover:bg-gray-50">
-                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-gray-500">{owner.email}</div></TD>
+                  <TD><Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link><div className="mt-1 text-xs text-gray-500">{owner.email}</div></TD>
                   <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Ready' : 'Activate first'}</StatusChip></TD>
                   <TD><StatusChip tone={ownerRequests.length ? 'info' : 'neutral'}>{ownerRequests.length} requests</StatusChip></TD>
                   <TD><div className="text-gray-900">{latest?.name ?? 'No packet activity'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
-                  <TD><Link href={`/owners/forms?owner=${owner.id}&template=owner_packet`} className="text-sm font-medium text-blue-700 hover:underline">Preview packet</Link></TD>
+                  <TD><Link href={`/owners/forms?owner=${owner.id}&template=owner_packet`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">Preview packet →</Link></TD>
                 </TR>
               );
             })}

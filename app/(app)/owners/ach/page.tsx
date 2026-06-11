@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -69,16 +70,7 @@ export default async function OwnerAchPage({
     <DataWorkspace
       title="Owner ACH Setup"
       description="Review owner payment methods, autopay mandates, verification status, and ACH readiness before enabling payment workflows."
-      actions={<Link href="/owners" className="text-sm font-medium text-blue-700 hover:underline">Back to homeowners</Link>}
-      rail={
-        <div className="space-y-3 text-sm text-gray-700">
-          <div className="text-xs font-semibold uppercase text-gray-500">Confirmation rule</div>
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            ACH setup is a protected action. Use this screen to review readiness, then confirm changes through the payment processor flow.
-          </div>
-          <Link href="/reports?slug=homeowner-ledger" className="block rounded border border-gray-200 p-3 hover:bg-gray-50">Run homeowner ledger report</Link>
-        </div>
-      }
+      actions={<Link href="/owners"><Button variant="secondary">Back to homeowners</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip
@@ -108,7 +100,7 @@ export default async function OwnerAchPage({
               return (
                 <TR key={owner.id} className="hover:bg-gray-50">
                   <TD>
-                    <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
+                    <Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link>
                     <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
                   </TD>
                   <TD>
@@ -134,8 +126,8 @@ export default async function OwnerAchPage({
                     <div className="mt-1 text-xs text-gray-500">Next run {date(mandate?.next_run_date)}</div>
                   </TD>
                   <TD>
-                    <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-blue-700 hover:underline">
-                      Prepare authorization
+                    <Link href={`/owners/forms?owner=${owner.id}&template=ach_authorization`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+                      Prepare authorization →
                     </Link>
                   </TD>
                 </TR>

@@ -56,7 +56,7 @@ function MetricTile({
       : value.toLocaleString();
 
   const inner = (
-    <div className="rounded border border-gray-200 bg-white px-4 py-3 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]">
       <div className="flex items-center justify-between gap-2">
         <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
         {prevValue != null && <Trend value={pctChange} inverse={inverse} />}
@@ -87,7 +87,7 @@ function MetricSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded border border-gray-200 bg-white">
+    <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="border-b border-gray-100 px-4 py-3">
         <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
         {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
@@ -338,22 +338,22 @@ export default async function MetricsPage() {
         {/* ── Quick Links ── */}
         <MetricSection title="Go deeper" subtitle="Related reports and workspaces">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            <Link href="/dashboard" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/dashboard" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Command center →
             </Link>
-            <Link href="/reports" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/reports" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Reports workspace →
             </Link>
-            <Link href="/reports/ar_aging" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/reports/ar_aging" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               A/R Aging live view →
             </Link>
-            <Link href="/diagnostics" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/diagnostics" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Data diagnostics →
             </Link>
-            <Link href="/surveys" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/surveys" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Survey results →
             </Link>
-            <Link href="/reports/delinquency" className="rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-blue-700 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+            <Link href="/reports/delinquency" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
               Delinquency report →
             </Link>
           </div>

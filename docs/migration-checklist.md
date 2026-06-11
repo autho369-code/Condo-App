@@ -45,16 +45,16 @@
 - [x] `/(app)/maintenance/communications`
 - [x] `/(app)/maintenance/templates`
 - [x] `/(app)/meetings`
-- [ ] `/(app)/metrics`
-- [ ] `/(app)/onboard`
-- [ ] `/(app)/owners`
-- [ ] `/(app)/owners/ach`
-- [ ] `/(app)/owners/activations`
-- [ ] `/(app)/owners/forms`
-- [ ] `/(app)/owners/packets`
-- [ ] `/(app)/projects`
-- [ ] `/(app)/purchase-orders`
-- [ ] `/(app)/recurring-work-orders`
+- [x] `/(app)/metrics`
+- [x] `/(app)/onboard`
+- [x] `/(app)/owners`
+- [x] `/(app)/owners/ach`
+- [x] `/(app)/owners/activations`
+- [x] `/(app)/owners/forms`
+- [x] `/(app)/owners/packets`
+- [x] `/(app)/projects`
+- [x] `/(app)/purchase-orders`
+- [x] `/(app)/recurring-work-orders`
 - [ ] `/(app)/reports`
 - [ ] `/(app)/reports/ar-aging`
 - [ ] `/(app)/reports/bulk-association`

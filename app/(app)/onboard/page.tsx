@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert, PageHeader, PageShell, Surface } from '@/components/ui/shell';
+import { StatusChip } from '@/components/operations/status-chip';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -11,9 +12,12 @@ export const dynamic = 'force-dynamic';
 
 async function createAssociation(formData: FormData) {
   'use server';
+  const failTo = (msg: string) => {
+    redirect(`/onboard?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const me = await (await import('@/lib/auth/me')).requirePortfolioAdmin();
-  if (!me.auth_user_id) return { error: 'Could not determine current user.' };
+  if (!me.auth_user_id) failTo('Could not determine current user.');
   const { error } = await (supabase as any).from('associations').insert({
     portfolio_id: me.portfolio.id,
     name:    formData.get('name') as string,
@@ -25,7 +29,7 @@ async function createAssociation(formData: FormData) {
     status:  'active',
     created_by: me.auth_user_id,
   });
-  if (error) return { error: error.message };
+  if (error) failTo(error.message);
   revalidatePath('/onboard');
 }
 
@@ -34,8 +38,13 @@ async function finishOnboarding() {
   redirect('/dashboard');
 }
 
-export default async function OnboardPage() {
+export default async function OnboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const me = await requirePortfolioAdmin();
+  const { error: errorMessage } = await searchParams;
   const supabase = await createClient();
 
   const [{ count: associationCount }, { count: unitCount }, { count: ownerCount }, { count: staffCount }, { data: subscription }] = await Promise.all([
@@ -57,44 +66,50 @@ export default async function OnboardPage() {
   const progress = Math.round(steps.filter((s) => s.done).length / steps.length * 100);
 
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
-      <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">Welcome to {me.portfolio.company_name}</h1>
-        <p className="mt-2 text-gray-600">Let&apos;s get your first association running. Should take about 30 minutes.</p>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-          <div className="h-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="mt-1 text-xs text-gray-500">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
-      </header>
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title={`Welcome to ${me.portfolio.company_name}`}
+        description="Let's get your first association running. Should take about 30 minutes."
+      />
 
-      {/* Trial countdown */}
-      {subscription?.status === 'trialing' && subscription.trial_ends_at && (
-        <div className="rounded-md border border-brand-200 bg-brand-50 p-4 text-sm">
-          You&apos;re on a free trial. {Math.max(0, Math.round((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86400000))} days remaining.
-          No charges until your trial ends.
-        </div>
-      )}
-
-      {/* STEP 1 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{steps[0].done ? '✓ ' : '1 — '}{steps[0].label}</CardTitle>
-            {steps[0].done && <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Done</span>}
+      <div className="space-y-6">
+        <div>
+          <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+            <div className="h-full bg-gray-950 transition-all" style={{ width: `${progress}%` }} />
           </div>
-        </CardHeader>
-        <CardBody>
+          <div className="mt-1 text-xs text-gray-500">{progress}% complete · {steps.filter((s) => s.done).length} of {steps.length}</div>
+        </div>
+
+        {errorMessage && <Alert tone="danger" title="Something went wrong:">{errorMessage}</Alert>}
+
+        {/* Trial countdown */}
+        {subscription?.status === 'trialing' && subscription.trial_ends_at && (
+          <Alert tone="info">
+            You&apos;re on a free trial. {Math.max(0, Math.round((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86400000))} days remaining.
+            No charges until your trial ends.
+          </Alert>
+        )}
+
+        {/* STEP 1 */}
+        <Surface>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+              {steps[0].done ? '✓ ' : '1 — '}{steps[0].label}
+            </h2>
+            {steps[0].done && <StatusChip tone="success">Done</StatusChip>}
+          </div>
           {steps[0].done ? (
-            <p className="text-sm text-gray-600">Great — you have {associationCount} association{(associationCount ?? 0) === 1 ? '' : 's'} set up.
-              <Link href="/associations" className="ml-1 text-brand-600 hover:underline">Manage</Link></p>
+            <p className="text-sm text-gray-600">
+              Great — you have {associationCount} association{(associationCount ?? 0) === 1 ? '' : 's'} set up.
+              <Link href="/associations" className="ml-1 font-medium text-gray-700 hover:text-gray-950 hover:underline">Manage</Link>
+            </p>
           ) : (
-            <form action={createAssociation as any} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="md:col-span-2">
+            <form action={createAssociation as any} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="name">Association name</Label>
                 <Input id="name" name="name" required placeholder="e.g. Granville Courts Condominium Association" />
               </div>
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="address">Street address</Label>
                 <Input id="address" name="address" required />
               </div>
@@ -105,33 +120,30 @@ export default async function OnboardPage() {
               </div>
               <div>
                 <Label htmlFor="fiscal_year_start">Fiscal year starts</Label>
-                <select id="fiscal_year_start" name="fiscal_year_start" defaultValue={1}
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                  {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
-                    <option key={i+1} value={i+1}>{m}</option>
+                <Select id="fiscal_year_start" name="fiscal_year_start" defaultValue={1}>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
+                    <option key={i + 1} value={i + 1}>{m}</option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="md:col-span-2 flex justify-end"><Button type="submit">Create association</Button></div>
+              <div className="sm:col-span-2"><Button type="submit">Create association</Button></div>
             </form>
           )}
-        </CardBody>
-      </Card>
+        </Surface>
 
-      {/* STEP 2-4 (links to existing pages) */}
-      {[
-        { ...steps[1], href: '/associations', desc: 'Open the association you just created and add its buildings and units.' },
-        { ...steps[2], href: '/owners',       desc: 'Add owner contact info. We\'ll match them to units in the next step.' },
-        { ...steps[3], href: '/settings',     desc: 'Add accountants, property managers, and on-site staff.' },
-      ].map((s, i) => (
-        <Card key={s.key}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>{s.done ? '✓ ' : `${i+2} — `}{s.label}</CardTitle>
-              {s.done && <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Done</span>}
+        {/* STEP 2-4 (links to existing pages) */}
+        {[
+          { ...steps[1], href: '/associations', desc: 'Open the association you just created and add its buildings and units.' },
+          { ...steps[2], href: '/owners',       desc: 'Add owner contact info. We\'ll match them to units in the next step.' },
+          { ...steps[3], href: '/settings',     desc: 'Add accountants, property managers, and on-site staff.' },
+        ].map((s, i) => (
+          <Surface key={s.key}>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+                {s.done ? '✓ ' : `${i + 2} — `}{s.label}
+              </h2>
+              {s.done && <StatusChip tone="success">Done</StatusChip>}
             </div>
-          </CardHeader>
-          <CardBody>
             <p className="text-sm text-gray-600">{s.desc}</p>
             <div className="mt-4">
               <Link href={s.href}>
@@ -140,19 +152,19 @@ export default async function OnboardPage() {
                 </Button>
               </Link>
             </div>
-          </CardBody>
-        </Card>
-      ))}
+          </Surface>
+        ))}
 
-      {/* STEP 5 — Stripe + finish */}
-      <Card>
-        <CardHeader><CardTitle>5 — Connect Stripe (optional but recommended)</CardTitle></CardHeader>
-        <CardBody>
+        {/* STEP 5 — Stripe + finish */}
+        <Surface>
+          <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+            5 — Connect Stripe (optional but recommended)
+          </h2>
           <p className="text-sm text-gray-600">
             Connect a Stripe account so owners can pay assessments online via ACH or card.
             You can also skip this and use manual check entry only.
           </p>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary">Sign up for Stripe →</Button>
             </a>
@@ -160,9 +172,8 @@ export default async function OnboardPage() {
               <Button type="submit">I&apos;m set — go to dashboard</Button>
             </form>
           </div>
-        </CardBody>
-      </Card>
+        </Surface>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -59,15 +60,7 @@ export default async function OwnerActivationsPage({
     <DataWorkspace
       title="Owner Portal Activation"
       description="Monitor portal readiness, invitation status, and last login before sending activation links."
-      actions={<Link href="/owners/forms?template=portal_activation" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Prepare activation</Link>}
-      rail={
-        <div className="space-y-3 text-sm">
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            Sending activation links is confirmation-gated. Use the prepare action to stage recipients and message copy.
-          </div>
-          <Link href="/reports?slug=owner-directory" className="block rounded border border-gray-200 p-3 hover:bg-gray-50">Owner directory report</Link>
-        </div>
-      }
+      actions={<Link href="/owners/forms?template=portal_activation"><Button>Prepare activation</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip
@@ -93,7 +86,7 @@ export default async function OwnerActivationsPage({
             {rows.map(({ owner, invitation }) => (
               <TR key={owner.id} className="hover:bg-gray-50">
                 <TD>
-                  <Link href={`/owners/${owner.id}`} className="font-medium text-blue-700 hover:underline">{owner.full_name}</Link>
+                  <Link href={`/owners/${owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{owner.full_name}</Link>
                   <div className="mt-1 text-xs text-gray-500">{owner.email}</div>
                 </TD>
                 <TD><StatusChip tone={owner.portal_activated ? 'success' : 'warning'}>{owner.portal_activated ? 'Active' : 'Needs invite'}</StatusChip></TD>
@@ -103,8 +96,8 @@ export default async function OwnerActivationsPage({
                 </TD>
                 <TD>{date(owner.portal_login_last_at)}</TD>
                 <TD>
-                  <Link href={`/owners/forms?owner=${owner.id}&template=portal_activation`} className="text-sm font-medium text-blue-700 hover:underline">
-                    Stage activation
+                  <Link href={`/owners/forms?owner=${owner.id}&template=portal_activation`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+                    Stage activation →
                   </Link>
                 </TD>
               </TR>

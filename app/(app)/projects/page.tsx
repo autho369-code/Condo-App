@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { FolderKanban, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { date } from '@/lib/utils';
@@ -195,11 +198,10 @@ export default async function ProjectsPage({
       title="Projects"
       description="Multi-work-order projects — roof replacements, pool renovations, repaving. Projects group related work orders under one budget and timeline."
       actions={
-        <Link href="/projects/new" className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-          + New project
+        <Link href="/projects/new">
+          <Button><Plus className="h-4 w-4" /> New project</Button>
         </Link>
       }
-      rail={<ProjectsRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
@@ -210,33 +212,19 @@ export default async function ProjectsPage({
           searchDefault={q}
           searchPlaceholder="Search by project name, association..."
         >
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={status}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All statuses</option>
-              {PROJECT_STATUSES.map((s) => (
-                <option key={s} value={s}>{formatLabel(s)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All statuses</option>
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s} value={s}>{formatLabel(s)}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association_id"
-              defaultValue={association_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -259,13 +247,13 @@ export default async function ProjectsPage({
                 return (
                   <TR key={p.id} className="cursor-pointer hover:bg-gray-50">
                     <TD>
-                      <Link href={`/work-orders?q=${encodeURIComponent(p.name)}`} className="block text-gray-900 hover:text-brand-700">
+                      <Link href={`/work-orders?q=${encodeURIComponent(p.name)}`} className="block text-gray-900">
                         <div className="font-medium">{p.name}</div>
                         <div className="text-xs text-gray-500">{p.work_order_count} work order{p.work_order_count !== 1 ? 's' : ''}</div>
                       </Link>
                     </TD>
-                    <TD className="text-sm text-gray-700">
-                      <Link href={`/associations/${p.association_id}`} className="text-blue-700 hover:underline">
+                    <TD>
+                      <Link href={`/associations/${p.association_id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                         {p.association_name}
                       </Link>
                     </TD>
@@ -282,55 +270,15 @@ export default async function ProjectsPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No projects match this view. Create work orders with shared titles to group them into projects.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={FolderKanban}
+              title="No projects match this view"
+              description="Create work orders with shared titles to group them into projects."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── DataWorkspace Rail ──
-function ProjectsRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/projects/new" label="New Project" />
-          <RailLink href="/work-orders/new" label="New Work Order" />
-          <RailLink href="/purchase-orders/new" label="New Purchase Order" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports?slug=project-status" label="Project Status" />
-          <RailLink href="/reports?slug=project-directory" label="Project Directory" />
-          <RailLink href="/reports?slug=work-order" label="Work Order Report" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick Links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/work-orders" label="Work Orders" />
-          <RailLink href="/purchase-orders" label="Purchase Orders" />
-          <RailLink href="/vendors" label="Vendors" />
-          <RailLink href="/recurring-work-orders" label="Recurring Work Orders" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
   );
 }

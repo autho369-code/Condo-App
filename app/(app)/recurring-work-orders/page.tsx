@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { Plus, Repeat } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 
@@ -100,11 +103,10 @@ export default async function RecurringWorkOrdersPage({
       title="Recurring Work Orders"
       description="Scheduled maintenance — landscaping, pool service, annual inspections. A nightly cron generates real work orders from these."
       actions={
-        <Link href="/recurring-work-orders/new" className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-          + New recurring work order
+        <Link href="/recurring-work-orders/new">
+          <Button><Plus className="h-4 w-4" /> New recurring work order</Button>
         </Link>
       }
-      rail={<RecurringWORail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
@@ -115,47 +117,26 @@ export default async function RecurringWorkOrdersPage({
           searchDefault={q}
           searchPlaceholder="Search by title, vendor, association, or unit..."
         >
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Frequency
-            <select
-              name="frequency"
-              defaultValue={frequency}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All frequencies</option>
-              {FREQUENCIES.map((f) => (
-                <option key={f} value={f}>{formatLabel(f)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Frequency" name="frequency" defaultValue={frequency}>
+            <option value="">All frequencies</option>
+            {FREQUENCIES.map((f) => (
+              <option key={f} value={f}>{formatLabel(f)}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={status}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="ended">Ended</option>
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="ended">Ended</option>
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association_id"
-              defaultValue={association_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -178,9 +159,7 @@ export default async function RecurringWorkOrdersPage({
                 return (
                   <TR key={r.id}>
                     <TD className="max-w-xs">
-                      <Link href={`/recurring-work-orders/${r.id}`} className="font-medium text-blue-700 hover:underline">
-                        {r.title}
-                      </Link>
+                      <div className="font-medium text-gray-900">{r.title}</div>
                       {r.trade && (
                         <div className="text-xs capitalize text-gray-500">{r.trade.replace(/_/g, ' ')}</div>
                       )}
@@ -203,17 +182,17 @@ export default async function RecurringWorkOrdersPage({
                       <StatusChip tone={st.tone}>{st.label}</StatusChip>
                     </TD>
                     <TD className="whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Link
                           href={`/recurring-work-orders/${r.id}/edit`}
-                          className="text-xs font-medium text-blue-700 hover:underline"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
                           Edit
                         </Link>
                         <form method="POST" action="/api/recurring-work-orders/generate">
                           <input type="hidden" name="id" value={r.id} />
-                          <button type="submit" className="text-xs font-medium text-green-700 hover:underline">
-                            Generate Now
+                          <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">
+                            Generate now
                           </button>
                         </form>
                         <form method="POST" action="/api/recurring-work-orders/toggle">
@@ -221,8 +200,8 @@ export default async function RecurringWorkOrdersPage({
                           <input type="hidden" name="action" value={r.auto_generate ? 'pause' : 'resume'} />
                           <button
                             type="submit"
-                            className={`text-xs font-medium hover:underline ${
-                              r.auto_generate ? 'text-amber-700' : 'text-green-700'
+                            className={`rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium transition-colors ${
+                              r.auto_generate ? 'text-amber-700 hover:bg-amber-50' : 'text-emerald-700 hover:bg-emerald-50'
                             }`}
                           >
                             {r.auto_generate ? 'Pause' : 'Resume'}
@@ -236,52 +215,15 @@ export default async function RecurringWorkOrdersPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No recurring work orders match this view.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Repeat}
+              title="No recurring work orders match this view"
+              description="Scheduled maintenance templates will appear here. A nightly cron generates real work orders from them."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── DataWorkspace Rail ──
-function RecurringWORail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/recurring-work-orders/new" label="New Recurring Work Order" />
-          <RailLink href="/work-orders/new" label="New Work Order" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/work-order" label="Work Order Report" />
-          <RailLink href="/reports/open-work-orders" label="Open Work Orders" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick Links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/work-orders" label="All Work Orders" />
-          <RailLink href="/vendors" label="Vendors" />
-          <RailLink href="/recurring-work-orders?status=paused" label="Paused Schedules" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
   );
 }

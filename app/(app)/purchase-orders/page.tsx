@@ -1,12 +1,15 @@
 import Link from 'next/link';
+import { FileSpreadsheet, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { money, date } from '@/lib/utils';
+import { money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +94,7 @@ export default async function PurchaseOrdersPage({
       description="POs issued to vendors — approved before work begins, reconciled against vendor bills."
       actions={
         <Link href="/purchase-orders/new">
-          <Button>+ New PO</Button>
+          <Button><Plus className="h-4 w-4" /> New PO</Button>
         </Link>
       }
     >
@@ -108,24 +111,11 @@ export default async function PurchaseOrdersPage({
         </nav>
 
         {/* ── SEARCH ── */}
-        <form action="/purchase-orders" className="flex gap-2">
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Search PO #, vendor, association..."
-            className="rounded border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 w-80"
-          />
+        <FilterBar action="/purchase-orders" searchDefault={q} searchPlaceholder="Search PO #, vendor, association...">
           {statusParam && statusParam !== 'all' && (
             <input type="hidden" name="status" value={statusParam} />
           )}
-          <Button type="submit" variant="secondary">Search</Button>
-          {q && (
-            <Link href={`/purchase-orders${statusParam && statusParam !== 'all' ? `?status=${statusParam}` : ''}`}>
-              <Button variant="ghost">Clear</Button>
-            </Link>
-          )}
-        </form>
+        </FilterBar>
 
         {/* ── PURCHASE ORDERS TABLE ── */}
         {filteredPOs.length > 0 ? (
@@ -147,10 +137,8 @@ export default async function PurchaseOrdersPage({
                   const items = lineItemsByPO[po.id] ?? [];
                   return (
                     <TR key={po.id}>
-                      <TD className="font-mono text-xs font-medium">
-                        <Link href={`/purchase-orders/${po.id}`} className="text-blue-700 hover:underline">
-                          {po.number ?? po.id.slice(0, 8)}
-                        </Link>
+                      <TD className="font-mono text-xs font-medium text-gray-900">
+                        {po.number ?? po.id.slice(0, 8)}
                       </TD>
                       <TD className="font-medium text-gray-900">
                         {po.vendors?.name ?? '—'}
@@ -183,11 +171,17 @@ export default async function PurchaseOrdersPage({
             />
           </div>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            {q || (statusParam && statusParam !== 'all')
-              ? 'No purchase orders match this filter.'
-              : 'No purchase orders issued yet.'}
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={FileSpreadsheet}
+              title={
+                q || (statusParam && statusParam !== 'all')
+                  ? 'No purchase orders match this filter'
+                  : 'No purchase orders issued yet'
+              }
+              description="POs issued to vendors will appear here once created."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
@@ -250,9 +244,9 @@ function LineItemsSummary({
   lineItemsByPO: Record<string, any[]>;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-700">Line Items Detail</h2>
+    <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="border-b border-gray-100 px-4 py-3">
+        <h2 className="text-sm font-semibold text-gray-950">Line items detail</h2>
       </div>
       <div className="divide-y divide-gray-100">
         {purchaseOrders.map((po: any) => {
