@@ -1,6 +1,9 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { Button } from '@/components/ui/button';
+import { PageShell, PageHeader, Surface } from '@/components/ui/shell';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import '@/components/calendar/calendar-theme.css';
 
@@ -29,19 +32,19 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const rows = raw.map((e: any) => ({ id: e.id, title: e.title, start_datetime: e.start_datetime, end_datetime: e.end_datetime, all_day: e.all_day, event_type: e.event_type, location: e.location, operations_status: e.operations_status, association_name: e.associations?.name ?? null }));
 
   return (
-    <div className="bg-[#f5f6f8] min-h-full">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 tracking-[-0.02em]">Calendar</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Month, week, and day views</p>
-          </div>
-          <Link href={`/calendar/new${sp.assoc ? `?assoc=${sp.assoc}` : ''}`} className="px-4 h-10 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 inline-flex items-center">+ Create event</Link>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <CalendarGrid events={rows} associations={associations ?? []} initialAssocId={sp.assoc ?? ''} initialType={sp.type ?? ''} />
-        </div>
-      </div>
-    </div>
+    <PageShell>
+      <PageHeader
+        title="Calendar"
+        description="Month, week, and day views"
+        actions={
+          <Link href={`/calendar/new${sp.assoc ? `?assoc=${sp.assoc}` : ''}`}>
+            <Button><Plus className="h-4 w-4" /> Create event</Button>
+          </Link>
+        }
+      />
+      <Surface padded={false} className="overflow-hidden">
+        <CalendarGrid events={rows} associations={associations ?? []} initialAssocId={sp.assoc ?? ''} initialType={sp.type ?? ''} />
+      </Surface>
+    </PageShell>
   );
 }

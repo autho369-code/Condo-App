@@ -15,16 +15,16 @@
 - [x] `/(app)/bank-accounts/link-bank`
 - [x] `/(app)/bank-accounts/reconcile`
 - [x] `/(app)/bank-transfers`
-- [ ] `/(app)/bills`
-- [ ] `/(app)/bills/check-run`
-- [ ] `/(app)/bills/owner-payable`
-- [ ] `/(app)/budget`
-- [ ] `/(app)/budget-vs-actuals`
-- [ ] `/(app)/calendar`
-- [ ] `/(app)/charge-categories`
-- [ ] `/(app)/charges`
-- [ ] `/(app)/charges/bulk`
-- [ ] `/(app)/charges/bulk-recurring`
+- [x] `/(app)/bills`
+- [x] `/(app)/bills/check-run`
+- [x] `/(app)/bills/owner-payable`
+- [x] `/(app)/budget`
+- [x] `/(app)/budget-vs-actuals`
+- [x] `/(app)/calendar`
+- [x] `/(app)/charge-categories`
+- [x] `/(app)/charges`
+- [x] `/(app)/charges/bulk`
+- [x] `/(app)/charges/bulk-recurring`
 - [ ] `/(app)/communication-center`
 - [ ] `/(app)/compliance`
 - [ ] `/(app)/dashboard`

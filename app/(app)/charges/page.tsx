@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { Plus, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { money, date } from '@/lib/utils';
 
@@ -171,22 +174,21 @@ export default async function ChargesPage({
       title="Receivables"
       description="Receipts, open charges, bank deposits, owner delinquency, and chargeback dispute tracking."
       actions={
-        <div className="flex gap-2">
-          <Link href="/charges/new" className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-            + New charge
+        <>
+          <Link href="/charges/new">
+            <Button><Plus className="h-4 w-4" /> New charge</Button>
           </Link>
-          <Link href="/reports/ar-aging" className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            AR aging report
+          <Link href="/reports/ar-aging">
+            <Button variant="secondary">AR aging report</Button>
           </Link>
-        </div>
+        </>
       }
-      rail={<ReceivablesRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => {
             const active = t.key === tab;
             const params = new URLSearchParams();
@@ -195,10 +197,10 @@ export default async function ChargesPage({
               <Link
                 key={t.key}
                 href={`/charges?${params.toString()}`}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
@@ -223,21 +225,14 @@ export default async function ChargesPage({
         >
           <input type="hidden" name="tab" value={tab} />
           {tab === 'charges' && (
-            <label className="text-xs font-medium uppercase text-gray-500">
-              Aging
-              <select
-                name="filter"
-                defaultValue={filter}
-                className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-              >
-                <option value="">All aging</option>
-                <option value="current">Current</option>
-                <option value="1_30">1–30 days</option>
-                <option value="31_60">31–60 days</option>
-                <option value="61_90">61–90 days</option>
-                <option value="90_plus">90+ days</option>
-              </select>
-            </label>
+            <FilterSelect label="Aging" name="filter" defaultValue={filter}>
+              <option value="">All aging</option>
+              <option value="current">Current</option>
+              <option value="1_30">1–30 days</option>
+              <option value="31_60">31–60 days</option>
+              <option value="61_90">61–90 days</option>
+              <option value="90_plus">90+ days</option>
+            </FilterSelect>
           )}
         </FilterBar>
 
@@ -290,9 +285,9 @@ export default async function ChargesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No receipts match this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState icon={Receipt} title="No receipts match this view" />
+              </div>
             )}
           </>
         )}
@@ -348,19 +343,20 @@ export default async function ChargesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No charges match this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState icon={Receipt} title="No charges match this view" />
+              </div>
             )}
 
             {/* Category breakdown */}
             {categoryBreakdown.length > 0 && (
-              <section className="rounded border border-gray-200 bg-white">
+              <Surface padded={false}>
                 <div className="border-b border-gray-100 px-5 py-4">
-                  <h2 className="text-sm font-semibold text-gray-950">Charges by category</h2>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Outstanding balance by charge category across all associations.
-                  </p>
+                  <SectionTitle
+                    title="Charges by category"
+                    description="Outstanding balance by charge category across all associations."
+                    className="mb-0"
+                  />
                 </div>
                 <div className="divide-y divide-gray-100">
                   {categoryBreakdown.map((cat: any) => (
@@ -375,7 +371,7 @@ export default async function ChargesPage({
                     </div>
                   ))}
                 </div>
-              </section>
+              </Surface>
             )}
           </>
         )}
@@ -432,9 +428,9 @@ export default async function ChargesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No bank deposits in this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState icon={Receipt} title="No bank deposits in this view" />
+              </div>
             )}
           </>
         )}
@@ -468,9 +464,9 @@ export default async function ChargesPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No delinquent units in this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState icon={Receipt} title="No delinquent units in this view" />
+              </div>
             )}
           </>
         )}
@@ -561,15 +557,12 @@ export default async function ChargesPage({
                 </section>
               </>
             ) : (
-              <div className="space-y-6">
-                <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                  No chargeback disputes recorded.
-                </p>
-                <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <SummaryCard label="Total disputes" value={0} tone="info" />
-                  <SummaryCard label="Pending resolution" value={0} tone="warning" />
-                  <SummaryCard label="Resolved" value={0} tone="success" />
-                </section>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={Receipt}
+                  title="No chargeback disputes recorded"
+                  description="Disputed violations and their resolution status will appear here."
+                />
               </div>
             )}
           </>
@@ -596,77 +589,11 @@ function formatBucket(bucket: string): string {
   }
 }
 
-function SummaryCard({ label, value, tone }: { label: string; value: string | number; tone: 'info' | 'warning' | 'success' }) {
-  const color = {
-    info: 'bg-blue-50 border-blue-200 text-blue-900',
-    warning: 'bg-amber-50 border-amber-200 text-amber-900',
-    success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-  };
+function SummaryCard({ label, value }: { label: string; value: string | number; tone?: 'info' | 'warning' | 'success' }) {
   return (
-    <div className={`rounded border px-4 py-3 ${color[tone]}`}>
-      <div className="text-xs font-medium uppercase">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-function ReceivablesRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Receipts</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/charges/new-payment?type=owner" label="Owner Receipt" />
-          <RailLink href="/charges/new-payment?type=vendor" label="Vendor Receipt" />
-          <RailLink href="/charges/new-payment?type=other" label="Other Receipt" />
-          <RailLink href="/charges/new-payment?type=subsidy" label="Subsidy Receipts" />
-        </div>
-      </section>
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Charges & Credits</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/charges/new?type=owner" label="Owner Charge" />
-          <RailLink href="/charges/new?type=credit" label="Owner Credit" />
-          <RailLink href="/charges/bulk" label="Bulk Charges and Credits" />
-          <RailLink href="/charges/bulk-recurring" label="Bulk Recurring Charges" />
-          <RailLink href="/charges/apply-credits" label="Apply Credits" />
-        </div>
-      </section>
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tools</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/charges/activity" label="Owner Receivable Activity" />
-          <RailLink href="/charges/common-charge" label="Common Charge" />
-          <RailLink href="/charges/late-fees" label="Charge Late Fees" />
-        </div>
-      </section>
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Banking</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bank-accounts/deposits/new" label="New Bank Deposit" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/aged-receivables" label="Aged Receivables" />
-          <RailLink href="/reports/dues-roll" label="Dues Roll" />
-          <RailLink href="/reports/owner-delinquency" label="Owner Delinquency" />
-          <RailLink href="/reports/deposit_register" label="Deposit Register" />
-          <RailLink href="/reports/payment_register" label="Payment Register" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
+    <Surface padded={false} className="px-4 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
+    </Surface>
   );
 }

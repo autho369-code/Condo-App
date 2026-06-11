@@ -2,7 +2,12 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { money } from '@/lib/utils';
-import { Plus, Pencil, DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, PiggyBank } from 'lucide-react';
+import { DataWorkspace } from '@/components/operations/data-workspace';
+import { MetricStrip } from '@/components/operations/metric-strip';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/input';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,34 +19,26 @@ export default async function BudgetPage({
   searchParams: Promise<{ association?: string; year?: string }>;
 }) {
   let error: string | null = null;
-  let me: any = null;
   let associations: any[] = [];
-  let glAccounts: any[] = [];
   let lines: any[] = [];
   let selectedYear = new Date().getFullYear();
   let selectedAssociation = '';
 
   try {
-    me = await requireStaff();
+    await requireStaff();
     const supabase = await createClient();
     const db = supabase as any;
     const params = await searchParams;
     const { association } = params;
     const year = params.year;
     selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
-    // Fetch associations
+
     const assocResult = await db.from('associations').select('id, name').order('name');
     if (assocResult.error) throw new Error('associations: ' + assocResult.error.message);
     associations = assocResult.data ?? [];
 
     selectedAssociation = association ?? associations?.[0]?.id ?? '';
 
-    // Fetch GL accounts
-    const glResult = await db.from('gl_accounts').select('id, number, name, account_type').order('number');
-    if (glResult.error) throw new Error('gl_accounts: ' + glResult.error.message);
-    glAccounts = glResult.data ?? [];
-
-    // Fetch budget lines
     if (selectedAssociation) {
       const blResult = await db.rpc('list_budget_lines', {
         p_association_id: selectedAssociation,
@@ -61,187 +58,150 @@ export default async function BudgetPage({
   const expenseLines = lines.filter((l: any) => l.category === 'expense');
   const totalIncomeBudget = incomeLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
   const totalExpenseBudget = expenseLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
+  const selectedName = associations?.find((a: any) => a.id === selectedAssociation)?.name;
 
   return (
-    <div className="flex h-screen">
-      <div className="flex-1 overflow-auto">
-        <div className="p-5 space-y-5">
-          {/* Debug: show errors */}
-          {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Budget Management</h1>
-              <p className="mt-1 text-sm text-slate-400">Per-association budget entries with monthly allocations</p>
-            </div>
-          </div>
+    <DataWorkspace
+      title="Budget management"
+      description="Per-association budget entries with monthly allocations."
+      actions={
+        selectedAssociation && (
+          <Link href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}>
+            <Button><Plus className="h-4 w-4" /> Add budget line</Button>
+          </Link>
+        )
+      }
+    >
+      <div className="space-y-6">
+        {error && <Alert tone="danger" title="Error:">{error}</Alert>}
 
-          {/* Summary cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Income Budget', value: money(totalIncomeBudget), icon: TrendingUp, cls: 'text-emerald-400' },
-              { label: 'Expense Budget', value: money(totalExpenseBudget), icon: TrendingDown, cls: 'text-amber-400' },
-              { label: 'Net Budget', value: money(totalIncomeBudget - totalExpenseBudget), icon: DollarSign, cls: 'text-white' },
-              { label: 'Budget Lines', value: String(lines.length), icon: null, cls: 'text-white' },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-                <div className="flex items-center gap-2">
-                  {s.icon && <s.icon className={`h-4 w-4 ${s.cls}`} />}
-                  <div className="text-xs font-medium uppercase text-slate-500">{s.label}</div>
-                </div>
-                <div className={`mt-1 text-2xl font-bold ${s.cls}`}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Filters */}
-          <form className="flex flex-wrap items-center gap-3">
-            <select
-              name="association"
-              defaultValue={selectedAssociation}
-              className="rounded-lg border border-[#1E293B] bg-[#0B1121] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              onChange={(e) => {
-                (e.target.form as HTMLFormElement)?.requestSubmit();
-              }}
-            >
-              <option value="">Select association...</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-            <select
-              name="year"
-              defaultValue={String(selectedYear)}
-              className="rounded-lg border border-[#1E293B] bg-[#0B1121] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              onChange={(e) => {
-                (e.target.form as HTMLFormElement)?.requestSubmit();
-              }}
-            >
-              {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </form>
-
-          {/* Budget lines table */}
-          <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-            <div className="border-b border-[#1E293B] px-5 py-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">
-                Budget Lines — {associations?.find((a: any) => a.id === selectedAssociation)?.name ?? 'No association selected'}
-              </h2>
-              {selectedAssociation && (
+        <MetricStrip
+          metrics={[
+            { label: 'Income budget', value: money(totalIncomeBudget) },
+            { label: 'Expense budget', value: money(totalExpenseBudget) },
+            { label: 'Net budget', value: money(totalIncomeBudget - totalExpenseBudget) },
+            {
+              label: 'Budget lines',
+              value: lines.length,
+              sublabel: (
                 <Link
-                  href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+                  href={`/budget-vs-actuals${selectedAssociation ? `?association=${selectedAssociation}&year=${selectedYear}` : ''}`}
+                  className="font-medium text-gray-500 transition-colors hover:text-gray-900"
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Budget Line
+                  Budget vs actuals
                 </Link>
-              )}
-            </div>
-            <div className="overflow-x-auto">
-              {!selectedAssociation ? (
-                <p className="py-12 text-center text-slate-500">Select an association above to view or manage budget lines.</p>
-              ) : lines.length === 0 ? (
-                <div className="py-12 text-center">
-                  <p className="text-slate-500">No budget lines found for {selectedYear}.</p>
-                  <Link
-                    href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}
-                    className="mt-2 inline-flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add your first budget line
+              ),
+            },
+          ]}
+        />
+
+        <Surface padded={false} className="p-3 sm:p-4">
+          <form className="flex flex-wrap items-end gap-3">
+            <label className="text-[12px] font-medium text-gray-500">
+              Association
+              <Select name="association" defaultValue={selectedAssociation} className="mt-1 min-w-56">
+                <option value="">Select association…</option>
+                {(associations ?? []).map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </Select>
+            </label>
+            <label className="text-[12px] font-medium text-gray-500">
+              Fiscal year
+              <Select name="year" defaultValue={String(selectedYear)} className="mt-1 w-28">
+                {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </Select>
+            </label>
+            <Button type="submit">Apply</Button>
+          </form>
+        </Surface>
+
+        <Surface padded={false}>
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+            <h2 className="text-sm font-semibold text-gray-950">
+              Budget lines — {selectedName ?? 'No association selected'}
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            {!selectedAssociation ? (
+              <EmptyState
+                icon={PiggyBank}
+                title="No association selected"
+                description="Select an association above to view or manage budget lines."
+              />
+            ) : lines.length === 0 ? (
+              <EmptyState
+                icon={PiggyBank}
+                title={`No budget lines for ${selectedYear}`}
+                description="Add your first budget line to start planning this fiscal year."
+                action={
+                  <Link href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}>
+                    <Button><Plus className="h-4 w-4" /> Add budget line</Button>
                   </Link>
-                </div>
-              ) : (
-                <>
-                  {/* Income section */}
-                  {incomeLines.length > 0 && (
-                    <>
-                      <div className="px-5 py-2 bg-emerald-500/5 border-b border-[#1E293B]">
-                        <span className="text-xs font-semibold text-emerald-400 uppercase">Income</span>
-                      </div>
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-[#1E293B]">
-                          <tr className="text-xs font-medium text-slate-500">
-                            <th className="px-5 py-2">GL Account</th>
-                            <th className="px-5 py-2 text-right">Annual Total</th>
-                            <th className="px-5 py-2 hidden sm:table-cell">Monthly Distribution</th>
-                            <th className="px-5 py-2 hidden md:table-cell">Notes</th>
-                            <th className="px-5 py-2 w-20"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {incomeLines.map((line: any) => (
-                            <BudgetRow key={line.id} line={line} association={selectedAssociation} year={selectedYear} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </>
-                  )}
-
-                  {/* Expense section */}
-                  {expenseLines.length > 0 && (
-                    <>
-                      <div className="px-5 py-2 bg-amber-500/5 border-b border-[#1E293B]">
-                        <span className="text-xs font-semibold text-amber-400 uppercase">Expense</span>
-                      </div>
-                      <table className="w-full text-left text-sm">
-                        <thead className="border-b border-[#1E293B]">
-                          <tr className="text-xs font-medium text-slate-500">
-                            <th className="px-5 py-2">GL Account</th>
-                            <th className="px-5 py-2 text-right">Annual Total</th>
-                            <th className="px-5 py-2 hidden sm:table-cell">Monthly Distribution</th>
-                            <th className="px-5 py-2 hidden md:table-cell">Notes</th>
-                            <th className="px-5 py-2 w-20"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {expenseLines.map((line: any) => (
-                            <BudgetRow key={line.id} line={line} association={selectedAssociation} year={selectedYear} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TASK Panel */}
-      <div className="hidden xl:block w-56 flex-shrink-0 border-l border-[#1E293B] p-4 space-y-5 overflow-auto" style={{ backgroundColor: '#0B1121' }}>
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</h3>
-          <div className="mt-3 space-y-1">
-            {selectedAssociation && (
-              <Link
-                href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}
-                className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-[#1E293B] hover:text-white transition-colors"
-              >
-                + Add Budget Line
-              </Link>
+                }
+              />
+            ) : (
+              <>
+                {incomeLines.length > 0 && (
+                  <BudgetSection
+                    title="Income"
+                    lines={incomeLines}
+                    association={selectedAssociation}
+                    year={selectedYear}
+                  />
+                )}
+                {expenseLines.length > 0 && (
+                  <BudgetSection
+                    title="Expense"
+                    lines={expenseLines}
+                    association={selectedAssociation}
+                    year={selectedYear}
+                  />
+                )}
+              </>
             )}
-            <Link
-              href={`/budget-vs-actuals${selectedAssociation ? `?association=${selectedAssociation}&year=${selectedYear}` : ''}`}
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-[#1E293B] hover:text-white transition-colors"
-            >
-              View Budget vs Actuals
-            </Link>
           </div>
-        </div>
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">FILTERS</h3>
-          <p className="mt-2 text-xs text-slate-400">Use the dropdowns above to filter by association and fiscal year.</p>
-        </div>
+        </Surface>
       </div>
-    </div>
+    </DataWorkspace>
+  );
+}
+
+function BudgetSection({
+  title,
+  lines,
+  association,
+  year,
+}: {
+  title: 'Income' | 'Expense';
+  lines: any[];
+  association: string;
+  year: number;
+}) {
+  return (
+    <>
+      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
+      </div>
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+          <tr>
+            <th className="px-5 py-2 font-medium">GL account</th>
+            <th className="px-5 py-2 text-right font-medium">Annual total</th>
+            <th className="hidden px-5 py-2 font-medium sm:table-cell">Monthly distribution</th>
+            <th className="hidden px-5 py-2 font-medium md:table-cell">Notes</th>
+            <th className="w-20 px-5 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line: any) => (
+            <BudgetRow key={line.id} line={line} association={association} year={year} />
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -250,43 +210,38 @@ function BudgetRow({ line, association, year }: { line: any; association: string
   const monthlyAmounts: number[] = line.monthly_amounts ?? [];
 
   return (
-    <tr className="border-b border-[#1E293B] hover:bg-white/5 transition-colors">
+    <tr className="border-b border-gray-50 transition-colors last:border-0 hover:bg-gray-50/60">
       <td className="px-5 py-2.5">
-        <div className="font-medium text-white">{line.gl_account_number} — {line.gl_account_name}</div>
+        <div className="font-medium text-gray-900">{line.gl_account_number} — {line.gl_account_name}</div>
       </td>
-      <td className="px-5 py-2.5 text-right tabular-nums text-white font-medium">{money(monthlyTotal)}</td>
-      <td className="px-5 py-2.5 hidden sm:table-cell">
-        <div className="flex gap-0.5 items-end h-8">
+      <td className="px-5 py-2.5 text-right font-medium tabular-nums text-gray-950">{money(monthlyTotal)}</td>
+      <td className="hidden px-5 py-2.5 sm:table-cell">
+        <div className="flex h-8 items-end gap-0.5">
           {monthlyAmounts.map((amt: number, i: number) => {
             const maxVal = Math.max(...monthlyAmounts, 1);
             const pct = (amt / maxVal) * 100;
             return (
               <div
                 key={i}
-                className="flex-1 rounded-t-sm"
-                style={{
-                  height: `${Math.max(pct, 2)}%`,
-                  backgroundColor: line.category === 'income' ? 'rgba(16,185,129,0.4)' : 'rgba(251,191,36,0.4)',
-                }}
+                className={`flex-1 rounded-t-sm ${line.category === 'income' ? 'bg-emerald-500/40' : 'bg-amber-500/40'}`}
+                style={{ height: `${Math.max(pct, 2)}%` }}
                 title={`${MONTHS[i]}: ${money(amt)}`}
               />
             );
           })}
         </div>
       </td>
-      <td className="px-5 py-2.5 hidden md:table-cell text-slate-400 text-xs max-w-[200px] truncate">
+      <td className="hidden max-w-[200px] truncate px-5 py-2.5 text-xs text-gray-500 md:table-cell">
         {line.notes || '—'}
       </td>
       <td className="px-5 py-2.5">
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/budget/${line.id}/edit?association=${association}&year=${year}`}
-            className="p-1 rounded hover:bg-[#1E293B] text-slate-400 hover:text-white transition-colors"
-            title="Edit / Delete"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+        <Link
+          href={`/budget/${line.id}/edit?association=${association}&year=${year}`}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          title="Edit / Delete"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Link>
       </td>
     </tr>
   );

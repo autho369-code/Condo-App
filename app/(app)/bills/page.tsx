@@ -1,14 +1,15 @@
 import Link from 'next/link';
+import { Plus, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
-import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,22 +195,21 @@ export default async function BillsPage({
       title="Payables"
       description="Vendor bills, payments, recurring payables, loans, and online payment tracking."
       actions={
-        <div className="flex gap-2">
+        <>
           <Link href="/bills/new">
-            <Button>+ New bill</Button>
+            <Button><Plus className="h-4 w-4" /> New bill</Button>
           </Link>
           <Link href="/bills/check-run">
             <Button variant="secondary">Run checks</Button>
           </Link>
-        </div>
+        </>
       }
-      rail={<PayablesRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         {/* ── MAIN TABS (Bills, Payments, Recurring, Loans, Online Payables) ── */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {PAYABLE_TABS.map((t) => {
             const active = t.key === tab;
             const params = new URLSearchParams();
@@ -221,10 +221,10 @@ export default async function BillsPage({
               <Link
                 key={t.key}
                 href={`/bills?${params.toString()}`}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
@@ -297,7 +297,7 @@ export default async function BillsPage({
                   {filteredBills.map((b: any) => (
                     <TR key={b.id}>
                       <TD className="font-medium">
-                        <Link href={`/bills/${b.id}`} className="text-blue-700 hover:underline">
+                        <Link href={`/bills/${b.id}`} className="text-gray-900 hover:text-gray-950 hover:underline">
                           {b.vendors?.name ?? '—'}
                         </Link>
                         {b.vendors?.payment_type && (
@@ -335,9 +335,18 @@ export default async function BillsPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No bills in this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState
+                  icon={Receipt}
+                  title="No bills in this view"
+                  description="Adjust the filters or enter a new vendor bill."
+                  action={
+                    <Link href="/bills/new">
+                      <Button><Plus className="h-4 w-4" /> New bill</Button>
+                    </Link>
+                  }
+                />
+              </div>
             )}
           </>
         )}
@@ -361,7 +370,7 @@ export default async function BillsPage({
                   {filteredPayments.map((b: any) => (
                     <TR key={b.id}>
                       <TD className="font-medium">
-                        <Link href={`/bills/${b.id}`} className="text-blue-700 hover:underline">
+                        <Link href={`/bills/${b.id}`} className="text-gray-900 hover:text-gray-950 hover:underline">
                           {b.vendors?.name ?? '—'}
                         </Link>
                       </TD>
@@ -385,32 +394,44 @@ export default async function BillsPage({
                 </tbody>
               </Table>
             ) : (
-              <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                No paid bills in this view.
-              </p>
+              <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <EmptyState icon={Receipt} title="No paid bills in this view" />
+              </div>
             )}
           </>
         )}
 
         {/* ── TAB: RECURRING ── */}
         {tab === 'recurring' && (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            Recurring bills module coming soon. Use this section to manage automatically recurring vendor bills.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Receipt}
+              title="Recurring bills coming soon"
+              description="Use this section to manage automatically recurring vendor bills."
+            />
+          </div>
         )}
 
         {/* ── TAB: LOANS ── */}
         {tab === 'loans' && (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            Loans and loan payables tracking coming soon. This section will track association loan balances, payment schedules, and amortization.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Receipt}
+              title="Loans coming soon"
+              description="This section will track association loan balances, payment schedules, and amortization."
+            />
+          </div>
         )}
 
         {/* ── TAB: ONLINE PAYABLES ── */}
         {tab === 'online-payables' && (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            Online payables coming soon. This section will manage eCheck, ACH, and online vendor payments.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Receipt}
+              title="Online payables coming soon"
+              description="This section will manage eCheck, ACH, and online vendor payments."
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
@@ -434,56 +455,3 @@ function BillStatusChip({ status }: { status: string }) {
   }
 }
 
-function PayablesRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bills/new" label="Enter Bill" />
-          <RailLink href="/bills/new?smart=true" label="Smart Bill Entry" placeholder />
-          <RailLink href="/settings/email" label="User Email Settings" placeholder />
-          <RailLink href="/bills/new?type=credit" label="Enter Credit" placeholder />
-          <RailLink href="/bills/check-run" label="Pay Bills" />
-          <RailLink href="/bills/pay-management-fees" label="Pay Management Fees" placeholder />
-          <RailLink href="/bills/owner-payable" label="Owner Payable" />
-          <RailLink href="/bank-transfers/new" label="Transfer Funds Between Cash Accounts" placeholder />
-          <RailLink href="/bills/new?recurring=true" label="New Recurring Bill" placeholder />
-          <RailLink href="/bills/manual-post" label="Manually Post Bills" placeholder />
-          <RailLink href="/bills/bulk-upload" label="Upload Bulk Bills" placeholder />
-          <RailLink href="/bills/bulk-board-approval" label="Bulk Board Approval" placeholder />
-        </div>
-      </section>
-
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/aged_payables_summary" label="Aged Payables Summary" placeholder />
-          <RailLink href="/reports/check_register" label="Check Register" placeholder />
-          <RailLink href="/reports/bill_detail" label="Bill Detail" placeholder />
-          <RailLink href="/reports/vendor_ledger" label="Vendor Ledger" placeholder />
-          <RailLink href="/reports/vendor_ledger_enhanced" label="Vendor Ledger Enhanced" placeholder />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label, placeholder }: { href: string; label: string; placeholder?: boolean }) {
-  if (placeholder) {
-    return (
-      <span className="rounded border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        {label}
-        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
-  );
-}

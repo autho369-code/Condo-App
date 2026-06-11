@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { PageShell, PageHeader, Breadcrumb, Surface, SectionTitle } from '@/components/ui/shell';
+import { Input, Field, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
@@ -27,64 +27,51 @@ export default async function CheckRunPage() {
   const defaultBank = (banks ?? [])[0];
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
-            </div>
-            <h1 className="mt-1 text-xl font-semibold text-gray-900">Check run</h1>
-            <p className="mt-1 text-sm text-gray-500">Select approved bills to pay in this check run.</p>
-          </div>
-          <Link href="/bills"><Button variant="secondary" size="sm">Cancel</Button></Link>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
+    <PageShell>
+      <Breadcrumb items={[{ label: 'Payables', href: '/bills' }, { label: 'Check run' }]} />
+      <PageHeader
+        title="Check run"
+        description="Select approved bills to pay in this check run."
+        actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
+      />
 
       <form action={writeChecks as any} className="space-y-6">
-        <Card>
-          <CardHeader><CardTitle>Run settings</CardTitle></CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <Label htmlFor="bank_account_id">Bank account</Label>
-                <select id="bank_account_id" name="bank_account_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                  {(banks ?? []).map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''} (next: {b.next_check_number ?? '—'})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="starting_check_number">Starting check #</Label>
-                <Input id="starting_check_number" name="starting_check_number" type="number" min={1}
-                  defaultValue={defaultBank?.next_check_number ?? ''} required />
-              </div>
-              <div>
-                <Label htmlFor="payment_date">Payment date</Label>
-                <Input id="payment_date" name="payment_date" type="date" defaultValue={new Date().toISOString().slice(0,10)} />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
+        <Surface>
+          <SectionTitle title="Run settings" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Bank account" htmlFor="bank_account_id">
+              <Select id="bank_account_id" name="bank_account_id" required>
+                {(banks ?? []).map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''} (next: {b.next_check_number ?? '—'})</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Starting check #" htmlFor="starting_check_number">
+              <Input id="starting_check_number" name="starting_check_number" type="number" min={1}
+                defaultValue={defaultBank?.next_check_number ?? ''} required />
+            </Field>
+            <Field label="Payment date" htmlFor="payment_date">
+              <Input id="payment_date" name="payment_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+            </Field>
+          </div>
+        </Surface>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Approved bills to pay</CardTitle>
+        <div>
+          <SectionTitle
+            title="Approved bills to pay"
+            actions={
               <div className="text-sm text-gray-600">
-                {queue?.length ?? 0} bills · <span className="font-semibold">{money(total)}</span>
+                {queue?.length ?? 0} bills · <span className="font-semibold tabular-nums">{money(total)}</span>
               </div>
-            </div>
-          </CardHeader>
-          <CardBody className="p-0">
+            }
+          />
+          {queue?.length ? (
             <Table>
-              <THead><TR>
+              <THead><tr>
                 <TH className="w-8"><SelectAllCheckbox targetName="bill_ids" /></TH>
                 <TH>Vendor</TH><TH>Association</TH><TH>Memo</TH>
                 <TH className="text-right">Amount</TH><TH>Due</TH>
-              </TR></THead>
+              </tr></THead>
               <tbody>
                 {(queue ?? []).map((b: any) => (
                   <TR key={b.bill_id}>
@@ -92,26 +79,24 @@ export default async function CheckRunPage() {
                     <TD className="font-medium">{b.vendor_name}</TD>
                     <TD>{b.association_name ?? '—'}</TD>
                     <TD className="max-w-sm truncate text-gray-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
-                    <TD className="text-right">{money(b.amount)}</TD>
+                    <TD className="text-right tabular-nums">{money(b.amount)}</TD>
                     <TD>{date(b.due_date)}</TD>
                   </TR>
                 ))}
               </tbody>
             </Table>
-            {!queue?.length && (
-              <div className="p-6 text-center text-sm text-gray-500">
-                No approved, unpaid bills for vendors that pay by check.
-              </div>
-            )}
-          </CardBody>
-        </Card>
+          ) : (
+            <div className="rounded-2xl border border-gray-200/70 bg-white p-6 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              No approved, unpaid bills for vendors that pay by check.
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end gap-2">
           <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
           <Button type="submit">Write checks</Button>
         </div>
       </form>
-      </div>
-    </div>
+    </PageShell>
   );
 }

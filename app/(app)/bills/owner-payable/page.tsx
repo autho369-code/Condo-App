@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { Plus, Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
@@ -130,19 +132,16 @@ export default async function OwnerPayablePage({
       title="Owner Payables"
       description="Owner refunds, settlements, and distributions — tracked separately from vendor payables."
       actions={
-        <div className="flex gap-2">
-          <Link href="/bills/owner-payable/new">
-            <Button>+ New owner payable</Button>
-          </Link>
-        </div>
+        <Link href="/bills/owner-payable/new">
+          <Button><Plus className="h-4 w-4" /> New owner payable</Button>
+        </Link>
       }
-      rail={<OwnerPayableRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         {/* TABS */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => {
             const active = t.key === tab;
             const params = new URLSearchParams();
@@ -152,10 +151,10 @@ export default async function OwnerPayablePage({
               <Link
                 key={t.key}
                 href={`/bills/owner-payable?${params.toString()}`}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
@@ -252,13 +251,24 @@ export default async function OwnerPayablePage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            {tab === 'open'
-              ? 'No open owner payables found. Owner payables will appear here once created from the New Owner Payable form.'
-              : tab === 'paid'
-              ? 'No paid owner payables in this view.'
-              : 'No owner payables found. Create one to get started.'}
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Wallet}
+              title={
+                tab === 'open'
+                  ? 'No open owner payables'
+                  : tab === 'paid'
+                    ? 'No paid owner payables in this view'
+                    : 'No owner payables found'
+              }
+              description="Owner refunds, settlements, and distributions will appear here once created."
+              action={
+                <Link href="/bills/owner-payable/new">
+                  <Button><Plus className="h-4 w-4" /> New owner payable</Button>
+                </Link>
+              }
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
@@ -272,11 +282,7 @@ function PayableTypeChip({ type }: { type: string }) {
     distribution: 'Distribution',
     other: 'Other',
   };
-  return (
-    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-      {labels[type] ?? type}
-    </span>
-  );
+  return <StatusChip tone="neutral">{labels[type] ?? type}</StatusChip>;
 }
 
 function OwnerPayableStatusChip({ status }: { status: string }) {
@@ -290,46 +296,3 @@ function OwnerPayableStatusChip({ status }: { status: string }) {
   }
 }
 
-function OwnerPayableRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bills/owner-payable/new" label="New Owner Payable" />
-          <RailLink href="/bills/owner-payable/new?type=refund" label="New Owner Refund" placeholder />
-          <RailLink href="/bills/owner-payable/new?type=settlement" label="New Owner Settlement" placeholder />
-          <RailLink href="/bills/owner-payable/new?type=distribution" label="New Owner Distribution" placeholder />
-        </div>
-      </section>
-
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/owner_payable_summary" label="Owner Payable Summary" placeholder />
-          <RailLink href="/reports/owner_payable_detail" label="Owner Payable Detail" placeholder />
-          <RailLink href="/reports/owner_ledger" label="Owner Ledger" placeholder />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label, placeholder }: { href: string; label: string; placeholder?: boolean }) {
-  if (placeholder) {
-    return (
-      <span className="rounded border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        {label}
-        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Placeholder</span>
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
-  );
-}
