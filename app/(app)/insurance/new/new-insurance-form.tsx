@@ -92,24 +92,24 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-8 py-6">
       <div>
-        <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-          <Link href="/insurance" className="hover:text-ink-700">Insurance</Link>
+        <nav className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <Link href="/insurance" className="hover:text-gray-700">Insurance</Link>
           <span className="mx-2">/</span>
           New policy
         </nav>
-        <h1 className="mt-2 text-2xl font-semibold text-ink-900">Add insurance policy</h1>
-        <p className="mt-1 text-sm text-ink-500">
+        <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Add insurance policy</h1>
+        <p className="mt-1 text-sm text-gray-500">
           Upload an HO6 certificate for AI extraction, or enter details manually.
         </p>
       </div>
 
       {/* AI Upload zone */}
-      <section className="rounded-lg border-2 border-dashed border-ink-200 bg-cream-50 p-8 text-center">
+      <section className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50/60 p-8 text-center">
         <div className="text-3xl mb-2">{extracting ? '⏳' : '📄'}</div>
-        <h3 className="font-medium text-ink-900">
+        <h3 className="font-medium text-gray-900">
           {extracting ? 'Extracting policy data...' : 'Upload certificate for AI extraction'}
         </h3>
-        <p className="mt-1 text-sm text-ink-500">
+        <p className="mt-1 text-sm text-gray-500">
           {extracting
             ? 'AI is reading the certificate. This may take a few seconds.'
             : 'Drop a PDF or image of the HO6 certificate. AI will extract policy number, coverage, dates, and insurance company automatically.'}
@@ -131,7 +131,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
           >
             {extracting ? (
               <span className="flex items-center gap-2">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-ink-300 border-t-ink-600" />
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
                 Extracting…
               </span>
             ) : (
@@ -139,7 +139,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
             )}
           </Button>
           {fileName && !extracting && (
-            <span className="text-sm text-ink-600">{fileName}</span>
+            <span className="text-sm text-gray-600">{fileName}</span>
           )}
         </div>
 
@@ -169,7 +169,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
                 id="owner_id"
                 name="owner_id"
                 required
-                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">Select owner</option>
                 {(owners ?? []).map((o: any) => (
@@ -183,7 +183,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
               <select
                 id="association_id"
                 name="association_id"
-                className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">Select association</option>
                 {(associations ?? []).map((a: any) => (
@@ -281,7 +281,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
                 id="notes"
                 name="notes"
                 rows={2}
-                className="w-full rounded-md border border-ink-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Additional coverage details, lender requirements, etc."
               />
             </div>
@@ -294,7 +294,7 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
 
         <div className="flex items-center gap-3">
           <Button type="submit" size="lg">Save policy</Button>
-          <Link href="/insurance" className="text-sm text-ink-500 hover:text-ink-900">Cancel</Link>
+          <Link href="/insurance" className="text-sm text-gray-500 hover:text-gray-900">Cancel</Link>
         </div>
       </form>
     </div>

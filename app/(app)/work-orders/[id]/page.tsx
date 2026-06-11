@@ -22,7 +22,7 @@ function Select({ name, defaultValue, options, required }: { name: string; defau
   return (
     <select name={name} defaultValue={defaultValue ?? ''} required={required}
       className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-      {!required && <option value="">â€”</option>}
+      {!required && <option value="">—</option>}
       {options.map((o) => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o.replace(/_/g, ' ') : o.label;
@@ -86,12 +86,12 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
           eyebrow={
             <>
               <Link href="/work-orders" className="transition-colors hover:text-gray-700">Work orders</Link>
-              {' Â· '}
+              {' · '}
               <span>{assoc?.name ?? 'Common area'}</span>
-              {(wo.units as any)?.unit_number && (<>{' Â· '}<span>Unit {(wo.units as any).unit_number}</span></>)}
+              {(wo.units as any)?.unit_number && (<>{' · '}<span>Unit {(wo.units as any).unit_number}</span></>)}
             </>
           }
-          title={`#${wo.number ?? wo.id.slice(0, 8)} â€” ${wo.title}`}
+          title={`#${wo.number ?? wo.id.slice(0, 8)} — ${wo.title}`}
           subtitle={
             <>
               <span className={`mr-1 rounded px-2 py-0.5 text-xs ${priorityBadge(wo.priority)}`}>{wo.priority}</span>
@@ -179,12 +179,12 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
       <Section title="Work details">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? 'â€”'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5 capitalize">{wo.trade?.replace(/_/g, ' ') ?? 'â€”'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5 capitalize">{wo.trade?.replace(/_/g, ' ') ?? '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Assigned to</dt><dd className="mt-0.5">{wo.assigned_to ?? 'â€”'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? 'â€”'}</dd></div>
-          <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? 'â€”'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Assigned to</dt><dd className="mt-0.5">{wo.assigned_to ?? '—'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>
+          <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? '—'}</dd></div>
           {wo.vendor_instructions && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Vendor instructions</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.vendor_instructions}</dd></div>}
           {wo.owner_availability && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Access / availability</dt><dd className="mt-0.5">{wo.owner_availability}</dd></div>}
           {wo.internal_notes && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Internal notes</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.internal_notes}</dd></div>}
@@ -196,7 +196,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
             <div className="md:col-span-2"><Label htmlFor="title">Title</Label><Input id="title" name="title" defaultValue={wo.title ?? ''} required /></div>
             <div className="md:col-span-2"><Label htmlFor="issue">Issue</Label>
               <textarea id="issue" name="issue" defaultValue={wo.issue ?? wo.description ?? ''} rows={3}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></div>
             <div><Label>Priority</Label><Select name="priority" defaultValue={wo.priority} options={PRIORITIES} required /></div>
             <div><Label>Category</Label><Select name="category" defaultValue={wo.category} options={CATEGORIES} required /></div>
             <div><Label>Trade</Label><Select name="trade" defaultValue={wo.trade ?? ''} options={TRADES} /></div>
@@ -207,11 +207,11 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
             <div><Label htmlFor="requested_by">Requested by</Label><Input id="requested_by" name="requested_by" defaultValue={wo.requested_by ?? ''} /></div>
             <div className="md:col-span-2"><Label htmlFor="vendor_instructions">Vendor instructions</Label>
               <textarea id="vendor_instructions" name="vendor_instructions" defaultValue={wo.vendor_instructions ?? ''} rows={2}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></div>
             <div className="md:col-span-2"><Label htmlFor="owner_availability">Access / availability</Label><Input id="owner_availability" name="owner_availability" defaultValue={wo.owner_availability ?? ''} /></div>
             <div className="md:col-span-2"><Label htmlFor="internal_notes">Internal notes</Label>
               <textarea id="internal_notes" name="internal_notes" defaultValue={wo.internal_notes ?? ''} rows={2}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" /></div>
             <div className="md:col-span-2 flex justify-end"><Button type="submit">Save changes</Button></div>
           </form>
         </details>
@@ -244,7 +244,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
                   <TD>{l.tech_name}</TD>
                   <TD>{date(l.date_worked)}</TD>
                   <TD className="text-right tabular-nums">{l.hours}</TD>
-                  <TD className="text-right tabular-nums">{l.hourly_rate ? money(l.hourly_rate) + '/hr' : 'â€”'}</TD>
+                  <TD className="text-right tabular-nums">{l.hourly_rate ? money(l.hourly_rate) + '/hr' : '—'}</TD>
                   <TD className="text-right font-medium tabular-nums">{money(l.labor_cost ?? 0)}</TD>
                   <TD className="text-gray-600">{l.description}</TD>
                 </TR>
@@ -272,7 +272,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
             <tbody>
               {estimates.map((e: any) => (
                 <TR key={e.id}>
-                  <TD>{(e.vendors as any)?.name ?? 'â€”'}</TD>
+                  <TD>{(e.vendors as any)?.name ?? '—'}</TD>
                   <TD className="text-right font-medium tabular-nums">{money(e.amount)}</TD>
                   <TD>{date(e.submitted_at)}</TD>
                   <TD>{e.approved_at ? 'âœ“ approved' : e.rejected_at ? 'âœ— rejected' : 'pending'}</TD>
@@ -291,7 +291,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
 
         <form action={addEstimate.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
           <select name="vendor_id" className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-            <option value="">Choose vendorâ€¦</option>
+            <option value="">Choose vendor…</option>
             {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <Input name="amount" type="number" step="0.01" min="0" placeholder="Quote $" required />
@@ -306,7 +306,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
             <li key={u.id} className="relative">
               <div className="absolute -left-5 top-1 h-2 w-2 rounded-full bg-gray-400" />
               <div className="text-sm">{u.note}</div>
-              {u.new_status && <div className="text-xs text-gray-500">â†’ status: <span className="capitalize">{u.new_status.replace(/_/g, ' ')}</span></div>}
+              {u.new_status && <div className="text-xs text-gray-500">→ status: <span className="capitalize">{u.new_status.replace(/_/g, ' ')}</span></div>}
               <div className="text-xs text-gray-400">{date(u.created_at)}</div>
             </li>
           ))}
@@ -314,7 +314,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
         </ul>
 
         <form action={addNote.bind(null, id) as any} className="flex gap-2 border-t border-gray-100 px-5 py-4">
-          <Input name="note" placeholder="Add a noteâ€¦" required className="flex-1" />
+          <Input name="note" placeholder="Add a note…" required className="flex-1" />
           <Button type="submit">Post</Button>
         </form>
       </Section>
