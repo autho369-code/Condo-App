@@ -2,18 +2,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Button } from '@/components/ui/button'
-import { Building2, Eye, Pencil, UserCog, MoreHorizontal } from 'lucide-react'
+import { StatusChip, type Tone } from '@/components/operations/status-chip'
+import { Building2, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 function HealthBadge({ score }: { score: number }) {
-  if (score >= 80) {
-    return <span className="inline-flex h-6 items-center rounded-full bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">{score}%</span>
-  }
-  if (score >= 50) {
-    return <span className="inline-flex h-6 items-center rounded-full bg-amber-500/10 px-2.5 text-xs font-medium text-amber-400 ring-1 ring-amber-500/20">{score}%</span>
-  }
-  return <span className="inline-flex h-6 items-center rounded-full bg-red-500/10 px-2.5 text-xs font-medium text-red-400 ring-1 ring-red-500/20">{score}%</span>
+  const tone: Tone = score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'
+  return <StatusChip tone={tone}>{score}%</StatusChip>
 }
 
 export default async function CompanyAdminAssociationsPage({
@@ -102,104 +98,103 @@ export default async function CompanyAdminAssociationsPage({
   if (sp.min_units) rows = rows.filter((r: any) => r.units >= parseInt(sp.min_units!, 10))
   if (sp.max_units) rows = rows.filter((r: any) => r.units <= parseInt(sp.max_units!, 10))
 
+  const selectCls = 'mt-1 block h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Associations</h1>
-          <p className="mt-1 text-sm text-slate-400">Manage all associations in your portfolio</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Associations</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage all associations in your portfolio</p>
         </div>
         <Link href="/onboard">
           <Button className="gap-2"><Building2 className="h-4 w-4" /> Add Association</Button>
         </Link>
       </div>
 
-      <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-        <label className="text-xs font-medium uppercase text-slate-500">
+      <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <label className="text-xs font-medium text-gray-500">
           Manager
-          <select name="manager" defaultValue={sp.manager ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="manager" defaultValue={sp.manager ?? ''} className={selectCls}>
             <option value="">All Managers</option>
             {(managers ?? []).map((mgr: any) => <option key={mgr.id} value={mgr.full_name ?? mgr.email}>{mgr.full_name ?? mgr.email}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium uppercase text-slate-500">
+        <label className="text-xs font-medium text-gray-500">
           City
-          <select name="city" defaultValue={sp.city ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="city" defaultValue={sp.city ?? ''} className={selectCls}>
             <option value="">All Cities</option>
             {cities.map((city) => <option key={city} value={city}>{city}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium uppercase text-slate-500">
+        <label className="text-xs font-medium text-gray-500">
           Health
-          <select name="health" defaultValue={sp.health ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="health" defaultValue={sp.health ?? ''} className={selectCls}>
             <option value="">All</option>
             <option value="healthy">Healthy (80+)</option>
             <option value="warning">Warning (50-79)</option>
             <option value="critical">Critical (&lt;50)</option>
           </select>
         </label>
-        <label className="text-xs font-medium uppercase text-slate-500">
+        <label className="text-xs font-medium text-gray-500">
           Status
-          <select name="status" defaultValue={sp.status ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="status" defaultValue={sp.status ?? ''} className={selectCls}>
             <option value="">All</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
         </label>
         <div className="flex items-end gap-2">
-          <label className="text-xs font-medium uppercase text-slate-500">
+          <label className="text-xs font-medium text-gray-500">
             Min Units
-            <input type="number" name="min_units" defaultValue={sp.min_units ?? ''} placeholder="0" className="mt-1 block h-9 w-24 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            <input type="number" name="min_units" defaultValue={sp.min_units ?? ''} placeholder="0" className={`${selectCls} w-24 placeholder:text-gray-400`} />
           </label>
-          <label className="text-xs font-medium uppercase text-slate-500">
+          <label className="text-xs font-medium text-gray-500">
             Max Units
-            <input type="number" name="max_units" defaultValue={sp.max_units ?? ''} placeholder="999" className="mt-1 block h-9 w-24 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            <input type="number" name="max_units" defaultValue={sp.max_units ?? ''} placeholder="999" className={`${selectCls} w-24 placeholder:text-gray-400`} />
           </label>
         </div>
-        <button type="submit" className="h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700">Apply</button>
+        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
+      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-              <th className="px-4 py-3 text-left font-medium">Association</th>
-              <th className="px-4 py-3 text-left font-medium">City</th>
-              <th className="px-4 py-3 text-right font-medium">Units</th>
-              <th className="px-4 py-3 text-left font-medium">Manager</th>
-              <th className="px-4 py-3 text-left font-medium">Health</th>
-              <th className="px-4 py-3 text-right font-medium">Open WO</th>
-              <th className="px-4 py-3 text-right font-medium">Violations</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-2.5 text-left font-medium">Association</th>
+              <th className="px-4 py-2.5 text-left font-medium">City</th>
+              <th className="px-4 py-2.5 text-right font-medium">Units</th>
+              <th className="px-4 py-2.5 text-left font-medium">Manager</th>
+              <th className="px-4 py-2.5 text-left font-medium">Health</th>
+              <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
+              <th className="px-4 py-2.5 text-right font-medium">Violations</th>
+              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1E293B]">
+          <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-500">No associations match your filters.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">No associations match your filters.</td></tr>
             ) : (
               rows.map((row: any) => (
-                <tr key={row.id} className="hover:bg-white/[0.02]">
+                <tr key={row.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                   <td className="px-4 py-3">
-                    <Link href={`/associations/${row.id}`} className="font-medium text-slate-200 hover:text-emerald-400">{row.name}</Link>
-                    <div className="mt-0.5 text-xs text-slate-600">{row.address}</div>
+                    <Link href={`/associations/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
+                    <div className="mt-0.5 text-xs text-gray-500">{row.address}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{row.city}{row.state ? `, ${row.state}` : ''}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-slate-300">{row.units.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-slate-400">{row.managerNames}</td>
+                  <td className="px-4 py-3 text-[13px] text-gray-700">{row.city}{row.state ? `, ${row.state}` : ''}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.units.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-[13px] text-gray-700">{row.managerNames}</td>
                   <td className="px-4 py-3"><HealthBadge score={row.healthScore} /></td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    {row.openWorkOrders > 0 ? <span className="text-amber-400">{row.openWorkOrders}</span> : <span className="text-emerald-400">0</span>}
-                    {row.overdueWorkOrders > 0 && <span className="ml-1 text-xs text-red-400">({row.overdueWorkOrders} overdue)</span>}
+                    <span className={row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}>{row.openWorkOrders}</span>
+                    {row.overdueWorkOrders > 0 && <span className="ml-1 text-xs text-red-700">({row.overdueWorkOrders} overdue)</span>}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {row.openViolations > 0 ? <span className="text-red-400">{row.openViolations}</span> : <span className="text-emerald-400">0</span>}
+                  <td className={`px-4 py-3 text-right tabular-nums ${row.openViolations > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>
+                    {row.openViolations}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Link href={`/associations/${row.id}`} className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-300" title="View"><Eye className="h-4 w-4" /></Link>
-                      <Link href={`/associations/${row.id}/edit`} className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-300" title="Edit"><Pencil className="h-4 w-4" /></Link>
-                      <Link href={`/associations/${row.id}/managers`} className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-300" title="Assign Manager"><UserCog className="h-4 w-4" /></Link>
-                      <button className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-red-400" title="More"><MoreHorizontal className="h-4 w-4" /></button>
+                      <Link href={`/associations/${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View"><Eye className="h-4 w-4" /></Link>
                     </div>
                   </td>
                 </tr>
@@ -208,7 +203,7 @@ export default async function CompanyAdminAssociationsPage({
           </tbody>
         </table>
       </div>
-      <div className="text-xs text-slate-600">Showing {rows.length} of {associations?.length ?? 0} associations{sp.city ? ` in ${sp.city}` : ''}</div>
+      <div className="text-xs text-gray-500">Showing {rows.length} of {associations?.length ?? 0} associations{sp.city ? ` in ${sp.city}` : ''}</div>
     </div>
   )
 }

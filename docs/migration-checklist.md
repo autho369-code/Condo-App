@@ -176,21 +176,21 @@
 
 ## E — Company admin (priority 5)
 - [ ] `/company-admin`
-- [ ] `/company-admin/architectural-reviews`
-- [ ] `/company-admin/associations`
+- [x] `/company-admin/architectural-reviews`
+- [x] `/company-admin/associations`
 - [ ] `/company-admin/audit-logs`
 - [ ] `/company-admin/billing`
 - [ ] `/company-admin/communications`
-- [ ] `/company-admin/managers`
-- [ ] `/company-admin/managers/[id]`
+- [x] `/company-admin/managers`
+- [x] `/company-admin/managers/[id]`
 - [ ] `/company-admin/overview`
-- [ ] `/company-admin/owners`
+- [x] `/company-admin/owners`
 - [ ] `/company-admin/platform-requests`
 - [ ] `/company-admin/portfolio-health`
 - [ ] `/company-admin/revenue`
 - [ ] `/company-admin/settings`
 - [ ] `/company-admin/vendors`
-- [ ] `/company-admin/violations`
+- [x] `/company-admin/violations`
 - [ ] `/company-admin/work-orders`
 
 ## F — Platform operator (priority 6, AFTER consolidation decision)
