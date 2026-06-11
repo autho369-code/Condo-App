@@ -44,8 +44,9 @@ type SavedReport = {
   last_run_at: string | null;
   run_count: number | null;
   created_at: string;
+  user_id: string | null;
   report_definitions: { slug: string; name: string } | null;
-  profiles: { full_name: string | null } | null;
+  creator_name?: string | null;
 };
 
 export default async function ReportsIndex({
@@ -68,9 +69,8 @@ export default async function ReportsIndex({
       .order('name'),
     (supabase as any).from('saved_reports')
       .select(`
-        id, name, pinned, last_run_at, run_count, created_at,
-        report_definitions(slug, name),
-        profiles(full_name)
+        id, name, pinned, last_run_at, run_count, created_at, user_id,
+        report_definitions(slug, name)
       `)
       .order('pinned', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -87,6 +87,23 @@ export default async function ReportsIndex({
   const visibleDefinitions = filterReports(definitions, q);
   const groups = groupReports(visibleDefinitions);
   const savedRows = (saved ?? []) as unknown as SavedReport[];
+
+  // saved_reports.user_id has no FK to profiles, so PostgREST can't embed it —
+  // resolve creator names with a second lookup instead.
+  const creatorIds = [...new Set(savedRows.map((r) => r.user_id).filter(Boolean))] as string[];
+  if (creatorIds.length > 0) {
+    const { data: creators } = await (supabase as any)
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', creatorIds);
+    const nameById = new Map<string, string | null>(
+      ((creators ?? []) as { id: string; full_name: string | null }[]).map((c) => [c.id, c.full_name])
+    );
+    for (const row of savedRows) {
+      row.creator_name = row.user_id ? nameById.get(row.user_id) ?? null : null;
+    }
+  }
+
   const favorites = savedRows.filter((report) => report.pinned);
 
   // ── Build spec-category card grid ──
@@ -278,7 +295,7 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
                 {report.name || report.report_definitions?.name || 'Untitled report'}
               </Link>
               <p className="mt-1 text-xs text-gray-500">
-                Created by {report.profiles?.full_name ?? 'Unknown'}
+                Created by {report.creator_name ?? 'Unknown'}
                 {report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
               </p>
             </div>
