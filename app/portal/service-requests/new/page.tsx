@@ -59,12 +59,12 @@ export default async function NewServiceRequest() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 text-sm text-gray-500">
-        <Link href="/portal/service-requests" className="hover:text-brand-600 hover:underline">← Back to service requests</Link>
+        <Link href="/portal/service-requests" className="hover:text-gray-950 hover:underline">← Back to service requests</Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold">Submit a service request</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Submit a service request</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Tell us what&apos;s going on. Your property manager reviews requests during business hours and
           dispatches a vendor when needed. For an active emergency — burst pipe, no heat in winter, fire, gas leak —
           <strong className="text-gray-700"> please also call your emergency maintenance line.</strong>
@@ -97,7 +97,7 @@ export default async function NewServiceRequest() {
                   </>
                 ) : (
                   <select id="unit_id" name="unit_id" required
-                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
                     <option value="">Choose a unit…</option>
                     {unitOptions.map((u: any) => (
                       <option key={u.unit_id} value={u.unit_id ?? ''}>
@@ -118,7 +118,7 @@ export default async function NewServiceRequest() {
                   minLength={10}
                   rows={5}
                   placeholder="Describe the problem — where in the unit, when it started, any sounds / leaks / smells, what you've already tried."
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                 />
                 <p className="mt-1 text-xs text-gray-500">The more specific you are, the faster we can dispatch the right person.</p>
               </div>
@@ -129,7 +129,7 @@ export default async function NewServiceRequest() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {PRIORITY_OPTIONS.map((p) => (
                     <label key={p.value}
-                      className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 hover:border-brand-500 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                      className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 transition hover:bg-gray-50/60 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/20">
                       <input
                         type="radio"
                         name="priority"

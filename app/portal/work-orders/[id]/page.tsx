@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { notFound } from 'next/navigation'
-import { money, date } from '@/lib/utils'
+import { Badge } from '@/components/ui/shell'
+import { date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
@@ -21,15 +22,15 @@ export default async function OwnerWorkOrderDetail({ params }: { params: Promise
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link href="/portal/work-orders" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"><ArrowLeft className="h-4 w-4" /> Back to work orders</Link>
+      <Link href="/portal/work-orders" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to work orders</Link>
 
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{wo.title}</h1>
-            <div className="text-sm text-gray-500 mt-1">Unit {wo.units?.unit_number} — {wo.category?.replace('_',' ') ?? 'General'}</div>
+            <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{wo.title}</h1>
+            <div className="mt-1 text-sm capitalize text-gray-500">Unit {wo.units?.unit_number} — {wo.category?.replace('_',' ') ?? 'General'}</div>
           </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${wo.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : wo.status === 'in_progress' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>{wo.status.replace('_',' ')}</span>
+          <Badge status={wo.status} />
         </div>
 
         {wo.description && <p className="text-sm text-gray-600 mb-4">{wo.description}</p>}

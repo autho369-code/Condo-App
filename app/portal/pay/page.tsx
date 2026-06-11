@@ -61,7 +61,7 @@ export default async function PayPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Pay assessment</h1>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Pay assessment</h1>
         <Link href="/portal"><Button variant="secondary">Back</Button></Link>
       </div>
 
@@ -76,11 +76,11 @@ export default async function PayPage() {
           <CardHeader>
             <CardTitle>{formatUnitLabel(defaultUnit, associationNameById)}</CardTitle>
             <p className="text-sm text-gray-500">Your current balance is
-              <span className={`ml-1 font-semibold ${Number(defaultUnit.outstanding_balance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className={`ml-1 font-semibold tabular-nums ${Number(defaultUnit.outstanding_balance) > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                 {money(defaultUnit.outstanding_balance)}
               </span>
               {Number(defaultUnit.unapplied_credit) > 0 &&
-                <span className="ml-2 text-xs text-green-600">(plus {money(defaultUnit.unapplied_credit)} credit on file)</span>}
+                <span className="ml-2 text-xs text-emerald-700">(plus {money(defaultUnit.unapplied_credit)} credit on file)</span>}
             </p>
           </CardHeader>
           <CardBody>
@@ -125,7 +125,7 @@ export default async function PayPage() {
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium text-gray-700">Payment method</legend>
 
-                <label className="flex items-start gap-3 rounded-md border border-gray-300 p-3 cursor-pointer hover:bg-gray-50 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 transition hover:bg-gray-50/60 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/20">
                   <input type="radio" name="method" value="ach" defaultChecked className="mt-0.5" />
                   <div className="flex-1">
                     <div className="font-medium">Bank account (ACH / eCheck)</div>
@@ -137,7 +137,7 @@ export default async function PayPage() {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 rounded-md border border-gray-300 p-3 cursor-pointer hover:bg-gray-50 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 transition hover:bg-gray-50/60 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/20">
                   <input type="radio" name="method" value="card" className="mt-0.5" />
                   <div className="flex-1">
                     <div className="font-medium">Debit or credit card</div>
@@ -188,14 +188,14 @@ export default async function PayPage() {
       )}
 
       <Link href="/portal/autopay">
-        <Card className="cursor-pointer transition hover:border-brand-500">
+        <Card className="cursor-pointer transition hover:border-gray-300">
           <CardBody>
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Set up autopay</div>
                 <div className="text-sm text-gray-500">Pay dues automatically via ACH each month. No more late fees.</div>
               </div>
-              <span className="text-brand-600">-&gt;</span>
+              <span className="text-gray-400">-&gt;</span>
             </div>
           </CardBody>
         </Card>

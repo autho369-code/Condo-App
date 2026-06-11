@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { notFound } from 'next/navigation'
+import { Badge } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft, Image } from 'lucide-react'
@@ -23,15 +24,15 @@ export default async function OwnerViolationDetail({ params }: { params: Promise
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link href="/portal/violations" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"><ArrowLeft className="h-4 w-4" /> Back to violations</Link>
+      <Link href="/portal/violations" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to violations</Link>
 
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{v.title}</h1>
-            <div className="text-sm text-gray-500 mt-1">{v.violation_type?.replace('_',' ')} — Unit {v.units?.unit_number}</div>
+            <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{v.title}</h1>
+            <div className="mt-1 text-sm capitalize text-gray-500">{v.violation_type?.replace('_',' ')} — Unit {v.units?.unit_number}</div>
           </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${v.status === 'cured' || v.status === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-amber-50 text-amber-700'}`}>{v.status.replace('_',' ')}</span>
+          <Badge status={v.status} />
         </div>
 
         {v.description && <p className="text-sm text-gray-600 mb-4">{v.description}</p>}
@@ -50,7 +51,7 @@ export default async function OwnerViolationDetail({ params }: { params: Promise
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Photos</h3>
             <div className="flex gap-3 flex-wrap">
               {atts.map((a: string, i: number) => (
-                <a key={i} href={a} target="_blank" className="flex h-24 w-24 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 hover:border-blue-300 transition">
+                <a key={i} href={a} target="_blank" className="flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50 transition hover:border-gray-300">
                   <Image className="h-8 w-8 text-gray-400" />
                 </a>
               ))}

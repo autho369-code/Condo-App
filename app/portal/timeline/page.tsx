@@ -45,14 +45,14 @@ export default async function OwnerTimelinePage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Activity Timeline</h1>
-        <p className="text-sm text-gray-500">All activity on your account in one place</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Activity Timeline</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">All activity on your account in one place</p>
       </div>
 
       {entries.length === 0 ? (
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-12 text-center">
-          <Calendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No activity recorded yet.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Calendar className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="text-sm text-gray-500">No activity recorded yet.</p>
         </div>
       ) : (
         <div className="relative pl-8 border-l-2 border-gray-200 space-y-6">
@@ -61,7 +61,7 @@ export default async function OwnerTimelinePage() {
               <div className={`absolute -left-[33px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white ${e.color.split(' ')[1]}`}>
                 <e.icon className={`h-3 w-3 ${e.color.split(' ')[0]}`} />
               </div>
-              <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
+              <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-gray-900 text-sm">{e.title}</div>
                   <span className="text-xs text-gray-400">{date(e.date)}</span>

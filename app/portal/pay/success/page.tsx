@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -31,11 +32,7 @@ export default async function PaySuccess({ searchParams }: { searchParams: Promi
               <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <dt className="text-gray-500">Amount</dt><dd className="font-medium">{money(pi.amount)}</dd>
                 <dt className="text-gray-500">Status</dt>
-                <dd><span className={`rounded px-2 py-0.5 text-xs ${
-                  pi.status === 'succeeded'   ? 'bg-green-100 text-green-700'
-                  : pi.status === 'processing'? 'bg-amber-100 text-amber-800'
-                  : 'bg-gray-100 text-gray-700'
-                }`}>{pi.status}</span></dd>
+                <dd><Badge status={pi.status} /></dd>
                 <dt className="text-gray-500">Method</dt><dd className="uppercase">{pi.method}</dd>
                 <dt className="text-gray-500">Paid at</dt><dd>{pi.paid_at ? date(pi.paid_at) : '—'}</dd>
                 <dt className="text-gray-500">Confirmation #</dt>

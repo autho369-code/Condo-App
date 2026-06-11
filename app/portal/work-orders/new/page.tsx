@@ -36,25 +36,25 @@ export default async function NewWorkOrderPage() {
 
   return (
     <div className="max-w-xl space-y-6">
-      <div><h1 className="text-2xl font-bold text-gray-900">New Work Order</h1><p className="text-sm text-gray-500">Submit a maintenance or repair request</p></div>
-      <form action={submit} className="space-y-5 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+      <div><h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New Work Order</h1><p className="mt-1.5 text-sm leading-6 text-gray-500">Submit a maintenance or repair request</p></div>
+      <form action={submit} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <input type="hidden" name="unit_id" value={occ.unit_id} />
         <input type="hidden" name="association_id" value={occ.association_id} />
-        <label className="block"><span className="text-sm font-medium text-gray-700">Title</span><input name="title" required className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="e.g. Leaking faucet in kitchen" /></label>
-        <label className="block"><span className="text-sm font-medium text-gray-700">Description</span><textarea name="description" rows={4} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Describe the issue..." /></label>
+        <label className="block"><span className="text-sm font-medium text-gray-700">Title</span><input name="title" required className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="e.g. Leaking faucet in kitchen" /></label>
+        <label className="block"><span className="text-sm font-medium text-gray-700">Description</span><textarea name="description" rows={4} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="Describe the issue..." /></label>
         <div className="grid grid-cols-2 gap-4">
           <label className="block"><span className="text-sm font-medium text-gray-700">Category</span>
-            <select name="category" className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <select name="category" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 bg-white">
               <option value="general">General</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="hvac">HVAC</option><option value="structural">Structural</option><option value="appliance">Appliance</option><option value="other">Other</option>
             </select>
           </label>
           <label className="block"><span className="text-sm font-medium text-gray-700">Priority</span>
-            <select name="priority" className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none bg-white">
+            <select name="priority" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 bg-white">
               <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="emergency">Emergency</option>
             </select>
           </label>
         </div>
-        <button type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Submit Request</button>
+        <button type="submit" className="w-full rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Submit Request</button>
       </form>
     </div>
   )

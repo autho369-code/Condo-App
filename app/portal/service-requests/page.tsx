@@ -4,23 +4,18 @@ import { requireAuth } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { Badge } from '@/components/ui/shell';
+import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelServiceRequest } from '@/lib/rpcs/service-requests';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const STATUS_BADGE: Record<string, string> = {
-  open:      'bg-amber-100 text-amber-800',
-  waiting:   'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500 line-through',
-};
-
-const PRIORITY_BADGE: Record<string, string> = {
-  emergency: 'bg-red-100 text-red-800',
-  high:      'bg-orange-100 text-orange-800',
-  normal:    'bg-gray-100 text-gray-700',
-  low:       'bg-gray-100 text-gray-500',
+const PRIORITY_TONE: Record<string, Tone> = {
+  emergency: 'danger',
+  high:      'warning',
+  normal:    'neutral',
+  low:       'info',
 };
 
 export default async function ServiceRequestsList({
@@ -47,15 +42,15 @@ export default async function ServiceRequestsList({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Service requests</h1>
-          <p className="text-sm text-gray-500">Report an issue or check on something you already submitted.</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Service requests</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Report an issue or check on something you already submitted.</p>
         </div>
         <Link href="/portal/service-requests/new"><Button size="lg">+ New request</Button></Link>
       </div>
 
       {submitted && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed â€” usually within one business day.
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed — usually within one business day.
         </div>
       )}
 
@@ -90,23 +85,19 @@ export default async function ServiceRequestsList({
                         <div className="line-clamp-2 text-sm text-gray-900">{firstLine}</div>
                         {wo && (
                           <div className="mt-0.5 text-xs text-gray-500">
-                            â†’ Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
+                            → Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
                           </div>
                         )}
                       </TD>
                       <TD className="whitespace-nowrap text-sm">
-                        {assoc?.name ? <span className="text-gray-500">{assoc.name} Â· </span> : null}
-                        Unit {r.units?.unit_number ?? 'â€”'}
+                        {assoc?.name ? <span className="text-gray-500">{assoc.name} · </span> : null}
+                        Unit {r.units?.unit_number ?? '—'}
                       </TD>
                       <TD>
-                        <span className={`rounded px-2 py-0.5 text-xs capitalize ${PRIORITY_BADGE[r.priority] ?? 'bg-gray-100 text-gray-700'}`}>
-                          {r.priority}
-                        </span>
+                        <StatusChip tone={PRIORITY_TONE[r.priority] ?? 'neutral'}>{r.priority}</StatusChip>
                       </TD>
                       <TD>
-                        <span className={`rounded px-2 py-0.5 text-xs capitalize ${STATUS_BADGE[r.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                          {r.status}
-                        </span>
+                        <Badge status={r.status} />
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.created_on ?? r.created_at)}</TD>
                       <TD>
@@ -126,8 +117,8 @@ export default async function ServiceRequestsList({
           ) : (
             <div className="py-8 text-center">
               <p className="text-sm text-gray-500">You haven&apos;t submitted any service requests yet.</p>
-              <Link href="/portal/service-requests/new" className="mt-2 inline-block text-sm text-brand-600 hover:underline">
-                Submit your first request â†’
+              <Link href="/portal/service-requests/new" className="mt-2 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
+                Submit your first request →
               </Link>
             </div>
           )}

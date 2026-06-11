@@ -161,18 +161,18 @@
 - [x] `/portal/insurance`
 - [x] `/portal/lease`
 - [x] `/portal/ledger`
-- [ ] `/portal/pay`
-- [ ] `/portal/pay/cancel`
-- [ ] `/portal/pay/success`
-- [ ] `/portal/profile`
-- [ ] `/portal/service-requests`
-- [ ] `/portal/service-requests/new`
-- [ ] `/portal/timeline`
-- [ ] `/portal/violations`
-- [ ] `/portal/violations/[id]`
-- [ ] `/portal/work-orders`
-- [ ] `/portal/work-orders/[id]`
-- [ ] `/portal/work-orders/new`
+- [x] `/portal/pay`
+- [x] `/portal/pay/cancel`
+- [x] `/portal/pay/success`
+- [x] `/portal/profile`
+- [x] `/portal/service-requests`
+- [x] `/portal/service-requests/new`
+- [x] `/portal/timeline`
+- [x] `/portal/violations`
+- [x] `/portal/violations/[id]`
+- [x] `/portal/work-orders`
+- [x] `/portal/work-orders/[id]`
+- [x] `/portal/work-orders/new`
 
 ## E — Company admin (priority 5)
 - [ ] `/company-admin`
