@@ -84,7 +84,7 @@ export default async function PrintChecksPage({
     <div className="space-y-4">
       <div className="no-print flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-2xl font-semibold">Check preview — {count ?? checks?.length ?? 0} check(s)</h1>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">Check preview — {count ?? checks?.length ?? 0} check(s)</h1>
           <p className="text-sm text-gray-500">Sized for #10 double-window envelopes. Tri-fold along the perforation lines.</p>
         </div>
         <div className="flex gap-2">
@@ -206,7 +206,7 @@ export default async function PrintChecksPage({
         })}
 
         {!checks?.length && (
-          <div className="no-print rounded border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+          <div className="no-print rounded-2xl border border-gray-200/70 bg-white p-8 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             No checks found for this run.
           </div>
         )}

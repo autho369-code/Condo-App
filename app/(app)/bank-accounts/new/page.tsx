@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createBankAccount } from '@/lib/rpcs/entities';
 import { createClient } from '@/lib/supabase/server';
@@ -31,10 +31,9 @@ export default async function NewBankAccountPage({
     <DataWorkspace
       title="New bank account"
       description="Create the account record, map it to the association and GL, and capture payment/reconciliation settings safely."
-      actions={<Link href="/bank-accounts" className="text-sm font-medium text-gray-600 hover:text-gray-950">Cancel</Link>}
-      rail={<SetupRail />}
+      actions={<Link href="/bank-accounts"><Button variant="secondary">Cancel</Button></Link>}
     >
-      <form action={createBankAccount as unknown as (formData: FormData) => Promise<void>} className="space-y-5">
+      <form action={createBankAccount as unknown as (formData: FormData) => Promise<void>} className="max-w-3xl space-y-5">
         {return_to && <input type="hidden" name="return_to" value={return_to} />}
 
         <FormSection title="Bank information" description="Internal account identity and bank classification.">
@@ -42,12 +41,12 @@ export default async function NewBankAccountPage({
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Bank name" required><Input name="bank_name" required placeholder="Chase, Byline, US Bank" /></Field>
             <Field label="Account type">
-              <select name="account_type" defaultValue="checking" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+              <Select name="account_type" defaultValue="checking">
                 <option value="checking">Checking</option>
                 <option value="savings">Savings</option>
                 <option value="money_market">Money Market</option>
                 <option value="trust">Trust</option>
-              </select>
+              </Select>
             </Field>
           </div>
           <p className="text-xs text-gray-500">Routing and account numbers are stored for operations but masked everywhere after save.</p>
@@ -60,16 +59,16 @@ export default async function NewBankAccountPage({
 
         <FormSection title="Legal entity" description="Connect the account to the association and chart of accounts.">
           <Field label="Association">
-            <select name="association_id" defaultValue={association ?? ''} className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+            <Select name="association_id" defaultValue={association ?? ''}>
               <option value="">Portfolio-level account</option>
               {(associations ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}
-            </select>
+            </Select>
           </Field>
           <Field label="GL account">
-            <select name="gl_account_id" defaultValue="" className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+            <Select name="gl_account_id" defaultValue="">
               <option value="">Select cash account</option>
               {cashGLs.map((row: any) => <option key={row.id} value={row.id}>{row.number}: {row.name}</option>)}
-            </select>
+            </Select>
           </Field>
         </FormSection>
 
@@ -93,16 +92,16 @@ export default async function NewBankAccountPage({
         </FormSection>
 
         <FormSection title="Notes" description="Internal operating context for accounting staff.">
-          <textarea name="description" rows={3} className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Internal notes about this account" />
+          <Textarea name="description" rows={3} placeholder="Internal notes about this account" />
         </FormSection>
 
         <FormSection title="Attachments" description="Attach statements, bank letters, or authorization documents after the account is saved.">
-          <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">Attachment upload is available on the saved account record.</div>
+          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-sm text-gray-500">Attachment upload is available on the saved account record.</div>
         </FormSection>
 
-        <div className="flex justify-end gap-2">
-          <Link href={return_to && return_to.startsWith('/') ? return_to : '/bank-accounts'} className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</Link>
+        <div className="flex gap-2">
           <Button type="submit">Create bank account</Button>
+          <Link href={return_to && return_to.startsWith('/') ? return_to : '/bank-accounts'}><Button variant="secondary" type="button">Cancel</Button></Link>
         </div>
       </form>
     </DataWorkspace>
@@ -111,7 +110,7 @@ export default async function NewBankAccountPage({
 
 function FormSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="rounded border border-gray-200 bg-white p-5">
+    <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
       <p className="mt-1 text-xs text-gray-500">{description}</p>
       <div className="mt-4 space-y-4">{children}</div>
@@ -128,12 +127,3 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-function SetupRail() {
-  return (
-    <div className="space-y-4 text-sm text-gray-600">
-      <h2 className="text-sm font-semibold text-gray-950">Setup checklist</h2>
-      <p>Save the account first, then attach bank authorization documents and enable provider linking only after staff confirmation.</p>
-      <Link href="/bank-accounts/feeds" className="block rounded border border-gray-200 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">Bank feed setup</Link>
-    </div>
-  );
-}

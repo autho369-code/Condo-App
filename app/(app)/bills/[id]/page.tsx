@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
+import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
+import { Badge } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { approveBill, voidBill } from '@/lib/rpcs/bills';
 import { money, date } from '@/lib/utils';
@@ -23,61 +24,50 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   if (!b) notFound();
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/bills" className="transition-colors hover:text-gray-700">Accounts payable</Link>
               {' · '}
-              <span className="text-gray-400">{b.vendors?.name}</span>
-            </div>
-            <h1 className="mt-1 text-xl font-semibold text-gray-900">Bill {b.bill_number ?? b.id.slice(0, 8)}</h1>
+              {b.vendors?.name}
+            </>
+          }
+          title={`Bill ${b.bill_number ?? b.id.slice(0, 8)}`}
+        />
+      }
+    >
+      <Section
+        title="Details"
+        actions={<Badge status={b.status} />}
+        padded
+      >
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          <div><dt className="text-gray-500">Vendor</dt><dd className="font-medium text-gray-900">{b.vendors?.name}</dd></div>
+          <div><dt className="text-gray-500">Pay by</dt><dd className="uppercase text-gray-900">{b.vendors?.payment_type}</dd></div>
+          <div><dt className="text-gray-500">Association</dt><dd className="text-gray-900">{b.associations?.name ?? '— Portfolio-wide —'}</dd></div>
+          <div><dt className="text-gray-500">Amount</dt><dd className="font-semibold tabular-nums text-gray-950">{money(b.amount)}</dd></div>
+          <div><dt className="text-gray-500">Bill date</dt><dd className="text-gray-900">{date(b.bill_date)}</dd></div>
+          <div><dt className="text-gray-500">Due date</dt><dd className="text-gray-900">{date(b.due_date)}</dd></div>
+          <div><dt className="text-gray-500">GL account</dt><dd className="text-gray-900">{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
+          <div><dt className="text-gray-500">Bank account</dt><dd className="text-gray-900">{b.bank_accounts?.name ?? '—'}</dd></div>
+          <div className="sm:col-span-2">
+            <dt className="text-gray-500">Memo (prints on check)</dt>
+            <dd className="mt-1 rounded-lg bg-gray-50 p-2 font-mono text-xs text-gray-700">{b.memo ?? '—'}</dd>
           </div>
-        </div>
-      </div>
-      <div className="flex-1 space-y-6 overflow-y-auto bg-gray-50 px-8 py-6">
+          <div><dt className="text-gray-500">Approved</dt><dd className="text-gray-900">{b.approved_at ? date(b.approved_at) : '—'}</dd></div>
+          <div><dt className="text-gray-500">Paid</dt><dd className="text-gray-900">{b.paid_at ? date(b.paid_at) : '—'}</dd></div>
+        </dl>
+      </Section>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Details</CardTitle>
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-              b.status === 'paid'             ? 'bg-green-100 text-green-700'
-              : b.status === 'approved'       ? 'bg-blue-100 text-blue-700'
-              : b.status === 'pending_approval' ? 'bg-amber-100 text-amber-800'
-              : b.status === 'void'           ? 'bg-gray-100 text-gray-500 line-through'
-              : 'bg-gray-100 text-gray-700'
-            }`}>{b.status}</span>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div><dt className="text-gray-500">Vendor</dt><dd className="font-medium">{b.vendors?.name}</dd></div>
-            <div><dt className="text-gray-500">Pay by</dt><dd className="uppercase">{b.vendors?.payment_type}</dd></div>
-            <div><dt className="text-gray-500">Association</dt><dd>{b.associations?.name ?? '— Portfolio-wide —'}</dd></div>
-            <div><dt className="text-gray-500">Amount</dt><dd className="font-semibold">{money(b.amount)}</dd></div>
-            <div><dt className="text-gray-500">Bill date</dt><dd>{date(b.bill_date)}</dd></div>
-            <div><dt className="text-gray-500">Due date</dt><dd>{date(b.due_date)}</dd></div>
-            <div><dt className="text-gray-500">GL account</dt><dd>{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">Bank account</dt><dd>{b.bank_accounts?.name ?? '—'}</dd></div>
-            <div className="col-span-2">
-              <dt className="text-gray-500">Memo (prints on check)</dt>
-              <dd className="mt-1 rounded bg-gray-50 p-2 font-mono text-xs">{b.memo ?? '—'}</dd>
-            </div>
-            <div><dt className="text-gray-500">Approved</dt><dd>{b.approved_at ? date(b.approved_at) : '—'}</dd></div>
-            <div><dt className="text-gray-500">Paid</dt><dd>{b.paid_at ? date(b.paid_at) : '—'}</dd></div>
-          </dl>
-        </CardBody>
-      </Card>
-
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {b.status === 'pending_approval' && (
           <form action={async () => { 'use server'; await approveBill(id); }}>
             <Button type="submit">Approve</Button>
           </form>
         )}
-        {['draft','pending_approval','approved'].includes(b.status) && b.paid_at === null && (
+        {['draft', 'pending_approval', 'approved'].includes(b.status) && b.paid_at === null && (
           <form action={async () => { 'use server'; await voidBill(id); }}>
             <Button type="submit" variant="danger">Void</Button>
           </form>
@@ -86,7 +76,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           <Link href="/bills/check-run"><Button variant="secondary">Include in check run</Button></Link>
         )}
       </div>
-      </div>
-    </div>
+    </Workspace>
   );
 }

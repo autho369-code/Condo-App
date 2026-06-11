@@ -92,16 +92,16 @@
 - [x] `/(app)/associations/[id]/profile`
 - [x] `/(app)/associations/[id]/units`
 - [x] `/(app)/associations/new`
-- [ ] `/(app)/bank-accounts/adjustments/new`
-- [ ] `/(app)/bank-accounts/deposits/new`
-- [ ] `/(app)/bank-accounts/new`
-- [ ] `/(app)/bank-accounts/reconcile/new`
-- [ ] `/(app)/bills/[id]`
-- [ ] `/(app)/bills/check-run/print/[id]`
-- [ ] `/(app)/bills/new`
-- [ ] `/(app)/bills/owner-payable/new`
-- [ ] `/(app)/budget/[id]/edit`
-- [ ] `/(app)/budget/new`
+- [x] `/(app)/bank-accounts/adjustments/new`
+- [x] `/(app)/bank-accounts/deposits/new`
+- [x] `/(app)/bank-accounts/new`
+- [x] `/(app)/bank-accounts/reconcile/new`
+- [x] `/(app)/bills/[id]`
+- [x] `/(app)/bills/check-run/print/[id]`
+- [x] `/(app)/bills/new`
+- [x] `/(app)/bills/owner-payable/new`
+- [x] `/(app)/budget/[id]/edit`
+- [x] `/(app)/budget/new`
 - [ ] `/(app)/buildings/new`
 - [ ] `/(app)/bulk-statement-settings/new`
 - [ ] `/(app)/calendar/new`

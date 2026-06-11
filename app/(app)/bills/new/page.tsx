@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select, Textarea } from '@/components/ui/input';
+import { Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { createBill } from '@/lib/rpcs/bills';
 import Link from 'next/link';
@@ -34,48 +34,38 @@ export default async function NewBillPage() {
   ]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <Link href="/bills" className="hover:text-brand-600">Accounts payable</Link>
-            </div>
-            <h1 className="mt-1 text-xl font-semibold text-gray-900">New bill</h1>
-          </div>
-          <Link href="/bills"><Button variant="secondary" size="sm">Cancel</Button></Link>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-8 py-6">
+    <PageShell className="max-w-4xl">
+      <Breadcrumb items={[{ label: 'Accounts payable', href: '/bills' }, { label: 'New bill' }]} />
+      <PageHeader
+        title="New bill"
+        actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
+      />
 
-      <Card>
-        <CardHeader><CardTitle>Bill details</CardTitle></CardHeader>
-        <CardBody>
-          <form action={createBill as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Surface>
+        <SectionTitle title="Bill details" />
+        <form action={createBill as any} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <input type="hidden" name="portfolio_id" value={me.portfolio?.id ?? ''} />
 
             {/* VENDOR */}
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="vendor_id">Vendor *</Label>
-              <select id="vendor_id" name="vendor_id" required
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="vendor_id" name="vendor_id" required>
                 <option value="">Select a vendor…</option>
                 {(vendors ?? []).map((v: any) => (
                   <option key={v.id} value={v.id}>{v.name} — {v.trade} ({v.payment_type})</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {/* ASSOCIATION */}
             <div>
               <Label htmlFor="association_id">Association</Label>
-              <select id="association_id" name="association_id"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="association_id" name="association_id">
                 <option value="">— None (portfolio-wide) —</option>
                 {(associations ?? []).map((a: any) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
-              </select>
+              </Select>
               <p className="mt-1 text-xs text-gray-500">The HOA the bill is billed to.</p>
             </div>
 
@@ -109,32 +99,29 @@ export default async function NewBillPage() {
             {/* GL ACCOUNT */}
             <div>
               <Label htmlFor="gl_account_id">Expense GL account</Label>
-              <select id="gl_account_id" name="gl_account_id"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="gl_account_id" name="gl_account_id">
                 <option value="">—</option>
                 {(gls ?? []).map((g: any) => (
                   <option key={g.id} value={g.id}>{g.number} — {g.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {/* BANK */}
             <div>
               <Label htmlFor="bank_account_id">Pay from bank account</Label>
-              <select id="bank_account_id" name="bank_account_id"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="bank_account_id" name="bank_account_id">
                 <option value="">—</option>
                 {(banks ?? []).map((b: any) => (
                   <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `(${b.bank_name})` : ''}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {/* MEMO — prints on the check */}
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="memo">Memo (prints on check) *</Label>
-              <textarea id="memo" name="memo" rows={2}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              <Textarea id="memo" name="memo" rows={2}
                 placeholder="e.g. Dec 2026 gas utility — Granville Tower" />
               <p className="mt-1 text-xs text-gray-500">This shows on the printed check&apos;s memo line and on the check stub.</p>
             </div>
@@ -142,12 +129,11 @@ export default async function NewBillPage() {
             {/* STATUS + APPROVAL */}
             <div>
               <Label htmlFor="status">Status</Label>
-              <select id="status" name="status" defaultValue="pending_approval"
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="status" name="status" defaultValue="pending_approval">
                 <option value="draft">Draft</option>
                 <option value="pending_approval">Pending approval</option>
                 <option value="approved">Approved</option>
-              </select>
+              </Select>
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -155,14 +141,12 @@ export default async function NewBillPage() {
               </label>
             </div>
 
-            <div className="md:col-span-2 flex justify-end gap-2">
-              <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
+            <div className="flex gap-2 sm:col-span-2">
               <Button type="submit">Save bill</Button>
+              <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
             </div>
           </form>
-        </CardBody>
-      </Card>
-      </div>
-    </div>
+      </Surface>
+    </PageShell>
   );
 }

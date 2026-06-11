@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
+import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
@@ -14,43 +16,47 @@ export default async function NewBankAdjustmentPage() {
   async function handleSubmit(formData: FormData) {
     'use server';
     const supabase = await createClient();
-    await (supabase as any).from('bank_adjustments').insert({
+    const { error } = await (supabase as any).from('bank_adjustments').insert({
       bank_account_id: formData.get('bank_account_id') || null,
       amount: parseFloat(formData.get('amount') as string) || 0,
       adjustment_date: formData.get('adjustment_date') || null,
       description: formData.get('description') || '',
     });
+    if (error) {
+      redirect(`/bank-accounts/adjustments/new?error=${encodeURIComponent(error.message)}`);
+    }
     redirect('/bank-accounts');
   }
 
   return (
     <DataWorkspace
       title="Bank adjustment"
-      description="Create a bank-only adjustment with notes. Adjustments do not affect GL balances."
-      rail={<p className="text-sm leading-6 text-gray-600">Use journal entries for accounting-impacting corrections.</p>}
+      description="Create a bank-only adjustment with notes. Adjustments do not affect GL balances — use journal entries for accounting-impacting corrections."
     >
-      <form action={handleSubmit} className="space-y-5">
-        <section className="rounded border border-blue-200 bg-blue-50 p-5">
-          <p className="text-sm font-medium text-blue-900">Bank adjustments do not affect General Ledger account balances.</p>
-        </section>
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="text-sm font-medium text-gray-700">Account
-              <select name="bank_account_id" className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+      <form action={handleSubmit} className="max-w-3xl space-y-5">
+        <Alert tone="info">
+          Bank adjustments do not affect General Ledger account balances.
+        </Alert>
+        <Surface>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Account">
+              <Select name="bank_account_id">
                 <option value="">Select account</option>
                 {(accounts ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}
-              </select>
-            </label>
-            <label className="text-sm font-medium text-gray-700">Amount
-              <input name="amount" type="number" step="0.01" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="$0.00" />
-            </label>
-            <label className="text-sm font-medium text-gray-700">Adjustment date
-              <input name="adjustment_date" type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
-            </label>
+              </Select>
+            </Field>
+            <Field label="Amount">
+              <Input name="amount" type="number" step="0.01" placeholder="$0.00" />
+            </Field>
+            <Field label="Adjustment date">
+              <Input name="adjustment_date" type="date" />
+            </Field>
           </div>
-          <textarea name="description" className="mt-4 w-full rounded border border-gray-300 px-3 py-2 text-sm" rows={3} placeholder="Description" />
-        </section>
-        <div className="flex justify-end gap-2">
+          <Field label="Description" className="mt-4">
+            <Textarea name="description" rows={3} placeholder="Description" />
+          </Field>
+        </Surface>
+        <div className="flex justify-start">
           <Button type="submit">Create adjustment</Button>
         </div>
       </form>
