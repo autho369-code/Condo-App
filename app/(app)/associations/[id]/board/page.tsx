@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
@@ -75,7 +74,7 @@ export default async function BoardTab({
               <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No active board members.</td></tr>
             ) : current.map((m: any) => (
               <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                <td className="px-4 py-3"><span className="text-blue-700">{m.full_name}</span></td>
+                <td className="px-4 py-3"><span className="font-medium text-gray-900">{m.full_name}</span></td>
                 <td className="px-4 py-3 text-gray-700">{humanRole(m.role)}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_start ? formatDate(m.term_start) : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_end ? formatDate(m.term_end) : <span className="text-gray-400">—</span>}</td>
@@ -120,11 +119,7 @@ export default async function BoardTab({
         </details>
       </Section>
 
-      <Section
-        title="Board Approvals"
-        actions={<Link href={`/associations/${id}/board/edit-approvals`} className="text-sm text-blue-700 hover:underline">Edit</Link>}
-        padded
-      >
+      <Section title="Board Approvals" padded>
         <dl className="grid grid-cols-[200px_1fr] gap-y-2.5 text-sm">
           <dt className="text-gray-500">Signatures Required</dt>
           <dd className="text-gray-900">{sigsRequired ? 'Yes' : 'No'}</dd>

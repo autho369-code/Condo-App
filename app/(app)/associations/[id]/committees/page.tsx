@@ -81,7 +81,7 @@ export default async function CommitteesTab({
                   <tr key={m.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       {m.owner ? (
-                        <Link href={`/owners/${m.owner.id}`} className="text-blue-700 hover:underline">{m.owner.full_name}</Link>
+                        <Link href={`/owners/${m.owner.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{m.owner.full_name}</Link>
                       ) : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{m.role || <span className="text-gray-400">Member</span>}</td>

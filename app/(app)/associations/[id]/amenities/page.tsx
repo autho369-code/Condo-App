@@ -146,7 +146,7 @@ export default async function AmenitiesTab({
             </div>
             {a.image_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={a.image_url} alt={a.name} className="h-24 w-32 rounded border border-gray-200 object-cover" />
+              <img src={a.image_url} alt={a.name} className="h-24 w-32 rounded-lg border border-gray-200 object-cover" />
             )}
           </div>
         </Section>
@@ -155,12 +155,12 @@ export default async function AmenitiesTab({
       {showCreate && (
         <Section
           title="Create Amenity"
-          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">Ã—</Link>}
+          actions={<Link href={`/associations/${id}/amenities`} className="text-lg leading-none text-gray-400 hover:text-gray-600">×</Link>}
           padded
         >
           <form action={createAmenity as any} className="space-y-4">
             <FormRow label="Title" required>
-              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" name="name" required placeholder="e.g. Tennis Court 1" className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </FormRow>
 
             <FormRow label="Image">
@@ -169,17 +169,17 @@ export default async function AmenitiesTab({
             </FormRow>
 
             <FormRow label="Description" required>
-              <textarea name="description_html" rows={4} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <textarea name="description_html" rows={4} className="w-full max-w-lg resize-y rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </FormRow>
 
             <fieldset className="border-t border-gray-200 pt-4">
               <legend className="mb-2 text-sm font-semibold text-gray-700">Hours of Operation</legend>
               <div className="flex items-end gap-4">
                 <FormRow label="Opens">
-                  <input type="time" name="opens_at" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  <input type="time" name="opens_at" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </FormRow>
                 <FormRow label="Closes">
-                  <input type="time" name="closes_at" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  <input type="time" name="closes_at" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
                 </FormRow>
               </div>
             </fieldset>
@@ -203,7 +203,7 @@ export default async function AmenitiesTab({
 
               <div className="mb-4 flex items-center gap-1.5">
                 <span className="text-gray-500">$</span>
-                <input type="number" step="0.01" min="0" name="price_amount" defaultValue="0.00" className="w-40 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <input type="number" step="0.01" min="0" name="price_amount" defaultValue="0.00" className="w-40 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </div>
 
               <div className="mb-2 text-sm font-semibold text-gray-700">&quot;Reserve&quot; button in resident portal</div>
@@ -219,11 +219,11 @@ export default async function AmenitiesTab({
               </div>
 
               <FormRow label="Email Address">
-                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <input type="email" name="reservation_email" placeholder='e.g. "reservations@gmail.com"' className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </FormRow>
 
               <FormRow label="Platform URL">
-                <input type="url" name="reservation_url" placeholder="https://..." className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                <input type="url" name="reservation_url" placeholder="https://..." className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
               </FormRow>
             </fieldset>
 

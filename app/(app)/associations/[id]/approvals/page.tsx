@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { Badge } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
@@ -66,9 +67,7 @@ export default async function ApprovalsTab({
               <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No approval requests.</td></tr>
             ) : rows.map((r: any) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <Link href={`/associations/${id}/approvals/${r.id}`} className="text-blue-700 hover:underline">{r.title}</Link>
-                </td>
+                <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
                 <td className="px-4 py-3"><StatusPill status={r.status} /></td>
                 <td className="px-4 py-3 tabular-nums text-gray-700">
                   {r.amount != null ? `$${Number(r.amount).toFixed(2)}` : <span className="text-gray-400">—</span>}
@@ -94,14 +93,7 @@ export default async function ApprovalsTab({
 }
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { cls: string; label: string }> = {
-    pending:   { cls: 'bg-amber-50 text-amber-800',  label: 'Pending' },
-    approved:  { cls: 'bg-green-50 text-green-800',  label: 'Approved' },
-    rejected:  { cls: 'bg-red-50 text-red-800',      label: 'Rejected' },
-    cancelled: { cls: 'bg-gray-100 text-gray-700',   label: 'Cancelled' },
-  };
-  const s = map[status] ?? map.pending;
-  return <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
+  return <Badge status={status} />;
 }
 
 function humanVotingScheme(scheme: string): string {

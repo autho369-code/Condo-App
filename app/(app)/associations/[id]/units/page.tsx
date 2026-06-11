@@ -134,7 +134,7 @@ export default async function AssociationUnitsTab({
       }
       rail={rail}
     >
-      <div className="overflow-hidden rounded border border-gray-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
             <tr>
@@ -151,10 +151,10 @@ export default async function AssociationUnitsTab({
             ) : slice.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
                 <td className="px-4 py-3">
-                  <Link href={`/units/${r.id}`} className="text-blue-700 hover:underline">{r.unit_number}</Link>
+                  <Link href={`/units/${r.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{r.unit_number}</Link>
                 </td>
                 <td className="px-4 py-3">
-                  {r.homeowners ? <span className="text-blue-700">{r.homeowners}</span> : <span className="text-gray-400">—</span>}
+                  {r.homeowners ? <span className="text-gray-700">{r.homeowners}</span> : <span className="text-gray-400">—</span>}
                 </td>
                 <td className="px-4 py-3 text-gray-700">{r.renter ?? '--'}</td>
                 <td className="px-4 py-3 tabular-nums text-gray-700">

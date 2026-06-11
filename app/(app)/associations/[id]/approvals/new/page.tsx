@@ -106,22 +106,22 @@ export default async function NewApprovalPage({
       <form action={createApproval as any} className="max-w-3xl space-y-5">
         <Section title="Details" padded>
           <FormRow label="Name" required>
-            <input type="text" name="name" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="name" required className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
 
           <FormRow label="Amount">
             <div className="flex items-center gap-1.5">
               <span className="text-gray-500">$</span>
-              <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="number" step="0.01" min="0" name="amount" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
           </FormRow>
 
           <FormRow label="Description" required>
-            <textarea name="description" required rows={4} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <textarea name="description" required rows={4} className="w-full max-w-lg resize-y rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
 
           <FormRow label="Due Date" required>
-            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="date" name="due_date" required defaultValue={defaultDueDateValue} className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
 
           <FormRow label="Board Members" required>
@@ -145,7 +145,7 @@ export default async function NewApprovalPage({
           </FormRow>
 
           <FormRow label="Voting Scheme">
-            <select name="voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <select name="voting_scheme" defaultValue={settings?.default_voting_scheme ?? 'majority_approval_required'} className="w-72 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="majority_approval_required">Majority Approval Required</option>
               <option value="unanimous_approval_required">Unanimous Approval Required</option>
               <option value="any_one_approver">Any One Approver</option>
@@ -153,8 +153,7 @@ export default async function NewApprovalPage({
             </select>
           </FormRow>
 
-          <div className="my-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-gray-700">
-            <span className="mr-1 text-blue-600">â“˜</span>
+          <div className="my-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] leading-5 text-blue-800">
             Clicking &quot;Send for Approval&quot; will email this new approval to your selected board members.
           </div>
 
@@ -167,7 +166,7 @@ export default async function NewApprovalPage({
         </Section>
 
         <Section title="Attachments" padded>
-          <div className="rounded border-2 border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
+          <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-500">
             Drag Files Here&nbsp;&nbsp;or&nbsp;&nbsp;
             <Button type="button" size="sm" variant="secondary" disabled>Choose Files to Add</Button>
             <div className="mt-1 text-xs text-gray-400">Attachment upload pending Storage bucket wiring</div>

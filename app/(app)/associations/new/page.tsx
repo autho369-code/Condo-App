@@ -131,14 +131,14 @@ export default async function NewPropertyPage() {
   }
 
   return (
-    <div className="mx-auto h-full max-w-4xl overflow-y-auto px-8 py-6">
-      <h1 className="text-2xl font-semibold text-gray-900">New Property</h1>
+    <div className="mx-auto h-full max-w-4xl overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New Property</h1>
 
       <form action={createProperty as any} className="mt-6 space-y-5">
 
         <Section title="Property Name and Address" padded>
           <FormRow label="Property Type" required>
-            <select name="property_type" required className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <select name="property_type" required className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">— Select —</option>
               <option value="condominium">Condominium</option>
               <option value="townhome">Townhome</option>
@@ -149,43 +149,43 @@ export default async function NewPropertyPage() {
             </select>
           </FormRow>
           <FormRow label="Property Name">
-            <input type="text" name="name" required className="w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="name" required className="w-full max-w-lg rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Address" required>
-            <input type="text" name="address" required placeholder="Address 1" className="mb-2 w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            <input type="text" name="address_line_2" placeholder="Address 2" className="w-full max-w-lg rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="address" required placeholder="Address 1" className="mb-2 w-full max-w-lg rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+            <input type="text" name="address_line_2" placeholder="Address 2" className="w-full max-w-lg rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="">
             <div className="grid max-w-lg grid-cols-[1fr_120px_140px] gap-2">
-              <input type="text" name="city" placeholder="City" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              <select name="state" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+              <input type="text" name="city" placeholder="City" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <select name="state" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">State</option>
                 {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              <input type="text" name="zip" placeholder="Zip" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" name="zip" placeholder="Zip" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
           </FormRow>
           <FormRow label="County">
-            <input type="text" name="county" className="w-full max-w-md rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="text" name="county" className="w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
         </Section>
 
         <Section title="Property Information" padded>
           <FormRow label="Description">
-            <textarea name="description" rows={3} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <textarea name="description" rows={3} className="w-full max-w-lg resize-y rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Site Manager">
             <div className="mb-2 grid max-w-md grid-cols-2 gap-2">
-              <input type="text" name="site_manager_first_name" placeholder="First Name" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              <input type="text" name="site_manager_last_name" placeholder="Last Name" className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" name="site_manager_first_name" placeholder="First Name" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" name="site_manager_last_name" placeholder="Last Name" className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </div>
-            <input type="tel" name="site_manager_phone" placeholder="Phone Number" className="w-full max-w-xs rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="tel" name="site_manager_phone" placeholder="Phone Number" className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Year Built">
-            <input type="number" name="year_built" min="1800" max={new Date().getFullYear() + 1} className="w-32 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="number" name="year_built" min="1800" max={new Date().getFullYear() + 1} className="w-32 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Management Start Date">
-            <input type="date" name="management_start_date" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="date" name="management_start_date" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
         </Section>
 
@@ -194,10 +194,10 @@ export default async function NewPropertyPage() {
             <CurrencyInput name="maintenance_limit" defaultValue="0.00" />
           </FormRow>
           <FormRow label="Insurance Expiration">
-            <input type="date" name="insurance_expiration" className="w-44 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <input type="date" name="insurance_expiration" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
           <FormRow label="Maintenance Notes">
-            <textarea name="maintenance_notes" rows={3} className="w-full max-w-lg resize-y rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <textarea name="maintenance_notes" rows={3} className="w-full max-w-lg resize-y rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
           </FormRow>
         </Section>
 
@@ -241,7 +241,7 @@ function CurrencyInput({ name, defaultValue }: { name: string; defaultValue?: st
         min="0"
         name={name}
         defaultValue={defaultValue}
-        className="w-40 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-40 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
       />
     </div>
   );

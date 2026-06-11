@@ -81,17 +81,17 @@
 - [x] `/(app)/work-orders`
 
 ## B — Manager workspace: detail & forms (priority 2)
-- [ ] `/(app)/associations/[id]`
-- [ ] `/(app)/associations/[id]/amenities`
-- [ ] `/(app)/associations/[id]/approvals`
-- [ ] `/(app)/associations/[id]/approvals/new`
-- [ ] `/(app)/associations/[id]/architectural-reviews`
-- [ ] `/(app)/associations/[id]/board`
-- [ ] `/(app)/associations/[id]/budget`
-- [ ] `/(app)/associations/[id]/committees`
-- [ ] `/(app)/associations/[id]/profile`
-- [ ] `/(app)/associations/[id]/units`
-- [ ] `/(app)/associations/new`
+- [x] `/(app)/associations/[id]` (redirect-only route)
+- [x] `/(app)/associations/[id]/amenities`
+- [x] `/(app)/associations/[id]/approvals`
+- [x] `/(app)/associations/[id]/approvals/new`
+- [x] `/(app)/associations/[id]/architectural-reviews`
+- [x] `/(app)/associations/[id]/board`
+- [x] `/(app)/associations/[id]/budget`
+- [x] `/(app)/associations/[id]/committees`
+- [x] `/(app)/associations/[id]/profile`
+- [x] `/(app)/associations/[id]/units`
+- [x] `/(app)/associations/new`
 - [ ] `/(app)/bank-accounts/adjustments/new`
 - [ ] `/(app)/bank-accounts/deposits/new`
 - [ ] `/(app)/bank-accounts/new`
