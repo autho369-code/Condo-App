@@ -21,7 +21,7 @@ const TRADES = ['hvac', 'plumbing', 'electrical', 'landscaping', 'roofing', 'gen
 function Select({ name, defaultValue, options, required }: { name: string; defaultValue?: string | null; options: Array<string | { value: string; label: string }>; required?: boolean }) {
   return (
     <select name={name} defaultValue={defaultValue ?? ''} required={required}
-      className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+      className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
       {!required && <option value="">â€”</option>}
       {options.map((o) => {
         const v = typeof o === 'string' ? o : o.value;
@@ -43,7 +43,7 @@ function priorityBadge(p: string) {
 }
 function statusBadge(s: string) {
   if (s === 'completed' || s === 'closed') return 'bg-green-100 text-green-700';
-  if (s === 'in_progress' || s === 'done') return 'bg-blue-100 text-blue-700';
+  if (s === 'in_progress' || s === 'done') return 'bg-blue-50 text-blue-700 ring-blue-600/15';
   if (s === 'cancelled') return 'bg-gray-100 text-gray-500 line-through';
   if (s === 'assigned' || s === 'scheduled') return 'bg-indigo-100 text-indigo-700';
   return 'bg-amber-100 text-amber-800';
@@ -85,7 +85,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/work-orders" className="hover:text-brand-600">Work orders</Link>
+              <Link href="/work-orders" className="transition-colors hover:text-gray-700">Work orders</Link>
               {' Â· '}
               <span>{assoc?.name ?? 'Common area'}</span>
               {(wo.units as any)?.unit_number && (<>{' Â· '}<span>Unit {(wo.units as any).unit_number}</span></>)}
@@ -113,10 +113,10 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
               return (
                 <form key={s} action={updateWorkOrderStatus.bind(null, id, s, undefined) as any}>
                   <button type="submit"
-                    className={`w-full rounded-md border px-3 py-1.5 text-left text-sm transition ${
+                    className={`w-full rounded-lg border px-3 py-1.5 text-left text-sm transition-colors ${
                       isDestr ? 'border-gray-200 text-gray-600 hover:border-red-300 hover:bg-red-50'
-                      : isTerm ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-400 hover:bg-green-100'
-                      : 'border-gray-300 bg-white hover:border-brand-500 hover:bg-brand-50'
+                      : isTerm ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100'
+                      : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'
                     }`}>
                     Mark as <span className="font-medium capitalize">{s.replace(/_/g, ' ')}</span>
                   </button>
@@ -128,17 +128,17 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
           {/* Vendor */}
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{vendor ? 'Vendor' : 'Assign vendor'}</div>
           {vendor ? (
-            <div className="rounded-md border border-gray-200 p-3 text-sm">
+            <div className="rounded-xl border border-gray-200 p-3 text-sm">
               <div className="font-medium">{vendor.name}</div>
               <div className="text-xs uppercase text-gray-500">{vendor.trade}</div>
               {vendor.phone_numbers?.[0]?.number && (
-                <a href={`tel:${vendor.phone_numbers[0].number}`} className="mt-1 block text-brand-600 hover:underline">{vendor.phone_numbers[0].number}</a>
+                <a href={`tel:${vendor.phone_numbers[0].number}`} className="mt-1 block text-gray-600 hover:text-gray-950 hover:underline">{vendor.phone_numbers[0].number}</a>
               )}
               {vendor.emails?.[0] && (
-                <a href={`mailto:${vendor.emails[0]}`} className="block truncate text-brand-600 hover:underline">{vendor.emails[0]}</a>
+                <a href={`mailto:${vendor.emails[0]}`} className="block truncate text-gray-600 hover:text-gray-950 hover:underline">{vendor.emails[0]}</a>
               )}
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs font-medium text-brand-600 hover:underline">Reassign</summary>
+                <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Reassign</summary>
                 <form action={assignVendor.bind(null, id) as any} className="mt-3 space-y-2">
                   <Select name="vendor_id" options={(vendors ?? []).map((v: any) => ({ value: v.id, label: `${v.name} (${v.trade})` }))} required />
                   <Input name="note" placeholder="Reassignment reason (optional)" />
@@ -164,7 +164,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
           )}
 
           {pendingEstimate && (
-            <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
               <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-700">Pending estimate</div>
               <div className="font-medium tabular-nums">{money(pendingEstimate.amount)}</div>
               <div className="text-xs text-gray-700">from {(pendingEstimate.vendors as any)?.name}</div>
@@ -191,12 +191,12 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
         </dl>
 
         <details className="border-t border-gray-100 px-5 py-4">
-          <summary className="cursor-pointer select-none text-sm font-medium text-brand-600 hover:underline">Edit work order</summary>
+          <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">Edit work order</summary>
           <form action={updateWorkOrder.bind(null, id) as any} className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2"><Label htmlFor="title">Title</Label><Input id="title" name="title" defaultValue={wo.title ?? ''} required /></div>
             <div className="md:col-span-2"><Label htmlFor="issue">Issue</Label>
               <textarea id="issue" name="issue" defaultValue={wo.issue ?? wo.description ?? ''} rows={3}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
             <div><Label>Priority</Label><Select name="priority" defaultValue={wo.priority} options={PRIORITIES} required /></div>
             <div><Label>Category</Label><Select name="category" defaultValue={wo.category} options={CATEGORIES} required /></div>
             <div><Label>Trade</Label><Select name="trade" defaultValue={wo.trade ?? ''} options={TRADES} /></div>
@@ -207,11 +207,11 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
             <div><Label htmlFor="requested_by">Requested by</Label><Input id="requested_by" name="requested_by" defaultValue={wo.requested_by ?? ''} /></div>
             <div className="md:col-span-2"><Label htmlFor="vendor_instructions">Vendor instructions</Label>
               <textarea id="vendor_instructions" name="vendor_instructions" defaultValue={wo.vendor_instructions ?? ''} rows={2}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
             <div className="md:col-span-2"><Label htmlFor="owner_availability">Access / availability</Label><Input id="owner_availability" name="owner_availability" defaultValue={wo.owner_availability ?? ''} /></div>
             <div className="md:col-span-2"><Label htmlFor="internal_notes">Internal notes</Label>
               <textarea id="internal_notes" name="internal_notes" defaultValue={wo.internal_notes ?? ''} rows={2}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" /></div>
             <div className="md:col-span-2 flex justify-end"><Button type="submit">Save changes</Button></div>
           </form>
         </details>
@@ -279,7 +279,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
                   <TD className="text-right">
                     {!e.approved_at && !e.rejected_at && (
                       <form action={approveEstimate.bind(null, e.id, id) as any}>
-                        <button type="submit" className="text-xs text-brand-600 hover:underline">Approve</button>
+                        <button type="submit" className="text-xs text-gray-600 hover:text-gray-950 hover:underline">Approve</button>
                       </form>
                     )}
                   </TD>
@@ -290,7 +290,7 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
         ) : <p className="px-5 py-4 text-sm text-gray-500">No estimates yet.</p>}
 
         <form action={addEstimate.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
-          <select name="vendor_id" className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
+          <select name="vendor_id" className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
             <option value="">Choose vendorâ€¦</option>
             {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>

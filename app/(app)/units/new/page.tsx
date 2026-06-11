@@ -57,8 +57,8 @@ export default async function NewUnitPage({
         <WorkspaceHeader
           eyebrow={
             <>
-              <Link href="/units" className="hover:text-brand-600">Units</Link>
-              {contextAssociation && (<>{' · '}<Link href={`/associations/${contextAssociation.id}`} className="hover:text-brand-600">{contextAssociation.name}</Link></>)}
+              <Link href="/units" className="transition-colors hover:text-gray-700">Units</Link>
+              {contextAssociation && (<>{' · '}<Link href={`/associations/${contextAssociation.id}`} className="transition-colors hover:text-gray-700">{contextAssociation.name}</Link></>)}
             </>
           }
           title="New unit"
@@ -80,7 +80,7 @@ export default async function NewUnitPage({
             <li>• Parking + storage</li>
             <li>• Internal notes</li>
           </ul>
-          <div className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+          <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
             <strong>Ownership %</strong> is used to split common-area charges like reserves and maintenance. Most condos use square-footage-weighted percentages — when in doubt, the declaration of CC&amp;R&apos;s will have the exact values.
           </div>
         </>
@@ -124,7 +124,7 @@ export default async function NewUnitPage({
               <div>
                 <Label htmlFor="building_id">Building <span className="text-red-500">*</span></Label>
                 <select id="building_id" name="building_id" required
-                  className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                   <option value="">Choose an association…</option>
                   {(buildings ?? []).map((b: any) => (
                     <option key={b.id} value={b.id}>
@@ -190,7 +190,7 @@ export default async function NewUnitPage({
               <textarea
                 id="notes" name="notes" rows={3}
                 placeholder="Anything staff should know — entry instructions, pet policy exception, etc."
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
 

@@ -41,7 +41,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <Link href="/units" className="hover:text-brand-600">Units</Link>
+              <Link href="/units" className="transition-colors hover:text-gray-700">Units</Link>
               {' Ã‚Â· '}
               <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
             </div>
@@ -103,7 +103,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             <div className="md:col-span-2">
               <Label htmlFor="charge_category_id">Add subscription</Label>
               <select id="charge_category_id" name="charge_category_id" required
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Choose a categoryÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name} ({money(c.default_amount)} / {c.default_frequency})</option>
@@ -116,7 +116,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </div>
             <div>
               <Label htmlFor="frequency">Frequency</Label>
-              <select id="frequency" name="frequency" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <select id="frequency" name="frequency" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">default</option><option>monthly</option><option>quarterly</option><option>annually</option>
               </select>
             </div>
@@ -167,7 +167,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             <div>
               <Label htmlFor="adhoc_cat">Category</Label>
               <select id="adhoc_cat" name="charge_category_id" required
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">ChooseÃ¢â‚¬Â¦</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -226,7 +226,7 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
             </div>
             <div>
               <Label htmlFor="pay_method">Method</Label>
-              <select id="pay_method" name="method" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" required>
+              <select id="pay_method" name="method" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" required>
                 <option value="check">check</option><option value="ach">ach</option>
                 <option value="card">card</option><option value="manual">manual</option><option value="other">other</option>
               </select>

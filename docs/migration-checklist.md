@@ -122,14 +122,14 @@
 - [x] `/(app)/owners/new`
 - [x] `/(app)/reports/[slug]`
 - [x] `/(app)/reports/runs/[id]`
-- [ ] `/(app)/sms/templates/[id]/edit`
-- [ ] `/(app)/sms/templates/new`
-- [ ] `/(app)/units/[id]`
-- [ ] `/(app)/units/new`
-- [ ] `/(app)/vendors/new`
-- [ ] `/(app)/violations/[id]`
-- [ ] `/(app)/violations/new`
-- [ ] `/(app)/work-orders/[id]`
+- [x] `/(app)/sms/templates/[id]/edit`
+- [x] `/(app)/sms/templates/new`
+- [x] `/(app)/units/[id]`
+- [x] `/(app)/units/new`
+- [x] `/(app)/vendors/new`
+- [x] `/(app)/violations/[id]`
+- [x] `/(app)/violations/new`
+- [x] `/(app)/work-orders/[id]`
 
 ## C — Board portal (priority 3)
 - [ ] `/board`

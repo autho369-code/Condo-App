@@ -46,7 +46,7 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
           { label: 'Fine', value: violation.fine_amount ? money(violation.fine_amount) : '-' },
         ]} />
 
-        <section className="rounded border border-gray-200 bg-white p-5">
+        <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="text-sm font-semibold text-gray-950">Violation details</h2>
           <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
             <Info label="Type" value={formatStatus(violation.violation_type)} />
@@ -57,7 +57,7 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
           <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-700">{violation.description ?? 'No description provided.'}</p>
         </section>
 
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-950">Timeline</h2></div>
           {(updates ?? []).length > 0 ? (
             <div className="divide-y divide-gray-100">
@@ -74,7 +74,7 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
           )}
         </section>
 
-        <section className="rounded border border-gray-200 bg-white p-5">
+        <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="text-sm font-semibold text-gray-950">Evidence and documents</h2>
           <p className="mt-2 text-sm text-gray-500">{attachmentCount} attachment records on file. Upload and outbound delivery controls should require confirmation.</p>
         </section>

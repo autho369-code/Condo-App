@@ -56,29 +56,29 @@ export default async function NewViolationPage() {
         <Section title="Rule and violation">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-gray-700">Rule/type
-              <select name="violation_type" className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+              <select name="violation_type" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 {typeOptions.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}
               </select>
             </label>
             <label className="text-sm font-medium text-gray-700">Title
-              <input name="title" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" placeholder="Parking violation, noise complaint..." />
+              <input name="title" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Parking violation, noise complaint..." />
             </label>
           </div>
-          <textarea name="description" className="mt-4 w-full rounded border border-gray-300 px-3 py-2 text-sm" rows={4} placeholder="Observation details and governing document reference" />
+          <textarea name="description" className="mt-4 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" rows={4} placeholder="Observation details and governing document reference" />
         </Section>
         <Section title="Dates and escalation">
           <div className="grid gap-4 md:grid-cols-4">
             <label className="text-sm font-medium text-gray-700">Observed
-              <input name="observed_date" type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
+              <input name="observed_date" type="date" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </label>
             <label className="text-sm font-medium text-gray-700">Due date
-              <input name="due_date" type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
+              <input name="due_date" type="date" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </label>
             <label className="text-sm font-medium text-gray-700">Hearing date
-              <input name="hearing_date" type="date" className="mt-1 h-10 w-full rounded border border-gray-300 px-3 text-sm" />
+              <input name="hearing_date" type="date" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
             </label>
             <label className="text-sm font-medium text-gray-700">Status
-              <select name="status" className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+              <select name="status" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="open">Open</option>
                 <option value="notice_sent">Notice Sent</option>
                 <option value="hearing_pending">Hearing Pending</option>
@@ -89,7 +89,7 @@ export default async function NewViolationPage() {
         </Section>
         <Section title="Fine">
           <label className="text-sm font-medium text-gray-700">Fine amount
-            <input name="fine_amount" type="number" step="0.01" min="0" className="mt-1 h-10 w-64 rounded border border-gray-300 px-3 text-sm" placeholder="$0.00" />
+            <input name="fine_amount" type="number" step="0.01" min="0" className="mt-1 h-10 w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="$0.00" />
           </label>
         </Section>
         <div className="flex justify-end gap-2">
@@ -102,12 +102,12 @@ export default async function NewViolationPage() {
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="rounded border border-gray-200 bg-white p-5"><h2 className="text-sm font-semibold text-gray-950">{title}</h2><div className="mt-4">{children}</div></section>;
+  return <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"><h2 className="text-sm font-semibold text-gray-950">{title}</h2><div className="mt-4">{children}</div></section>;
 }
 
 function Select({ name, label, options }: { name: string; label: string; options: Array<{ value: string; label: string }> }) {
   return <label className="text-sm font-medium text-gray-700">{label}
-    <select name={name} className="mt-1 h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm">
+    <select name={name} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
       <option value="">Select {label.toLowerCase()}</option>
       {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
