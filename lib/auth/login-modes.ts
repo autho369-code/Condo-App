@@ -43,7 +43,7 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
     label: 'Admin',
     title: 'Admin Sign In',
     description: 'For platform operators and superadmins managing every portfolio.',
-    defaultNext: '/platform/portfolios',
+    defaultNext: '/platform-operator',
     submitLabel: 'Sign in as admin',
     note: 'Superadmin means your Supabase Auth user is active in platform_operators.',
   },

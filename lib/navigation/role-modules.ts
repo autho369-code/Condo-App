@@ -55,6 +55,7 @@ export const platformOperatorModules: AppModule[] = [
   { label: 'Companies', href: '/platform-operator/companies' },
   { label: 'Invitations', href: '/platform-operator/invitations' },
   { label: 'Users', href: '/platform-operator/users' },
+  { label: 'Operators', href: '/platform-operator/operators' },
   { label: 'Billing', href: '/platform-operator/billing' },
   { label: 'Door Usage', href: '/platform-operator/door-usage' },
   { label: 'Revenue', href: '/platform-operator/revenue' },
