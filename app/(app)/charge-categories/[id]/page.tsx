@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select, Textarea } from '@/components/ui/input';
+import { Alert, PageHeader, PageShell, Surface } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { updateChargeCategory, archiveChargeCategory } from '@/lib/rpcs/charges';
 import { notFound } from 'next/navigation';
@@ -24,30 +24,32 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
   const archive = archiveChargeCategory.bind(null, id);
 
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto px-8 py-6">
-      <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{cat.name}</h1>
-        <div className="flex gap-2">
-          {!cat.is_system && (
-            <form action={archive as any}>
-              <Button type="submit" variant="danger">Archive</Button>
-            </form>
-          )}
-          <Link href="/charge-categories"><Button variant="secondary">Back</Button></Link>
-        </div>
-      </div>
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title={cat.name}
+        eyebrow="Charge category"
+        actions={
+          <>
+            {!cat.is_system && (
+              <form action={archive as any}>
+                <Button type="submit" variant="danger">Archive</Button>
+              </form>
+            )}
+            <Link href="/charge-categories"><Button variant="secondary">Back</Button></Link>
+          </>
+        }
+      />
 
       {cat.is_system && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
-          This is a system-seeded category. You can rename, re-amount, and re-wire it â€” but it can&apos;t be archived because other parts of the system reference its code ({cat.code}).
-        </div>
+        <Alert tone="warning" className="mb-6">
+          This is a system-seeded category. You can rename, re-amount, and re-wire it — but it
+          can&apos;t be archived because other parts of the system reference its code ({cat.code}).
+        </Alert>
       )}
 
-      <Card>
-        <CardBody>
-          <form action={update as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
+      <Surface>
+          <form action={update as any} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" defaultValue={cat.name} required />
             </div>
@@ -66,16 +68,14 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
             </div>
             <div>
               <Label htmlFor="default_frequency">Default frequency</Label>
-              <select id="default_frequency" name="default_frequency" defaultValue={cat.default_frequency}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="default_frequency" name="default_frequency" defaultValue={cat.default_frequency}>
                 <option>monthly</option><option>quarterly</option><option>annually</option>
                 <option>weekly</option><option>daily</option>
-              </select>
+              </Select>
             </div>
             <div>
               <Label htmlFor="charge_type">Charge type</Label>
-              <select id="charge_type" name="charge_type" defaultValue={cat.charge_type}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <Select id="charge_type" name="charge_type" defaultValue={cat.charge_type}>
                 <option value="assessment">assessment</option>
                 <option value="special_assessment">special_assessment</option>
                 <option value="late_fee">late_fee</option>
@@ -84,41 +84,37 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
                 <option value="amenity_fee">amenity_fee</option>
                 <option value="move_fee">move_fee</option>
                 <option value="other">other</option>
-              </select>
+              </Select>
             </div>
             <div>
               <Label htmlFor="gl_account_id">Income GL account</Label>
-              <select id="gl_account_id" name="gl_account_id" defaultValue={cat.gl_account_id ?? ''}
-                className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="">â€”</option>
+              <Select id="gl_account_id" name="gl_account_id" defaultValue={cat.gl_account_id ?? ''}>
+                <option value="">—</option>
                 {(gls ?? []).map((g: any) => (
-                  <option key={g.id} value={g.id}>{g.number} â€” {g.name}</option>
+                  <option key={g.id} value={g.id}>{g.number} — {g.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="description">Description</Label>
-              <textarea id="description" name="description" rows={2} defaultValue={cat.description ?? ''}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" />
+              <Textarea id="description" name="description" rows={2} defaultValue={cat.description ?? ''} />
             </div>
 
-            <div className="md:col-span-2 flex gap-6 text-sm">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" name="is_assessment" defaultChecked={cat.is_assessment} /> Counts as an assessment
+            <div className="flex gap-6 text-sm sm:col-span-2">
+              <label className="flex items-center gap-2 text-gray-700">
+                <input type="checkbox" name="is_assessment" defaultChecked={cat.is_assessment} className="h-4 w-4 rounded border-gray-300" /> Counts as an assessment
               </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" name="is_fee" defaultChecked={cat.is_fee} /> Is a fee (penalty)
+              <label className="flex items-center gap-2 text-gray-700">
+                <input type="checkbox" name="is_fee" defaultChecked={cat.is_fee} className="h-4 w-4 rounded border-gray-300" /> Is a fee (penalty)
               </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" name="active" defaultChecked={cat.active} /> Active
+              <label className="flex items-center gap-2 text-gray-700">
+                <input type="checkbox" name="active" defaultChecked={cat.active} className="h-4 w-4 rounded border-gray-300" /> Active
               </label>
             </div>
 
-            <div className="md:col-span-2 flex justify-end"><Button type="submit">Save changes</Button></div>
+            <div className="sm:col-span-2"><Button type="submit">Save changes</Button></div>
           </form>
-        </CardBody>
-      </Card>
-      </div>
-    </div>
+      </Surface>
+    </PageShell>
   );
 }

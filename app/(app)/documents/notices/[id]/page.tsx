@@ -38,10 +38,10 @@ export default async function NoticeDetailPage({
   if (!notice) {
     return (
       <DataWorkspace title="Notice Not Found" description="The notice you're looking for doesn't exist.">
-        <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+        <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">Notice not found. It may have been deleted or archived.</p>
-          <Link href="/documents?tab=notices" className="mt-3 inline-block text-sm text-blue-700 hover:underline">
-            Back to Notices
+          <Link href="/documents?tab=notices" className="mt-3 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+            Back to notices →
           </Link>
         </div>
       </DataWorkspace>
@@ -105,7 +105,7 @@ export default async function NoticeDetailPage({
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-gray-950">Notice Content</h2>
           {notice.body ? (
-            <div className="rounded border border-gray-100 bg-gray-50 p-6">
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-6">
               <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">{notice.body}</pre>
             </div>
           ) : (

@@ -102,16 +102,16 @@
 - [x] `/(app)/bills/owner-payable/new`
 - [x] `/(app)/budget/[id]/edit`
 - [x] `/(app)/budget/new`
-- [ ] `/(app)/buildings/new`
-- [ ] `/(app)/bulk-statement-settings/new`
-- [ ] `/(app)/calendar/new`
-- [ ] `/(app)/charge-categories/[id]`
-- [ ] `/(app)/charge-categories/new`
-- [ ] `/(app)/documents/notices/[id]`
-- [ ] `/(app)/documents/templates/[id]`
-- [ ] `/(app)/documents/templates/new`
-- [ ] `/(app)/insurance/new`
-- [ ] `/(app)/letters/[id]/edit`
+- [x] `/(app)/buildings/new`
+- [x] `/(app)/bulk-statement-settings/new`
+- [x] `/(app)/calendar/new`
+- [x] `/(app)/charge-categories/[id]`
+- [x] `/(app)/charge-categories/new`
+- [x] `/(app)/documents/notices/[id]`
+- [x] `/(app)/documents/templates/[id]`
+- [x] `/(app)/documents/templates/new`
+- [x] `/(app)/insurance/new`
+- [x] `/(app)/letters/[id]/edit`
 - [ ] `/(app)/letters/[id]/preview`
 - [ ] `/(app)/letters/new`
 - [ ] `/(app)/maintenance/new`

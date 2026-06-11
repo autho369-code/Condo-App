@@ -24,16 +24,13 @@ export default async function BulkStatementSettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-6">
-      <h1 className="mb-4 text-2xl font-semibold text-gray-900">Bulk Update Statement Settings</h1>
+      <h1 className="mb-4 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Bulk Update Statement Settings</h1>
 
-      {/* Info banner — mirrors AppFolio's teal/green callout */}
-      <div className="mb-4 flex items-start gap-3 rounded border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-gray-800">
-        <span className="mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-teal-600 text-xs font-semibold text-white">i</span>
-        <p>
-          If you leave the <strong>Update Settings for</strong> field blank, we will update the
-          statement settings for all your properties and associations at once. You can also select
-          a mixture of individual properties or associations by checking them.
-        </p>
+      {/* Info banner */}
+      <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] leading-5 text-blue-800">
+        If you leave the <strong>Update Settings for</strong> field blank, we will update the
+        statement settings for all your properties and associations at once. You can also select
+        a mixture of individual properties or associations by checking them.
       </div>
 
       <form action={updateBulkStatementSettings as any} className="space-y-4">
@@ -45,7 +42,7 @@ export default async function BulkStatementSettingsPage() {
                 {associations.length === 0 ? (
                   <p className="text-sm text-gray-500">No associations found. Create one first.</p>
                 ) : (
-                  <div className="max-h-48 overflow-y-auto rounded border border-gray-200 bg-white">
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white">
                     {associations.map((a: any) => (
                       <label key={a.id} className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 hover:bg-gray-50">
                         <input type="checkbox" name="association_ids" value={a.id} className="h-4 w-4" />
@@ -99,7 +96,7 @@ export default async function BulkStatementSettingsPage() {
               <select
                 name="charge_history_includes"
                 defaultValue="all_past_due_charges"
-                className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="all_past_due_charges">All Past Due Charges</option>
                 <option value="current_month_only">Current Month Only</option>
@@ -140,7 +137,7 @@ export default async function BulkStatementSettingsPage() {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded border border-gray-200 bg-white">{children}</section>;
+  return <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

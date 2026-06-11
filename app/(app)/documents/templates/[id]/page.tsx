@@ -28,10 +28,10 @@ export default async function TemplateDetailPage({
   if (!template) {
     return (
       <DataWorkspace title="Template Not Found" description="The template you're looking for doesn't exist.">
-        <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+        <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">Template not found. It may have been deleted or archived.</p>
-          <Link href="/documents?tab=templates" className="mt-3 inline-block text-sm text-blue-700 hover:underline">
-            Back to Templates
+          <Link href="/documents?tab=templates" className="mt-3 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+            Back to templates →
           </Link>
         </div>
       </DataWorkspace>
@@ -58,7 +58,7 @@ export default async function TemplateDetailPage({
     >
       <div className="max-w-3xl space-y-6">
         {/* Template info */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="text-xs font-medium text-gray-500">Type</div>
@@ -92,13 +92,13 @@ export default async function TemplateDetailPage({
 
         {/* Merge variables */}
         {varKeys.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="mb-3 text-sm font-semibold text-gray-950">Merge Variables</h2>
             <div className="flex flex-wrap gap-1">
               {varKeys.map((v: string) => (
                 <span
                   key={v}
-                  className="rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-xs text-brand-700"
+                  className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
                 >
                   {'{{'}
                   {v}
@@ -110,9 +110,9 @@ export default async function TemplateDetailPage({
         )}
 
         {/* Body preview */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="mb-3 text-sm font-semibold text-gray-950">Template Body</h2>
-          <div className="rounded border border-gray-100 bg-gray-50 p-6">
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-6">
             <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">{template.body}</pre>
           </div>
         </div>

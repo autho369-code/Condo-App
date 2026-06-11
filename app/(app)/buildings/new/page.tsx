@@ -51,11 +51,11 @@ export default async function NewBuildingPage({
   return (
     <div className="mx-auto max-w-5xl px-8 py-6">
       <div className="mb-4">
-        <Link href={`/associations/${assoc.id}`} className="text-sm text-blue-700 hover:underline">
+        <Link href={`/associations/${assoc.id}`} className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">
           ← {assoc.name}
         </Link>
       </div>
-      <h1 className="mb-1 text-2xl font-semibold text-gray-900">New Property</h1>
+      <h1 className="mb-1 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New Property</h1>
       <p className="mb-4 text-sm text-gray-500">
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
@@ -124,7 +124,7 @@ export default async function NewBuildingPage({
             <Row label="Amenities" help="Comma-separated: pool, gym, clubhouse">
               <input name="amenities" placeholder="pool, gym, clubhouse" className={input()} />
               <div className="mt-1 text-xs">
-                <Link href="/settings" className="text-blue-700 hover:underline">Manage Amenity Tags</Link>
+                <Link href="/settings" className="font-medium text-gray-600 transition-colors hover:text-gray-950">Manage Amenity Tags</Link>
               </div>
             </Row>
           </div>
@@ -174,7 +174,7 @@ export default async function NewBuildingPage({
             {(propertyGroups ?? []).length === 0 ? (
               <p className="text-sm text-gray-500">
                 No property groups defined. Create one in{' '}
-                <Link href="/settings" className="text-blue-700 hover:underline">Settings</Link>.
+                <Link href="/settings" className="font-medium text-gray-600 transition-colors hover:text-gray-950">Settings</Link>.
               </p>
             ) : (
               <select name="property_group_id" defaultValue="" className={input()}>
@@ -206,7 +206,7 @@ export default async function NewBuildingPage({
 // ============================================================================
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded border border-gray-200 bg-white">{children}</section>;
+  return <section className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">{children}</section>;
 }
 function CardTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="border-b border-gray-100 px-5 py-3 text-sm font-semibold text-gray-900">{children}</h2>;
@@ -253,5 +253,5 @@ function MoneyInput({ name, defaultValue }: { name: string; defaultValue?: strin
   );
 }
 function input(extra = '') {
-  return `h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${extra}`;
+  return `h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${extra}`;
 }

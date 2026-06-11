@@ -149,11 +149,11 @@ export default function NewTemplatePage() {
 
         <div className="max-w-3xl space-y-6">
           {error && (
-            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>
           )}
 
           {/* Basic info */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-medium text-gray-700">
                 Template Name *
@@ -161,7 +161,7 @@ export default function NewTemplatePage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   placeholder="e.g., Standard Violation Notice"
                 />
               </label>
@@ -171,7 +171,7 @@ export default function NewTemplatePage() {
                 <select
                   value={letterType}
                   onChange={(e) => setLetterType(e.target.value)}
-                  className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                   {LETTER_TYPES.map((lt) => (
                     <option key={lt.value} value={lt.value}>{lt.label}</option>
@@ -186,7 +186,7 @@ export default function NewTemplatePage() {
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="e.g., Notice of Violation — {{violation_title}}"
               />
             </label>
@@ -203,7 +203,7 @@ export default function NewTemplatePage() {
           </div>
 
           {/* Merge variables */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="mb-4 text-sm font-semibold text-gray-950">Merge Variables</h2>
             <p className="text-xs text-gray-500 mb-4">
               Variables are placeholders like{' '}
@@ -219,7 +219,7 @@ export default function NewTemplatePage() {
                   <button
                     key={v}
                     onClick={() => addSuggestion(v)}
-                    className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600 hover:border-brand-300 hover:bg-brand-50"
+                    className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-100"
                   >
                     + {v}
                   </button>
@@ -239,7 +239,7 @@ export default function NewTemplatePage() {
                     addMergeVariable();
                   }
                 }}
-                className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="e.g., owner_name"
               />
               <Button variant="secondary" onClick={addMergeVariable}>Add</Button>
@@ -251,14 +251,14 @@ export default function NewTemplatePage() {
                 {mergeVariables.map((v) => (
                   <span
                     key={v}
-                    className="inline-flex items-center gap-1 rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-xs text-brand-700"
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15"
                   >
                     {'{{'}
                     {v}
                     {'}}'}
                     <button
                       onClick={() => removeMergeVariable(v)}
-                      className="ml-0.5 text-brand-400 hover:text-red-500"
+                      className="ml-0.5 text-blue-400 transition-colors hover:text-red-500"
                     >
                       &times;
                     </button>
@@ -271,7 +271,7 @@ export default function NewTemplatePage() {
           </div>
 
           {/* Body editor */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-950">Template Body</h2>
               <div className="flex gap-1">
@@ -279,7 +279,7 @@ export default function NewTemplatePage() {
                   <button
                     key={v}
                     onClick={() => insertVariable(v)}
-                    className="rounded border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-500 hover:border-brand-300 hover:bg-brand-50"
+                    className="rounded-lg border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-100"
                     title="Insert variable"
                   >
                     {'{{'}
@@ -292,7 +292,7 @@ export default function NewTemplatePage() {
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              className="w-full rounded border border-gray-300 px-4 py-3 text-sm font-mono h-80"
+              className="h-80 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-mono text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Write your template body here. Use {{variable_name}} for merge fields.
 
 Example:
