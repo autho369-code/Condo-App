@@ -12,6 +12,9 @@ import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 
 const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const COMPANIES = '/platform-operator/companies';
+// Verified Resend sender for platform-level email
+const FROM_ADDRESS = 'hello@portier369.com';
+const FROM_NAME = 'Portier369';
 
 function fail(returnTo: string, message: string): never {
   const sep = returnTo.includes('?') ? '&' : '?';
@@ -105,6 +108,8 @@ export async function createCompanyWithAdmin(formData: FormData) {
     subject: `Welcome to Portier369 — set up ${companyName}`,
     body: inviteEmailBody(companyName, token, expiresAt),
     status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
     portfolio_id: portfolioId,
   });
   if (mailError) fail(COMPANIES, `Company created but the welcome email failed to queue: ${mailError.message}`);
@@ -154,6 +159,8 @@ export async function inviteAdmin(formData: FormData) {
     subject: `You're invited to administer ${portfolio.company_name} on Portier369`,
     body: inviteEmailBody(portfolio.company_name, invite.token, invite.expires_at),
     status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
     portfolio_id: portfolioId,
   });
 
@@ -188,6 +195,8 @@ export async function resendInvitation(formData: FormData) {
     subject: `Reminder: set up your ${companyName} Portier369 account`,
     body: inviteEmailBody(companyName, inv.token, inv.expires_at),
     status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
     portfolio_id: inv.portfolio_id,
   });
 
@@ -260,6 +269,8 @@ export async function regenerateInvitation(formData: FormData) {
     subject: `Your new ${companyName} invitation link`,
     body: inviteEmailBody(companyName, fresh.token, fresh.expires_at),
     status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
     portfolio_id: old.portfolio_id,
   });
 
@@ -291,6 +302,8 @@ export async function sendPasswordReset(formData: FormData) {
     subject: 'Reset your Portier369 password',
     body: `<p>Hello,</p><p>A password reset was requested for your account by the platform team.</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>If you did not expect this, contact support.</p>`,
     status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
     portfolio_id: profile.portfolio_id,
   });
 
