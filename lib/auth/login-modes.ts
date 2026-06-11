@@ -34,7 +34,7 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
     label: 'Vendor',
     title: 'Vendor Sign In',
     description: 'For contractors and service providers — view work orders, submit invoices, update compliance docs.',
-    defaultNext: '/portal',
+    defaultNext: '/vendor',
     submitLabel: 'Sign in as vendor',
     note: 'Vendor access requires an active vendor profile with portal access.',
   },

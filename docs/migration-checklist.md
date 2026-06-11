@@ -1,6 +1,7 @@
 # Migration Checklist — Design System v2
 *Check off pages as they are migrated. Batch ~10 per commit; `npm run typecheck` between batches.*
-*Reference implementations: `/(app)/associations` (list), `/(app)/associations/[id]/units` (detail).*
+*Reference implementations: `/(app)/associations` (list), `/(app)/associations/[id]/units` (detail), `/vendor/*` (role portal).*
+*Board (C) and Company-admin (E): migrate page bodies to light theme first; flip the section layout.tsx to the unified Sidebar (see role-modules.ts) as the final step of the group.*
 
 ## A — Manager workspace: lists & hubs (priority 1)
 - [ ] `/(app)/accounting`
@@ -216,6 +217,13 @@
 - [ ] `/platform/properties`
 - [ ] `/platform/system-health`
 - [ ] `/platform/users`
+
+## V — Vendor portal (DONE 2026-06-10)
+- [x] `/vendor`
+- [x] `/vendor/work-orders`
+- [x] `/vendor/work-orders/[id]`
+- [x] `/vendor/compliance`
+- [x] `/vendor/profile`
 
 ## G — Auth & misc (priority 7)
 - [ ] `/(auth)/accept-invitation`

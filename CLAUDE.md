@@ -39,8 +39,8 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
 - `app/board/*` — board portal · `app/portal/*` — owner portal
 - `app/company-admin/*` — company admin · `app/platform-operator/*` + `app/platform/*`
   — platform operator (DUPLICATED — consolidation pending, ask before touching)
-- **No vendor portal yet** (`/vendor` — to be built; `vendor_compliance`,
-  work-order tables are ready)
+- `app/vendor/*` — vendor portal (dashboard, work orders + status updates,
+  compliance, profile) — built on the unified shell
 - Shared UI: `components/ui/*` (primitives), `components/operations/*` (list-page
   kit), `components/workspace/shell.tsx` (detail-page kit),
   `components/workspace/tasks-rail.tsx` (right panel — add new routes to its
@@ -48,6 +48,16 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
 - Auth: `lib/auth/me.ts` (`requireStaff`, `requireOwner`, …); roles flow
   Platform Operator → Company Admin → Manager → Board/Owner → Vendor;
   all accounts are invitation-based.
+
+## Theme decision (FINAL, from Mirsad)
+ONE design system for ALL six roles: dark `#060709` sidebar (shared
+`components/nav/sidebar.tsx` with role `modules` from
+`lib/navigation/role-modules.ts`) + light `#f6f7f9` content. Owner portal,
+vendor portal, and platform-operator already use it. **Board and
+company-admin pages still have dark-themed page bodies** — migrate each
+page's body to the light design system FIRST (group by group), then flip
+that section's `layout.tsx` to the unified Sidebar as the LAST step of the
+group, so nothing ships half-readable.
 
 ## Current mission
 Migrate every page to the design system. Work through

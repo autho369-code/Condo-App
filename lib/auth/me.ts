@@ -90,6 +90,13 @@ export async function requireBoard(): Promise<MeResult> {
   return me;
 }
 
+export async function requireVendor() {
+  const me = await getMe();
+  if (!me.auth_user_id) redirect('/login?mode=vendor');
+  if (!me.vendor_id) redirect('/login?mode=vendor');
+  return me;
+}
+
 export async function requireOwner(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.owner_id) redirect('/login?mode=owner');

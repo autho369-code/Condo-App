@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { appModules } from '@/lib/navigation/modules'
+import { appModules, type AppModule } from '@/lib/navigation/modules'
 import { createClient } from '@/lib/supabase/client'
 
 function ChevronDown({ open }: { open: boolean }) {
@@ -30,18 +30,20 @@ function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
   )
 }
 
-export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail }: {
+export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail, modules = appModules, subtitle = 'Operations workspace' }: {
   portfolioName?: string;
   logoUrl?: string | null;
   brandColor?: string;
   userEmail?: string;
+  modules?: AppModule[];
+  subtitle?: string;
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const defaults: Record<string, boolean> = {}
-  appModules.forEach((s) => {
+  modules.forEach((s) => {
     if (s.children) defaults[s.label] = s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))
   })
   const [open, setOpen] = useState<Record<string, boolean>>(defaults)
@@ -49,7 +51,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
   useEffect(() => {
     setOpen(prev => {
       const next = { ...prev }
-      appModules.forEach((s) => {
+      modules.forEach((s) => {
         if (s.children && s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))) {
           next[s.label] = true
         }
@@ -92,14 +94,14 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail 
               <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[#f4f4f5]">
                 {portfolioName ?? 'Portier369'}
               </div>
-              <div className="text-[11px] leading-4 text-[#52525b]">Operations workspace</div>
+              <div className="text-[11px] leading-4 text-[#52525b]">{subtitle}</div>
             </div>
           </div>
         )}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 [scrollbar-width:thin] [scrollbar-color:#27272a_transparent]">
-        {appModules.map((s) => {
+        {modules.map((s) => {
           if (!s.children) return (
             <Link key={s.label} href={s.href}
               className={itemBase + ' ' + (active(s.href) ? itemActive : itemIdle)}>
