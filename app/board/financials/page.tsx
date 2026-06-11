@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { StatusChip } from '@/components/operations/status-chip'
 import { date, money } from '@/lib/utils'
 import {
   DollarSign,
@@ -8,7 +9,6 @@ import {
   Building2,
   PiggyBank,
   AlertTriangle,
-  ArrowRight,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -18,31 +18,24 @@ function StatCard({
   value,
   sub,
   icon: Icon,
-  accent = 'emerald',
+  valueClass = 'text-gray-950',
 }: {
   label: string
   value: React.ReactNode
   sub?: React.ReactNode
   icon: React.ElementType
-  accent?: 'emerald' | 'blue' | 'amber' | 'red' | 'violet'
+  valueClass?: string
 }) {
-  const accents: Record<string, string> = {
-    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    red: 'bg-red-500/10 text-red-400 border-red-500/20',
-    violet: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  }
   return (
-    <div className="rounded-xl border border-[#1E293B] p-4 transition-colors hover:border-[#334155]" style={{ backgroundColor: '#0B1121' }}>
+    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-white">{value}</div>
-          {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
+          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</div>
+          {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[accent]}`}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -59,12 +52,12 @@ export default async function BoardFinancialsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Financials</h1>
-          <p className="mt-1 text-sm text-slate-400">Association financial overview</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial overview</p>
         </div>
-        <div className="rounded-xl border border-[#1E293B] p-12 text-center" style={{ backgroundColor: '#0B1121' }}>
-          <AlertTriangle className="mx-auto h-12 w-12 text-slate-600" />
-          <p className="mt-4 text-slate-400">No associations assigned to your board membership.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
+          <p className="mt-3 text-sm text-gray-500">No associations assigned to your board membership.</p>
         </div>
       </div>
     )
@@ -173,133 +166,123 @@ export default async function BoardFinancialsPage() {
     <div className="space-y-6">
       {/* ── Header ── */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Financials</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Financial overview for your association{boardAssocIds.length > 1 ? 's' : ''}
         </p>
       </div>
 
       {/* ── Financial Summary Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="YTD Income"
           value={money(ytdIncome)}
           sub="Charges & management fees"
           icon={TrendingUp}
-          accent="emerald"
         />
         <StatCard
           label="YTD Expenses"
           value={money(ytdExpenses)}
           sub="Bills & payments"
           icon={TrendingDown}
-          accent="red"
         />
         <StatCard
           label="Net Operating Income"
           value={money(netOperatingIncome)}
           sub={`${currentYear} year-to-date`}
           icon={DollarSign}
-          accent={netOperatingIncome >= 0 ? 'emerald' : 'red'}
+          valueClass={netOperatingIncome >= 0 ? 'text-emerald-700' : 'text-red-700'}
         />
         <StatCard
           label="Bank Balance"
           value={money(bankBalance)}
           sub="All accounts"
           icon={Building2}
-          accent="blue"
         />
         <StatCard
           label="Reserve Balance"
           value={money(reserveBalance)}
           sub="Reserve accounts"
           icon={PiggyBank}
-          accent="violet"
         />
         <StatCard
           label="Budget Variance"
           value={`${budgetVariancePct >= 0 ? '+' : ''}${budgetVariancePct}%`}
           sub={`vs. ${currentYear} budget`}
           icon={AlertTriangle}
-          accent={Math.abs(budgetVariancePct) <= 5 ? 'emerald' : Math.abs(budgetVariancePct) <= 15 ? 'amber' : 'red'}
+          valueClass={Math.abs(budgetVariancePct) <= 5 ? 'text-emerald-700' : Math.abs(budgetVariancePct) <= 15 ? 'text-amber-700' : 'text-red-700'}
         />
       </div>
 
       {/* ── Income vs Expenses Bar ── */}
-      <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-        <h2 className="mb-4 text-sm font-semibold text-white">Income vs. Expenses (YTD)</h2>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-950">Income vs. Expenses (YTD)</h2>
         <div className="space-y-3">
           <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400">Income</span>
-              <span className="text-emerald-400 tabular-nums">{money(ytdIncome)}</span>
+            <div className="mb-1 flex justify-between text-xs">
+              <span className="text-gray-500">Income</span>
+              <span className="tabular-nums text-emerald-700">{money(ytdIncome)}</span>
             </div>
-            <div className="h-6 rounded bg-[#060B18] overflow-hidden">
+            <div className="h-6 overflow-hidden rounded bg-gray-100">
               <div
-                className="h-full rounded bg-emerald-600 transition-all"
+                className="h-full rounded bg-emerald-500 transition-all"
                 style={{ width: `${ytdIncome > 0 && ytdExpenses > 0 ? Math.min(100, Math.round((ytdIncome / Math.max(ytdIncome, ytdExpenses)) * 100)) : ytdIncome > 0 ? 100 : 0}%` }}
               />
             </div>
           </div>
           <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400">Expenses</span>
-              <span className="text-red-400 tabular-nums">{money(ytdExpenses)}</span>
+            <div className="mb-1 flex justify-between text-xs">
+              <span className="text-gray-500">Expenses</span>
+              <span className="tabular-nums text-red-700">{money(ytdExpenses)}</span>
             </div>
-            <div className="h-6 rounded bg-[#060B18] overflow-hidden">
+            <div className="h-6 overflow-hidden rounded bg-gray-100">
               <div
-                className="h-full rounded bg-red-600 transition-all"
+                className="h-full rounded bg-red-500 transition-all"
                 style={{ width: `${ytdExpenses > 0 ? Math.min(100, Math.round((ytdExpenses / Math.max(ytdIncome, ytdExpenses)) * 100)) : 0}%` }}
               />
             </div>
           </div>
         </div>
-        <div className="mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-xs text-gray-500">
           Net: {money(netOperatingIncome)} {netOperatingIncome >= 0 ? 'surplus' : 'deficit'}
         </div>
       </div>
 
       {/* ── Recent Transactions ── */}
-      <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-        <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-white">Recent Transactions</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Latest financial activity across your associations</p>
+            <h2 className="text-sm font-semibold text-gray-950">Recent Transactions</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Latest financial activity across your associations</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 text-left font-medium">Date</th>
-                <th className="px-5 py-3 text-left font-medium">Description</th>
-                <th className="px-5 py-3 text-left font-medium">Type</th>
-                <th className="px-5 py-3 text-left font-medium">Association</th>
-                <th className="px-5 py-3 text-right font-medium">Amount</th>
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="px-5 py-2.5 text-left font-medium">Date</th>
+                <th className="px-5 py-2.5 text-left font-medium">Description</th>
+                <th className="px-5 py-2.5 text-left font-medium">Type</th>
+                <th className="px-5 py-2.5 text-left font-medium">Association</th>
+                <th className="px-5 py-2.5 text-right font-medium">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]">
+            <tbody>
               {recentTransactions.length === 0 ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">No recent transactions available.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No recent transactions available.</td></tr>
               ) : (
                 recentTransactions.map((txn: any) => (
-                  <tr key={txn.id} className="hover:bg-white/[0.02]">
-                    <td className="px-5 py-3 text-slate-400">{date(txn.created_at)}</td>
-                    <td className="px-5 py-3 text-slate-300">{txn.description ?? '—'}</td>
+                  <tr key={txn.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(txn.created_at)}</td>
+                    <td className="px-5 py-3 text-[13px] text-gray-900">{txn.description ?? '—'}</td>
                     <td className="px-5 py-3">
-                      <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${
-                        txn.type === 'credit' || txn.type === 'income'
-                          ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
-                          : 'bg-red-500/10 text-red-400 ring-red-500/20'
-                      }`}>
+                      <StatusChip tone={txn.type === 'credit' || txn.type === 'income' ? 'success' : 'danger'}>
                         {txn.type ?? '—'}
-                      </span>
+                      </StatusChip>
                     </td>
-                    <td className="px-5 py-3 text-slate-400">{txn.associations?.name ?? '—'}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      <span className={txn.type === 'credit' || txn.type === 'income' ? 'text-emerald-400' : 'text-red-400'}>
-                        {money(txn.amount)}
-                      </span>
+                    <td className="px-5 py-3 text-[13px] text-gray-700">{txn.associations?.name ?? '—'}</td>
+                    <td className={`px-5 py-3 text-right tabular-nums ${txn.type === 'credit' || txn.type === 'income' ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {money(txn.amount)}
                     </td>
                   </tr>
                 ))

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { money } from '@/lib/utils'
-import { TrendingUp, BarChart3, DollarSign } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,9 +15,9 @@ export default async function BoardBudgetPage() {
 
   if (ids.length === 0) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-white">Budget vs Actual</h1>
-        <p className="mt-4 text-slate-400">No association access. Contact your administrator.</p>
+      <div>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
+        <p className="mt-4 text-sm text-gray-500">No association access. Contact your administrator.</p>
       </div>
     )
   }
@@ -51,11 +51,13 @@ export default async function BoardBudgetPage() {
 
   const currentMonth = new Date().getMonth() + 1
 
+  const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Budget vs Actual</h1>
-        <p className="mt-1 text-sm text-slate-400">Association financial performance against budget — FY{currentYear}</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — FY{currentYear}</p>
       </div>
 
       {/* Per-association reports */}
@@ -82,62 +84,62 @@ export default async function BoardBudgetPage() {
 
         return (
           <div key={report.associationId} className="space-y-4">
-            <h2 className="text-lg font-semibold text-emerald-400 border-b border-[#1E293B] pb-2">{report.associationName}</h2>
+            <h2 className="border-b border-gray-200 pb-2 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">{report.associationName}</h2>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                { label: `YTD Budget (thru ${MONTHS[currentMonth - 1]})`, value: money(ytdNetBudget), cls: 'text-white' },
-                { label: 'YTD Actual', value: money(ytdNetActual), cls: ytdNetActual >= ytdNetBudget ? 'text-emerald-400' : 'text-red-400' },
-                { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-400' : 'text-red-400' },
-                { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                { label: `YTD Budget (thru ${MONTHS[currentMonth - 1]})`, value: money(ytdNetBudget), cls: 'text-gray-950' },
+                { label: 'YTD Actual', value: money(ytdNetActual), cls: ytdNetActual >= ytdNetBudget ? 'text-emerald-700' : 'text-red-700' },
+                { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
+                { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
               ].map(s => (
-                <div key={s.label} className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-                  <div className="text-xs font-medium uppercase text-slate-500">{s.label}</div>
-                  <div className={`mt-1 text-2xl font-bold ${s.cls}`}>{s.value}</div>
+                <div key={s.label} className={`${card} px-4 py-3.5`}>
+                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+                  <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
                 </div>
               ))}
             </div>
 
             {/* YTD Income vs Expense */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-                <div className="text-xs font-medium uppercase text-slate-500 mb-3">YTD Income</div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className={`${card} p-4`}>
+                <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Income</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Budget</span>
-                    <span className="text-white font-medium">{money(ytdIncomeBudget)}</span>
+                    <span className="text-gray-500">Budget</span>
+                    <span className="font-medium tabular-nums text-gray-950">{money(ytdIncomeBudget)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Actual</span>
-                    <span className={ytdIncomeActual >= ytdIncomeBudget ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                    <span className="text-gray-500">Actual</span>
+                    <span className={`font-medium tabular-nums ${ytdIncomeActual >= ytdIncomeBudget ? 'text-emerald-700' : 'text-red-700'}`}>
                       {money(ytdIncomeActual)}
                     </span>
                   </div>
-                  <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className="h-full bg-emerald-500/50 rounded-full"
+                      className="h-full rounded-full bg-emerald-500"
                       style={{ width: `${ytdIncomeBudget > 0 ? Math.min((ytdIncomeActual / ytdIncomeBudget) * 100, 100) : 0}%` }}
                     />
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-                <div className="text-xs font-medium uppercase text-slate-500 mb-3">YTD Expenses</div>
+              <div className={`${card} p-4`}>
+                <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">YTD Expenses</div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Budget</span>
-                    <span className="text-white font-medium">{money(ytdExpenseBudget)}</span>
+                    <span className="text-gray-500">Budget</span>
+                    <span className="font-medium tabular-nums text-gray-950">{money(ytdExpenseBudget)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Actual</span>
-                    <span className={ytdExpenseActual <= ytdExpenseBudget ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                    <span className="text-gray-500">Actual</span>
+                    <span className={`font-medium tabular-nums ${ytdExpenseActual <= ytdExpenseBudget ? 'text-emerald-700' : 'text-red-700'}`}>
                       {money(ytdExpenseActual)}
                     </span>
                   </div>
-                  <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className={`h-full rounded-full ${ytdExpenseActual <= ytdExpenseBudget ? 'bg-emerald-500/50' : 'bg-red-500/50'}`}
+                      className={`h-full rounded-full ${ytdExpenseActual <= ytdExpenseBudget ? 'bg-emerald-500' : 'bg-red-500'}`}
                       style={{ width: `${ytdExpenseBudget > 0 ? Math.min((ytdExpenseActual / ytdExpenseBudget) * 100, 100) : 0}%` }}
                     />
                   </div>
@@ -147,56 +149,51 @@ export default async function BoardBudgetPage() {
 
             {/* Budget lines by GL account */}
             {rows.length > 0 ? (
-              <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-                <div className="border-b border-[#1E293B] px-5 py-3">
-                  <h3 className="text-sm font-semibold text-white">Budget by GL Account</h3>
+              <div className={card}>
+                <div className="border-b border-gray-100 px-5 py-3">
+                  <h3 className="text-sm font-semibold text-gray-950">Budget by GL Account</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-[#1E293B]">
-                      <tr className="text-xs font-medium text-slate-500">
-                        <th className="px-5 py-2">GL Account</th>
-                        <th className="px-5 py-2 text-right">Budget</th>
-                        <th className="px-5 py-2 text-right">Actual</th>
-                        <th className="px-5 py-2 text-right">Variance</th>
-                        <th className="px-5 py-2 text-right">%</th>
-                        <th className="px-5 py-2 hidden sm:table-cell">Monthly Trend</th>
+                    <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+                      <tr>
+                        <th className="px-5 py-2 font-medium">GL Account</th>
+                        <th className="px-5 py-2 text-right font-medium">Budget</th>
+                        <th className="px-5 py-2 text-right font-medium">Actual</th>
+                        <th className="px-5 py-2 text-right font-medium">Variance</th>
+                        <th className="px-5 py-2 text-right font-medium">%</th>
+                        <th className="hidden px-5 py-2 font-medium sm:table-cell">Monthly Trend</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row: any) => (
-                        <tr key={row.budget_line_id} className="border-b border-[#1E293B] hover:bg-white/5">
+                        <tr key={row.budget_line_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                           <td className="px-5 py-2.5">
                             <div className="flex items-center gap-2">
-                              <span className={`w-1.5 h-1.5 rounded-full ${row.category === 'income' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                              <span className="text-white">{row.gl_account_number} — {row.gl_account_name}</span>
+                              <span className={`h-1.5 w-1.5 rounded-full ${row.category === 'income' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                              <span className="text-gray-900">{row.gl_account_number} — {row.gl_account_name}</span>
                             </div>
                           </td>
-                          <td className="px-5 py-2.5 text-right tabular-nums text-white">{money(row.annual_budget)}</td>
-                          <td className={`px-5 py-2.5 text-right tabular-nums font-medium ${row.annual_actual >= row.annual_budget ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <td className="px-5 py-2.5 text-right tabular-nums text-gray-900">{money(row.annual_budget)}</td>
+                          <td className={`px-5 py-2.5 text-right font-medium tabular-nums ${row.annual_actual >= row.annual_budget ? 'text-emerald-700' : 'text-red-700'}`}>
                             {money(row.annual_actual)}
                           </td>
-                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                             {money(row.annual_variance)}
                           </td>
-                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance_pct >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                             {row.annual_variance_pct}%
                           </td>
-                          <td className="px-5 py-2.5 hidden sm:table-cell">
-                            <div className="flex gap-0.5 items-end h-8">
+                          <td className="hidden px-5 py-2.5 sm:table-cell">
+                            <div className="flex h-8 items-end gap-0.5">
                               {(row.monthly_budget ?? []).map((budget: number, i: number) => {
                                 const actual = (row.monthly_actuals ?? [])[i] ?? 0
                                 const maxVal = Math.max(...(row.monthly_budget ?? []), ...(row.monthly_actuals ?? []), 1)
                                 return (
                                   <div
                                     key={i}
-                                    className="flex-1 rounded-t-sm"
-                                    style={{
-                                      height: `${Math.max((Math.max(budget, actual) / maxVal) * 100, 2)}%`,
-                                      backgroundColor: actual >= budget
-                                        ? 'rgba(16,185,129,0.5)'
-                                        : 'rgba(239,68,68,0.5)',
-                                    }}
+                                    className={`flex-1 rounded-t-sm ${actual >= budget ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
+                                    style={{ height: `${Math.max((Math.max(budget, actual) / maxVal) * 100, 2)}%` }}
                                     title={`${MONTHS[i]}: B ${money(budget)} / A ${money(actual)}`}
                                   />
                                 )
@@ -210,18 +207,18 @@ export default async function BoardBudgetPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-[#1E293B] p-8 text-center" style={{ backgroundColor: '#0B1121' }}>
-                <BarChart3 className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-500">No budget lines found for FY{currentYear}.</p>
-                <p className="text-xs text-slate-600 mt-1">Budget data will appear here once entered by management.</p>
+              <div className={`${card} p-8 text-center`}>
+                <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                <p className="text-sm font-semibold text-gray-900">No budget lines found for FY{currentYear}</p>
+                <p className="mt-1 text-xs text-gray-500">Budget data will appear here once entered by management.</p>
               </div>
             )}
 
             {/* Management Fees Summary (historical tracking) */}
             {fees && fees.length > 0 && (
-              <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-                <div className="border-b border-[#1E293B] px-5 py-3">
-                  <h3 className="text-sm font-semibold text-white">Management Fee Collection History</h3>
+              <div className={card}>
+                <div className="border-b border-gray-100 px-5 py-3">
+                  <h3 className="text-sm font-semibold text-gray-950">Management Fee Collection History</h3>
                 </div>
                 <div className="p-5">
                   <div className="space-y-3">
@@ -233,28 +230,28 @@ export default async function BoardBudgetPage() {
                       return (
                         <div key={m.month} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-slate-400 font-medium w-12">{MONTHS[mn]}</span>
-                            <span className="text-slate-300 tabular-nums w-24 text-right">{money(actual)}</span>
-                            <span className="text-slate-500 tabular-nums w-24 text-right">{money(budget)}</span>
-                            <span className={`tabular-nums w-16 text-right text-xs ${actual >= budget ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            <span className="w-12 font-medium text-gray-500">{MONTHS[mn]}</span>
+                            <span className="w-24 text-right tabular-nums text-gray-900">{money(actual)}</span>
+                            <span className="w-24 text-right tabular-nums text-gray-500">{money(budget)}</span>
+                            <span className={`w-16 text-right text-xs tabular-nums ${actual >= budget ? 'text-emerald-700' : 'text-amber-700'}`}>
                               {budget > 0 ? `${((actual - budget) / budget * 100).toFixed(0)}%` : '—'}
                             </span>
                           </div>
                           <div className="flex h-2 gap-0.5">
-                            <div className="bg-[#1E293B] rounded-sm flex-1 relative overflow-hidden">
-                              <div className="absolute inset-y-0 left-0 bg-emerald-500/30 rounded-sm" style={{ width: `${Math.min((actual / maxVal) * 100, 100)}%` }} />
+                            <div className="relative flex-1 overflow-hidden rounded-sm bg-gray-100">
+                              <div className="absolute inset-y-0 left-0 rounded-sm bg-emerald-500/50" style={{ width: `${Math.min((actual / maxVal) * 100, 100)}%` }} />
                             </div>
-                            <div className="w-0.5 bg-slate-600 rounded" title="Budget target" />
-                            <div className="bg-[#1E293B] rounded-sm flex-1 relative overflow-hidden">
-                              <div className="absolute inset-y-0 left-0 bg-slate-500/20 rounded-sm" style={{ width: `${Math.min((budget / maxVal) * 100, 100)}%` }} />
+                            <div className="w-0.5 rounded bg-gray-300" title="Budget target" />
+                            <div className="relative flex-1 overflow-hidden rounded-sm bg-gray-100">
+                              <div className="absolute inset-y-0 left-0 rounded-sm bg-gray-300" style={{ width: `${Math.min((budget / maxVal) * 100, 100)}%` }} />
                             </div>
                           </div>
                         </div>
                       )
                     })}
-                    <div className="flex items-center gap-6 pt-2 text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500/30 inline-block" /> Collected</span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-500/20 inline-block" /> Budget</span>
+                    <div className="flex items-center gap-6 pt-2 text-xs text-gray-500">
+                      <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-500/50" /> Collected</span>
+                      <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-gray-300" /> Budget</span>
                     </div>
                   </div>
                 </div>

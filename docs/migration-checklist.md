@@ -133,22 +133,22 @@
 
 ## C — Board portal (priority 3)
 - [ ] `/board`
-- [ ] `/board/architectural-reviews`
-- [ ] `/board/budget`
-- [ ] `/board/communications`
-- [ ] `/board/delinquencies`
-- [ ] `/board/documents`
-- [ ] `/board/financials`
-- [ ] `/board/meetings`
+- [x] `/board/architectural-reviews`
+- [x] `/board/budget`
+- [x] `/board/communications`
+- [x] `/board/delinquencies`
+- [x] `/board/documents`
+- [x] `/board/financials`
+- [x] `/board/meetings`
 - [ ] `/board/meetings/[id]`
-- [ ] `/board/projects`
-- [ ] `/board/reports`
-- [ ] `/board/vendors`
+- [x] `/board/projects`
+- [x] `/board/reports`
+- [x] `/board/vendors`
 - [ ] `/board/violations`
 - [ ] `/board/violations/[id]`
 - [ ] `/board/violations/analytics`
 - [ ] `/board/violations/repeat-offenders`
-- [ ] `/board/work-orders`
+- [x] `/board/work-orders`
 
 ## D — Owner portal (priority 4)
 - [ ] `/portal`
