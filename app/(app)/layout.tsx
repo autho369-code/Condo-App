@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import Sidebar from '@/components/nav/sidebar';
+import TasksRail from '@/components/workspace/tasks-rail';
 import { requireAuth } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
@@ -14,9 +15,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen">
       <Sidebar portfolioName={displayName} logoUrl={logoUrl} brandColor={brandColor} userEmail={me.email ?? undefined} />
-      <main className="flex-1 overflow-hidden pt-12 lg:pt-0">
+      <main className="h-screen flex-1 overflow-y-auto pt-12 lg:pt-0">
         {children}
       </main>
+      <TasksRail />
     </div>
   );
 }
