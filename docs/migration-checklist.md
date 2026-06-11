@@ -200,10 +200,10 @@
 - [ ] `/platform-operator/audit-logs`
 - [ ] `/platform-operator/billing`
 - [ ] `/platform-operator/communications`
-- [ ] `/platform-operator/companies`
-- [ ] `/platform-operator/companies/[id]`
+- [x] `/platform-operator/companies`
+- [x] `/platform-operator/companies/[id]`
 - [ ] `/platform-operator/door-usage`
-- [ ] `/platform-operator/invitations`
+- [x] `/platform-operator/invitations`
 - [ ] `/platform-operator/overview`
 - [ ] `/platform-operator/revenue`
 - [ ] `/platform-operator/supabase-admin`
