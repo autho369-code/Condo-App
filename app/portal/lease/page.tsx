@@ -31,23 +31,23 @@ export default async function OwnerLeasePage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Lease Information</h1>
-        <p className="text-sm text-gray-500">Manage tenant and lease details for your unit</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Lease Information</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage tenant and lease details for your unit</p>
       </div>
 
       {!hasRental && (occs ?? []).length === 0 ? (
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-12 text-center">
-          <Key className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No rental units found on your account.</p>
-          <p className="text-sm text-gray-400 mt-1">If you are renting your unit, contact management to set up lease tracking.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Key className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="text-sm font-semibold text-gray-900">No rental units found on your account.</p>
+          <p className="mt-1 text-sm text-gray-500">If you are renting your unit, contact management to set up lease tracking.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {rentals.map((r: any) => (
-            <div key={r.id} className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
-                  <Key className="h-5 w-5 text-blue-600" />
+            <div key={r.id} className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+                  <Key className="h-5 w-5 text-gray-400" />
                 </div>
                 <div>
                   <div className="font-semibold text-gray-900">Unit {r.unit_id}</div>
@@ -61,10 +61,10 @@ export default async function OwnerLeasePage() {
               <form action={updateLease} className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                 <input type="hidden" name="occupancy_id" value={r.id} />
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease Start</span><input type="date" name="start_date" defaultValue={r.move_in_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
-                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease End</span><input type="date" name="end_date" defaultValue={r.move_out_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
+                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease Start</span><input type="date" name="start_date" defaultValue={r.move_in_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease End</span><input type="date" name="end_date" defaultValue={r.move_out_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
                 </div>
-                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Update Lease Dates</button>
+                <button type="submit" className="rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">Update Lease Dates</button>
               </form>
             </div>
           ))}
@@ -72,10 +72,10 @@ export default async function OwnerLeasePage() {
       )}
 
       {(occs ?? []).filter((o: any) => o.occupancy_type !== 'tenant' && o.occupancy_type !== 'renter').map((o: any) => (
-        <div key={o.id} className="rounded-xl bg-white border border-gray-200 shadow-sm p-12 text-center">
-          <Key className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Unit {o.unit_id} is owner-occupied.</p>
-          <p className="text-sm text-gray-400 mt-1">Lease management is only available for rented units.</p>
+        <div key={o.id} className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Key className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="text-sm font-semibold text-gray-900">Unit {o.unit_id} is owner-occupied.</p>
+          <p className="mt-1 text-sm text-gray-500">Lease management is only available for rented units.</p>
         </div>
       ))}
     </div>

@@ -33,20 +33,20 @@ export default async function OwnerCalendarPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Association Calendar</h1>
-        <p className="text-sm text-gray-500">Board meetings, community events, and important dates</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Association Calendar</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Board meetings, community events, and important dates</p>
       </div>
 
       {Object.keys(grouped).length === 0 ? (
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-12 text-center">
-          <Calendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No upcoming events scheduled.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Calendar className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="text-sm text-gray-500">No upcoming events scheduled.</p>
         </div>
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([month, evts]) => (
             <div key={month}>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">{month}</h2>
+              <h2 className="mb-4 border-b border-gray-200 pb-2 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">{month}</h2>
               <div className="space-y-2">
                 {evts.map((e: any) => {
                   const d = new Date(e.start_datetime)
@@ -54,10 +54,10 @@ export default async function OwnerCalendarPage() {
                   const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
                   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                   return (
-                    <div key={e.id} className="flex items-start gap-4 rounded-lg bg-white border border-gray-200 shadow-sm p-4 hover:border-blue-200 transition">
-                      <div className="flex-shrink-0 w-14 text-center">
-                        <div className="text-xs font-medium text-gray-500 uppercase">{weekday}</div>
-                        <div className="text-2xl font-bold text-blue-600">{day}</div>
+                    <div key={e.id} className="flex items-start gap-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
+                      <div className="w-14 flex-shrink-0 text-center">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{weekday}</div>
+                        <div className="text-2xl font-semibold tabular-nums text-blue-600">{day}</div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-900">{e.title}</div>

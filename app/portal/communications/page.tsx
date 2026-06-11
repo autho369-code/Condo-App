@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 
@@ -46,23 +47,23 @@ export default async function OwnerCommunicationsPage() {
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Communications</h1>
-        <p className="text-sm text-gray-500">Send messages to management and view announcements</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Send messages to management and view announcements</p>
       </div>
 
       {/* Send Message */}
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Send a Message</h2>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-950">Send a Message</h2>
         <form action={sendMessage} className="space-y-4">
-          <label className="block"><span className="text-sm font-medium text-gray-700">Subject</span><input name="subject" required className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Message</span><textarea name="body" rows={4} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
-          <button type="submit" className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Send Message</button>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Subject</span><input name="subject" required className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Message</span><textarea name="body" rows={4} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+          <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Send Message</button>
         </form>
       </div>
 
       {/* Announcements */}
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-3">Announcements</h2>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-3 text-sm font-semibold text-gray-950">Announcements</h2>
         {announcements.length === 0 ? (
           <p className="text-sm text-gray-400">No announcements yet.</p>
         ) : (
@@ -78,8 +79,8 @@ export default async function OwnerCommunicationsPage() {
       </div>
 
       {/* Message History */}
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-3">Message History</h2>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-3 text-sm font-semibold text-gray-950">Message History</h2>
         {(msgs ?? []).length === 0 ? (
           <p className="text-sm text-gray-400">No messages sent yet.</p>
         ) : (
@@ -90,7 +91,7 @@ export default async function OwnerCommunicationsPage() {
                   <div className="text-sm text-gray-800">{m.subject}</div>
                   <div className="text-xs text-gray-500">{date(m.created_at)}</div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'sent' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{m.status}</span>
+                <Badge status={m.status} />
               </div>
             ))}
           </div>

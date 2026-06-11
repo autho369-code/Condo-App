@@ -33,13 +33,13 @@ export default async function OwnerAccountPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
-        <p className="text-sm text-gray-500">Your account details and occupancy information</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">My Account</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Your account details and occupancy information</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Personal Information</h2>
+        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="text-sm font-semibold text-gray-950">Personal Information</h2>
           {[
             ['Name', (o.full_name ?? `${o.first_name ?? ''} ${o.last_name ?? ''}`.trim()) || '—'],
             ['Email', o.email ?? me.email ?? '—'],
@@ -47,14 +47,14 @@ export default async function OwnerAccountPage() {
             ['Mailing Address', address],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-xs font-medium uppercase text-gray-500">{l}</div>
-              <div className="text-sm text-gray-900 mt-0.5">{v}</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Property Information</h2>
+        <div className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="text-sm font-semibold text-gray-950">Property Information</h2>
           {[
             ['Association', assocInfo?.name ?? '—'],
             ['Unit', unitInfo?.unit_number ?? occ.unit_id ?? '—'],
@@ -65,8 +65,8 @@ export default async function OwnerAccountPage() {
             ['Dues Paid Through', occ.dues_paid_through ? new Date(occ.dues_paid_through).toLocaleDateString() : '—'],
           ].map(([l, v]) => (
             <div key={l as string}>
-              <div className="text-xs font-medium uppercase text-gray-500">{l}</div>
-              <div className="text-sm text-gray-900 mt-0.5">{v}</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{l}</div>
+              <div className="mt-0.5 text-sm text-gray-900">{v}</div>
             </div>
           ))}
         </div>

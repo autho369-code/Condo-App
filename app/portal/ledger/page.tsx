@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { Badge } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,10 @@ export default async function LedgerPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Account ledger</h1>
+      <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Account ledger</h1>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Charges</h2>
+        <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Charges</h2>
         <Table>
           <THead><TR>
             <TH>Date</TH><TH>Description</TH>
@@ -38,9 +39,9 @@ export default async function LedgerPage() {
                 <TD>{date(c.due_date)}</TD>
                 <TD>{c.description}</TD>
                 <TD className="text-right">{money(c.charged_amount)}</TD>
-                <TD className="text-right text-green-600">{money(c.applied_amount)}</TD>
-                <TD className={`text-right ${Number(c.balance_due) > 0 ? 'text-red-600' : ''}`}>{money(c.balance_due)}</TD>
-                <TD>{c.payment_status}</TD>
+                <TD className="text-right text-emerald-700">{money(c.applied_amount)}</TD>
+                <TD className={`text-right ${Number(c.balance_due) > 0 ? 'text-red-700' : ''}`}>{money(c.balance_due)}</TD>
+                <TD><Badge status={c.payment_status} /></TD>
               </TR>
             ))}
           </tbody>
@@ -48,7 +49,7 @@ export default async function LedgerPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Payments</h2>
+        <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Payments</h2>
         <Table>
           <THead><TR><TH>Date</TH><TH>Method</TH><TH>Reference</TH><TH className="text-right">Amount</TH></TR></THead>
           <tbody>
@@ -57,7 +58,7 @@ export default async function LedgerPage() {
                 <TD>{date(p.payment_date)}</TD>
                 <TD className="uppercase">{p.method}</TD>
                 <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
-                <TD className="text-right text-green-600">{money(p.amount)}</TD>
+                <TD className="text-right text-emerald-700">{money(p.amount)}</TD>
               </TR>
             ))}
           </tbody>

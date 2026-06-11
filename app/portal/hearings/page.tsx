@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { Badge } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -21,25 +22,25 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hearings</h1>
-        <p className="text-sm text-gray-500">View scheduled hearings and request new ones</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Hearings</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">View scheduled hearings and request new ones</p>
       </div>
 
       {all.length === 0 ? (
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-12 text-center">
-          <p className="text-gray-500">No hearings scheduled or requested.</p>
-          <p className="text-sm text-gray-400 mt-1">If you have an open violation, you can request a hearing from the violation detail page.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <p className="text-sm font-semibold text-gray-900">No hearings scheduled or requested.</p>
+          <p className="mt-1 text-sm text-gray-500">If you have an open violation, you can request a hearing from the violation detail page.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {all.map((v: any) => (
-            <div key={v.id} className="rounded-xl bg-white border border-gray-200 shadow-sm p-5">
-              <div className="flex items-start justify-between">
+            <div key={v.id} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <Link href={`/portal/violations/${v.id}`} className="font-semibold text-gray-900 hover:text-blue-600">{v.title}</Link>
-                  <div className="text-xs text-gray-500 capitalize mt-0.5">{v.violation_type?.replace('_',' ')} — Issued {date(v.date_observed)}</div>
+                  <Link href={`/portal/violations/${v.id}`} className="font-semibold text-gray-900 hover:text-gray-950 hover:underline">{v.title}</Link>
+                  <div className="mt-0.5 text-xs capitalize text-gray-500">{v.violation_type?.replace('_',' ')} — Issued {date(v.date_observed)}</div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${v.status === 'closed' || v.status === 'cured' ? 'bg-gray-100 text-gray-600' : 'bg-amber-50 text-amber-700'}`}>{v.status.replace('_',' ')}</span>
+                <Badge status={v.status} />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900 font-medium">{v.hearing_date ? date(v.hearing_date) : v.hearing_at ? date(v.hearing_at) : 'Not scheduled'}</span></div>

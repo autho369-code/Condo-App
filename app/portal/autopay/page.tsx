@@ -5,7 +5,10 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { revalidatePath } from 'next/cache';
-import { money, date } from '@/lib/utils';
+import { redirect } from 'next/navigation';
+import { money } from '@/lib/utils';
+import { Alert } from '@/components/ui/shell';
+import { Badge } from '@/components/ui/shell';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +22,7 @@ async function enroll(formData: FormData) {
     p_authorized_max_cents:   Math.round(parseFloat(formData.get('max_amount') as string) * 100),
     p_frequency:              (formData.get('frequency') as any) || 'on_charge_posted',
   });
-  if (error) return { error: error.message };
+  if (error) redirect(`/portal/autopay?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/portal/autopay');
 }
 
@@ -30,9 +33,14 @@ async function cancel(mandateId: string) {
   revalidatePath('/portal/autopay');
 }
 
-export default async function AutopayPage() {
+export default async function AutopayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const me = await requireAuth();
   const supabase = await createClient();
+  const { error: errorMsg } = await searchParams;
 
   const [{ data: mandates }, { data: methods }, { data: units }] = await Promise.all([
     (supabase as any).from('autopay_mandates').select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name)').eq('owner_id', me.owner_id ?? '').order('created_at', { ascending: false }),
@@ -43,9 +51,11 @@ export default async function AutopayPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Autopay</h1>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Autopay</h1>
         <Link href="/portal"><Button variant="secondary">Back</Button></Link>
       </div>
+
+      {errorMsg && <Alert title="Could not enroll in autopay">{errorMsg}</Alert>}
 
       <Card>
         <CardHeader><CardTitle>Active autopay</CardTitle></CardHeader>
@@ -65,10 +75,7 @@ export default async function AutopayPage() {
                           : `${m.payment_methods?.brand} card ending ${m.payment_methods?.last_four}`}</TD>
                     <TD className="capitalize">{m.frequency.replace('_', ' ')}</TD>
                     <TD className="text-right">{money((m.authorized_amount_max_cents ?? 0) / 100)}</TD>
-                    <TD><span className={`rounded px-2 py-0.5 text-xs ${
-                      m.status === 'active' ? 'bg-green-100 text-green-700'
-                      : m.status === 'paused' ? 'bg-amber-100 text-amber-800'
-                      : 'bg-gray-100 text-gray-700'}`}>{m.status}</span></TD>
+                    <TD><Badge status={m.status} /></TD>
                     <TD className="text-right">
                       {m.status !== 'canceled' && (
                         <form action={cancel.bind(null, m.id) as any}>
@@ -96,7 +103,7 @@ export default async function AutopayPage() {
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4 text-sm">
               You don&apos;t have any saved bank accounts yet. Make a one-time ACH payment first via
               <Link href="/portal/pay" className="ml-1 text-brand-600 hover:underline">Pay assessment</Link>
-              and choose &quot;Save for autopay&quot; at checkout â€” your bank will be saved here automatically.
+              and choose &quot;Save for autopay&quot; at checkout — your bank will be saved here automatically.
             </div>
           ) : (
             <form action={enroll as any} className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -106,7 +113,7 @@ export default async function AutopayPage() {
                   className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                   {(units ?? []).map((u: any) => (
                     <option key={u.unit_id} value={u.unit_id}>
-                      {u.association_name} Â· Unit {u.unit_number}
+                      {u.association_name} · Unit {u.unit_number}
                     </option>
                   ))}
                 </select>

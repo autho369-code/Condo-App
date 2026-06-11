@@ -151,16 +151,16 @@
 - [x] `/board/work-orders`
 
 ## D — Owner portal (priority 4)
-- [ ] `/portal`
-- [ ] `/portal/account`
-- [ ] `/portal/autopay`
-- [ ] `/portal/calendar`
-- [ ] `/portal/communications`
-- [ ] `/portal/documents`
-- [ ] `/portal/hearings`
-- [ ] `/portal/insurance`
-- [ ] `/portal/lease`
-- [ ] `/portal/ledger`
+- [x] `/portal`
+- [x] `/portal/account`
+- [x] `/portal/autopay`
+- [x] `/portal/calendar`
+- [x] `/portal/communications`
+- [x] `/portal/documents`
+- [x] `/portal/hearings`
+- [x] `/portal/insurance`
+- [x] `/portal/lease`
+- [x] `/portal/ledger`
 - [ ] `/portal/pay`
 - [ ] `/portal/pay/cancel`
 - [ ] `/portal/pay/success`

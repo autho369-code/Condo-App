@@ -47,12 +47,12 @@ export default async function OwnerInsurancePage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Insurance</h1>
-        <p className="text-sm text-gray-500">HO6 insurance certificate management</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Insurance</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">HO6 insurance certificate management</p>
       </div>
 
       {/* Status card */}
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-center gap-3 mb-4">
           <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${hasInsurance ? (expired ? 'bg-red-100' : expiringSoon ? 'bg-amber-100' : 'bg-emerald-100') : 'bg-gray-100'}`}>
             <Shield className={`h-6 w-6 ${hasInsurance ? (expired ? 'text-red-600' : expiringSoon ? 'text-amber-600' : 'text-emerald-600') : 'text-gray-400'}`} />
@@ -68,8 +68,8 @@ export default async function OwnerInsurancePage() {
 
       {/* Policy history */}
       {policies.length > 1 && (
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-3">Previous Policies</h2>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="mb-3 text-sm font-semibold text-gray-950">Previous Policies</h2>
           <ul className="divide-y divide-gray-100">
             {policies.slice(1).map((p) => (
               <li key={p.id} className="py-2 flex items-center justify-between text-sm">
@@ -82,13 +82,13 @@ export default async function OwnerInsurancePage() {
       )}
 
       {/* Upload form */}
-      <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Add Insurance Policy</h2>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
         <form action={uploadInsurance} className="space-y-4">
-          <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier</span><input name="carrier" className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="e.g. State Farm" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number</span><input name="policy_number" className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Expiration Date</span><input type="date" name="expiration_date" className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" /></label>
-          <button type="submit" className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition shadow-sm">Save Policy</button>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier</span><input name="carrier" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="e.g. State Farm" /></label>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number</span><input name="policy_number" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Expiration Date</span><input type="date" name="expiration_date" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+          <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Save Policy</button>
         </form>
       </div>
     </div>
