@@ -1,35 +1,16 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
+import { Badge } from '@/components/ui/shell'
+import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { Wrench, Clock, AlertOctagon, ArrowUp, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-function PriorityBadge({ priority }: { priority: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    emergency: { label: 'Emergency', cls: 'bg-red-500/10 text-red-400 ring-red-500/20' },
-    high: { label: 'High', cls: 'bg-orange-500/10 text-orange-400 ring-orange-500/20' },
-    medium: { label: 'Medium', cls: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20' },
-    low: { label: 'Low', cls: 'bg-blue-500/10 text-blue-400 ring-blue-500/20' },
-  }
-  const p = priority?.toLowerCase() ?? ''
-  const { label, cls } = map[p] ?? { label: priority ?? '—', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' }
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${cls}`}>{label}</span>
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'bg-blue-500/10 text-blue-400 ring-blue-500/20' },
-    in_progress: { label: 'In Progress', cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20' },
-    pending: { label: 'Pending', cls: 'bg-violet-500/10 text-violet-400 ring-violet-500/20' },
-    completed: { label: 'Completed', cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' },
-    closed: { label: 'Closed', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' },
-    cancelled: { label: 'Cancelled', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' },
-  }
-  const s = status?.toLowerCase() ?? ''
-  const { label, cls } = map[s] ?? { label: status ?? '—', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' }
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${cls}`}>{label}</span>
+const priorityTone = (p: string | null): Tone => {
+  const m: Record<string, Tone> = { emergency: 'danger', high: 'warning', medium: 'warning', low: 'info' }
+  return m[p?.toLowerCase() ?? ''] ?? 'neutral'
 }
 
 function daysOpen(createdAt: string | null): number {
@@ -88,38 +69,35 @@ export default async function WorkOrdersOversightPage({
 
   const { data: workOrders } = await query
 
+  const selectCls = 'mt-1 block h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Work Orders Oversight</h1>
-          <p className="mt-1 text-sm text-slate-400">Monitor all work orders across your portfolio</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Work Orders Oversight</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Monitor all work orders across your portfolio</p>
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Open', value: openCount, icon: Wrench, accent: 'emerald' },
-          { label: 'Overdue', value: overdueCount, icon: Clock, accent: overdueCount > 0 ? 'red' : 'emerald' },
-          { label: 'Emergency', value: emergencyCount, icon: AlertOctagon, accent: emergencyCount > 0 ? 'red' : 'emerald' },
-          { label: 'High Priority', value: highCount, icon: ArrowUp, accent: highCount > 0 ? 'orange' : 'emerald' },
+          { label: 'Open', value: openCount, icon: Wrench },
+          { label: 'Overdue', value: overdueCount, icon: Clock },
+          { label: 'Emergency', value: emergencyCount, icon: AlertOctagon },
+          { label: 'High Priority', value: highCount, icon: ArrowUp },
         ].map((item) => {
-          const accents: Record<string, string> = {
-            emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-            red: 'bg-red-500/10 text-red-400 border-red-500/20',
-            orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-          }
           const Icon = item.icon
           return (
-            <div key={item.label} className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
+            <div key={item.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-xs font-medium uppercase text-slate-500">{item.label}</div>
-                  <div className="mt-1 text-2xl font-bold tabular-nums text-white">{item.value}</div>
+                  <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
+                  <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
                 </div>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[item.accent]}`}>
-                  <Icon className="h-5 w-5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+                  <Icon className="h-4.5 w-4.5 text-gray-400" />
                 </div>
               </div>
             </div>
@@ -128,17 +106,17 @@ export default async function WorkOrdersOversightPage({
       </div>
 
       {/* Filters */}
-      <form action="/company-admin/work-orders" method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-        <label className="text-xs font-medium uppercase text-slate-500">
+      <form action="/company-admin/work-orders" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <label className="text-xs font-medium text-gray-500">
           Association
-          <select name="association" defaultValue={sp.association ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="association" defaultValue={sp.association ?? ''} className={selectCls}>
             <option value="">All Associations</option>
             {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium uppercase text-slate-500">
+        <label className="text-xs font-medium text-gray-500">
           Priority
-          <select name="priority" defaultValue={sp.priority ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="priority" defaultValue={sp.priority ?? ''} className={selectCls}>
             <option value="">All</option>
             <option value="emergency">Emergency</option>
             <option value="high">High</option>
@@ -146,9 +124,9 @@ export default async function WorkOrdersOversightPage({
             <option value="low">Low</option>
           </select>
         </label>
-        <label className="text-xs font-medium uppercase text-slate-500">
+        <label className="text-xs font-medium text-gray-500">
           Status
-          <select name="status" defaultValue={sp.status ?? ''} className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <select name="status" defaultValue={sp.status ?? ''} className={selectCls}>
             <option value="">All</option>
             <option value="open">Open</option>
             <option value="in_progress">In Progress</option>
@@ -158,60 +136,56 @@ export default async function WorkOrdersOversightPage({
             <option value="cancelled">Cancelled</option>
           </select>
         </label>
-        <button type="submit" className="h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700">Apply</button>
+        <button type="submit" className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800">Apply</button>
       </form>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
+      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-              <th className="px-4 py-3 text-left font-medium">#</th>
-              <th className="px-4 py-3 text-left font-medium">Association</th>
-              <th className="px-4 py-3 text-left font-medium">Title</th>
-              <th className="px-4 py-3 text-left font-medium">Priority</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-left font-medium">Created</th>
-              <th className="px-4 py-3 text-right font-medium">Days Open</th>
-              <th className="px-4 py-3 text-left font-medium">Overdue</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-2.5 text-left font-medium">#</th>
+              <th className="px-4 py-2.5 text-left font-medium">Association</th>
+              <th className="px-4 py-2.5 text-left font-medium">Title</th>
+              <th className="px-4 py-2.5 text-left font-medium">Priority</th>
+              <th className="px-4 py-2.5 text-left font-medium">Status</th>
+              <th className="px-4 py-2.5 text-left font-medium">Created</th>
+              <th className="px-4 py-2.5 text-right font-medium">Days Open</th>
+              <th className="px-4 py-2.5 text-left font-medium">Overdue</th>
+              <th className="px-4 py-2.5 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1E293B]">
+          <tbody>
             {(workOrders ?? []).length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">No work orders found.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">No work orders found.</td></tr>
             ) : (
               (workOrders ?? []).map((wo: any) => {
                 const isOverdue = wo.scheduled_date && wo.scheduled_date < today && !['completed', 'closed', 'cancelled'].includes(wo.status?.toLowerCase())
                 const assocName = wo.associations?.name ?? '—'
                 return (
-                  <tr key={wo.id} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-slate-500 tabular-nums">{wo.number ?? `WO-${wo.id?.slice(0, 8)}`}</td>
+                  <tr key={wo.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-500">{wo.number ?? `WO-${wo.id?.slice(0, 8)}`}</td>
+                    <td className="px-4 py-3 text-[13px] text-gray-700">{assocName}</td>
                     <td className="px-4 py-3">
-                      <span className="text-slate-300">{assocName}</span>
+                      <div className="font-medium text-gray-900">{wo.title ?? 'Untitled'}</div>
+                      {wo.category && <div className="mt-0.5 text-xs capitalize text-gray-500">{wo.category}</div>}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-200">{wo.title ?? 'Untitled'}</div>
-                      {wo.category && <div className="mt-0.5 text-xs text-slate-500">{wo.category}</div>}
-                    </td>
-                    <td className="px-4 py-3"><PriorityBadge priority={wo.priority} /></td>
-                    <td className="px-4 py-3"><StatusBadge status={wo.status} /></td>
-                    <td className="px-4 py-3 text-slate-400">{date(wo.created_at)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      <span className={daysOpen(wo.created_at) > 30 ? 'text-red-400' : 'text-slate-300'}>
-                        {daysOpen(wo.created_at)}
-                      </span>
+                    <td className="px-4 py-3"><StatusChip tone={priorityTone(wo.priority)}>{wo.priority ?? '—'}</StatusChip></td>
+                    <td className="px-4 py-3"><Badge status={wo.status ?? '—'} /></td>
+                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{date(wo.created_at)}</td>
+                    <td className={`px-4 py-3 text-right tabular-nums ${daysOpen(wo.created_at) > 30 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
+                      {daysOpen(wo.created_at)}
                     </td>
                     <td className="px-4 py-3">
                       {isOverdue ? (
-                        <span className="inline-flex h-6 items-center rounded-full bg-red-500/10 px-2.5 text-xs font-medium text-red-400 ring-1 ring-red-500/20">Overdue</span>
+                        <StatusChip tone="danger">Overdue</StatusChip>
                       ) : (
-                        <span className="text-slate-600">—</span>
+                        <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/work-orders/${wo.id}`} className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-300" title="View">
+                        <Link href={`/work-orders/${wo.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View">
                           <Eye className="h-4 w-4" />
                         </Link>
                       </div>
@@ -224,7 +198,7 @@ export default async function WorkOrdersOversightPage({
         </table>
       </div>
 
-      <div className="text-xs text-slate-600">
+      <div className="text-xs text-gray-500">
         Showing {(workOrders ?? []).length} of {wos.length} work orders
         {sp.association && ` for selected association`}
         {sp.priority && ` • Priority: ${sp.priority}`}

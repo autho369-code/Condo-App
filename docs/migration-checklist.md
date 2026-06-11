@@ -178,7 +178,7 @@
 - [ ] `/company-admin`
 - [x] `/company-admin/architectural-reviews`
 - [x] `/company-admin/associations`
-- [ ] `/company-admin/audit-logs`
+- [x] `/company-admin/audit-logs`
 - [ ] `/company-admin/billing`
 - [ ] `/company-admin/communications`
 - [x] `/company-admin/managers`
@@ -186,12 +186,12 @@
 - [ ] `/company-admin/overview`
 - [x] `/company-admin/owners`
 - [ ] `/company-admin/platform-requests`
-- [ ] `/company-admin/portfolio-health`
+- [x] `/company-admin/portfolio-health`
 - [ ] `/company-admin/revenue`
-- [ ] `/company-admin/settings`
-- [ ] `/company-admin/vendors`
+- [x] `/company-admin/settings`
+- [x] `/company-admin/vendors`
 - [x] `/company-admin/violations`
-- [ ] `/company-admin/work-orders`
+- [x] `/company-admin/work-orders`
 
 ## F — Platform operator (priority 6, AFTER consolidation decision)
 - [ ] `/platform`

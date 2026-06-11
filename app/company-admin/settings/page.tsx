@@ -1,15 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
+import { Alert } from '@/components/ui/shell'
 import { updateCompanySettings } from './actions'
 import { Building2, Bell, UserCog, Palette, Save } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SettingsPage() {
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const inputCls = 'mt-1 block h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 placeholder:text-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; saved?: string }>
+}) {
   const me = await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
+  const { error: errorMsg, saved } = await searchParams
 
   // Fetch portfolio data
   const { data: portfolio } = await db
@@ -45,13 +54,13 @@ export default async function SettingsPage() {
   }) {
     return (
       <label className="block">
-        <span className="text-xs font-medium uppercase text-slate-500">{label}</span>
+        <span className="text-xs font-medium text-gray-500">{label}</span>
         <input
           type={type}
           name={name}
           defaultValue={defaultValue ?? ''}
           placeholder={placeholder}
-          className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className={inputCls}
         />
       </label>
     )
@@ -63,13 +72,13 @@ export default async function SettingsPage() {
     defaultChecked?: boolean
   }) {
     return (
-      <label className="flex items-center justify-between rounded-lg border border-[#1E293B] px-4 py-3 cursor-pointer hover:border-slate-600 transition-colors">
-        <span className="text-sm text-slate-300">{label}</span>
+      <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50/60">
+        <span className="text-sm text-gray-700">{label}</span>
         <input
           type="checkbox"
           name={name}
           defaultChecked={defaultChecked}
-          className="h-5 w-5 rounded border-[#1E293B] bg-[#060B18] text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+          className="h-5 w-5 rounded border-gray-300 accent-blue-600"
         />
       </label>
     )
@@ -78,20 +87,23 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Settings</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Manage company settings for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
 
+      {errorMsg && <Alert title="Settings not saved">{errorMsg}</Alert>}
+      {saved && <Alert tone="success" title="Settings saved" />}
+
       <form action={updateCompanySettings} className="space-y-6">
         {/* ── Company Profile ────────────────────────── */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-2 border-b border-[#1E293B] px-5 py-4">
-            <Building2 className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">Company Profile</h2>
+        <div className={card}>
+          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+            <Building2 className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">Company Profile</h2>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 p-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="Company Name" name="company_name" defaultValue={p.company_name} />
               <Field label="Phone Number" name="phone_number" defaultValue={p.phone_number} placeholder="+1 (555) 000-0000" />
@@ -111,11 +123,11 @@ export default async function SettingsPage() {
         </div>
 
         {/* ── Office Location ────────────────────────── */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="border-b border-[#1E293B] px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">Office Location</h2>
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">Office Location</h2>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 p-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="Office Address" name="office_address" defaultValue={ps.office_address} placeholder="123 Main St, Suite 100" />
               <Field label="Office Phone" name="office_phone" defaultValue={ps.office_phone} placeholder="+1 (555) 000-0000" />
@@ -124,12 +136,12 @@ export default async function SettingsPage() {
         </div>
 
         {/* ── Notification Preferences ───────────────── */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-2 border-b border-[#1E293B] px-5 py-4">
-            <Bell className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">Notification Preferences</h2>
+        <div className={card}>
+          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+            <Bell className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">Notification Preferences</h2>
           </div>
-          <div className="p-5 space-y-2">
+          <div className="space-y-2 p-5">
             <ToggleField
               label="New association added to portfolio"
               name="notify_new_association"
@@ -159,19 +171,19 @@ export default async function SettingsPage() {
         </div>
 
         {/* ── Manager Defaults ───────────────────────── */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-2 border-b border-[#1E293B] px-5 py-4">
-            <UserCog className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">Manager Defaults</h2>
+        <div className={card}>
+          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+            <UserCog className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">Manager Defaults</h2>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 p-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium uppercase text-slate-500">Default Role</span>
+                <span className="text-xs font-medium text-gray-500">Default Role</span>
                 <select
                   name="default_role"
                   defaultValue={mgrDefaults.role ?? 'manager'}
-                  className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className={inputCls}
                 >
                   <option value="manager">Manager</option>
                   <option value="assistant_manager">Assistant Manager</option>
@@ -180,11 +192,11 @@ export default async function SettingsPage() {
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium uppercase text-slate-500">Default Permissions</span>
+                <span className="text-xs font-medium text-gray-500">Default Permissions</span>
                 <select
                   name="default_permissions"
                   defaultValue={mgrDefaults.permissions ?? 'standard'}
-                  className="mt-1 block h-10 w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className={inputCls}
                 >
                   <option value="standard">Standard</option>
                   <option value="elevated">Elevated</option>
@@ -196,27 +208,27 @@ export default async function SettingsPage() {
         </div>
 
         {/* ── Branding ───────────────────────────────── */}
-        <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-2 border-b border-[#1E293B] px-5 py-4">
-            <Palette className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">Branding</h2>
+        <div className={card}>
+          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
+            <Palette className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">Branding</h2>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 p-5">
             <ToggleField
               label="Enable custom branding across the platform"
               name="branding_enabled"
               defaultChecked={ps.branding_enabled ?? false}
             />
             <label className="block">
-              <span className="text-xs font-medium uppercase text-slate-500">Brand Color</span>
+              <span className="text-xs font-medium text-gray-500">Brand Color</span>
               <div className="mt-1 flex items-center gap-3">
                 <input
                   type="color"
                   name="brand_color"
                   defaultValue={ps.branding_color ?? '#10B981'}
-                  className="h-10 w-16 rounded-lg border border-[#1E293B] bg-[#060B18] cursor-pointer"
+                  className="h-10 w-16 cursor-pointer rounded-xl border border-gray-200 bg-white"
                 />
-                <span className="text-sm text-slate-400">{ps.branding_color ?? '#10B981'}</span>
+                <span className="text-sm text-gray-500">{ps.branding_color ?? '#10B981'}</span>
               </div>
             </label>
           </div>
@@ -226,7 +238,7 @@ export default async function SettingsPage() {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
             <Save className="h-4 w-4" />
             Save All Settings

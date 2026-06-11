@@ -1,39 +1,37 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
+import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { CheckCircle2, AlertTriangle, AlertOctagon, HelpCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+
 function Gauge({ value }: { value: number }) {
   const rotation = (value / 100) * 180 - 90
   return (
-    <div className="relative h-32 w-64 mx-auto">
+    <div className="relative mx-auto h-32 w-64">
       <svg viewBox="0 0 200 120" className="h-full w-full">
-        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1E293B" strokeWidth="12" strokeLinecap="round" />
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#F3F4F6" strokeWidth="12" strokeLinecap="round" />
         <path d="M 20 100 A 80 80 0 0 1 100 20" fill="none" stroke="#EF4444" strokeWidth="12" strokeLinecap="butt" />
         <path d="M 100 20 A 80 80 0 0 1 150 65" fill="none" stroke="#F59E0B" strokeWidth="12" strokeLinecap="butt" />
         <path d="M 150 65 A 80 80 0 0 1 180 100" fill="none" stroke="#10B981" strokeWidth="12" strokeLinecap="butt" />
-        <line x1="100" y1="100" x2={100 + 75 * Math.cos((rotation * Math.PI) / 180)} y2={100 + 75 * Math.sin((rotation * Math.PI) / 180)} stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="100" cy="100" r="4" fill="#FFFFFF" />
+        <line x1="100" y1="100" x2={100 + 75 * Math.cos((rotation * Math.PI) / 180)} y2={100 + 75 * Math.sin((rotation * Math.PI) / 180)} stroke="#030712" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="100" cy="100" r="4" fill="#030712" />
       </svg>
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-        <div className="text-3xl font-bold text-white">{value}%</div>
-        <div className="text-xs text-slate-500">Overall Health</div>
+        <div className="text-3xl font-semibold tabular-nums text-gray-950">{value}%</div>
+        <div className="text-xs text-gray-500">Overall Health</div>
       </div>
     </div>
   )
 }
 
 function HealthBadge({ status }: { status: 'healthy' | 'warning' | 'attention' | 'critical' }) {
-  const styles: Record<string, string> = {
-    healthy: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 ring-amber-500/20',
-    attention: 'bg-orange-500/10 text-orange-400 ring-orange-500/20',
-    critical: 'bg-red-500/10 text-red-400 ring-red-500/20',
-  }
+  const tones: Record<string, Tone> = { healthy: 'success', warning: 'warning', attention: 'warning', critical: 'danger' }
   const labels = { healthy: 'Healthy', warning: 'Warning', attention: 'Attention', critical: 'Critical' }
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${styles[status]}`}>{labels[status]}</span>
+  return <StatusChip tone={tones[status]}>{labels[status]}</StatusChip>
 }
 
 export default async function PortfolioHealthPage() {
@@ -51,8 +49,6 @@ export default async function PortfolioHealthPage() {
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')
-
-  const assocIds = (associations ?? []).map((a: any) => a.id)
 
   const { data: allWorkOrders } = await db
     .from('work_orders')
@@ -130,50 +126,41 @@ export default async function PortfolioHealthPage() {
   const attention = healthRows.filter((r: any) => r.status === 'attention')
   const critical = healthRows.filter((r: any) => r.status === 'critical')
 
+  const summaryCards = [
+    { href: '#healthy', icon: CheckCircle2, count: healthy.length, label: 'Healthy', note: 'No issues' },
+    { href: '#warning', icon: HelpCircle, count: warning.length, label: 'Warning', note: 'Some overdue items' },
+    { href: '#attention', icon: AlertTriangle, count: attention.length, label: 'Attention', note: 'Multiple overdue items' },
+    { href: '#critical', icon: AlertOctagon, count: critical.length, label: 'Critical', note: 'High overdue, no activity' },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Portfolio Health</h1>
-        <p className="mt-1 text-sm text-slate-400">Real-time health monitoring across all associations</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Portfolio Health</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Real-time health monitoring across all associations</p>
       </div>
 
-      <div className="rounded-xl border border-[#1E293B] p-8 text-center" style={{ backgroundColor: '#0B1121' }}>
+      <div className={`${card} p-8 text-center`}>
         <Gauge value={overallScore} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="#healthy" className="rounded-xl border border-emerald-500/20 p-5 transition-colors hover:border-emerald-500/40" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10"><CheckCircle2 className="h-5 w-5 text-emerald-400" /></div>
-            <div><div className="text-2xl font-bold text-emerald-400">{healthy.length}</div><div className="text-xs text-slate-500">Healthy</div></div>
-          </div>
-          <div className="mt-3 text-xs text-slate-500">No issues</div>
-        </Link>
-        <Link href="#warning" className="rounded-xl border border-amber-500/20 p-5 transition-colors hover:border-amber-500/40" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10"><HelpCircle className="h-5 w-5 text-amber-400" /></div>
-            <div><div className="text-2xl font-bold text-amber-400">{warning.length}</div><div className="text-xs text-slate-500">Warning</div></div>
-          </div>
-          <div className="mt-3 text-xs text-slate-500">Some overdue items</div>
-        </Link>
-        <Link href="#attention" className="rounded-xl border border-orange-500/20 p-5 transition-colors hover:border-orange-500/40" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10"><AlertTriangle className="h-5 w-5 text-orange-400" /></div>
-            <div><div className="text-2xl font-bold text-orange-400">{attention.length}</div><div className="text-xs text-slate-500">Attention</div></div>
-          </div>
-          <div className="mt-3 text-xs text-slate-500">Multiple overdue items</div>
-        </Link>
-        <Link href="#critical" className="rounded-xl border border-red-500/20 p-5 transition-colors hover:border-red-500/40" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10"><AlertOctagon className="h-5 w-5 text-red-400" /></div>
-            <div><div className="text-2xl font-bold text-red-400">{critical.length}</div><div className="text-xs text-slate-500">Critical</div></div>
-          </div>
-          <div className="mt-3 text-xs text-slate-500">High overdue, no activity</div>
-        </Link>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {summaryCards.map((c) => {
+          const Icon = c.icon
+          return (
+            <Link key={c.label} href={c.href} className={`${card} p-5 transition-colors hover:border-gray-300`}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70"><Icon className="h-5 w-5 text-gray-400" /></div>
+                <div><div className="text-2xl font-semibold tabular-nums text-gray-950">{c.count}</div><div className="text-xs text-gray-500">{c.label}</div></div>
+              </div>
+              <div className="mt-3 text-xs text-gray-500">{c.note}</div>
+            </Link>
+          )
+        })}
       </div>
 
-      <div className="rounded-xl border border-[#1E293B] p-6" style={{ backgroundColor: '#0B1121' }}>
-        <h2 className="text-sm font-semibold text-white">Health Score Factors</h2>
+      <div className={`${card} p-6`}>
+        <h2 className="text-sm font-semibold text-gray-950">Health Score Factors</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: 'Open Work Orders', weight: '25%' },
@@ -184,54 +171,54 @@ export default async function PortfolioHealthPage() {
             { label: 'Delinquency Level', weight: '10%' },
             { label: 'Manager Inactivity', weight: '5%' },
           ].map((factor) => (
-            <div key={factor.label} className="flex items-center justify-between rounded-lg border border-[#1E293B] px-4 py-3" style={{ backgroundColor: '#060B18' }}>
-              <span className="text-sm text-slate-400">{factor.label}</span>
-              <span className="text-sm font-medium text-emerald-400">{factor.weight}</span>
+            <div key={factor.label} className="flex items-center justify-between rounded-xl border border-gray-200/70 bg-gray-50/60 px-4 py-3">
+              <span className="text-sm text-gray-600">{factor.label}</span>
+              <span className="text-sm font-medium tabular-nums text-gray-950">{factor.weight}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-        <div className="border-b border-[#1E293B] px-6 py-4">
-          <h2 className="text-sm font-semibold text-white">Association Health Status</h2>
+      <div className={card}>
+        <div className="border-b border-gray-100 px-6 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">Association Health Status</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-                <th className="px-6 py-3 text-left font-medium">Association</th>
-                <th className="px-6 py-3 text-left font-medium">Location</th>
-                <th className="px-6 py-3 text-right font-medium">Units</th>
-                <th className="px-6 py-3 text-right font-medium">Open WO</th>
-                <th className="px-6 py-3 text-right font-medium">Overdue WO</th>
-                <th className="px-6 py-3 text-right font-medium">Violations</th>
-                <th className="px-6 py-3 text-right font-medium">Score</th>
-                <th className="px-6 py-3 text-center font-medium">Status</th>
-                <th className="px-6 py-3 text-center font-medium">Mgr Active</th>
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="px-6 py-2.5 text-left font-medium">Association</th>
+                <th className="px-6 py-2.5 text-left font-medium">Location</th>
+                <th className="px-6 py-2.5 text-right font-medium">Units</th>
+                <th className="px-6 py-2.5 text-right font-medium">Open WO</th>
+                <th className="px-6 py-2.5 text-right font-medium">Overdue WO</th>
+                <th className="px-6 py-2.5 text-right font-medium">Violations</th>
+                <th className="px-6 py-2.5 text-right font-medium">Score</th>
+                <th className="px-6 py-2.5 text-center font-medium">Status</th>
+                <th className="px-6 py-2.5 text-center font-medium">Mgr Active</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]">
+            <tbody>
               {healthRows.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-500">No associations found.</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-500">No associations found.</td></tr>
               ) : (
                 healthRows.sort((a: any, b: any) => { const order: Record<string, number> = { critical: 0, attention: 1, warning: 2, healthy: 3 }; return order[a.status] - order[b.status] })
                   .map((row: any) => (
-                    <tr key={row.id} id={row.status} className="hover:bg-white/[0.02]">
+                    <tr key={row.id} id={row.status} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                       <td className="px-6 py-3">
-                        <Link href={`/associations/${row.id}`} className="font-medium text-slate-200 hover:text-emerald-400">{row.name}</Link>
+                        <Link href={`/associations/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                       </td>
-                      <td className="px-6 py-3 text-slate-400">{[row.city, row.state].filter(Boolean).join(', ') || '—'}</td>
-                      <td className="px-6 py-3 text-right tabular-nums text-slate-400">{row.unitCount}</td>
-                      <td className="px-6 py-3 text-right tabular-nums">{row.openWorkOrders > 0 ? <span className="text-amber-400">{row.openWorkOrders}</span> : <span className="text-emerald-400">0</span>}</td>
-                      <td className="px-6 py-3 text-right tabular-nums">{row.overdueWorkOrders > 0 ? <span className="text-red-400">{row.overdueWorkOrders}</span> : <span className="text-emerald-400">0</span>}</td>
-                      <td className="px-6 py-3 text-right tabular-nums">{row.openViolations > 0 ? <span className="text-red-400">{row.openViolations}</span> : <span className="text-emerald-400">0</span>}</td>
+                      <td className="px-6 py-3 text-[13px] text-gray-700">{[row.city, row.state].filter(Boolean).join(', ') || '—'}</td>
+                      <td className="px-6 py-3 text-right tabular-nums text-gray-700">{row.unitCount}</td>
+                      <td className={`px-6 py-3 text-right tabular-nums ${row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>{row.openWorkOrders}</td>
+                      <td className={`px-6 py-3 text-right tabular-nums ${row.overdueWorkOrders > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{row.overdueWorkOrders}</td>
+                      <td className={`px-6 py-3 text-right tabular-nums ${row.openViolations > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{row.openViolations}</td>
                       <td className="px-6 py-3 text-right tabular-nums">
-                        <span className={row.score >= 80 ? 'text-emerald-400' : row.score >= 50 ? 'text-amber-400' : 'text-red-400'}>{row.score}%</span>
+                        <span className={row.score >= 80 ? 'text-emerald-700' : row.score >= 50 ? 'text-amber-700' : 'text-red-700'}>{row.score}%</span>
                       </td>
                       <td className="px-6 py-3 text-center"><HealthBadge status={row.status} /></td>
                       <td className="px-6 py-3 text-center">
-                        {row.managerActive ? <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-400" /> : <AlertTriangle className="mx-auto h-4 w-4 text-amber-400" />}
+                        {row.managerActive ? <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-600" /> : <AlertTriangle className="mx-auto h-4 w-4 text-amber-600" />}
                       </td>
                     </tr>
                   ))

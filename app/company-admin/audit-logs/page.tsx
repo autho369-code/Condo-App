@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { ScrollText, Search, Calendar, User, FileText } from 'lucide-react'
+import { ScrollText, User, FileText } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">{children}</th>
+  return <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-gray-500">{children}</th>
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -57,48 +57,38 @@ export default async function AuditLogsPage({
   const hasRecordType = logRows.length > 0 && (logRows[0].record_type || logRows[0].entity_type || logRows[0].table_name)
   const hasDetails = logRows.length > 0 && (logRows[0].details || logRows[0].metadata || logRows[0].changes)
 
+  const inputCls = 'mt-1 block h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Audit Logs</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Audit Logs</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Track changes across {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
 
       {/* Date Range Filter */}
-      <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <form action="/company-admin/audit-logs" method="get" className="flex flex-wrap items-end gap-3">
           <label className="block">
-            <span className="text-xs font-medium uppercase text-slate-500">From</span>
-            <input
-              type="date"
-              name="from"
-              defaultValue={sp.from ?? ''}
-              className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              style={{ colorScheme: 'dark' }}
-            />
+            <span className="text-xs font-medium text-gray-500">From</span>
+            <input type="date" name="from" defaultValue={sp.from ?? ''} className={inputCls} />
           </label>
           <label className="block">
-            <span className="text-xs font-medium uppercase text-slate-500">To</span>
-            <input
-              type="date"
-              name="to"
-              defaultValue={sp.to ?? ''}
-              className="mt-1 block h-9 rounded-lg border border-[#1E293B] bg-[#060B18] px-3 text-sm text-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              style={{ colorScheme: 'dark' }}
-            />
+            <span className="text-xs font-medium text-gray-500">To</span>
+            <input type="date" name="to" defaultValue={sp.to ?? ''} className={inputCls} />
           </label>
           <button
             type="submit"
-            className="h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
+            className="h-10 rounded-xl bg-gray-950 px-4 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             Filter
           </button>
           {(sp.from || sp.to) && (
             <a
               href="/company-admin/audit-logs"
-              className="inline-flex items-center h-9 rounded-lg border border-[#1E293B] px-3 text-sm text-slate-400 hover:text-white"
+              className="inline-flex h-10 items-center rounded-xl border border-gray-200 px-3 text-sm text-gray-500 transition hover:text-gray-950"
             >
               Clear
             </a>
@@ -107,19 +97,19 @@ export default async function AuditLogsPage({
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
-        <div className="border-b border-[#1E293B] px-5 py-4">
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-gray-100 px-5 py-4">
           <div className="flex items-center gap-2">
-            <ScrollText className="h-4 w-4 text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">
+            <ScrollText className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">
               {logRows.length > 0 ? `${logRows.length} log entries` : 'Audit Trail'}
             </h2>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1E293B]">
+            <thead className="border-b border-gray-100 bg-gray-50/60">
+              <tr>
                 <Th>Date / Time</Th>
                 {hasUser && <Th>User</Th>}
                 {hasAction && <Th>Action</Th>}
@@ -128,15 +118,15 @@ export default async function AuditLogsPage({
                 {!hasAction && !hasUser && <Th>Entry</Th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]">
+            <tbody>
               {logRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-16 text-center">
-                    <ScrollText className="mx-auto mb-3 h-10 w-10 text-slate-600" />
-                    <div className="text-sm text-slate-400">
+                    <ScrollText className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                    <div className="text-sm font-semibold text-gray-900">
                       {tableExists ? 'No audit log entries found for the selected period.' : 'No audit logs recorded yet.'}
                     </div>
-                    <div className="mt-1 text-xs text-slate-600">
+                    <div className="mt-1 text-sm text-gray-500">
                       {tableExists
                         ? 'Audit trail entries will appear here as actions are performed.'
                         : 'The audit_logs table is ready. Logs will appear here once actions are tracked.'
@@ -151,8 +141,8 @@ export default async function AuditLogsPage({
                   const recordType = row.record_type || row.entity_type || row.table_name
                   const details = row.details || row.metadata || row.changes
                   return (
-                    <tr key={row.id ?? idx} className="hover:bg-white/[0.02]">
-                      <Td className="whitespace-nowrap text-slate-400 font-mono text-xs">
+                    <tr key={row.id ?? idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <Td className="whitespace-nowrap font-mono text-xs text-gray-500">
                         {row.created_at
                           ? new Date(row.created_at).toLocaleDateString('en-US', {
                               month: 'short',
@@ -165,30 +155,30 @@ export default async function AuditLogsPage({
                           : '—'}
                       </Td>
                       {hasUser && (
-                        <Td className="text-slate-300">
+                        <Td className="text-gray-700">
                           <span className="inline-flex items-center gap-1.5">
-                            <User className="h-3 w-3 text-slate-500" />
+                            <User className="h-3 w-3 text-gray-400" />
                             {typeof userId === 'string' ? userId.slice(0, 12) + '...' : '—'}
                           </span>
                         </Td>
                       )}
                       {hasAction && (
                         <Td>
-                          <span className="inline-flex h-6 items-center rounded-full bg-slate-500/10 px-2.5 text-xs font-medium text-slate-300 ring-1 ring-slate-500/20">
+                          <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-2.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15">
                             {action ?? '—'}
                           </span>
                         </Td>
                       )}
                       {hasRecordType && (
-                        <Td className="text-slate-400">{recordType ?? '—'}</Td>
+                        <Td className="text-gray-700">{recordType ?? '—'}</Td>
                       )}
                       {hasDetails && (
-                        <Td className="max-w-xs truncate text-slate-400">
+                        <Td className="max-w-xs truncate text-gray-500">
                           {typeof details === 'object' ? JSON.stringify(details).slice(0, 100) : (details ?? '—')}
                         </Td>
                       )}
                       {!hasAction && !hasUser && (
-                        <Td className="max-w-lg truncate text-slate-400 font-mono text-xs">
+                        <Td className="max-w-lg truncate font-mono text-xs text-gray-500">
                           {JSON.stringify(row).slice(0, 200)}
                         </Td>
                       )}
@@ -202,15 +192,15 @@ export default async function AuditLogsPage({
       </div>
 
       {!tableExists && (
-        <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-4 w-4 text-amber-400" />
-            <span className="text-sm font-medium text-amber-400">Schema Note</span>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="mb-2 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-medium text-amber-700">Schema Note</span>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-gray-500">
             The audit_logs table may need to be created in your database. Suggested columns:
           </p>
-          <pre className="mt-2 overflow-x-auto rounded-lg border border-[#1E293B] bg-[#060B18] p-3 text-xs text-slate-400">
+          <pre className="mt-2 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-600">
 {`-- Run in Supabase SQL Editor:
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
