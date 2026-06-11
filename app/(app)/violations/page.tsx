@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { Plus, ShieldAlert } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -135,7 +137,7 @@ export default async function ViolationsPage({
     {
       label: 'Open Cases',
       value: openCases,
-      sublabel: <Link href="/violations?status=all_open" className="text-blue-700 hover:underline">View open queue</Link>,
+      sublabel: <Link href="/violations?status=all_open" className="font-medium text-gray-500 transition-colors hover:text-gray-900">View open queue</Link>,
     },
     {
       label: 'Overdue',
@@ -156,10 +158,9 @@ export default async function ViolationsPage({
       description="Track rule enforcement from observation through notices, hearings, fines, and resolution."
       actions={
         <Link href="/violations/new">
-          <Button>New Violation</Button>
+          <Button><Plus className="h-4 w-4" /> New violation</Button>
         </Link>
       }
-      rail={<ViolationsRail />}
     >
       <div className="space-y-6">
         {/* ── METRIC STRIP ── */}
@@ -171,48 +172,27 @@ export default async function ViolationsPage({
           searchDefault={filters.q ?? ''}
           searchPlaceholder="Search case number, title, association..."
         >
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association"
-              defaultValue={filters.association ?? ''}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association" defaultValue={filters.association ?? ''}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={filters.status ?? ''}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"
-            >
-              <option value="">Any</option>
-              <option value="all_open">All Open</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{statusDisplay(s).label}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={filters.status ?? ''}>
+            <option value="">Any</option>
+            <option value="all_open">All Open</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{statusDisplay(s).label}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Severity
-            <select
-              name="severity"
-              defaultValue={filters.severity ?? ''}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case"
-            >
-              <option value="">Any</option>
-              {SEVERITY_OPTIONS.map((s) => (
-                <option key={s} value={s}>{formatLabel(s)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Severity" name="severity" defaultValue={filters.severity ?? ''}>
+            <option value="">Any</option>
+            {SEVERITY_OPTIONS.map((s) => (
+              <option key={s} value={s}>{formatLabel(s)}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -235,7 +215,7 @@ export default async function ViolationsPage({
                 return (
                   <TR key={v.id}>
                     <TD className="font-mono text-xs whitespace-nowrap">
-                      <Link href={`/violations/${v.id}`} className="text-blue-700 hover:underline">
+                      <Link href={`/violations/${v.id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                         {formatCaseNumber(v.id)}
                       </Link>
                     </TD>
@@ -262,66 +242,20 @@ export default async function ViolationsPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No violations match the current filters.
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={ShieldAlert}
+              title="No violations match the current filters"
+              description="Track rule enforcement from observation through notices, hearings, fines, and resolution."
+              action={
+                <Link href="/violations/new">
+                  <Button><Plus className="h-4 w-4" /> New violation</Button>
+                </Link>
+              }
+            />
           </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── Right Rail: Task Panel ──
-
-function ViolationsRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/violations/new" label="New Violation" />
-          <RailLink href="/violations?status=all_open" label="Open Queue" />
-          <RailLink href="/violations?status=hearing_pending" label="Hearing Queue" />
-          <RailLink href="/reports/violation_log" label="Violation Log Report" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick Links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/violations?status=all_open" label="All Open Cases" />
-          <RailLink href="/violations?status=notice_sent" label="Notices Sent" />
-          <RailLink href="/violations?status=fined" label="Fined Cases" />
-          <RailLink href="/violations?status=cured" label="Resolved Cases" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Status Workflow</h2>
-        <div className="mt-3 space-y-1.5 text-xs text-gray-600">
-          <WorkflowStep tone="info" label="Reported" />
-          <WorkflowStep tone="info" label="Notice Sent" />
-          <WorkflowStep tone="warning" label="Hearing Scheduled" />
-          <WorkflowStep tone="success" label="Resolved" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
-  );
-}
-
-function WorkflowStep({ tone, label }: { tone: Tone; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <StatusChip tone={tone}>{label}</StatusChip>
-    </div>
   );
 }

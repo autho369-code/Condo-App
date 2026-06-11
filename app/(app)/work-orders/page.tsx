@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { Plus, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 
@@ -149,17 +152,16 @@ export default async function WorkOrdersPage({
       title="Work Orders"
       description="Track, dispatch, and manage maintenance work orders across associations and units."
       actions={
-        <Link href="/work-orders/new" className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-          + New work order
+        <Link href="/work-orders/new">
+          <Button><Plus className="h-4 w-4" /> New work order</Button>
         </Link>
       }
-      rail={<WorkOrdersRail />}
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
-        <nav className="flex flex-wrap gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => {
             const active = t.key === tab;
             const params = new URLSearchParams();
@@ -169,16 +171,16 @@ export default async function WorkOrdersPage({
               <Link
                 key={t.key}
                 href={`/work-orders?${params.toString()}`}
-                className={`border-b-2 px-4 py-2 text-sm transition ${
+                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? 'border-brand-600 font-medium text-brand-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-950 text-gray-950'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t.label}
                 <span
-                  className={`ml-1.5 rounded px-1.5 text-xs tabular-nums ${
-                    active ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'
+                  className={`ml-1.5 rounded-full px-1.5 text-xs tabular-nums ${
+                    active ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {tabCounts[t.key]}
@@ -196,61 +198,33 @@ export default async function WorkOrdersPage({
         >
           <input type="hidden" name="tab" value={tab} />
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Status
-            <select
-              name="status"
-              defaultValue={status}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All statuses</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>{formatLabel(s)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{formatLabel(s)}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Priority
-            <select
-              name="priority"
-              defaultValue={priority}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All priorities</option>
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>{formatLabel(p)}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Priority" name="priority" defaultValue={priority}>
+            <option value="">All priorities</option>
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>{formatLabel(p)}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Association
-            <select
-              name="association_id"
-              defaultValue={association_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
+            <option value="">All</option>
+            {(associations ?? []).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </FilterSelect>
 
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Vendor
-            <select
-              name="vendor_id"
-              defaultValue={vendor_id}
-              className="mt-1 h-9 max-w-[200px] rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All</option>
-              {(vendors ?? []).map((v: any) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor_id}>
+            <option value="">All</option>
+            {(vendors ?? []).map((v: any) => (
+              <option key={v.id} value={v.id}>{v.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -275,7 +249,7 @@ export default async function WorkOrdersPage({
                 return (
                   <TR key={w.id}>
                     <TD className="font-mono text-xs">
-                      <Link href={`/work-orders/${w.id}`} className="text-blue-700 hover:underline">
+                      <Link href={`/work-orders/${w.id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                         {w.number ?? w.id.slice(0, 8)}
                       </Link>
                     </TD>
@@ -295,13 +269,13 @@ export default async function WorkOrdersPage({
                     <TD>
                       <StatusChip tone={pb.tone}>{pb.label}</StatusChip>
                     </TD>
-                    <TD className="text-sm">
+                    <TD>
                       {w.vendors?.name ? (
-                        <Link href={`/vendors/${w.vendor_id}`} className="text-blue-700 hover:underline">
+                        <Link href={`/vendors/${w.vendor_id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                           {w.vendors.name}
                         </Link>
                       ) : (
-                        <span className="text-red-600">Unassigned</span>
+                        <StatusChip tone="danger">Unassigned</StatusChip>
                       )}
                     </TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{date(w.scheduled_date)}</TD>
@@ -311,55 +285,20 @@ export default async function WorkOrdersPage({
             </tbody>
           </Table>
         ) : (
-          <p className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
-            No work orders match this view.
-          </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Wrench}
+              title="No work orders match this view"
+              description="Adjust the filters or create a new work order to get started."
+              action={
+                <Link href="/work-orders/new">
+                  <Button><Plus className="h-4 w-4" /> New work order</Button>
+                </Link>
+              }
+            />
+          </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── DataWorkspace Rail ──
-function WorkOrdersRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/work-orders/new" label="+ New work order" />
-          <RailLink href="/recurring-work-orders/new" label="New Recurring Work Order" />
-          <RailLink href="/purchase-orders/new" label="New Purchase Order" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/association-work-order" label="Association Work Order" />
-          <RailLink href="/reports/work-order" label="Work Order" />
-          <RailLink href="/reports/labor-summary" label="Labor Summary" />
-          <RailLink href="/reports/billable-detail" label="Billable Detail" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick Links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/work-orders?tab=unassigned" label="Unassigned Queue" />
-          <RailLink href="/vendors" label="Vendors" />
-          <RailLink href="/recurring-work-orders" label="Recurring Work Orders" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
   );
 }

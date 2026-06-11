@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -52,8 +53,7 @@ export default async function VendorW9Page({
     <DataWorkspace
       title="Request Vendor W-9s"
       description="Find 1099 vendors missing taxpayer information and stage W-9 document requests."
-      actions={<Link href="/vendors/forms?template=w9_request" className="inline-flex h-10 items-center rounded-md bg-gray-950 px-4 text-sm font-medium text-white">Prepare W-9 request</Link>}
-      rail={<div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">W-9 requests are outbound communications and should be reviewed before sending.</div>}
+      actions={<Link href="/vendors/forms?template=w9_request"><Button>Prepare W-9 request</Button></Link>}
     >
       <div className="space-y-4">
         <MetricStrip metrics={[
@@ -72,7 +72,7 @@ export default async function VendorW9Page({
                 <TD><StatusChip tone={vendor.send_1099 ? 'warning' : 'neutral'}>{vendor.send_1099 ? 'Needs 1099 review' : 'Not marked'}</StatusChip></TD>
                 <TD><StatusChip tone={vendor.taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
                 <TD><div className="capitalize">{latest?.status?.replace(/_/g, ' ') ?? 'No request'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
-                <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=w9_request`} className="text-sm font-medium text-blue-700 hover:underline">Stage request</Link></TD>
+                <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=w9_request`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">Stage request →</Link></TD>
               </TR>
             ))}
           </tbody>
