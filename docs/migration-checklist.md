@@ -132,7 +132,7 @@
 - [x] `/(app)/work-orders/[id]`
 
 ## C — Board portal (priority 3)
-- [ ] `/board`
+- [x] `/board`
 - [x] `/board/architectural-reviews`
 - [x] `/board/budget`
 - [x] `/board/communications`
@@ -140,14 +140,14 @@
 - [x] `/board/documents`
 - [x] `/board/financials`
 - [x] `/board/meetings`
-- [ ] `/board/meetings/[id]`
+- [x] `/board/meetings/[id]`
 - [x] `/board/projects`
 - [x] `/board/reports`
 - [x] `/board/vendors`
-- [ ] `/board/violations`
-- [ ] `/board/violations/[id]`
-- [ ] `/board/violations/analytics`
-- [ ] `/board/violations/repeat-offenders`
+- [x] `/board/violations`
+- [x] `/board/violations/[id]`
+- [x] `/board/violations/analytics`
+- [x] `/board/violations/repeat-offenders`
 - [x] `/board/work-orders`
 
 ## D — Owner portal (priority 4)

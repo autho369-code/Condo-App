@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
-import { Calendar, MapPin, Clock, Users, FileText, Plus, Trash2, GripVertical, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Clock, Users, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -77,13 +77,16 @@ const categoryLabel: Record<string, string> = {
 
 const statusBadge = (s: string) => {
   const m: Record<string, string> = {
-    scheduled: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    in_progress: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    cancelled: 'bg-red-500/10 text-red-400 border-red-500/20',
+    scheduled: 'bg-blue-50 text-blue-700 ring-blue-600/15',
+    in_progress: 'bg-amber-50 text-amber-700 ring-amber-600/15',
+    completed: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+    cancelled: 'bg-red-50 text-red-700 ring-red-600/15',
   }
-  return m[s] ?? 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+  return m[s] ?? 'bg-gray-100 text-gray-600 ring-gray-500/15'
 }
+
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 placeholder-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
 export default function MeetingDetailClient() {
   const params = useParams()
@@ -385,15 +388,15 @@ export default function MeetingDetailClient() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     )
   }
 
   if (!meeting) {
     return (
-      <div className="rounded-xl border border-[#1E293B] p-12 text-center" style={{ backgroundColor: '#0B1121' }}>
-        <p className="text-slate-500">Meeting not found.</p>
+      <div className={`${card} p-12 text-center`}>
+        <p className="text-sm text-gray-500">Meeting not found.</p>
       </div>
     )
   }
@@ -405,20 +408,20 @@ export default function MeetingDetailClient() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">{meeting.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{meeting.title}</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
             {meeting.associations?.name && `${meeting.associations.name} — `}
             {typeLabel[meeting.meeting_type] ?? meeting.meeting_type}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`inline-block rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusBadge(meeting.status)}`}>
+          <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium capitalize ring-1 ring-inset ${statusBadge(meeting.status)}`}>
             {meeting.status.replace('_', ' ')}
           </span>
           <button
             onClick={generatePDF}
             disabled={generating}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
           >
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {generating ? 'Generating...' : 'Generate Packet'}
@@ -427,50 +430,50 @@ export default function MeetingDetailClient() {
       </div>
 
       {/* Meeting Info Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { icon: Calendar, label: 'Date & Time', value: date(meeting.start_time, 'long'), cls: 'text-blue-400' },
-          { icon: MapPin, label: 'Location', value: meeting.location || 'Not set', cls: 'text-amber-400' },
-          { icon: Clock, label: 'Created', value: date(meeting.created_at, 'long'), cls: 'text-slate-400' },
-          { icon: Users, label: 'Attendees', value: meeting.attendees || 'Not recorded', cls: 'text-emerald-400' },
-        ].map((card: any) => (
-          <div key={card.label} className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-            <div className="flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
-              <card.icon className={`h-3.5 w-3.5 ${card.cls}`} />
-              {card.label}
+          { icon: Calendar, label: 'Date & Time', value: date(meeting.start_time, 'long') },
+          { icon: MapPin, label: 'Location', value: meeting.location || 'Not set' },
+          { icon: Clock, label: 'Created', value: date(meeting.created_at, 'long') },
+          { icon: Users, label: 'Attendees', value: meeting.attendees || 'Not recorded' },
+        ].map((c: any) => (
+          <div key={c.label} className={`${card} px-4 py-3.5`}>
+            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+              <c.icon className="h-3.5 w-3.5 text-gray-400" />
+              {c.label}
             </div>
-            <div className="mt-1 text-sm text-slate-300">{card.value}</div>
+            <div className="mt-1.5 text-sm text-gray-900">{c.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Main: Agenda + Financials */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-4 lg:col-span-2">
           {/* Financial Snapshot */}
           {financials && (
-            <div className="rounded-xl border border-[#1E293B] overflow-hidden" style={{ backgroundColor: '#0B1121' }}>
-              <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
-                <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-                  <FileText className="h-4 w-4 text-emerald-400" />
+            <div className={`${card} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                  <FileText className="h-4 w-4 text-gray-400" />
                   Financial Snapshot
                 </h2>
-                <span className="text-xs text-slate-600">As of {date(financials.generated_at, 'long')}</span>
+                <span className="text-xs text-gray-400">As of {date(financials.generated_at, 'long')}</span>
               </div>
-              <div className="grid grid-cols-2 gap-px bg-[#1E293B] sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-px bg-gray-100 sm:grid-cols-4">
                 {[
-                  { label: 'Receivables', value: money(financials.total_receivables), cls: 'text-white' },
-                  { label: 'Payables', value: money(financials.total_payables), cls: 'text-white' },
-                  { label: 'Bank Balance', value: money(financials.bank_balance), cls: 'text-emerald-400' },
-                  { label: 'Delinquent', value: `${financials.delinquency_count}`, cls: 'text-red-400' },
-                  { label: 'Income (MTD)', value: money(financials.current_month_income), cls: 'text-blue-400' },
-                  { label: 'Expenses (MTD)', value: money(financials.current_month_expenses), cls: 'text-amber-400' },
-                  { label: 'Net Income', value: money(financials.net_income), cls: financials.net_income >= 0 ? 'text-emerald-400' : 'text-red-400' },
-                  { label: 'Generated', value: date(financials.generated_at, 'short'), cls: 'text-slate-400' },
+                  { label: 'Receivables', value: money(financials.total_receivables), cls: 'text-gray-950' },
+                  { label: 'Payables', value: money(financials.total_payables), cls: 'text-gray-950' },
+                  { label: 'Bank Balance', value: money(financials.bank_balance), cls: 'text-emerald-700' },
+                  { label: 'Delinquent', value: `${financials.delinquency_count}`, cls: 'text-red-700' },
+                  { label: 'Income (MTD)', value: money(financials.current_month_income), cls: 'text-gray-950' },
+                  { label: 'Expenses (MTD)', value: money(financials.current_month_expenses), cls: 'text-gray-950' },
+                  { label: 'Net Income', value: money(financials.net_income), cls: financials.net_income >= 0 ? 'text-emerald-700' : 'text-red-700' },
+                  { label: 'Generated', value: date(financials.generated_at, 'short'), cls: 'text-gray-700' },
                 ].map((s: any) => (
-                  <div key={s.label} className="px-4 py-3" style={{ backgroundColor: '#0B1121' }}>
-                    <div className="text-xs text-slate-500">{s.label}</div>
-                    <div className={`mt-0.5 text-sm font-semibold ${s.cls}`}>{s.value}</div>
+                  <div key={s.label} className="bg-white px-4 py-3">
+                    <div className="text-xs text-gray-500">{s.label}</div>
+                    <div className={`mt-0.5 text-sm font-semibold tabular-nums ${s.cls}`}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -478,51 +481,51 @@ export default function MeetingDetailClient() {
           )}
 
           {/* Agenda */}
-          <div className="rounded-xl border border-[#1E293B] overflow-hidden" style={{ backgroundColor: '#0B1121' }}>
-            <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-                <FileText className="h-4 w-4 text-emerald-400" />
+          <div className={`${card} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <FileText className="h-4 w-4 text-gray-400" />
                 Agenda
               </h2>
-              <span className="text-xs text-slate-600">{agendaItems.length} item{agendaItems.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-gray-400">{agendaItems.length} item{agendaItems.length !== 1 ? 's' : ''}</span>
             </div>
 
             {agendaItems.length === 0 && !canEdit ? (
-              <div className="px-5 py-12 text-center text-slate-500">No agenda items yet.</div>
+              <div className="px-5 py-12 text-center text-sm text-gray-500">No agenda items yet.</div>
             ) : (
-              <div className="divide-y divide-[#1E293B]">
+              <div className="divide-y divide-gray-100">
                 {agendaItems.map((item: AgendaItem, idx: number) => (
-                  <div key={item.id} className="flex items-start gap-3 px-5 py-3 hover:bg-white/[0.01]">
+                  <div key={item.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/60">
                     {canEdit && (
                       <div className="flex flex-col gap-0.5 pt-0.5">
-                        <button onClick={() => moveItem(item.id, 'up')} disabled={idx === 0} className="text-slate-600 hover:text-slate-300 disabled:opacity-30">
+                        <button onClick={() => moveItem(item.id, 'up')} disabled={idx === 0} className="text-gray-400 hover:text-gray-950 disabled:opacity-30">
                           <ChevronRight className="h-3 w-3 rotate-[-90deg]" />
                         </button>
-                        <button onClick={() => moveItem(item.id, 'down')} disabled={idx === agendaItems.length - 1} className="text-slate-600 hover:text-slate-300 disabled:opacity-30">
+                        <button onClick={() => moveItem(item.id, 'down')} disabled={idx === agendaItems.length - 1} className="text-gray-400 hover:text-gray-950 disabled:opacity-30">
                           <ChevronRight className="h-3 w-3 rotate-90" />
                         </button>
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         {!canEdit && (
-                          <span className="text-xs font-medium text-slate-600">{idx + 1}.</span>
+                          <span className="text-xs font-medium text-gray-400">{idx + 1}.</span>
                         )}
-                        <span className="text-sm font-medium text-slate-200">{item.title}</span>
-                        <span className="rounded border border-[#1E293B] px-1.5 py-0.5 text-xs text-slate-500 capitalize">
+                        <span className="text-sm font-medium text-gray-900">{item.title}</span>
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                           {categoryLabel[item.category] ?? item.category}
                         </span>
                       </div>
                       {item.description && (
-                        <p className="mt-1 text-xs text-slate-500">{item.description}</p>
+                        <p className="mt-1 text-xs text-gray-500">{item.description}</p>
                       )}
-                      <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-600">
+                      <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-400">
                         {item.duration_minutes && <span>{item.duration_minutes} min</span>}
                         {item.presenter && <span>Presented by: {item.presenter}</span>}
                       </div>
                     </div>
                     {canEdit && (
-                      <button onClick={() => removeAgendaItem(item.id)} className="text-slate-600 hover:text-red-400">
+                      <button onClick={() => removeAgendaItem(item.id)} className="text-gray-400 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -533,20 +536,20 @@ export default function MeetingDetailClient() {
 
             {/* Add agenda item (staff only for non-completed meetings) */}
             {canEdit && (
-              <div className="border-t border-[#1E293B] px-5 py-4 space-y-3">
-                <h3 className="text-sm font-medium text-slate-300">Add Agenda Item</h3>
+              <div className="space-y-3 border-t border-gray-100 px-5 py-4">
+                <h3 className="text-sm font-medium text-gray-900">Add Agenda Item</h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
                     type="text"
                     placeholder="Item title"
                     value={newTitle}
                     onChange={(e: any) => setNewTitle(e.target.value)}
-                    className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                    className={inputCls}
                   />
                   <select
                     value={newCategory}
                     onChange={(e: any) => setNewCategory(e.target.value)}
-                    className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className={inputCls}
                   >
                     {Object.entries(categoryLabel).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -557,14 +560,14 @@ export default function MeetingDetailClient() {
                     placeholder="Duration (min)"
                     value={newDuration}
                     onChange={(e: any) => setNewDuration(e.target.value)}
-                    className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                    className={inputCls}
                   />
                   <input
                     type="text"
                     placeholder="Presenter (optional)"
                     value={newPresenter}
                     onChange={(e: any) => setNewPresenter(e.target.value)}
-                    className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                    className={inputCls}
                   />
                 </div>
                 <textarea
@@ -572,12 +575,12 @@ export default function MeetingDetailClient() {
                   value={newDesc}
                   onChange={(e: any) => setNewDesc(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                  className={inputCls}
                 />
                 <button
                   onClick={addAgendaItem}
                   disabled={!newTitle.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
                 >
                   <Plus className="h-4 w-4" />
                   Add Item
@@ -588,28 +591,28 @@ export default function MeetingDetailClient() {
         </div>
 
         {/* Sidebar: Documents */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Documents */}
-          <div className="rounded-xl border border-[#1E293B] overflow-hidden" style={{ backgroundColor: '#0B1121' }}>
-            <div className="flex items-center justify-between border-b border-[#1E293B] px-5 py-4">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-                <Upload className="h-4 w-4 text-emerald-400" />
+          <div className={`${card} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <Upload className="h-4 w-4 text-gray-400" />
                 Documents
               </h2>
-              <span className="text-xs text-slate-600">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-gray-400">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
             </div>
-            <div className="divide-y divide-[#1E293B]">
+            <div className="divide-y divide-gray-100">
               {documents.length === 0 ? (
-                <div className="px-5 py-8 text-center text-sm text-slate-500">
+                <div className="px-5 py-8 text-center text-sm text-gray-500">
                   No documents attached. Use the upload button below to add files.
                 </div>
               ) : (
                 documents.map((d: MeetingDoc) => (
                   <div key={d.id} className="flex items-start gap-3 px-5 py-3">
-                    <FileText className="h-4 w-4 flex-shrink-0 text-slate-500" />
+                    <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm text-slate-300 truncate">{d.name}</div>
-                      <div className="mt-0.5 text-xs text-slate-600">
+                      <div className="truncate text-sm text-gray-900">{d.name}</div>
+                      <div className="mt-0.5 text-xs text-gray-400">
                         {d.file_type ?? 'Unknown'} &middot; {d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : 'Unknown size'}
                       </div>
                     </div>
@@ -618,8 +621,8 @@ export default function MeetingDetailClient() {
               )}
             </div>
             {/* Upload */}
-            <div className="border-t border-[#1E293B] px-5 py-4">
-              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#1E293B] px-4 py-3 text-sm text-slate-400 hover:border-emerald-500/30 hover:text-slate-300">
+            <div className="border-t border-gray-100 px-5 py-4">
+              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700">
                 {uploading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -643,12 +646,12 @@ export default function MeetingDetailClient() {
 
           {/* Meeting Minutes */}
           {meeting.minutes && (
-            <div className="rounded-xl border border-[#1E293B] overflow-hidden" style={{ backgroundColor: '#0B1121' }}>
-              <div className="border-b border-[#1E293B] px-5 py-4">
-                <h2 className="text-base font-semibold text-white">Minutes</h2>
+            <div className={`${card} overflow-hidden`}>
+              <div className="border-b border-gray-100 px-5 py-4">
+                <h2 className="text-sm font-semibold text-gray-950">Minutes</h2>
               </div>
               <div className="px-5 py-4">
-                <p className="whitespace-pre-wrap text-sm text-slate-400">{meeting.minutes}</p>
+                <p className="whitespace-pre-wrap text-sm text-gray-700">{meeting.minutes}</p>
               </div>
             </div>
           )}

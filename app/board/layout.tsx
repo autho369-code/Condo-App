@@ -1,4 +1,5 @@
-import BoardSidebar from '@/components/nav/board-sidebar'
+import Sidebar from '@/components/nav/sidebar'
+import { boardModules } from '@/lib/navigation/role-modules'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient } from '@/lib/supabase/server'
 
@@ -22,10 +23,15 @@ export default async function BoardLayout({ children }: { children: React.ReactN
   const associationName = await getAssociationName(me.board_association_ids)
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#060B18' }}>
-      <BoardSidebar userEmail={me.email ?? undefined} associationName={associationName} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="px-8 py-6">{children}</div>
+    <div className="flex min-h-screen">
+      <Sidebar
+        portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
+        userEmail={me.email ?? undefined}
+        modules={boardModules}
+        subtitle="Board portal"
+      />
+      <main className="h-screen flex-1 overflow-y-auto bg-[#f6f7f9] pt-12 lg:pt-0">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-8">{children}</div>
       </main>
     </div>
   )

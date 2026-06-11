@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -16,32 +17,16 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-function StatusBadge({ status }: { status: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'bg-blue-500/10 text-blue-400 ring-blue-500/20' },
-    pending: { label: 'Pending', cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20' },
-    in_progress: { label: 'In Progress', cls: 'bg-violet-500/10 text-violet-400 ring-violet-500/20' },
-    under_review: { label: 'Under Review', cls: 'bg-orange-500/10 text-orange-400 ring-orange-500/20' },
-    notice_sent: { label: 'Notice Sent', cls: 'bg-pink-500/10 text-pink-400 ring-pink-500/20' },
-    hearing_scheduled: { label: 'Hearing', cls: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20' },
-    closed: { label: 'Closed', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' },
-    cured: { label: 'Cured', cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' },
-    resolved: { label: 'Resolved', cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' },
-  }
-  const s = status?.toLowerCase() ?? ''
-  const { label, cls } = map[s] ?? { label: status ?? '—', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' }
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${cls}`}>{label}</span>
-}
+const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between py-2 border-b border-[#1E293B] last:border-b-0">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-sm text-slate-300 text-right ml-4">{value}</span>
+    <div className="flex items-start justify-between border-b border-gray-100 py-2 last:border-b-0">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="ml-4 text-right text-sm text-gray-900">{value}</span>
     </div>
   )
 }
@@ -100,12 +85,12 @@ export default async function BoardViolationDetailPage({
   if (!violation) {
     return (
       <div className="space-y-6">
-        <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">
+        <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-950">
           <ArrowLeft className="h-4 w-4" /> Back to Violations
         </Link>
-        <div className="rounded-xl border border-[#1E293B] p-12 text-center" style={{ backgroundColor: '#0B1121' }}>
-          <AlertTriangle className="mx-auto h-12 w-12 text-slate-600" />
-          <p className="mt-4 text-slate-400">Violation not found or not accessible.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
+          <p className="mt-3 text-sm text-gray-500">Violation not found or not accessible.</p>
         </div>
       </div>
     )
@@ -158,18 +143,18 @@ export default async function BoardViolationDetailPage({
   return (
     <div className="space-y-6">
       {/* ── Back Link ── */}
-      <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
+      <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-950">
         <ArrowLeft className="h-4 w-4" /> Back to Violations
       </Link>
 
       {/* ── Top Header ── */}
-      <div className="rounded-xl border border-[#1E293B] p-6" style={{ backgroundColor: '#0B1121' }}>
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-white">{violation.title}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+            <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{violation.title}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
               <span className="inline-flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5" />
+                <Building2 className="h-3.5 w-3.5 text-gray-400" />
                 {violation.associations?.name ?? '—'}
               </span>
               {violation.units?.unit_number && (
@@ -177,43 +162,43 @@ export default async function BoardViolationDetailPage({
               )}
               {violation.owners?.full_name && (
                 <span className="inline-flex items-center gap-1">
-                  <User className="h-3.5 w-3.5" />
+                  <User className="h-3.5 w-3.5 text-gray-400" />
                   {violation.owners.full_name}
                 </span>
               )}
             </div>
           </div>
-          <StatusBadge status={violation.status} />
+          <Badge status={violation.status ?? '—'} />
         </div>
       </div>
 
       {/* ── Main Two-Column Layout ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* ── Left Column (2/3) ── */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-4 lg:col-span-2">
           {/* Description */}
           {violation.description && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-                <FileText className="h-4 w-4 text-emerald-400" />
+            <div className={card}>
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <FileText className="h-4 w-4 text-gray-400" />
                 Description
               </h2>
-              <p className="text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">{violation.description}</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{violation.description}</p>
             </div>
           )}
 
           {/* Governing Document Reference */}
           {violation.governing_document_reference && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-2 text-sm font-semibold text-white">Governing Document Reference</h2>
-              <p className="text-sm text-slate-400">{violation.governing_document_reference}</p>
+            <div className={card}>
+              <h2 className="mb-2 text-sm font-semibold text-gray-950">Governing Document Reference</h2>
+              <p className="text-sm text-gray-700">{violation.governing_document_reference}</p>
             </div>
           )}
 
           {/* History Timeline */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-              <Clock className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <Clock className="h-4 w-4 text-gray-400" />
               Violation Timeline
             </h2>
             <div className="space-y-3">
@@ -273,9 +258,9 @@ export default async function BoardViolationDetailPage({
 
           {/* Photos / Attachments */}
           {attachments.length > 0 && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-                <ImageIcon className="h-4 w-4 text-emerald-400" />
+            <div className={card}>
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <ImageIcon className="h-4 w-4 text-gray-400" />
                 Attachments ({attachments.length})
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -284,18 +269,18 @@ export default async function BoardViolationDetailPage({
                   const label = typeof att === 'string' ? `File ${idx + 1}` : att?.label ?? `File ${idx + 1}`
                   const isImage = url && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
                   return (
-                    <div key={idx} className="rounded-lg border border-[#1E293B] overflow-hidden" style={{ backgroundColor: '#060B18' }}>
+                    <div key={idx} className="overflow-hidden rounded-xl border border-gray-200/70 bg-gray-50/60">
                       {isImage ? (
                         <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-                          <img src={url} alt={label} className="h-24 w-full object-cover hover:opacity-80 transition-opacity" />
+                          <img src={url} alt={label} className="h-24 w-full object-cover transition-opacity hover:opacity-80" />
                         </a>
                       ) : (
                         <div className="flex items-center gap-2 px-3 py-2">
-                          <FileText className="h-4 w-4 text-slate-500" />
-                          <span className="text-xs text-slate-400 truncate">{label}</span>
+                          <FileText className="h-4 w-4 text-gray-400" />
+                          <span className="truncate text-xs text-gray-600">{label}</span>
                         </div>
                       )}
-                      {isImage && <div className="px-2 py-1 text-xs text-slate-500 truncate">{label}</div>}
+                      {isImage && <div className="truncate px-2 py-1 text-xs text-gray-500">{label}</div>}
                     </div>
                   )
                 })}
@@ -305,14 +290,14 @@ export default async function BoardViolationDetailPage({
 
           {/* Notices Sent */}
           {violation.notice_sent_at && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-3 text-sm font-semibold text-white">Notices</h2>
-              <div className="flex items-center gap-3 rounded-lg bg-emerald-500/5 px-4 py-3 border border-emerald-500/10">
-                <Send className="h-5 w-5 text-emerald-400" />
+            <div className={card}>
+              <h2 className="mb-3 text-sm font-semibold text-gray-950">Notices</h2>
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-200/70 bg-emerald-50/60 px-4 py-3">
+                <Send className="h-5 w-5 text-emerald-600" />
                 <div>
-                  <div className="text-sm text-slate-300">Notice sent on {date(violation.notice_sent_at, 'long')}</div>
+                  <div className="text-sm text-gray-900">Notice sent on {date(violation.notice_sent_at, 'long')}</div>
                   {violation.cure_deadline && (
-                    <div className="text-xs text-slate-500 mt-0.5">Cure deadline: {date(violation.cure_deadline, 'long')}</div>
+                    <div className="mt-0.5 text-xs text-gray-500">Cure deadline: {date(violation.cure_deadline, 'long')}</div>
                   )}
                 </div>
               </div>
@@ -321,19 +306,19 @@ export default async function BoardViolationDetailPage({
 
           {/* Manager Notes / Communication Log */}
           {communicationLog.length > 0 && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-                <MessageSquare className="h-4 w-4 text-emerald-400" />
+            <div className={card}>
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <MessageSquare className="h-4 w-4 text-gray-400" />
                 Manager Notes
               </h2>
               <div className="space-y-3">
                 {communicationLog.map((entry: any, idx: number) => (
-                  <div key={idx} className="rounded-lg border border-[#1E293B] p-3" style={{ backgroundColor: '#060B18' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-slate-300">{entry.author ?? entry.by ?? 'Manager'}</span>
-                      <span className="text-xs text-slate-600">{entry.date ? date(entry.date) : ''}</span>
+                  <div key={idx} className="rounded-xl border border-gray-200/70 bg-gray-50/60 p-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-900">{entry.author ?? entry.by ?? 'Manager'}</span>
+                      <span className="text-xs text-gray-400">{entry.date ? date(entry.date) : ''}</span>
                     </div>
-                    <p className="text-sm text-slate-400">{entry.note ?? entry.text ?? entry.message ?? JSON.stringify(entry)}</p>
+                    <p className="text-sm text-gray-700">{entry.note ?? entry.text ?? entry.message ?? JSON.stringify(entry)}</p>
                   </div>
                 ))}
               </div>
@@ -342,15 +327,15 @@ export default async function BoardViolationDetailPage({
 
           {/* Owner Visible History */}
           {ownerVisibleHistory.length > 0 && (
-            <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-              <h2 className="mb-3 text-sm font-semibold text-white">Owner-Visible History</h2>
+            <div className={card}>
+              <h2 className="mb-3 text-sm font-semibold text-gray-950">Owner-Visible History</h2>
               <div className="space-y-2">
                 {ownerVisibleHistory.map((entry: any, idx: number) => (
                   <div key={idx} className="flex items-start gap-3 text-sm">
-                    <div className="mt-0.5 h-2 w-2 rounded-full bg-slate-600 flex-shrink-0" />
+                    <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" />
                     <div>
-                      <span className="text-slate-300">{entry.action ?? entry.event ?? 'Update'}</span>
-                      <span className="ml-2 text-xs text-slate-600">{entry.date ? date(entry.date) : ''}</span>
+                      <span className="text-gray-900">{entry.action ?? entry.event ?? 'Update'}</span>
+                      <span className="ml-2 text-xs text-gray-400">{entry.date ? date(entry.date) : ''}</span>
                     </div>
                   </div>
                 ))}
@@ -359,30 +344,30 @@ export default async function BoardViolationDetailPage({
           )}
 
           {/* ── Board Comments Section ── */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-              <MessageSquare className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <MessageSquare className="h-4 w-4 text-gray-400" />
               Board Comments
             </h2>
 
             {/* Existing comments */}
             {boardComments.length > 0 ? (
-              <div className="space-y-3 mb-6">
+              <div className="mb-6 space-y-3">
                 {boardComments.map((comment: any) => (
-                  <div key={comment.id} className="rounded-lg border border-[#1E293B] p-3" style={{ backgroundColor: '#060B18' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-emerald-400">{comment.author_name ?? 'Board Member'}</span>
-                      <span className="text-xs text-slate-600">{comment.created_at ? date(comment.created_at) : ''}</span>
+                  <div key={comment.id} className="rounded-xl border border-gray-200/70 bg-gray-50/60 p-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-900">{comment.author_name ?? 'Board Member'}</span>
+                      <span className="text-xs text-gray-400">{comment.created_at ? date(comment.created_at) : ''}</span>
                     </div>
-                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{comment.comment}</p>
+                    <p className="whitespace-pre-wrap text-sm text-gray-700">{comment.comment}</p>
                     {comment.visibility && (
-                      <div className="mt-1 text-xs text-slate-600">Visible to: {comment.visibility.replace(/_/g, ' ')}</div>
+                      <div className="mt-1 text-xs text-gray-400">Visible to: {comment.visibility.replace(/_/g, ' ')}</div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="mb-6 text-sm text-slate-600 italic">No board comments yet.</div>
+              <div className="mb-6 text-sm italic text-gray-400">No board comments yet.</div>
             )}
 
             {/* Add comment form */}
@@ -392,14 +377,14 @@ export default async function BoardViolationDetailPage({
                 name="comment"
                 rows={3}
                 placeholder="Add an internal board comment..."
-                className="w-full rounded-lg border border-[#1E293B] bg-[#060B18] px-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:border-emerald-500 focus:outline-none resize-vertical"
+                className="w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-950 placeholder-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
                 required
               />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600">Visible to board members, assigned manager, and company admin</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-gray-400">Visible to board members, assigned manager, and company admin</span>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
                 >
                   <Send className="h-4 w-4" />
                   Add Comment
@@ -410,47 +395,47 @@ export default async function BoardViolationDetailPage({
         </div>
 
         {/* ── Right Column (1/3) ── */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Hearing Info */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-              <Calendar className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <Calendar className="h-4 w-4 text-gray-400" />
               Hearing Info
             </h2>
-            <InfoRow label="Hearing Required" value={violation.hearing_required ? <span className="text-amber-400">Yes</span> : <span className="text-slate-500">No</span>} />
+            <InfoRow label="Hearing Required" value={violation.hearing_required ? <span className="font-medium text-amber-700">Yes</span> : <span className="text-gray-500">No</span>} />
             <InfoRow label="Hearing Date" value={violation.hearing_date ? date(violation.hearing_date, 'long') : '—'} />
             <InfoRow label="Hearing Time" value={violation.hearing_at ? new Date(violation.hearing_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'} />
             <InfoRow label="Dispute Status" value={violation.dispute_status ?? '—'} />
           </div>
 
           {/* Fine Info */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-              <DollarSign className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <DollarSign className="h-4 w-4 text-gray-400" />
               Fine Info
             </h2>
-            <InfoRow label="Fine Amount" value={violation.fine_amount ? <span className="text-amber-400 font-medium">{money(violation.fine_amount)}</span> : '—'} />
+            <InfoRow label="Fine Amount" value={violation.fine_amount ? <span className="font-medium text-gray-950">{money(violation.fine_amount)}</span> : '—'} />
             <InfoRow label="Fine Assessed" value={violation.fine_assessed_at ? date(violation.fine_assessed_at, 'long') : '—'} />
             <InfoRow label="Cure Deadline" value={violation.cure_deadline ? date(violation.cure_deadline, 'long') : '—'} />
             <InfoRow label="Cured At" value={violation.cured_at ? date(violation.cured_at, 'long') : '—'} />
           </div>
 
           {/* Manager Info */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-              <User className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <User className="h-4 w-4 text-gray-400" />
               Assigned Manager
             </h2>
             <div className="py-2">
-              <div className="text-sm text-slate-300">{violation.profiles?.full_name ?? 'Unassigned'}</div>
-              <div className="text-xs text-slate-500 mt-0.5">Created by</div>
+              <div className="text-sm text-gray-900">{violation.profiles?.full_name ?? 'Unassigned'}</div>
+              <div className="mt-0.5 text-xs text-gray-500">Created by</div>
             </div>
           </div>
 
           {/* Owner Info */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-              <User className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <User className="h-4 w-4 text-gray-400" />
               Owner Info
             </h2>
             <InfoRow label="Name" value={violation.owners?.full_name ?? '—'} />
@@ -459,9 +444,9 @@ export default async function BoardViolationDetailPage({
           </div>
 
           {/* Key Dates */}
-          <div className="rounded-xl border border-[#1E293B] p-5" style={{ backgroundColor: '#0B1121' }}>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-              <Clock className="h-4 w-4 text-emerald-400" />
+          <div className={card}>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
+              <Clock className="h-4 w-4 text-gray-400" />
               Key Dates
             </h2>
             <InfoRow label="Date Observed" value={date(violation.date_observed, 'long')} />
@@ -493,18 +478,17 @@ function TimelineItem({
   isWarning?: boolean
   isSuccess?: boolean
 }) {
-  const dotColor = isSuccess ? 'bg-emerald-500' : isWarning ? 'bg-amber-500' : 'bg-slate-600'
-  const lineColor = isLast ? 'border-transparent' : 'border-slate-700'
+  const dotColor = isSuccess ? 'bg-emerald-500' : isWarning ? 'bg-amber-500' : 'bg-gray-300'
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
-        <div className={`h-3 w-3 rounded-full border-2 border-slate-700 ${dotColor}`} />
-        {!isLast && <div className={`w-px flex-1 border-l ${lineColor}`} />}
+        <div className={`h-3 w-3 rounded-full border-2 border-gray-200 ${dotColor}`} />
+        {!isLast && <div className="w-px flex-1 border-l border-gray-200" />}
       </div>
-      <div className={`pb-4 ${isLast ? '' : ''}`}>
-        <div className="text-sm font-medium text-slate-200">{label}</div>
-        <div className="text-xs text-slate-500 mt-0.5">{date(dateStr, 'long')}</div>
-        {detail && <div className="text-xs text-slate-400 mt-0.5">{detail}</div>}
+      <div className="pb-4">
+        <div className="text-sm font-medium text-gray-900">{label}</div>
+        <div className="mt-0.5 text-xs text-gray-500">{date(dateStr, 'long')}</div>
+        {detail && <div className="mt-0.5 text-xs text-gray-500">{detail}</div>}
       </div>
     </div>
   )

@@ -1,27 +1,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
-import { Users, AlertTriangle, ArrowLeft, Eye } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-
-function StatusBadge({ status }: { status: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'bg-blue-500/10 text-blue-400 ring-blue-500/20' },
-    pending: { label: 'Pending', cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20' },
-    in_progress: { label: 'In Progress', cls: 'bg-violet-500/10 text-violet-400 ring-violet-500/20' },
-    under_review: { label: 'Under Review', cls: 'bg-orange-500/10 text-orange-400 ring-orange-500/20' },
-    notice_sent: { label: 'Notice Sent', cls: 'bg-pink-500/10 text-pink-400 ring-pink-500/20' },
-    hearing_scheduled: { label: 'Hearing', cls: 'bg-yellow-500/10 text-yellow-400 ring-yellow-500/20' },
-    closed: { label: 'Closed', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' },
-    cured: { label: 'Cured', cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' },
-    resolved: { label: 'Resolved', cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' },
-  }
-  const s = status?.toLowerCase() ?? ''
-  const { label, cls } = map[s] ?? { label: status ?? '—', cls: 'bg-slate-500/10 text-slate-400 ring-slate-500/20' }
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${cls}`}>{label}</span>
-}
 
 export default async function RepeatOffendersPage() {
   const me = await requireBoard()
@@ -33,12 +17,12 @@ export default async function RepeatOffendersPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Repeat Offenders</h1>
-          <p className="mt-1 text-sm text-slate-400">Owners with multiple violations</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Repeat Offenders</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Owners with multiple violations</p>
         </div>
-        <div className="rounded-xl border border-[#1E293B] p-12 text-center" style={{ backgroundColor: '#0B1121' }}>
-          <AlertTriangle className="mx-auto h-12 w-12 text-slate-600" />
-          <p className="mt-4 text-slate-400">No associations assigned to your board membership.</p>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <AlertTriangle className="mx-auto h-10 w-10 text-gray-300" />
+          <p className="mt-3 text-sm text-gray-500">No associations assigned to your board membership.</p>
         </div>
       </div>
     )
@@ -86,60 +70,54 @@ export default async function RepeatOffendersPage() {
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Repeat Offenders</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Repeat Offenders</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
             Owners with 2 or more violations in your association
           </p>
         </div>
         <Link
           href="/board/violations"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-950"
         >
           <ArrowLeft className="h-4 w-4" /> All Violations
         </Link>
       </div>
 
       {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-          <div className="text-xs font-medium uppercase text-slate-500">Repeat Offenders</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-red-400">{totalRepeatOffenders}</div>
-          <div className="mt-1 text-xs text-slate-500">Owners with 2+ violations</div>
-        </div>
-        <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-          <div className="text-xs font-medium uppercase text-slate-500">Total Violations</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-white">{totalViolationsFromRepeats}</div>
-          <div className="mt-1 text-xs text-slate-500">From repeat offenders</div>
-        </div>
-        <div className="rounded-xl border border-[#1E293B] p-4" style={{ backgroundColor: '#0B1121' }}>
-          <div className="text-xs font-medium uppercase text-slate-500">Avg Violations</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-amber-400">
-            {totalRepeatOffenders > 0 ? (totalViolationsFromRepeats / totalRepeatOffenders).toFixed(1) : '—'}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Repeat Offenders', value: totalRepeatOffenders, sub: 'Owners with 2+ violations' },
+          { label: 'Total Violations', value: totalViolationsFromRepeats, sub: 'From repeat offenders' },
+          { label: 'Avg Violations', value: totalRepeatOffenders > 0 ? (totalViolationsFromRepeats / totalRepeatOffenders).toFixed(1) : '—', sub: 'Per repeat offender' },
+        ].map(s => (
+          <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+            <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{s.value}</div>
+            <div className="mt-1 text-xs text-gray-500">{s.sub}</div>
           </div>
-          <div className="mt-1 text-xs text-slate-500">Per repeat offender</div>
-        </div>
+        ))}
       </div>
 
       {/* ── Repeat Offenders Table ── */}
-      <div className="overflow-x-auto rounded-xl border border-[#1E293B]" style={{ backgroundColor: '#0B1121' }}>
+      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#1E293B] text-xs uppercase text-slate-500">
-              <th className="px-4 py-3 text-left font-medium">Unit</th>
-              <th className="px-4 py-3 text-left font-medium">Owner Name</th>
-              <th className="px-4 py-3 text-right font-medium"># Violations</th>
-              <th className="px-4 py-3 text-left font-medium">Categories</th>
-              <th className="px-4 py-3 text-left font-medium">Last Violation</th>
-              <th className="px-4 py-3 text-right font-medium">Hearings</th>
-              <th className="px-4 py-3 text-left font-medium">Most Recent Status</th>
-              <th className="px-4 py-3 text-right font-medium">Details</th>
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-2.5 text-left font-medium">Unit</th>
+              <th className="px-4 py-2.5 text-left font-medium">Owner Name</th>
+              <th className="px-4 py-2.5 text-right font-medium"># Violations</th>
+              <th className="px-4 py-2.5 text-left font-medium">Categories</th>
+              <th className="px-4 py-2.5 text-left font-medium">Last Violation</th>
+              <th className="px-4 py-2.5 text-right font-medium">Hearings</th>
+              <th className="px-4 py-2.5 text-left font-medium">Most Recent Status</th>
+              <th className="px-4 py-2.5 text-right font-medium">Details</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1E293B]">
+          <tbody>
             {repeatOffenders.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">
                 No repeat offenders found. All owners have fewer than 2 violations.
               </td></tr>
             ) : (
@@ -148,41 +126,31 @@ export default async function RepeatOffendersPage() {
                 const lastViolation = offender.violations[0] // sorted desc by created_at
                 const hearingCount = offender.violations.filter((v: any) => v.hearing_required).length
                 return (
-                  <tr key={offender.ownerId} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3">
-                      <span className="text-slate-300">{offender.unitNumber ?? '—'}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-white">{offender.ownerName}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      <span className={offender.violations.length >= 4 ? 'text-red-400 font-bold' : offender.violations.length >= 3 ? 'text-amber-400' : 'text-slate-300'}>
-                        {offender.violations.length}
-                      </span>
+                  <tr key={offender.ownerId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <td className="px-4 py-3 text-[13px] text-gray-700">{offender.unitNumber ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{offender.ownerName}</td>
+                    <td className={`px-4 py-3 text-right tabular-nums ${offender.violations.length >= 4 ? 'font-semibold text-red-700' : 'text-gray-900'}`}>
+                      {offender.violations.length}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {categories.map((cat: string) => (
-                          <span key={cat} className="inline-flex h-5 items-center rounded bg-slate-700/50 px-2 text-xs text-slate-400">
+                          <span key={cat} className="inline-flex h-5 items-center rounded-full bg-gray-100 px-2 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15">
                             {cat}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{date(lastViolation?.created_at)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-400">
-                      {hearingCount > 0 ? (
-                        <span className="text-amber-400">{hearingCount}</span>
-                      ) : '0'}
-                    </td>
+                    <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{date(lastViolation?.created_at)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{hearingCount}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={lastViolation?.status} />
+                      <Badge status={lastViolation?.status ?? '—'} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/board/violations/${lastViolation?.id}`}
-                          className="rounded p-1.5 text-slate-500 hover:bg-white/5 hover:text-emerald-400"
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
@@ -197,7 +165,7 @@ export default async function RepeatOffendersPage() {
         </table>
       </div>
 
-      <div className="text-xs text-slate-600">
+      <div className="text-xs text-gray-500">
         {repeatOffenders.length} repeat offender{repeatOffenders.length !== 1 ? 's' : ''} identified
         from {violations.length} total violation{violations.length !== 1 ? 's' : ''}
       </div>
