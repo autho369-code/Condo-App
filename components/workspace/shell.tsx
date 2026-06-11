@@ -15,10 +15,10 @@ export function Workspace({
 }) {
   return (
     <div className="min-h-full">
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
+      <div className="shrink-0 border-b border-gray-200/80 bg-white px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
         {header}
       </div>
-      <div data-workspace-main className="bg-gray-50 px-8 py-6">
+      <div data-workspace-main className="bg-[#f6f7f9] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         {children}
       </div>
     </div>
@@ -37,13 +37,13 @@ export function WorkspaceHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">{eyebrow}</div>}
-        <h1 className="truncate text-xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+        {eyebrow && <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{eyebrow}</div>}
+        <h1 className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[24px]">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm leading-6 text-gray-500">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -64,7 +64,7 @@ export function Section({
   padded?: boolean;
 }) {
   return (
-    <section className={'mb-6 overflow-hidden rounded-lg border border-gray-200 bg-white ' + (className ?? '')}>
+    <section className={'mb-6 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ' + (className ?? '')}>
       {(title || actions) && (
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
           <div>
