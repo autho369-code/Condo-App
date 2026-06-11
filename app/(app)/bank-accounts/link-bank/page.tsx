@@ -5,7 +5,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Button } from '@/components/ui/button';
+import { Field, Select } from '@/components/ui/input';
+import { Surface, SectionTitle } from '@/components/ui/shell';
 import { createClient } from '@/lib/supabase/client';
 
 declare global {
@@ -127,21 +131,17 @@ export default function LinkBankPage() {
       <div className="mx-auto max-w-lg space-y-6 py-8">
         {step === 'select' && (
           <div className="space-y-6">
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="text-lg font-semibold text-gray-900">Connect your bank</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Portier369 uses Plaid to securely link your bank account. Your login credentials are never stored on our servers.
-              </p>
+            <Surface>
+              <SectionTitle
+                title="Connect your bank"
+                description="Portier369 uses Plaid to securely link your bank account. Your login credentials are never stored on our servers."
+              />
 
               {!bankAccountId && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Link to existing bank account (optional)
-                  </label>
-                  <select
+                <Field label="Link to existing bank account (optional)">
+                  <Select
                     value={selectedBankAccount}
                     onChange={(e) => setSelectedBankAccount(e.target.value)}
-                    className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
                   >
                     <option value="">Create new bank account</option>
                     {bankAccounts.map((acct: any) => (
@@ -149,8 +149,8 @@ export default function LinkBankPage() {
                         {acct.name} {acct.bank_name ? `(${acct.bank_name})` : ''}
                       </option>
                     ))}
-                  </select>
-                </div>
+                  </Select>
+                </Field>
               )}
 
               {!selectedBankAccount && bankAccounts.length === 0 && (
@@ -158,17 +158,13 @@ export default function LinkBankPage() {
                   No bank accounts on file. Plaid will create one automatically from the linked account.
                 </p>
               )}
-            </div>
+            </Surface>
 
-            <button
-              onClick={handleConnect}
-              disabled={loading}
-              className="w-full rounded-lg bg-gray-950 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
-              {loading ? 'Connecting…' : 'Connect Bank via Plaid'}
-            </button>
+            <Button onClick={handleConnect} disabled={loading} size="lg" className="w-full">
+              {loading ? 'Connecting…' : 'Connect bank via Plaid'}
+            </Button>
 
-            <div className="rounded border border-gray-200 bg-gray-50 p-4 text-xs text-gray-500">
+            <Surface padded={false} className="p-4 text-xs text-gray-500">
               <p className="font-medium text-gray-700">What happens next:</p>
               <ol className="mt-2 list-inside list-decimal space-y-1">
                 <li>Plaid securely connects to your bank</li>
@@ -176,54 +172,39 @@ export default function LinkBankPage() {
                 <li>Our auto-match engine assigns GL accounts</li>
                 <li>You review and confirm matches on the Bank Feed page</li>
               </ol>
-            </div>
+            </Surface>
           </div>
         )}
 
         {step === 'success' && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-              <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          <Surface className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-semibold text-emerald-900">Bank connected!</h2>
-            <p className="mt-2 text-sm text-emerald-700">
+            <h2 className="text-[15px] font-semibold text-gray-950">Bank connected</h2>
+            <p className="mt-1 text-sm text-gray-500">
               {institutionName || 'Your bank'} has been linked. Transactions will begin syncing.
             </p>
-            <div className="mt-6 flex justify-center gap-3">
-              <button
-                onClick={handleSync}
-                className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                Import transactions
-              </button>
-              <button
-                onClick={() => router.push('/bank-accounts')}
-                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
+            <div className="mt-6 flex justify-center gap-2">
+              <Button onClick={handleSync}>Import transactions</Button>
+              <Button variant="secondary" onClick={() => router.push('/bank-accounts')}>
                 Back to accounts
-              </button>
+              </Button>
             </div>
-          </div>
+          </Surface>
         )}
 
         {step === 'error' && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-              <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+          <Surface className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <XCircle className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-semibold text-red-900">Connection failed</h2>
-            <p className="mt-2 text-sm text-red-700">{error || 'An unknown error occurred.'}</p>
-            <button
-              onClick={() => setStep('select')}
-              className="mt-4 rounded-lg border border-red-300 bg-white px-5 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50"
-            >
+            <h2 className="text-[15px] font-semibold text-gray-950">Connection failed</h2>
+            <p className="mt-1 text-sm text-red-700">{error || 'An unknown error occurred.'}</p>
+            <Button variant="secondary" className="mt-5" onClick={() => setStep('select')}>
               Try again
-            </button>
-          </div>
+            </Button>
+          </Surface>
         )}
       </div>
     </DataWorkspace>

@@ -1,11 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
+import { MetricStrip } from '@/components/operations/metric-strip';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/input';
+import { SectionTitle, EmptyState } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
-import { money, date } from '@/lib/utils';
+import { money } from '@/lib/utils';
+import { FileText } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -118,25 +121,21 @@ export default async function Tax1099Page({
       title="1099 Tax Reporting"
       description={`IRS Form 1099-NEC for non-employee compensation paid to vendors during tax year ${taxYear}. Filing threshold: $${IRS_1099_NEC_THRESHOLD.toLocaleString()}.`}
       actions={
-        <div className="flex items-center gap-3">
+        <>
           <form method="get" className="flex items-center gap-2">
-            <select
-              name="year"
-              defaultValue={taxYear}
-              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
+            <Select name="year" defaultValue={taxYear} className="w-28" aria-label="Tax year">
               {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
-            </select>
+            </Select>
             <Button type="submit" variant="secondary">View</Button>
           </form>
           {vendorsOverThreshold > 0 && (
             <Link href={`/accounting/1099/print?year=${taxYear}`}>
-              <Button>Generate 1099 Forms</Button>
+              <Button>Generate 1099 forms</Button>
             </Link>
           )}
-        </div>
+        </>
       }
     >
       <div className="space-y-6">
@@ -168,9 +167,7 @@ export default async function Tax1099Page({
         {/* Vendors over threshold — require 1099 filing */}
         {vendorsOverThreshold > 0 && (
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              Vendors Requiring 1099-NEC Filing
-            </h2>
+            <SectionTitle title="Vendors requiring 1099-NEC filing" />
             <Table>
               <THead>
                 <TR>
@@ -192,7 +189,7 @@ export default async function Tax1099Page({
                       <TD>
                         <Link
                           href={`/vendors/${v.vendor_id}`}
-                          className="font-medium text-blue-700 hover:underline"
+                          className="font-medium text-gray-900 hover:text-gray-950 hover:underline"
                         >
                           {v.vendor_name}
                         </Link>
@@ -204,8 +201,8 @@ export default async function Tax1099Page({
                           {v.vendor_type}
                         </span>
                       </TD>
-                      <TD>{v.bill_count}</TD>
-                      <TD className="text-right font-mono text-sm">{money(v.total_paid)}</TD>
+                      <TD className="tabular-nums">{v.bill_count}</TD>
+                      <TD className="text-right tabular-nums">{money(v.total_paid)}</TD>
                       <TD>
                         <StatusChip tone="warning">
                           {v.form_type}
@@ -230,13 +227,10 @@ export default async function Tax1099Page({
         {/* Vendors under threshold — no filing required but tracked */}
         {vendorsUnderThreshold > 0 && (
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              Vendors Under Threshold (No Filing Required)
-            </h2>
-            <p className="mb-3 text-sm text-gray-500">
-              These vendors are marked for 1099 reporting but total payments did not reach
-              the ${IRS_1099_NEC_THRESHOLD.toLocaleString()} threshold for tax year {taxYear}.
-            </p>
+            <SectionTitle
+              title="Vendors under threshold (no filing required)"
+              description={`These vendors are marked for 1099 reporting but total payments did not reach the $${IRS_1099_NEC_THRESHOLD.toLocaleString()} threshold for tax year ${taxYear}.`}
+            />
             <Table>
               <THead>
                 <TR>
@@ -257,7 +251,7 @@ export default async function Tax1099Page({
                       <TD>
                         <Link
                           href={`/vendors/${v.vendor_id}`}
-                          className="font-medium text-blue-700 hover:underline"
+                          className="font-medium text-gray-900 hover:text-gray-950 hover:underline"
                         >
                           {v.vendor_name}
                         </Link>
@@ -269,11 +263,11 @@ export default async function Tax1099Page({
                           {v.vendor_type}
                         </span>
                       </TD>
-                      <TD>{v.bill_count}</TD>
-                      <TD className="text-right font-mono text-sm">{money(v.total_paid)}</TD>
+                      <TD className="tabular-nums">{v.bill_count}</TD>
+                      <TD className="text-right tabular-nums">{money(v.total_paid)}</TD>
                       <TD>
                         <StatusChip tone="neutral">
-                          Below Threshold
+                          Below threshold
                         </StatusChip>
                       </TD>
                     </TR>
@@ -284,14 +278,12 @@ export default async function Tax1099Page({
         )}
 
         {vendors.length === 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white py-20 text-center">
-            <p className="text-gray-500">
-              No 1099-reportable vendors found for tax year {taxYear}.
-            </p>
-            <p className="mt-1 text-sm text-gray-400">
-              Vendors appear here when they are marked for 1099 reporting (send_1099 = true)
-              and have paid bills in the selected tax year.
-            </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={FileText}
+              title={`No 1099-reportable vendors for ${taxYear}`}
+              description="Vendors appear here when they are marked for 1099 reporting and have paid bills in the selected tax year."
+            />
           </div>
         )}
       </div>

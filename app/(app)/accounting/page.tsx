@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
+import { Surface, SectionTitle } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
@@ -96,46 +98,38 @@ export default async function AccountingPage() {
   const metrics = [
     {
       label: 'Open bills',
-      value: (
-        <Link href="/bills?status=pending_approval" className="hover:text-brand-700 hover:underline">
-          {openBills ?? 0}
-        </Link>
-      ),
+      value: openBills ?? 0,
       sublabel: (
-        <Link href="/bills?status=pending_approval" className="text-blue-700 hover:underline">
+        <Link href="/bills?status=pending_approval" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
           Review bills
         </Link>
       ),
     },
     {
       label: 'Unpaid balance',
-      value: <span className="tabular-nums">{money(totalUnpaid)}</span>,
+      value: money(totalUnpaid),
       sublabel: (
-        <Link href="/bills" className="text-blue-700 hover:underline">
+        <Link href="/bills" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
           All payables
         </Link>
       ),
     },
     {
       label: 'Check run',
-      value: (
-        <Link href="/bills/check-run" className="hover:text-brand-700 hover:underline">
-          {approvedBills ?? 0}
-        </Link>
-      ),
+      value: approvedBills ?? 0,
       sublabel: (
-        <Link href="/bills/check-run" className="text-blue-700 hover:underline">
+        <Link href="/bills/check-run" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
           Approved bills
         </Link>
       ),
     },
     {
       label: 'AR overdue',
-      value: <span className="tabular-nums">{money(overdueAR)}</span>,
+      value: money(overdueAR),
       sublabel: totalAR > 0 ? (
-        <span className="text-xs text-gray-500">
+        <span>
           {money(totalAR)} total ·{' '}
-          <Link href="/reports/ar-aging" className="text-blue-700 hover:underline">
+          <Link href="/reports/ar-aging" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
             AR aging report
           </Link>
         </span>
@@ -160,26 +154,24 @@ export default async function AccountingPage() {
       description="Payables, receivables, bank accounts, and the general ledger — all from one dashboard."
       actions={
         <>
-          <Link href="/bills/new"><Button>+ New bill</Button></Link>
+          <Link href="/bills/new"><Button><Plus className="h-4 w-4" /> New bill</Button></Link>
           <Link href="/bills/check-run"><Button variant="secondary">Check run</Button></Link>
         </>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-950">Quick links</h2>
+          <SectionTitle title="Quick links" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {quickLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="group rounded border border-gray-200 bg-white px-4 py-4 transition-colors hover:border-brand-300 hover:bg-brand-50/40"
+                className="rounded-2xl border border-gray-200/70 bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-[0_1px_3px_rgba(16,24,40,0.08),0_4px_12px_-4px_rgba(16,24,40,0.1)]"
               >
-                <div className="text-sm font-medium text-gray-950 group-hover:text-brand-700">
-                  {link.label}
-                </div>
+                <div className="text-sm font-medium text-gray-950">{link.label}</div>
                 <div className="mt-1 text-xs text-gray-500">{link.description}</div>
               </Link>
             ))}
@@ -187,12 +179,13 @@ export default async function AccountingPage() {
         </section>
 
         {agingBuckets && Object.keys(agingBuckets).length > 0 && (
-          <section className="rounded border border-gray-200 bg-white">
+          <Surface padded={false}>
             <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-gray-950">AR aging summary</h2>
-              <p className="mt-1 text-xs text-gray-500">
-                Outstanding receivables by aging bucket.
-              </p>
+              <SectionTitle
+                title="AR aging summary"
+                description="Outstanding receivables by aging bucket."
+                className="mb-0"
+              />
             </div>
             <div className="divide-y divide-gray-100">
               {(['current', '1-30', '30-60', '60-90', '90+'] as const).map((bucket) => {
@@ -212,11 +205,11 @@ export default async function AccountingPage() {
               })}
             </div>
             <div className="border-t border-gray-100 px-5 py-3">
-              <Link href="/reports/ar-aging" className="text-sm font-medium text-blue-700 hover:underline">
-                View full AR aging report
+              <Link href="/reports/ar-aging" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+                View full AR aging report →
               </Link>
             </div>
-          </section>
+          </Surface>
         )}
       </div>
     </DataWorkspace>

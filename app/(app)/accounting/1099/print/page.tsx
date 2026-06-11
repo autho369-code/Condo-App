@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { money } from '@/lib/utils';
-import { notFound } from 'next/navigation';
+import { PrintControls } from './print-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,30 +163,7 @@ export default async function Print1099Page({
       `}</style>
 
       {/* Top controls — hidden when printing */}
-      <div className="no-print mb-4 flex items-center justify-between bg-gray-50 px-6 py-3 border-b">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">
-            Form 1099-NEC — Tax Year {taxYear}
-          </h1>
-          <p className="text-sm text-gray-500">
-            {vendors.length} vendor{vendors.length !== 1 ? 's' : ''} · Print on blank paper
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => window.print()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Print All Forms
-          </button>
-          <button
-            onClick={() => window.history.back()}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Back
-          </button>
-        </div>
-      </div>
+      <PrintControls taxYear={taxYear} vendorCount={vendors.length} />
 
       {/* 1099-NEC Forms — one per vendor */}
       {vendors.map((v, idx) => (

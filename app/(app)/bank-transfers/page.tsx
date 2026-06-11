@@ -1,8 +1,11 @@
 import Link from 'next/link';
+import { ArrowLeftRight, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -97,18 +100,14 @@ export default async function BankTransfersPage({
       title="Bank Transfers"
       description="Inter-account transfers between operating, reserve, and trust accounts. Track pending and completed transfers, and view bank account activity."
       actions={
-        <Link
-          href="/bank-transfers/new"
-          className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          New bank transfer
+        <Link href="/bank-transfers/new">
+          <Button><Plus className="h-4 w-4" /> New bank transfer</Button>
         </Link>
       }
-      rail={<TransferRail />}
     >
       <div className="space-y-6">
         {/* Tabs */}
-        <nav className="flex gap-1 border-b border-gray-200">
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map(({ key, label }) => {
             const isActive = activeTab === key;
             const href = `/bank-transfers?tab=${key}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
@@ -145,7 +144,7 @@ export default async function BankTransfersPage({
               label: 'Incomplete',
               value: incompleteCount,
               sublabel: (
-                <Link href="/bank-transfers?tab=incomplete-individual" className="text-blue-700 hover:underline">
+                <Link href="/bank-transfers?tab=incomplete-individual" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
                   View queue
                 </Link>
               ),
@@ -154,7 +153,7 @@ export default async function BankTransfersPage({
               label: 'Completed',
               value: completedCount,
               sublabel: (
-                <Link href="/bank-transfers?tab=completed" className="text-blue-700 hover:underline">
+                <Link href="/bank-transfers?tab=completed" className="font-medium text-gray-500 transition-colors hover:text-gray-900">
                   View completed
                 </Link>
               ),
@@ -218,20 +217,23 @@ export default async function BankTransfersPage({
             </tbody>
           </Table>
         ) : (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <p className="text-sm text-gray-500">
-              {activeTab === 'incomplete-individual'
-                ? 'No incomplete individual transfers.'
-                : activeTab === 'incomplete-group'
-                  ? 'No incomplete group transfers.'
-                  : 'No completed transfers.'}
-            </p>
-            <Link
-              href="/bank-transfers/new"
-              className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline"
-            >
-              Create a new bank transfer
-            </Link>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={ArrowLeftRight}
+              title={
+                activeTab === 'incomplete-individual'
+                  ? 'No incomplete individual transfers'
+                  : activeTab === 'incomplete-group'
+                    ? 'No incomplete group transfers'
+                    : 'No completed transfers'
+              }
+              description="Transfers between operating, reserve, and trust accounts will appear here."
+              action={
+                <Link href="/bank-transfers/new">
+                  <Button><Plus className="h-4 w-4" /> New bank transfer</Button>
+                </Link>
+              }
+            />
           </div>
         )}
       </div>
@@ -243,14 +245,17 @@ export default async function BankTransfersPage({
 function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
   if (bankAccounts.length === 0) {
     return (
-      <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-        <p className="text-sm text-gray-500">No bank accounts found.</p>
-        <Link
-          href="/bank-accounts/new"
-          className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline"
-        >
-          Create a bank account
-        </Link>
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <EmptyState
+          icon={ArrowLeftRight}
+          title="No bank accounts found"
+          description="Create a bank account to see activity here."
+          action={
+            <Link href="/bank-accounts/new">
+              <Button><Plus className="h-4 w-4" /> New bank account</Button>
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -268,17 +273,17 @@ function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
       </THead>
       <tbody>
         {bankAccounts.map((account: any) => (
-          <TR key={account.id} className="cursor-pointer hover:bg-gray-50">
+          <TR key={account.id}>
             <TD>
               <Link
                 href={`/bank-accounts/${account.id}`}
-                className="font-medium text-gray-900 hover:text-brand-700"
+                className="font-medium text-gray-900 hover:text-gray-950 hover:underline"
               >
                 {account.name}
               </Link>
             </TD>
-            <TD className="text-sm text-gray-600">{account.bank_name ?? '—'}</TD>
-            <TD className="text-sm capitalize text-gray-600">
+            <TD>{account.bank_name ?? '—'}</TD>
+            <TD className="capitalize">
               {account.account_type?.replace(/_/g, ' ') ?? '—'}
             </TD>
             <TD className="text-right tabular-nums font-medium">
@@ -287,9 +292,9 @@ function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
             <TD>
               <Link
                 href={`/bank-accounts/activity`}
-                className="text-sm font-medium text-brand-700 hover:underline"
+                className="font-medium text-gray-600 transition-colors hover:text-gray-950"
               >
-                View activity
+                View activity →
               </Link>
             </TD>
           </TR>
@@ -299,58 +304,3 @@ function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
   );
 }
 
-/** Right rail — task panel for incomplete and completed transfers */
-function TransferRail() {
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink
-            href="/bank-transfers?tab=incomplete-individual"
-            label="View incomplete individual transfers"
-          />
-          <RailLink
-            href="/bank-transfers?tab=incomplete-group"
-            label="View incomplete group transfers"
-          />
-          <RailLink
-            href="/bank-transfers?tab=completed"
-            label="View completed transfers"
-          />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Banking</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bank-transfers/new" label="New Bank Transfer" />
-          <RailLink href="/bank-accounts" label="Bank Accounts" />
-          <RailLink href="/bank-accounts/reconcile" label="Bank Reconciliation" />
-          <RailLink href="/bank-accounts/feeds" label="Bank Feed" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports?slug=cash-flow" label="Cash Flow" />
-          <RailLink href="/reports?slug=check_register" label="Check Register" />
-          <RailLink
-            href="/reports?slug=trust_account_balance"
-            label="Trust Account Balance"
-          />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
-  );
-}

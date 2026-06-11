@@ -1,7 +1,11 @@
 import Link from 'next/link';
+import { Landmark } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { Field, Select } from '@/components/ui/input';
+import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -146,42 +150,35 @@ export default async function BankReconciliationPage({
     <DataWorkspace
       title="Bank Reconciliation"
       description="Match bank statement transactions against your general ledger. Clear items, track outstanding checks and deposits, and reconcile differences."
-      rail={<ReconcileRail selectedAccountId={selectedAccount?.id} />}
     >
       <div className="space-y-6">
         {/* Bank account selector */}
-        <div className="rounded border border-gray-200 bg-white p-4">
-          <label className="text-xs font-medium uppercase text-gray-500">Bank Account</label>
-          <form method="get" action="/bank-accounts/reconcile" className="mt-1 flex gap-3">
-            <select
-              name="account_id"
-              defaultValue={selectedAccount?.id ?? ''}
-              className="h-10 flex-1 rounded border border-gray-300 bg-white px-3 text-sm text-gray-900"
-            >
-              {accounts.length === 0 && (
-                <option value="">No bank accounts available</option>
-              )}
-              {accounts.map((account: any) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} {account.bank_name ? `(${account.bank_name})` : ''}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Select Account
-            </button>
+        <Surface padded={false} className="p-4">
+          <form method="get" action="/bank-accounts/reconcile" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field label="Bank account" className="min-w-0 flex-1">
+              <Select name="account_id" defaultValue={selectedAccount?.id ?? ''}>
+                {accounts.length === 0 && (
+                  <option value="">No bank accounts available</option>
+                )}
+                {accounts.map((account: any) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} {account.bank_name ? `(${account.bank_name})` : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Button type="submit" className="shrink-0">Select account</Button>
           </form>
-        </div>
+        </Surface>
 
         {!selectedAccount ? (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-16 text-center">
-            <p className="text-sm text-gray-500">
-              Select a bank account above to begin reconciliation.
-            </p>
-          </div>
+          <Surface padded={false}>
+            <EmptyState
+              icon={Landmark}
+              title="No account selected"
+              description="Select a bank account above to begin reconciliation."
+            />
+          </Surface>
         ) : (
           <>
             {/* Metrics strip */}
@@ -211,7 +208,7 @@ export default async function BankReconciliationPage({
             />
 
             {/* Bank Account Info Bar */}
-            <div className="flex flex-wrap gap-4 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+            <div className="flex flex-wrap gap-4 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <div>
                 <span className="text-gray-500">Account: </span>
                 <span className="font-medium text-gray-900">{selectedAccount.name}</span>
@@ -245,7 +242,7 @@ export default async function BankReconciliationPage({
             </div>
 
             {/* Tabs */}
-            <nav className="flex gap-1 border-b border-gray-200">
+            <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
               {TABS.map(({ key, label }) => {
                 const isActive = activeTab === key;
                 const searchAccountId = selectedAccount?.id ?? '';
@@ -268,59 +265,52 @@ export default async function BankReconciliationPage({
 
             {/* Statement info (for unreconciled tab) */}
             {activeTab === 'unreconciled' && recentReconciliation && (
-              <div className="rounded border border-gray-200 bg-white p-4">
-                <div className="flex items-center justify-between">
+              <Surface padded={false} className="p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-gray-950">
                       Reconciliation — {date(recentReconciliation.statement_date, 'long')}
                     </h3>
                     <p className="mt-1 text-xs text-gray-500">
-                      Statement Balance: {money(recentReconciliation.statement_balance)}
+                      Statement balance: {money(recentReconciliation.statement_balance)}
                       {' · '}
                       Status:{' '}
                       <StatusChip tone={recentReconciliation.status === 'completed' ? 'success' : 'warning'}>
-                        {recentReconciliation.status === 'in_progress' ? 'In Progress' : 'Completed'}
+                        {recentReconciliation.status === 'in_progress' ? 'In progress' : 'Completed'}
                       </StatusChip>
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     {recentReconciliation.status === 'in_progress' && (
                       <form
                         action="/api/bank-reconciliation/complete"
                         method="post"
                       >
                         <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
-                        <button
-                          type="submit"
-                          className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                        >
-                          Complete Reconciliation
-                        </button>
+                        <Button type="submit">Complete reconciliation</Button>
                       </form>
                     )}
-                    <Link
-                      href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}
-                      className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      New Reconciliation
+                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}>
+                      <Button variant="secondary">New reconciliation</Button>
                     </Link>
                   </div>
                 </div>
-              </div>
+              </Surface>
             )}
 
             {!recentReconciliation && (
-              <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-                <p className="text-sm text-gray-500">
-                  No reconciliation found for this bank account.
-                </p>
-                <Link
-                  href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}
-                  className="mt-3 inline-block rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-                >
-                  Start New Reconciliation
-                </Link>
-              </div>
+              <Surface padded={false}>
+                <EmptyState
+                  icon={Landmark}
+                  title="No reconciliation found"
+                  description="No reconciliation found for this bank account."
+                  action={
+                    <Link href={`/bank-accounts/reconcile/new?account_id=${encodeURIComponent(selectedAccount.id)}`}>
+                      <Button>Start new reconciliation</Button>
+                    </Link>
+                  }
+                />
+              </Surface>
             )}
 
             {/* Display items table */}
@@ -395,43 +385,42 @@ export default async function BankReconciliationPage({
                 </tbody>
               </Table>
             ) : recentReconciliation ? (
-              <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-                <p className="text-sm text-gray-500">
-                  No journal entries have been added to this reconciliation yet.
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Journal entries that post to GL account {glAccount?.number} will appear here for matching.
-                </p>
-              </div>
+              <Surface padded={false}>
+                <EmptyState
+                  icon={Landmark}
+                  title="No journal entries yet"
+                  description={`Journal entries that post to GL account ${glAccount?.number ?? '—'} will appear here for matching.`}
+                />
+              </Surface>
             ) : null}
 
             {/* Summary footer */}
             {recentReconciliation && displayItems.length > 0 && (
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <h3 className="text-sm font-semibold text-gray-900">Reconciliation Summary</h3>
+              <Surface padded={false} className="p-4">
+                <h3 className="text-sm font-semibold text-gray-950">Reconciliation summary</h3>
                 <div className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                   <div>
-                    <div className="text-xs text-gray-500">Statement Balance</div>
-                    <div className="font-mono font-medium">{money(statementBalance)}</div>
+                    <div className="text-xs text-gray-500">Statement balance</div>
+                    <div className="font-medium tabular-nums">{money(statementBalance)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Total Book Items</div>
-                    <div className="font-mono font-medium">{money(totalBookAmount)}</div>
+                    <div className="text-xs text-gray-500">Total book items</div>
+                    <div className="font-medium tabular-nums">{money(totalBookAmount)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Less: Outstanding</div>
-                    <div className="font-mono font-medium text-amber-700">({money(outstandingAmount)})</div>
+                    <div className="text-xs text-gray-500">Less: outstanding</div>
+                    <div className="font-medium tabular-nums text-amber-700">({money(outstandingAmount)})</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Adjusted Book Balance</div>
-                    <div className="font-mono font-medium">{money(adjustedBookBalance)}</div>
+                    <div className="text-xs text-gray-500">Adjusted book balance</div>
+                    <div className="font-medium tabular-nums">{money(adjustedBookBalance)}</div>
                   </div>
                   <div className="col-span-2 sm:col-span-4">
                     <div className="mt-2 border-t border-gray-200 pt-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Difference:</span>
                         <span
-                          className={`font-mono text-lg font-bold ${
+                          className={`text-lg font-semibold tabular-nums ${
                             Math.abs(adjustedBookBalance - statementBalance) < 0.01
                               ? 'text-emerald-700'
                               : 'text-red-700'
@@ -440,68 +429,17 @@ export default async function BankReconciliationPage({
                           {money(adjustedBookBalance - statementBalance)}
                         </span>
                         {Math.abs(adjustedBookBalance - statementBalance) < 0.01 && (
-                          <StatusChip tone="success">RECONCILED</StatusChip>
+                          <StatusChip tone="success">Reconciled</StatusChip>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Surface>
             )}
           </>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-function ReconcileRail({ selectedAccountId }: { selectedAccountId?: string }) {
-  const accountParam = selectedAccountId ? `?account_id=${encodeURIComponent(selectedAccountId)}` : '';
-  return (
-    <div className="space-y-5">
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Reconciliation Tasks</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href={`/bank-accounts/reconcile/new${accountParam ? accountParam : ''}`} label="New Reconciliation" />
-          <RailLink
-            href={`/bank-accounts/reconcile${accountParam ? `${accountParam}&tab=reconciled` : '?tab=reconciled'}`}
-            label="View Completed Reconciliations"
-          />
-          <RailLink
-            href={`/bank-accounts/reconcile${accountParam ? `${accountParam}&tab=unreconciled` : ''}`}
-            label="View In-Progress Reconciliations"
-          />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Banking</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/bank-accounts" label="Bank Accounts" />
-          <RailLink href="/bank-transfers" label="Bank Transfers" />
-          <RailLink href="/bank-accounts/feeds" label="Bank Feed" />
-          <RailLink href="/gl-accounts" label="GL Accounts" />
-          <RailLink href="/journal-entries" label="Journal Entries" />
-        </div>
-      </section>
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Reports</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/balance_sheet" label="Balance Sheet" />
-          <RailLink href="/reports/general_ledger" label="General Ledger" />
-          <RailLink href="/reports/trial_balance" label="Trial Balance" />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
-    >
-      {label}
-    </Link>
   );
 }

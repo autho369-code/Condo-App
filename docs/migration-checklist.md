@@ -4,17 +4,17 @@
 *Board (C) and Company-admin (E): migrate page bodies to light theme first; flip the section layout.tsx to the unified Sidebar (see role-modules.ts) as the final step of the group.*
 
 ## A — Manager workspace: lists & hubs (priority 1)
-- [ ] `/(app)/accounting`
-- [ ] `/(app)/accounting/1099`
-- [ ] `/(app)/accounting/1099/print`
+- [x] `/(app)/accounting`
+- [x] `/(app)/accounting/1099`
+- [x] `/(app)/accounting/1099/print`
 - [x] `/(app)/associations`
-- [ ] `/(app)/automation-center`
-- [ ] `/(app)/bank-accounts`
-- [ ] `/(app)/bank-accounts/activity`
-- [ ] `/(app)/bank-accounts/feeds`
-- [ ] `/(app)/bank-accounts/link-bank`
-- [ ] `/(app)/bank-accounts/reconcile`
-- [ ] `/(app)/bank-transfers`
+- [x] `/(app)/automation-center`
+- [x] `/(app)/bank-accounts`
+- [x] `/(app)/bank-accounts/activity`
+- [x] `/(app)/bank-accounts/feeds`
+- [x] `/(app)/bank-accounts/link-bank`
+- [x] `/(app)/bank-accounts/reconcile`
+- [x] `/(app)/bank-transfers`
 - [ ] `/(app)/bills`
 - [ ] `/(app)/bills/check-run`
 - [ ] `/(app)/bills/owner-payable`

@@ -2,14 +2,17 @@
 // /bank-accounts/feeds
 
 import Link from 'next/link';
+import { Landmark } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { date, money as currency } from '@/lib/utils';
+import { date } from '@/lib/utils';
 import { RefreshButton } from './sync-button';
 
 export const dynamic = 'force-dynamic';
@@ -71,14 +74,9 @@ export default async function BankFeedsPage({
       title="Bank feed"
       description="Imported transactions from linked bank accounts. Review auto-matched GL accounts or reassign as needed."
       actions={
-        <div className="flex items-center gap-2">
-          <Link
-            href="/bank-accounts/link-bank"
-            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Connect bank
-          </Link>
-        </div>
+        <Link href="/bank-accounts/link-bank">
+          <Button variant="secondary">Connect bank</Button>
+        </Link>
       }
     >
       <div className="space-y-6">
@@ -111,36 +109,22 @@ export default async function BankFeedsPage({
         />
 
         <FilterBar action="/bank-accounts/feeds" searchDefault={q} searchPlaceholder="Search by name">
-          <label className="text-xs font-medium uppercase text-gray-500">
-            Queue
-            <select
-              name="filter"
-              defaultValue={filter}
-              className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-            >
-              <option value="">All transactions</option>
-              <option value="unreviewed">Unreviewed</option>
-              <option value="unmatched">Unmatched</option>
-              <option value="pending">Pending only</option>
-            </select>
-          </label>
+          <FilterSelect label="Queue" name="filter" defaultValue={filter}>
+            <option value="">All transactions</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="unmatched">Unmatched</option>
+            <option value="pending">Pending only</option>
+          </FilterSelect>
 
           {(bankAccounts || []).length > 1 && (
-            <label className="text-xs font-medium uppercase text-gray-500">
-              Account
-              <select
-                name="bank_account_id"
-                defaultValue={bank_account_id}
-                className="mt-1 h-9 rounded border border-gray-300 bg-white px-3 text-sm normal-case text-gray-900"
-              >
-                <option value="">All accounts</option>
-                {(bankAccounts || []).map((a: any) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterSelect label="Account" name="bank_account_id" defaultValue={bank_account_id}>
+              <option value="">All accounts</option>
+              {(bankAccounts || []).map((a: any) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </FilterSelect>
           )}
         </FilterBar>
 
@@ -158,20 +142,18 @@ export default async function BankFeedsPage({
             </THead>
             <tbody>
               {txns.map((txn: any) => (
-                <TR key={txn.id} className="cursor-pointer hover:bg-gray-50">
-                  <TD className="text-sm text-gray-700">{date(txn.date)}</TD>
+                <TR key={txn.id}>
+                  <TD>{date(txn.date)}</TD>
                   <TD>
-                    <Link href={`/bank-accounts/feeds/${txn.id}`} className="block text-gray-900 hover:text-brand-700">
-                      <div className="font-medium">{txn.name}</div>
-                      {txn.merchant_name && (
-                        <div className="text-xs text-gray-500">{txn.merchant_name}</div>
-                      )}
-                      {txn.category && (
-                        <div className="text-xs capitalize text-gray-400">{txn.category.replace(/_/g, ' ')}</div>
-                      )}
-                    </Link>
+                    <div className="font-medium text-gray-900">{txn.name}</div>
+                    {txn.merchant_name && (
+                      <div className="text-xs text-gray-500">{txn.merchant_name}</div>
+                    )}
+                    {txn.category && (
+                      <div className="text-xs capitalize text-gray-400">{txn.category.replace(/_/g, ' ')}</div>
+                    )}
                   </TD>
-                  <TD className="text-sm text-gray-700">
+                  <TD className="tabular-nums">
                     <span className={txn.amount < 0 ? 'text-red-600' : 'text-emerald-600'}>
                       ${Math.abs(txn.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
@@ -209,24 +191,25 @@ export default async function BankFeedsPage({
             </tbody>
           </Table>
         ) : activeConnections.length === 0 ? (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <p className="text-sm font-medium text-gray-900">No bank connections</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Link a bank account via Plaid to start importing transactions.
-            </p>
-            <Link
-              href="/bank-accounts/link-bank"
-              className="mt-4 inline-block rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Connect bank
-            </Link>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Landmark}
+              title="No bank connections"
+              description="Link a bank account via Plaid to start importing transactions."
+              action={
+                <Link href="/bank-accounts/link-bank">
+                  <Button>Connect bank</Button>
+                </Link>
+              }
+            />
           </div>
         ) : (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <p className="text-sm font-medium text-gray-900">No transactions yet</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Click the sync button on your connected bank to import transactions, or they will appear once your bank processes them.
-            </p>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              icon={Landmark}
+              title="No transactions yet"
+              description="Click the sync button on your connected bank to import transactions, or they will appear once your bank processes them."
+            />
           </div>
         )}
       </div>
