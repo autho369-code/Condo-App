@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { Alert, Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +26,19 @@ async function saveBranding(formData: FormData) {
     })
     .eq('id', me.portfolio.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    redirect('/settings/branding?error=' + encodeURIComponent(error.message));
+  }
   revalidatePath('/settings/branding');
 }
 
-export default async function BrandingPage() {
+export default async function BrandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const me = await requirePortfolioAdmin();
+  const { error: errorMessage } = await searchParams;
   const supabase = await createClient();
 
   const { data: portfolio } = await (supabase as any)
@@ -41,33 +50,34 @@ export default async function BrandingPage() {
   const p = portfolio ?? {};
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-8 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Company branding</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          Your logo, colors, and contact info appear on owner portals, statements, and emails — so residents see your brand, not ours.
-        </p>
-      </div>
+    <PageShell className="max-w-3xl">
+      <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'Branding' }]} />
+      <PageHeader
+        title="Company branding"
+        description="Your logo, colors, and contact info appear on owner portals, statements, and emails — so residents see your brand, not ours."
+      />
+
+      {errorMessage && <Alert tone="danger" title="Could not save branding:" className="mb-6">{errorMessage}</Alert>}
 
       <form action={saveBranding as any} className="space-y-6">
         <Section title="Company identity" padded>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="company_name">Company name</Label>
               <Input id="company_name" name="company_name" defaultValue={p.company_name ?? ''} required />
-              <p className="mt-1 text-xs text-ink-400">Shown in the sidebar, portal header, and all owner communications.</p>
+              <p className="mt-1 text-xs text-gray-400">Shown in the sidebar, portal header, and all owner communications.</p>
             </div>
 
             <div>
               <Label htmlFor="logo_url">Logo URL</Label>
               <Input id="logo_url" name="logo_url" defaultValue={p.logo_url ?? ''} placeholder="https://your-company.com/logo.png" />
-              <p className="mt-1 text-xs text-ink-400">Upload to Supabase Storage and paste the public URL here.</p>
+              <p className="mt-1 text-xs text-gray-400">Upload to Supabase Storage and paste the public URL here.</p>
             </div>
 
             <div>
               <Label htmlFor="brand_color">Brand color</Label>
               <div className="flex items-center gap-2">
-                <input type="color" id="brand_color_picker" defaultValue={p.brand_color ?? '#10B981'} className="h-10 w-10 cursor-pointer rounded border" />
+                <input type="color" id="brand_color_picker" defaultValue={p.brand_color ?? '#10B981'} className="h-10 w-10 cursor-pointer rounded-lg border border-gray-300" />
                 <Input id="brand_color" name="brand_color" defaultValue={p.brand_color ?? '#10B981'} className="flex-1 font-mono" />
               </div>
             </div>
@@ -82,30 +92,31 @@ export default async function BrandingPage() {
               <Input id="support_phone" name="support_phone" type="tel" defaultValue={p.support_phone ?? ''} placeholder="(555) 555-5555" />
             </div>
 
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="public_website">Public website</Label>
               <Input id="public_website" name="public_website" defaultValue={p.public_website ?? ''} placeholder="https://yourcompany.com" />
             </div>
           </div>
         </Section>
 
-        {/* Live preview */}
+        {/* Live preview — intentionally uses the customer's own brand color */}
         <Section title="Portal preview" padded>
-          <div className="rounded-lg border border-ink-200 bg-cream-50 p-6">
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-6">
             <div className="flex items-center gap-3">
               {p.logo_url ? (
-                <img src={p.logo_url} alt="Logo" className="h-10 w-10 rounded object-contain" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.logo_url} alt="Logo" className="h-10 w-10 rounded-lg object-contain" />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded font-bold text-white" style={{ backgroundColor: p.brand_color ?? '#10B981' }}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg font-bold text-white" style={{ backgroundColor: p.brand_color ?? '#10B981' }}>
                   {(p.company_name ?? 'P').charAt(0)}
                 </div>
               )}
               <div>
-                <div className="font-display text-lg text-ink-900">{p.company_name ?? 'Your Company'}</div>
-                <div className="text-xs text-ink-500">Property Management Portal</div>
+                <div className="text-lg font-semibold tracking-[-0.01em] text-gray-950">{p.company_name ?? 'Your Company'}</div>
+                <div className="text-xs text-gray-500">Property Management Portal</div>
               </div>
             </div>
-            <div className="mt-4 rounded-md p-3 text-sm" style={{ backgroundColor: `${p.brand_color ?? '#10B981'}15`, borderLeft: `3px solid ${p.brand_color ?? '#10B981'}` }}>
+            <div className="mt-4 rounded-lg p-3 text-sm text-gray-700" style={{ backgroundColor: `${p.brand_color ?? '#10B981'}15`, borderLeft: `3px solid ${p.brand_color ?? '#10B981'}` }}>
               This is how your accent color will appear in CTAs, links, and highlights throughout the owner portal and board dashboard.
             </div>
           </div>
@@ -113,11 +124,11 @@ export default async function BrandingPage() {
 
         <div className="flex items-center gap-3">
           <Button type="submit" size="lg">Save branding</Button>
-          <a href="/portal" target="_blank" className="text-sm text-champagne-700 hover:underline">
+          <a href="/portal" target="_blank" className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">
             Preview owner portal →
           </a>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }

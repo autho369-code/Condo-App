@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
+import { StatusChip } from '@/components/operations/status-chip';
+import { Surface, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { NewScheduleForm } from '@/components/reports/new-schedule-form';
@@ -52,12 +54,12 @@ export default async function ScheduledReportsPage() {
             type="search"
             name="q"
             placeholder="Search schedules"
-            className="h-10 min-w-64 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            aria-label="Search schedules"
+            className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
           <Button type="submit" variant="secondary">Search</Button>
         </form>
       }
-      rail={<ScheduledReportsRail definitions={defs} />}
     >
       <div className="space-y-6">
         <MetricStrip
@@ -73,8 +75,16 @@ export default async function ScheduledReportsPage() {
           ]}
         />
 
+        {/* ── Create new schedule ── */}
+        <Surface>
+          <SectionTitle title="New scheduled report" description="Pick a report definition and a cadence; delivery happens automatically." />
+          <div className="max-w-xl">
+            <NewScheduleForm definitions={defs} />
+          </div>
+        </Surface>
+
         {/* ── Schedules table ── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-950">All schedules</h2>
@@ -82,7 +92,7 @@ export default async function ScheduledReportsPage() {
                 {rows.length} schedule{rows.length !== 1 ? 's' : ''} configured
               </p>
             </div>
-            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
               {rows.length}
             </span>
           </div>
@@ -124,34 +134,18 @@ export default async function ScheduledReportsPage() {
                       {s.next_run_at ? date(s.next_run_at) : '\u2014'}
                     </TD>
                     <TD>
-                      {s.active ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                          <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                          Paused
-                        </span>
-                      )}
+                      <StatusChip tone={s.active ? 'success' : 'neutral'}>
+                        {s.active ? 'Active' : 'Paused'}
+                      </StatusChip>
                     </TD>
                     <TD>
                       <div className="flex items-center justify-end gap-1">
-                        {/* Edit */}
-                        <Link
-                          href={`/scheduled-reports/${s.id}/edit`}
-                          className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                        >
-                          Edit
-                        </Link>
-
                         {/* Run Now */}
                         <form action={runScheduleNow as any}>
                           <input type="hidden" name="id" value={s.id} />
                           <button
                             type="submit"
-                            className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
                           >
                             Run now
                           </button>
@@ -163,23 +157,18 @@ export default async function ScheduledReportsPage() {
                           <input type="hidden" name="active" value={String(s.active)} />
                           <button
                             type="submit"
-                            className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50"
                           >
                             {s.active ? 'Pause' : 'Resume'}
                           </button>
                         </form>
 
                         {/* Delete */}
-                        <form
-                          action={deleteSchedule as any}
-                          onSubmit={(e) => {
-                            if (!confirm('Delete this schedule?')) e.preventDefault();
-                          }}
-                        >
+                        <form action={deleteSchedule as any}>
                           <input type="hidden" name="id" value={s.id} />
                           <button
                             type="submit"
-                            className="rounded px-2 py-1 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
                           >
                             Delete
                           </button>
@@ -201,7 +190,7 @@ export default async function ScheduledReportsPage() {
         </section>
 
         {/* ── Metrics section ── */}
-        <section className="rounded border border-gray-200 bg-white">
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-950">Metrics</h2>
@@ -224,79 +213,11 @@ export default async function ScheduledReportsPage() {
   );
 }
 
-// ── Right Rail ──
-function ScheduledReportsRail({ definitions }: { definitions: { id: string; name: string; slug: string }[] }) {
-  return (
-    <div className="space-y-5">
-      {/* TASK PANEL §4.2 */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Task panel</h2>
-        <p className="mt-0.5 text-xs text-gray-500">Create and manage scheduled reports</p>
-        <div className="mt-3">
-          <NewScheduleForm definitions={definitions} />
-        </div>
-      </section>
-
-      {/* Quick links */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Quick links</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports" label="Reports catalog" />
-          <RailLink href="/reports/runs" label="Run history" />
-          <RailLink href="/reports/ar-aging" label="A/R aging" />
-        </div>
-      </section>
-
-      {/* Delivery info */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Delivery channels</h2>
-        <ul className="mt-3 space-y-2 text-xs text-gray-600">
-          <li className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Email: Send report as attachment
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-            Portal: Post to owner portal
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-            Webhook: POST to external URL
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-            Download: Save to storage only
-          </li>
-        </ul>
-      </section>
-
-      {/* Scope discipline */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Scope discipline</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-600">
-          Scheduled reports inherit the portfolio and association scope set at creation time, so recurring runs always capture the right entities.
-        </p>
-      </section>
-    </div>
-  );
-}
-
 // ── Shared UI ──
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 transition-colors"
-    >
-      {label}
-    </Link>
-  );
-}
-
 function MetricTile({ label, value, sub }: { label: string; value: number; sub: string }) {
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
-      <div className="text-xs font-medium uppercase text-gray-500">{label}</div>
+    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-950">{value}</div>
       <div className="mt-0.5 text-xs text-gray-500">{sub}</div>
     </div>

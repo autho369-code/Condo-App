@@ -127,12 +127,12 @@ export default async function ReportsIndex({
             name="q"
             defaultValue={q}
             placeholder="Search reports"
-            className="h-10 min-w-64 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            aria-label="Search reports"
+            className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
           <Button type="submit" variant="secondary">Search</Button>
         </form>
       }
-      rail={<ReportsRail scheduledCount={scheduledCount ?? 0} />}
     >
       <div className="space-y-6">
         <MetricStrip
@@ -140,7 +140,7 @@ export default async function ReportsIndex({
             { label: 'Active catalog', value: activeCount ?? definitions.length, sublabel: 'Available report definitions' },
             { label: 'Visible results', value: enrichedDefinitions.length, sublabel: q ? `Filtered by "${q}"` : 'Current catalog view' },
             { label: 'Saved reports', value: savedRows.length, sublabel: `${favorites.length} pinned favorites` },
-            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/reports/runs" className="text-blue-700 hover:underline">View run history</Link> },
+            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/reports/runs" className="font-medium text-gray-500 transition-colors hover:text-gray-900">View run history</Link> },
           ]}
         />
 
@@ -161,9 +161,9 @@ export default async function ReportsIndex({
                   <Link
                     key={definition.id}
                     href={`/reports/${definition.slug}`}
-                    className="rounded border border-gray-200 bg-white px-3 py-3 text-sm hover:border-brand-200 hover:bg-brand-50 transition-colors"
+                    className="rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
                   >
-                    <div className="font-medium text-blue-700">{definition.displayName}</div>
+                    <div className="font-medium text-gray-900">{definition.displayName}</div>
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
                       {definition.displayDescription}
                     </p>
@@ -185,7 +185,7 @@ export default async function ReportsIndex({
               <p className="text-sm text-gray-500">No reports scheduled yet. Saved reports can be scheduled for recurring delivery.</p>
             )}
             <div className="mt-3">
-              <Link href="/reports/runs" className="text-sm font-medium text-blue-700 hover:underline">
+              <Link href="/reports/runs" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
                 View scheduled reports &rarr;
               </Link>
             </div>
@@ -209,7 +209,7 @@ export default async function ReportsIndex({
               Create and manage community surveys, polls, and feedback forms. Survey results integrate with association reports.
             </p>
             <div className="mt-3">
-              <Link href="/surveys" className="text-sm font-medium text-blue-700 hover:underline">
+              <Link href="/surveys" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
                 Manage surveys &rarr;
               </Link>
             </div>
@@ -224,73 +224,12 @@ export default async function ReportsIndex({
         )}
 
         {sortedCategories.length === 0 && favorites.length === 0 && (
-          <div className="rounded border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+          <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             No reports match &quot;{q}&quot;.
           </div>
         )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Right Rail — Task Panel, Statements, Letters
-// ═══════════════════════════════════════════════════════════════
-function ReportsRail({ scheduledCount }: { scheduledCount: number }) {
-  return (
-    <div className="space-y-5">
-      {/* TASK PANEL §4 */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-950">Task panel</h2>
-        <p className="mt-0.5 text-xs text-gray-500">Quick actions and batch operations</p>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/form_1099_detail?action=letter" label="1099s Letter" />
-          <RailLink href="/reports/form_1099_detail" label="1099s" />
-          <RailLink href="/reports/bulk-association" label="Bulk Association Reports" />
-          <RailLink href="/reports/management-fee-history" label="Management Fee History" />
-        </div>
-      </section>
-
-      {/* STATEMENTS §4 */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Statements</h2>
-        <p className="mt-0.5 text-xs text-gray-500">Owner statement delivery</p>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/statements/send" label="Send Statements" />
-          <RailLink href="/statements/share-board" label="Share Board Member" />
-          <RailLink href="/owners/packets" label="Packets" />
-          <RailLink href="/statements/bulk-settings" label="Bulk Update Statement Settings" />
-        </div>
-      </section>
-
-      {/* LETTERS §4 */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Letters</h2>
-        <p className="mt-0.5 text-xs text-gray-500">Portal activation communications</p>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/owners/activations?type=owner-portal" label="Owner Portal Activation" />
-          <RailLink href="/owners/activations?type=online-portal" label="Online Portal Activation" />
-        </div>
-      </section>
-
-      {/* Report operations */}
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Report operations</h2>
-        <div className="mt-3 grid gap-2">
-          <RailLink href="/reports/runs" label="Run history" />
-          <RailLink href="/reports/ar-aging" label="A/R aging live view" />
-          <RailLink href="/reports/bank_reconciliation" label="Bank reconciliation" />
-          <RailLink href="/scheduled-reports" label={`Scheduled (${scheduledCount})`} />
-        </div>
-      </section>
-
-      <section className="border-t border-gray-200 pt-5">
-        <h2 className="text-sm font-semibold text-gray-950">Scope discipline</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-600">
-          Every run captures portfolio, association, owner, or unit scope plus dates so saved and scheduled reports can be reproduced.
-        </p>
-      </section>
-    </div>
   );
 }
 
@@ -309,13 +248,13 @@ function ReportSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded border border-gray-200 bg-white">
+    <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold text-gray-950">{title}</h2>
           {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
         </div>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
           {count}
         </span>
       </div>
@@ -334,7 +273,7 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
             <div className="min-w-0">
               <Link
                 href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'}
-                className="truncate text-sm font-medium text-blue-700 hover:underline"
+                className="truncate text-sm font-medium text-gray-900 hover:text-gray-950 hover:underline"
               >
                 {report.name || report.report_definitions?.name || 'Untitled report'}
               </Link>
@@ -343,24 +282,13 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
                 {report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
               </p>
             </div>
-            <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
               {report.run_count ?? 0} runs
             </span>
           </div>
         );
       })}
     </div>
-  );
-}
-
-function RailLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 transition-colors"
-    >
-      {label}
-    </Link>
   );
 }
 
@@ -374,8 +302,8 @@ function MetricTile({
   sub: string;
 }) {
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
-      <div className="text-xs font-medium uppercase text-gray-500">{label}</div>
+    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-950">{value}</div>
       <div className="mt-0.5 text-xs text-gray-500">{sub}</div>
     </div>

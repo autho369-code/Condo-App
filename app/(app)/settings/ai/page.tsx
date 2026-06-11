@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Input, Label, Select } from '@/components/ui/input';
+import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
+import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
@@ -51,40 +53,34 @@ export default async function AISettingsPage() {
   const currentProvider = PROVIDERS.find(pr => pr.value === provider) ?? PROVIDERS[0];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-8 py-6">
-      <div>
-        <nav className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-          <Link href="/settings" className="hover:text-ink-700">Settings</Link>
-          <span className="mx-2">/</span>
-          AI configuration
-        </nav>
-        <h1 className="mt-2 text-2xl font-semibold text-ink-900">AI provider</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          Connect your own AI provider to power automated certificate extraction, violation drafting, maintenance scheduling, and Copilot features. You bring the API key — we provide the infrastructure.
-        </p>
-      </div>
+    <PageShell className="max-w-3xl">
+      <Breadcrumb items={[{ label: 'Settings', href: '/settings' }, { label: 'AI configuration' }]} />
+      <PageHeader
+        title="AI provider"
+        description="Connect your own AI provider to power automated certificate extraction, violation drafting, maintenance scheduling, and Copilot features. You bring the API key — we provide the infrastructure."
+      />
 
       <form action={saveAIProvider as any} className="space-y-6">
         <Section title="Provider" padded>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
               <Label htmlFor="ai_provider">AI provider</Label>
-              <select id="ai_provider" name="ai_provider" defaultValue={provider} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+              <Select id="ai_provider" name="ai_provider" defaultValue={provider}>
                 {PROVIDERS.map(pr => (
                   <option key={pr.value} value={pr.value}>{pr.label}</option>
                 ))}
-              </select>
-              <p className="mt-1 text-xs text-ink-400">Choose your AI provider. Each supports different models and pricing.</p>
+              </Select>
+              <p className="mt-1 text-xs text-gray-400">Choose your AI provider. Each supports different models and pricing.</p>
             </div>
 
             {provider !== 'custom' ? (
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="ai_model">Model</Label>
-                <select id="ai_model" name="ai_model" defaultValue={p.ai_model ?? currentProvider.models[0]} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm">
+                <Select id="ai_model" name="ai_model" defaultValue={p.ai_model ?? currentProvider.models[0]}>
                   {currentProvider.models.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             ) : (
               <>
@@ -105,14 +101,14 @@ export default async function AISettingsPage() {
           <div>
             <Label htmlFor="ai_api_key">API key</Label>
             <Input id="ai_api_key" name="ai_api_key" type="password" placeholder="sk-... or ••••••••" />
-            <p className="mt-1 text-xs text-ink-400">
+            <p className="mt-1 text-xs text-gray-400">
               Stored encrypted. Used only for AI features you enable — certificate extraction, Copilot, violation drafting, maintenance scheduling. You are billed directly by your provider.
             </p>
           </div>
         </Section>
 
         <Section title="Available AI features" padded>
-          <div className="space-y-3 text-sm text-ink-600">
+          <div className="space-y-3 text-sm text-gray-600">
             <FeatureRow icon="📄" title="Certificate extraction" desc="Auto-extract policy number, coverage, dates from uploaded HO6 certificates." status="ready" />
             <FeatureRow icon="⚠️" title="Violation drafting" desc="AI generates violation notices from photo evidence and rule references." status="coming" />
             <FeatureRow icon="🔧" title="Maintenance scheduling" desc="Auto-schedule recurring maintenance from property calendar and vendor availability." status="coming" />
@@ -123,27 +119,25 @@ export default async function AISettingsPage() {
 
         <div className="flex items-center gap-3">
           <Button type="submit" size="lg">Save AI settings</Button>
-          <Link href="/settings" className="text-sm text-ink-500 hover:text-ink-900">Back to settings</Link>
+          <Link href="/settings" className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">Back to settings</Link>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }
 
 function FeatureRow({ icon, title, desc, status }: { icon: string; title: string; desc: string; status: 'ready' | 'coming' }) {
   return (
-    <div className="flex items-start gap-3 rounded-md border border-ink-100 p-3">
+    <div className="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
       <span className="text-xl">{icon}</span>
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-ink-900">{title}</span>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            status === 'ready' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-          }`}>
+          <span className="font-medium text-gray-900">{title}</span>
+          <StatusChip tone={status === 'ready' ? 'success' : 'warning'}>
             {status === 'ready' ? 'Ready' : 'Soon'}
-          </span>
+          </StatusChip>
         </div>
-        <p className="mt-0.5 text-xs text-ink-500">{desc}</p>
+        <p className="mt-0.5 text-xs text-gray-500">{desc}</p>
       </div>
     </div>
   );

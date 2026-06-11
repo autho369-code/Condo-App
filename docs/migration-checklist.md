@@ -55,16 +55,16 @@
 - [x] `/(app)/projects`
 - [x] `/(app)/purchase-orders`
 - [x] `/(app)/recurring-work-orders`
-- [ ] `/(app)/reports`
-- [ ] `/(app)/reports/ar-aging`
-- [ ] `/(app)/reports/bulk-association`
-- [ ] `/(app)/reports/runs`
-- [ ] `/(app)/scheduled-reports`
-- [ ] `/(app)/send-email`
-- [ ] `/(app)/settings`
-- [ ] `/(app)/settings/ai`
-- [ ] `/(app)/settings/branding`
-- [ ] `/(app)/sms`
+- [x] `/(app)/reports`
+- [x] `/(app)/reports/ar-aging` (redirect-only route)
+- [x] `/(app)/reports/bulk-association`
+- [x] `/(app)/reports/runs`
+- [x] `/(app)/scheduled-reports`
+- [x] `/(app)/send-email`
+- [x] `/(app)/settings`
+- [x] `/(app)/settings/ai`
+- [x] `/(app)/settings/branding`
+- [x] `/(app)/sms`
 - [ ] `/(app)/sms/opt-ins`
 - [ ] `/(app)/sms/templates`
 - [ ] `/(app)/statements/bulk-settings`

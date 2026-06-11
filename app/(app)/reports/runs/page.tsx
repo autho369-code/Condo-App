@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section } from '@/components/reports/workspace';
+import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelReportRun } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
 
@@ -25,7 +26,7 @@ export default async function ReportRunsHistory() {
     <Workspace
       header={
         <WorkspaceHeader
-          eyebrow={<Link href="/reports" className="hover:text-brand-600">Reports</Link>}
+          eyebrow={<Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>}
           title="Run history"
           subtitle={`Last ${runs?.length ?? 0} runs across all reports`}
         />
@@ -77,19 +78,19 @@ export default async function ReportRunsHistory() {
                 {runs.map((r: any) => (
                   <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-2">
-                      <Link href={`/reports/runs/${r.id}`} className="font-medium text-gray-900 hover:text-brand-600 hover:underline">
+                      <Link href={`/reports/runs/${r.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                         {r.report_definitions?.name ?? 'Unknown'}
                       </Link>
                       <div className="text-xs text-gray-500 capitalize">{r.report_definitions?.category?.replace(/_/g, ' ')}</div>
                     </td>
                     <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
                     <td className="px-4 py-2"><StatusPill status={r.status} /></td>
-                    <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? 'â€”'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '—'}</td>
                     <td className="px-4 py-2 text-right text-gray-600">{formatDuration(r.duration_ms)}</td>
                     <td className="px-4 py-2 text-gray-600">{date(r.started_at ?? r.created_at)}</td>
                     <td className="whitespace-nowrap px-5 py-2 text-right">
                       {r.status === 'succeeded' && r.output_url && (
-                        <a href={r.output_url} target="_blank" rel="noopener" className="text-xs text-brand-600 hover:underline">Download</a>
+                        <a href={r.output_url} target="_blank" rel="noopener" className="text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">Download</a>
                       )}
                       {(r.status === 'queued' || r.status === 'running') && (
                         <form action={cancelReportRun.bind(null, r.id) as any} className="inline">
@@ -105,7 +106,7 @@ export default async function ReportRunsHistory() {
         ) : (
           <div className="px-5 py-8 text-center">
             <p className="text-sm text-gray-500">No runs yet.</p>
-            <Link href="/reports" className="mt-2 inline-block text-sm text-brand-600 hover:underline">Run your first report â†’</Link>
+            <Link href="/reports" className="mt-2 inline-block text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">Run your first report →</Link>
           </div>
         )}
       </Section>
@@ -114,18 +115,18 @@ export default async function ReportRunsHistory() {
 }
 
 function StatusPill({ status }: { status: string }) {
-  const m: Record<string, string> = {
-    queued:    'bg-gray-100 text-gray-600',
-    running:   'bg-blue-100 text-blue-700',
-    succeeded: 'bg-green-100 text-green-700',
-    failed:    'bg-red-100 text-red-700',
-    cancelled: 'bg-gray-100 text-gray-400 line-through',
+  const m: Record<string, Tone> = {
+    queued: 'neutral',
+    running: 'info',
+    succeeded: 'success',
+    failed: 'danger',
+    cancelled: 'neutral',
   };
-  return <span className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${m[status] ?? m.queued}`}>{status}</span>;
+  return <StatusChip tone={m[status] ?? 'neutral'}>{status}</StatusChip>;
 }
 
 function formatDuration(ms: number | null) {
-  if (!ms) return 'â€”';
+  if (!ms) return '—';
   if (ms < 1000) return `${ms} ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)} s`;

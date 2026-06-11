@@ -55,11 +55,11 @@ export function SmsForm({
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Recipient type</label>
         <div className="flex gap-3">
-          <label className="flex cursor-pointer items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm hover:border-brand-500 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
             <input type="radio" name="recipient_type" value="owner" checked={recipientType === 'owner'} onChange={() => { setRecipientType('owner'); setSelectedId(''); setPhoneNumber(''); }} />
             Owner
           </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm hover:border-brand-500 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
             <input type="radio" name="recipient_type" value="vendor" checked={recipientType === 'vendor'} onChange={() => { setRecipientType('vendor'); setSelectedId(''); setPhoneNumber(''); }} />
             Vendor
           </label>
@@ -77,7 +77,7 @@ export function SmsForm({
           required
           value={selectedId}
           onChange={(e) => handleEntityChange(e.target.value)}
-          className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         >
           <option value="">Select {entityLabel.toLowerCase()}...</option>
           {entities.map((e: any) => (
@@ -101,7 +101,7 @@ export function SmsForm({
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           placeholder="+1 555 123 4567"
-          className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 
@@ -113,7 +113,7 @@ export function SmsForm({
             id="template_selector"
             value={selectedTemplate}
             onChange={(e) => handleTemplateChange(e.target.value)}
-            className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
+            className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="">Choose a template...</option>
             {templates.map((t: any) => (
@@ -136,7 +136,7 @@ export function SmsForm({
           onChange={(e) => setMessage(e.target.value)}
           rows={4}
           maxLength={1600}
-          className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           placeholder="Type your SMS message here..."
         />
         <div className="mt-1 flex justify-between text-xs text-gray-400">
@@ -155,7 +155,7 @@ export function SmsForm({
           name="from_number"
           type="tel"
           placeholder="Company phone number"
-          className="h-10 w-full rounded border border-gray-300 bg-white px-3 text-sm"
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
         <p className="mt-1 text-xs text-gray-400">Leave blank to use company default</p>
       </div>
