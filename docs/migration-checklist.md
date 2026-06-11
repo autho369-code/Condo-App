@@ -175,7 +175,7 @@
 - [x] `/portal/work-orders/new`
 
 ## E — Company admin (priority 5)
-- [ ] `/company-admin`
+- [x] `/company-admin`
 - [x] `/company-admin/architectural-reviews`
 - [x] `/company-admin/associations`
 - [x] `/company-admin/audit-logs`
