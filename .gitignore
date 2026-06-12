@@ -11,3 +11,4 @@ tsconfig.tsbuildinfo
 .superpowers/
 .worktrees/
 supabase/.temp/
+.claude/
