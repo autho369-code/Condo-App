@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
-import { date } from '@/lib/utils';
-import { Heart, Wrench, AlertTriangle, Clock, CheckCircle2, XCircle, AlertOctagon, ShieldCheck } from 'lucide-react';
+import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { AlertTriangle, Clock, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,31 +10,22 @@ function StatCard({
   value,
   sub,
   icon: Icon,
-  accent = 'navy',
 }: {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   icon: React.ElementType;
-  accent?: 'navy' | 'emerald' | 'amber' | 'red' | 'violet';
 }) {
-  const accents: Record<string, string> = {
-    navy: 'bg-[#1E3A5F]/10 text-[#1E3A5F] border-[#1E3A5F]/20',
-    emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    amber: 'bg-amber-100 text-amber-700 border-amber-200',
-    red: 'bg-red-100 text-red-700 border-red-200',
-    violet: 'bg-violet-100 text-violet-700 border-violet-200',
-  };
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-gray-900">{value}</div>
+          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[accent]}`}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -42,27 +33,22 @@ function StatCard({
 }
 
 function HealthBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    healthy: 'bg-emerald-100 text-emerald-700 ring-emerald-200',
-    warning: 'bg-amber-100 text-amber-700 ring-amber-200',
-    attention: 'bg-orange-100 text-orange-700 ring-orange-200',
-    critical: 'bg-red-100 text-red-700 ring-red-200',
+  const tones: Record<string, Tone> = {
+    healthy: 'success',
+    warning: 'warning',
+    attention: 'warning',
+    critical: 'danger',
   };
-  const icons: Record<string, React.ElementType> = {
-    healthy: CheckCircle2,
-    warning: AlertTriangle,
-    attention: AlertOctagon,
-    critical: XCircle,
-  };
-  const cls = map[status] ?? map.warning;
-  const Icon = icons[status] ?? AlertTriangle;
   return (
-    <span className={`inline-flex items-center gap-1 h-6 rounded-full px-2.5 text-xs font-medium ring-1 ${cls}`}>
-      <Icon className="h-3 w-3" />
+    <StatusChip tone={tones[status] ?? 'warning'}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    </StatusChip>
   );
 }
+
+const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+const theadCls = 'border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500';
+const trowCls = 'border-b border-gray-50 last:border-0 hover:bg-gray-50/60';
 
 export default async function AssociationHealthPage() {
   await requirePlatformOperator();
@@ -163,20 +149,20 @@ export default async function AssociationHealthPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Association Health</h1>
-        <p className="mt-1 text-sm text-gray-500">Platform-wide health monitoring across all associations</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Association Health</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide health monitoring across all associations</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Associations" value={assocHealthData.length} icon={ShieldCheck} accent="navy" />
-        <StatCard label="Healthy" value={healthyCount} icon={CheckCircle2} accent="emerald" />
-        <StatCard label="Warning" value={warningCount} icon={AlertTriangle} accent="amber" />
-        <StatCard label="Critical" value={criticalCount} icon={XCircle} accent="red" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Total Associations" value={assocHealthData.length} icon={ShieldCheck} />
+        <StatCard label="Healthy" value={healthyCount} icon={CheckCircle2} />
+        <StatCard label="Warning" value={warningCount} icon={AlertTriangle} />
+        <StatCard label="Critical" value={criticalCount} icon={XCircle} />
       </div>
 
       {/* Health Legend */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Health Status Legend</div>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
@@ -200,30 +186,30 @@ export default async function AssociationHealthPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Worst 10 */}
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-red-700">Worst 10 — Needs Attention</h2>
             <p className="mt-0.5 text-xs text-gray-500">Associations with highest overdue work orders + violations</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
-                  <th className="px-4 py-3 text-left">Association</th>
-                  <th className="px-4 py-3 text-left">Company</th>
-                  <th className="px-4 py-3 text-right">Doors</th>
-                  <th className="px-4 py-3 text-right">Open WO</th>
-                  <th className="px-4 py-3 text-right">Overdue</th>
-                  <th className="px-4 py-3 text-right">Violations</th>
-                  <th className="px-4 py-3 text-left">Status</th>
+              <thead className={theadCls}>
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium">Association</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Company</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Doors</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Overdue</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Violations</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {worst10.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No data</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No data</td></tr>
                 ) : (
                   worst10.map((a: any) => (
-                    <tr key={a.id} className="hover:bg-gray-50">
+                    <tr key={a.id} className={trowCls}>
                       <td className="px-4 py-3 font-medium text-gray-900">{a.name}</td>
                       <td className="px-4 py-3 text-gray-600">{a.company_name ?? '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-600">{a.unit_count ?? '—'}</td>
@@ -240,30 +226,30 @@ export default async function AssociationHealthPage() {
         </div>
 
         {/* Best 10 */}
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
+        <div className={card}>
+          <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-emerald-700">Best 10 — Healthiest</h2>
             <p className="mt-0.5 text-xs text-gray-500">Associations with fewest open issues</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
-                  <th className="px-4 py-3 text-left">Association</th>
-                  <th className="px-4 py-3 text-left">Company</th>
-                  <th className="px-4 py-3 text-right">Doors</th>
-                  <th className="px-4 py-3 text-right">Open WO</th>
-                  <th className="px-4 py-3 text-right">Overdue</th>
-                  <th className="px-4 py-3 text-right">Violations</th>
-                  <th className="px-4 py-3 text-left">Status</th>
+              <thead className={theadCls}>
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium">Association</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Company</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Doors</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Overdue</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Violations</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {best10.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No data</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No data</td></tr>
                 ) : (
                   best10.map((a: any) => (
-                    <tr key={a.id} className="hover:bg-gray-50">
+                    <tr key={a.id} className={trowCls}>
                       <td className="px-4 py-3 font-medium text-gray-900">{a.name}</td>
                       <td className="px-4 py-3 text-gray-600">{a.company_name ?? '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-600">{a.unit_count ?? '—'}</td>
@@ -281,31 +267,31 @@ export default async function AssociationHealthPage() {
       </div>
 
       {/* Full Table */}
-      <div className="rounded-xl border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-900">All Association Health</h2>
+      <div className={card}>
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">All Association Health</h2>
           <p className="mt-0.5 text-xs text-gray-500">Complete health overview across the platform</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
-                <th className="px-4 py-3 text-left">Association</th>
-                <th className="px-4 py-3 text-left">Company</th>
-                <th className="px-4 py-3 text-right">Doors</th>
-                <th className="px-4 py-3 text-right">Open WO</th>
-                <th className="px-4 py-3 text-right">Overdue WO</th>
-                <th className="px-4 py-3 text-right">Violations</th>
-                <th className="px-4 py-3 text-left">Manager Activity</th>
-                <th className="px-4 py-3 text-left">Status</th>
+            <thead className={theadCls}>
+              <tr>
+                <th className="px-4 py-2.5 text-left font-medium">Association</th>
+                <th className="px-4 py-2.5 text-left font-medium">Company</th>
+                <th className="px-4 py-2.5 text-right font-medium">Doors</th>
+                <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
+                <th className="px-4 py-2.5 text-right font-medium">Overdue WO</th>
+                <th className="px-4 py-2.5 text-right font-medium">Violations</th>
+                <th className="px-4 py-2.5 text-left font-medium">Manager Activity</th>
+                <th className="px-4 py-2.5 text-left font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {assocHealthData.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No associations found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">No associations found</td></tr>
               ) : (
                 assocHealthData.map((a: any) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
+                  <tr key={a.id} className={trowCls}>
                     <td className="px-4 py-3 font-medium text-gray-900">{a.name}</td>
                     <td className="px-4 py-3 text-gray-600">{a.company_name ?? '—'}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">{a.unit_count ?? '—'}</td>

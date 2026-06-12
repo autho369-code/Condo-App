@@ -121,8 +121,8 @@ export default async function UsersPage({
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-950">Users</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Users</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
             Manage all user profiles across every portfolio in the platform.
           </p>
         </div>
@@ -222,18 +222,18 @@ export default async function UsersPage({
                           {user.disabled_at ? 'Enable' : 'Disable'}
                         </Button>
                       </form>
-                      <form action={changeUserRole as any} className="inline">
+                      <form action={changeUserRole as any} className="inline-flex items-center gap-1">
                         <input type="hidden" name="user_id" value={user.id} />
                         <select
                           name="hoa_role"
                           defaultValue={user.hoa_role || ''}
-                          className="h-7 rounded border border-gray-200 bg-white text-xs text-gray-700"
-                          onChange={(e) => { e.target.form?.requestSubmit(); }}
+                          className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
                         >
                           {ROLE_OPTIONS.map((r) => (
                             <option key={r.value} value={r.value}>{r.label}</option>
                           ))}
                         </select>
+                        <Button type="submit" variant="ghost" size="sm">Set</Button>
                       </form>
                       <form action={deleteUser as any} className="inline">
                         <input type="hidden" name="user_id" value={user.id} />

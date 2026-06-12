@@ -196,19 +196,19 @@
 ## F — Platform operator (priority 6, AFTER consolidation decision)
 - [x] `/platform` — N/A: consolidated into `/platform/[[...slug]]` redirect catch-all; pages deleted
 - [x] `/platform-operator`
-- [ ] `/platform-operator/association-health`
+- [x] `/platform-operator/association-health`
 - [x] `/platform-operator/audit-logs`
 - [x] `/platform-operator/billing`
-- [ ] `/platform-operator/communications`
+- [x] `/platform-operator/communications`
 - [x] `/platform-operator/companies`
 - [x] `/platform-operator/companies/[id]`
 - [x] `/platform-operator/door-usage`
 - [x] `/platform-operator/invitations`
-- [ ] `/platform-operator/overview`
+- [x] `/platform-operator/overview`
 - [x] `/platform-operator/revenue`
-- [ ] `/platform-operator/supabase-admin`
-- [ ] `/platform-operator/support`
-- [ ] `/platform-operator/users`
+- [x] `/platform-operator/supabase-admin`
+- [x] `/platform-operator/support`
+- [x] `/platform-operator/users`
 - [x] `/platform/billing` — N/A (deleted in platform consolidation)
 - [x] `/platform/operators` — N/A (deleted in platform consolidation)
 - [x] `/platform/owners` — N/A (deleted in platform consolidation)

@@ -55,23 +55,12 @@ function StatCard({
   trend?: { value: number; label: string }
   accent?: 'navy' | 'emerald' | 'amber' | 'red' | 'blue' | 'violet'
 }) {
-  const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-    navy: { bg: 'rgba(30,58,95,0.08)', text: '#1E3A5F', border: 'rgba(30,58,95,0.15)' },
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
-    red: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
-    blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
-    violet: { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200' },
-  }
-
-  const c = colorMap[accent]
-
   return (
-    <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 transition-shadow hover:shadow-sm">
+    <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-gray-900">{value}</div>
+          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
           {trend && (
             <div
@@ -88,14 +77,8 @@ function StatCard({
             </div>
           )}
         </div>
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-lg border"
-          style={{
-            backgroundColor: accent === 'navy' ? 'rgba(30,58,95,0.08)' : undefined,
-            borderColor: accent === 'navy' ? 'rgba(30,58,95,0.15)' : undefined,
-          }}
-        >
-          <Icon className="h-5 w-5" style={accent === 'navy' ? { color: '#1E3A5F' } : undefined} />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -108,7 +91,7 @@ function BarChart({
   data,
   height = 160,
   valueLabel = '',
-  barColor = '#1E3A5F',
+  barColor = '#2563EB',
 }: {
   data: { label: string; value: number }[]
   height?: number
@@ -162,7 +145,7 @@ function HorizontalBar({
         <div key={i} className="flex items-center gap-3">
           <div className="w-32 flex-shrink-0 text-xs text-gray-600 truncate">
             {d.href ? (
-              <Link href={d.href} className="hover:text-[#1E3A5F] hover:underline">
+              <Link href={d.href} className="hover:text-gray-950 hover:underline">
                 {d.label}
               </Link>
             ) : (
@@ -175,7 +158,7 @@ function HorizontalBar({
                 className="h-full rounded transition-all"
                 style={{
                   width: `${(d.value / max) * 100}%`,
-                  backgroundColor: '#1E3A5F',
+                  backgroundColor: '#2563EB',
                   opacity: 0.7 + (d.value / max) * 0.3,
                 }}
               />
@@ -465,8 +448,8 @@ export default async function PlatformOperatorOverviewPage() {
     <div className="space-y-7">
       {/* ── Page Header ────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Platform Command Center</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Command Center</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Executive overview across all management companies — revenue, doors, health, and risk.
         </p>
       </div>
@@ -556,7 +539,7 @@ export default async function PlatformOperatorOverviewPage() {
               data={revenueChartData}
               height={160}
               valueLabel="$"
-              barColor="#1E3A5F"
+              barColor="#2563EB"
             />
           </div>
         </div>
@@ -679,7 +662,7 @@ export default async function PlatformOperatorOverviewPage() {
             </div>
             <Link
               href="/platform-operator/audit-logs"
-              className="text-xs font-medium text-[#1E3A5F] hover:underline"
+              className="text-xs font-medium text-gray-700 hover:text-gray-950 hover:underline"
             >
               View all
             </Link>
@@ -768,7 +751,7 @@ export default async function PlatformOperatorOverviewPage() {
                         <td className="px-5 py-3">
                           <Link
                             href={`/platform/portfolios/${row.portfolio_id}`}
-                            className="font-medium text-[#1E3A5F] hover:underline"
+                            className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
                           >
                             {company?.company_name ?? 'Unknown'}
                           </Link>
@@ -824,7 +807,7 @@ export default async function PlatformOperatorOverviewPage() {
                     <td className="px-5 py-3">
                       <Link
                         href={`/platform/portfolios/${h.portfolio_id}`}
-                        className="font-medium text-[#1E3A5F] hover:underline"
+                        className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
                       >
                         {h.portfolio_id}
                       </Link>
