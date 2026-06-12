@@ -366,6 +366,32 @@ export async function disableLogin(formData: FormData) {
   ok(returnTo, 'login_disabled');
 }
 
+// ── Edit company details ──────────────────────────────────────────────────
+export async function updateCompanyDetails(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const portfolioId = formData.get('portfolio_id') as string;
+  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+
+  const companyName = (formData.get('company_name') as string)?.trim();
+  const phone = (formData.get('phone_number') as string)?.trim();
+  const supportEmail = (formData.get('support_email') as string)?.trim();
+  if (!companyName) fail(returnTo, 'Company name is required.');
+
+  const update: Record<string, unknown> = {
+    company_name: companyName,
+    phone_number: phone || null,
+    support_email: supportEmail || null,
+  };
+
+  const svc = createServiceClient() as any;
+  const { error } = await svc.from('portfolios').update(update).eq('id', portfolioId);
+  if (error) fail(returnTo, `Could not update company: ${error.message}`);
+
+  await audit(svc, me, 'company_updated', portfolioId, update);
+  revalidatePath(returnTo);
+  ok(returnTo, 'updated');
+}
+
 // ── Company status ────────────────────────────────────────────────────────
 export async function suspendCompany(formData: FormData) {
   const me = await requirePlatformOperator();

@@ -25,6 +25,7 @@ import {
   suspendCompany,
   transferOwnership,
   unlockAccount,
+  updateCompanyDetails,
 } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,7 @@ const BANNERS: Record<string, string> = {
   plan_changed: 'Subscription plan updated.',
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
+  updated: 'Company details updated.',
 };
 
 export default async function CompanyDetailPage({
@@ -110,7 +112,7 @@ export default async function CompanyDetailPage({
     { data: invitations },
     { data: auditRows },
   ] = await Promise.all([
-    db.from('portfolios').select('id, company_name, slug, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number').eq('id', id).maybeSingle(),
+    db.from('portfolios').select('id, company_name, slug, tier, created_at, suspended_at, suspension_reason, archived_at, address_city, address_state, phone_number, support_email').eq('id', id).maybeSingle(),
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
     db.from('profiles').select('id, email, full_name, display_name, hoa_role, last_login_at, mfa_enrolled_at').eq('portfolio_id', id).in('hoa_role', ['company_admin', 'manager']).order('hoa_role'),
     db.from('associations').select('id, name, city, state, unit_count, status').eq('portfolio_id', id).is('archived_at', null).order('name').limit(20),
@@ -241,6 +243,33 @@ export default async function CompanyDetailPage({
           </CardBody>
         </Card>
       </div>
+
+      {/* ── Company details ─────────────────────────────────────────── */}
+      <Card id="details">
+        <CardHeader>
+          <CardTitle>Company details</CardTitle>
+          <p className="text-xs text-gray-500">Changes are recorded in the audit log as &ldquo;Company Updated&rdquo;.</p>
+        </CardHeader>
+        <CardBody>
+          <form action={updateCompanyDetails as any} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="portfolio_id" value={id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <div>
+              <Label htmlFor="company_name">Company name</Label>
+              <Input id="company_name" name="company_name" required defaultValue={portfolio.company_name ?? ''} className="w-64" />
+            </div>
+            <div>
+              <Label htmlFor="phone_number">Phone number</Label>
+              <Input id="phone_number" name="phone_number" type="tel" defaultValue={portfolio.phone_number ?? ''} className="w-44" />
+            </div>
+            <div>
+              <Label htmlFor="support_email">Support email</Label>
+              <Input id="support_email" name="support_email" type="email" defaultValue={portfolio.support_email ?? ''} className="w-64" />
+            </div>
+            <Button type="submit" variant="secondary">Save Details</Button>
+          </form>
+        </CardBody>
+      </Card>
 
       {/* ── Admins & password management ────────────────────────────── */}
       <Card id="admins">
