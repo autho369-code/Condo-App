@@ -226,16 +226,16 @@
 - [x] `/vendor/profile`
 
 ## G — Auth & misc (priority 7)
-- [ ] `/(auth)/accept-invitation`
+- [x] `/(auth)/accept-invitation`
 - [x] `/(auth)/login`
-- [ ] `/(auth)/signup`
-- [ ] `/(marketing)`
-- [ ] `/(marketing)/company`
-- [ ] `/(marketing)/demo`
-- [ ] `/(marketing)/pricing`
-- [ ] `/(public)/report-violation`
-- [ ] `/(public)/report-violation/confirmation`
-- [ ] `/help/settings`
-- [ ] `/invite`
+- [x] `/(auth)/signup`
+- [x] `/(marketing)` (intentional marketing design — verified clean, no app-shell migration needed)
+- [x] `/(marketing)/company` (same)
+- [x] `/(marketing)/demo` (same)
+- [x] `/(marketing)/pricing` (same)
+- [x] `/(public)/report-violation`
+- [x] `/(public)/report-violation/confirmation`
+- [x] `/help/settings` (migrated off ink-* palette)
+- [x] `/invite` (rebuilt: service-role token validation + account creation — was broken for anonymous invitees under RLS)
 
-**Total: 214 pages**
+**Total: 214 pages — ALL SECTIONS COMPLETE 2026-06-12**

@@ -24,7 +24,7 @@ export default function SignupPage() {
           </div>
           <Button type="submit" className="w-full">Create account</Button>
           <div className="text-center text-sm text-gray-600">
-            Already have an account? <Link href="/login" className="text-brand-600 hover:underline">Sign in</Link>
+            Already have an account? <Link href="/login" className="font-medium text-gray-900 underline-offset-4 hover:underline">Sign in</Link>
           </div>
         </form>
       </CardBody>
