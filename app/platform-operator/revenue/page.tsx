@@ -10,31 +10,22 @@ function StatCard({
   value,
   sub,
   icon: Icon,
-  accent = 'navy',
 }: {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   icon: React.ElementType;
-  accent?: 'navy' | 'emerald' | 'amber' | 'red' | 'violet';
 }) {
-  const accents: Record<string, string> = {
-    navy: 'bg-[#1E3A5F]/10 text-[#1E3A5F] border-[#1E3A5F]/20',
-    emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    amber: 'bg-amber-100 text-amber-700 border-amber-200',
-    red: 'bg-red-100 text-red-700 border-red-200',
-    violet: 'bg-violet-100 text-violet-700 border-violet-200',
-  };
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-500">{label}</div>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-gray-900">{value}</div>
+          <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
+          <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{value}</div>
           {sub && <div className="mt-1 text-xs text-gray-500">{sub}</div>}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accents[accent]}`}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
+          <Icon className="h-4.5 w-4.5 text-gray-400" />
         </div>
       </div>
     </div>
@@ -92,91 +83,96 @@ export default async function RevenuePage() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
 
-  // 6-month trend (simulated from current data spread across months)
-  const trendMonths: string[] = [];
+  // 6-month trend reconstructed from subscription lifetimes: a subscription
+  // counts toward a month if it was created by month-end and not yet canceled.
+  const trend: { label: string; value: number }[] = [];
   for (let i = 5; i >= 0; i--) {
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59).toISOString();
+    const value = (subs ?? []).reduce((sum: number, s: any) => {
+      const startedBy = s.created_at && s.created_at <= monthEnd;
+      const stillActive = !s.canceled_at || s.canceled_at > monthEnd;
+      return startedBy && stillActive ? sum + (s.price_monthly_cents ?? 0) : sum;
+    }, 0) / 100;
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    trendMonths.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+    trend.push({ label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), value });
   }
-  const maxRevenue = Math.max(mrr, 1);
+  const maxRevenue = Math.max(...trend.map((t) => t.value), 1);
 
-  // Pie data
+  // Tier composition
   const tierEntries = Object.entries(tierRevenue).sort((a, b) => b[1] - a[1]);
   const tierTotal = tierEntries.reduce((sum, [, v]) => sum + v, 0) || 1;
   const tierColors: Record<string, string> = {
-    enterprise: '#1E3A5F',
-    premium: '#3B82F6',
-    standard: '#10B981',
-    starter: '#F59E0B',
-    free: '#9CA3AF',
+    max: 'bg-blue-600',
+    plus: 'bg-emerald-500',
+    core: 'bg-amber-500',
+    free: 'bg-gray-300',
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
-        <p className="mt-1 text-sm text-gray-500">Platform-wide revenue analytics across all companies</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Revenue</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide revenue analytics across all companies</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="MRR" value={money(mrr)} icon={DollarSign} accent="emerald" />
-        <StatCard label="ARR" value={money(arr)} sub={`MRR × 12`} icon={TrendingUp} accent="navy" />
-        <StatCard label="New Revenue (MTD)" value={money(newRevenue)} icon={ArrowUpRight} accent="emerald" />
-        <StatCard label="Lost Revenue (MTD)" value={money(lostRevenue)} icon={TrendingDown} accent="red" />
-        <StatCard label="Avg Per Company" value={money(active.length > 0 ? mrr / active.length : 0)} icon={Layers} accent="violet" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard label="MRR" value={money(mrr)} icon={DollarSign} />
+        <StatCard label="ARR" value={money(arr)} sub={`MRR × 12`} icon={TrendingUp} />
+        <StatCard label="New Revenue (MTD)" value={money(newRevenue)} icon={ArrowUpRight} />
+        <StatCard label="Lost Revenue (MTD)" value={money(lostRevenue)} icon={TrendingDown} />
+        <StatCard label="Avg Per Company" value={money(active.length > 0 ? mrr / active.length : 0)} icon={Layers} />
       </div>
 
       {/* Revenue Trend Chart */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900">6-Month Revenue Trend</h2>
-        <div className="flex items-end gap-2 h-48">
-          {trendMonths.map((month, i) => {
-            const frac = 0.7 + (i * 0.3) / 5;
-            const barVal = mrr * frac;
-            const heightPct = maxRevenue > 0 ? (barVal / maxRevenue) * 100 : 0;
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-950">6-Month Revenue Trend</h2>
+        <div className="flex h-48 items-end gap-2">
+          {trend.map((m) => {
+            const heightPct = (m.value / maxRevenue) * 100;
             return (
-              <div key={month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-xs tabular-nums text-gray-500">{money(barVal)}</span>
-                <div className="w-full flex-1 flex items-end">
+              <div key={m.label} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-xs tabular-nums text-gray-500">{money(m.value)}</span>
+                <div className="flex w-full flex-1 items-end">
                   <div
-                    className="w-full rounded-t bg-[#1E3A5F] transition-all"
+                    className="w-full rounded-t bg-blue-600/80 transition-all"
                     style={{ height: `${Math.max(heightPct, 2)}%` }}
                   />
                 </div>
-                <span className="text-xs text-gray-400">{month}</span>
+                <span className="text-xs text-gray-400">{m.label}</span>
               </div>
             );
           })}
         </div>
+        <p className="mt-3 text-xs text-gray-400">Reconstructed from subscription start and cancellation dates.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Revenue By Company */}
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-900">Revenue by Company</h2>
+        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-950">Revenue by Company</h2>
             <p className="mt-0.5 text-xs text-gray-500">Top 20 companies by monthly revenue</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
-                  <th className="px-4 py-3 text-left w-10">#</th>
-                  <th className="px-4 py-3 text-left">Company</th>
-                  <th className="px-4 py-3 text-right">Monthly</th>
-                  <th className="px-4 py-3 text-right">Annual</th>
+              <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="w-10 px-4 py-2.5 text-left font-medium">#</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Company</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Monthly</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Annual</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {topCompanies.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No revenue data</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">No revenue data</td></tr>
                 ) : (
                   topCompanies.map(([name, rev], i) => (
-                    <tr key={name} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-400 text-xs">{i + 1}</td>
+                    <tr key={name} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <td className="px-4 py-3 text-xs tabular-nums text-gray-400">{i + 1}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{name}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-900 font-medium">{money(rev / 100)}</td>
+                      <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(rev / 100)}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-500">{money((rev * 12) / 100)}</td>
                     </tr>
                   ))
@@ -187,10 +183,10 @@ export default async function RevenuePage() {
         </div>
 
         {/* Revenue Composition */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-sm font-semibold text-gray-900">Revenue by Plan Tier</h2>
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="mb-4 text-sm font-semibold text-gray-950">Revenue by Plan Tier</h2>
           {tierEntries.length === 0 ? (
-            <p className="text-sm text-gray-400">No tier data available</p>
+            <p className="text-sm text-gray-500">No tier data available</p>
           ) : (
             <div className="space-y-4">
               {tierEntries.map(([tier, cents]) => {
@@ -198,22 +194,22 @@ export default async function RevenuePage() {
                 const tierName = tier.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
                 return (
                   <div key={tier}>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-700">{tierName}</span>
                       <span className="font-medium tabular-nums text-gray-900">{money(cents / 100)} ({pct}%)</span>
                     </div>
                     <div className="h-3 w-full rounded-full bg-gray-100">
                       <div
-                        className="h-3 rounded-full"
-                        style={{ width: `${pct}%`, backgroundColor: tierColors[tier] ?? '#1E3A5F' }}
+                        className={`h-3 rounded-full ${tierColors[tier] ?? 'bg-blue-600'}`}
+                        style={{ width: `${pct}%` }}
                       />
                     </div>
                   </div>
                 );
               })}
-              <div className="border-t border-gray-200 pt-3 flex justify-between font-semibold text-sm">
-                <span className="text-gray-900">Total MRR</span>
-                <span className="text-gray-900">{money(tierTotal / 100)}</span>
+              <div className="flex justify-between border-t border-gray-100 pt-3 text-sm font-semibold">
+                <span className="text-gray-950">Total MRR</span>
+                <span className="tabular-nums text-gray-950">{money(tierTotal / 100)}</span>
               </div>
             </div>
           )}

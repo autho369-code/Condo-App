@@ -194,29 +194,29 @@
 - [x] `/company-admin/work-orders`
 
 ## F — Platform operator (priority 6, AFTER consolidation decision)
-- [ ] `/platform`
-- [ ] `/platform-operator`
+- [x] `/platform` — N/A: consolidated into `/platform/[[...slug]]` redirect catch-all; pages deleted
+- [x] `/platform-operator`
 - [ ] `/platform-operator/association-health`
-- [ ] `/platform-operator/audit-logs`
-- [ ] `/platform-operator/billing`
+- [x] `/platform-operator/audit-logs`
+- [x] `/platform-operator/billing`
 - [ ] `/platform-operator/communications`
 - [x] `/platform-operator/companies`
 - [x] `/platform-operator/companies/[id]`
-- [ ] `/platform-operator/door-usage`
+- [x] `/platform-operator/door-usage`
 - [x] `/platform-operator/invitations`
 - [ ] `/platform-operator/overview`
-- [ ] `/platform-operator/revenue`
+- [x] `/platform-operator/revenue`
 - [ ] `/platform-operator/supabase-admin`
 - [ ] `/platform-operator/support`
 - [ ] `/platform-operator/users`
-- [ ] `/platform/billing`
-- [ ] `/platform/operators`
-- [ ] `/platform/owners`
-- [ ] `/platform/portfolios`
-- [ ] `/platform/portfolios/[id]`
-- [ ] `/platform/properties`
-- [ ] `/platform/system-health`
-- [ ] `/platform/users`
+- [x] `/platform/billing` — N/A (deleted in platform consolidation)
+- [x] `/platform/operators` — N/A (deleted in platform consolidation)
+- [x] `/platform/owners` — N/A (deleted in platform consolidation)
+- [x] `/platform/portfolios` — N/A (deleted in platform consolidation)
+- [x] `/platform/portfolios/[id]` — N/A (deleted in platform consolidation)
+- [x] `/platform/properties` — N/A (deleted in platform consolidation)
+- [x] `/platform/system-health` — N/A (deleted in platform consolidation)
+- [x] `/platform/users` — N/A (deleted in platform consolidation)
 
 ## V — Vendor portal (DONE 2026-06-10)
 - [x] `/vendor`

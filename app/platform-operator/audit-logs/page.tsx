@@ -1,56 +1,54 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
+import { Badge } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
-import { FileSearch, Filter, X, Calendar, Building2, User } from 'lucide-react';
+import { FileSearch, Filter, Calendar, Building2, User } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-function Badge({ label, color = 'gray' }: { label: string; color?: string }) {
-  const colors: Record<string, string> = {
-    emerald: 'bg-emerald-100 text-emerald-700 ring-emerald-200',
-    blue: 'bg-blue-100 text-blue-700 ring-blue-200',
-    red: 'bg-red-100 text-red-700 ring-red-200',
-    amber: 'bg-amber-100 text-amber-700 ring-amber-200',
-    violet: 'bg-violet-100 text-violet-700 ring-violet-200',
-    gray: 'bg-gray-100 text-gray-600 ring-gray-200',
-  };
-  return (
-    <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ${colors[color] ?? colors.gray}`}>
-      {label}
-    </span>
-  );
-}
+const inputCls = 'rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15';
 
-export default async function AuditLogsPage() {
+export default async function AuditLogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; action?: string; company?: string; user?: string }>;
+}) {
   await requirePlatformOperator();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Discover audit_logs schema
+  // Filtered audit query
   let auditRows: any[] = [];
-  let columns: string[] = [];
   try {
-    const { data } = await db
+    let query = db
       .from('audit_logs')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
+    if (sp.from) query = query.gte('created_at', sp.from);
+    if (sp.to) query = query.lte('created_at', `${sp.to}T23:59:59`);
+    if (sp.action) query = query.eq('action', sp.action);
+    if (sp.company) query = query.eq('entity_id', sp.company);
+    if (sp.user) query = query.eq('actor_id', sp.user);
+    const { data } = await query;
     auditRows = data ?? [];
-    if (auditRows.length > 0) {
-      columns = Object.keys(auditRows[0]);
-    }
   } catch {
     auditRows = [];
   }
 
-  // If empty or no schema, use sample column names
-  if (columns.length === 0) {
-    columns = ['id', 'action', 'actor_id', 'target_type', 'target_id', 'portfolio_id', 'details', 'ip_address', 'created_at'];
-  }
+  // Unfiltered slice for filter dropdown options
+  let allRows: any[] = auditRows;
+  try {
+    if (sp.from || sp.to || sp.action || sp.company || sp.user) {
+      const { data } = await db.from('audit_logs').select('action, entity_id, actor_id').limit(500);
+      allRows = data ?? [];
+    }
+  } catch {}
 
   // Fetch portfolio/user info for labels
-  let portfolioMap = new Map<string, string>();
-  let userMap = new Map<string, string>();
+  const portfolioMap = new Map<string, string>();
+  const userMap = new Map<string, string>();
   try {
     const [{ data: ports }, { data: profs }] = await Promise.all([
       db.from('portfolios').select('id, company_name'),
@@ -60,92 +58,47 @@ export default async function AuditLogsPage() {
     for (const p of profs ?? []) userMap.set(p.id, p.full_name ?? p.email ?? p.id);
   } catch {}
 
-  // Get unique values for filters
-  const uniqueActions = [...new Set(auditRows.map((r: any) => r.action ?? 'unknown').filter(Boolean))].sort();
-  const uniqueCompanies = [...new Set(auditRows.map((r: any) => r.portfolio_id).filter(Boolean))].map((id: string) => ({
-    id,
-    name: portfolioMap.get(id) ?? id,
-  }));
-
-  // Smart column display
-  const displayColumns = columns.filter((c) =>
-    !['id', 'details'].includes(c) || columns.length <= 6
-  );
-  // Always include key columns
-  const keyCols = ['action', 'actor_id', 'target_type', 'target_id', 'portfolio_id', 'created_at', 'ip_address'];
-
-  const visibleCols = keyCols.filter((c) => columns.includes(c));
-  if (visibleCols.length === 0) visibleCols.push(...columns.slice(0, 6));
-
-  function renderCell(row: any, col: string) {
-    const val = row[col];
-    if (val === null || val === undefined) return <span className="text-gray-300">—</span>;
-
-    if (col === 'portfolio_id') {
-      return portfolioMap.get(val) ?? String(val).slice(0, 8);
-    }
-    if (col === 'actor_id' || col === 'user_id') {
-      return userMap.get(val) ?? String(val).slice(0, 8);
-    }
-    if (col === 'created_at' || col === 'timestamp') {
-      return date(val);
-    }
-    if (col === 'action') {
-      return <Badge label={String(val)} color="blue" />;
-    }
-    if (col === 'status') {
-      return <Badge label={String(val)} color={val === 'success' ? 'emerald' : val === 'error' ? 'red' : 'gray'} />;
-    }
-    if (col === 'details' || col === 'metadata') {
-      const str = typeof val === 'string' ? val : JSON.stringify(val);
-      return <span className="max-w-[200px] block truncate text-gray-500 text-xs" title={str}>{str.slice(0, 80)}</span>;
-    }
-
-    return String(val).slice(0, 60);
-  }
-
-  function colLabel(col: string) {
-    return col.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-  }
+  const uniqueActions = [...new Set(allRows.map((r: any) => r.action).filter(Boolean))].sort() as string[];
+  const uniqueCompanies = [...new Set(allRows.map((r: any) => r.entity_id).filter(Boolean))]
+    .filter((id: any) => portfolioMap.has(id))
+    .map((id: any) => ({ id, name: portfolioMap.get(id)! }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Audit Logs</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
           Platform-wide audit trail
-          {auditRows.length > 0 && ` — ${auditRows.length} records, ${columns.length} columns`}
+          {auditRows.length > 0 && ` — ${auditRows.length} records`}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
           <Filter className="h-3.5 w-3.5" /> Filters
         </div>
-        <div className="flex flex-wrap gap-3">
+        <form className="flex flex-wrap items-center gap-3">
           {/* Date Range */}
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-400" />
-            <input type="date" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700" />
+            <input type="date" name="from" defaultValue={sp.from ?? ''} className={inputCls} />
             <span className="text-gray-400">to</span>
-            <input type="date" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700" />
+            <input type="date" name="to" defaultValue={sp.to ?? ''} className={inputCls} />
           </div>
           {/* Action Type */}
-          <div className="flex items-center gap-2">
-            <select className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700">
-              <option value="">All Actions</option>
-              {uniqueActions.map((a: string) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </div>
+          <select name="action" defaultValue={sp.action ?? ''} className={inputCls}>
+            <option value="">All Actions</option>
+            {uniqueActions.map((a) => (
+              <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
           {/* Company */}
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-gray-400" />
-            <select className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700">
+            <select name="company" defaultValue={sp.company ?? ''} className={inputCls}>
               <option value="">All Companies</option>
-              {uniqueCompanies.map((c: { id: string; name: string }) => (
+              {uniqueCompanies.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -153,59 +106,75 @@ export default async function AuditLogsPage() {
           {/* User */}
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
-            <select className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700">
+            <select name="user" defaultValue={sp.user ?? ''} className={inputCls}>
               <option value="">All Users</option>
               {[...userMap.entries()].slice(0, 50).map(([id, name]) => (
                 <option key={id} value={id}>{name}</option>
               ))}
             </select>
           </div>
-          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#1E3A5F] px-4 py-1.5 text-sm text-white hover:bg-[#1E3A5F]/90">
+          <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-gray-950 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800">
             Apply Filters
           </button>
-        </div>
+        </form>
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-xl border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-900">Audit Records</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {auditRows.length > 0
-              ? `Columns: ${visibleCols.map(colLabel).join(', ')}`
-              : 'No audit_logs data found — table may be empty'}
-          </p>
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">Audit Records</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Date, time, user, action, and affected company for every platform event.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-xs font-semibold uppercase text-gray-500">
-                {visibleCols.map((col) => (
-                  <th key={col} className="px-4 py-3 text-left whitespace-nowrap">{colLabel(col)}</th>
-                ))}
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Date &amp; Time</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">User</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Action</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Affected Company</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Details</th>
+                <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">IP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {auditRows.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleCols.length || 1} className="px-4 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <FileSearch className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-                    <div className="text-sm text-gray-400">No audit logs found</div>
-                    <div className="mt-1 text-xs text-gray-400">
-                      The audit_logs table exists but contains no records, or the schema is undiscoverable.
+                    <div className="text-sm font-semibold text-gray-900">No audit logs found</div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Platform actions (company created, plan changed, suspensions, password resets) appear here as they happen.
                     </div>
                   </td>
                 </tr>
               ) : (
-                auditRows.map((row: any, i: number) => (
-                  <tr key={row.id ?? i} className="hover:bg-gray-50">
-                    {visibleCols.map((col) => (
-                      <td key={col} className="px-4 py-3 whitespace-nowrap text-gray-700">
-                        {renderCell(row, col)}
+                auditRows.map((row: any, i: number) => {
+                  const changes = row.changes ? (typeof row.changes === 'string' ? row.changes : JSON.stringify(row.changes)) : '';
+                  return (
+                    <tr key={row.id ?? i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <td className="whitespace-nowrap px-4 py-3 text-[13px] tabular-nums text-gray-700">
+                        {date(row.created_at)}{' '}
+                        <span className="text-xs text-gray-400">
+                          {row.created_at ? new Date(row.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
+                        </span>
                       </td>
-                    ))}
-                  </tr>
-                ))
+                      <td className="whitespace-nowrap px-4 py-3 text-[13px] text-gray-700">
+                        {row.actor_email ?? userMap.get(row.actor_id) ?? (row.actor_id ? String(row.actor_id).slice(0, 8) : '—')}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <Badge status={row.action ?? '—'} />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13px] text-gray-700">
+                        {portfolioMap.get(row.entity_id) ?? (row.entity_type ? `${row.entity_type} ${String(row.entity_id ?? '').slice(0, 8)}` : '—')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="block max-w-[280px] truncate text-xs text-gray-500" title={changes}>{changes.slice(0, 120) || '—'}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">{row.ip_address ?? '—'}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
