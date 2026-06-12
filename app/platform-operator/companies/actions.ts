@@ -68,7 +68,6 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const phone = (formData.get('phone_number') as string)?.trim() || null;
   const tier = (formData.get('tier') as string) || 'core';
   const maxUnits = parseInt(formData.get('max_units') as string, 10) || null;
-  const trialDays = parseInt(formData.get('trial_days') as string, 10) || 14;
 
   if (!companyName || !firstName || !lastName || !email) {
     fail(COMPANIES, 'Company name, admin first/last name, and email are required.');
@@ -83,7 +82,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
     p_first_admin_name: fullName,
     p_tier: tier,
     p_seats: 5,
-    p_trial_days: trialDays,
+    p_trial_days: 0,
   });
   if (error) fail(COMPANIES, `Could not create company: ${error.message}`);
 
@@ -94,9 +93,12 @@ export async function createCompanyWithAdmin(formData: FormData) {
 
   const svc = createServiceClient() as any;
 
-  // Post-provision details the RPC doesn't cover
+  // Post-provision details the RPC doesn't cover.
+  // No trials: companies start as active subscriptions immediately.
   if (phone) await svc.from('portfolios').update({ phone_number: phone }).eq('id', portfolioId);
-  if (maxUnits) await svc.from('subscriptions').update({ units_limit: maxUnits }).eq('portfolio_id', portfolioId);
+  await svc.from('subscriptions')
+    .update({ status: 'active', trial_ends_at: null, ...(maxUnits ? { units_limit: maxUnits } : {}) })
+    .eq('portfolio_id', portfolioId);
   await svc.from('user_invitations')
     .update({ hoa_role: 'company_admin', full_name: fullName })
     .eq('id', invitationId);

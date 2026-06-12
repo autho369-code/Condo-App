@@ -155,10 +155,6 @@ export default async function CompaniesPage({
               <Label htmlFor="max_units">Maximum units</Label>
               <Input id="max_units" name="max_units" type="number" min={1} required />
             </div>
-            <div>
-              <Label htmlFor="trial_days">Trial days</Label>
-              <Input id="trial_days" name="trial_days" type="number" defaultValue={14} min={0} />
-            </div>
             <div className="col-span-full">
               <Button type="submit">Create Company &amp; Send Invitation</Button>
             </div>
