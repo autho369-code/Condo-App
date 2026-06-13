@@ -3,13 +3,15 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewManagementAgreementPage() {
+export default async function NewManagementAgreementPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const [{ data: owners }, { data: associations }] = await Promise.all([
     (supabase as any).from('owners').select('id, full_name, email').order('full_name').limit(500),
@@ -18,17 +20,37 @@ export default async function NewManagementAgreementPage() {
 
   async function handleSubmit(formData: FormData) {
     'use server';
+    const me = await requireStaff();
     const supabase = await createClient();
-    await (supabase as any).from('management_agreements').insert({
-      owner_id: formData.get('owner_id') || null,
-      association_id: formData.get('association_id') || null,
-      management_start_date: formData.get('management_start_date') || null,
-      agreement_signature_due_date: formData.get('agreement_signature_due_date') || null,
-      management_fee: formData.get('management_fee') ? parseFloat(formData.get('management_fee') as string) : null,
-      delivery_method: formData.get('delivery_method') || 'email',
-      terms: formData.get('terms') || '',
+
+    const associationId = (formData.get('association_id') as string) || null;
+    const startDate = (formData.get('management_start_date') as string) || null;
+    if (!startDate) redirect(`/owners/management-agreements/new?error=${encodeURIComponent('Management start date is required.')}`);
+
+    const associationName = associationId
+      ? (associations ?? []).find((a: any) => a.id === associationId)?.name
+      : null;
+
+    // start_date, name, terms (jsonb) and portfolio_id are NOT NULL on the table;
+    // fee / signature-due / delivery have no columns, so they live in terms jsonb.
+    const { error } = await (supabase as any).from('management_agreements').insert({
+      portfolio_id: me.portfolio?.id,
+      owner_id: (formData.get('owner_id') as string) || null,
+      association_id: associationId,
+      name: associationName ? `${associationName} management agreement` : 'Management agreement',
+      status: 'draft',
+      start_date: startDate,
+      auto_renew: false,
+      terms: {
+        notes: (formData.get('terms') as string) || '',
+        management_fee: formData.get('management_fee') ? parseFloat(formData.get('management_fee') as string) : null,
+        signature_due_date: (formData.get('agreement_signature_due_date') as string) || null,
+        delivery_method: (formData.get('delivery_method') as string) || 'email',
+      },
+      created_by: me.auth_user_id,
     });
-    redirect('/owners');
+    if (error) redirect(`/owners/management-agreements/new?error=${encodeURIComponent(error.message)}`);
+    redirect('/owners?agreement_created=1');
   }
 
   return (
@@ -38,6 +60,7 @@ export default async function NewManagementAgreementPage() {
       actions={<Link href="/owners"><Button variant="secondary">Back to owners</Button></Link>}
     >
       <form action={handleSubmit} className="max-w-4xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        {sp.error && <Alert tone="danger" title="Could not create agreement">{sp.error}</Alert>}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
@@ -54,8 +77,8 @@ export default async function NewManagementAgreementPage() {
             </select>
           </div>
           <div>
-            <Label htmlFor="management_start_date">Management start date</Label>
-            <Input id="management_start_date" name="management_start_date" type="date" />
+            <Label htmlFor="management_start_date">Management start date <span className="text-red-500">*</span></Label>
+            <Input id="management_start_date" name="management_start_date" type="date" required />
           </div>
           <div>
             <Label htmlFor="agreement_signature_due_date">Signature due date</Label>

@@ -16,7 +16,7 @@ const TEMPLATES = [
   { value: 'document_request', label: 'Insurance / license document request' },
 ];
 
-export default async function VendorFormsPage({ searchParams }: { searchParams: Promise<{ vendor?: string; template?: string; error?: string }> }) {
+export default async function VendorFormsPage({ searchParams }: { searchParams: Promise<{ vendor?: string; template?: string; error?: string; sent?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
@@ -24,19 +24,33 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
 
   async function handleSubmit(formData: FormData) {
     'use server';
+    const me = await requireStaff();
     const supabase = await createClient();
-    const { error } = await (supabase as any).from('notices').insert({
-      vendor_id: formData.get('vendor_id') || null,
-      template: formData.get('template') || 'vendor_intake',
-      subject: formData.get('subject') || '',
-      message: formData.get('message') || '',
-      delivery_method: formData.get('delivery_method') || 'email',
-      status: 'pending',
+    const vendorId = (formData.get('vendor_id') as string) || null;
+    if (!vendorId) redirect(`/vendors/forms?error=${encodeURIComponent('Select a vendor to send the form to.')}`);
+
+    const template = (formData.get('template') as string) || 'vendor_intake';
+    const subject = (formData.get('subject') as string) || 'Vendor form';
+    const message = (formData.get('message') as string) || null;
+    const delivery = (formData.get('delivery_method') as string) || 'email';
+    const dueDate = (formData.get('due_date') as string) || null;
+
+    // Vendor "forms" are document/compliance requests sent to a specific vendor.
+    const { error } = await (supabase as any).from('document_requests').insert({
+      portfolio_id: me.portfolio?.id,
+      vendor_id: vendorId,
+      doc_type: template,
+      name: subject,
+      description: message,
+      due_date: dueDate,
+      requested_by: me.auth_user_id,
+      notes: `Delivery: ${delivery}`,
+      status: 'requested',
     });
     if (error) {
       redirect(`/vendors/forms?error=${encodeURIComponent(error.message)}`);
     }
-    redirect('/vendors');
+    redirect('/vendors/forms?sent=1');
   }
 
   return (
@@ -47,6 +61,7 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
     >
       <div className="max-w-4xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not stage the form:">{sp.error}</Alert>}
+        {sp.sent === '1' && <Alert tone="success" title="Form request sent">The document request was created for the vendor.</Alert>}
         <Surface>
           <form action={handleSubmit as any} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -68,11 +83,16 @@ export default async function VendorFormsPage({ searchParams }: { searchParams: 
             <Field label="Message" htmlFor="message">
               <Textarea id="message" name="message" rows={4} placeholder="Enter message..." />
             </Field>
-            <Field label="Delivery" htmlFor="delivery_method">
-              <Select id="delivery_method" name="delivery_method">
-                <option value="email">Email</option><option value="portal">Portal</option><option value="mail">Mail</option>
-              </Select>
-            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Delivery" htmlFor="delivery_method">
+                <Select id="delivery_method" name="delivery_method">
+                  <option value="email">Email</option><option value="portal">Portal</option><option value="mail">Mail</option>
+                </Select>
+              </Field>
+              <Field label="Due date (optional)" htmlFor="due_date">
+                <Input id="due_date" name="due_date" type="date" />
+              </Field>
+            </div>
             <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
               <Link href="/vendors"><Button variant="secondary" type="button">Cancel</Button></Link>
               <Button type="submit">Send form</Button>

@@ -49,14 +49,15 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (recipientType === 'tenants' || recipientType === 'both') {
-    const { data: occs } = await (supabase as any)
-      .from('occupancies')
-      .select('owners!owner_id(id, email, full_name)')
+    // Tenants live in the dedicated tenants table (not occupancies).
+    const { data: ten } = await (supabase as any)
+      .from('tenants')
+      .select('email, first_name, last_name')
       .eq('association_id', associationId)
-      .eq('occupancy_type', 'tenant')
-      .eq('status', 'current');
-    (occs ?? []).forEach((o: any) => {
-      if (o.owners?.email) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'tenant' });
+      .eq('status', 'active')
+      .is('archived_at', null);
+    (ten ?? []).forEach((t: any) => {
+      if (t.email) recipients.push({ email: t.email, name: `${t.first_name ?? ''} ${t.last_name ?? ''}`.trim(), source: 'tenant' });
     });
   }
 
@@ -94,39 +95,55 @@ export async function sendEmail(formData: FormData) {
     return { error: `No recipients found for ${recipientType} at this association. Make sure owners/tenants have email addresses on file.` };
   }
 
-  // Queue one row per recipient so individual delivery status is tracked.
-  // communication_messages is the new operations hub; notices remains supported
-  // for any legacy sender worker that still consumes it.
+  const fullBody = cc ? body + `\n\n---\nCc: ${cc}` : body;
+  const fromName = me.portfolio?.company_name ?? 'Portier369';
+
+  // 1) Operations log — one communication_messages row per recipient (status queued).
   const communicationRows = unique.map((r) => ({
     portfolio_id:    me.portfolio?.id,
     association_id:  associationId,
     channel:         'email',
-    status:          'draft',
+    status:          'queued',
     recipient_group: recipientType,
     recipient_name:  r.name,
     recipient_email: r.email,
     subject,
-    body: cc ? body + `\n\n---\nCc: ${cc}` : body,
+    body:            fullBody,
     created_by:      me.auth_user_id,
-  }));
-
-  const rows = unique.map((r) => ({
-    association_id: associationId,
-    notice_type:    'general',
-    status:         'draft',
-    channel:        'email',
-    subject,
-    body: cc
-      ? body + `\n\n---\nCc: ${cc}`  // Cc text goes into the body footer for now; real SMTP Cc needs provider-specific handling
-      : body,
-    send_to:        r.email,
-    created_by:     me.auth_user_id,
   }));
 
   const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
   if (communicationError) return { error: communicationError.message };
 
+  // 2) Association notices ledger (legacy/reporting).
+  const rows = unique.map((r) => ({
+    association_id: associationId,
+    notice_type:    'general',
+    status:         'sent',
+    channel:        'email',
+    subject,
+    body:           fullBody,
+    send_to:        r.email,
+    created_by:     me.auth_user_id,
+  }));
   await db.from('notices').insert(rows);
+
+  // 3) Actually deliver — enqueue to email_queue (drained by the process-email-queue
+  //    cron → Resend). Without this, composed emails were created but never sent.
+  const htmlBody = `<div style="font-family:system-ui,Arial,sans-serif;white-space:pre-wrap">${fullBody.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>`;
+  const queueRows = unique.map((r) => ({
+    to_email:     r.email,
+    to_name:      r.name || null,
+    subject,
+    body:         htmlBody,
+    status:       'pending',
+    from_address: fromOverride ? 'noreply@portier369.com' : 'hello@portier369.com',
+    from_name:    fromName,
+    portfolio_id: me.portfolio?.id,
+    association_id: associationId,
+  }));
+  const { error: queueError } = await db.from('email_queue').insert(queueRows);
+  if (queueError) return { error: `Logged but could not queue for delivery: ${queueError.message}` };
 
   // Bounce back to where we came from, or to association detail if not provided
   const returnTo = str(formData, 'return_to');

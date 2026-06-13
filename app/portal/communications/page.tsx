@@ -1,12 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerCommunicationsPage() {
+export default async function OwnerCommunicationsPage({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
+  const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
@@ -34,14 +36,29 @@ export default async function OwnerCommunicationsPage() {
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
+    const subject = (formData.get('subject') as string)?.trim()
+    if (!subject) redirect('/portal/communications?error=' + encodeURIComponent('Enter a subject before sending.'))
+
     const { data: oc } = await supabase2.from('occupancies').select('association_id').eq('owner_id', me2.owner_id!).limit(1)
-    const aid = oc?.[0]?.association_id
-    if (!aid) return
-    await (supabase2 as any).from('communications_log').insert({
-      association_id: aid, sender_id: me2.owner_id, direction: 'inbound', channel: 'message',
-      subject: formData.get('subject') as string, recipient_count: 1, status: 'sent',
+    const aid = oc?.[0]?.association_id ?? null
+
+    // communications_log requires portfolio_id and its insert policy is
+    // company-admin-only; an owner logging an inbound message goes through the
+    // service client (the action is gated by requireOwner()).
+    const svc = createServiceClient() as any
+    const { error } = await svc.from('communications_log').insert({
+      portfolio_id: me2.portfolio?.id,
+      association_id: aid,
+      sender_id: me2.owner_id,
+      direction: 'inbound',
+      channel: 'email',
+      subject,
+      recipient_count: 1,
+      status: 'sent',
     })
+    if (error) redirect('/portal/communications?error=' + encodeURIComponent(error.message))
     revalidatePath('/portal/communications')
+    redirect('/portal/communications?sent=1')
   }
 
   return (
@@ -50,6 +67,13 @@ export default async function OwnerCommunicationsPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Communications</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Send messages to management and view announcements</p>
       </div>
+
+      {banner.error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+      )}
+      {banner.sent === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your message was sent to management.</div>
+      )}
 
       {/* Send Message */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
