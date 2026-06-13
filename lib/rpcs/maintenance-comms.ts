@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { emailQueueRow } from '@/lib/email/queue';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -182,17 +183,18 @@ export async function sendBulkComms(formData: FormData) {
         created_by: me.auth_user_id,
       });
 
-      emailRows.push({
-        portfolio_id: me.portfolio?.id,
-        to_email: r.email,
-        to_name: r.vendorName,
+      // email_queue has no created_by column (it is sent_by); use the shared
+      // builder so the row + verified sender stay correct.
+      emailRows.push(emailQueueRow({
+        to: r.email,
+        toName: r.vendorName,
         subject: personalizedSubject,
-        body: personalizedBody,
-        status: 'pending',
-        from_address: 'maintenance@portier369.com',
-        from_name: me.portfolio?.name ?? 'Portier369 Maintenance',
-        created_by: me.auth_user_id,
-      });
+        text: personalizedBody,
+        portfolioId: me.portfolio?.id,
+        fromAddress: 'maintenance@portier369.com',
+        fromName: me.portfolio?.name ?? 'Portier369 Maintenance',
+        sentBy: me.auth_user_id,
+      }));
 
       emailCount++;
     }

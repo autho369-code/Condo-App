@@ -11,6 +11,7 @@ import {
   type CalendarEventType,
 } from '@/lib/operations/calendar';
 import { createClient } from '@/lib/supabase/server';
+import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -233,21 +234,64 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
     `- ${e.title}: ${new Date(e.start_datetime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}${e.location ? ` at ${e.location}` : ''}`
   )).join('\n')}\n\nPlease contact the management office with questions.`;
 
-  const { error } = await db.from('communication_messages').insert({
+  // Resolve current owners of the association who have an email on file.
+  const { data: occs } = await db
+    .from('occupancies')
+    .select('owners!owner_id(email, full_name)')
+    .eq('association_id', associationId)
+    .eq('occupancy_type', 'owner')
+    .eq('status', 'current');
+
+  const seen = new Set<string>();
+  const recipients = (occs ?? [])
+    .map((o: any) => ({ email: o.owners?.email, name: o.owners?.full_name ?? '' }))
+    .filter((r: any) => {
+      if (!r.email) return false;
+      const k = r.email.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+  if (recipients.length === 0) {
+    return { error: 'No owners with email addresses found for this association.' };
+  }
+
+  const html = textToHtml(body);
+  const fromName = me.portfolio?.company_name ?? 'Portier369';
+
+  // Log one communication_messages row per recipient (queued) and deliver via email_queue.
+  const commRows = recipients.map((r: any) => ({
     association_id: associationId,
     portfolio_id: me.portfolio?.id,
     calendar_event_id: (events[0] as any).id,
     channel: 'email',
-    status: 'draft',
+    status: 'queued',
     recipient_group: 'affected_residents',
+    recipient_email: r.email,
+    recipient_name: r.name,
     subject,
     body,
     created_by: me.auth_user_id,
-  });
-  if (error) return { error: error.message };
+  }));
+  const { error: commErr } = await db.from('communication_messages').insert(commRows);
+  if (commErr) return { error: commErr.message };
+
+  const queueRows = recipients.map((r: any) => emailQueueRow({
+    to: r.email,
+    toName: r.name,
+    subject,
+    html,
+    portfolioId: me.portfolio?.id,
+    associationId,
+    fromName,
+    sentBy: me.auth_user_id,
+  }));
+  const { error: queueErr } = await db.from('email_queue').insert(queueRows);
+  if (queueErr) return { error: `Logged but could not queue for delivery: ${queueErr.message}` };
 
   revalidatePath('/communication-center');
-  return { ok: true, queued: 1 };
+  return { ok: true, queued: recipients.length };
 }
 
 export async function acknowledgeReminder(eventId: string) {

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -130,17 +131,17 @@ export async function sendEmail(formData: FormData) {
 
   // 3) Actually deliver — enqueue to email_queue (drained by the process-email-queue
   //    cron → Resend). Without this, composed emails were created but never sent.
-  const htmlBody = `<div style="font-family:system-ui,Arial,sans-serif;white-space:pre-wrap">${fullBody.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>`;
-  const queueRows = unique.map((r) => ({
-    to_email:     r.email,
-    to_name:      r.name || null,
+  const html = textToHtml(fullBody);
+  const queueRows = unique.map((r) => emailQueueRow({
+    to: r.email,
+    toName: r.name || null,
     subject,
-    body:         htmlBody,
-    status:       'pending',
-    from_address: fromOverride ? 'noreply@portier369.com' : 'hello@portier369.com',
-    from_name:    fromName,
-    portfolio_id: me.portfolio?.id,
-    association_id: associationId,
+    html,
+    portfolioId: me.portfolio?.id,
+    associationId,
+    fromAddress: fromOverride ? 'noreply@portier369.com' : 'hello@portier369.com',
+    fromName,
+    sentBy: me.auth_user_id,
   }));
   const { error: queueError } = await db.from('email_queue').insert(queueRows);
   if (queueError) return { error: `Logged but could not queue for delivery: ${queueError.message}` };
