@@ -64,7 +64,7 @@ export default async function OwnersPage({
 
   const supabase = await createClient();
 
-  const [{ data: owners }, { data: occupancies }] = await Promise.all([
+  const [{ data: owners }, { data: occupancies }, { data: tenants }] = await Promise.all([
     (supabase as any)
       .from('owners')
       .select('id, full_name, first_name, last_name, email, phone, phone_numbers, preferred_comm, portal_activated, portal_login_last_at, electronic_consent, archived_at')
@@ -75,11 +75,18 @@ export default async function OwnersPage({
       .select(`
         id,
         owner_id,
+        unit_id,
         occupancy_type,
         status,
         units(unit_number, buildings(associations(id, name, address, city, state, zip)))
       `)
       .eq('status', 'current'),
+    (supabase as any)
+      .from('tenants')
+      .select('id, first_name, last_name, email, phone, lease_start, lease_end, status, unit_id, owner_id, units(unit_number, buildings(associations(name)))')
+      .is('archived_at', null)
+      .eq('status', 'active')
+      .order('last_name'),
   ]);
 
   const occupancyByOwner = new Map<string, any>();
@@ -110,7 +117,6 @@ export default async function OwnersPage({
   });
 
   if (view === 'homeowners') rows = rows.filter((row) => row.occupancyType === 'owner');
-  if (view === 'tenants') rows = rows.filter((row) => row.occupancyType === 'tenant');
   if (letter !== 'all') rows = rows.filter((row) => row.lastInitial === letter);
   if (q) {
     rows = rows.filter((row) =>
@@ -123,14 +129,22 @@ export default async function OwnersPage({
   const baseRows = (owners ?? []) as any[];
   const portalActive = baseRows.filter((owner) => owner.portal_activated).length;
   const missingEmail = baseRows.filter((owner) => !owner.email).length;
-  const currentOwnerLinks = (occupancies ?? []).filter((occupancy: any) => occupancy.occupancy_type === 'owner').length;
   const availableLetters = new Set(
     baseRows.map((owner) => (owner.last_name?.[0] ?? owner.full_name?.[0] ?? '').toUpperCase()).filter(Boolean),
   );
 
+  // ── Occupancy mix: owner-occupied vs tenant-occupied units ──
+  const tenantRows = (tenants ?? []) as any[];
+  const tenantUnitIds = new Set(tenantRows.map((t) => t.unit_id));
+  const occupiedUnitIds = new Set((occupancies ?? []).filter((o: any) => o.occupancy_type === 'owner').map((o: any) => o.unit_id));
+  for (const unitId of tenantUnitIds) occupiedUnitIds.add(unitId);
+  const tenantOccupied = tenantUnitIds.size;
+  const ownerOccupied = occupiedUnitIds.size - tenantOccupied;
+  const occupancyPct = occupiedUnitIds.size > 0 ? Math.round((ownerOccupied / occupiedUnitIds.size) * 100) : null;
+
   const tabs = [
     { label: 'Owners', href: '/owners', active: view === 'homeowners' },
-    { label: 'Owners', href: '/owners?view=directory', active: view === 'directory' },
+    { label: 'Directory', href: '/owners?view=directory', active: view === 'directory' },
     { label: 'Tenants', href: '/owners?view=tenants', active: view === 'tenants' },
     { label: 'Vendors', href: '/vendors', active: false },
   ];
@@ -150,6 +164,12 @@ export default async function OwnersPage({
       description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
       actions={
         <>
+          {view === 'tenants' && (
+            // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page
+            <a href="/owners/leases/export">
+              <Button variant="secondary">Export leases (CSV)</Button>
+            </a>
+          )}
           <Link href="/owners/forms">
             <Button variant="secondary">Send owner form</Button>
           </Link>
@@ -174,9 +194,9 @@ export default async function OwnersPage({
 
         <MetricStrip
           metrics={[
-            { label: 'People records', value: baseRows.length },
-            { label: 'Current owner links', value: currentOwnerLinks },
-            { label: 'Portal active', value: portalActive },
+            { label: 'Owner-occupied units', value: ownerOccupied, sublabel: occupancyPct !== null ? `${occupancyPct}% of occupied units` : 'No occupancy links yet' },
+            { label: 'Tenant-occupied units', value: tenantOccupied, sublabel: occupancyPct !== null ? `${100 - occupancyPct}% of occupied units` : 'No tenants on file' },
+            { label: 'People records', value: baseRows.length, sublabel: `${portalActive} portal active` },
             { label: 'Missing email', value: missingEmail },
           ]}
         />
@@ -211,6 +231,52 @@ export default async function OwnersPage({
           </Link>
         </div>
 
+        {view === 'tenants' ? (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Tenant</TH>
+                <TH>Contact</TH>
+                <TH>Association / Unit</TH>
+                <TH>Lease Start</TH>
+                <TH>Lease End</TH>
+                <TH>Owner</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {tenantRows.length === 0 ? (
+                <TR>
+                  <TD colSpan={6} className="py-10 text-center text-gray-500">
+                    No active tenants on file. Add tenants from the owner&apos;s detail page (Occupancy &amp; tenants section).
+                  </TD>
+                </TR>
+              ) : (
+                tenantRows
+                  .filter((t) => !q || [`${t.first_name} ${t.last_name}`, t.email, t.phone, t.units?.unit_number].some((v: any) => v?.toLowerCase?.().includes(q)))
+                  .map((t) => (
+                    <TR key={t.id} className="hover:bg-gray-50">
+                      <TD className="font-medium text-gray-900">{t.last_name}, {t.first_name}</TD>
+                      <TD>
+                        <div className="text-gray-900">{t.email ?? 'No email'}</div>
+                        <div className="mt-1 text-xs text-gray-500">{t.phone ?? 'No phone'}</div>
+                      </TD>
+                      <TD>
+                        <div className="font-medium text-gray-900">{t.units?.buildings?.associations?.name ?? '—'}</div>
+                        <div className="mt-1 text-xs text-gray-500">Unit {t.units?.unit_number ?? '—'}</div>
+                      </TD>
+                      <TD className="tabular-nums">{t.lease_start ? date(t.lease_start) : '—'}</TD>
+                      <TD className="tabular-nums">{t.lease_end ? date(t.lease_end) : '—'}</TD>
+                      <TD>
+                        {t.owner_id
+                          ? <Link href={`/owners/${t.owner_id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">View owner</Link>
+                          : '—'}
+                      </TD>
+                    </TR>
+                  ))
+              )}
+            </tbody>
+          </Table>
+        ) : (
         <Table>
           <THead>
             <TR>
@@ -265,6 +331,7 @@ export default async function OwnersPage({
             )}
           </tbody>
         </Table>
+        )}
       </div>
     </DataWorkspace>
   );

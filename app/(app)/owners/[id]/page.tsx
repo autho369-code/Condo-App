@@ -8,6 +8,10 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { money, date } from '@/lib/utils';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
+import { StatusChip } from '@/components/operations/status-chip';
+import { Alert } from '@/components/ui/shell';
+import { createServiceClient } from '@/lib/supabase/server';
+import { addPet, addTenant, endTenancy, removePet, saveOwnerEmergencyContact } from './occupancy-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +20,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
   return full ?? [last, first].filter(Boolean).join(', ') ?? '—';
 }
 
-export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string }> }) {
+export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string }> }) {
   await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
@@ -36,7 +40,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: units },
   ] = await Promise.all([
     db.from('owners')
-      .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at')
+      .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
@@ -58,6 +62,41 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   const currentOccs = (occs ?? []).filter((o: any) => o.status === 'current');
   const pastOccs    = (occs ?? []).filter((o: any) => o.status === 'past');
+
+  // ── Tenancy & pets for this owner's current units ──
+  const ownedUnitIds = currentOccs.map((o: any) => o.units?.id).filter(Boolean);
+  const [{ data: tenants }, { data: pets }] = await Promise.all([
+    ownedUnitIds.length > 0
+      ? db.from('tenants').select('*').in('unit_id', ownedUnitIds).is('archived_at', null).order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
+    ownedUnitIds.length > 0
+      ? db.from('unit_pets').select('*').in('unit_id', ownedUnitIds).is('archived_at', null).order('created_at')
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const activeTenantsByUnit = new Map<string, any[]>();
+  for (const t of (tenants ?? []).filter((t: any) => t.status === 'active')) {
+    const list = activeTenantsByUnit.get(t.unit_id) ?? [];
+    list.push(t);
+    activeTenantsByUnit.set(t.unit_id, list);
+  }
+  const petsByUnit = new Map<string, any[]>();
+  for (const p of pets ?? []) {
+    const list = petsByUnit.get(p.unit_id) ?? [];
+    list.push(p);
+    petsByUnit.set(p.unit_id, list);
+  }
+
+  // Signed URLs for lease / insurance documents (1-hour links)
+  const docPaths = (tenants ?? []).flatMap((t: any) => [t.lease_document_url, t.insurance_document_url]).filter(Boolean);
+  const signedUrlByPath = new Map<string, string>();
+  if (docPaths.length > 0) {
+    const svc = createServiceClient() as any;
+    const { data: signed } = await svc.storage.from('association-documents').createSignedUrls(docPaths, 3600);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+    }
+  }
   const displayName = formatName(owner.first_name, owner.last_name, owner.full_name);
   const phones: any[] = Array.isArray(owner.phone_numbers) ? owner.phone_numbers : [];
 
@@ -213,6 +252,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   return (
     <>
+      {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
+      {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
       {sp.portal_created === '1' && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="flex items-start justify-between">
@@ -521,6 +562,225 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </div>
             </form>
           </details>
+        </Section>
+
+        {/* ── Occupancy, tenants & pets per unit ── */}
+        <Section
+          title="Occupancy & tenants"
+          right={
+            // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page
+            <a href="/owners/leases/export" className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Export all leases (CSV)</a>
+          }
+        >
+          {currentOccs.length === 0 ? (
+            <p className="px-5 py-6 text-center text-sm text-gray-500">Link this owner to a unit first to track occupancy.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {currentOccs.map((o: any) => {
+                const unitId = o.units?.id;
+                const unitTenants = activeTenantsByUnit.get(unitId) ?? [];
+                const unitPets = petsByUnit.get(unitId) ?? [];
+                const rented = unitTenants.length > 0;
+                return (
+                  <div key={o.id} className="px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-950">
+                          {o.units?.buildings?.associations?.name ?? 'Association'} — Unit {o.units?.unit_number ?? '—'}
+                        </span>
+                        <StatusChip tone={rented ? 'info' : 'success'}>
+                          {rented ? 'Rented to tenant' : 'Owner-occupied'}
+                        </StatusChip>
+                      </div>
+                    </div>
+
+                    {/* Active tenants */}
+                    {unitTenants.map((t: any) => (
+                      <div key={t.id} className="mt-3 rounded-xl border border-gray-200/70 bg-gray-50/60 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-950">{t.first_name} {t.last_name}</div>
+                            <div className="mt-0.5 text-xs text-gray-500">
+                              {t.phone ? <a href={`tel:${t.phone}`} className="text-blue-700 hover:underline">{t.phone}</a> : 'No phone'}
+                              {' · '}
+                              {t.email ? <a href={`mailto:${t.email}`} className="text-blue-700 hover:underline">{t.email}</a> : 'No email'}
+                            </div>
+                          </div>
+                          <form action={endTenancy.bind(null, t.id, id) as any}>
+                            <button type="submit" className="text-xs text-red-600 hover:underline">End tenancy</button>
+                          </form>
+                        </div>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-4">
+                          <div>
+                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease start</dt>
+                            <dd className="mt-0.5 tabular-nums">{t.lease_start ? date(t.lease_start) : '—'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease end</dt>
+                            <dd className="mt-0.5 tabular-nums">{t.lease_end ? date(t.lease_end) : '—'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wider text-gray-500">Lease</dt>
+                            <dd className="mt-0.5">
+                              {t.lease_document_url && signedUrlByPath.get(t.lease_document_url)
+                                ? <a href={signedUrlByPath.get(t.lease_document_url)} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">View lease</a>
+                                : <span className="text-gray-400">Not uploaded</span>}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs uppercase tracking-wider text-gray-500">Tenant insurance</dt>
+                            <dd className="mt-0.5">
+                              {t.insurance_document_url && signedUrlByPath.get(t.insurance_document_url)
+                                ? <a href={signedUrlByPath.get(t.insurance_document_url)} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">View policy</a>
+                                : <span className="text-gray-400">Not uploaded</span>}
+                            </dd>
+                          </div>
+                          <div className="col-span-2">
+                            <dt className="text-xs uppercase tracking-wider text-gray-500">Tenant emergency contact</dt>
+                            <dd className="mt-0.5">
+                              {t.emergency_contact_name ?? '—'}
+                              {t.emergency_contact_phone ? <> · <a href={`tel:${t.emergency_contact_phone}`} className="text-blue-700 hover:underline">{t.emergency_contact_phone}</a></> : null}
+                            </dd>
+                          </div>
+                          {t.notes && (
+                            <div className="col-span-2">
+                              <dt className="text-xs uppercase tracking-wider text-gray-500">Notes</dt>
+                              <dd className="mt-0.5 whitespace-pre-wrap text-gray-700">{t.notes}</dd>
+                            </div>
+                          )}
+                        </dl>
+                      </div>
+                    ))}
+
+                    {/* Add tenant */}
+                    <details className="mt-3">
+                      <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">+ Add tenant for this unit</summary>
+                      <form action={addTenant.bind(null, id) as any} className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <input type="hidden" name="unit_id" value={unitId} />
+                        <div>
+                          <Label htmlFor={`t_first_${o.id}`}>First name <span className="text-red-500">*</span></Label>
+                          <Input id={`t_first_${o.id}`} name="first_name" required />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_last_${o.id}`}>Last name <span className="text-red-500">*</span></Label>
+                          <Input id={`t_last_${o.id}`} name="last_name" required />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_phone_${o.id}`}>Phone</Label>
+                          <Input id={`t_phone_${o.id}`} name="phone" type="tel" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_email_${o.id}`}>Email</Label>
+                          <Input id={`t_email_${o.id}`} name="email" type="email" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_ls_${o.id}`}>Lease start</Label>
+                          <Input id={`t_ls_${o.id}`} name="lease_start" type="date" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_le_${o.id}`}>Lease end</Label>
+                          <Input id={`t_le_${o.id}`} name="lease_end" type="date" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_lf_${o.id}`}>Lease document</Label>
+                          <input id={`t_lf_${o.id}`} name="lease_file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_if_${o.id}`}>Tenant insurance</Label>
+                          <input id={`t_if_${o.id}`} name="insurance_file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_ecn_${o.id}`}>Emergency contact name</Label>
+                          <Input id={`t_ecn_${o.id}`} name="emergency_contact_name" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_ecp_${o.id}`}>Emergency contact phone</Label>
+                          <Input id={`t_ecp_${o.id}`} name="emergency_contact_phone" type="tel" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label htmlFor={`t_notes_${o.id}`}>Notes</Label>
+                          <Input id={`t_notes_${o.id}`} name="notes" />
+                        </div>
+                        <div className="md:col-span-3 flex justify-end">
+                          <Button type="submit">Add tenant</Button>
+                        </div>
+                      </form>
+                    </details>
+
+                    {/* Pets */}
+                    <div className="mt-4">
+                      <div className="text-xs font-medium uppercase tracking-wider text-gray-500">Pets ({unitPets.length})</div>
+                      {unitPets.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {unitPets.map((p: any) => (
+                            <li key={p.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
+                              <span className="text-gray-900">
+                                <span className="font-medium">{p.name}</span>
+                                <span className="text-gray-500"> — {p.pet_type}{p.breed ? `, ${p.breed}` : ''}{p.tenant_id ? ' (tenant’s)' : ''}</span>
+                              </span>
+                              <form action={removePet.bind(null, p.id, id) as any}>
+                                <button type="submit" className="text-xs text-red-600 hover:underline">Remove</button>
+                              </form>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <details className="mt-2">
+                        <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">+ Add pet</summary>
+                        <form action={addPet.bind(null, id) as any} className="mt-3 flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="unit_id" value={unitId} />
+                          <div>
+                            <Label htmlFor={`p_type_${o.id}`}>Type</Label>
+                            <select id={`p_type_${o.id}`} name="pet_type" required className="h-10 w-32 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                              <option value="dog">Dog</option>
+                              <option value="cat">Cat</option>
+                              <option value="bird">Bird</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label htmlFor={`p_name_${o.id}`}>Name</Label>
+                            <Input id={`p_name_${o.id}`} name="name" required className="w-36" />
+                          </div>
+                          <div>
+                            <Label htmlFor={`p_breed_${o.id}`}>Breed</Label>
+                            <Input id={`p_breed_${o.id}`} name="breed" className="w-40" />
+                          </div>
+                          {unitTenants.length > 0 && (
+                            <div>
+                              <Label htmlFor={`p_tenant_${o.id}`}>Belongs to</Label>
+                              <select id={`p_tenant_${o.id}`} name="tenant_id" className="h-10 w-44 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                                <option value="">Owner</option>
+                                {unitTenants.map((t: any) => (
+                                  <option key={t.id} value={t.id}>{t.first_name} {t.last_name} (tenant)</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <Button type="submit" variant="secondary">Add pet</Button>
+                        </form>
+                      </details>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+
+        {/* ── Owner emergency contact ── */}
+        <Section title="Owner emergency contact">
+          <form action={saveOwnerEmergencyContact.bind(null, id) as any} className="flex flex-wrap items-end gap-3 px-5 py-4">
+            <div>
+              <Label htmlFor="emergency_contact_name">Contact name</Label>
+              <Input id="emergency_contact_name" name="emergency_contact_name" defaultValue={owner.emergency_contact_name ?? ''} className="w-64" />
+            </div>
+            <div>
+              <Label htmlFor="emergency_contact_phone">Contact phone</Label>
+              <Input id="emergency_contact_phone" name="emergency_contact_phone" type="tel" defaultValue={owner.emergency_contact_phone ?? ''} className="w-44" />
+            </div>
+            <Button type="submit" variant="secondary">Save</Button>
+          </form>
         </Section>
 
         {/* ── Contact Edit ── */}
