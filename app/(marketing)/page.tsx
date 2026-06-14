@@ -58,7 +58,7 @@ export default async function HomePage() {
               width={2400}
               height={1500}
               priority
-              className="rounded-2xl border border-gray-200 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15),0_15px_35px_-15px_rgba(0,0,0,0.08)]"
+              framed
               fallback={
               <div className="relative rounded-2xl border border-gray-200 bg-white shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15),0_15px_35px_-15px_rgba(0,0,0,0.08)] overflow-hidden">
               <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3 bg-gray-50/50">
@@ -126,7 +126,7 @@ export default async function HomePage() {
                   alt={`Portier369 — ${item.title}`}
                   width={1200}
                   height={750}
-                  className="w-full border-b border-gray-100"
+                  className="block w-full border-b border-gray-100"
                   fallback={
                 <div className="p-4 border-b border-gray-100" style={{ backgroundColor: item.color + '05' }}>
                   <div className="flex items-center gap-2 mb-3.5">
