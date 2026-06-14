@@ -6,9 +6,11 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { inviteVendorToPortal } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +46,7 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
 export default async function VendorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; trade?: string }>;
+  searchParams: Promise<{ q?: string; trade?: string; invited?: string; error?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -83,6 +85,8 @@ export default async function VendorsPage({
       }
     >
       <div className="space-y-4">
+        {sp.invited && <Alert tone="success" title="Portal invite sent">{`${sp.invited} will get an email with a link to set their password and access the vendor portal.`}</Alert>}
+        {sp.error && <Alert tone="danger" title="Could not send invite">{sp.error}</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link href="/owners" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Owners</Link>
           <Link href="/owners?view=directory" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Directory</Link>
@@ -158,6 +162,12 @@ export default async function VendorsPage({
                       <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">ACH</Link>
                       <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">W-9</Link>
                       <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">Docs</Link>
+                      {!vendor.portal_activated && (
+                        <form action={inviteVendorToPortal}>
+                          <input type="hidden" name="vendor_id" value={vendor.id} />
+                          <button type="submit" className="rounded-lg border border-gray-900 bg-gray-900 px-2 py-1 font-medium text-white transition-colors hover:bg-gray-800">Invite to portal</button>
+                        </form>
+                      )}
                     </div>
                   </TD>
                 </TR>

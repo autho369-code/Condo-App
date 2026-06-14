@@ -69,13 +69,24 @@ async function acceptInvite(formData: FormData) {
   });
   if (signInErr) failTo(signInErr.message);
 
-  // Link the profile to the portfolio/role
+  // Link the profile to the portfolio/role (the auth.users triggers normally do
+  // this already; this is a harmless retry).
   const { error: acceptErr } = await (supabase as any).rpc('accept_invitation', { p_token: token });
   if (acceptErr) {
     console.error('accept_invitation error:', acceptErr);
     // User is created and signed in — continue; profile linking can be retried by support
   }
 
+  // Route by the account's ACTUAL resolved role, not the invitation's hoa_role.
+  // A vendor invite uses hoa_role 'owner' (no 'vendor' enum) but resolves a
+  // vendor_id, so it must land on /vendor, not /portal.
+  const { data: me } = await (supabase as any).rpc('me');
+  if (me?.is_platform_operator) redirect('/platform-operator');
+  if (me?.is_company_admin) redirect('/company-admin/overview');
+  if (me?.is_board) redirect('/board');
+  if (me?.is_staff || me?.is_full_access_staff) redirect('/dashboard');
+  if (me?.vendor_id) redirect('/vendor');
+  if (me?.owner_id) redirect('/portal');
   redirect(ROLE_HOME[invite.hoa_role] ?? '/dashboard');
 }
 
