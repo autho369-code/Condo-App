@@ -129,29 +129,41 @@ export default async function BoardDelinquenciesPage() {
     ? Math.round(delinquentRows.reduce((sum, d) => sum + d.days_past_due, 0) / delinquentRows.length)
     : 0
 
-  // Try to get last payment dates where available
+  // Resolve owner names + last payment date by UNIT (works for both the
+  // delinquent_units view path and the occupancies fallback). Board members
+  // can read unit_owners/owners/payments for their association via RLS.
   try {
-    const ownerIds = [...new Set(delinquentRows.map((d) => d.owner_id).filter(Boolean))]
-    if (ownerIds.length > 0) {
-      const { data: payments } = await db
-        .from('payments')
-        .select('owner_id, created_at')
-        .in('owner_id', ownerIds)
-        .order('created_at', { ascending: false })
+    const unitIds = [...new Set(delinquentRows.map((d) => d.unit_id).filter(Boolean))]
+    if (unitIds.length > 0) {
+      const [{ data: uos }, { data: payments }] = await Promise.all([
+        db.from('unit_owners').select('unit_id, owner_id, is_primary').in('unit_id', unitIds),
+        db.from('payments').select('unit_id, payment_date').in('unit_id', unitIds).order('payment_date', { ascending: false }),
+      ])
 
-      if (payments) {
-        const lastPaymentMap = new Map<string, string>()
-        payments.forEach((p: any) => {
-          if (!lastPaymentMap.has(p.owner_id)) {
-            lastPaymentMap.set(p.owner_id, p.created_at)
-          }
-        })
-        delinquentRows.forEach((d) => {
-          if (d.owner_id && lastPaymentMap.has(d.owner_id)) {
-            d.last_payment_date = lastPaymentMap.get(d.owner_id)
-          }
-        })
+      const ownerIds = [...new Set((uos ?? []).map((u: any) => u.owner_id).filter(Boolean))]
+      const ownerNameById = new Map<string, string>()
+      if (ownerIds.length > 0) {
+        const { data: owners } = await db.from('owners').select('id, full_name').in('id', ownerIds)
+        for (const o of owners ?? []) ownerNameById.set(o.id, o.full_name)
       }
+
+      // Prefer the primary owner for each unit
+      const ownerByUnit = new Map<string, string>()
+      for (const r of [...(uos ?? [])].sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))) {
+        if (!ownerByUnit.has(r.unit_id)) ownerByUnit.set(r.unit_id, ownerNameById.get(r.owner_id) ?? '')
+      }
+
+      const lastPayByUnit = new Map<string, string>()
+      for (const p of payments ?? []) {
+        if (!lastPayByUnit.has(p.unit_id)) lastPayByUnit.set(p.unit_id, p.payment_date)
+      }
+
+      delinquentRows.forEach((d) => {
+        if (!d.owner_name || d.owner_name === '—' || d.owner_name === 'Unknown') {
+          d.owner_name = ownerByUnit.get(d.unit_id) || '—'
+        }
+        if (!d.last_payment_date) d.last_payment_date = lastPayByUnit.get(d.unit_id) ?? null
+      })
     }
   } catch { /* may not exist */ }
 

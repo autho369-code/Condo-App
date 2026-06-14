@@ -13,18 +13,28 @@ export default async function OwnerDashboard() {
   const db = supabase as any
   const ownerId = me.owner_id
 
-  // Owner info + unit
-  const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).is('archived_at', null).limit(5)
+  // Owner info + unit (occupancies has no archived_at column)
+  const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).limit(5)
   const occs = occupancies ?? []
-  const totalDue = occs.reduce((s: number, o: any) => s + (o.dues_amount ?? 0), 0)
+  const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
   const nextDue = occs[0]?.dues_paid_through
     ? new Date(occs[0].dues_paid_through).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : 'Not set'
   const assocId = occs[0]?.association_id
 
-  // Work orders
-  const { data: wos } = await db.from('work_orders').select('id,title,status,created_at').eq('owner_id', ownerId).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
-  const workOrders = wos ?? []
+  // Current balance = outstanding A/R (charges − payments) across the owner's units
+  let totalDue = 0
+  if (unitIds.length > 0) {
+    const { data: bals } = await db.from('unit_balances').select('balance').in('unit_id', unitIds)
+    totalDue = (bals ?? []).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
+  }
+
+  // Work orders (work_orders links to a unit, not an owner)
+  let workOrders: any[] = []
+  if (unitIds.length > 0) {
+    const { data: wos } = await db.from('work_orders').select('id,title,status,created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
+    workOrders = wos ?? []
+  }
   const openWO = workOrders.filter((w: any) => !['completed','closed','cancelled'].includes(w.status))
 
   // Violations
