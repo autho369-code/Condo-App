@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +36,43 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     const delivery = (formData.get('delivery_method') as string) || 'email';
     const dueDate = (formData.get('due_date') as string) || null;
 
-    // These owner "forms" are document/form requests sent to a specific owner.
+    // Portal activation is an *invitation*, not a document request: create a real
+    // user_invitations row (hoa_role 'owner') so the owner gets an email with a
+    // /invite link, sets a password, and can log into the owner portal. The
+    // queue_invitation_email trigger sends the email; auto_link_portal_user links
+    // the new auth user to the owners row by email on signup.
+    if (template === 'portal_activation') {
+      const { data: owner } = await (supabase as any)
+        .from('owners')
+        .select('id, full_name, email')
+        .eq('id', ownerId)
+        .maybeSingle();
+      if (!owner?.email) {
+        redirect(`/owners/forms?error=${encodeURIComponent('This owner has no email on file. Add an email before sending a portal activation.')}`);
+      }
+      const svc = createServiceClient() as any;
+      // Supersede any older pending invite for this email so only one link is live.
+      await svc.from('user_invitations')
+        .update({ status: 'revoked' })
+        .eq('email', owner.email.toLowerCase())
+        .eq('portfolio_id', me.portfolio?.id)
+        .eq('status', 'pending');
+      const { error: inviteErr } = await svc.from('user_invitations').insert({
+        portfolio_id: me.portfolio?.id,
+        email: owner.email.toLowerCase(),
+        full_name: owner.full_name,
+        hoa_role: 'owner',
+        invited_by: me.auth_user_id,
+        message: message || `Activate your owner portal for ${me.portfolio?.company_name ?? 'your community'}.`,
+        expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+      });
+      if (inviteErr) {
+        redirect(`/owners/forms?error=${encodeURIComponent(inviteErr.message)}`);
+      }
+      redirect('/owners/forms?sent=1');
+    }
+
+    // All other owner "forms" are document/form requests sent to a specific owner.
     const { error } = await (supabase as any).from('document_requests').insert({
       portfolio_id: me.portfolio?.id,
       owner_id: ownerId,

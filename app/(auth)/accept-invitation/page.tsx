@@ -2,6 +2,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { acceptInvitation } from '@/lib/auth/actions';
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 export default async function AcceptInvitationPage({
@@ -13,24 +14,11 @@ export default async function AcceptInvitationPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If not logged in, send them to signup/login first — they need an auth user to accept
+  // Not logged in: a brand-new invitee has no account yet, so send them to the
+  // /invite flow, which validates the token, lets them set a password, creates
+  // the account, and applies the invitation in one step.
   if (!user) {
-    return (
-      <Card className="mx-auto max-w-sm">
-        <CardHeader><CardTitle>Accept invitation</CardTitle></CardHeader>
-        <CardBody>
-          <p className="mb-4 text-sm text-gray-700">You need to sign in first so we can attach the invitation to your account.</p>
-          <div className="flex gap-2">
-            <Link href={`/login?next=/accept-invitation?token=${encodeURIComponent(token)}`}>
-              <Button variant="secondary">Sign in</Button>
-            </Link>
-            <Link href={`/signup?next=/accept-invitation?token=${encodeURIComponent(token)}`}>
-              <Button>Sign up</Button>
-            </Link>
-          </div>
-        </CardBody>
-      </Card>
-    );
+    redirect(`/invite?token=${encodeURIComponent(token)}`);
   }
 
   // Logged in: accept
