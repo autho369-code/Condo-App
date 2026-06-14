@@ -34,7 +34,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
       .select('id, label, space_type, monthly_fee, deposit_amount, notes, association_id, associations(name)')
       .eq('portfolio_id', me.portfolio?.id).is('archived_at', null).eq('active', true).order('label'),
     db.from('parking_assignments')
-      .select('id, parking_space_id, unit_id, tenant_id, occupant_name, start_date, monthly_fee, deposit_amount, deposit_paid, deposit_returned, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, units(unit_number), tenants(first_name, last_name)')
+      .select('id, parking_space_id, unit_id, tenant_id, occupant_name, start_date, monthly_fee, deposit_amount, deposit_paid, deposit_returned, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, units(unit_number), tenants(first_name, last_name), owners(full_name)')
       .eq('portfolio_id', me.portfolio?.id).eq('status', 'active'),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number'),
@@ -50,11 +50,13 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
   const depositsHeld = (assignments ?? []).reduce((sum: number, a: any) => sum + (a.deposit_paid && !a.deposit_returned ? Number(a.deposit_amount ?? 0) : 0), 0);
   const banner = Object.keys(BANNERS).find((k) => sp[k] === '1');
 
-  const occupantLabel = (a: any) => {
-    if (a.tenants) return `${a.tenants.first_name ?? ''} ${a.tenants.last_name ?? ''}`.trim() + ' (tenant)';
+  // Unit the space is assigned to (primary), plus who uses it (secondary).
+  const assignedUnit = (a: any) => (a.units?.unit_number ? `Unit ${a.units.unit_number}` : null);
+  const assignedOccupant = (a: any) => {
+    if (a.tenants) return `${a.tenants.first_name ?? ''} ${a.tenants.last_name ?? ''}`.trim() + ' · tenant';
+    if (a.owners) return `${a.owners.full_name} · owner`;
     if (a.occupant_name) return a.occupant_name;
-    if (a.units) return `Unit ${a.units.unit_number}`;
-    return '—';
+    return null;
   };
 
   return (
@@ -98,7 +100,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
               </THead>
               <tbody>
                 {allSpaces.length === 0 ? (
-                  <TR><TD colSpan={9} className="py-10 text-center text-gray-500">No parking spaces yet. Add one below.</TD></TR>
+                  <TR><TD colSpan={9} className="py-10 text-center text-gray-500">No parking spaces yet. Use <a href="#add-space" className="font-medium text-gray-900 hover:underline">Add a parking space</a> below to create your first one, then assign it to a unit.</TD></TR>
                 ) : (
                   allSpaces.map((space: any) => {
                     const a = activeBySpace.get(space.id);
@@ -111,7 +113,16 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                           <div className="text-xs capitalize text-gray-500">{space.space_type}</div>
                         </TD>
                         <TD className="text-sm text-gray-700">{space.associations?.name ?? '—'}</TD>
-                        <TD className="text-sm text-gray-900">{a ? occupantLabel(a) : <StatusChip tone="success">Available</StatusChip>}</TD>
+                        <TD className="text-sm text-gray-900">
+                          {a ? (
+                            <div>
+                              <div className="font-medium text-gray-900">{assignedUnit(a) ?? assignedOccupant(a) ?? '—'}</div>
+                              {assignedUnit(a) && assignedOccupant(a) && (
+                                <div className="text-xs text-gray-500">{assignedOccupant(a)}</div>
+                              )}
+                            </div>
+                          ) : <StatusChip tone="success">Available</StatusChip>}
+                        </TD>
                         <TD className="text-sm text-gray-700">{a ? [a.vehicle_color, a.vehicle_make, a.vehicle_model].filter(Boolean).join(' ') || '—' : '—'}</TD>
                         <TD className="text-sm tabular-nums text-gray-700">{a?.license_plate ?? '—'}</TD>
                         <TD className="text-sm text-gray-700">{a?.insurance_policy_number ?? '—'}</TD>
@@ -141,11 +152,12 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                               <form action={assignParkingSpace} className="mt-3 grid w-[34rem] max-w-[80vw] grid-cols-2 gap-2 text-left">
                                 <input type="hidden" name="parking_space_id" value={space.id} />
                                 <div className="col-span-2">
-                                  <Label htmlFor={`unit-${space.id}`}>Unit</Label>
+                                  <Label htmlFor={`unit-${space.id}`}>Assign to unit — {space.associations?.name ?? 'association'}</Label>
                                   <select id={`unit-${space.id}`} name="unit_id" className={inputCls}>
                                     <option value="">Select unit…</option>
                                     {assocUnits.map((u: any) => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
                                   </select>
+                                  {assocUnits.length === 0 && <p className="mt-1 text-xs text-amber-700">This association has no units yet — add units first.</p>}
                                 </div>
                                 <div>
                                   <Label htmlFor={`tenant-${space.id}`}>Tenant (optional)</Label>
