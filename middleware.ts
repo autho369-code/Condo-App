@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/types/database'
 
 const APEX_DOMAIN = 'portier369.com'
-const MARKETING_PATHS = ['/pricing', '/features']
+const MARKETING_PATHS = ['/pricing', '/features', '/report-card']
 const PUBLIC_PATHS = ['/login', '/signup', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo', '/api/maintenance/send-reminders']
 
 export async function middleware(request: NextRequest) {
