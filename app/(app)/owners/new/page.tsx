@@ -131,6 +131,14 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
               <Input id="tenant_lease_end" name="tenant_lease_end" type="date" />
             </div>
             <div>
+              <Label htmlFor="tenant_insurance_policy_number">Renters insurance policy #</Label>
+              <Input id="tenant_insurance_policy_number" name="tenant_insurance_policy_number" />
+            </div>
+            <div>
+              <Label htmlFor="tenant_insurance_expiration">Renters insurance expiration</Label>
+              <Input id="tenant_insurance_expiration" name="tenant_insurance_expiration" type="date" />
+            </div>
+            <div>
               <Label htmlFor="tenant_emergency_contact_name">Tenant emergency contact</Label>
               <Input id="tenant_emergency_contact_name" name="tenant_emergency_contact_name" />
             </div>

@@ -690,6 +690,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                           <input id={`t_if_${o.id}`} name="insurance_file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50" />
                         </div>
                         <div>
+                          <Label htmlFor={`t_ipn_${o.id}`}>Insurance policy #</Label>
+                          <Input id={`t_ipn_${o.id}`} name="insurance_policy_number" />
+                        </div>
+                        <div>
+                          <Label htmlFor={`t_iexp_${o.id}`}>Insurance expiration</Label>
+                          <Input id={`t_iexp_${o.id}`} name="insurance_expiration" type="date" />
+                        </div>
+                        <div>
                           <Label htmlFor={`t_ecn_${o.id}`}>Emergency contact name</Label>
                           <Input id={`t_ecn_${o.id}`} name="emergency_contact_name" />
                         </div>

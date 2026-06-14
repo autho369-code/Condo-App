@@ -131,6 +131,8 @@ export async function createOwnerWithDetails(formData: FormData) {
         phone: s(formData, 'tenant_phone'),
         lease_start: s(formData, 'tenant_lease_start'),
         lease_end: s(formData, 'tenant_lease_end'),
+        insurance_expiration: s(formData, 'tenant_insurance_expiration'),
+        insurance_policy_number: s(formData, 'tenant_insurance_policy_number'),
         emergency_contact_name: s(formData, 'tenant_emergency_contact_name'),
         emergency_contact_phone: s(formData, 'tenant_emergency_contact_phone'),
       });

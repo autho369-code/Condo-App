@@ -84,6 +84,8 @@ export async function addTenant(ownerId: string, formData: FormData) {
     lease_end: (formData.get('lease_end') as string) || null,
     lease_document_url: leasePath,
     insurance_document_url: insurancePath,
+    insurance_expiration: (formData.get('insurance_expiration') as string) || null,
+    insurance_policy_number: (formData.get('insurance_policy_number') as string)?.trim() || null,
     emergency_contact_name: (formData.get('emergency_contact_name') as string)?.trim() || null,
     emergency_contact_phone: (formData.get('emergency_contact_phone') as string)?.trim() || null,
     notes: (formData.get('notes') as string)?.trim() || null,
