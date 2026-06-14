@@ -65,6 +65,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
+        {sp.warning && <Alert tone="warning" title="Heads up">{sp.warning}</Alert>}
         {banner && <Alert tone="success" title={BANNERS[banner]} />}
 
         <MetricStrip
@@ -168,6 +169,9 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                                 <div><Label>Start date</Label><Input name="start_date" type="date" /></div>
                                 <label className="col-span-2 flex items-center gap-2 text-xs text-gray-700">
                                   <input type="checkbox" name="deposit_paid" /> Deposit collected
+                                </label>
+                                <label className="col-span-2 flex items-center gap-2 text-xs text-gray-700">
+                                  <input type="checkbox" name="bill_to_unit" defaultChecked /> Auto-add the monthly fee as a recurring charge on this unit
                                 </label>
                                 <div className="col-span-2 flex justify-end"><Button type="submit" size="sm">Assign space</Button></div>
                               </form>
