@@ -10,6 +10,7 @@ export interface MeResult {
   portfolio: any;
   role_name: string | null;
   is_platform_operator: boolean;
+  is_company_admin: boolean;
   is_full_access_staff: boolean;
   is_finance_staff: boolean;
   is_staff: boolean;
@@ -34,6 +35,7 @@ function localPreviewMe(): MeResult {
     portfolio: { id: 'local-preview', name: 'ManageOps Preview', company_name: 'ManageOps Preview' },
     role_name: 'Platform Operator',
     is_platform_operator: true,
+    is_company_admin: true,
     is_full_access_staff: true,
     is_finance_staff: true,
     is_staff: true,
@@ -74,7 +76,7 @@ export async function requirePlatformOperator(): Promise<MeResult> {
 
 export async function requirePortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
-  if (!me.is_full_access_staff && !me.is_platform_operator) redirect('/dashboard');
+  if (!me.is_full_access_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/dashboard');
   return me;
 }
 

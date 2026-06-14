@@ -2,12 +2,20 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { UserPlus, Eye, KeyRound } from 'lucide-react'
+import { inviteManager } from './actions'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CompanyAdminManagersPage() {
+export default async function CompanyAdminManagersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invited?: string; error?: string }>
+}) {
+  const sp = await searchParams
   const me = await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
@@ -93,10 +101,15 @@ export default async function CompanyAdminManagersPage() {
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Managers</h1>
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Staff and managers managing associations in your portfolio</p>
         </div>
-        <Link href="/settings?tab=managers">
-          <Button className="gap-2"><UserPlus className="h-4 w-4" /> Invite Manager</Button>
-        </Link>
+        <form action={inviteManager} className="flex items-center gap-2">
+          <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 w-56" aria-label="Manager email" />
+          <input type="hidden" name="role_name" value="Property Manager" />
+          <Button type="submit" className="gap-2"><UserPlus className="h-4 w-4" /> Invite Manager</Button>
+        </form>
       </div>
+
+      {sp.invited && <Alert tone="success" title="Invitation sent">{`Invited ${sp.invited} as a Property Manager. They'll get an email with a link to set their password.`}</Alert>}
+      {sp.error && <Alert tone="danger" title="Could not invite manager">{sp.error}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
