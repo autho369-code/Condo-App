@@ -62,11 +62,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <div className="flex flex-wrap items-start justify-between gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded bg-[#1E3A5F] text-xs font-bold text-white">P</div>
-                <span className="font-semibold text-gray-800">Portier369</span>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A5F] text-sm font-bold text-white">P</div>
+                <span className="text-lg font-semibold tracking-[-0.01em] text-gray-900">Portier369</span>
               </div>
-              <p className="text-sm text-gray-500 max-w-xs">The operating system for condominium and HOA management.</p>
+              <p className="text-[15px] leading-6 text-gray-500 max-w-xs">The operating system for condominium and HOA management.</p>
             </div>
             <div className="flex gap-12">
               <div>

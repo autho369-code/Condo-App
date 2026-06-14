@@ -13,33 +13,40 @@ export default async function HomePage() {
   return (
     <div className="bg-white font-sans antialiased">
       {/* ═══════════════════════════════════════════════
-          HERO
+          HERO — dark brand panel
           ═══════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-white pt-20 pb-16 sm:pt-32 sm:pb-24">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(30,58,95,0.05),transparent)]" />
-        <div className="relative mx-auto max-w-[1280px] px-6 lg:px-8 text-center">
-          <h1 className="text-5xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-900 sm:text-6xl lg:text-7xl">
-            Run your entire property management company
-            <br />
-            <span className="text-[#1E3A5F]">from one platform.</span>
+      <section className="relative overflow-hidden bg-[#060709] pt-20 pb-20 sm:pt-28 sm:pb-28">
+        {/* Ambient glows */}
+        <div aria-hidden className="pointer-events-none absolute -top-48 left-1/2 h-[640px] w-[900px] -translate-x-1/2 rounded-full opacity-[0.16]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute -bottom-64 -right-32 h-[520px] w-[520px] rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #c9a86a 0%, transparent 70%)' }} />
+        {/* Hairline grid texture */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '88px 88px' }} />
+
+        <div className="relative mx-auto max-w-[1180px] px-6 lg:px-8 text-center">
+          <div className="mx-auto mb-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[12px] font-medium tracking-[0.02em] text-zinc-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Built from 29 years in community management
+          </div>
+          <h1 className="mx-auto max-w-4xl text-[40px] font-semibold leading-[1.04] tracking-[-0.03em] text-white sm:text-6xl lg:text-[68px]">
+            Run your entire property
+            <br className="hidden sm:block" /> management company,{' '}
+            <span className="bg-gradient-to-r from-[#a9bcff] to-[#6d8dff] bg-clip-text text-transparent">from one platform.</span>
           </h1>
-          <p className="mt-6 mx-auto max-w-4xl text-xl leading-relaxed text-gray-700 sm:text-2xl font-medium">
-            Software built from 29 years in the field — not from a conference room.
+          <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-8 text-zinc-400 sm:text-lg">
+            Accounting, maintenance, violations, board approvals, owner communications, and vendor management — every
+            workflow drawn from how property managers actually work, not how software teams imagine they do.
           </p>
-          <p className="mt-5 mx-auto max-w-2xl text-lg leading-relaxed text-gray-600">
-            Every workflow inside Portier369 comes from actual condominium and HOA operations, including violations, maintenance, board approvals, owner communications, budgeting, and vendor management.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-[15px] font-semibold text-gray-950 shadow-lg shadow-black/30 transition hover:bg-zinc-100">
               Request Proposal
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
-            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition">
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-7 py-3.5 text-[15px] font-semibold text-white transition hover:bg-white/[0.08]">
               View pricing
             </Link>
           </div>
 
-          {/* Product Preview */}
+          {/* Product Preview — floats on the dark for depth */}
           <div className="mt-16 lg:mt-20">
             <Screenshot
               file="hero.png"
@@ -95,8 +102,8 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">The product</span>
-            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">The product</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Every workflow. Every stakeholder. One platform.
             </h2>
           </div>
@@ -162,8 +169,8 @@ export default async function HomePage() {
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24 items-center">
             <div>
-              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">The problem</span>
-              <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+              <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">The problem</span>
+              <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
                 Property management shouldn&apos;t require six systems.
               </h2>
               <div className="mt-8 space-y-4">
@@ -198,8 +205,8 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">What sets us apart</span>
-            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">What sets us apart</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Designed for how property managers actually work.
             </h2>
           </div>
@@ -228,7 +235,7 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20 bg-[#1E3A5F]">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-white sm:text-5xl">
+            <h2 className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-white sm:text-[44px]">
               White glove setup, included.
             </h2>
             <p className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto">
@@ -271,7 +278,7 @@ export default async function HomePage() {
           </div>
 
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+            <h2 className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Simple door-based pricing.
             </h2>
           </div>
@@ -321,8 +328,8 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Premium services</span>
-            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Premium services</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Hands-on services when you need them.
             </h2>
             <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Expert services for management companies that want white-glove support, custom development, or operational outsourcing.</p>
@@ -360,7 +367,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="max-w-3xl">
             <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Built on 29 Years of Property Management Experience</span>
-            <h2 className="mt-4 text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Portier369 wasn&apos;t designed in a software conference room.
             </h2>
             <p className="mt-6 text-lg text-gray-500 leading-relaxed">
@@ -396,7 +403,7 @@ export default async function HomePage() {
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-gray-900 sm:text-5xl">
+          <h2 className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
             Run your entire portfolio from one platform.
           </h2>
           <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">
