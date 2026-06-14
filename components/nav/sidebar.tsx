@@ -150,9 +150,15 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12px] font-medium text-[#d4d4d8]">{userEmail}</div>
-            <button onClick={handleLogout} className="text-[11px] text-[#52525b] transition-colors hover:text-[#a1a1aa]">
-              Log out
-            </button>
+            <div className="flex items-center gap-2 text-[11px] text-[#52525b]">
+              <Link href="/account" className="transition-colors hover:text-[#a1a1aa]">
+                Account
+              </Link>
+              <span className="text-[#3f3f46]">·</span>
+              <button onClick={handleLogout} className="transition-colors hover:text-[#a1a1aa]">
+                Log out
+              </button>
+            </div>
           </div>
         </div>
       </div>
