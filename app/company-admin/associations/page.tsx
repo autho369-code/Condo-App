@@ -25,7 +25,7 @@ export default async function CompanyAdminAssociationsPage({
 
   const { data: associations } = await db
     .from('associations')
-    .select(`id, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, profiles:profiles(full_name, email))`)
+    .select(`id, slug, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, profiles:profiles(full_name, email))`)
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')
@@ -73,6 +73,7 @@ export default async function CompanyAdminAssociationsPage({
     const assignedMgrs = (assoc.association_managers ?? []).filter((am: any) => !am.ended_at).map((am: any) => am.profiles)
     return {
       id: assoc.id,
+      slug: assoc.slug,
       name: assoc.name,
       address: assoc.address,
       city: assoc.city,
@@ -178,7 +179,7 @@ export default async function CompanyAdminAssociationsPage({
               rows.map((row: any) => (
                 <tr key={row.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                   <td className="px-4 py-3">
-                    <Link href={`/associations/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
+                    <Link href={`/associations/${row.slug ?? row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                     <div className="mt-0.5 text-xs text-gray-500">{row.address}</div>
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-700">{row.city}{row.state ? `, ${row.state}` : ''}</td>
@@ -194,7 +195,7 @@ export default async function CompanyAdminAssociationsPage({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Link href={`/associations/${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View"><Eye className="h-4 w-4" /></Link>
+                      <Link href={`/associations/${row.slug ?? row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View"><Eye className="h-4 w-4" /></Link>
                     </div>
                   </td>
                 </tr>

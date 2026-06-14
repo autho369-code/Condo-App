@@ -45,7 +45,7 @@ export default async function PortfolioHealthPage() {
 
   const { data: associations } = await db
     .from('associations')
-    .select('id, name, city, state, unit_count')
+    .select('id, slug, name, city, state, unit_count')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')
@@ -107,6 +107,7 @@ export default async function PortfolioHealthPage() {
 
     return {
       id: assoc.id,
+      slug: assoc.slug,
       name: assoc.name,
       city: assoc.city,
       state: assoc.state,
@@ -206,7 +207,7 @@ export default async function PortfolioHealthPage() {
                   .map((row: any) => (
                     <tr key={row.id} id={row.status} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                       <td className="px-6 py-3">
-                        <Link href={`/associations/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
+                        <Link href={`/associations/${row.slug ?? row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                       </td>
                       <td className="px-6 py-3 text-[13px] text-gray-700">{[row.city, row.state].filter(Boolean).join(', ') || '—'}</td>
                       <td className="px-6 py-3 text-right tabular-nums text-gray-700">{row.unitCount}</td>

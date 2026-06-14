@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { resolveAssociation } from '@/lib/associations/resolve';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,10 @@ export default async function BoardTab({
   params: Promise<{ id: string }>;
 }) {
   await requireStaff();
-  const { id } = await params;
+  const { id: assocParam } = await params;
+  const association = await resolveAssociation(assocParam);
+  if (!association) notFound();
+  const id = association.id;
   const supabase = await createClient();
 
   const { data: assoc, error: aErr } = await (supabase as any)

@@ -1,6 +1,7 @@
 // Tab strip used across the Association detail pages.
 // Active tab gets the blue underline matching the AppFolio screenshot.
 import Link from 'next/link';
+import { resolveAssociation } from '@/lib/associations/resolve';
 
 const TABS = [
   { slug: 'profile',               label: 'Association' },
@@ -15,17 +16,21 @@ const TABS = [
 
 export type AssociationTabSlug = (typeof TABS)[number]['slug'];
 
-export function AssociationTabs({
+export async function AssociationTabs({
   associationId,
   active,
 }: {
   associationId: string;
   active: AssociationTabSlug;
 }) {
+  // associationId may be a UUID or a slug; always build links from the short
+  // slug so the URL stays readable as the user moves between tabs.
+  const ref = await resolveAssociation(associationId);
+  const seg = ref?.slug ?? associationId;
   return (
     <nav className="mb-5 flex gap-5 overflow-x-auto border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => {
-        const href = `/associations/${associationId}/${tab.slug}`;
+        const href = `/associations/${seg}/${tab.slug}`;
         const on = tab.slug === active;
         return (
           <Link

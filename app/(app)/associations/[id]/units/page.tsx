@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { resolveAssociation } from '@/lib/associations/resolve';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,10 @@ export default async function AssociationUnitsTab({
   searchParams: Promise<{ page?: string; items_per_page?: string }>;
 }) {
   await requireStaff();
-  const { id } = await params;
+  const { id: assocParam } = await params;
+  const association = await resolveAssociation(assocParam);
+  if (!association) notFound();
+  const id = association.id;
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page ?? 1));
   const pageSize = Math.max(1, Math.min(100, Number(sp.items_per_page ?? PAGE_SIZE)));

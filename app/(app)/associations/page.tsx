@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 
 type Association = {
   id: string
+  slug: string | null
   name: string
   address: string
   city: string
@@ -33,7 +34,7 @@ export default function AssociationsPage() {
       setLoading(true)
       const { data } = await (supabase as any)
         .from('associations')
-        .select('id, name, address, city, state, zip, unit_count')
+        .select('id, slug, name, address, city, state, zip, unit_count')
         .is('archived_at', null)
         .order('name', { ascending: true })
       setAssociations(data ?? [])
@@ -86,7 +87,7 @@ export default function AssociationsPage() {
         <DataTable
           rows={paged}
           rowKey={(a) => a.id}
-          onRowHref={(a) => `/associations/${a.id}`}
+          onRowHref={(a) => `/associations/${a.slug ?? a.id}`}
           columns={[
             {
               key: 'name',

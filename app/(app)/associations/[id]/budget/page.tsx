@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { resolveAssociation } from '@/lib/associations/resolve';
 import { Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,10 @@ export default async function BudgetTab({
   searchParams: Promise<{ fiscal_year?: string }>;
 }) {
   await requireStaff();
-  const { id } = await params;
+  const { id: assocParam } = await params;
+  const association = await resolveAssociation(assocParam);
+  if (!association) notFound();
+  const id = association.id;
   const sp = await searchParams;
   const fiscalYear = Number(sp.fiscal_year ?? new Date().getFullYear());
 

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
+import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import type { Database } from '@/lib/types/database';
 
@@ -20,7 +21,10 @@ export default async function AmenitiesTab({
   searchParams: Promise<{ new?: string }>;
 }) {
   await requireStaff();
-  const { id } = await params;
+  const { id: assocParam } = await params;
+  const association = await resolveAssociation(assocParam);
+  if (!association) notFound();
+  const id = association.id;
   const sp = await searchParams;
   const showCreate = sp.new === '1';
 

@@ -163,7 +163,7 @@ export default async function OverviewPage() {
 
   const assocsForHealthQuery = db
     .from('associations')
-    .select('id, name, unit_count')
+    .select('id, slug, name, unit_count')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
 
@@ -397,7 +397,7 @@ export default async function OverviewPage() {
                 (assocsForHealth ?? []).map((assoc: any) => (
                   <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-5 py-3">
-                      <Link href={`/associations/${assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
+                      <Link href={`/associations/${assoc.slug ?? assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
                     </td>
                     <td className="px-5 py-3 tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
                     <td className="px-5 py-3 text-gray-400">—</td>
