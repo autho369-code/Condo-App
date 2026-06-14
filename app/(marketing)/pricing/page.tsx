@@ -47,19 +47,23 @@ const faqs = [
 export default function PricingPage() {
   return (
     <div className="bg-white font-sans antialiased">
-      {/* Hero */}
-      <section className="bg-white pt-20 pb-12 sm:pt-28 sm:pb-16">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8 text-center">
-          {/* Everything Included banner */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-6 py-2.5 text-base font-semibold text-emerald-700 shadow-sm">
-            <Check className="h-5 w-5" />
-            Everything Included. No Hidden Modules. No Implementation Fees. No Long-Term Contracts.
+      {/* Hero — dark to match landing */}
+      <section className="relative overflow-hidden bg-[#060709] pt-20 pb-16 sm:pt-28 sm:pb-20">
+        <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full opacity-[0.14]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '88px 88px' }} />
+        <div className="relative mx-auto max-w-[1180px] px-6 lg:px-8 text-center">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-5 py-2 text-[13px] font-medium text-emerald-300">
+            <Check className="h-4 w-4" />
+            Everything included. No hidden modules. No implementation fees. No long-term contracts.
           </div>
-          <h1 className="text-5xl font-bold leading-[1.05] tracking-[-0.03em] text-gray-900 sm:text-6xl lg:text-7xl">
+          <h1 className="text-[40px] font-semibold leading-[1.04] tracking-[-0.03em] text-white sm:text-6xl lg:text-[64px]">
             Simple door-based pricing.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 sm:text-xl">
-            Every Portier369 plan includes Owner Portal, Board Portal, Manager Dashboard, Work Orders, Violations, Architectural Reviews, Maintenance Calendar, Compliance Tracking, Vendor Management, Document Management, Association Health Scores, Email Communications, White Glove Setup, Bring Your Own AI, Unlimited Owners, Unlimited Board Members, and Unlimited Vendors.
+          <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-8 text-zinc-400 sm:text-lg">
+            Every Portier369 plan includes the Owner, Board, and Vendor portals, the Manager Dashboard, work orders,
+            violations, architectural reviews, maintenance calendar, compliance tracking, document management,
+            association health scores, white-glove setup, and Bring Your Own AI — with unlimited owners, board members,
+            and vendors.
           </p>
         </div>
       </section>

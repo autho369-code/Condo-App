@@ -9,17 +9,24 @@ export const metadata: Metadata = {
 export default function CompanyPage() {
   return (
     <div className="bg-white">
-      {/* Hero */}
-      <section className="max-w-[1280px] mx-auto px-6 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-1.5 text-sm font-medium text-gray-500 mb-6">
-          About Portier369
+      {/* Hero — dark to match landing */}
+      <section className="relative overflow-hidden bg-[#060709] pt-20 pb-20 sm:pt-24 sm:pb-24">
+        <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[860px] -translate-x-1/2 rounded-full opacity-[0.14]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute -bottom-56 -right-24 h-[460px] w-[460px] rounded-full opacity-[0.07]" style={{ background: 'radial-gradient(circle, #c9a86a 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '88px 88px' }} />
+        <div className="relative max-w-[1180px] mx-auto px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[12px] font-medium tracking-[0.02em] text-zinc-300 mb-7">
+            About Portier369
+          </div>
+          <h1 className="text-[36px] leading-[1.06] tracking-[-0.03em] font-semibold text-white max-w-4xl mx-auto sm:text-5xl lg:text-[60px]">
+            Built from 29 years in the field — not from a conference room.
+          </h1>
+          <p className="mt-6 text-[17px] leading-8 text-zinc-400 max-w-2xl mx-auto sm:text-lg">
+            Portier369 was founded by a CAM, CMCA, and AMS professional who has managed thousands of units, worked with
+            hundreds of board members, coordinated major capital projects, resolved violations, handled emergencies, and
+            navigated the daily realities of community management.
+          </p>
         </div>
-        <h1 className="text-[64px] leading-[1.05] tracking-[-0.03em] font-bold text-gray-900 max-w-4xl mx-auto">
-          Software built from 29 years in the field — not from a conference room.
-        </h1>
-        <p className="mt-6 text-lg text-gray-500 max-w-2xl mx-auto">
-          Portier369 was founded by a CAM, CMCA, and AMS professional who has managed thousands of units, worked with hundreds of board members, coordinated major capital projects, resolved violations, handled emergencies, and navigated the daily realities of community management.
-        </p>
       </section>
 
       {/* Story */}

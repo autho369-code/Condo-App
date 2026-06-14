@@ -232,13 +232,16 @@ export default async function HomePage() {
       {/* ═══════════════════════════════════════════════
           WHITE GLOVE TIMELINE
           ═══════════════════════════════════════════════ */}
-      <section className="py-16 sm:py-20 bg-[#1E3A5F]">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-white sm:text-[44px]">
-              White glove setup, included.
+      <section className="relative overflow-hidden py-20 sm:py-24 bg-[#060709]">
+        <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[480px] w-[760px] -translate-x-1/2 rounded-full opacity-[0.12]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '88px 88px' }} />
+        <div className="relative mx-auto max-w-[1180px] px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#8fa6ff]">Onboarding</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-white sm:text-[44px]">
+              White-glove setup, included.
             </h2>
-            <p className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto">
+            <p className="mt-4 text-lg leading-8 text-zinc-400 max-w-2xl mx-auto">
               Every management company gets hands-on onboarding. Most go live in under a week.
             </p>
           </div>
@@ -253,11 +256,11 @@ export default async function HomePage() {
             ].map((item, i) => (
               <div key={item.step} className="relative text-center">
                 <div className="flex items-center justify-center mb-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10 text-2xl font-bold text-white">{item.step}</div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06] border border-white/10 text-xl font-semibold text-white">{item.step}</div>
                 </div>
-                <h3 className="text-base font-semibold text-white">{item.title}</h3>
-                <p className="mt-1 text-sm text-gray-300">{item.desc}</p>
-                {i < 5 && <div className="hidden lg:block absolute top-6 -right-2 w-8 h-px bg-white/20" />}
+                <h3 className="text-[15px] font-semibold text-white">{item.title}</h3>
+                <p className="mt-1 text-[13px] leading-5 text-zinc-400">{item.desc}</p>
+                {i < 5 && <div className="hidden lg:block absolute top-6 -right-2 w-8 h-px bg-white/15" />}
               </div>
             ))}
           </div>
@@ -401,24 +404,27 @@ export default async function HomePage() {
       {/* ═══════════════════════════════════════════════
           FINAL CTA
           ═══════════════════════════════════════════════ */}
-      <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+      <section className="relative overflow-hidden py-24 sm:py-28 bg-[#060709]">
+        <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full opacity-[0.14]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-24 h-[440px] w-[440px] rounded-full opacity-[0.07]" style={{ background: 'radial-gradient(circle, #c9a86a 0%, transparent 70%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '88px 88px' }} />
+        <div className="relative mx-auto max-w-[1180px] px-6 lg:px-8 text-center">
+          <h2 className="mx-auto max-w-2xl text-4xl font-semibold leading-[1.06] tracking-[-0.03em] text-white sm:text-5xl">
             Run your entire portfolio from one platform.
           </h2>
-          <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">
-            White glove setup included. No long-term contract required.
+          <p className="mt-5 text-lg leading-8 text-zinc-400 max-w-xl mx-auto">
+            White-glove setup included. No long-term contract required.
           </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1E3A5F]/20 hover:bg-[#152940] transition">
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-[15px] font-semibold text-gray-950 shadow-lg shadow-black/30 transition hover:bg-zinc-100">
               Request Proposal
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
-            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-8 py-4 text-base font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition">
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-7 py-3.5 text-[15px] font-semibold text-white transition hover:bg-white/[0.08]">
               View pricing
             </Link>
           </div>
-          <p className="mt-8 text-sm text-gray-400">Software built from 29 years in the field — not from a conference room.</p>
+          <p className="mt-8 text-[13px] text-zinc-500">Software built from 29 years in the field — not from a conference room.</p>
         </div>
       </section>
     </div>
