@@ -29,7 +29,7 @@
 
 **✅ Verified working this session (real Granville data):** manager dashboard, board portal financials/budget/delinquencies, owner portal, vendor portal, all persona logins.
 **🔧 Bugs found & FIXED this session:** board financials RLS ($0→real), board delinquency owner names, owner-portal balance ($0→real A/R), budget expense actuals, tenant comms (SMS + email).
-**❌ Genuine remaining gaps:** (1) per-page correctness verification across all modules (the bug class above recurs); (2) financial-report numbers not yet proven end-to-end; (3) visual parity vs the 194 AppFolio screenshots — **blocked: those files live at `C:\Users\ailab\…`, not on this machine**; (4) SMS provider not wired (Twilio at launch).
+**❌ Genuine remaining gaps:** (1) per-page correctness verification across all modules (the bug class above recurs); (2) financial-report numbers proven (DONE for the 5 core statements); (3) **FEATURE coverage to the approved spec** `docs/superpowers/specs/2026-05-01-...redesign-design.md` — a modern Vercel/Linear operations UI in the existing design system. **Do NOT copy AppFolio's visual layout / screenshots** (explicit non-goal in the spec + CLAUDE.md: "functionality parity yes, expression no"). The 194 AppFolio screenshots are a competitive reference for FEATURES only, not a pixel target. (4) SMS provider not wired (Twilio at launch).
 
 **Bottom line:** ~85% built structurally across all 5 phases. "Finishing" = verify + harden module-by-module against clean data, prove the reports, then visual parity — NOT a rebuild. Grind order: financial core → correctness sweep → Phase 1 panels → maintenance → visual parity.
 
