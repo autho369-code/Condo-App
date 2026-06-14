@@ -763,11 +763,11 @@ async function CashFlowView({
         <Section title="Cash Flow Summary">
           <div className="px-5 py-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Operating inflows (credits to cash)</span>
+              <span className="text-gray-600">Operating inflows (debits to cash)</span>
               <span className="tabular-nums font-medium text-green-700">{money(operatingInflows)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Operating outflows (debits from cash)</span>
+              <span className="text-gray-600">Operating outflows (credits to cash)</span>
               <span className="tabular-nums font-medium text-red-600">({money(operatingOutflows)})</span>
             </div>
             <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold">

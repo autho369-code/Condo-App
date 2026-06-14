@@ -25,7 +25,7 @@
 - **Phase 2 (Accounting):** 🔧 mostly — receivables (charges/bulk/recurring), payables (bills/check-run/owner-payable/recurring), bank-accounts (+feeds/reconcile/deposits/adjustments/activity), journal-entries, bank-transfers, gl-accounts, diagnostics all built. ✅ verified: GL chart, balanced journal entries, AR. Needs: reconcile flow, diagnostics correctness.
 - **Phase 3 (Maintenance):** 🔧 — work-orders, recurring-work-orders, inspections, projects, purchase-orders, fixed-assets, inventory, unit-turns all exist. Unverified against data.
 - **Phase 4 (Reports module):** 🔧 — reports, statements (send/bulk), letters, scheduled-reports, metrics, surveys, violations all exist.
-- **Phase 5 (Reports engine):** 🔧 — 5 core statements render LIVE (trial_balance, balance_sheet, income_statement, cash_flow, general_ledger); 128 report_definitions seeded. Needs: confirm numbers are correct + per-role access.
+- **Phase 5 (Reports engine):** ✅ 5 core statements VERIFIED correct vs Granville data (trial_balance, income_statement, balance_sheet, cash_flow, general_ledger). Fixed 2026-06-14: balance sheet now rolls net income into equity (was unbalanced); cash flow fixed (was using nonexistent bank_accounts.current_balance, treated 1000-1999 incl. A/R as cash, inverted inflow/outflow signs). 128 report_definitions seeded; remaining reports still queue-based 🔧.
 
 **✅ Verified working this session (real Granville data):** manager dashboard, board portal financials/budget/delinquencies, owner portal, vendor portal, all persona logins.
 **🔧 Bugs found & FIXED this session:** board financials RLS ($0→real), board delinquency owner names, owner-portal balance ($0→real A/R), budget expense actuals, tenant comms (SMS + email).
