@@ -36,7 +36,7 @@ export default async function HomePage() {
           <p className="mt-6 mx-auto max-w-4xl text-xl leading-relaxed text-gray-700 sm:text-2xl font-medium">
             Software built from 29 years in the field — not from a conference room.
           </p>
-          <p className="mt-5 mx-auto max-w-2xl text-lg leading-relaxed text-gray-500">
+          <p className="mt-5 mx-auto max-w-2xl text-lg leading-relaxed text-gray-600">
             Every workflow inside Portier369 comes from actual condominium and HOA operations, including violations, maintenance, board approvals, owner communications, budgeting, and vendor management.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -72,14 +72,14 @@ export default async function HomePage() {
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{p.name}</span>
                     </div>
                     {p.stats.map(s => (
-                      <div key={s} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: p.color + '08', color: p.color }}>
+                      <div key={s} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: p.color + '0E', color: p.color }}>
                         {s}
                       </div>
                     ))}
                     <div className="space-y-1.5 pt-1">
-                      <div className="h-1 rounded w-full" style={{ backgroundColor: p.color + '10' }} />
-                      <div className="h-1 rounded w-3/4" style={{ backgroundColor: p.color + '0D' }} />
-                      <div className="h-1 rounded w-1/2" style={{ backgroundColor: p.color + '08' }} />
+                      <div className="h-1.5 rounded-full w-full" style={{ backgroundColor: p.color + '20' }} />
+                      <div className="h-1.5 rounded-full w-4/5" style={{ backgroundColor: p.color + '16' }} />
+                      <div className="h-1.5 rounded-full w-3/5" style={{ backgroundColor: p.color + '10' }} />
                     </div>
                   </div>
                 ))}
@@ -102,16 +102,16 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {[
-              { title: 'Manager Dashboard', desc: 'Work orders, violations, maintenance, vendors — everything a property manager needs in one command center.', color: '#2563EB' },
-              { title: 'Board Portal', desc: 'Financial visibility, violation oversight, budget tracking, and documents — scoped to the association only.', color: '#7C3AED' },
-              { title: 'Owner Self-Service', desc: 'Pay assessments, submit requests, view documents, upload insurance — everything owners need, nothing they don\'t.', color: '#059669' },
-              { title: 'Maintenance Calendar', desc: 'Annual, seasonal, and vendor maintenance tracked across every association. Automated reminders before every deadline.', color: '#0D9488' },
-              { title: 'Violation Workflow', desc: 'Photo capture → notice generation → hearing scheduling → fine assessment — the entire lifecycle automated.', color: '#D97706' },
-              { title: 'Platform Command Center', desc: 'CEO-level visibility. Revenue, door usage, company health, provisioning — every management company in one view.', color: '#1E3A5F' },
+              { title: 'Manager Dashboard', desc: 'Work orders, violations, maintenance, vendors — everything a property manager needs in one command center.', color: '#2563EB', metrics: [['Open work orders', '14'], ['Active violations', '7'], ['Due this week', '23']], rows: [['#2546 · Water pressure', 'Assigned'], ['#2547 · Roof leak', 'Scheduled'], ['#2548 · Lobby light', 'New']] },
+              { title: 'Board Portal', desc: 'Financial visibility, violation oversight, budget tracking, and documents — scoped to the association only.', color: '#7C3AED', metrics: [['Operating cash', '$84.2k'], ['Reserve fund', '$210k'], ['Delinquency', '3.1%']], rows: [['Q2 Income statement', 'Ready'], ['Budget vs actual', 'On track'], ['June minutes', 'Approved']] },
+              { title: 'Owner Self-Service', desc: 'Pay assessments, submit requests, view documents, upload insurance — everything owners need.', color: '#059669', metrics: [['Balance due', '$0'], ['Next dues', 'Jul 1'], ['Requests', '2']], rows: [['Autopay', 'Active'], ['HO6 insurance', 'Current'], ['Pool key request', 'In review']] },
+              { title: 'Maintenance Calendar', desc: 'Annual, seasonal, and vendor maintenance tracked across every association. Automated reminders before every deadline.', color: '#0D9488', metrics: [['This month', '12'], ['Overdue', '0'], ['Vendors', '8']], rows: [['HVAC seasonal service', 'Jun 18'], ['Gutter cleaning', 'Jun 24'], ['Fire inspection', 'Jul 02']] },
+              { title: 'Violation Workflow', desc: 'Photo capture → notice generation → hearing scheduling → fine assessment — the entire lifecycle automated.', color: '#D97706', metrics: [['Open cases', '7'], ['Hearings', '2'], ['Cured', '31']], rows: [['Unit 4B · Parking', 'Notice sent'], ['Unit 2A · Trash', 'Hearing set'], ['Unit 7C · Pet', 'Cured']] },
+              { title: 'Platform Command Center', desc: 'CEO-level visibility. Doors under management, company health, provisioning — every management company in one view.', color: '#1E3A5F', metrics: [['Companies', '12'], ['Associations', '147'], ['Doors', '4,280']], rows: [['Stellar Property Mgmt', 'Healthy'], ['Manage369', 'Healthy'], ['ABC Management', 'Trial']] },
             ].map(item => (
               <div key={item.title} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition group">
-                <div className="p-4 border-b border-gray-100" style={{ backgroundColor: item.color + '06' }}>
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="p-4 border-b border-gray-100" style={{ backgroundColor: item.color + '05' }}>
+                  <div className="flex items-center gap-2 mb-3.5">
                     <div className="flex gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-red-300" />
                       <div className="h-2.5 w-2.5 rounded-full bg-amber-300" />
@@ -119,28 +119,26 @@ export default async function HomePage() {
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 ml-2">{item.title}</span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="rounded-lg px-2 py-2.5" style={{ backgroundColor: item.color + '10' }}>
-                          <div className="h-1.5 rounded w-2/3 mb-1.5" style={{ backgroundColor: item.color + '30' }} />
-                          <div className="h-1 rounded w-1/2" style={{ backgroundColor: item.color + '15' }} />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-1.5">
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="h-1.5 rounded flex-1" style={{ backgroundColor: item.color + '10' }} />
-                          <div className="h-1.5 rounded w-12" style={{ backgroundColor: item.color + '18' }} />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {item.metrics.map(([label, value]) => (
+                      <div key={label} className="rounded-lg bg-white border border-gray-100 px-2.5 py-2">
+                        <div className="text-[13px] font-bold tabular-nums leading-none" style={{ color: item.color }}>{value}</div>
+                        <div className="mt-1 text-[8px] font-medium uppercase tracking-wide text-gray-400 leading-tight">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5">
+                    {item.rows.map(([label, status]) => (
+                      <div key={label} className="flex items-center justify-between rounded-md bg-white border border-gray-100 px-2.5 py-1.5">
+                        <span className="text-[10px] font-medium text-gray-600 truncate">{label}</span>
+                        <span className="text-[8px] font-semibold uppercase tracking-wide rounded-full px-1.5 py-0.5 flex-shrink-0" style={{ backgroundColor: item.color + '12', color: item.color }}>{status}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="p-5">
                   <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
-                  <p className="mt-2 text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                  <p className="mt-2 text-[15px] text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
