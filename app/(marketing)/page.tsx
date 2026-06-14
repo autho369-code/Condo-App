@@ -1,26 +1,15 @@
 import Link from 'next/link'
 import { Screenshot } from '@/components/marketing/screenshot'
-import { createClient } from '@/lib/supabase/server'
 
-export const dynamic = 'force-dynamic'
+// Static — hero uses illustrative demo data, no DB calls
 
 export default async function HomePage() {
-  const supabase = await createClient()
-  const db = supabase as any
-
-  // Fetch real platform stats
-  const [portfoliosRes, assocRes, unitsRes, subsRes] = await Promise.all([
-    db.from('portfolios').select('id', { count: 'exact', head: true }),
-    db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('subscriptions').select('tier, status, price_monthly_cents'),
-  ])
-
-  const companyCount = portfoliosRes?.count ?? 0
-  const assocCount = assocRes?.count ?? 0
-  const doorCount = unitsRes?.count ?? 0
-  const activeSubs = (subsRes?.data ?? []).filter((s: any) => s.status === 'active' || s.status === 'trialing')
-  void activeSubs;
+  // Illustrative figures for the product demo in the hero — they showcase the
+  // platform's scale-handling, not Portier369's own customer count. Kept round
+  // and realistic; no revenue is shown publicly.
+  const companyCount = 12
+  const assocCount = 147
+  const doorCount = 4280
   return (
     <div className="bg-white font-sans antialiased">
       {/* ═══════════════════════════════════════════════
@@ -69,7 +58,7 @@ export default async function HomePage() {
               </div>
               <div className="grid grid-cols-5 divide-x divide-gray-100">
                 {[
-                  { name: 'Platform Operator', stats: [`${companyCount} ${companyCount === 1 ? 'company' : 'companies'}`, `${assocCount} associations`, `${doorCount.toLocaleString()} doors`], color: '#1E3A5F' },
+                  { name: 'Platform Operator', stats: [`${companyCount} companies`, `${assocCount} associations`, `${doorCount.toLocaleString()} doors`], color: '#1E3A5F' },
                   { name: 'Company Admin', stats: [`${assocCount} associations`, 'Portfolio view', 'Billing control'], color: '#0D9488' },
                   { name: 'Manager', stats: ['Work orders', 'Violations', 'Maintenance'], color: '#2563EB' },
                   { name: 'Board Member', stats: ['Financials', 'Violations', 'Documents'], color: '#7C3AED' },
