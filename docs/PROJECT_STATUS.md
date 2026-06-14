@@ -1,6 +1,46 @@
-# Condo-App — Master Project Status
-*Last updated: 2026-04-21*
-*Read this at the start of every session. Update it at the end.*
+# Portier369 — Master Project Status
+*Single source of truth in the repo. Kept in sync with Claude's memory at*
+*`C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`.*
+*The **CURRENT STATE** section below is authoritative; everything under HISTORICAL LOG is old and may be stale.*
+*Last updated: 2026-06-14.*
+
+---
+
+## 🎯 The Goal
+Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar Property Group** — to functional parity with **AppFolio Property Manager**, then beyond, with an original design. Live at **portier369.com** (Vercel auto-deploys `main`).
+
+## ✅ Current State (2026-06-14)
+- **Live & green.** Design-system migration 100% done; all "New X" create forms built; self-service account/security (password change) page shipped.
+- **Clean test data:** the database now holds ONE realistic association — **Granville Courts** (Stellar portfolio) — with full accounting so every screen shows real numbers. All prior fake/seed data was backed up to `backups/seed-backup-*.json`, then hard-deleted.
+- **7 personas** — all `@portier369.com`, password `Portier2026!`:
+  - `hello@` — super-admin / platform operator
+  - `admin@` — company admin
+  - `manager@` — property manager
+  - `owner1@` — Olivia: owner-occupant **and Board President** of Granville
+  - `owner2@` — Liam: owner who rents unit 102 to a tenant
+  - `vendor@` — Lakefront Maintenance LLC
+  - Tenant (Tessa) is **data-only — NO login** — reachable by email/SMS only
+- **Accounting (Granville):** $10,500 dues billed · $8,400 collected · **$2,100 A/R** · operating + reserve bank accounts · FY2026 budget · 2 vendor bills · 4 balanced journal entries. Books balance (DB-trigger enforced).
+- **Verified in the running app:** manager dashboard, board portal (financials/budget/delinquencies), owner portal, vendor portal — all rendering real Granville data.
+
+## 🔧 Fixed this session (committed + live)
+- Board **Financials** showed $0 → added board read-only RLS on `journal_lines`/`journal_entries`/`bank_accounts` (association-scoped). Migration `board_read_financials_rls.sql`.
+- Board **Delinquencies** blank owner/last-payment → roster RLS (`board_read_roster_rls.sql`) + page fix.
+- **Owner portal** balance $0 → fixed queries hitting nonexistent columns (`occupancies.archived_at`, `work_orders.owner_id`); balance now = real A/R.
+- **Budget vs Actual** expense actuals $0 → set bill `occurred_on`.
+- **Tenants** reachable by SMS (+ accurate email recipient count); tenant login removed.
+
+## 📋 Open items / next
+- **SMS provider** deferred (recommend **Twilio** at launch; requires US 10DLC registration — don't pay until a real pilot). Email already delivers via Resend.
+- **No tenant portal** — intentional; tenants are data-only contacts.
+- Pre-launch: real-client pilot · confirm Resend domain auth (deliverability) · legal review of `/legal/*` · replace any remaining seed data.
+
+## 🧠 How memory works (so nothing is hidden)
+My durable memory is Markdown at `…\.claude\projects\C--Users-autho-Portier369\memory\` (Obsidian-compatible). **This file is the human-readable mirror inside your repo** — I update both together, and it's versioned in git so it travels with the project.
+
+---
+# HISTORICAL LOG
+*Older session notes below — kept for history, likely out of date. Trust CURRENT STATE above.*
 
 ---
 
