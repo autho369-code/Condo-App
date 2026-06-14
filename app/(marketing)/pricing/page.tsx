@@ -1,5 +1,12 @@
 import Link from 'next/link'
 import { Check } from 'lucide-react'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Pricing — Simple Door-Based Plans',
+  description: 'Transparent door-based pricing for property management companies. Plans from $157/mo. Everything included — no hidden modules, no implementation fees, no long-term contracts.',
+  alternates: { canonical: '/pricing' },
+}
 
 const plans = [
   {

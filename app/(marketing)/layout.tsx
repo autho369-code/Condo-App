@@ -1,8 +1,44 @@
 import Link from 'next/link'
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://portier369.com/#organization',
+      name: 'Portier369',
+      url: 'https://portier369.com',
+      description: 'The operating system for condominium and HOA management.',
+      email: 'hello@portier369.com',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Portier369',
+      applicationCategory: 'BusinessApplication',
+      applicationSubCategory: 'Property Management Software',
+      operatingSystem: 'Web, iOS, Android',
+      description:
+        'All-in-one property management software for condominium and HOA management companies — work orders, violations, maintenance, accounting, board and owner portals, and vendor management.',
+      offers: {
+        '@type': 'Offer',
+        price: '157',
+        priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '157',
+          priceCurrency: 'USD',
+          billingDuration: 'P1M',
+        },
+      },
+      publisher: { '@id': 'https://portier369.com/#organization' },
+    },
+  ],
+}
+
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5">

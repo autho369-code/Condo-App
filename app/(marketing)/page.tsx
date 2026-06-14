@@ -19,7 +19,7 @@ export default async function HomePage() {
   const assocCount = assocRes?.count ?? 0
   const doorCount = unitsRes?.count ?? 0
   const activeSubs = (subsRes?.data ?? []).filter((s: any) => s.status === 'active' || s.status === 'trialing')
-  const mrr = activeSubs.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100
+  void activeSubs;
   return (
     <div className="bg-white font-sans antialiased">
       {/* ═══════════════════════════════════════════════
@@ -60,7 +60,7 @@ export default async function HomePage() {
               </div>
               <div className="grid grid-cols-5 divide-x divide-gray-100">
                 {[
-                  { name: 'Platform Operator', stats: [`${companyCount} companies`, `$${mrr.toLocaleString()} MRR`, `${doorCount.toLocaleString()} doors`], color: '#1E3A5F' },
+                  { name: 'Platform Operator', stats: [`${companyCount} ${companyCount === 1 ? 'company' : 'companies'}`, `${assocCount} associations`, `${doorCount.toLocaleString()} doors`], color: '#1E3A5F' },
                   { name: 'Company Admin', stats: [`${assocCount} associations`, 'Portfolio view', 'Billing control'], color: '#0D9488' },
                   { name: 'Manager', stats: ['Work orders', 'Violations', 'Maintenance'], color: '#2563EB' },
                   { name: 'Board Member', stats: ['Financials', 'Violations', 'Documents'], color: '#7C3AED' },
