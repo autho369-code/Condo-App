@@ -14,14 +14,23 @@ export async function loginWithPassword(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/login?mode=${mode}&error=${encodeURIComponent(error.message)}`);
 
-  // Check if user is a board member and redirect to board portal
+  // The system determines the destination from the account's ACTUAL role,
+  // not the login tab that was clicked. An explicit ?next= (deep link) wins.
+  const explicitNext = safeInternalNext(formData.get('next'));
   const { data: me } = await (supabase as any).rpc('me');
-  if (me?.is_board && next === '/portal') {
-    revalidatePath('/', 'layout');
-    redirect('/board');
-  }
-
   revalidatePath('/', 'layout');
+
+  if (explicitNext) redirect(explicitNext);
+
+  // Role precedence: platform operator → company admin → board → staff → owner → vendor
+  if (me?.is_platform_operator) redirect('/platform-operator');
+  if (me?.is_company_admin) redirect('/company-admin/overview');
+  if (me?.is_board) redirect('/board');
+  if (me?.is_staff || me?.is_full_access_staff) redirect('/dashboard');
+  if (me?.vendor_id) redirect('/vendor');
+  if (me?.owner_id) redirect('/portal');
+
+  // Fallback to the tab's default if role couldn't be resolved
   redirect(next);
 }
 
