@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Screenshot } from '@/components/marketing/screenshot'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -51,7 +52,15 @@ export default async function HomePage() {
 
           {/* Product Preview */}
           <div className="mt-16 lg:mt-20">
-            <div className="relative rounded-2xl border border-gray-200 bg-white shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15),0_15px_35px_-15px_rgba(0,0,0,0.08)] overflow-hidden">
+            <Screenshot
+              file="hero.png"
+              alt="Portier369 platform — manager dashboard"
+              width={2400}
+              height={1500}
+              priority
+              className="rounded-2xl border border-gray-200 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15),0_15px_35px_-15px_rgba(0,0,0,0.08)]"
+              fallback={
+              <div className="relative rounded-2xl border border-gray-200 bg-white shadow-[0_25px_70px_-20px_rgba(30,58,95,0.15),0_15px_35px_-15px_rgba(0,0,0,0.08)] overflow-hidden">
               <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3 bg-gray-50/50">
                 <div className="h-3 w-3 rounded-full bg-red-300" />
                 <div className="h-3 w-3 rounded-full bg-amber-300" />
@@ -85,6 +94,8 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
+              }
+            />
           </div>
         </div>
       </section>
@@ -102,14 +113,21 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {[
-              { title: 'Manager Dashboard', desc: 'Work orders, violations, maintenance, vendors — everything a property manager needs in one command center.', color: '#2563EB', metrics: [['Open work orders', '14'], ['Active violations', '7'], ['Due this week', '23']], rows: [['#2546 · Water pressure', 'Assigned'], ['#2547 · Roof leak', 'Scheduled'], ['#2548 · Lobby light', 'New']] },
-              { title: 'Board Portal', desc: 'Financial visibility, violation oversight, budget tracking, and documents — scoped to the association only.', color: '#7C3AED', metrics: [['Operating cash', '$84.2k'], ['Reserve fund', '$210k'], ['Delinquency', '3.1%']], rows: [['Q2 Income statement', 'Ready'], ['Budget vs actual', 'On track'], ['June minutes', 'Approved']] },
-              { title: 'Owner Self-Service', desc: 'Pay assessments, submit requests, view documents, upload insurance — everything owners need.', color: '#059669', metrics: [['Balance due', '$0'], ['Next dues', 'Jul 1'], ['Requests', '2']], rows: [['Autopay', 'Active'], ['HO6 insurance', 'Current'], ['Pool key request', 'In review']] },
-              { title: 'Maintenance Calendar', desc: 'Annual, seasonal, and vendor maintenance tracked across every association. Automated reminders before every deadline.', color: '#0D9488', metrics: [['This month', '12'], ['Overdue', '0'], ['Vendors', '8']], rows: [['HVAC seasonal service', 'Jun 18'], ['Gutter cleaning', 'Jun 24'], ['Fire inspection', 'Jul 02']] },
-              { title: 'Violation Workflow', desc: 'Photo capture → notice generation → hearing scheduling → fine assessment — the entire lifecycle automated.', color: '#D97706', metrics: [['Open cases', '7'], ['Hearings', '2'], ['Cured', '31']], rows: [['Unit 4B · Parking', 'Notice sent'], ['Unit 2A · Trash', 'Hearing set'], ['Unit 7C · Pet', 'Cured']] },
-              { title: 'Platform Command Center', desc: 'CEO-level visibility. Doors under management, company health, provisioning — every management company in one view.', color: '#1E3A5F', metrics: [['Companies', '12'], ['Associations', '147'], ['Doors', '4,280']], rows: [['Stellar Property Mgmt', 'Healthy'], ['Manage369', 'Healthy'], ['ABC Management', 'Trial']] },
+              { shot: 'manager.png', title: 'Manager Dashboard', desc: 'Work orders, violations, maintenance, vendors — everything a property manager needs in one command center.', color: '#2563EB', metrics: [['Open work orders', '14'], ['Active violations', '7'], ['Due this week', '23']], rows: [['#2546 · Water pressure', 'Assigned'], ['#2547 · Roof leak', 'Scheduled'], ['#2548 · Lobby light', 'New']] },
+              { shot: 'board.png', title: 'Board Portal', desc: 'Financial visibility, violation oversight, budget tracking, and documents — scoped to the association only.', color: '#7C3AED', metrics: [['Operating cash', '$84.2k'], ['Reserve fund', '$210k'], ['Delinquency', '3.1%']], rows: [['Q2 Income statement', 'Ready'], ['Budget vs actual', 'On track'], ['June minutes', 'Approved']] },
+              { shot: 'owner.png', title: 'Owner Self-Service', desc: 'Pay assessments, submit requests, view documents, upload insurance — everything owners need.', color: '#059669', metrics: [['Balance due', '$0'], ['Next dues', 'Jul 1'], ['Requests', '2']], rows: [['Autopay', 'Active'], ['HO6 insurance', 'Current'], ['Pool key request', 'In review']] },
+              { shot: 'maintenance.png', title: 'Maintenance Calendar', desc: 'Annual, seasonal, and vendor maintenance tracked across every association. Automated reminders before every deadline.', color: '#0D9488', metrics: [['This month', '12'], ['Overdue', '0'], ['Vendors', '8']], rows: [['HVAC seasonal service', 'Jun 18'], ['Gutter cleaning', 'Jun 24'], ['Fire inspection', 'Jul 02']] },
+              { shot: 'violations.png', title: 'Violation Workflow', desc: 'Photo capture → notice generation → hearing scheduling → fine assessment — the entire lifecycle automated.', color: '#D97706', metrics: [['Open cases', '7'], ['Hearings', '2'], ['Cured', '31']], rows: [['Unit 4B · Parking', 'Notice sent'], ['Unit 2A · Trash', 'Hearing set'], ['Unit 7C · Pet', 'Cured']] },
+              { shot: 'platform.png', title: 'Platform Command Center', desc: 'CEO-level visibility. Doors under management, company health, provisioning — every management company in one view.', color: '#1E3A5F', metrics: [['Companies', '12'], ['Associations', '147'], ['Doors', '4,280']], rows: [['Stellar Property Mgmt', 'Healthy'], ['Manage369', 'Healthy'], ['ABC Management', 'Trial']] },
             ].map(item => (
               <div key={item.title} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition group">
+                <Screenshot
+                  file={item.shot}
+                  alt={`Portier369 — ${item.title}`}
+                  width={1200}
+                  height={750}
+                  className="w-full border-b border-gray-100"
+                  fallback={
                 <div className="p-4 border-b border-gray-100" style={{ backgroundColor: item.color + '05' }}>
                   <div className="flex items-center gap-2 mb-3.5">
                     <div className="flex gap-1.5">
@@ -136,6 +154,8 @@ export default async function HomePage() {
                     ))}
                   </div>
                 </div>
+                  }
+                />
                 <div className="p-5">
                   <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
                   <p className="mt-2 text-[15px] text-gray-600 leading-relaxed">{item.desc}</p>
