@@ -2,14 +2,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
+import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
   const mode = normalizeLoginMode(formData.get('mode'));
-  const next = safeInternalNext(formData.get('next')) ?? '/dashboard';
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/login?mode=${mode}&error=${encodeURIComponent(error.message)}`);
@@ -31,7 +30,7 @@ export async function loginWithPassword(formData: FormData) {
   if (me?.owner_id) redirect('/portal');
 
   // Fallback to the tab's default if role couldn't be resolved
-  redirect(next);
+  redirect(getLoginModeConfig(mode).defaultNext);
 }
 
 export async function signupWithPassword(formData: FormData) {

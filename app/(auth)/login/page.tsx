@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
-import { getLoginModeConfig, getLoginNext, getVisibleLoginModes, type LoginModeId } from '@/lib/auth/login-modes';
+import { getLoginModeConfig, getVisibleLoginModes, safeInternalNext, type LoginModeId } from '@/lib/auth/login-modes';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export default async function LoginPage({
@@ -13,7 +13,10 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const mode = getLoginModeConfig(params.mode);
-  const next = getLoginNext(params);
+  // Only forward an EXPLICIT deep-link (e.g. bounced from a protected page).
+  // When absent, leave next empty so the server resolves the destination from
+  // the account's actual role instead of the login tab's default.
+  const next = safeInternalNext(params.next) ?? '';
   const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true';
   const modes = getVisibleLoginModes(params.mode);
   const isAdminMode = mode.id === 'admin';
