@@ -105,7 +105,8 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                   allSpaces.map((space: any) => {
                     const a = activeBySpace.get(space.id);
                     const assocUnits = (units ?? []).filter((u: any) => u.buildings?.association_id === space.association_id);
-                    const assocTenants = (tenants ?? []);
+                    const assocUnitIds = new Set(assocUnits.map((u: any) => u.id));
+                    const assocTenants = (tenants ?? []).filter((t: any) => assocUnitIds.has(t.unit_id));
                     return (
                       <TR key={space.id} className="align-top">
                         <TD>
@@ -159,16 +160,20 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
                                   </select>
                                   {assocUnits.length === 0 && <p className="mt-1 text-xs text-amber-700">This association has no units yet — add units first.</p>}
                                 </div>
+                                {/* Tenant picker only appears when the association actually has tenants;
+                                    otherwise the space is owner-used and the optional name field covers guests. */}
+                                {assocTenants.length > 0 && (
+                                  <div>
+                                    <Label htmlFor={`tenant-${space.id}`}>Used by tenant (optional)</Label>
+                                    <select id={`tenant-${space.id}`} name="tenant_id" className={inputCls}>
+                                      <option value="">Owner of the unit</option>
+                                      {assocTenants.map((t: any) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                                    </select>
+                                  </div>
+                                )}
                                 <div>
-                                  <Label htmlFor={`tenant-${space.id}`}>Tenant (optional)</Label>
-                                  <select id={`tenant-${space.id}`} name="tenant_id" className={inputCls}>
-                                    <option value="">— owner-used —</option>
-                                    {assocTenants.map((t: any) => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
-                                  </select>
-                                </div>
-                                <div>
-                                  <Label htmlFor={`occ-${space.id}`}>Or name</Label>
-                                  <Input id={`occ-${space.id}`} name="occupant_name" placeholder="Free text" />
+                                  <Label htmlFor={`occ-${space.id}`}>External occupant name (optional)</Label>
+                                  <Input id={`occ-${space.id}`} name="occupant_name" placeholder="Only if not tied to a unit (e.g. guest)" />
                                 </div>
                                 <div><Label>Vehicle make</Label><Input name="vehicle_make" /></div>
                                 <div><Label>Model</Label><Input name="vehicle_model" /></div>
