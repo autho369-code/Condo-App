@@ -16,6 +16,25 @@
 - No demo data — real production data only
 - Don't touch items we already built that exceed AppFolio (AI features, calendar integration, etc.)
 
+## ⟹ STATUS RECONCILIATION (2026-06-14) — READ THIS FIRST
+*The `[ ]` boxes below were never ticked as work shipped. Reality, reconciled against the 233 page files actually on disk:*
+
+**Legend:** ✅ verified working with real data · 🔧 built, not yet verified · ❌ genuine gap
+
+- **Phase 1 (Nav & Task Panels):** 🔧 — associations/owners/vendors + sub-pages all exist; TASK panels present. Needs item-by-item check vs the layout doc.
+- **Phase 2 (Accounting):** 🔧 mostly — receivables (charges/bulk/recurring), payables (bills/check-run/owner-payable/recurring), bank-accounts (+feeds/reconcile/deposits/adjustments/activity), journal-entries, bank-transfers, gl-accounts, diagnostics all built. ✅ verified: GL chart, balanced journal entries, AR. Needs: reconcile flow, diagnostics correctness.
+- **Phase 3 (Maintenance):** 🔧 — work-orders, recurring-work-orders, inspections, projects, purchase-orders, fixed-assets, inventory, unit-turns all exist. Unverified against data.
+- **Phase 4 (Reports module):** 🔧 — reports, statements (send/bulk), letters, scheduled-reports, metrics, surveys, violations all exist.
+- **Phase 5 (Reports engine):** 🔧 — 5 core statements render LIVE (trial_balance, balance_sheet, income_statement, cash_flow, general_ledger); 128 report_definitions seeded. Needs: confirm numbers are correct + per-role access.
+
+**✅ Verified working this session (real Granville data):** manager dashboard, board portal financials/budget/delinquencies, owner portal, vendor portal, all persona logins.
+**🔧 Bugs found & FIXED this session:** board financials RLS ($0→real), board delinquency owner names, owner-portal balance ($0→real A/R), budget expense actuals, tenant comms (SMS + email).
+**❌ Genuine remaining gaps:** (1) per-page correctness verification across all modules (the bug class above recurs); (2) financial-report numbers not yet proven end-to-end; (3) visual parity vs the 194 AppFolio screenshots — **blocked: those files live at `C:\Users\ailab\…`, not on this machine**; (4) SMS provider not wired (Twilio at launch).
+
+**Bottom line:** ~85% built structurally across all 5 phases. "Finishing" = verify + harden module-by-module against clean data, prove the reports, then visual parity — NOT a rebuild. Grind order: financial core → correctness sweep → Phase 1 panels → maintenance → visual parity.
+
+---
+
 ## Phase 1: Navigation & Task Panels
 - [ ] P1.1 Audit current sidebar vs layout doc — fix naming, missing links, dropdowns
 - [ ] P1.2 Dashboard TASK panel — match layout doc items: Setup, Reports
