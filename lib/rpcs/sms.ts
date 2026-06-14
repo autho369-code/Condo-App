@@ -20,7 +20,7 @@ export async function sendSms(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const recipientType = req(formData, 'recipient_type'); // owner | vendor
+  const recipientType = req(formData, 'recipient_type'); // owner | vendor | tenant
   const recipientId = req(formData, 'recipient_id');
   const phoneNumber = req(formData, 'phone_number');
   const body = req(formData, 'message');
@@ -47,6 +47,9 @@ export async function sendSms(formData: FormData) {
     } else if (recipientType === 'vendor') {
       const { data: vendor } = await db.from('vendors').select('name').eq('id', recipientId).maybeSingle();
       entityName = vendor?.name ?? '';
+    } else if (recipientType === 'tenant') {
+      const { data: tenant } = await db.from('tenants').select('first_name, last_name').eq('id', recipientId).maybeSingle();
+      entityName = tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() : '';
     }
 
     const { data: newConv, error: convErr } = await db

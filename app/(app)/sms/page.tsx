@@ -45,6 +45,16 @@ export default async function SmsPage() {
     .order('name')
     .limit(200);
 
+  // Get tenants for dropdown (data-only contacts — reachable by SMS/email)
+  const { data: tenants } = await db
+    .from('tenants')
+    .select('id, first_name, last_name, phone')
+    .eq('portfolio_id', me.portfolio?.id)
+    .eq('status', 'active')
+    .is('archived_at', null)
+    .order('last_name')
+    .limit(200);
+
   // Get templates
   const { data: templates } = await db
     .from('message_templates')
@@ -58,7 +68,7 @@ export default async function SmsPage() {
   return (
     <DataWorkspace
       title="SMS Text Messages"
-      description="Send text messages to owners and vendors. Templates, history, and opt-in management available."
+      description="Send text messages to owners, tenants, and vendors. Templates, history, and opt-in management available."
       actions={
         <>
           <Link href="/sms/templates"><Button variant="secondary">Templates</Button></Link>
@@ -70,7 +80,7 @@ export default async function SmsPage() {
         {/* Send SMS Form */}
         <Surface>
           <SectionTitle title="Send a text message" />
-          <SmsForm owners={owners ?? []} vendors={vendors ?? []} templates={templates ?? []} />
+          <SmsForm owners={owners ?? []} vendors={vendors ?? []} tenants={tenants ?? []} templates={templates ?? []} />
         </Surface>
 
         {/* Conversations / History */}

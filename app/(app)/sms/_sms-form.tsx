@@ -15,13 +15,19 @@ function extractPhone(entity: any, type: string): string {
   return '';
 }
 
+function entityName(e: any): string {
+  return e.full_name || e.name || `${e.first_name ?? ''} ${e.last_name ?? ''}`.trim();
+}
+
 export function SmsForm({
   owners,
   vendors,
+  tenants = [],
   templates,
 }: {
   owners: any[];
   vendors: any[];
+  tenants?: any[];
   templates: any[];
 }) {
   const [recipientType, setRecipientType] = useState<string>('owner');
@@ -30,7 +36,7 @@ export function SmsForm({
   const [message, setMessage] = useState<string>('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
 
-  const entities = recipientType === 'owner' ? owners : vendors;
+  const entities = recipientType === 'owner' ? owners : recipientType === 'vendor' ? vendors : tenants;
 
   function handleEntityChange(id: string) {
     setSelectedId(id);
@@ -47,7 +53,7 @@ export function SmsForm({
     if (tpl) setMessage(tpl.body);
   }
 
-  const entityLabel = recipientType === 'owner' ? 'Owner' : 'Vendor';
+  const entityLabel = recipientType === 'owner' ? 'Owner' : recipientType === 'vendor' ? 'Vendor' : 'Tenant';
 
   return (
     <form action={sendSms as any} className="space-y-4">
@@ -62,6 +68,10 @@ export function SmsForm({
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
             <input type="radio" name="recipient_type" value="vendor" checked={recipientType === 'vendor'} onChange={() => { setRecipientType('vendor'); setSelectedId(''); setPhoneNumber(''); }} />
             Vendor
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
+            <input type="radio" name="recipient_type" value="tenant" checked={recipientType === 'tenant'} onChange={() => { setRecipientType('tenant'); setSelectedId(''); setPhoneNumber(''); }} />
+            Tenant
           </label>
         </div>
       </div>
@@ -82,7 +92,7 @@ export function SmsForm({
           <option value="">Select {entityLabel.toLowerCase()}...</option>
           {entities.map((e: any) => (
             <option key={e.id} value={e.id}>
-              {e.full_name || e.name} {extractPhone(e, recipientType) ? `(${extractPhone(e, recipientType)})` : ''}
+              {entityName(e)} {extractPhone(e, recipientType) ? `(${extractPhone(e, recipientType)})` : ''}
             </option>
           ))}
         </select>

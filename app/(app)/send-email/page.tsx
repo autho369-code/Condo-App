@@ -44,11 +44,11 @@ export default async function SendEmailPage({
         .eq('association_id', preAssoc)
         .eq('occupancy_type', 'owner')
         .eq('status', 'current'),
-      (supabase as any).from('occupancies')
+      (supabase as any).from('tenants')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
-        .eq('occupancy_type', 'tenant')
-        .eq('status', 'current'),
+        .eq('status', 'active')
+        .is('archived_at', null),
       (supabase as any).from('board_members')
         .select('*', { count: 'exact', head: true })
         .eq('association_id', preAssoc)
