@@ -83,11 +83,23 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   <Link href="/login" className="block text-gray-600 hover:text-gray-900">Sign in</Link>
                 </div>
               </div>
+              <div>
+                <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Legal</div>
+                <div className="space-y-2 text-sm">
+                  <Link href="/legal/privacy" className="block text-gray-600 hover:text-gray-900">Privacy</Link>
+                  <Link href="/legal/terms" className="block text-gray-600 hover:text-gray-900">Terms</Link>
+                  <Link href="/legal/security" className="block text-gray-600 hover:text-gray-900">Security</Link>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="mt-10 pt-6 border-t border-gray-200 text-xs text-gray-400 flex items-center justify-between">
-            <span>&copy; {new Date().getFullYear()} Portier369</span>
-            <span className="text-gray-500">Powered by <span className="font-semibold">Portier369</span></span>
+          <div className="mt-10 pt-6 border-t border-gray-200 text-xs text-gray-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <span>&copy; {new Date().getFullYear()} Portier369. All rights reserved.</span>
+            <div className="flex items-center gap-4">
+              <Link href="/legal/privacy" className="hover:text-gray-600">Privacy</Link>
+              <Link href="/legal/terms" className="hover:text-gray-600">Terms</Link>
+              <Link href="/legal/security" className="hover:text-gray-600">Security</Link>
+            </div>
           </div>
         </div>
       </footer>
