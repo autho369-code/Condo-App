@@ -17,7 +17,7 @@ export default async function PlatformOperatorLayout({
         modules={platformOperatorModules}
         subtitle="Platform operations"
       />
-      <main className="h-screen flex-1 overflow-y-auto bg-[#f6f7f9] pt-12 lg:pt-0">
+      <main className="h-screen min-w-0 flex-1 overflow-y-auto bg-[#f6f7f9] pt-12 lg:pt-0">
         <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">{children}</div>
       </main>
     </div>

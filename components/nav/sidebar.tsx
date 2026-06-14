@@ -173,7 +173,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
         <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileOpen(false)} />
       )}
       {/* Desktop: always visible. Mobile: slide in when open */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-40 transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <div className={`fixed lg:static lg:shrink-0 inset-y-0 left-0 z-40 transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {sidebarContent}
       </div>
     </>
