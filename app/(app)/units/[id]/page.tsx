@@ -73,13 +73,14 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
           {schedule && schedule.length > 0 ? (
             <Table>
               <THead><TR>
-                <TH>Category</TH><TH className="text-right">Amount</TH><TH>Frequency</TH>
+                <TH>Category</TH><TH>Space / locker #</TH><TH className="text-right">Amount</TH><TH>Frequency</TH>
                 <TH>Next post</TH><TH>Memo</TH><TH></TH>
               </TR></THead>
               <tbody>
                 {schedule.map((s: any) => (
                   <TR key={s.recurring_charge_id}>
                     <TD className="font-medium">{s.category_name}</TD>
+                    <TD className="text-sm text-gray-700">{s.identifier ?? '—'}</TD>
                     <TD className="text-right">{money(s.amount)}</TD>
                     <TD className="capitalize">{s.frequency}</TD>
                     <TD>{date(s.next_post_date)}</TD>
@@ -121,8 +122,11 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
               </select>
             </div>
             <div className="flex items-end"><Button type="submit" className="w-full">Add</Button></div>
-            <div className="md:col-span-5">
-              <Input name="memo" placeholder="Optional memo (e.g. 'Parking Spot 14')" />
+            <div className="md:col-span-2">
+              <Input name="identifier" placeholder="Space / locker # (e.g. 14)" />
+            </div>
+            <div className="md:col-span-3">
+              <Input name="memo" placeholder="Optional memo" />
             </div>
           </form>
         </CardBody>

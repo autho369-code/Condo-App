@@ -64,6 +64,7 @@ export async function subscribeUnitToCharge(formData: FormData) {
   const frequency          = (formData.get('frequency') as any) || null;
   const start_date         = (formData.get('start_date') as string) || undefined;
   const memo               = (formData.get('memo') as string) || undefined;
+  const identifier         = (formData.get('identifier') as string) || undefined;
 
   const { error } = await (supabase as any).rpc('subscribe_unit_to_charge', {
     p_unit_id:            unit_id,
@@ -72,6 +73,7 @@ export async function subscribeUnitToCharge(formData: FormData) {
     p_frequency:          frequency,
     p_start_date:         start_date,
     p_memo:               memo,
+    p_identifier:         identifier,
   });
   if (error) return { error: error.message };
   revalidatePath(`/units/${unit_id}`);
