@@ -3,7 +3,10 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
+import { Button } from '@/components/ui/button'
 import { ArrowLeft, Activity } from 'lucide-react'
+import { updateManagerAssociations } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,12 +21,13 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-export default async function ManagerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ManagerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
   const me = await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
   const { id } = await params
+  const sp = await searchParams
   const today = new Date().toISOString().slice(0, 10)
 
   const { data: manager } = await db
@@ -51,6 +55,15 @@ export default async function ManagerDetailPage({ params }: { params: Promise<{ 
   }))
 
   const assocIds = assignedAssocs.map((a: any) => a.id)
+  const assignedSet = new Set(assocIds)
+
+  // All associations in the portfolio, for the scope editor.
+  const { data: portfolioAssocs } = await db
+    .from('associations')
+    .select('id, name, unit_count, city, state')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .order('name', { ascending: true })
 
   const { data: allWorkOrders } = await db
     .from('work_orders')
@@ -88,6 +101,9 @@ export default async function ManagerDetailPage({ params }: { params: Promise<{ 
       <Link href="/company-admin/managers" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-950">
         <ArrowLeft className="h-4 w-4" /> Back to Managers
       </Link>
+
+      {sp.saved && <Alert tone="success" title="Saved">Association access updated for this manager.</Alert>}
+      {sp.error && <Alert tone="danger" title="Could not update access">{sp.error}</Alert>}
 
       <div className={card}>
         <div className="border-b border-gray-100 px-6 py-5">
@@ -145,39 +161,37 @@ export default async function ManagerDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <div className={card}>
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Associations Assigned</h2>
+      <form action={updateManagerAssociations} className={card}>
+        <input type="hidden" name="manager_id" value={id} />
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-950">Property Access</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Check the associations this manager can access. None checked = full portfolio access.</p>
+          </div>
+          <Button type="submit">Save access</Button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-6 py-2.5 text-left font-medium">Association</th>
-                <th className="px-6 py-2.5 text-right font-medium">Units</th>
-                <th className="px-6 py-2.5 text-left font-medium">Location</th>
-                <th className="px-6 py-2.5 text-left font-medium">Assigned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignedAssocs.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">No associations assigned.</td></tr>
-              ) : (
-                assignedAssocs.map((assoc: any) => (
-                  <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-6 py-3">
-                      <Link href={`/associations/${assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
-                    </td>
-                    <td className="px-6 py-3 text-right tabular-nums text-gray-700">{assoc.unitCount}</td>
-                    <td className="px-6 py-3 text-[13px] text-gray-700">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="px-6 py-3 text-[13px] tabular-nums text-gray-700">{date(assoc.assignedAt)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="divide-y divide-gray-50">
+          {(portfolioAssocs ?? []).length === 0 ? (
+            <div className="px-6 py-8 text-center text-sm text-gray-500">No associations in this portfolio yet.</div>
+          ) : (
+            (portfolioAssocs ?? []).map((assoc: any) => (
+              <label key={assoc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50/60">
+                <input
+                  type="checkbox"
+                  name="association_ids"
+                  value={assoc.id}
+                  defaultChecked={assignedSet.has(assoc.id)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-gray-900">{assoc.name}</div>
+                  <div className="text-xs text-gray-500">{[assoc.city, assoc.state].filter(Boolean).join(', ') || '—'} · {assoc.unit_count ?? 0} units</div>
+                </div>
+              </label>
+            ))
+          )}
         </div>
-      </div>
+      </form>
 
       <div className={card}>
         <div className="border-b border-gray-100 px-6 py-4">

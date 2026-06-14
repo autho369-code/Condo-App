@@ -43,10 +43,17 @@ export default async function CompanyAdminManagersPage({
     assocByManager.get(am.user_id)!.push(am.association_id)
   }
 
+  // All associations in the portfolio — for the invite picker (scope a manager).
+  const { data: portfolioAssocs } = await db
+    .from('associations')
+    .select('id, name, unit_count')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .order('name', { ascending: true })
+
   const allAssocIds = [...new Set((assocManagers ?? []).map((am: any) => am.association_id))]
-  const { data: assocs } = await db.from('associations').select('id, unit_count').in('id', allAssocIds)
   const unitCountByAssoc = new Map<string, number>()
-  for (const a of assocs ?? []) { unitCountByAssoc.set(a.id, a.unit_count ?? 0) }
+  for (const a of portfolioAssocs ?? []) { unitCountByAssoc.set(a.id, a.unit_count ?? 0) }
 
   const { data: workOrders } = await db
     .from('work_orders')
@@ -101,10 +108,26 @@ export default async function CompanyAdminManagersPage({
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Managers</h1>
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Staff and managers managing associations in your portfolio</p>
         </div>
-        <form action={inviteManager} className="flex items-center gap-2">
-          <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 w-56" aria-label="Manager email" />
-          <input type="hidden" name="role_name" value="Property Manager" />
-          <Button type="submit" className="gap-2"><UserPlus className="h-4 w-4" /> Invite Manager</Button>
+        <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex items-center gap-2">
+            <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 flex-1" aria-label="Manager email" />
+            <input type="hidden" name="role_name" value="Property Manager" />
+            <Button type="submit" className="gap-2"><UserPlus className="h-4 w-4" /> Invite</Button>
+          </div>
+          {(portfolioAssocs ?? []).length > 0 && (
+            <div className="mt-3">
+              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Properties this manager can access</div>
+              <div className="max-h-40 space-y-1 overflow-y-auto">
+                {(portfolioAssocs ?? []).map((a: any) => (
+                  <label key={a.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] text-gray-700 hover:bg-gray-50">
+                    <input type="checkbox" name="association_ids" value={a.id} className="h-3.5 w-3.5 rounded border-gray-300" />
+                    <span className="truncate">{a.name}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] leading-4 text-gray-400">Leave all unchecked for full portfolio access.</p>
+            </div>
+          )}
         </form>
       </div>
 
