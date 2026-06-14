@@ -7,6 +7,8 @@ import { Badge, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { Alert } from '@/components/ui/shell';
+import { sendCommunication } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +17,9 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default async function CommunicationCenterPage() {
+export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ sent?: string; error?: string }> }) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -41,6 +44,9 @@ export default async function CommunicationCenterPage() {
       }
     >
       <div className="space-y-6">
+        {sp.error && <Alert tone="danger" title="Could not send">{sp.error}</Alert>}
+        {sp.sent && <Alert tone="success" title="Message sent">{`Queued for delivery to ${sp.sent} recipient${sp.sent === '1' ? '' : 's'} via email.`}</Alert>}
+
         <MetricStrip
           metrics={[
             { label: 'Total messages', value: rows.length },
@@ -60,6 +66,7 @@ export default async function CommunicationCenterPage() {
                 <TH>Association</TH>
                 <TH>Subject / Message</TH>
                 <TH>Status</TH>
+                <TH className="text-right">Action</TH>
               </TR>
             </THead>
             <tbody>
@@ -77,6 +84,20 @@ export default async function CommunicationCenterPage() {
                     <div className="mt-1 line-clamp-2 text-gray-500">{message.body}</div>
                   </TD>
                   <TD><Badge status={message.status} /></TD>
+                  <TD className="text-right">
+                    {message.channel === 'email' && message.status !== 'sent' ? (
+                      <form action={sendCommunication}>
+                        <input type="hidden" name="message_id" value={message.id} />
+                        <Button type="submit" variant="secondary" size="sm">
+                          {message.status === 'failed' ? 'Retry' : 'Approve & send'}
+                        </Button>
+                      </form>
+                    ) : message.channel === 'sms' && message.status !== 'sent' ? (
+                      <Link href="/sms" className="text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">SMS console →</Link>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </TD>
                 </TR>
               ))}
             </tbody>
