@@ -303,9 +303,20 @@ async function BalanceSheetView({
   const equity      = accounts.filter((a) => classify(a) === 'Equity');
 
   const sumBalance = (list: any[]) => list.reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0);
+
+  // Roll current-year net income (revenue − expenses, cumulative through the as-of
+  // date) into equity as retained earnings — otherwise the sheet doesn't balance.
+  const isIncome  = (t: string) => ['income', 'other_income'].includes(t ?? '');
+  const isExpense = (t: string) => ['expense', 'other_expense', 'cost_of_goods_sold'].includes(t ?? '');
+  const netIncome =
+    accounts.filter((a) => isIncome(a.account_type)).reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0) -
+    accounts.filter((a) => isExpense(a.account_type)).reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0);
+  totals['__ni__'] = { debit: netIncome < 0 ? -netIncome : 0, credit: netIncome > 0 ? netIncome : 0 };
+  const equityDisplay = [...equity, { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' }];
+
   const totalAssets      = sumBalance(assets);
   const totalLiabilities = sumBalance(liabilities);
-  const totalEquity      = sumBalance(equity);
+  const totalEquity      = sumBalance(equityDisplay);
   const totalLE          = totalLiabilities + totalEquity;
 
   const renderSection = (title: string, items: any[], total: number) => (
@@ -374,7 +385,7 @@ async function BalanceSheetView({
 
         {renderSection('Assets', assets, totalAssets)}
         {renderSection('Liabilities', liabilities, totalLiabilities)}
-        {renderSection('Equity', equity, totalEquity)}
+        {renderSection('Equity', equityDisplay, totalEquity)}
 
         <Section title="Balance Check">
           <div className="px-5 py-4">
@@ -578,10 +589,11 @@ async function CashFlowView({
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Fetch bank accounts
+  // Bank accounts (no stored balance column — balances are derived from GL lines below)
   const { data: bankAccounts } = await db
     .from('bank_accounts')
-    .select('id, name, bank_name, account_type, current_balance')
+    .select('id, name, bank_name, account_type, gl_account_id')
+    .is('archived_at', null)
     .order('name');
   const bAccounts = (bankAccounts ?? []) as any[];
 
@@ -596,7 +608,7 @@ async function CashFlowView({
   const { data: transfers } = await transferQuery;
   const bankTransfers = (transfers ?? []) as any[];
 
-  // Fetch cash-related journal lines (accounts 1000-1999)
+  // Cash journal lines in period
   let cashLineQuery = db
     .from('journal_lines')
     .select('id, debit_amount, credit_amount, gl_account_id, association_id, journal_entries!inner(entry_date, posted, memo, description)')
@@ -609,33 +621,40 @@ async function CashFlowView({
   }
 
   const { data: cashLines } = await cashLineQuery;
-
   const cashJournalLines = (cashLines ?? []) as any[];
 
-  // Get cash account IDs
+  // TRUE cash accounts only (account_type = 'cash' — not the whole 1000–1999 range,
+  // which also contains A/R and prepaids).
   const { data: cashAccounts } = await db
     .from('gl_accounts')
     .select('id, number, name')
-    .gte('number', 1000)
-    .lte('number', 1999)
+    .eq('account_type', 'cash')
     .eq('active', true);
 
   const cashAccountIds = new Set(((cashAccounts ?? []) as any[]).map((a: any) => a.id));
-
-  // Filter cash lines
   const cashActivity = cashJournalLines.filter((l: any) => cashAccountIds.has(l.gl_account_id));
 
-  // Operating inflows: credits to cash (payments received)
-  const operatingInflows = cashActivity.reduce((s: number, l: any) => {
-    return s + Number(l.credit_amount ?? 0);
-  }, 0);
-
-  // Operating outflows: debits from cash (payments made)
-  const operatingOutflows = cashActivity.reduce((s: number, l: any) => {
-    return s + Number(l.debit_amount ?? 0);
-  }, 0);
-
+  // A debit to a cash account increases cash (inflow); a credit decreases it (outflow).
+  const operatingInflows  = cashActivity.reduce((s: number, l: any) => s + Number(l.debit_amount ?? 0), 0);
+  const operatingOutflows = cashActivity.reduce((s: number, l: any) => s + Number(l.credit_amount ?? 0), 0);
   const netCashFlow = operatingInflows - operatingOutflows;
+
+  // Ending balance per bank account = net of its GL account's posted lines through the as-of date.
+  const bankGlIds = bAccounts.map((a: any) => a.gl_account_id).filter(Boolean);
+  const balByGl: Record<string, number> = {};
+  if (bankGlIds.length > 0) {
+    let balQuery = db
+      .from('journal_lines')
+      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted, entry_date)')
+      .in('gl_account_id', bankGlIds)
+      .eq('journal_entries.posted', true)
+      .lte('journal_entries.entry_date', period.to);
+    if (selectedAssociation) balQuery = balQuery.eq('association_id', selectedAssociation);
+    const { data: balLines } = await balQuery;
+    for (const l of (balLines ?? []) as any[]) {
+      balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
+    }
+  }
 
   // Transfer totals
   const totalTransfers = bankTransfers.reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
@@ -688,15 +707,15 @@ async function CashFlowView({
                     <td className="px-5 py-2 font-medium text-gray-900">{a.name}</td>
                     <td className="px-4 py-2 text-sm text-gray-600">{a.bank_name ?? '\u2014'}</td>
                     <td className="px-4 py-2 text-xs capitalize text-gray-500">{a.account_type?.replace(/_/g, ' ') ?? '\u2014'}</td>
-                    <td className={`px-5 py-2 text-right tabular-nums font-medium ${(a.current_balance ?? 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
-                      {money(a.current_balance)}
+                    <td className={`px-5 py-2 text-right tabular-nums font-medium ${(balByGl[a.gl_account_id] ?? 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                      {money(balByGl[a.gl_account_id] ?? 0)}
                     </td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                   <td className="px-5 py-2" colSpan={3}>Total Cash</td>
                   <td className="px-5 py-2 text-right tabular-nums text-gray-900">
-                    {money(bAccounts.reduce((s: number, a: any) => s + Number(a.current_balance ?? 0), 0))}
+                    {money(bAccounts.reduce((s: number, a: any) => s + (balByGl[a.gl_account_id] ?? 0), 0))}
                   </td>
                 </tr>
               </tbody>
