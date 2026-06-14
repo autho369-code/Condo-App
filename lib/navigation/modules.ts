@@ -15,6 +15,7 @@ export const appModules: AppModule[] = [
       { label: 'Directory', href: '/associations' },
       { label: 'New association', href: '/associations/new' },
       { label: 'Units', href: '/units' },
+      { label: 'Parking', href: '/parking' },
     ],
   },
   {
