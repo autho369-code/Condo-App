@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOA Report Card — Grade Your Management Company | Portier369</title>
+<meta name="description" content="10 questions. 60 seconds. Find out if your HOA management company is earning their fees — or costing you more than you think. Free tool, no signup.">
+<meta property="og:title" content="Grade Your HOA Management Company — Free Report Card">
+<meta property="og:description" content="10 questions. Instant grade. Is your HOA management company actually doing its job?">
+<meta property="og:image" content="https://portier369.com/opengraph-image">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://portier369.com/report-card">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: #f6f7f9; color: #111827; line-height: 1.6; }
+  .hero { position: relative; overflow: hidden; background: #060709; padding: 64px 24px 80px; text-align: center; }
+  .hero::before { content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 700px; height: 500px; border-radius: 50%; background: radial-gradient(circle, #6d8dff 0%, transparent 70%); opacity: 0.12; }
+  .hero-inner { position: relative; max-width: 720px; margin: 0 auto; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); border-radius: 100px; padding: 6px 16px; font-size: 12px; font-weight: 500; color: #d4d4d8; margin-bottom: 20px; }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; }
+  .hero h1 { font-size: 36px; font-weight: 600; letter-spacing: -0.03em; color: #fff; line-height: 1.08; }
+  .hero h1 span { background: linear-gradient(to right, #a9bcff, #6d8dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { margin-top: 16px; font-size: 16px; color: #a1a1aa; max-width: 540px; margin-left: auto; margin-right: auto; }
+  .container { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px; }
+  @media (min-width: 640px) { .card { padding: 48px; } .hero { padding: 80px 24px 96px; } .hero h1 { font-size: 48px; } }
+  .progress-bar { height: 6px; border-radius: 3px; background: #e5e7eb; margin-bottom: 32px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #1E3A5F; transition: width 0.3s; }
+  .q-item { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; }
+  .q-item:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+  .q-header { display: flex; align-items: flex-start; gap: 12px; }
+  .q-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #6b7280; margin-top: 2px; }
+  .q-text { font-size: 15px; font-weight: 500; color: #111827; }
+  .q-btns { display: flex; gap: 8px; margin-top: 12px; margin-left: 36px; }
+  .q-btn { flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; text-align: left; background: #fff; color: #4b5563; }
+  .q-btn:hover { border-color: #d1d5db; background: #f9fafb; }
+  .q-btn .label { display: block; font-size: 11px; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .q-btn.selected-yes { border-color: #6ee7b7; background: #ecfdf5; color: #065f46; }
+  .q-btn.selected-no { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+  .submit-btn { width: 100%; border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 600; cursor: pointer; border: 0; transition: all 0.15s; margin-top: 32px; }
+  .submit-ready { background: #1E3A5F; color: #fff; }
+  .submit-ready:hover { background: #162D4A; }
+  .submit-disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+  .result { text-align: center; }
+  .result-grade { font-size: 80px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .result-label { font-size: 20px; font-weight: 600; margin-top: 4px; margin-bottom: 12px; }
+  .result-desc { font-size: 15px; color: #4b5563; max-width: 400px; margin: 0 auto 24px; line-height: 1.7; }
+  .result-emoji { font-size: 60px; margin-bottom: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px 20px; font-size: 14px; color: #6b7280; box-shadow: 0 1px 2px rgba(0,0,0,0.04); margin-bottom: 32px; }
+  .fail-list { text-align: left; margin: 32px 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px; }
+  .fail-list h2 { font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 16px; }
+  .fail-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: #4b5563; }
+  .fail-item:last-child { margin-bottom: 0; }
+  .fail-x { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-top: 2px; }
+  .fail-detail { font-size: 13px; color: #9ca3af; }
+  .cta { margin-top: 32px; background: rgba(30,58,95,0.03); border: 1px solid rgba(30,58,95,0.15); border-radius: 16px; padding: 32px; text-align: center; }
+  .cta h2 { font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+  .cta p { font-size: 15px; color: #6b7280; max-width: 420px; margin: 0 auto 20px; }
+  .cta-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 8px; background: #1E3A5F; color: #fff; border: 0; border-radius: 12px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.15s; }
+  .btn-primary:hover { background: #162D4A; }
+  .btn-secondary { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #374151; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.15s; }
+  .btn-secondary:hover { background: #f9fafb; }
+  .share-section { margin-top: 32px; text-align: center; }
+  .btn-share { display: inline-flex; align-items: center; gap: 8px; background: rgba(30,58,95,0.05); border: 2px solid rgba(30,58,95,0.15); border-radius: 12px; padding: 12px 24px; font-size: 15px; font-weight: 600; color: #1E3A5F; cursor: pointer; transition: all 0.15s; }
+  .btn-share:hover { background: rgba(30,58,95,0.08); }
+  .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .header-bar h2 { font-size: 18px; font-weight: 600; color: #111827; }
+  .counter { font-size: 14px; font-weight: 500; color: #9ca3af; font-variant-numeric: tabular-nums; }
+  .hidden { display: none; }
+  .nav-top { display: flex; align-items: center; justify-content: space-between; max-width: 720px; margin: 0 auto; padding: 16px 24px; }
+  .nav-logo { display: flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-size: 16px; font-weight: 600; }
+  .nav-logo-icon { width: 28px; height: 28px; border-radius: 6px; background: #fff; color: #1E3A5F; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+  .nav-link { color: #9ca3af; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+  .nav-link:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<div style="background:#060709">
+  <div class="nav-top">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-icon">P</span>
+      Portier369
+    </a>
+    <a href="/demo" class="nav-link">Request Proposal</a>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="badge"><span class="badge-dot"></span>Free Tool — No Signup Required</div>
+    <h1>Grade Your HOA<br><span>Management Company</span></h1>
+    <p>10 questions. 60 seconds. Find out if your management company is earning their fees — or costing you more than you think.</p>
+  </div>
+</section>
+
+<div class="container">
+  <!-- QUESTIONNAIRE -->
+  <div id="quiz" class="card">
+    <div class="header-bar">
+      <h2>The 10-Question HOA Health Check</h2>
+      <span class="counter"><span id="counter">0</span>/10</span>
+    </div>
+    <div class="progress-bar"><div id="progress" class="progress-fill" style="width:0%"></div></div>
+    <div id="questions"></div>
+    <button id="submit" class="submit-btn submit-disabled" disabled>Answer all 10 questions to get your grade</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="card hidden"></div>
+</div>
+
+<script>
+var Q = [
+  {id:'online_payments', q:'Can owners pay dues online?', yes:'Modern — owners can pay from their phone', no:'Still collecting paper checks in 2026'},
+  {id:'maintenance_requests', q:'Can owners submit maintenance requests online?', yes:'Requests tracked digitally, nothing gets lost', no:'Owners still call or email — requests get forgotten'},
+  {id:'financial_reports', q:'Do board members get monthly financial reports automatically?', yes:'Reports arrive on time, every month', no:'Reports are late, manual, or non-existent'},
+  {id:'document_access', q:'Can board members access documents without emailing the manager?', yes:'Self-service document center', no:'Every document requires an email chain'},
+  {id:'violation_notices', q:'Are violation notices sent automatically?', yes:'Automated workflow — notice to resolution', no:'Manual process — inconsistent and slow'},
+  {id:'vendor_invoices', q:'Can vendors submit invoices online?', yes:'Digital invoice submission and tracking', no:'Paper invoices or email attachments'},
+  {id:'board_portal', q:'Do you have a dedicated board portal?', yes:'Board members have their own dashboard', no:'Board members share the manager\'s login or get PDFs'},
+  {id:'work_orders', q:'Are work orders tracked digitally from request to completion?', yes:'Full lifecycle tracking with status updates', no:'Work orders live in spreadsheets or email'},
+  {id:'payment_history', q:'Can owners view their own payment history?', yes:'Owner portal with full financial visibility', no:'Owners have to call to ask about their balance'},
+  {id:'response_time', q:'Does your manager typically respond within 24 hours?', yes:'Responsive and accountable', no:'Days or weeks to hear back'}
+];
+
+var answers = {};
+var submitted = false;
+
+function grade(yesCount) {
+  var g = {
+    10: {grade:'A+',label:'World-Class',color:'#059669',bg:'#ecfdf5',emoji:'🏆',desc:'Your HOA management is running at the highest level. Owners are happy, board members are informed, and nothing falls through the cracks.'},
+    9: {grade:'A',label:'Excellent',color:'#059669',bg:'#ecfdf5',emoji:'⭐',desc:'Nearly everything is running smoothly. One small gap to close, but you\'re in great shape.'},
+    8: {grade:'B',label:'Good',color:'#2563eb',bg:'#eff6ff',emoji:'👍',desc:'Solid foundation. A few areas need attention, but your management company is doing a decent job.'},
+    7: {grade:'B',label:'Good',color:'#2563eb',bg:'#eff6ff',emoji:'👍',desc:'Solid foundation. A few areas need attention, but your management company is doing a decent job.'},
+    6: {grade:'C',label:'Average',color:'#d97706',bg:'#fffbeb',emoji:'🤔',desc:'There are real gaps in how your HOA is managed. Board members and owners are probably frustrated.'},
+    5: {grade:'C',label:'Average',color:'#d97706',bg:'#fffbeb',emoji:'🤔',desc:'There are real gaps in how your HOA is managed. Board members and owners are probably frustrated.'},
+    4: {grade:'D',label:'Below Average',color:'#ea580c',bg:'#fff7ed',emoji:'⚠️',desc:'Significant problems. Your management company is costing you time, money, and owner satisfaction.'},
+    3: {grade:'D',label:'Below Average',color:'#ea580c',bg:'#fff7ed',emoji:'⚠️',desc:'Significant problems. Your management company is costing you time, money, and owner satisfaction.'},
+    2: {grade:'F',label:'Failing',color:'#dc2626',bg:'#fef2f2',emoji:'🚨',desc:'Your HOA management is broken. Board members are in the dark, owners are unhappy, and critical tasks are being dropped.'},
+    1: {grade:'F',label:'Failing',color:'#dc2626',bg:'#fef2f2',emoji:'🚨',desc:'Your HOA management is broken. Board members are in the dark, owners are unhappy, and critical tasks are being dropped.'},
+    0: {grade:'F',label:'Failing',color:'#dc2626',bg:'#fef2f2',emoji:'🚨',desc:'Your HOA management is broken. Board members are in the dark, owners are unhappy, and critical tasks are being dropped.'}
+  };
+  return g[yesCount] || g[0];
+}
+
+function renderQuestions() {
+  var html = '';
+  Q.forEach(function(q, i) {
+    var val = answers[q.id];
+    html += '<div class="q-item">';
+    html += '<div class="q-header"><span class="q-num">' + (i+1) + '</span><span class="q-text">' + q.q + '</span></div>';
+    html += '<div class="q-btns">';
+    html += '<button class="q-btn' + (val===true?' selected-yes':'') + '" onclick="answer(\''+q.id+'\',true)"><span class="label">YES</span>' + q.yes + '</button>';
+    html += '<button class="q-btn' + (val===false?' selected-no':'') + '" onclick="answer(\''+q.id+'\',false)"><span class="label">NO</span>' + q.no + '</button>';
+    html += '</div></div>';
+  });
+  document.getElementById('questions').innerHTML = html;
+  updateProgress();
+}
+
+function answer(id, val) {
+  if (submitted) return;
+  answers[id] = val;
+  renderQuestions();
+}
+
+function updateProgress() {
+  var count = Object.keys(answers).length;
+  var pct = (count / Q.length) * 100;
+  document.getElementById('counter').textContent = count;
+  document.getElementById('progress').style.width = pct + '%';
+  var btn = document.getElementById('submit');
+  if (count === Q.length) {
+    btn.className = 'submit-btn submit-ready';
+    btn.disabled = false;
+    btn.textContent = 'Grade My HOA — See Your Score';
+  } else {
+    btn.className = 'submit-btn submit-disabled';
+    btn.disabled = true;
+    btn.textContent = 'Answer all ' + (Q.length - count) + ' remaining questions to get your grade';
+  }
+}
+
+document.getElementById('submit').addEventListener('click', function() {
+  if (Object.keys(answers).length < Q.length) return;
+  submitted = true;
+  var yesCount = Object.values(answers).filter(function(v){return v===true}).length;
+  var g = grade(yesCount);
+  var failed = Q.filter(function(q){return answers[q.id]===false});
+
+  var html = '';
+  html += '<div class="result-emoji">' + g.emoji + '</div>';
+  html += '<div class="result-grade" style="color:' + g.color + '">' + g.grade + '</div>';
+  html += '<div class="result-label" style="color:' + g.color + '">' + g.label + '</div>';
+  html += '<p class="result-desc">' + g.desc + '</p>';
+  html += '<div class="pill"><span>' + yesCount + ' of ' + Q.length + ' passed</span><span style="color:#d1d5db">|</span><span>' + (Q.length - yesCount) + ' need work</span></div>';
+
+  if (failed.length > 0) {
+    html += '<div class="fail-list">';
+    html += '<h2>' + (failed.length===1 ? "Here's what's holding you back" : "Here are the " + failed.length + " things holding you back") + '</h2>';
+    failed.forEach(function(q){
+      html += '<div class="fail-item"><span class="fail-x">✕</span><div><strong>' + q.q + '</strong><br><span class="fail-detail">' + q.no + '</span></div></div>';
+    });
+    html += '</div>';
+  }
+
+  var ctaTitle = g.grade==='A+' ? "Keep it that way with the right software" :
+                 g.grade==='A'||g.grade==='B' ? "Close the gap with better tools" :
+                 "There's software that fixes all of this";
+
+  html += '<div class="cta">';
+  html += '<h2>' + ctaTitle + '</h2>';
+  html += '<p>Portier369 gives your management company one platform for payments, work orders, violations, board portals, vendor management, and owner communications. Starting at $157/month.</p>';
+  html += '<div class="cta-btns">';
+  html += '<a href="/demo" class="btn-primary">See how Portier369 fixes this <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>';
+  html += '<button onclick="resetQuiz()" class="btn-secondary">Take it again</button>';
+  html += '</div></div>';
+
+  html += '<div class="share-section">';
+  html += '<button onclick="shareResult(\'' + g.grade + '\',' + yesCount + ')" class="btn-share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg> Share result</button>';
+  html += '</div>';
+
+  document.getElementById('result').innerHTML = html;
+  document.getElementById('result').classList.remove('hidden');
+  document.getElementById('quiz').classList.add('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+function resetQuiz() {
+  answers = {};
+  submitted = false;
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  renderQuestions();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function shareResult(grade, yes) {
+  var text = 'My HOA management company just scored a ' + grade + ' on the Portier369 HOA Report Card. ' + yes + '/10 passed. Grade yours: ' + window.location.href;
+  if (navigator.share) {
+    navigator.share({title:'My HOA Report Card', text:text, url:window.location.href}).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(text).then(function(){alert('Copied! Share it anywhere.');}).catch(function(){});
+  }
+}
+
+renderQuestions();
+</script>
+</body>
+</html>

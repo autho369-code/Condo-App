@@ -7,5 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   experimental: {},
   outputFileTracingRoot: __dirname,
+  async rewrites() {
+    return [
+      { source: '/report-card', destination: '/report-card.html' },
+    ];
+  },
 };
 export default nextConfig;
