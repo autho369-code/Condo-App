@@ -361,9 +361,10 @@ support, supabase-admin, audit-logs, communications.
 Not "missing pages" — 217 pages exist, zero broken nav links, accounting engine
 verified balanced. The real items are depth/ops, not features:
 
-1. 🔴 **Legal — OVERDUE.** Counsel review of `/legal/*` (privacy, terms,
-   security pages exist). Was meant to be finished long ago; **blocks the first
-   paying client.**
+1. 🟡 **Legal — DRAFTED, needs sign-off.** `/legal/*` now have full clauses
+   (commit 9961434). Remaining: fill the bracketed corporate facts
+   (`[LEGAL ENTITY NAME]/[STATE]/[GOVERNING-LAW STATE]/[VENUE]` in terms) and
+   get final counsel sign-off before the first paying client.
 2. **Resend domain auth** — SPF/DKIM/DMARC for portier369.com so invites land
    in real inboxes (deliverability).
 3. **Replace seed data** (Granville sample) with the first real client's data.

@@ -36,7 +36,7 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 ## 📋 Open items / next
 - ✅ **Plaid** — closed (bank-feed reconciliation, prior session). Reconciliation-only; no online collection.
 - ⏳ **SMS provider** — placeholder. Twilio at launch (US 10DLC registration; don't pay until a real pilot). Email already delivers via Resend.
-- 🔴 **Legal — OVERDUE.** `/legal/*` (privacy, terms, security) still needs counsel review; was meant to be finished long ago. Must close before the first paying client.
+- 🟡 **Legal — DRAFTED (commit 9961434).** `/legal/*` (privacy, terms, security) now have full substantive clauses (AI/PII disclosure, sub-processors, DPA, breach notice, CCPA/CPRA + multi-state, retention, governing law, arbitration, liability carve-outs, indemnification, confidentiality, security posture). Remaining: (a) fill `[LEGAL ENTITY NAME] / [STATE] / [GOVERNING-LAW STATE] / [VENUE]` in terms/page.tsx — founder-supplied; (b) final counsel sign-off before first paying client. Gap analysis: `docs/legal-review-package.md`.
 - **No tenant portal** — intentional; tenants are data-only contacts.
 - Pre-launch: real-client pilot · confirm Resend domain auth (deliverability) · replace any remaining seed data.
 
