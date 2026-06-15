@@ -20,7 +20,7 @@ export const boardModules: AppModule[] = [
 export const ownerModules: AppModule[] = [
   { label: 'Dashboard', href: '/portal' },
   { label: 'My Account', href: '/portal/account' },
-  { label: 'Payments', href: '/portal/pay' },
+  { label: 'How to Pay', href: '/portal/pay' },
   { label: 'Work Orders', href: '/portal/work-orders' },
   { label: 'Violations', href: '/portal/violations' },
   { label: 'Hearings', href: '/portal/hearings' },

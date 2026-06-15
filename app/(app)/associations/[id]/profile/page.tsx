@@ -1,23 +1,29 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspace/shell';
+import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
+import { Input, Label, Textarea } from '@/components/ui/input';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AssociationProfileTab({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: assoc, error: aErr } = await (supabase as any)
@@ -25,11 +31,32 @@ export default async function AssociationProfileTab({
     .select(`
       id, name, address, address_line_2, city, state, zip,
       portfolio_id, status, archived_at, created_at,
+      remit_payee, remit_address, payment_instructions,
       portfolio:portfolios ( id, company_name )
     `)
     .eq('id', id)
     .maybeSingle();
   if (aErr || !assoc) notFound();
+
+  // Manager-entered payment remittance details (white-glove: each manager sets
+  // their own payee / mailing address / bill-pay notes per association).
+  async function savePaymentInstructions(formData: FormData) {
+    'use server';
+    await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const { error } = await (sb as any)
+      .from('associations')
+      .update({
+        remit_payee: ((formData.get('remit_payee') as string) || '').trim() || null,
+        remit_address: ((formData.get('remit_address') as string) || '').trim() || null,
+        payment_instructions: ((formData.get('payment_instructions') as string) || '').trim() || null,
+      })
+      .eq('id', id);
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
 
   // Roll-up counts in parallel
   const buildingsRes = await (supabase as any).from('buildings').select('id').eq('association_id', id);
@@ -52,10 +79,7 @@ export default async function AssociationProfileTab({
       header={
         <>
           <AssociationTabs associationId={id} active="profile" />
-          <WorkspaceHeader
-            title={assoc.name}
-            actions={<Button size="sm" variant="secondary">Edit</Button>}
-          />
+          <WorkspaceHeader title={assoc.name} />
         </>
       }
       rail={rail}
@@ -92,6 +116,35 @@ export default async function AssociationProfileTab({
           <dd className="text-gray-900">{assoc.created_at ? formatDate(assoc.created_at) : <span className="text-gray-400">—</span>}</dd>
         </dl>
       </Section>
+
+      <div className="mt-6">
+        <Section title="Payment Instructions" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            Owners pay by check or bank bill-pay. What you enter here is exactly what owners see on their
+            <span className="font-medium text-gray-700"> How to Pay</span> page in the owner portal.
+          </p>
+          {sp.saved && <div className="mb-4"><Alert tone="success" title="Saved">Payment instructions updated.</Alert></div>}
+          {sp.error && <div className="mb-4"><Alert tone="danger" title="Could not save">{sp.error}</Alert></div>}
+          <form action={savePaymentInstructions} className="max-w-2xl space-y-4">
+            <div>
+              <Label htmlFor="remit_payee">Make checks payable to</Label>
+              <Input id="remit_payee" name="remit_payee" defaultValue={assoc.remit_payee ?? ''} placeholder={`e.g. ${assoc.name}`} />
+            </div>
+            <div>
+              <Label htmlFor="remit_address">Mail payments to</Label>
+              <Textarea id="remit_address" name="remit_address" rows={3} defaultValue={assoc.remit_address ?? ''} placeholder={"Street / PO Box or lockbox\nCity, State ZIP"} />
+            </div>
+            <div>
+              <Label htmlFor="payment_instructions">Other options &amp; notes</Label>
+              <Textarea id="payment_instructions" name="payment_instructions" rows={4} defaultValue={assoc.payment_instructions ?? ''} placeholder={"Bank bill-pay payee + address, the account/reference owners should use, lockbox details, or any other payment instructions."} />
+              <p className="mt-1 text-xs text-gray-500">Tip: tell owners to include their unit number as the account/memo so payments are applied correctly.</p>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit">Save payment instructions</Button>
+            </div>
+          </form>
+        </Section>
+      </div>
     </Workspace>
   );
 }
