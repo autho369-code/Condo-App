@@ -12,12 +12,30 @@ type UnitOption = {
   association_id: string | null
 }
 
+// The real violation_type enum values residents can pick from.
+const VIOLATION_TYPES: { value: string; label: string }[] = [
+  { value: 'noise', label: 'Noise' },
+  { value: 'parking', label: 'Parking' },
+  { value: 'pets', label: 'Pets' },
+  { value: 'exterior_modification', label: 'Exterior modification' },
+  { value: 'trash_debris', label: 'Trash / debris' },
+  { value: 'landscaping', label: 'Landscaping' },
+  { value: 'common_area_misuse', label: 'Common area misuse' },
+  { value: 'lease_violation', label: 'Lease violation' },
+  { value: 'other', label: 'Other' },
+]
+const VIOLATION_TYPE_VALUES = new Set(VIOLATION_TYPES.map((t) => t.value))
+
 /**
- * Owners cannot INSERT into `violations` (RLS — only staff create formal
- * violations). Instead, an owner reports a concern as a `service_requests` row
- * with source='resident' — the same proven, manager-visible flow used by
- * submitServiceRequest. The description is clearly tagged as a resident-reported
- * concern/violation so a manager can triage it into a formal violation.
+ * Files a REAL violation in `public.violations` (status 'open' — the neutral
+ * "needs manager review" state; the violation_status enum has no
+ * "reported/pending" value). The RLS policy `violations_portal_resident_report`
+ * lets a portal resident INSERT only for their own association at status 'open'.
+ * The association is resolved server-side from the owner's unit — never trusted
+ * from the client. The reporter is recorded in `created_by`; `owner_id`/`unit_id`
+ * (the CITED party) are left for the manager to assign during triage, so a report
+ * about another resident does not appear as a violation against the reporter.
+ * Managers see the row immediately via their existing association-scoped SELECT.
  */
 async function reportConcern(formData: FormData) {
   'use server'
@@ -30,6 +48,8 @@ async function reportConcern(formData: FormData) {
   const unitId = (formData.get('unit_id') as string) || ''
   const title = (formData.get('title') as string)?.trim()
   const details = (formData.get('description') as string)?.trim()
+  const rawType = (formData.get('violation_type') as string) || 'other'
+  const violationType = VIOLATION_TYPE_VALUES.has(rawType) ? rawType : 'other'
 
   if (!unitId) { failTo('Please choose a unit'); return }
   if (!title) { failTo('Please give your concern a short title'); return }
@@ -39,41 +59,32 @@ async function reportConcern(formData: FormData) {
 
   const supabase = await createClient()
 
-  // Resolve association + portfolio from the unit — never trust the client.
+  // Resolve association from the reporter's own unit — never trust the client.
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
-    .select('id, buildings!inner(association_id, associations!inner(portfolio_id))')
+    .select('id, buildings!inner(association_id)')
     .eq('id', unitId)
     .maybeSingle()
   if (unitErr || !unit) { failTo('Unit not found or you no longer have access to it'); return }
   const associationId = (unit.buildings as any).association_id
-  const portfolioId = (unit.buildings as any).associations.portfolio_id
 
-  const description =
-    `RESIDENT-REPORTED CONCERN / RULE VIOLATION\n` +
-    `Title: ${title}\n\n` +
-    `${details}\n\n` +
-    `(Submitted by a homeowner via the owner portal for manager triage into a ` +
-    `formal violation if warranted.)`
-
-  const { data: sr, error } = await (supabase as any)
-    .from('service_requests')
+  const { data: row, error } = await (supabase as any)
+    .from('violations')
     .insert({
-      portfolio_id: portfolioId,
       association_id: associationId,
-      unit_id: unitId,
-      homeowner_id: me.owner_id,
-      owner_id: me.owner_id,
-      description,
-      priority: 'normal',
-      source: 'resident',
+      violation_type: violationType,
       status: 'open',
+      title,
+      description: details,
+      date_observed: new Date().toISOString().slice(0, 10),
+      reported_date: new Date().toISOString().slice(0, 10),
+      fine_amount: null,
       created_by: me.auth_user_id,
     })
     .select('id')
     .single()
 
-  if (error || !sr) { failTo(error?.message ?? 'Failed to submit your concern'); return }
+  if (error || !row) { failTo(error?.message ?? 'Failed to submit your report'); return }
 
   revalidatePath('/portal/violations')
   redirect('/portal/violations?reported=1')
@@ -144,6 +155,19 @@ export default async function ReportConcernPage({
                 </select>
               )}
             </div>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Type</span>
+              <select
+                name="violation_type"
+                defaultValue="other"
+                className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              >
+                {VIOLATION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </label>
 
             <label className="block">
               <span className="text-sm font-medium text-gray-700">Title</span>
