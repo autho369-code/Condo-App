@@ -36,7 +36,7 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 ## 📋 Open items / next
 - ✅ **Plaid** — closed (bank-feed reconciliation, prior session). Reconciliation-only; no online collection.
 - ⏳ **SMS provider** — placeholder. Twilio at launch (US 10DLC registration; don't pay until a real pilot). Email already delivers via Resend.
-- 🟡 **Legal — DRAFTED (commit 9961434).** `/legal/*` (privacy, terms, security) now have full substantive clauses (AI/PII disclosure, sub-processors, DPA, breach notice, CCPA/CPRA + multi-state, retention, governing law, arbitration, liability carve-outs, indemnification, confidentiality, security posture). Remaining: (a) fill `[LEGAL ENTITY NAME] / [STATE] / [GOVERNING-LAW STATE] / [VENUE]` in terms/page.tsx — founder-supplied; (b) final counsel sign-off before first paying client. Gap analysis: `docs/legal-review-package.md`.
+- 🟡 **Legal — DRAFTED & corporate facts filled (commits 9961434, 811edbd).** `/legal/*` (privacy, terms, security) have full substantive clauses (AI/PII disclosure, sub-processors, DPA, breach notice, CCPA/CPRA + multi-state, retention, governing law, arbitration, liability carve-outs, indemnification, confidentiality, security posture). Entity = **Portier369, Inc.**, an Illinois corporation, Glenview IL; governing law Illinois; venue/arbitration Cook County, Illinois. **Only remaining: final counsel sign-off** before first paying client. Gap analysis: `docs/legal-review-package.md`.
 - **No tenant portal** — intentional; tenants are data-only contacts.
 - Pre-launch: real-client pilot · confirm Resend domain auth (deliverability) · replace any remaining seed data.
 
