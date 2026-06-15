@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-[#060709]">
@@ -73,10 +75,26 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </dl>
         </div>
 
-        {/* Footer line */}
-        <p className="relative z-10 text-[12px] text-zinc-600">
-          The operating system for community management.
-        </p>
+        {/* Staff entry points + footer line */}
+        <div className="relative z-10 space-y-5">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+            >
+              Operator
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+            >
+              Company Admin
+            </Link>
+          </div>
+          <p className="text-[12px] text-zinc-600">
+            The operating system for community management.
+          </p>
+        </div>
       </aside>
 
       {/* Auth panel */}
