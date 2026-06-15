@@ -14,7 +14,8 @@ export default function TermsPage() {
         These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Portier369 platform, websites, and
         related services (the &quot;Services&quot;). By accessing or using the Services, you agree to these Terms. If you are
         using the Services on behalf of an organization, you represent that you are authorized to bind that
-        organization. Portier369 is operated by [LEGAL ENTITY NAME], a [STATE] [entity type] (&quot;Portier369&quot;).
+        organization. Portier369 is operated by Portier369, Inc., an Illinois corporation based in Glenview, Illinois,
+        United States (&quot;Portier369&quot;).
       </p>
 
       <H2>The Services</H2>
@@ -144,9 +145,9 @@ export default function TermsPage() {
 
       <H2>Governing law</H2>
       <p>
-        These Terms are governed by the laws of the State of [GOVERNING-LAW STATE], without regard to its
+        These Terms are governed by the laws of the State of Illinois, without regard to its
         conflict-of-laws principles. Subject to the dispute-resolution section below, the state and federal courts
-        located in [VENUE — county, state] have exclusive jurisdiction over any dispute not subject to arbitration, and
+        located in Cook County, Illinois have exclusive jurisdiction over any dispute not subject to arbitration, and
         the parties consent to that jurisdiction and venue.
       </p>
 
@@ -154,7 +155,8 @@ export default function TermsPage() {
       <p>
         The parties will first attempt to resolve any dispute informally by contacting each other. If a dispute is not
         resolved within thirty (30) days, it will be resolved by binding arbitration administered by the American
-        Arbitration Association under its Commercial Arbitration Rules, seated in [VENUE], except that either party may
+        Arbitration Association under its Commercial Arbitration Rules, seated in Cook County, Illinois, except that
+        either party may
         bring an individual claim in small-claims court or seek injunctive relief for misuse of the Services or
         intellectual property. To the extent permitted by law, disputes will be resolved on an individual basis, and
         the parties waive any right to participate in a class or representative action. If this class-action waiver is
@@ -186,9 +188,8 @@ export default function TermsPage() {
       </p>
 
       <p className="!mt-10 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-        These Terms are a working draft prepared for review by qualified legal counsel. Bracketed items
-        ([LEGAL ENTITY NAME], [STATE], [GOVERNING-LAW STATE], [VENUE]) must be completed with Portier369&apos;s corporate and
-        jurisdiction details before publication. This draft is provided for transparency and is not legal advice.
+        These Terms are a working draft prepared for review by qualified legal counsel before they are relied upon for
+        a binding agreement. This draft is provided for transparency and is not legal advice.
       </p>
     </LegalShell>
   )
