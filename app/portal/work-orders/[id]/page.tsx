@@ -9,14 +9,15 @@ import { ArrowLeft } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 export default async function OwnerWorkOrderDetail({ params }: { params: Promise<{ id: string }> }) {
-  const me = await requireOwner()
+  await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
   const { id } = await params
 
+  // RLS scopes work_orders to the owner's unit; no owner_id column exists.
   const { data: wo } = await db.from('work_orders')
     .select('id, title, description, category, priority, status, created_at, scheduled_date, completed_date, vendor_id, units!inner(unit_number), vendors(name)')
-    .eq('id', id).eq('owner_id', me.owner_id).maybeSingle()
+    .eq('id', id).maybeSingle()
 
   if (!wo) return notFound()
 

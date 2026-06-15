@@ -9,13 +9,15 @@ import { Plus } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 export default async function OwnerWorkOrdersPage() {
-  const me = await requireOwner()
+  await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
+  // work_orders has no owner_id column; the portal-resident RLS policy already
+  // scopes rows to the owner's unit(s), so we don't filter by owner here.
   const { data: wos } = await db.from('work_orders')
     .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')
-    .eq('owner_id', me.owner_id).is('archived_at', null)
+    .is('archived_at', null)
     .order('created_at', { ascending: false }).limit(100)
 
   const all = wos ?? []
@@ -31,7 +33,7 @@ export default async function OwnerWorkOrdersPage() {
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Work Orders</h1>
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Track your maintenance and repair requests</p>
         </div>
-        <Link href="/portal/work-orders/new" className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
+        <Link href="/portal/service-requests/new" className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
           <Plus className="h-4 w-4" /> New Request
         </Link>
       </div>
@@ -39,7 +41,7 @@ export default async function OwnerWorkOrdersPage() {
       {all.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No work orders submitted yet.</p>
-          <Link href="/portal/work-orders/new" className="mt-3 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">Submit your first request →</Link>
+          <Link href="/portal/service-requests/new" className="mt-3 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">Submit your first request →</Link>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
