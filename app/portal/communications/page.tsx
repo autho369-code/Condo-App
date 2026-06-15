@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
+import { queueEmails } from '@/lib/email/queue'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -37,17 +38,23 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
     const supabase2 = await createClient()
     const me2 = await requireOwner()
     const subject = (formData.get('subject') as string)?.trim()
+    const body = (formData.get('body') as string)?.trim()
     if (!subject) redirect('/portal/communications?error=' + encodeURIComponent('Enter a subject before sending.'))
+    if (!body) redirect('/portal/communications?error=' + encodeURIComponent('Enter a message before sending.'))
 
-    const { data: oc } = await supabase2.from('occupancies').select('association_id').eq('owner_id', me2.owner_id!).limit(1)
+    const { data: oc } = await supabase2.from('occupancies').select('association_id, unit_id, units(unit_number)').eq('owner_id', me2.owner_id!).limit(1)
     const aid = oc?.[0]?.association_id ?? null
+    const unitNumber = (oc?.[0] as any)?.units?.unit_number ?? null
+    const portfolioId = me2.portfolio?.id ?? null
 
     // communications_log requires portfolio_id and its insert policy is
     // company-admin-only; an owner logging an inbound message goes through the
-    // service client (the action is gated by requireOwner()).
+    // service client (the action is gated by requireOwner()). communications_log
+    // has no body column — the full message body travels to management via the
+    // queued email below; the log row records the subject for the owner's history.
     const svc = createServiceClient() as any
     const { error } = await svc.from('communications_log').insert({
-      portfolio_id: me2.portfolio?.id,
+      portfolio_id: portfolioId,
       association_id: aid,
       sender_id: me2.owner_id,
       direction: 'inbound',
@@ -57,6 +64,51 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
       status: 'sent',
     })
     if (error) redirect('/portal/communications?error=' + encodeURIComponent(error.message))
+
+    // Notify the management office. Resolve recipients the same way the manager
+    // communication-center does: company_admin profiles in the portfolio, then
+    // fall back to the portfolio support_email. If none resolve, we still keep
+    // the logged message above and don't crash the owner's flow.
+    if (portfolioId) {
+      try {
+        const recipients: { email: string; name: string | null }[] = []
+        const { data: admins } = await svc
+          .from('profiles')
+          .select('email, full_name')
+          .eq('portfolio_id', portfolioId)
+          .eq('hoa_role', 'company_admin')
+        ;(admins ?? []).forEach((a: any) => {
+          if (a.email) recipients.push({ email: a.email, name: a.full_name ?? null })
+        })
+        if (recipients.length === 0) {
+          const { data: pf } = await svc.from('portfolios').select('support_email, company_name').eq('id', portfolioId).maybeSingle()
+          if (pf?.support_email) recipients.push({ email: pf.support_email, name: pf.company_name ?? 'Management office' })
+        }
+        if (recipients.length > 0) {
+          const fromName = me2.profile?.full_name ?? me2.email ?? 'A homeowner'
+          const fromLine = unitNumber ? `${fromName} (Unit ${unitNumber})` : fromName
+          const replyTo = me2.email ?? null
+          const text = `New message from ${fromLine} via the owner portal.\n\n${body}\n\n— Sent by ${fromName}${replyTo ? ` <${replyTo}>` : ''}`
+          await queueEmails(
+            svc,
+            recipients.map((r) => ({
+              to: r.email,
+              toName: r.name,
+              subject: `[Owner message] ${subject}`,
+              text,
+              portfolioId,
+              associationId: aid,
+              replyTo,
+              sentBy: me2.auth_user_id,
+            })),
+          )
+        }
+      } catch {
+        // Never fail the owner's send because management notification couldn't
+        // be queued — the message is already logged in communications_log.
+      }
+    }
+
     revalidatePath('/portal/communications')
     redirect('/portal/communications?sent=1')
   }

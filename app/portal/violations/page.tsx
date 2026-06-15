@@ -6,7 +6,8 @@ import { money, date } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerViolationsPage() {
+export default async function OwnerViolationsPage({ searchParams }: { searchParams: Promise<{ reported?: string }> }) {
+  const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
@@ -20,10 +21,21 @@ export default async function OwnerViolationsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Violations</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">View your violation history and status</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Violations</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">View your violation history and status</p>
+        </div>
+        <Link href="/portal/violations/report" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
+          Report a concern
+        </Link>
       </div>
+
+      {banner.reported === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Thanks — your concern was sent to management for review.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[

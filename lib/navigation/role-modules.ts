@@ -26,6 +26,7 @@ export const ownerModules: AppModule[] = [
   { label: 'Hearings', href: '/portal/hearings' },
   { label: 'Communications', href: '/portal/communications' },
   { label: 'Calendar', href: '/portal/calendar' },
+  { label: 'Meetings', href: '/portal/meetings' },
   { label: 'Documents', href: '/portal/documents' },
   { label: 'Insurance', href: '/portal/insurance' },
   { label: 'Lease', href: '/portal/lease' },
