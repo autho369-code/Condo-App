@@ -20,7 +20,7 @@ export default async function OwnerProfilePage({ searchParams }: { searchParams:
     const me2 = await requireOwner()
     const { error } = await (supabase2 as any).from('owners').update({
       phone: formData.get('phone') as string || null,
-      emails: formData.get('email') ? [formData.get('email') as string] : null,
+      email: formData.get('email') as string || null,
       address_street: formData.get('address_street') as string || null,
       address_city: formData.get('address_city') as string || null,
       address_state: formData.get('address_state') as string || null,

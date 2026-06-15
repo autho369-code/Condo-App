@@ -319,8 +319,9 @@ support, supabase-admin, audit-logs, communications.
 - **Plaid is reconciliation only** — **closed (prior session).** The company
   links its bank, `transactions/sync` + auto-match. Reconciliation-only; do
   **not** build Plaid Transfer or any online collection.
-- **Stripe removed** (commit 7bedce0). The deployed `stripe-webhook` edge
-  function is inert; safe to delete later.
+- **Stripe fully removed** from the codebase (commit 7bedce0 + follow-up). No
+  Stripe dependency, env vars, columns, or code remain; the product uses
+  offline/manual remittance only.
 - **White-glove remittance** per association (§5): each manager enters where
   owners pay; the owner portal shows it read-only with "put your unit # as the
   memo," falling back to "contact your management company" if unset. Do not

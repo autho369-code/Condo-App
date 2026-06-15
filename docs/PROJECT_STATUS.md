@@ -77,7 +77,7 @@ Building an AppFolio clone for **Stellar Property Group** — a multi-tenant HOA
 ## Tech Stack
 - **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS
 - **Backend:** Supabase (Postgres + Auth + RLS + Edge Functions)
-- **Payments:** Stripe (payment_intents table wired)
+- **Payments:** Offline/manual remittance only (Stripe fully removed)
 - **Email:** Queue-based via `email_queue` table
 - **SMS:** `sms_conversations` + `sms_messages` tables
 - **Auth:** Supabase Auth + `profiles` table + `hoa_role` enum + `portfolio_id`
@@ -260,7 +260,6 @@ Priority order for pages to build next:
 8. `/settings`
 
 #### `follow-up/integrations.md`
-- Stripe webhook handler for payment_intents (Edge Function)
 - Email sending via Resend/Postmark (Edge Function) triggered by email_queue
 - SMS via Twilio (Edge Function) for sms_messages
 - QuickBooks sync (accounting export)
@@ -308,7 +307,7 @@ Priority order for pages to build next:
 - Computer was reset — recovered project from scratch on fresh machine
 - Cloned repo to new local path: `C:\Users\autho\Portier369`
 - Recreated `.env.local` (Supabase anon + service_role keys verified, HTTP 200)
-- Skipping Stripe for now (keys not configured — checkout flows inert)
+- No online payment processor — remittance is offline/manual (Stripe later fully removed)
 - `npm install` clean (626 packages), dev server verified at http://localhost:3000
 - Database intact: 7 associations confirmed via REST API
 - Git credentials + identity reconfigured (autho369-code)

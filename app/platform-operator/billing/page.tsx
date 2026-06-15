@@ -122,12 +122,11 @@ export default async function BillingPage() {
                 <th className="px-4 py-2.5 text-right font-medium">Amount</th>
                 <th className="px-4 py-2.5 text-left font-medium">Status</th>
                 <th className="px-4 py-2.5 text-left font-medium">Paid Date</th>
-                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {(invoices ?? []).length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No invoices found</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">No invoices found</td></tr>
               ) : (
                 (invoices ?? []).map((inv: any) => (
                   <tr key={inv.id} className={trow}>
@@ -139,20 +138,6 @@ export default async function BillingPage() {
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(inv.total_cents)}</td>
                     <td className="px-4 py-3"><Badge status={inv.status ?? 'open'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {inv.stripe_invoice_url ? (
-                        <a
-                          href={inv.stripe_invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-medium text-blue-700 hover:underline"
-                        >
-                          View PDF
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
                   </tr>
                 ))
               )}

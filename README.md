@@ -59,7 +59,7 @@ This repo is ready for Vercel dashboard deployment. You do not need to install t
 1. Import `autho369-code/Condo-App` in the Vercel dashboard.
 2. Select the Next.js framework preset.
 3. Use `npm ci` for install and `npm run build` for build.
-4. Add the Supabase and Stripe environment variables from `.env.local.example`.
+4. Add the Supabase environment variables from `.env.local.example`.
 5. Do not set `LOCAL_PREVIEW_MODE` in Vercel.
 
 Full steps are in `docs/deployment/vercel.md`.
@@ -131,7 +131,6 @@ After that, all `supabase.from('table')` calls become strongly typed.
 
 ## What's missing (next iterations)
 
-- **Stripe Checkout integration** — `/portal/pay` page should embed Stripe Checkout. We have the `payment_processor_configs` + `calculate_convenience_fee` already; wire Checkout on top.
 - **Board portal views** — `/portal` works for residents; a board-specific view could read `v_portfolio_health` filtered to their association and show approval voting UI.
 - **Vendor portal** — separate `/vendor/*` routes showing their WOs, bills, document-request uploads.
 - **Reports UI** — `/reports` page that lists `report_definitions`, lets you kick off `queue_report_run`, polls `report_runs.status`, then presents the CSV download.

@@ -116,7 +116,7 @@ export default async function CompanyDetailPage({
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
     db.from('profiles').select('id, email, full_name, display_name, hoa_role, last_login_at, mfa_enrolled_at').eq('portfolio_id', id).in('hoa_role', ['company_admin', 'manager']).order('hoa_role'),
     db.from('associations').select('id, name, city, state, unit_count, status').eq('portfolio_id', id).is('archived_at', null).order('name').limit(20),
-    db.from('invoices').select('id, number, period_start, period_end, total_cents, status, paid_at, stripe_invoice_url').eq('portfolio_id', id).order('period_start', { ascending: false }).limit(20),
+    db.from('invoices').select('id, number, period_start, period_end, total_cents, status, paid_at').eq('portfolio_id', id).order('period_start', { ascending: false }).limit(20),
     db.from('user_invitations').select('id, email, full_name, hoa_role, status, expires_at, created_at, metadata').eq('portfolio_id', id).order('created_at', { ascending: false }).limit(20),
     db.from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'company').eq('entity_id', id).order('created_at', { ascending: false }).limit(30),
   ]);
@@ -532,12 +532,11 @@ export default async function CompanyDetailPage({
                 <TH className="text-right">Total</TH>
                 <TH>Status</TH>
                 <TH>Paid</TH>
-                <TH></TH>
               </TR>
             </THead>
             <tbody>
               {(invoices ?? []).length === 0 ? (
-                <TR><TD colSpan={6} className="text-center text-gray-500">No invoices found.</TD></TR>
+                <TR><TD colSpan={5} className="text-center text-gray-500">No invoices found.</TD></TR>
               ) : (
                 (invoices ?? []).map((inv: any) => (
                   <TR key={inv.id}>
@@ -548,13 +547,6 @@ export default async function CompanyDetailPage({
                     <TD className="text-right tabular-nums">{money((inv.total_cents ?? 0) / 100)}</TD>
                     <TD>{subStatusChip(inv.status)}</TD>
                     <TD className="text-xs text-gray-500">{date(inv.paid_at)}</TD>
-                    <TD>
-                      {inv.stripe_invoice_url && (
-                        <a href={inv.stripe_invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-700 hover:underline">
-                          View PDF
-                        </a>
-                      )}
-                    </TD>
                   </TR>
                 ))
               )}

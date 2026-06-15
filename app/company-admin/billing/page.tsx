@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
-import { CreditCard, DoorOpen, Receipt, TrendingUp, BarChart3, FileText } from 'lucide-react'
+import { CreditCard, DoorOpen, Receipt, TrendingUp, BarChart3 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -190,22 +190,19 @@ export default async function BillingPage() {
         </div>
       </div>
 
-      {/* Payment Method */}
+      {/* Billing & Payment */}
       <div className={`${card} p-6`}>
         <div className="mb-4 flex items-center gap-3">
           <CreditCard className="h-5 w-5 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-950">Payment Method</h2>
+          <h2 className="text-sm font-semibold text-gray-950">Billing &amp; Payment</h2>
         </div>
         <div className="text-sm text-gray-600">
-          {s.stripe_customer_id
-            ? 'Payment method on file via Stripe'
-            : 'No payment method configured'}
+          Invoices are issued by Portier369. To arrange payment, contact{' '}
+          <a href="mailto:billing@portier369.com" className="font-medium text-gray-900 hover:underline">billing@portier369.com</a>{' '}
+          or your account manager.
         </div>
         {s.billing_email && (
           <div className="mt-2 text-xs text-gray-500">Billing contact: {s.billing_email}</div>
-        )}
-        {s.stripe_subscription_id && (
-          <div className="mt-1 text-xs text-gray-400">Subscription ID: {s.stripe_subscription_id}</div>
         )}
       </div>
 
@@ -225,13 +222,12 @@ export default async function BillingPage() {
                 <th className="px-4 py-2.5 text-left font-medium">Period</th>
                 <th className="px-4 py-2.5 text-right font-medium">Amount</th>
                 <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                <th className="px-4 py-2.5 text-right font-medium">View</th>
               </tr>
             </thead>
             <tbody>
               {(invoices ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center">
+                  <td colSpan={4} className="px-4 py-8 text-center">
                     <BarChart3 className="mx-auto mb-2 h-8 w-8 text-gray-300" />
                     <div className="text-sm font-semibold text-gray-900">No invoices yet</div>
                     <div className="mt-1 text-sm text-gray-500">Invoices are generated at the end of each billing period</div>
@@ -250,20 +246,6 @@ export default async function BillingPage() {
                       {money(inv.total_cents)}
                     </td>
                     <td className="px-4 py-3"><Badge status={inv.status ?? '—'} /></td>
-                    <td className="px-4 py-3 text-right">
-                      {inv.stripe_invoice_url ? (
-                        <a
-                          href={inv.stripe_invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"
-                        >
-                          <FileText className="h-3 w-3" /> View PDF
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
                   </tr>
                 ))
               )}

@@ -32,8 +32,6 @@ Add these in Vercel Project Settings -> Environment Variables for Preview and Pr
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Browser-safe Supabase anon or publishable key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only secret. Never expose this in client code. |
 | `NEXT_PUBLIC_PORTAL_URL` | Yes | Use the Vercel app URL or custom domain, not localhost. |
-| `STRIPE_SECRET_KEY` | Payment flow only | Server-only Stripe secret key. |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Payment UI only | Browser-safe Stripe publishable key. |
 
 Do not set `LOCAL_PREVIEW_MODE` on Vercel. That flag is only for local development so the app can be reviewed without a real staff login.
 
