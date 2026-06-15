@@ -25,6 +25,8 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 - **Verified in the running app:** manager dashboard, board portal (financials/budget/delinquencies), owner portal, vendor portal — all rendering real Granville data.
 
 ## 🔧 Fixed this session (committed + live)
+- **Fail-loud forms (commit effe358):** server actions on plain `<form action>` were silently swallowing errors (`return { error }`). Converted ~30 money/ops actions to redirect back with `?error=` + visible Alert on ~24 pages (signup also surfaces `?notice=`). Multi-agent security audit + review (verdict SHIP); RLS, invite RPCs, secrets confirmed clean. Build green.
+- **Docs:** added `IMPLEMENTATION_SPEC.md`, `legal-review-package.md` (counsel-ready), `email-deliverability-setup.md` (SPF/DKIM/DMARC runbook). Reusable `impl-spec` skill added.
 - Board **Financials** showed $0 → added board read-only RLS on `journal_lines`/`journal_entries`/`bank_accounts` (association-scoped). Migration `board_read_financials_rls.sql`.
 - Board **Delinquencies** blank owner/last-payment → roster RLS (`board_read_roster_rls.sql`) + page fix.
 - **Owner portal** balance $0 → fixed queries hitting nonexistent columns (`occupancies.archived_at`, `work_orders.owner_id`); balance now = real A/R.
