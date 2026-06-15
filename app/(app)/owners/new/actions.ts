@@ -5,7 +5,7 @@
 // custom...), and optional tenant/lease if the unit is rented.
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 
 function s(fd: FormData, k: string): string | null {
@@ -139,6 +139,38 @@ export async function createOwnerWithDetails(formData: FormData) {
       if (tErr) warnings.push(`tenant: ${tErr.message}`);
     } else {
       warnings.push('tenant: first and last name were required and were skipped');
+    }
+  }
+
+  // 6) Optional: mark this owner as a board member (board of directors seat +
+  //    board portal access). A board seat requires an association.
+  if (formData.get('board_member') === 'on') {
+    if (!associationId) {
+      warnings.push('board member: select an association to add a board seat; skipped');
+    } else {
+      const allowedRoles = ['president', 'vice_president', 'secretary', 'treasurer', 'director'];
+      const roleRaw = s(formData, 'board_role') ?? 'director';
+      const role = allowedRoles.includes(roleRaw) ? roleRaw : 'director';
+      const svc = createServiceClient() as any;
+      const { error: bmErr } = await svc.from('board_members').insert({
+        association_id: associationId,
+        owner_id: ownerId,
+        full_name: fullName,
+        email,
+        phone: s(formData, 'phone'),
+        role,
+        active: true,
+        term_start: new Date().toISOString().slice(0, 10),
+        auth_user_id: authUserId,
+      });
+      if (bmErr) {
+        warnings.push(`board member: ${bmErr.message}`);
+      } else if (authUserId) {
+        // Portal was activated now, so the auth user already exists and the
+        // auto-link trigger ran before the board seat existed. Elevate the
+        // profile here so the board portal opens immediately.
+        await svc.from('profiles').update({ hoa_role: 'board' }).eq('id', authUserId);
+      }
     }
   }
 

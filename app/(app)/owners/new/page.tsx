@@ -85,6 +85,28 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
           </div>
         </section>
 
+        {/* ── Board membership ── */}
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Board membership</div>
+          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+            <input type="checkbox" name="board_member" className="mt-1" />
+            <span>
+              <span className="block text-sm font-medium text-gray-900">This owner is a board member</span>
+              <span className="block text-xs text-gray-500">Adds them to the board of directors for the selected association and gives them the board portal (financials, violations oversight, meetings). Requires an association above.</span>
+            </span>
+          </label>
+          <div className="mt-4 max-w-xs">
+            <Label htmlFor="board_role">Board role</Label>
+            <select id="board_role" name="board_role" defaultValue="director" className={inputCls}>
+              <option value="president">President</option>
+              <option value="vice_president">Vice President</option>
+              <option value="secretary">Secretary</option>
+              <option value="treasurer">Treasurer</option>
+              <option value="director">Director</option>
+            </select>
+          </div>
+        </section>
+
         {/* ── Recurring fee schedule ── */}
         <section className="border-t border-gray-100 pt-5">
           <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">Additional monthly fees</div>
