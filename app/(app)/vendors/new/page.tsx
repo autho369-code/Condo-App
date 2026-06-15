@@ -17,8 +17,13 @@ const TRADES = [
 const VENDOR_TYPES = ['general', 'insurance', 'legal', 'accounting', 'utility', 'other'];
 const PAYMENT_TYPES = ['check', 'ach', 'wire', 'credit_card'];
 
-export default async function NewVendorPage() {
+export default async function NewVendorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await requireStaff();
+  const sp = await searchParams;
 
   return (
     <DataWorkspace
@@ -26,6 +31,12 @@ export default async function NewVendorPage() {
       description="Create the vendor record, capture tax/payment defaults, and route follow-up bank or document requests."
       actions={<Link href="/vendors"><Button variant="secondary">Back to vendors</Button></Link>}
     >
+      {sp.error && (
+        <div className="mb-6 max-w-5xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create vendor:</span> {sp.error}
+        </div>
+      )}
+
       <form action={createVendor as any} className="max-w-5xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">

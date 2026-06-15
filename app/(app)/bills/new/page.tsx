@@ -8,8 +8,13 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewBillPage() {
+export default async function NewBillPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const me = await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
 
   // All the dropdown sources are filtered by RLS to the user's portfolio
@@ -40,6 +45,12 @@ export default async function NewBillPage() {
         title="New bill"
         actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
       />
+
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not save bill:</span> {sp.error}
+        </div>
+      )}
 
       <Surface>
         <SectionTitle title="Bill details" />

@@ -43,8 +43,8 @@ export async function signupWithPassword(formData: FormData) {
     password,
     options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_PORTAL_URL}/api/auth/callback` },
   });
-  if (error) return { error: error.message };
-  return { success: 'Check your email for the confirmation link.' };
+  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  redirect('/signup?notice=' + encodeURIComponent('Check your email for the confirmation link.'));
 }
 
 export async function logout() {

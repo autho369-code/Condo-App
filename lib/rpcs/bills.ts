@@ -7,6 +7,9 @@ import type { Database } from '@/lib/types/database';
 type PayableBillStatus = Database['public']['Enums']['payable_bill_status'];
 
 export async function createBill(formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/new?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
 
   const portfolio_id      = formData.get('portfolio_id') as string;
@@ -22,8 +25,10 @@ export async function createBill(formData: FormData) {
   const status            = parsePayableBillStatus(formData.get('status'));
   const approval_required = formData.get('approval_required') === 'on';
 
-  if (!vendor_id || !amount || amount <= 0)
-    return { error: 'Vendor and a positive amount are required.' };
+  if (!vendor_id || !amount || amount <= 0) {
+    failTo('Vendor and a positive amount are required.');
+    return;
+  }
 
   const { data, error } = await (supabase as any)
     .from('payable_bills')
@@ -35,7 +40,7 @@ export async function createBill(formData: FormData) {
     .select('id')
     .single();
 
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   redirect(`/bills/${data.id}`);
 }
@@ -54,28 +59,37 @@ function parsePayableBillStatus(value: FormDataEntryValue | null): PayableBillSt
 }
 
 export async function approveBill(billId: string) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('payable_bills')
     .update({ status: 'approved', approved_at: new Date().toISOString() })
     .eq('id', billId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   revalidatePath(`/bills/${billId}`);
 }
 
 export async function voidBill(billId: string) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('payable_bills')
     .update({ status: 'void' })
     .eq('id', billId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   revalidatePath(`/bills/${billId}`);
 }
 
 export async function writeChecks(formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/check-run?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const bank_account_id       = formData.get('bank_account_id') as string;
   const starting_check_number = parseInt(formData.get('starting_check_number') as string);
@@ -83,7 +97,8 @@ export async function writeChecks(formData: FormData) {
   const bill_ids              = formData.getAll('bill_ids') as string[];
 
   if (!bank_account_id || !bill_ids.length || !starting_check_number) {
-    return { error: 'Select a bank account, starting check number, and at least one bill.' };
+    failTo('Select a bank account, starting check number, and at least one bill.');
+    return;
   }
 
   const { data, error } = await (supabase as any).rpc('record_check_run', {
@@ -93,7 +108,7 @@ export async function writeChecks(formData: FormData) {
     p_payment_date: payment_date,
   });
 
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   redirect(`/bills/check-run/print/${bill_ids[0]}?count=${(data as any)?.checks_written ?? bill_ids.length}`);
 }

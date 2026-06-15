@@ -2,6 +2,7 @@
 *Single source of truth in the repo. Kept in sync with Claude's memory at*
 *`C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`.*
 *The **CURRENT STATE** section below is authoritative; everything under HISTORICAL LOG is old and may be stale.*
+*Engineering reference: [`docs/IMPLEMENTATION_SPEC.md`](IMPLEMENTATION_SPEC.md) — system architecture, data-model & RLS contracts, role/invite chain, module specs.*
 *Last updated: 2026-06-14.*
 
 ---
@@ -31,9 +32,11 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 - **Tenants** reachable by SMS (+ accurate email recipient count); tenant login removed.
 
 ## 📋 Open items / next
-- **SMS provider** deferred (recommend **Twilio** at launch; requires US 10DLC registration — don't pay until a real pilot). Email already delivers via Resend.
+- ✅ **Plaid** — closed (bank-feed reconciliation, prior session). Reconciliation-only; no online collection.
+- ⏳ **SMS provider** — placeholder. Twilio at launch (US 10DLC registration; don't pay until a real pilot). Email already delivers via Resend.
+- 🔴 **Legal — OVERDUE.** `/legal/*` (privacy, terms, security) still needs counsel review; was meant to be finished long ago. Must close before the first paying client.
 - **No tenant portal** — intentional; tenants are data-only contacts.
-- Pre-launch: real-client pilot · confirm Resend domain auth (deliverability) · legal review of `/legal/*` · replace any remaining seed data.
+- Pre-launch: real-client pilot · confirm Resend domain auth (deliverability) · replace any remaining seed data.
 
 ## 🧠 How memory works (so nothing is hidden)
 My durable memory is Markdown at `…\.claude\projects\C--Users-autho-Portier369\memory\` (Obsidian-compatible). **This file is the human-readable mirror inside your repo** — I update both together, and it's versioned in git so it travels with the project.

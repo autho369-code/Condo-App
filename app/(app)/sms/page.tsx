@@ -15,7 +15,12 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default async function SmsPage() {
+export default async function SmsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
@@ -77,6 +82,12 @@ export default async function SmsPage() {
       }
     >
       <div className="space-y-6">
+        {sp.error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not send SMS:</span> {sp.error}
+          </div>
+        )}
+
         {/* Send SMS Form */}
         <Surface>
           <SectionTitle title="Send a text message" />

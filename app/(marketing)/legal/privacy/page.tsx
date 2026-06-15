@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="June 13, 2026">
+    <LegalShell title="Privacy Policy" updated="June 14, 2026">
       <p>
         This Privacy Policy explains how Portier369 (&quot;Portier369,&quot; &quot;we,&quot; &quot;us&quot;) collects, uses, discloses, and
         safeguards information when you use our property management platform and related websites and services

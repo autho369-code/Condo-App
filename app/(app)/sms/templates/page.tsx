@@ -16,7 +16,12 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default async function SmsTemplatesPage() {
+export default async function SmsTemplatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
@@ -42,6 +47,12 @@ export default async function SmsTemplatesPage() {
       }
     >
       <div className="space-y-4">
+        {sp.error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not save template:</span> {sp.error}
+          </div>
+        )}
+
         {/* Category chips */}
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2">

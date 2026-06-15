@@ -1,6 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export async function updatePortfolioPolicy(portfolioId: string, formData: FormData) {
   const supabase = await createClient();
@@ -24,6 +25,6 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
     convenience_fee_card_pct:         parseFloat(formData.get('convenience_fee_card_pct') as string) || 0,
   }).eq('id', portfolioId);
 
-  if (error) return { error: error.message };
+  if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/settings');
 }

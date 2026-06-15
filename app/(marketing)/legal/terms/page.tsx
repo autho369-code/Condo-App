@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" updated="June 13, 2026">
+    <LegalShell title="Terms of Service" updated="June 14, 2026">
       <p>
         These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Portier369 platform, websites, and
         related services (the &quot;Services&quot;). By accessing or using the Services, you agree to these Terms. If you are

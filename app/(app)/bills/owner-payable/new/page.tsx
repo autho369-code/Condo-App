@@ -11,11 +11,12 @@ export const dynamic = 'force-dynamic';
 export default async function NewOwnerPayablePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const supabase = await createClient();
-  const { type: defaultType } = await searchParams;
+  const sp = await searchParams;
+  const { type: defaultType } = sp;
 
   const [{ data: owners }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
     (supabase as any).from('owners')
@@ -42,6 +43,12 @@ export default async function NewOwnerPayablePage({
         title="New owner payable"
         actions={<Link href="/bills/owner-payable"><Button variant="secondary">Cancel</Button></Link>}
       />
+
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not save owner payable:</span> {sp.error}
+        </div>
+      )}
 
       <Surface>
         <SectionTitle title="Owner payable details" />

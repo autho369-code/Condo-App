@@ -15,10 +15,11 @@ export const dynamic = 'force-dynamic';
 export default async function NewUnitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ building?: string; association?: string }>;
+  searchParams: Promise<{ building?: string; association?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { building: buildingId, association: associationId } = await searchParams;
+  const sp = await searchParams;
+  const { building: buildingId, association: associationId } = sp;
   const supabase = await createClient();
 
   // Load data according to context
@@ -86,6 +87,12 @@ export default async function NewUnitPage({
         </>
       }
     >
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create unit:</span> {sp.error}
+        </div>
+      )}
+
       {needsBuilding ? (
         <Section title="You need a building first">
           <div className="px-5 py-5">

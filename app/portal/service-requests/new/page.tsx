@@ -27,7 +27,12 @@ const PRIORITY_OPTIONS: Array<{ value: string; label: string; hint: string }> = 
   { value: 'emergency', label: 'Emergency', hint: 'Active damage / safety' },
 ];
 
-export default async function NewServiceRequest() {
+export default async function NewServiceRequest({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
   const me = await requireAuth();
 
   // Only owners (and board members, who are also owners) submit requests
@@ -70,6 +75,12 @@ export default async function NewServiceRequest() {
           <strong className="text-gray-700"> please also call your emergency maintenance line.</strong>
         </p>
       </div>
+
+      {sp.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not submit request:</span> {sp.error}
+        </div>
+      )}
 
       {unitOptions.length === 0 ? (
         <Card>

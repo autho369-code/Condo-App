@@ -48,10 +48,11 @@ function parseType(value: string | undefined): OwnerPayableTypeFilter {
 export default async function OwnerPayablePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; type?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; type?: string; q?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { tab: tabParam, type: typeParam, q = '' } = await searchParams;
+  const sp = await searchParams;
+  const { tab: tabParam, type: typeParam, q = '' } = sp;
   const tab = parseTab(tabParam);
   const typeFilter = parseType(typeParam);
   const supabase = await createClient();
@@ -138,6 +139,12 @@ export default async function OwnerPayablePage({
       }
     >
       <div className="space-y-6">
+        {sp.error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not update owner payable:</span> {sp.error}
+          </div>
+        )}
+
         <MetricStrip metrics={metrics} />
 
         {/* TABS */}

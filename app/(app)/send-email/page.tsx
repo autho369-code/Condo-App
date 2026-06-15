@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export default async function SendEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ association?: string; subject?: string; message?: string; return_to?: string }>;
+  searchParams: Promise<{ association?: string; subject?: string; message?: string; return_to?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
@@ -74,6 +74,11 @@ export default async function SendEmailPage({
         </div>
 
         <form action={sendEmail as any} className="space-y-5 px-6 py-5">
+          {sp.error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+              <span className="font-semibold">Could not send email:</span> {sp.error}
+            </div>
+          )}
           {sp.return_to && <input type="hidden" name="return_to" value={sp.return_to} />}
 
           {/* From */}

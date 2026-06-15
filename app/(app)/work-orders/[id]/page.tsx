@@ -49,8 +49,9 @@ function statusBadge(s: string) {
   return 'bg-amber-100 text-amber-800';
 }
 
-export default async function WorkOrderDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function WorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -176,6 +177,12 @@ export default async function WorkOrderDetail({ params }: { params: Promise<{ id
         </>
       }
     >
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not update work order:</span> {sp.error}
+        </div>
+      )}
+
       <Section title="Work details">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>

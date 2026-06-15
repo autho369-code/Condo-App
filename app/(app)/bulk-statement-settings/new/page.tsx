@@ -9,8 +9,13 @@ import { updateBulkStatementSettings } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BulkStatementSettingsPage() {
+export default async function BulkStatementSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await requirePortfolioAdmin();
+  const sp = await searchParams;
   const supabase = await createClient();
 
   // Pull live associations so the user can pick a subset. RLS scopes to their portfolio.
@@ -32,6 +37,12 @@ export default async function BulkStatementSettingsPage() {
         statement settings for all your properties and associations at once. You can also select
         a mixture of individual properties or associations by checking them.
       </div>
+
+      {sp.error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not update settings:</span> {sp.error}
+        </div>
+      )}
 
       <form action={updateBulkStatementSettings as any} className="space-y-4">
         <Card>

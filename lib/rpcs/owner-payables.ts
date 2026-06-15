@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function createOwnerPayable(formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/owner-payable/new?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
 
   const portfolio_id    = formData.get('portfolio_id') as string;
@@ -18,8 +21,10 @@ export async function createOwnerPayable(formData: FormData) {
   const memo            = (formData.get('memo') as string) || null;
   const status          = (formData.get('status') as string) || 'pending_approval';
 
-  if (!owner_id || !association_id || !amount || amount <= 0)
-    return { error: 'Owner, association, and a positive amount are required.' };
+  if (!owner_id || !association_id || !amount || amount <= 0) {
+    failTo('Owner, association, and a positive amount are required.');
+    return;
+  }
 
   const { data, error } = await (supabase as any)
     .from('owner_payables')
@@ -30,37 +35,46 @@ export async function createOwnerPayable(formData: FormData) {
     .select('id')
     .single();
 
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills/owner-payable');
   redirect('/bills/owner-payable');
 }
 
 export async function approveOwnerPayable(id: string) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('owner_payables')
     .update({ status: 'approved', approved_at: new Date().toISOString() })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills/owner-payable');
 }
 
 export async function payOwnerPayable(id: string) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('owner_payables')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills/owner-payable');
 }
 
 export async function voidOwnerPayable(id: string) {
+  const failTo = (msg: string) => {
+    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('owner_payables')
     .update({ status: 'void' })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/bills/owner-payable');
 }

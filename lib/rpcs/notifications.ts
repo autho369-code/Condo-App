@@ -26,6 +26,12 @@ export async function sendEmail(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
+  const failTo = (msg: string) => {
+    const returnTo = str(formData, 'return_to');
+    const base = returnTo && returnTo.startsWith('/') ? returnTo : '/send-email';
+    redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
+  };
+
   const associationId = req(formData, 'association_id');
   const recipientType = req(formData, 'recipient_type'); // owners | tenants | both | board
   const subject       = req(formData, 'subject');
@@ -93,7 +99,8 @@ export async function sendEmail(formData: FormData) {
   }
 
   if (unique.length === 0) {
-    return { error: `No recipients found for ${recipientType} at this association. Make sure owners/tenants have email addresses on file.` };
+    failTo(`No recipients found for ${recipientType} at this association. Make sure owners/tenants have email addresses on file.`);
+    return;
   }
 
   const fullBody = cc ? body + `\n\n---\nCc: ${cc}` : body;
@@ -114,7 +121,7 @@ export async function sendEmail(formData: FormData) {
   }));
 
   const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
-  if (communicationError) return { error: communicationError.message };
+  if (communicationError) { failTo(communicationError.message); return; }
 
   // 2) Association notices ledger (legacy/reporting).
   const rows = unique.map((r) => ({
@@ -144,7 +151,7 @@ export async function sendEmail(formData: FormData) {
     sentBy: me.auth_user_id,
   }));
   const { error: queueError } = await db.from('email_queue').insert(queueRows);
-  if (queueError) return { error: `Logged but could not queue for delivery: ${queueError.message}` };
+  if (queueError) { failTo(`Logged but could not queue for delivery: ${queueError.message}`); return; }
 
   // Bounce back to where we came from, or to association detail if not provided
   const returnTo = str(formData, 'return_to');

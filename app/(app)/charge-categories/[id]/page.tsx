@@ -9,9 +9,10 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function EditChargeCategory({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditChargeCategory({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [{ data: cat }, { data: gls }] = await Promise.all([
@@ -39,6 +40,10 @@ export default async function EditChargeCategory({ params }: { params: Promise<{
           </>
         }
       />
+
+      {sp.error && (
+        <Alert tone="danger" title="Could not save category" className="mb-6">{sp.error}</Alert>
+      )}
 
       {cat.is_system && (
         <Alert tone="warning" className="mb-6">

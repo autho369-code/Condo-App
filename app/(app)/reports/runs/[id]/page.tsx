@@ -9,8 +9,9 @@ import { date } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function ReportRunDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReportRunDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: run } = await (supabase as any)
@@ -108,6 +109,12 @@ export default async function ReportRunDetail({ params }: { params: Promise<{ id
         </>
       }
     >
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Something went wrong:</span> {sp.error}
+        </div>
+      )}
+
       <Section title="Summary">
         <div className="px-5 py-4">
           <p className="text-sm text-gray-700">

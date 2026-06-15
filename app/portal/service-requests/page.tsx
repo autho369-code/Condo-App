@@ -21,10 +21,10 @@ const PRIORITY_TONE: Record<string, Tone> = {
 export default async function ServiceRequestsList({
   searchParams,
 }: {
-  searchParams: Promise<{ submitted?: string }>;
+  searchParams: Promise<{ submitted?: string; error?: string }>;
 }) {
   await requireAuth();
-  const { submitted } = await searchParams;
+  const { submitted, error } = await searchParams;
   const supabase = await createClient();
 
   const { data: rows } = await (supabase as any)
@@ -51,6 +51,12 @@ export default async function ServiceRequestsList({
       {submitted && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed — usually within one business day.
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Something went wrong:</span> {error}
         </div>
       )}
 

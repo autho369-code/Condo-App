@@ -14,9 +14,13 @@ import { redirect } from 'next/navigation';
 export async function queueReport(formData: FormData) {
   const supabase = await createClient();
 
+  const failTo = (msg: string) => {
+    redirect(`/reports?error=${encodeURIComponent(msg)}`);
+  };
+
   const definitionId = formData.get('definition_id') as string;
   const outputFormat = parseOutputFormat(formData.get('output_format'));
-  if (!definitionId) return { error: 'definition_id required' };
+  if (!definitionId) { failTo('definition_id required'); return; }
 
   // Parameter fields can be added per-report as <input name="param_xxx"> in the form.
   const params: Record<string, unknown> = {};
@@ -24,7 +28,8 @@ export async function queueReport(formData: FormData) {
     if (k.startsWith('param_') && v) params[k.slice(6)] = v;
   }
   if (!params.scope) {
-    return { error: 'Report scope is required' };
+    failTo('Report scope is required');
+    return;
   }
 
   const { data, error } = await (supabase as any).rpc('queue_report_run', {
@@ -32,7 +37,7 @@ export async function queueReport(formData: FormData) {
     p_parameters: params as any,
     p_output_format: outputFormat,
   });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   revalidatePath('/reports/runs');
   redirect(`/reports/runs/${(data as any).id}`);
@@ -62,7 +67,7 @@ export async function cancelReportRun(runId: string) {
     .update({ status: 'cancelled', finished_at: new Date().toISOString() })
     .eq('id', runId)
     .in('status', ['queued', 'running']);
-  if (error) return { error: error.message };
+  if (error) redirect(`/reports/runs/${runId}?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/reports/runs');
   revalidatePath(`/reports/runs/${runId}`);
 }
@@ -78,7 +83,7 @@ export async function toggleSchedule(formData: FormData) {
     .from('scheduled_reports')
     .update({ active: !active })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports');
 }
@@ -91,7 +96,7 @@ export async function deleteSchedule(formData: FormData) {
     .from('scheduled_reports')
     .update({ archived_at: new Date().toISOString(), active: false })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports');
 }
@@ -105,7 +110,7 @@ export async function runScheduleNow(formData: FormData) {
     .from('scheduled_reports')
     .update({ next_run_at: new Date().toISOString() })
     .eq('id', id);
-  if (error) return { error: error.message };
+  if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports/runs');
 }

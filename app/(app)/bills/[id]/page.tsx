@@ -10,9 +10,10 @@ import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BillDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BillDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: b } = await (supabase as any)
@@ -38,6 +39,12 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         />
       }
     >
+      {sp.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not update bill:</span> {sp.error}
+        </div>
+      )}
+
       <Section
         title="Details"
         actions={<Badge status={b.status} />}

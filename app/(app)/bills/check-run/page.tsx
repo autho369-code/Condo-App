@@ -11,8 +11,13 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CheckRunPage() {
+export default async function CheckRunPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [{ data: queue }, { data: banks }] = await Promise.all([
@@ -34,6 +39,12 @@ export default async function CheckRunPage() {
         description="Select approved bills to pay in this check run."
         actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
       />
+
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not write checks:</span> {sp.error}
+        </div>
+      )}
 
       <form action={writeChecks as any} className="space-y-6">
         <Surface>

@@ -16,9 +16,13 @@ type ServiceRequestPriority = Database['public']['Enums']['service_request_prior
  * regardless, but we validate here so errors are caught before hitting the DB.
  */
 export async function submitServiceRequest(formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/portal/service-requests/new?error=${encodeURIComponent(msg)}`);
+  };
+
   const me = await getMe();
-  if (!me.auth_user_id) return { error: 'Not authenticated' };
-  if (!me.owner_id)     return { error: 'Only owners can submit service requests' };
+  if (!me.auth_user_id) { failTo('Not authenticated'); return; }
+  if (!me.owner_id)     { failTo('Only owners can submit service requests'); return; }
 
   const unitId      = formData.get('unit_id') as string;
   const description = (formData.get('description') as string)?.trim();
@@ -26,9 +30,9 @@ export async function submitServiceRequest(formData: FormData) {
   const permission  = formData.get('permission_to_enter') === 'on';
   const access      = (formData.get('access_notes') as string)?.trim() || null;
 
-  if (!unitId)      return { error: 'Unit is required' };
-  if (!description) return { error: 'Please describe the issue' };
-  if (description.length < 10) return { error: 'Please give us at least a sentence so we can help' };
+  if (!unitId)      { failTo('Unit is required'); return; }
+  if (!description) { failTo('Please describe the issue'); return; }
+  if (description.length < 10) { failTo('Please give us at least a sentence so we can help'); return; }
 
   const supabase = await createClient();
 
@@ -38,7 +42,7 @@ export async function submitServiceRequest(formData: FormData) {
     .select('id, buildings!inner(association_id, associations!inner(portfolio_id))')
     .eq('id', unitId)
     .maybeSingle();
-  if (unitErr || !unit) return { error: 'Unit not found or you no longer have access to it' };
+  if (unitErr || !unit) { failTo('Unit not found or you no longer have access to it'); return; }
   const associationId = (unit.buildings as any).association_id;
   const portfolioId   = (unit.buildings as any).associations.portfolio_id;
 
@@ -58,7 +62,7 @@ export async function submitServiceRequest(formData: FormData) {
     created_by:            me.auth_user_id,
   }).select('id').single();
 
-  if (error || !sr) return { error: error?.message ?? 'Failed to submit request' };
+  if (error || !sr) { failTo(error?.message ?? 'Failed to submit request'); return; }
 
   revalidatePath('/portal/service-requests');
   revalidatePath('/portal');
@@ -84,6 +88,6 @@ export async function cancelServiceRequest(serviceRequestId: string) {
     .from('service_requests')
     .update({ status: 'cancelled' })
     .eq('id', serviceRequestId);
-  if (error) return { error: error.message };
+  if (error) { redirect(`/portal/service-requests?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath('/portal/service-requests');
 }

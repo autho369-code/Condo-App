@@ -20,6 +20,12 @@ export async function sendSms(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
+  const failTo = (msg: string) => {
+    const returnTo = str(formData, 'return_to');
+    const base = returnTo && returnTo.startsWith('/') ? returnTo : '/sms';
+    redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
+  };
+
   const recipientType = req(formData, 'recipient_type'); // owner | vendor | tenant
   const recipientId = req(formData, 'recipient_id');
   const phoneNumber = req(formData, 'phone_number');
@@ -68,7 +74,7 @@ export async function sendSms(formData: FormData) {
       .select('id')
       .single();
 
-    if (convErr) return { error: convErr.message };
+    if (convErr) { failTo(convErr.message); return; }
     conversationId = newConv.id;
   }
 
@@ -84,7 +90,7 @@ export async function sendSms(formData: FormData) {
     sent_by: me.auth_user_id,
   });
 
-  if (msgErr) return { error: msgErr.message };
+  if (msgErr) { failTo(msgErr.message); return; }
 
   // Also record in communication_messages for the central communication hub
   await db.from('communication_messages').insert({
@@ -122,6 +128,10 @@ export async function saveTemplate(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
+  const failTo = (msg: string) => {
+    redirect(`/sms/templates?error=${encodeURIComponent(msg)}`);
+  };
+
   const id = str(formData, 'id');
   const name = req(formData, 'name');
   const channel = str(formData, 'channel') ?? 'sms';
@@ -143,11 +153,11 @@ export async function saveTemplate(formData: FormData) {
   if (id) {
     // Update existing
     const { error } = await db.from('message_templates').update(payload).eq('id', id);
-    if (error) return { error: error.message };
+    if (error) { failTo(error.message); return; }
   } else {
     // Create new
     const { error } = await db.from('message_templates').insert(payload);
-    if (error) return { error: error.message };
+    if (error) { failTo(error.message); return; }
   }
 
   revalidatePath('/sms/templates');
@@ -162,7 +172,7 @@ export async function deleteTemplate(formData: FormData) {
 
   const id = req(formData, 'id');
   const { error } = await db.from('message_templates').delete().eq('id', id);
-  if (error) return { error: error.message };
+  if (error) redirect(`/sms/templates?error=${encodeURIComponent(error.message)}`);
 
   revalidatePath('/sms/templates');
   redirect('/sms/templates');
@@ -197,12 +207,16 @@ export async function toggleOptIn(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
+  const failTo = (msg: string) => {
+    redirect(`/sms/opt-ins?error=${encodeURIComponent(msg)}`);
+  };
+
   if (existing) {
     const { error } = await db.from('sms_opt_ins').update(payload).eq('id', existing.id);
-    if (error) return { error: error.message };
+    if (error) { failTo(error.message); return; }
   } else {
     const { error } = await db.from('sms_opt_ins').insert(payload);
-    if (error) return { error: error.message };
+    if (error) { failTo(error.message); return; }
   }
 
   revalidatePath('/sms/opt-ins');

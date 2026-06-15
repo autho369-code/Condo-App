@@ -14,9 +14,10 @@ import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UnitDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const me = await requireStaff();
   const { id: unitId } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -53,6 +54,12 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
         </div>
       </div>
       <div className="flex-1 space-y-6 overflow-y-auto bg-gray-50 px-8 py-6">
+
+      {sp.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not save:</span> {sp.error}
+        </div>
+      )}
 
       {/* ======== ACCOUNT SUMMARY ======== */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

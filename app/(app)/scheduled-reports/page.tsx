@@ -22,7 +22,12 @@ const FREQUENCY_LABELS: Record<string, string> = {
   annually: 'Annually',
 };
 
-export default async function ScheduledReportsPage() {
+export default async function ScheduledReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [{ data: schedules }, { data: definitions }] = await Promise.all([
@@ -62,6 +67,12 @@ export default async function ScheduledReportsPage() {
       }
     >
       <div className="space-y-6">
+        {sp.error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not save schedule:</span> {sp.error}
+          </div>
+        )}
+
         <MetricStrip
           metrics={[
             { label: 'Active schedules', value: activeCount, sublabel: 'Running on cadence' },

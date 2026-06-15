@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   return (
-    <LegalShell title="Security" updated="June 13, 2026">
+    <LegalShell title="Security" updated="June 14, 2026">
       <p>
         Portier369 manages sensitive financial and personal data for community associations. Protecting that data is
         foundational to the platform. This page summarizes the measures we use; we are happy to discuss specifics with
@@ -58,6 +58,11 @@ export default function SecurityPage() {
       <p className="!mt-10 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-[13px] text-gray-600">
         Security is an ongoing program, not a one-time state. This page describes current practices and may evolve as
         the platform grows.
+      </p>
+
+      <p className="!mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+        This document is a general template provided for convenience and is not legal advice. Portier369 recommends
+        review by qualified legal counsel before relying on it for your business.
       </p>
     </LegalShell>
   )

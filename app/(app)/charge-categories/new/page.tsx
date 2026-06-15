@@ -8,8 +8,13 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewChargeCategory() {
+export default async function NewChargeCategory({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const me = await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const { data: gls } = await (supabase as any).from('gl_accounts')
     .select('id, number, name, account_type').eq('active', true).order('number');
@@ -20,6 +25,12 @@ export default async function NewChargeCategory() {
         title="New charge category"
         actions={<Link href="/charge-categories"><Button variant="secondary">Cancel</Button></Link>}
       />
+
+      {sp.error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create category:</span> {sp.error}
+        </div>
+      )}
 
       <Surface>
           <form action={createChargeCategory as any} className="grid grid-cols-1 gap-4 sm:grid-cols-2">

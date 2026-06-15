@@ -52,9 +52,9 @@ type SavedReport = {
 export default async function ReportsIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; error?: string }>;
 }) {
-  const { q = '' } = await searchParams;
+  const { q = '', error } = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -152,6 +152,12 @@ export default async function ReportsIndex({
       }
     >
       <div className="space-y-6">
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not run report:</span> {error}
+          </div>
+        )}
+
         <MetricStrip
           metrics={[
             { label: 'Active catalog', value: activeCount ?? definitions.length, sublabel: 'Available report definitions' },

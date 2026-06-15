@@ -78,7 +78,7 @@ async function changeStaffRole(formData: FormData) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset_success?: string; temp_password?: string; reset_error?: string; reason?: string; invite_error?: string }>;
+  searchParams: Promise<{ reset_success?: string; temp_password?: string; reset_error?: string; reason?: string; invite_error?: string; error?: string }>;
 }) {
   const sp = await searchParams;
   const me = await requirePortfolioAdmin();
@@ -112,6 +112,9 @@ export default async function SettingsPage({
         )}
         {sp.invite_error && (
           <Alert tone="danger" title="Could not send invitation:">{sp.invite_error}</Alert>
+        )}
+        {sp.error && (
+          <Alert tone="danger" title="Could not save settings:">{sp.error}</Alert>
         )}
 
         {/* ======== PORTFOLIO POLICY ======== */}

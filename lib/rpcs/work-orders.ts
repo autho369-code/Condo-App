@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 
 export async function updateWorkOrderStatus(workOrderId: string, newStatus: string, note?: string) {
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
+  };
   const patch: Record<string, unknown> = { status: newStatus };
   if (newStatus === 'completed' || newStatus === 'closed') {
     patch.completed_date = new Date().toISOString().slice(0, 10);
@@ -13,7 +16,7 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
   }
 
   const { error: e1 } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (e1) return { error: e1.message };
+  if (e1) { failTo(e1.message); return; }
 
   await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
@@ -26,6 +29,9 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
 
 export async function updateWorkOrder(workOrderId: string, formData: FormData) {
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
+  };
 
   const str = (k: string) => {
     const v = formData.get(k);
@@ -52,7 +58,7 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
   if (!patch.title) delete patch.title;
 
   const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
@@ -63,11 +69,14 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
 
 export async function assignVendor(workOrderId: string, formData: FormData) {
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
+  };
   const vendorId = formData.get('vendor_id') as string;
   const note     = (formData.get('note') as string) || null;
   const bumpStatus = formData.get('bump_status') === 'on';
 
-  if (!vendorId) return { error: 'Vendor is required' };
+  if (!vendorId) { failTo('Vendor is required'); return; }
 
   // Look up vendor name for the activity log
   const { data: vendor } = await (supabase as any).from('vendors').select('name').eq('id', vendorId).maybeSingle();
@@ -76,7 +85,7 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
   if (bumpStatus) patch.status = 'assigned';
 
   const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
@@ -90,7 +99,7 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
 export async function unassignVendor(workOrderId: string) {
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_orders').update({ vendor_id: null }).eq('id', workOrderId);
-  if (error) return { error: error.message };
+  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: 'Vendor unassigned',
@@ -108,7 +117,7 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
     description:   (formData.get('description') as string) || null,
     hourly_rate:   parseFloat(formData.get('hourly_rate') as string) || null,
   });
-  if (error) return { error: error.message };
+  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
@@ -120,7 +129,7 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
     amount:        parseFloat(formData.get('amount') as string),
     notes:         (formData.get('notes') as string) || null,
   });
-  if (error) return { error: error.message };
+  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
@@ -129,7 +138,7 @@ export async function approveEstimate(estimateId: string, workOrderId: string) {
   const { error } = await (supabase as any).from('work_order_estimates')
     .update({ approved_at: new Date().toISOString() })
     .eq('id', estimateId);
-  if (error) return { error: error.message };
+  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
@@ -139,7 +148,7 @@ export async function addNote(workOrderId: string, formData: FormData) {
     work_order_id: workOrderId,
     note: formData.get('note') as string,
   });
-  if (error) return { error: error.message };
+  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 

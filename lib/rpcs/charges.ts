@@ -6,6 +6,9 @@ import { redirect } from 'next/navigation';
 /* ============ Charge Categories ============ */
 
 export async function createChargeCategory(formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/charge-categories/new?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { data, error } = await (supabase as any).from('charge_categories').insert({
     portfolio_id:       formData.get('portfolio_id') as string,
@@ -21,12 +24,15 @@ export async function createChargeCategory(formData: FormData) {
     is_fee:             formData.get('is_fee') === 'on',
     active:             true,
   }).select('id').single();
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/charge-categories');
   redirect(`/charge-categories/${data.id}`);
 }
 
 export async function updateChargeCategory(id: string, formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any).from('charge_categories').update({
     name:              formData.get('name') as string,
@@ -40,16 +46,19 @@ export async function updateChargeCategory(id: string, formData: FormData) {
     is_fee:            formData.get('is_fee') === 'on',
     active:            formData.get('active') === 'on',
   }).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/charge-categories');
   revalidatePath(`/charge-categories/${id}`);
 }
 
 export async function archiveChargeCategory(id: string) {
+  const failTo = (msg: string) => {
+    redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any).from('charge_categories')
     .update({ archived_at: new Date().toISOString(), active: false }).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath('/charge-categories');
   redirect('/charge-categories');
 }
@@ -59,6 +68,9 @@ export async function archiveChargeCategory(id: string) {
 export async function subscribeUnitToCharge(formData: FormData) {
   const supabase = await createClient();
   const unit_id            = formData.get('unit_id') as string;
+  const failTo = (msg: string) => {
+    redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
+  };
   const charge_category_id = formData.get('charge_category_id') as string;
   const amount             = parseFloat(formData.get('amount') as string);
   const frequency          = (formData.get('frequency') as any) || null;
@@ -75,16 +87,19 @@ export async function subscribeUnitToCharge(formData: FormData) {
     p_memo:               memo,
     p_identifier:         identifier,
   });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unit_id}`);
 }
 
 export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
+  const failTo = (msg: string) => {
+    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any).from('unit_recurring_charges')
     .update({ active: false, end_date: new Date().toISOString().slice(0,10) })
     .eq('id', subscriptionId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unitId}`);
 }
 
@@ -105,6 +120,9 @@ export async function updateUnitSubscription(id: string, unitId: string, formDat
 export async function postAdHocCharge(formData: FormData) {
   const supabase = await createClient();
   const unit_id            = formData.get('unit_id') as string;
+  const failTo = (msg: string) => {
+    redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
+  };
   const charge_category_id = formData.get('charge_category_id') as string;
   const amount             = parseFloat(formData.get('amount') as string);
   const description        = formData.get('description') as string;
@@ -117,13 +135,16 @@ export async function postAdHocCharge(formData: FormData) {
     p_description:         description,
     p_due_date:            due_date,
   });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unit_id}`);
 }
 
 export async function recordReceipt(formData: FormData) {
   const supabase = await createClient();
   const unit_id      = formData.get('unit_id') as string;
+  const failTo = (msg: string) => {
+    redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
+  };
   const amount       = parseFloat(formData.get('amount') as string);
   const payment_date = formData.get('payment_date') as string;
   const method       = formData.get('method') as string;
@@ -134,16 +155,19 @@ export async function recordReceipt(formData: FormData) {
   const { error } = await (supabase as any).from('payments').insert({
     unit_id, amount, payment_date, method, reference, notes,
   });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unit_id}`);
 }
 
 export async function unapplyPayment(paymentId: string, unitId: string) {
+  const failTo = (msg: string) => {
+    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any).rpc('unapply_payment', {
     p_payment_id: paymentId,
     p_charge_id:  undefined,
   });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unitId}`);
 }

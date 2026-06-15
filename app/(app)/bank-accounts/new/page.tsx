@@ -12,10 +12,11 @@ export const dynamic = 'force-dynamic';
 export default async function NewBankAccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ association?: string; return_to?: string }>;
+  searchParams: Promise<{ association?: string; return_to?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { association, return_to } = await searchParams;
+  const sp = await searchParams;
+  const { association, return_to } = sp;
   const supabase = await createClient();
 
   const [{ data: associations }, { data: glAccounts }] = await Promise.all([
@@ -33,6 +34,12 @@ export default async function NewBankAccountPage({
       description="Create the account record, map it to the association and GL, and capture payment/reconciliation settings safely."
       actions={<Link href="/bank-accounts"><Button variant="secondary">Cancel</Button></Link>}
     >
+      {sp.error && (
+        <div className="mb-6 max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create bank account:</span> {sp.error}
+        </div>
+      )}
+
       <form action={createBankAccount as unknown as (formData: FormData) => Promise<void>} className="max-w-3xl space-y-5">
         {return_to && <input type="hidden" name="return_to" value={return_to} />}
 

@@ -168,6 +168,10 @@ export async function createBankAccount(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
 
+  const failTo = (msg: string) => {
+    redirect(`/bank-accounts/new?error=${encodeURIComponent(msg)}`);
+  };
+
   const payload = {
     portfolio_id:    me.portfolio?.id,
     association_id:  str(formData, 'association_id'),   // nullable
@@ -191,7 +195,7 @@ export async function createBankAccount(formData: FormData) {
 
   const { data: bank, error } = await (supabase as any)
     .from('bank_accounts').insert(payload).select('id').single();
-  if (error || !bank) return { error: error?.message ?? 'Failed to create bank account' };
+  if (error || !bank) { failTo(error?.message ?? 'Failed to create bank account'); return; }
 
   revalidatePath('/bank-accounts');
   if (payload.association_id) revalidatePath(`/associations/${payload.association_id}`);
@@ -219,6 +223,10 @@ export async function createBankAccount(formData: FormData) {
 export async function createBuilding(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+
+  const failTo = (msg: string) => {
+    redirect(`/buildings/new?error=${encodeURIComponent(msg)}`);
+  };
 
   const associationId = req(formData, 'association_id');
 
@@ -276,7 +284,7 @@ export async function createBuilding(formData: FormData) {
   }
 
   const { data: b, error } = await (supabase as any).from('buildings').insert(payload).select('id').single();
-  if (error || !b) return { error: error?.message ?? 'Failed to create building' };
+  if (error || !b) { failTo(error?.message ?? 'Failed to create building'); return; }
 
   revalidatePath(`/associations/${associationId}`);
   revalidatePath('/buildings');
@@ -348,6 +356,10 @@ export async function createUnit(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
+  const failTo = (msg: string) => {
+    redirect(`/units/new?error=${encodeURIComponent(msg)}`);
+  };
+
   const payload = {
     building_id:  req(formData, 'building_id'),
     unit_number:  req(formData, 'unit_number'),
@@ -362,7 +374,7 @@ export async function createUnit(formData: FormData) {
   };
 
   const { data: unit, error } = await (supabase as any).from('units').insert(payload).select('id, building_id, buildings(association_id)').single();
-  if (error || !unit) return { error: error?.message ?? 'Failed to create unit' };
+  if (error || !unit) { failTo(error?.message ?? 'Failed to create unit'); return; }
 
   const assocId = (unit.buildings as any)?.association_id;
   if (assocId) revalidatePath(`/associations/${assocId}`);
@@ -483,6 +495,9 @@ function generatePassword() {
 export async function updateOwner(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/owners/${id}?error=${encodeURIComponent(msg)}`);
+  };
   const patch: Record<string, unknown> = {
     first_name:    str(formData, 'first_name'),
     last_name:     str(formData, 'last_name'),
@@ -498,7 +513,7 @@ export async function updateOwner(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
   const { error } = await (supabase as any).from('owners').update(patch).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/owners/${id}`);
   revalidatePath('/owners');
 }
@@ -512,6 +527,10 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
+  const failTo = (msg: string) => {
+    redirect(`/owners/${ownerId}?error=${encodeURIComponent(msg)}`);
+  };
+
   const unitId = req(formData, 'unit_id');
 
   // Resolve association_id from the unit (never trust the client)
@@ -520,7 +539,7 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
     .select('id, buildings!inner(association_id)')
     .eq('id', unitId)
     .maybeSingle();
-  if (unitErr || !unit) return { error: 'Unit not found' };
+  if (unitErr || !unit) { failTo('Unit not found'); return; }
   const associationId = (unit.buildings as any).association_id;
 
   const payload = {
@@ -538,7 +557,7 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
   };
 
   const { error } = await (supabase as any).from('occupancies').insert(payload);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   revalidatePath(`/owners/${ownerId}`);
   revalidatePath('/owners');
@@ -549,11 +568,14 @@ export async function linkOccupancy(ownerId: string, formData: FormData) {
 export async function endOccupancy(occupancyId: string, ownerId: string) {
   await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/owners/${ownerId}?error=${encodeURIComponent(msg)}`);
+  };
   const { error } = await (supabase as any).from('occupancies').update({
     status:        'past',
     move_out_date: new Date().toISOString().slice(0, 10),
   }).eq('id', occupancyId);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/owners/${ownerId}`);
 }
 
@@ -564,6 +586,10 @@ export async function endOccupancy(occupancyId: string, ownerId: string) {
 export async function createVendor(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
+
+  const failTo = (msg: string) => {
+    redirect(`/vendors/new?error=${encodeURIComponent(msg)}`);
+  };
 
   // Build phone_numbers array from landline/mobile fields
   const phones: Array<{type: string; number: string}> = [];
@@ -604,7 +630,7 @@ export async function createVendor(formData: FormData) {
   };
 
   const { data: v, error } = await (supabase as any).from('vendors').insert(payload).select('id').single();
-  if (error || !v) return { error: error?.message ?? 'Failed to create vendor' };
+  if (error || !v) { failTo(error?.message ?? 'Failed to create vendor'); return; }
 
   revalidatePath('/vendors');
   redirect('/vendors');
@@ -739,6 +765,10 @@ export async function updateBulkStatementSettings(formData: FormData) {
   await requirePortfolioAdmin();
   const supabase = await createClient();
 
+  const failTo = (msg: string) => {
+    redirect(`/bulk-statement-settings/new?error=${encodeURIComponent(msg)}`);
+  };
+
   // Multi-select arrives as repeated `association_ids` form entries
   const associationIds = formData.getAll('association_ids')
     .filter((v) => typeof v === 'string' && v.length > 0) as string[];
@@ -762,7 +792,7 @@ export async function updateBulkStatementSettings(formData: FormData) {
   if (associationIds.length > 0) query = query.in('id', associationIds);
 
   const { error, count } = await (query as any).select('id', { count: 'exact' });
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   revalidatePath('/associations');
   const n = count ?? 0;

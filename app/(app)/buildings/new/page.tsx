@@ -30,7 +30,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 export default async function NewBuildingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ association?: string }>;
+  searchParams: Promise<{ association?: string; error?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -59,6 +59,12 @@ export default async function NewBuildingPage({
       <p className="mb-4 text-sm text-gray-500">
         Add a physical building under <strong>{assoc.name}</strong>. One association can govern many buildings.
       </p>
+
+      {sp.error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not save property:</span> {sp.error}
+        </div>
+      )}
 
       <form action={createBuilding as any} className="space-y-4">
         <input type="hidden" name="association_id" value={assoc.id} />

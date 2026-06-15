@@ -4,7 +4,12 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { signupWithPassword } from '@/lib/auth/actions';
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; notice?: string }>;
+}) {
+  const sp = await searchParams;
   return (
     <Card className="mx-auto max-w-sm">
       <CardHeader>
@@ -12,6 +17,16 @@ export default function SignupPage() {
         <p className="text-sm text-gray-500">If you were invited, use the email address that received the invitation.</p>
       </CardHeader>
       <CardBody>
+        {sp.notice && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700" role="status">
+            {sp.notice}
+          </div>
+        )}
+        {sp.error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <span className="font-semibold">Could not create account:</span> {sp.error}
+          </div>
+        )}
         <form action={signupWithPassword as any} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
