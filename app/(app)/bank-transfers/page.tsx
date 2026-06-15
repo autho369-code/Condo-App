@@ -57,10 +57,10 @@ export default async function BankTransfersPage({
     query = query.or(`reference_number.ilike.%${q}%,memo.ilike.%${q}%`);
   }
 
-  // Fetch bank account balances for the activity view
+  // Fetch bank accounts for the activity view
   const { data: bankAccounts } = await db
     .from('bank_accounts')
-    .select('id, name, current_balance')
+    .select('id, name, bank_name, account_type')
     .is('archived_at', null)
     .order('name');
 
@@ -267,7 +267,6 @@ function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
           <TH>Account Name</TH>
           <TH>Bank</TH>
           <TH>Type</TH>
-          <TH className="text-right">Current Balance</TH>
           <TH>Activity</TH>
         </TR>
       </THead>
@@ -285,9 +284,6 @@ function BankActivityView({ bankAccounts }: { bankAccounts: any[] }) {
             <TD>{account.bank_name ?? '—'}</TD>
             <TD className="capitalize">
               {account.account_type?.replace(/_/g, ' ') ?? '—'}
-            </TD>
-            <TD className="text-right tabular-nums font-medium">
-              {money(account.current_balance)}
             </TD>
             <TD>
               <Link

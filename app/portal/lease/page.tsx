@@ -2,17 +2,19 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { Key } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerLeasePage() {
+export default async function OwnerLeasePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  // Check if any occupancy is a rental
-  const { data: occs } = await db.from('occupancies').select('id, unit_id, occupancy_type, status, move_in_date, move_out_date').eq('owner_id', me.owner_id).is('archived_at', null).limit(5)
+  // Check if any occupancy is a rental. Join units for the human-readable unit number.
+  const { data: occs } = await db.from('occupancies').select('id, unit_id, occupancy_type, status, move_in_date, move_out_date, units(unit_number)').eq('owner_id', me.owner_id).limit(5)
   const rentals = (occs ?? []).filter((o: any) => o.occupancy_type === 'tenant' || o.occupancy_type === 'renter')
   const hasRental = rentals.length > 0
 
@@ -21,11 +23,13 @@ export default async function OwnerLeasePage() {
     const supabase2 = await createClient()
     const me2 = await requireOwner()
     const occId = formData.get('occupancy_id') as string
-    await (supabase2 as any).from('occupancies').update({
+    const { error } = await (supabase2 as any).from('occupancies').update({
       move_in_date: formData.get('start_date') as string,
       move_out_date: formData.get('end_date') as string || null,
     }).eq('id', occId).eq('owner_id', me2.owner_id)
+    if (error) redirect('/portal/lease?error=' + encodeURIComponent(error.message))
     revalidatePath('/portal/lease')
+    redirect('/portal/lease?saved=1')
   }
 
   return (
@@ -34,6 +38,13 @@ export default async function OwnerLeasePage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Lease Information</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage tenant and lease details for your unit</p>
       </div>
+
+      {banner.error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+      )}
+      {banner.saved === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Lease dates updated.</div>
+      )}
 
       {!hasRental && (occs ?? []).length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -50,7 +61,7 @@ export default async function OwnerLeasePage() {
                   <Key className="h-5 w-5 text-gray-400" />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">Unit {r.unit_id}</div>
+                  <div className="font-semibold text-gray-900">Unit {r.units?.unit_number ?? '—'}</div>
                   <div className="text-sm text-gray-500 capitalize">{r.occupancy_type?.replace('_',' ')} — {r.status?.replace('_',' ')}</div>
                 </div>
               </div>
@@ -74,7 +85,7 @@ export default async function OwnerLeasePage() {
       {(occs ?? []).filter((o: any) => o.occupancy_type !== 'tenant' && o.occupancy_type !== 'renter').map((o: any) => (
         <div key={o.id} className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <Key className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-          <p className="text-sm font-semibold text-gray-900">Unit {o.unit_id} is owner-occupied.</p>
+          <p className="text-sm font-semibold text-gray-900">Unit {o.units?.unit_number ?? '—'} is owner-occupied.</p>
           <p className="mt-1 text-sm text-gray-500">Lease management is only available for rented units.</p>
         </div>
       ))}

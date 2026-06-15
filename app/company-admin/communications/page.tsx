@@ -98,14 +98,13 @@ export default async function CommunicationsPage() {
   }
   const assocCommList = Array.from(assocCommMap.values()).sort((a, b) => b.total - a.total)
 
-  // By manager: group by a manager_id field if it exists
-  // communications_log may have sender_user_id or created_by
+  // By manager: group by sender_id (the real column on communications_log)
   const mgrCommMap = new Map<string, { name: string; emails: number; sms: number; phone: number; total: number }>()
   for (const m of managers ?? []) {
     mgrCommMap.set(m.id, { name: m.full_name ?? m.id, emails: 0, sms: 0, phone: 0, total: 0 })
   }
   for (const c of monthComms) {
-    const uid = c.sender_user_id ?? c.created_by
+    const uid = c.sender_id
     if (!uid) continue
     const entry = mgrCommMap.get(uid)
     if (!entry) continue

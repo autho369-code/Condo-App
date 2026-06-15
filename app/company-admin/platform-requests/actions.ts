@@ -23,9 +23,10 @@ export async function submitPlatformRequest(formData: FormData) {
       portfolio_id: me.portfolio.id,
       request_type,
       priority,
-      subject,
+      title: subject,
       description,
       status: 'open',
+      submitted_by: me.auth_user_id,
     })
 
     if (error) {

@@ -25,7 +25,7 @@ export default async function BillingPage() {
   // Door metrics from view
   const { data: metrics } = await db
     .from('v_company_metrics')
-    .select('doors_active, doors_limit, total_doors')
+    .select('doors_used, doors_limit, total_doors')
     .eq('portfolio_id', portfolioId)
     .order('period', { ascending: false })
     .limit(1)
@@ -43,13 +43,12 @@ export default async function BillingPage() {
   const tierName = (s.tier ?? 'free').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
   const status = s.status ?? 'inactive'
   const monthlyPrice = s.price_monthly_cents ? s.price_monthly_cents / 100 : 0
-  const activeDoors = metrics?.doors_active ?? metrics?.total_doors ?? 0
+  const activeDoors = metrics?.doors_used ?? metrics?.total_doors ?? 0
   const doorsLimit = metrics?.doors_limit ?? s.units_limit ?? s.associations_limit ?? 0
   const doorUsagePct = doorsLimit > 0 ? Math.min(100, Math.round((activeDoors / doorsLimit) * 100)) : 0
-  const isOverLimit = activeDoors > doorsLimit
+  const isOverLimit = doorsLimit > 0 && activeDoors > doorsLimit
   const overageDoors = isOverLimit ? activeDoors - doorsLimit : 0
-  const doorOverageCharge = overageDoors * ((metrics?.price_per_door_cents ?? 100) / 100) || 0
-  const projectedTotal = monthlyPrice + doorOverageCharge
+  const projectedTotal = monthlyPrice
 
   return (
     <div className="space-y-6">
@@ -145,8 +144,8 @@ export default async function BillingPage() {
             </div>
             {isOverLimit && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Door Overage ({overageDoors} doors)</span>
-                <span className="font-medium tabular-nums text-red-700">{money(doorOverageCharge)}</span>
+                <span className="text-gray-500">Over door limit by</span>
+                <span className="font-medium tabular-nums text-red-700">{overageDoors} doors</span>
               </div>
             )}
             <div className="flex justify-between border-t border-gray-100 pt-2 font-semibold">

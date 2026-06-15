@@ -11,8 +11,11 @@ export default async function OwnerTimelinePage() {
   const db = supabase as any
   const ownerId = me.owner_id
 
-  // Work orders have no owner_id — resolve via the owner's units
-  const { data: myUnits } = await db.from('unit_owners').select('unit_id').eq('owner_id', ownerId)
+  // Work orders have no owner_id — resolve via the owner's current units.
+  // Use occupancies (status='current') so this matches the work_orders RLS
+  // predicate current_resident_unit_ids(); otherwise the work-order section is
+  // silently empty when unit_owners and occupancies disagree.
+  const { data: myUnits } = await db.from('occupancies').select('unit_id').eq('owner_id', ownerId).eq('status', 'current')
   const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
 
   const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([

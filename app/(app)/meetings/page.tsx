@@ -52,13 +52,13 @@ export default function MeetingsPage() {
     let query = db
       .from('meetings')
       .select('*, associations(name)')
-      .order('scheduledAt', { ascending: false });
+      .order('start_time', { ascending: false });
 
     if (filters.association_id) {
       query = query.eq('association_id', filters.association_id);
     }
     if (filters.meeting_type) {
-      query = query.eq('meetingType', filters.meeting_type);
+      query = query.eq('meeting_type', filters.meeting_type);
     }
     if (filters.status) {
       query = query.eq('status', filters.status);
@@ -67,10 +67,10 @@ export default function MeetingsPage() {
       query = query.ilike('title', `%${filters.search}%`);
     }
     if (filters.dateFrom) {
-      query = query.gte('scheduledAt', filters.dateFrom);
+      query = query.gte('start_time', filters.dateFrom);
     }
     if (filters.dateTo) {
-      query = query.lte('scheduledAt', `${filters.dateTo}T23:59:59`);
+      query = query.lte('start_time', `${filters.dateTo}T23:59:59`);
     }
 
     const { data, error } = await query;
@@ -208,8 +208,8 @@ export default function MeetingsPage() {
                   )}
                 </TD>
                 <TD>{m.associations?.name || '—'}</TD>
-                <TD className="text-gray-600">{MEETING_TYPE_LABELS[m.meetingType] || m.meetingType}</TD>
-                <TD className="whitespace-nowrap">{formatDate(m.scheduledAt)}</TD>
+                <TD className="text-gray-600">{MEETING_TYPE_LABELS[m.meeting_type] || m.meeting_type}</TD>
+                <TD className="whitespace-nowrap">{formatDate(m.start_time)}</TD>
                 <TD>
                   <StatusChip tone={STATUS_TONES[m.status] ?? 'neutral'}>
                     {STATUS_LABELS[m.status] || m.status}

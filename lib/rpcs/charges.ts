@@ -104,6 +104,9 @@ export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
 }
 
 export async function updateUnitSubscription(id: string, unitId: string, formData: FormData) {
+  const failTo = (msg: string) => {
+    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
+  };
   const supabase = await createClient();
   const { error } = await (supabase as any).from('unit_recurring_charges').update({
     amount:    parseFloat(formData.get('amount') as string),
@@ -111,7 +114,7 @@ export async function updateUnitSubscription(id: string, unitId: string, formDat
     memo:      (formData.get('memo') as string) || null,
     active:    formData.get('active') === 'on',
   }).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${unitId}`);
 }
 

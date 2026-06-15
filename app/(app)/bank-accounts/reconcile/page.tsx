@@ -58,7 +58,7 @@ export default async function BankReconciliationPage({
     if (selectedAccount.gl_account_id) {
       const { data: gl } = await db
         .from('gl_accounts')
-        .select('id, number, name, type')
+        .select('id, number, name, account_type')
         .eq('id', selectedAccount.gl_account_id)
         .single();
       glAccount = gl;

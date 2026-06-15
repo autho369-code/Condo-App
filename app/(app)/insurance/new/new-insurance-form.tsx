@@ -24,17 +24,17 @@ interface ExtractedData {
 interface Props {
   owners: any[];
   associations: any[];
-  addPolicy: (formData: FormData) => Promise<{ error?: string }>;
+  addPolicy: (formData: FormData) => Promise<void>;
+  serverError?: string | null;
 }
 
 // ── component ──────────────────────────────────────────────────────────────
 
-export default function NewInsuranceForm({ owners, associations, addPolicy }: Props) {
+export default function NewInsuranceForm({ owners, associations, addPolicy, serverError }: Props) {
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── AI extraction ────────────────────────────────────────────────────
@@ -69,20 +69,6 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
     } finally {
       setExtracting(false);
     }
-  }
-
-  // ── form submit ──────────────────────────────────────────────────────
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitError(null);
-
-    const fd = new FormData(e.currentTarget);
-    const result = await addPolicy(fd);
-    if (result?.error) {
-      setSubmitError(result.error);
-    }
-    // On success the server action redirects, so we don't need to do anything
   }
 
   // ── render ───────────────────────────────────────────────────────────
@@ -159,8 +145,14 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
         )}
       </section>
 
+      {serverError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Could not save policy: {serverError}
+        </div>
+      )}
+
       {/* Manual entry form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form action={addPolicy} className="space-y-6">
         <Section title="Policy details" padded>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
@@ -287,10 +279,6 @@ export default function NewInsuranceForm({ owners, associations, addPolicy }: Pr
             </div>
           </div>
         </Section>
-
-        {submitError && (
-          <p className="text-sm text-red-600">Error: {submitError}</p>
-        )}
 
         <div className="flex items-center gap-3">
           <Button type="submit" size="lg">Save policy</Button>

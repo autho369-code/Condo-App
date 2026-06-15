@@ -7,7 +7,6 @@ import {
   DoorOpen,
   Users,
   Wrench,
-  Clock,
   AlertTriangle,
   ClipboardCheck,
   TrendingUp,
@@ -61,41 +60,6 @@ function QuickActionButton({ children, href }: { children: React.ReactNode; href
     >
       {children}
     </Link>
-  )
-}
-
-function Sparkline({ data }: { data: number[] }) {
-  if (data.length === 0) return null
-  const max = Math.max(...data)
-  const min = Math.min(...data)
-  const range = max - min || 1
-  const h = 40
-  const w = 200
-  const step = w / (data.length - 1)
-
-  const points = data
-    .map((v, i) => `${i * step},${h - ((v - min) / range) * h}`)
-    .join(' ')
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-10 w-full" preserveAspectRatio="none">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="#10B981"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <linearGradient id="spark-overview" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
-        <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-      </linearGradient>
-      <polygon
-        points={`0,${h} ${points} ${w},${h}`}
-        fill="url(#spark-overview)"
-      />
-    </svg>
   )
 }
 
@@ -201,11 +165,11 @@ export default async function OverviewPage() {
       (subscription.seats_used ?? 0) * (subscription.price_per_seat_cents ?? 0)
   }
 
-  const revenueTrend = [monthlyRevenue * 0.7, monthlyRevenue * 0.75, monthlyRevenue * 0.82, monthlyRevenue * 0.88, monthlyRevenue * 0.92, monthlyRevenue].map((v) => Math.round(v / 100))
-
   // ── Health scores for associations ──────────────────
   const assocIds = (assocsForHealth ?? []).map((a: any) => a.id)
   let healthScoreDistribution = { healthy: 0, warning: 0, critical: 0 }
+  // Per-association open/overdue WO counts + health status, keyed by association id.
+  const assocHealth = new Map<string, { open: number; overdue: number; status: 'healthy' | 'warning' | 'critical' }>()
 
   if (assocIds.length > 0) {
     const openWOCounts = await Promise.all(
@@ -231,16 +195,21 @@ export default async function OverviewPage() {
       ),
     )
 
-    assocIds.forEach((_id: string, i: number) => {
+    assocIds.forEach((id: string, i: number) => {
       const open = openWOCounts[i]?.count ?? 0
       const overdue = overdueWOCounts[i]?.count ?? 0
+      let status: 'healthy' | 'warning' | 'critical'
       if (overdue > 3 || open > 10) {
+        status = 'critical'
         healthScoreDistribution.critical++
       } else if (overdue > 0 || open > 5) {
+        status = 'warning'
         healthScoreDistribution.warning++
       } else {
+        status = 'healthy'
         healthScoreDistribution.healthy++
       }
+      assocHealth.set(id, { open, overdue, status })
     })
   }
 
@@ -292,7 +261,6 @@ export default async function OverviewPage() {
         />
         <StatCard label="Delinquent Accounts" value={delinquentCount ?? 0} icon={TrendingUp} />
         <StatCard label="Avg Health Score" value={`${avgHealthScore}%`} icon={Heart} />
-        <StatCard label="Open Work Orders" value={openWorkOrders ?? 0} sub="Across all associations" icon={Clock} />
       </div>
 
       {/* ── Quick Actions ─────────────────────────────── */}
@@ -309,20 +277,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* ── Charts Row ────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className={`${card} p-5`}>
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Revenue Trend</div>
-          <div className="mb-1 text-2xl font-semibold tabular-nums text-gray-950">
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(monthlyRevenue / 100)}
-          </div>
-          <div className="mb-3 text-xs text-emerald-700">Last 6 months (estimated)</div>
-          <Sparkline data={revenueTrend} />
-          <div className="mt-2 flex justify-between text-xs text-gray-400">
-            <span>{new Date(Date.now() - 5 * 30 * 86400000).toLocaleDateString('en-US', { month: 'short' })}</span>
-            <span>{today.toLocaleDateString('en-US', { month: 'short' })}</span>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 gap-4">
         <div className={`${card} p-5`}>
           <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Health Score Distribution</div>
           {totalWithHealth > 0 ? (
@@ -394,19 +349,27 @@ export default async function OverviewPage() {
               {(assocsForHealth ?? []).length === 0 ? (
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No associations found.</td></tr>
               ) : (
-                (assocsForHealth ?? []).map((assoc: any) => (
-                  <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3">
-                      <Link href={`/associations/${assoc.slug ?? assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
-                    <td className="px-5 py-3 text-gray-400">—</td>
-                    <td className="px-5 py-3 text-gray-400">—</td>
-                    <td className="px-5 py-3">
-                      <StatusChip tone="success">Healthy</StatusChip>
-                    </td>
-                  </tr>
-                ))
+                (assocsForHealth ?? []).map((assoc: any) => {
+                  const h = assocHealth.get(assoc.id)
+                  const open = h?.open ?? 0
+                  const overdue = h?.overdue ?? 0
+                  const status = h?.status ?? 'healthy'
+                  const tone = status === 'critical' ? 'danger' : status === 'warning' ? 'warning' : 'success'
+                  const label = status === 'critical' ? 'Critical' : status === 'warning' ? 'Warning' : 'Healthy'
+                  return (
+                    <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <td className="px-5 py-3">
+                        <Link href={`/associations/${assoc.slug ?? assoc.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{assoc.name}</Link>
+                      </td>
+                      <td className="px-5 py-3 tabular-nums text-gray-700">{assoc.unit_count ?? '—'}</td>
+                      <td className="px-5 py-3 tabular-nums text-gray-700">{open}</td>
+                      <td className={`px-5 py-3 tabular-nums ${overdue > 0 ? 'font-medium text-red-700' : 'text-gray-700'}`}>{overdue}</td>
+                      <td className="px-5 py-3">
+                        <StatusChip tone={tone}>{label}</StatusChip>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

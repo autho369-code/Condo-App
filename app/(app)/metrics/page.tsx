@@ -165,7 +165,6 @@ export default async function MetricsPage() {
             <MetricTile
               label="A/R Balance"
               value={arBalance}
-              prevValue={arBalance * 0.92}
               format="money"
               inverse
               href="/charges"
@@ -173,7 +172,6 @@ export default async function MetricsPage() {
             <MetricTile
               label="Bills Awaiting"
               value={billsAwaitingTotal}
-              prevValue={billsAwaitingTotal * 1.15}
               format="money"
               inverse
               href="/bills?status=approved"
@@ -181,14 +179,12 @@ export default async function MetricsPage() {
             <MetricTile
               label="Collection Rate"
               value={health?.collection_rate_pct ?? 0}
-              prevValue={(health?.collection_rate_pct ?? 0) * 0.97}
               format="pct"
               href="/reports/delinquency"
             />
             <MetricTile
               label="Cash Position"
               value={health?.cash_position ?? 0}
-              prevValue={(health?.cash_position ?? 0) * 0.88}
               format="money"
               href="/bank-accounts"
             />
@@ -197,20 +193,17 @@ export default async function MetricsPage() {
             <MetricTile
               label="Revenue (MTD)"
               value={health?.revenue_mtd ?? 0}
-              prevValue={(health?.revenue_mtd ?? 0) * 0.94}
               format="money"
             />
             <MetricTile
               label="Expenses (MTD)"
               value={health?.expenses_mtd ?? 0}
-              prevValue={(health?.expenses_mtd ?? 0) * 1.08}
               format="money"
               inverse
             />
             <MetricTile
               label="Net Operating Income"
               value={(health?.revenue_mtd ?? 0) - (health?.expenses_mtd ?? 0)}
-              prevValue={((health?.revenue_mtd ?? 0) - (health?.expenses_mtd ?? 0)) * 0.91}
               format="money"
             />
           </div>
@@ -225,7 +218,6 @@ export default async function MetricsPage() {
             <MetricTile
               label="Open Work Orders"
               value={openWorkOrders ?? 0}
-              prevValue={(openWorkOrders ?? 0) * 1.12}
               format="count"
               inverse
               href="/work-orders"
@@ -233,7 +225,6 @@ export default async function MetricsPage() {
             <MetricTile
               label="Open Violations"
               value={openViolations ?? 0}
-              prevValue={(openViolations ?? 0) * 1.05}
               format="count"
               inverse
               href="/violations"
@@ -241,13 +232,11 @@ export default async function MetricsPage() {
             <MetricTile
               label="Maintenance SLA"
               value={health?.maintenance_sla_pct ?? 0}
-              prevValue={(health?.maintenance_sla_pct ?? 0) - 2}
               format="pct"
             />
             <MetricTile
               label="Pending Approvals"
               value={health?.pending_approvals ?? 0}
-              prevValue={(health?.pending_approvals ?? 0) * 0.85}
               format="count"
               inverse
             />
@@ -256,13 +245,11 @@ export default async function MetricsPage() {
             <MetricTile
               label="Work Orders Completed"
               value={health?.wo_completed ?? 0}
-              prevValue={(health?.wo_completed ?? 0) * 0.78}
               format="count"
             />
             <MetricTile
               label="Overdue Work Orders"
               value={health?.wo_overdue ?? 0}
-              prevValue={(health?.wo_overdue ?? 0) * 0.9}
               format="count"
               inverse
               href="/work-orders?status=overdue"
@@ -270,7 +257,6 @@ export default async function MetricsPage() {
             <MetricTile
               label="Inspection Compliance"
               value={health?.inspection_compliance_pct ?? 0}
-              prevValue={(health?.inspection_compliance_pct ?? 0) * 0.95}
               format="pct"
             />
           </div>
@@ -285,26 +271,22 @@ export default async function MetricsPage() {
             <MetricTile
               label="Occupancy Rate"
               value={occupancyRate}
-              prevValue={occupancyRate * 0.96}
               format="pct"
             />
             <MetricTile
               label="Vacant Units"
               value={totalUnits - occupiedUnits}
-              prevValue={(totalUnits - occupiedUnits) * 1.2}
               format="count"
               inverse
             />
             <MetricTile
               label="Portal Activated"
               value={health?.portal_activation_pct ?? 0}
-              prevValue={(health?.portal_activation_pct ?? 0) * 0.88}
               format="pct"
             />
             <MetricTile
               label="Delinquency (0–30d)"
               value={health?.delinquency_0_30 ?? 0}
-              prevValue={(health?.delinquency_0_30 ?? 0) * 1.1}
               format="count"
               inverse
             />
@@ -313,21 +295,18 @@ export default async function MetricsPage() {
             <MetricTile
               label="Delinquency (31–60d)"
               value={health?.delinquency_31_60 ?? 0}
-              prevValue={(health?.delinquency_31_60 ?? 0) * 0.92}
               format="count"
               inverse
             />
             <MetricTile
               label="Delinquency (61+d)"
               value={health?.delinquency_61_plus ?? 0}
-              prevValue={(health?.delinquency_61_plus ?? 0) * 0.95}
               format="count"
               inverse
             />
             <MetricTile
               label="Portal Not Activated"
               value={health?.portal_not_activated_count ?? 0}
-              prevValue={(health?.portal_not_activated_count ?? 0) * 0.85}
               format="count"
               inverse
               href="/owners/activations"

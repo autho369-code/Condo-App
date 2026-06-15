@@ -43,10 +43,10 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
             <p className="whitespace-pre-wrap text-sm text-gray-600">{meeting.agenda}</p>
           </Surface>
         )}
-        {meeting.description && (
+        {meeting.minutes && (
           <Surface padded={false} className="p-5">
-            <h2 className="mb-2 text-sm font-semibold text-gray-950">Description</h2>
-            <p className="whitespace-pre-wrap text-sm text-gray-600">{meeting.description}</p>
+            <h2 className="mb-2 text-sm font-semibold text-gray-950">Minutes</h2>
+            <p className="whitespace-pre-wrap text-sm text-gray-600">{meeting.minutes}</p>
           </Surface>
         )}
       </div>

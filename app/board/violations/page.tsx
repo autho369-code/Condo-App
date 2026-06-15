@@ -83,11 +83,10 @@ export default async function BoardViolationsPage({
   const statusFilter = (params.status as string) || ''
   const repeatOffender = params.repeat === 'true'
   const finedOnly = params.fined === 'true'
-  const escalatedOnly = params.escalated === 'true'
   const typeFilter = (params.type as string) || ''
   const fromDate = (params.from as string) || ''
   const toDate = (params.to as string) || ''
-  const hasActiveFilters = !!(statusFilter || repeatOffender || finedOnly || escalatedOnly || typeFilter || fromDate || toDate)
+  const hasActiveFilters = !!(statusFilter || repeatOffender || finedOnly || typeFilter || fromDate || toDate)
 
   if (boardAssocIds.length === 0) {
     return (
@@ -112,7 +111,7 @@ export default async function BoardViolationsPage({
   // ── Base query for all violations in board associations ──
   let baseQuery = db
     .from('violations')
-    .select(`id, status, title, violation_type, date_observed, hearing_date, hearing_at, fine_amount, fine_assessed_at, created_at, updated_at, due_date, notice_sent_at, closed_at, escalated, association_id, unit_id, owner_id, created_by, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), profiles!violations_created_by_fkey(full_name)`)
+    .select(`id, status, title, violation_type, date_observed, hearing_date, hearing_at, fine_amount, fine_assessed_at, created_at, updated_at, due_date, notice_sent_at, closed_at, association_id, unit_id, owner_id, created_by, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), profiles!violations_created_by_fkey(full_name)`)
     .in('association_id', boardAssocIds)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
@@ -138,9 +137,6 @@ export default async function BoardViolationsPage({
   }
   if (finedOnly) {
     baseQuery = baseQuery.not('fine_amount', 'is', null)
-  }
-  if (escalatedOnly) {
-    baseQuery = baseQuery.eq('escalated', true)
   }
 
   const { data: allViolations } = await baseQuery
@@ -203,7 +199,6 @@ export default async function BoardViolationsPage({
   if (toDate) filterChips.push({ label: `To: ${toDate}`, param: 'to' })
   if (repeatOffender) filterChips.push({ label: 'Repeat Offenders', param: 'repeat' })
   if (finedOnly) filterChips.push({ label: 'Fined Only', param: 'fined' })
-  if (escalatedOnly) filterChips.push({ label: 'Escalated', param: 'escalated' })
 
   const inputCls = 'h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
@@ -272,10 +267,6 @@ export default async function BoardViolationsPage({
             <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
               <input type="checkbox" name="fined" value="true" defaultChecked={finedOnly} className="rounded border-gray-300 accent-blue-600" />
               Fined Only
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
-              <input type="checkbox" name="escalated" value="true" defaultChecked={escalatedOnly} className="rounded border-gray-300 accent-blue-600" />
-              Escalated
             </label>
           </div>
 

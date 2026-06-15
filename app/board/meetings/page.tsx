@@ -15,7 +15,7 @@ export default async function BoardMeetingsPage() {
 
   const { data: meetings } = await db
     .from('meetings')
-    .select('id, title, meeting_type, start_time, location, status, attendees, created_at, association_id, associations(name)')
+    .select('id, title, meeting_type, start_time, location, status, created_at, association_id, associations(name)')
     .in('association_id', ids)
     .order('start_time', { ascending: false })
     .limit(200)

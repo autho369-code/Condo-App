@@ -82,9 +82,19 @@ export default async function CompaniesPage({
     assocByPortfolio.set(a.portfolio_id, cur);
   });
 
+  // v_company_health exposes healthy/warning/critical association counts, not a
+  // single score. Derive a 0-100 score: healthy = 100, warning = 50, critical = 0,
+  // weighted by association count. Portfolios with no associations stay null (—).
   const healthMap = new Map<string, number>();
   (healthRows ?? []).forEach((h: any) => {
-    if (h.portfolio_id && h.health_score !== undefined) healthMap.set(h.portfolio_id, h.health_score);
+    if (!h.portfolio_id) return;
+    const healthy = Number(h.healthy_count ?? 0);
+    const warning = Number(h.warning_count ?? 0);
+    const critical = Number(h.critical_count ?? 0);
+    const total = healthy + warning + critical;
+    if (total === 0) return;
+    const score = Math.round(((healthy * 100 + warning * 50) / total));
+    healthMap.set(h.portfolio_id, score);
   });
 
   const lastPaymentMap = new Map<string, any>();

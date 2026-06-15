@@ -4,11 +4,18 @@ import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
-import { createClient } from '@/lib/supabase/server';
+import { Alert } from '@/components/ui/shell';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+const USERS = '/platform-operator/users';
+
+function fail(message: string): never {
+  redirect(`${USERS}?error=${encodeURIComponent(message)}`);
+}
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
   return (
@@ -29,40 +36,68 @@ function userStatusBadge(user: any) {
   return <Badge className="bg-green-50 text-green-700 ring-green-200">Active</Badge>;
 }
 
+async function audit(
+  svc: any,
+  me: { auth_user_id: string | null; email: string | null },
+  action: string,
+  userId: string,
+  changes: Record<string, unknown> = {},
+) {
+  await svc.from('audit_logs').insert({
+    entity_type: 'user',
+    entity_id: userId,
+    action,
+    actor_id: me.auth_user_id,
+    actor_email: me.email,
+    changes,
+  });
+}
+
 async function toggleUserDisable(formData: FormData) {
   'use server';
-  const supabase = await createClient();
+  const me = await requirePlatformOperator();
+  const svc = createServiceClient() as any;
   const userId = formData.get('user_id') as string;
   const action = formData.get('action') as string;
 
-  if (action === 'disable') {
-    await (supabase as any).from('profiles').update({ disabled_at: new Date().toISOString() }).eq('id', userId);
-  } else {
-    await (supabase as any).from('profiles').update({ disabled_at: null }).eq('id', userId);
-  }
-  revalidatePath('/platform-operator/users');
-  redirect('/platform-operator/users');
+  const disabledAt = action === 'disable' ? new Date().toISOString() : null;
+  const { error } = await svc.from('profiles').update({ disabled_at: disabledAt }).eq('id', userId);
+  if (error) fail(`Could not ${action === 'disable' ? 'disable' : 'enable'} the user: ${error.message}`);
+
+  await audit(svc, me, action === 'disable' ? 'user_disabled' : 'user_enabled', userId, { disabled_at: disabledAt });
+  revalidatePath(USERS);
+  redirect(`${USERS}?${action === 'disable' ? 'disabled' : 'enabled'}=1`);
 }
 
 async function changeUserRole(formData: FormData) {
   'use server';
-  const supabase = await createClient();
+  const me = await requirePlatformOperator();
+  const svc = createServiceClient() as any;
   const userId = formData.get('user_id') as string;
   const newRole = formData.get('hoa_role') as string;
 
-  await (supabase as any).from('profiles').update({ hoa_role: newRole }).eq('id', userId);
-  revalidatePath('/platform-operator/users');
-  redirect('/platform-operator/users?role_changed=1');
+  const { error } = await svc.from('profiles').update({ hoa_role: newRole }).eq('id', userId);
+  if (error) fail(`Could not change the user's role: ${error.message}`);
+
+  await audit(svc, me, 'user_role_changed', userId, { hoa_role: newRole });
+  revalidatePath(USERS);
+  redirect(`${USERS}?role_changed=1`);
 }
 
+// Soft-delete per platform soft-delete policy: disable the account rather than
+// destroying the profile row (preserves history and FK integrity).
 async function deleteUser(formData: FormData) {
   'use server';
-  const supabase = await createClient();
+  const me = await requirePlatformOperator();
+  const svc = createServiceClient() as any;
   const userId = formData.get('user_id') as string;
 
-  await (supabase as any).from('profiles').delete().eq('id', userId);
-  revalidatePath('/platform-operator/users');
-  redirect('/platform-operator/users?deleted=1');
+  const { error } = await svc.from('profiles').update({ disabled_at: new Date().toISOString() }).eq('id', userId);
+  if (error) fail(`Could not delete the user: ${error.message}`);
+
+  await audit(svc, me, 'user_soft_deleted', userId, {});
+  revalidatePath(USERS);
+  redirect(`${USERS}?deleted=1`);
 }
 
 const ROLE_OPTIONS = [
@@ -78,7 +113,7 @@ const ROLE_OPTIONS = [
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; company?: string; status?: string; role_changed?: string; deleted?: string }>;
+  searchParams: Promise<{ role?: string; company?: string; status?: string; role_changed?: string; deleted?: string; disabled?: string; enabled?: string; error?: string }>;
 }) {
   const sp = await searchParams;
   const me = await requirePlatformOperator();
@@ -106,6 +141,17 @@ export default async function UsersPage({
 
   return (
     <div className="space-y-7">
+      {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {(sp.disabled === '1' || sp.enabled === '1') && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <h3 className="font-semibold text-green-900">{sp.disabled === '1' ? 'User disabled' : 'User enabled'}</h3>
+          <p className="text-sm text-green-700 mt-1">
+            {sp.disabled === '1'
+              ? 'The user has been disabled and can no longer be used.'
+              : 'The user has been re-enabled.'}
+          </p>
+        </div>
+      )}
       {sp.role_changed === '1' && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
           <h3 className="font-semibold text-green-900">Role updated</h3>
@@ -115,7 +161,7 @@ export default async function UsersPage({
       {sp.deleted === '1' && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h3 className="font-semibold text-amber-900">User deleted</h3>
-          <p className="text-sm text-amber-700 mt-1">The user profile has been removed.</p>
+          <p className="text-sm text-amber-700 mt-1">The account has been disabled. Profile history is preserved.</p>
         </div>
       )}
 

@@ -61,7 +61,7 @@ export default async function OnboardPage({
     { key: '2', label: 'Add buildings + units',      done: (unitCount ?? 0) > 0 },
     { key: '3', label: 'Import owners',          done: (ownerCount ?? 0) > 0 },
     { key: '4', label: 'Invite your team',           done: (staffCount ?? 0) > 1 },
-    { key: '5', label: 'Connect Stripe + finish',    done: false },
+    { key: '5', label: 'Set up payment instructions + finish', done: false },
   ];
   const progress = Math.round(steps.filter((s) => s.done).length / steps.length * 100);
 
@@ -155,19 +155,20 @@ export default async function OnboardPage({
           </Surface>
         ))}
 
-        {/* STEP 5 — Stripe + finish */}
+        {/* STEP 5 — Payment instructions + finish */}
         <Surface>
           <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
-            5 — Connect Stripe (optional but recommended)
+            5 — Set up payment instructions
           </h2>
           <p className="text-sm text-gray-600">
-            Connect a Stripe account so owners can pay assessments online via ACH or card.
-            You can also skip this and use manual check entry only.
+            Tell owners how to pay assessments. Open each association&apos;s profile and add your
+            payment instructions (mailing address for checks, bank details for transfers). Owners
+            see these on their &ldquo;How to Pay&rdquo; page, and managers record received payments manually.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary">Sign up for Stripe →</Button>
-            </a>
+            <Link href="/associations">
+              <Button variant="secondary">Open associations →</Button>
+            </Link>
             <form action={finishOnboarding as any}>
               <Button type="submit">I&apos;m set — go to dashboard</Button>
             </form>

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Badge, Alert } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,29 +51,49 @@ async function addBoardComment(formData: FormData) {
 
   const authorName = profile?.full_name ?? user.email ?? 'Board Member'
 
-  await (supabase as any)
+  // board_comments.association_id is NOT NULL — fetch it from the violation.
+  const { data: violation } = await (supabase as any)
+    .from('violations')
+    .select('association_id')
+    .eq('id', violationId)
+    .maybeSingle()
+
+  if (!violation?.association_id) {
+    redirect(`/board/violations/${violationId}?error=${encodeURIComponent('Could not resolve the violation’s association.')}`)
+  }
+
+  const { error } = await (supabase as any)
     .from('board_comments')
     .insert({
       violation_id: violationId,
+      association_id: violation.association_id,
       author_id: user.id,
       author_name: authorName,
       comment: comment.trim(),
       visibility: 'board_and_manager',
     })
 
+  if (error) {
+    redirect(`/board/violations/${violationId}?error=${encodeURIComponent(error.message)}`)
+  }
+
   revalidatePath(`/board/violations/${violationId}`)
 }
 
 export default async function BoardViolationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const me = await requireBoard()
   const supabase = await createClient()
   const db = supabase as any
   const boardAssocIds = me.board_association_ids ?? []
   const { id } = await params
+  const sp = await searchParams
+  const errorMsg = typeof sp.error === 'string' ? sp.error : ''
 
   // Fetch violation — ensure it belongs to board's association
   const { data: violation } = await db
@@ -146,6 +167,10 @@ export default async function BoardViolationDetailPage({
       <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gray-950">
         <ArrowLeft className="h-4 w-4" /> Back to Violations
       </Link>
+
+      {errorMsg && (
+        <Alert tone="danger" title="Could not add comment">{errorMsg}</Alert>
+      )}
 
       {/* ── Top Header ── */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

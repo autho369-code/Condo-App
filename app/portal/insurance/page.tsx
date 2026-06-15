@@ -2,11 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { Shield } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerInsurancePage() {
+export default async function OwnerInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
@@ -34,14 +36,16 @@ export default async function OwnerInsurancePage() {
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
-    await (supabase2 as any).from('insurance_policies').insert({
+    const { error } = await (supabase2 as any).from('insurance_policies').insert({
       owner_id: me2.owner_id,
       insurance_company: (formData.get('carrier') as string) || null,
       policy_number: (formData.get('policy_number') as string) || null,
       expiration_date: (formData.get('expiration_date') as string) || null,
       status: 'active',
     })
+    if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
     revalidatePath('/portal/insurance')
+    redirect('/portal/insurance?saved=1')
   }
 
   return (
@@ -50,6 +54,13 @@ export default async function OwnerInsurancePage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Insurance</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">HO6 insurance certificate management</p>
       </div>
+
+      {banner.error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+      )}
+      {banner.saved === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Insurance policy saved.</div>
+      )}
 
       {/* Status card */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

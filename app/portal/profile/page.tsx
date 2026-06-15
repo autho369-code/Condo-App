@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerProfilePage() {
+export default async function OwnerProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
@@ -16,7 +18,7 @@ export default async function OwnerProfilePage() {
     'use server'
     const supabase2 = await createClient()
     const me2 = await requireOwner()
-    await (supabase2 as any).from('owners').update({
+    const { error } = await (supabase2 as any).from('owners').update({
       phone: formData.get('phone') as string || null,
       emails: formData.get('email') ? [formData.get('email') as string] : null,
       address_street: formData.get('address_street') as string || null,
@@ -24,7 +26,9 @@ export default async function OwnerProfilePage() {
       address_state: formData.get('address_state') as string || null,
       address_zip: formData.get('address_zip') as string || null,
     }).eq('id', me2.owner_id)
+    if (error) redirect('/portal/profile?error=' + encodeURIComponent(error.message))
     revalidatePath('/portal/profile')
+    redirect('/portal/profile?saved=1')
   }
 
   return (
@@ -33,6 +37,13 @@ export default async function OwnerProfilePage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Profile</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Update your contact information</p>
       </div>
+
+      {banner.error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+      )}
+      {banner.saved === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your profile was saved.</div>
+      )}
 
       <form action={saveProfile} className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-500">

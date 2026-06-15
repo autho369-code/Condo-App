@@ -85,15 +85,15 @@ export default async function AccountingPage() {
 
   const totalAR = (
     (agingBuckets['current'] ?? 0) +
-    (agingBuckets['1-30'] ?? 0) +
-    (agingBuckets['30-60'] ?? 0) +
-    (agingBuckets['60-90'] ?? 0) +
-    (agingBuckets['90+'] ?? 0)
+    (agingBuckets['1_30'] ?? 0) +
+    (agingBuckets['31_60'] ?? 0) +
+    (agingBuckets['61_90'] ?? 0) +
+    (agingBuckets['90_plus'] ?? 0)
   );
   const overdueAR =
-    (agingBuckets['30-60'] ?? 0) +
-    (agingBuckets['60-90'] ?? 0) +
-    (agingBuckets['90+'] ?? 0);
+    (agingBuckets['31_60'] ?? 0) +
+    (agingBuckets['61_90'] ?? 0) +
+    (agingBuckets['90_plus'] ?? 0);
 
   const metrics = [
     {
@@ -188,14 +188,24 @@ export default async function AccountingPage() {
               />
             </div>
             <div className="divide-y divide-gray-100">
-              {(['current', '1-30', '30-60', '60-90', '90+'] as const).map((bucket) => {
+              {(['current', '1_30', '31_60', '61_90', '90_plus'] as const).map((bucket) => {
                 const amount = agingBuckets[bucket] ?? 0;
                 if (amount === 0) return null;
-                const isOverdue = bucket === '30-60' || bucket === '60-90' || bucket === '90+';
+                const isOverdue = bucket === '31_60' || bucket === '61_90' || bucket === '90_plus';
+                const bucketLabel =
+                  bucket === 'current'
+                    ? 'Current'
+                    : bucket === '1_30'
+                      ? '1–30 days'
+                      : bucket === '31_60'
+                        ? '31–60 days'
+                        : bucket === '61_90'
+                          ? '61–90 days'
+                          : '90+ days';
                 return (
                   <div key={bucket} className="flex items-center justify-between px-5 py-3">
                     <span className={`text-sm ${isOverdue ? 'font-medium text-red-700' : 'text-gray-700'}`}>
-                      {bucket === 'current' ? 'Current' : `${bucket} days`}
+                      {bucketLabel}
                     </span>
                     <span className={`text-sm tabular-nums font-medium ${isOverdue ? 'text-red-700' : 'text-gray-950'}`}>
                       {money(amount)}

@@ -23,13 +23,13 @@ export default async function OwnerHearingsPage({ searchParams }: { searchParams
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Hearings</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">View scheduled hearings and request new ones</p>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">View hearings scheduled for your violations</p>
       </div>
 
       {all.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <p className="text-sm font-semibold text-gray-900">No hearings scheduled or requested.</p>
-          <p className="mt-1 text-sm text-gray-500">If you have an open violation, you can request a hearing from the violation detail page.</p>
+          <p className="text-sm font-semibold text-gray-900">No hearings scheduled.</p>
+          <p className="mt-1 text-sm text-gray-500">If a hearing is scheduled for one of your violations, it will appear here. To request a hearing, contact your association management.</p>
         </div>
       ) : (
         <div className="space-y-4">

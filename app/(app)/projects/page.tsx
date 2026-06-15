@@ -38,9 +38,9 @@ function deriveProjectStatus(statuses: string[]): ProjectStatus {
   return 'planning';
 }
 
-function formatCurrency(cents: number | null | undefined): string {
-  if (cents == null) return '—';
-  const dollars = cents / 100;
+function formatCurrency(dollars: number | null | undefined): string {
+  if (dollars == null) return '—';
+  // work_order_estimates.amount and payable_bills.amount are stored in dollars.
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(dollars);
 }
 
@@ -88,11 +88,10 @@ export default async function ProjectsPage({
       .limit(1000),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('work_order_estimates')
-      .select('work_order_id, total_amount')
-      .is('archived_at', null)
+      .select('work_order_id, amount')
       .limit(5000),
     db.from('payable_bills')
-      .select('work_order_id, total_amount, status')
+      .select('work_order_id, amount, status')
       .is('archived_at', null)
       .in('status', ['approved', 'paid'])
       .limit(5000),
@@ -106,7 +105,7 @@ export default async function ProjectsPage({
   const estimateMap: Record<string, number> = {};
   for (const e of estRows) {
     if (e.work_order_id) {
-      estimateMap[e.work_order_id] = (estimateMap[e.work_order_id] ?? 0) + (e.total_amount ?? 0);
+      estimateMap[e.work_order_id] = (estimateMap[e.work_order_id] ?? 0) + (e.amount ?? 0);
     }
   }
 
@@ -114,7 +113,7 @@ export default async function ProjectsPage({
   const billMap: Record<string, number> = {};
   for (const b of billRows) {
     if (b.work_order_id) {
-      billMap[b.work_order_id] = (billMap[b.work_order_id] ?? 0) + (b.total_amount ?? 0);
+      billMap[b.work_order_id] = (billMap[b.work_order_id] ?? 0) + (b.amount ?? 0);
     }
   }
 

@@ -241,7 +241,7 @@ export default async function PlatformOperatorOverviewPage() {
   const overduePaymentsQuery = db
     .from('invoices')
     .select('id', { count: 'exact', head: true })
-    .eq('status', 'overdue')
+    .eq('status', 'past_due')
 
   const openRequestsQuery = db
     .from('platform_requests')
@@ -439,7 +439,7 @@ export default async function PlatformOperatorOverviewPage() {
     const company = portfolios?.[0]
     return {
       label: company?.company_name ?? 'Unknown',
-      href: `/platform/portfolios/${r.portfolio_id}`,
+      href: `/platform-operator/companies/${r.portfolio_id}`,
       value: r.fee_amount_cents ?? 0,
     }
   })
@@ -750,7 +750,7 @@ export default async function PlatformOperatorOverviewPage() {
                       <tr key={row.portfolio_id} className="hover:bg-gray-50">
                         <td className="px-5 py-3">
                           <Link
-                            href={`/platform/portfolios/${row.portfolio_id}`}
+                            href={`/platform-operator/companies/${row.portfolio_id}`}
                             className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
                           >
                             {company?.company_name ?? 'Unknown'}
@@ -806,7 +806,7 @@ export default async function PlatformOperatorOverviewPage() {
                   <tr key={h.portfolio_id} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
                       <Link
-                        href={`/platform/portfolios/${h.portfolio_id}`}
+                        href={`/platform-operator/companies/${h.portfolio_id}`}
                         className="font-medium text-gray-700 hover:text-gray-950 hover:underline"
                       >
                         {h.portfolio_id}

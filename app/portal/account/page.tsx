@@ -11,7 +11,7 @@ export default async function OwnerAccountPage() {
   const ownerId = me.owner_id
 
   const { data: owner } = await db.from('owners').select('*').eq('id', ownerId).maybeSingle()
-  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').eq('owner_id', ownerId).is('archived_at', null).limit(10)
+  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').eq('owner_id', ownerId).limit(10)
   const o = owner ?? {}
   const occ = occs?.[0] ?? {}
 

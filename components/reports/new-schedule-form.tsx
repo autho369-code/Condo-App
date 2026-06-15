@@ -10,8 +10,6 @@ type Props = {
 
 export function NewScheduleForm({ definitions }: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   if (!open) {
     return (
@@ -24,22 +22,8 @@ export function NewScheduleForm({ definitions }: Props) {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const result = await createSchedule(fd);
-    if (result?.error) {
-      setError(result.error);
-      setSubmitting(false);
-    }
-    // On success the server action redirects
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded border border-gray-200 bg-white p-4">
+    <form action={createSchedule} className="space-y-4 rounded border border-gray-200 bg-white p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-950">New Scheduled Report</h3>
         <button
@@ -50,10 +34,6 @@ export function NewScheduleForm({ definitions }: Props) {
           Cancel
         </button>
       </div>
-
-      {error && (
-        <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
-      )}
 
       {/* Report definition */}
       <div>
@@ -144,8 +124,8 @@ export function NewScheduleForm({ definitions }: Props) {
         </select>
       </div>
 
-      <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? 'Saving...' : 'Save schedule'}
+      <Button type="submit" className="w-full">
+        Save schedule
       </Button>
     </form>
   );

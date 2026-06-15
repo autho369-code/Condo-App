@@ -5,6 +5,7 @@ import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
+import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -59,7 +60,7 @@ function AchWorkflowBadge({ status }: { status: string }) {
 export default async function VendorAchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; vendor?: string }>;
+  searchParams: Promise<{ q?: string; vendor?: string; error?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -122,6 +123,7 @@ export default async function VendorAchPage({
         }
       >
         <div className="space-y-6">
+          {sp.error && <Alert tone="danger" title="ACH authorization failed">{sp.error}</Alert>}
           {/* Vendor header */}
           <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="flex items-start justify-between">

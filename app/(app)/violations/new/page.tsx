@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -10,8 +11,9 @@ export const dynamic = 'force-dynamic';
 
 const typeOptions = ['noise', 'parking', 'pets', 'exterior_modification', 'trash_debris', 'landscaping', 'common_area_misuse', 'lease_violation', 'assessment_delinquency', 'other'];
 
-export default async function NewViolationPage() {
+export default async function NewViolationPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const [{ data: associations }, { data: units }, { data: owners }] = await Promise.all([
     (supabase as any).from('associations').select('id, name').order('name'),
@@ -21,21 +23,44 @@ export default async function NewViolationPage() {
 
   async function handleSubmit(formData: FormData) {
     'use server';
+    const me = await requireStaff();
     const supabase = await createClient();
+    const db = supabase as any;
+    const failTo = (msg: string) => redirect(`/violations/new?error=${encodeURIComponent(msg)}`);
+
+    const unitId = (formData.get('unit_id') as string) || null;
+    let associationId = (formData.get('association_id') as string) || null;
+
+    // Resolve association_id from the unit when not provided directly.
+    if (!associationId && unitId) {
+      const { data: unit } = await db
+        .from('units')
+        .select('buildings!inner(association_id)')
+        .eq('id', unitId)
+        .maybeSingle();
+      associationId = (unit?.buildings as any)?.association_id ?? null;
+    }
+    if (!associationId) failTo('Select an association (or a unit so we can resolve one).');
+
+    const title = (formData.get('title') as string)?.trim();
+    if (!title) failTo('Enter a title.');
+
     const violation = {
-      association_id: formData.get('association_id') || null,
-      unit_id: formData.get('unit_id') || null,
-      owner_id: formData.get('owner_id') || null,
-      violation_type: formData.get('violation_type'),
-      title: formData.get('title'),
-      description: formData.get('description'),
-      observed_date: formData.get('observed_date') || null,
-      due_date: formData.get('due_date') || null,
-      hearing_date: formData.get('hearing_date') || null,
-      status: formData.get('status') || 'open',
+      association_id: associationId,
+      unit_id: unitId,
+      owner_id: (formData.get('owner_id') as string) || null,
+      violation_type: (formData.get('violation_type') as string) || 'other',
+      title,
+      description: (formData.get('description') as string) || null,
+      date_observed: (formData.get('observed_date') as string) || new Date().toISOString().slice(0, 10),
+      due_date: (formData.get('due_date') as string) || null,
+      hearing_date: (formData.get('hearing_date') as string) || null,
+      status: (formData.get('status') as string) || 'open',
       fine_amount: formData.get('fine_amount') ? parseFloat(formData.get('fine_amount') as string) : null,
+      created_by: me.auth_user_id,
     };
-    await (supabase as any).from('violation_cases').insert(violation);
+    const { error } = await db.from('violations').insert(violation);
+    if (error) failTo(error.message);
     redirect('/violations');
   }
 
@@ -46,6 +71,7 @@ export default async function NewViolationPage() {
       actions={<Link href="/violations" className="text-sm font-medium text-gray-600 hover:text-gray-950">Cancel</Link>}
     >
       <form action={handleSubmit} className="space-y-5">
+        {sp.error && <Alert tone="danger" title="Could not create violation">{sp.error}</Alert>}
         <Section title="Association, unit, and owner">
           <div className="grid gap-4 md:grid-cols-3">
             <Select name="association_id" label="Association" options={(associations ?? []).map((row: any) => ({ value: row.id, label: row.name }))} />

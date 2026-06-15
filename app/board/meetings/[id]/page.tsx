@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
-import { Calendar, MapPin, Clock, Users, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Clock, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 
@@ -15,7 +15,6 @@ interface Meeting {
   start_time: string | null
   location: string | null
   status: string
-  attendees: string | null
   agenda: string | null
   minutes: string | null
   created_at: string
@@ -435,7 +434,6 @@ export default function MeetingDetailClient() {
           { icon: Calendar, label: 'Date & Time', value: date(meeting.start_time, 'long') },
           { icon: MapPin, label: 'Location', value: meeting.location || 'Not set' },
           { icon: Clock, label: 'Created', value: date(meeting.created_at, 'long') },
-          { icon: Users, label: 'Attendees', value: meeting.attendees || 'Not recorded' },
         ].map((c: any) => (
           <div key={c.label} className={`${card} px-4 py-3.5`}>
             <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">

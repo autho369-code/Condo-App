@@ -118,6 +118,9 @@ export async function runScheduleNow(formData: FormData) {
 export async function createSchedule(formData: FormData) {
   'use server';
   const supabase = await createClient();
+  const failTo = (msg: string) => {
+    redirect(`/scheduled-reports?error=${encodeURIComponent(msg)}`);
+  };
   const definition_id = formData.get('definition_id') as string;
   const name = formData.get('name') as string;
   const frequency = formData.get('frequency') as string;
@@ -126,7 +129,8 @@ export async function createSchedule(formData: FormData) {
   const delivery_channel = (formData.get('delivery_channel') as string) || 'email';
 
   if (!definition_id || !name || !frequency) {
-    return { error: 'definition_id, name, and frequency are required' };
+    failTo('definition_id, name, and frequency are required');
+    return;
   }
 
   // Parse recipients from comma-separated string
@@ -146,7 +150,7 @@ export async function createSchedule(formData: FormData) {
     .single();
 
   const portfolio_id = portfolioData?.id;
-  if (!portfolio_id) return { error: 'No portfolio found' };
+  if (!portfolio_id) { failTo('No portfolio found'); return; }
 
   const { error } = await (supabase as any)
     .from('scheduled_reports')
@@ -163,7 +167,7 @@ export async function createSchedule(formData: FormData) {
       hour_utc: nextRun.getUTCHours(),
     });
 
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports');

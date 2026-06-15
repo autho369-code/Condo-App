@@ -115,7 +115,7 @@ export default async function InventoryPage({
             Categories
           </Link>
           <Link
-            href="/reports/inventory"
+            href="/reports"
             className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
           >
             Reports

@@ -10,6 +10,7 @@ async function addPolicy(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const db = supabase as any;
+  const failTo = (msg: string) => redirect(`/insurance/new?error=${encodeURIComponent(msg)}`);
 
   const { error } = await db.from('insurance_policies').insert({
     owner_id: formData.get('owner_id') as string,
@@ -25,13 +26,14 @@ async function addPolicy(formData: FormData) {
     extraction_status: 'manual',
   });
 
-  if (error) return { error: error.message };
+  if (error) failTo(error.message);
   revalidatePath('/insurance');
   redirect('/insurance');
 }
 
-export default async function NewInsurancePage() {
-  const me = await requireStaff();
+export default async function NewInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -45,6 +47,7 @@ export default async function NewInsurancePage() {
       owners={owners ?? []}
       associations={associations ?? []}
       addPolicy={addPolicy}
+      serverError={sp.error ?? null}
     />
   );
 }

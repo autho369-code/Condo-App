@@ -116,6 +116,7 @@ export async function createAssociation(formData: FormData) {
 export async function updateAssociation(id: string, formData: FormData) {
   await requirePortfolioAdmin();
   const supabase = await createClient();
+  const failTo = (msg: string) => redirect(`/associations/${id}?error=${encodeURIComponent(msg)}`);
 
   const patch: Record<string, unknown> = {
     name:        str(formData, 'name'),
@@ -146,7 +147,7 @@ export async function updateAssociation(id: string, formData: FormData) {
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
 
   const { error } = await (supabase as any).from('associations').update(patch).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/associations/${id}`);
   revalidatePath('/associations');
 }
@@ -155,7 +156,7 @@ export async function archiveAssociation(id: string) {
   await requirePortfolioAdmin();
   const supabase = await createClient();
   const { error } = await (supabase as any).from('associations').update({ archived_at: new Date().toISOString() }).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { redirect(`/associations/${id}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath('/associations');
   redirect('/associations');
 }
@@ -297,6 +298,7 @@ export async function createBuilding(formData: FormData) {
 export async function updateBuilding(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => redirect(`/buildings/${id}?error=${encodeURIComponent(msg)}`);
 
   const amenitiesCsv = str(formData, 'amenities');
   const amenities = amenitiesCsv != null
@@ -341,7 +343,7 @@ export async function updateBuilding(id: string, formData: FormData) {
     .eq('id', id)
     .select('association_id')
     .single();
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
 
   if (b?.association_id) revalidatePath(`/associations/${b.association_id}`);
   revalidatePath('/buildings');
@@ -385,6 +387,7 @@ export async function createUnit(formData: FormData) {
 export async function updateUnit(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => redirect(`/units/${id}?error=${encodeURIComponent(msg)}`);
   const patch: Record<string, unknown> = {
     unit_number:    str(formData, 'unit_number'),
     name:           str(formData, 'name'),
@@ -398,7 +401,7 @@ export async function updateUnit(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
   const { error } = await (supabase as any).from('units').update(patch).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/units/${id}`);
   revalidatePath('/units');
 }
@@ -410,11 +413,12 @@ export async function updateUnit(id: string, formData: FormData) {
 export async function createOwner(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => redirect(`/owners/new?error=${encodeURIComponent(msg)}`);
 
   const firstName = str(formData, 'first_name');
   const lastName  = str(formData, 'last_name');
   const fullName  = str(formData, 'full_name') ?? [firstName, lastName].filter(Boolean).join(' ');
-  if (!fullName) return { error: 'Name is required' };
+  if (!fullName) failTo('Name is required');
   const email = req(formData, 'email');
 
   // Create Supabase auth user if portal activated
@@ -455,7 +459,7 @@ export async function createOwner(formData: FormData) {
   };
 
   const { data: owner, error } = await (supabase as any).from('owners').insert(payload).select('id').single();
-  if (error || !owner) return { error: error?.message ?? 'Failed to create owner' };
+  if (error || !owner) { failTo(error?.message ?? 'Failed to create owner'); return; }
 
   // Create occupancy link if unit is specified
   const unitId = str(formData, 'unit_id');
@@ -639,6 +643,7 @@ export async function createVendor(formData: FormData) {
 export async function updateVendor(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  const failTo = (msg: string) => redirect(`/vendors/${id}?error=${encodeURIComponent(msg)}`);
 
   const phones: Array<{type: string; number: string}> = [];
   const landline = str(formData, 'phone_landline');
@@ -675,7 +680,7 @@ export async function updateVendor(id: string, formData: FormData) {
   };
   Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
   const { error } = await (supabase as any).from('vendors').update(patch).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) { failTo(error.message); return; }
   revalidatePath(`/vendors/${id}`);
   revalidatePath('/vendors');
 }
@@ -699,7 +704,7 @@ export async function verifyVendorAch(formData: FormData): Promise<void> {
     })
     .eq('id', vendorId);
 
-  if (error) { console.error('verifyVendorAch failed:', error.message); return; }
+  if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }
@@ -721,7 +726,7 @@ export async function activateVendorAch(formData: FormData): Promise<void> {
     })
     .eq('id', vendorId);
 
-  if (error) { console.error('activateVendorAch failed:', error.message); return; }
+  if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }
@@ -745,7 +750,7 @@ export async function revokeVendorAch(formData: FormData): Promise<void> {
     })
     .eq('id', vendorId);
 
-  if (error) { console.error('revokeVendorAch failed:', error.message); return; }
+  if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }

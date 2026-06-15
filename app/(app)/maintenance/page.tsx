@@ -132,8 +132,8 @@ async function completeTask(formData: FormData) {'use server';
   // Record completion in history
   await db.from('maintenance_task_history').insert({
     task_id: id,
-    status: 'completed',
-    completed_date: now,
+    completed_at: now,
+    completed_by: me.auth_user_id,
     notes: task.notes,
     vendor_id: task.vendor_id,
   });

@@ -238,7 +238,7 @@ export default function PlatformRequestsPage() {
                     return (
                       <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                         <Td className="font-medium text-gray-900">{typeLabel}</Td>
-                        <Td className="max-w-xs truncate text-gray-900">{r.subject ?? '—'}</Td>
+                        <Td className="max-w-xs truncate text-gray-900">{r.title ?? '—'}</Td>
                         <Td>
                           <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium ring-1 ring-inset ${priorityBadge(r.priority)}`}>
                             {(r.priority ?? '—').charAt(0).toUpperCase() + (r.priority ?? '').slice(1)}
@@ -252,7 +252,7 @@ export default function PlatformRequestsPage() {
                         <Td className="whitespace-nowrap tabular-nums text-gray-700">
                           {r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </Td>
-                        <Td className="max-w-xs truncate text-gray-500">{r.response ?? 'Awaiting response'}</Td>
+                        <Td className="max-w-xs truncate text-gray-500">{r.platform_response ?? 'Awaiting response'}</Td>
                       </tr>
                     )
                   })

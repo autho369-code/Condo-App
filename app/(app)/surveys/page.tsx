@@ -19,9 +19,8 @@ type SurveyRow = {
   active: boolean;
   created_at: string;
   questions: any;
+  question_count: number;
   response_count: number;
-  completion_rate: number;
-  association_name: string | null;
   sent_date: string | null;
 };
 
@@ -31,26 +30,15 @@ export default async function SurveysPage() {
   const db = supabase as any;
 
   // Fetch surveys with response counts
-  const [
-    { data: surveys },
-    { data: associations },
-  ] = await Promise.all([
-    db
-      .from('surveys')
-      .select('id, name, survey_type, description, active, created_at, questions')
-      .is('archived_at', null)
-      .order('created_at', { ascending: false }),
-    db
-      .from('associations')
-      .select('id, name')
-      .is('archived_at', null)
-      .order('name'),
-  ]);
+  const { data: surveys } = await db
+    .from('surveys')
+    .select('id, name, survey_type, description, active, created_at, questions')
+    .is('archived_at', null)
+    .order('created_at', { ascending: false });
 
   // Fetch response counts per survey
   const surveyIds = (surveys ?? []).map((s: any) => s.id);
   let responseCounts: Record<string, number> = {};
-  let responseTotals: Record<string, number> = {};
 
   if (surveyIds.length > 0) {
     const { data: counts } = await db
@@ -68,10 +56,6 @@ export default async function SurveysPage() {
   const rows: SurveyRow[] = (surveys ?? []).map((s: any) => {
     const questionCount = Array.isArray(s.questions) ? s.questions.length : 0;
     const responses = responseCounts[s.id] ?? 0;
-    
-    // Estimate completion rate: if no questions, 0%. Otherwise, estimate based on responses.
-    // For a more accurate rate we'd need to know how many were sent, but we use a placeholder.
-    const completionRate = responses > 0 ? Math.min(100, Math.round(responses * 100 / Math.max(responses, 1))) : 0;
 
     return {
       id: s.id,
@@ -81,18 +65,14 @@ export default async function SurveysPage() {
       active: s.active,
       created_at: s.created_at,
       questions: s.questions,
+      question_count: questionCount,
       response_count: responses,
-      completion_rate: completionRate,
-      association_name: 'Portfolio-wide',
       sent_date: s.created_at,
     };
   });
 
   const activeCount = rows.filter((r) => r.active).length;
   const totalResponses = rows.reduce((sum, r) => sum + r.response_count, 0);
-  const avgCompletion = rows.length > 0
-    ? Math.round(rows.reduce((sum, r) => sum + r.completion_rate, 0) / rows.length)
-    : 0;
 
   return (
     <DataWorkspace
@@ -110,7 +90,6 @@ export default async function SurveysPage() {
           metrics={[
             { label: 'Total surveys', value: rows.length, sublabel: `${activeCount} active` },
             { label: 'Total responses', value: totalResponses, sublabel: 'Across all surveys' },
-            { label: 'Avg. completion', value: `${avgCompletion}%`, sublabel: 'Estimated rate' },
             { label: 'Survey types', value: [...new Set(rows.map((r) => r.survey_type))].length, sublabel: 'Categories in use' },
           ]}
         />
@@ -131,11 +110,11 @@ export default async function SurveysPage() {
                 <THead>
                   <TR>
                     <TH>Survey Name</TH>
-                    <TH>Association</TH>
+                    <TH>Scope</TH>
                     <TH>Type</TH>
-                    <TH>Sent Date</TH>
+                    <TH>Created</TH>
+                    <TH className="text-right">Questions</TH>
                     <TH className="text-right">Responses</TH>
-                    <TH className="text-right">Completion Rate</TH>
                     <TH>Status</TH>
                   </TR>
                 </THead>
@@ -148,22 +127,11 @@ export default async function SurveysPage() {
                           <p className="mt-0.5 text-xs text-gray-500 line-clamp-1">{row.description}</p>
                         )}
                       </TD>
-                      <TD>{row.association_name ?? '—'}</TD>
+                      <TD className="text-gray-600">Portfolio-wide</TD>
                       <TD className="capitalize">{row.survey_type.replace(/_/g, ' ')}</TD>
                       <TD className="whitespace-nowrap text-gray-600">{date(row.sent_date)}</TD>
+                      <TD className="text-right tabular-nums font-medium text-gray-700">{row.question_count}</TD>
                       <TD className="text-right tabular-nums font-medium text-gray-950">{row.response_count}</TD>
-                      <TD className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Progress bar */}
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
-                            <div
-                              className="h-full rounded-full bg-blue-600 transition-all"
-                              style={{ width: `${row.completion_rate}%` }}
-                            />
-                          </div>
-                          <span className="text-sm tabular-nums font-medium text-gray-700">{row.completion_rate}%</span>
-                        </div>
-                      </TD>
                       <TD>
                         <StatusChip tone={row.active ? 'success' : 'neutral'}>
                           {row.active ? 'Active' : 'Paused'}
