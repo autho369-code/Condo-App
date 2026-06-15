@@ -125,6 +125,53 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          meeting_id: string
+          presenter: string | null
+          sort_order: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_id: string
+          presenter?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_id?: string
+          presenter?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           created_at: string | null
@@ -1765,10 +1812,14 @@ export type Database = {
           owner_can_override_frequency: boolean
           owner_payout_basis: string | null
           payment_frequency: string | null
+          payment_instructions: string | null
           portfolio_id: string | null
           primary_bank_account_id: string | null
           property_group_id: string | null
           property_type: string | null
+          quorum_percentage: number | null
+          remit_address: string | null
+          remit_payee: string | null
           renewal_fee_amount: number | null
           renewal_fee_pct: number | null
           renewal_fee_type: string | null
@@ -1782,6 +1833,7 @@ export type Database = {
           site_manager_last_name: string | null
           site_manager_phone: string | null
           site_manager_user_id: string | null
+          slug: string | null
           state: string
           status: string
           tax_id: string | null
@@ -1861,10 +1913,14 @@ export type Database = {
           owner_can_override_frequency?: boolean
           owner_payout_basis?: string | null
           payment_frequency?: string | null
+          payment_instructions?: string | null
           portfolio_id?: string | null
           primary_bank_account_id?: string | null
           property_group_id?: string | null
           property_type?: string | null
+          quorum_percentage?: number | null
+          remit_address?: string | null
+          remit_payee?: string | null
           renewal_fee_amount?: number | null
           renewal_fee_pct?: number | null
           renewal_fee_type?: string | null
@@ -1878,6 +1934,7 @@ export type Database = {
           site_manager_last_name?: string | null
           site_manager_phone?: string | null
           site_manager_user_id?: string | null
+          slug?: string | null
           state: string
           status?: string
           tax_id?: string | null
@@ -1957,10 +2014,14 @@ export type Database = {
           owner_can_override_frequency?: boolean
           owner_payout_basis?: string | null
           payment_frequency?: string | null
+          payment_instructions?: string | null
           portfolio_id?: string | null
           primary_bank_account_id?: string | null
           property_group_id?: string | null
           property_type?: string | null
+          quorum_percentage?: number | null
+          remit_address?: string | null
+          remit_payee?: string | null
           renewal_fee_amount?: number | null
           renewal_fee_pct?: number | null
           renewal_fee_type?: string | null
@@ -1974,6 +2035,7 @@ export type Database = {
           site_manager_last_name?: string | null
           site_manager_phone?: string | null
           site_manager_user_id?: string | null
+          slug?: string | null
           state?: string
           status?: string
           tax_id?: string | null
@@ -2244,7 +2306,6 @@ export type Database = {
           last_failure_at: string | null
           last_failure_reason: string | null
           last_run_at: string | null
-          last_run_payment_intent_id: string | null
           mandate_document_url: string | null
           mandate_ip_address: string | null
           mandate_signed_at: string | null
@@ -2276,7 +2337,6 @@ export type Database = {
           last_failure_at?: string | null
           last_failure_reason?: string | null
           last_run_at?: string | null
-          last_run_payment_intent_id?: string | null
           mandate_document_url?: string | null
           mandate_ip_address?: string | null
           mandate_signed_at?: string | null
@@ -2308,7 +2368,6 @@ export type Database = {
           last_failure_at?: string | null
           last_failure_reason?: string | null
           last_run_at?: string | null
-          last_run_payment_intent_id?: string | null
           mandate_document_url?: string | null
           mandate_ip_address?: string | null
           mandate_signed_at?: string | null
@@ -2375,13 +2434,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_homeowner_ledgers"
             referencedColumns: ["association_id"]
-          },
-          {
-            foreignKeyName: "autopay_mandates_last_run_payment_intent_id_fkey"
-            columns: ["last_run_payment_intent_id"]
-            isOneToOne: false
-            referencedRelation: "payment_intents"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "autopay_mandates_owner_id_fkey"
@@ -2814,6 +2866,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      bank_adjustments: {
+        Row: {
+          adjustment_date: string | null
+          amount: number
+          bank_account_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          adjustment_date?: string | null
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          adjustment_date?: string | null
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_adjustments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3615,6 +3705,7 @@ export type Database = {
       }
       budget_lines: {
         Row: {
+          annual_total: number | null
           association_id: string
           category: Database["public"]["Enums"]["budget_category"]
           created_at: string
@@ -3626,6 +3717,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          annual_total?: number | null
           association_id: string
           category: Database["public"]["Enums"]["budget_category"]
           created_at?: string
@@ -3637,6 +3729,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          annual_total?: number | null
           association_id?: string
           category?: Database["public"]["Enums"]["budget_category"]
           created_at?: string
@@ -7312,6 +7405,48 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          quantity_on_hand: number | null
+          reorder_point: number | null
+          sku: string | null
+          unit_cost: number | null
+          unit_of_measure: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          quantity_on_hand?: number | null
+          reorder_point?: number | null
+          sku?: string | null
+          unit_cost?: number | null
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          quantity_on_hand?: number | null
+          reorder_point?: number | null
+          sku?: string | null
+          unit_cost?: number | null
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           acceptedAt: string | null
@@ -7366,8 +7501,6 @@ export type Database = {
           period_start: string | null
           portfolio_id: string
           status: string | null
-          stripe_invoice_id: string | null
-          stripe_invoice_url: string | null
           subscription_id: string | null
           subtotal_cents: number | null
           tax_cents: number | null
@@ -7384,8 +7517,6 @@ export type Database = {
           period_start?: string | null
           portfolio_id: string
           status?: string | null
-          stripe_invoice_id?: string | null
-          stripe_invoice_url?: string | null
           subscription_id?: string | null
           subtotal_cents?: number | null
           tax_cents?: number | null
@@ -7402,8 +7533,6 @@ export type Database = {
           period_start?: string | null
           portfolio_id?: string
           status?: string | null
-          stripe_invoice_id?: string | null
-          stripe_invoice_url?: string | null
           subscription_id?: string | null
           subtotal_cents?: number | null
           tax_cents?: number | null
@@ -7842,6 +7971,318 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lock_box_assignments: {
+        Row: {
+          assigned_at: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          lock_box_id: string
+          notes: string | null
+          portfolio_id: string
+          profile_id: string | null
+          purpose: string | null
+          returned_at: string | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          lock_box_id: string
+          notes?: string | null
+          portfolio_id: string
+          profile_id?: string | null
+          purpose?: string | null
+          returned_at?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          lock_box_id?: string
+          notes?: string | null
+          portfolio_id?: string
+          profile_id?: string | null
+          purpose?: string | null
+          returned_at?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lock_box_assignments_lock_box_id_fkey"
+            columns: ["lock_box_id"]
+            isOneToOne: false
+            referencedRelation: "lock_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "v_insurance_expirations"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "lock_box_assignments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lock_boxes: {
+        Row: {
+          association_id: string | null
+          building_id: string | null
+          combination: string | null
+          created_at: string | null
+          id: string
+          key_count: number | null
+          keys_contained: string[] | null
+          last_accessed_at: string | null
+          location_description: string | null
+          location_type:
+            | Database["public"]["Enums"]["lock_box_location_type"]
+            | null
+          notes: string | null
+          portfolio_id: string
+          serial_number: string | null
+          status: Database["public"]["Enums"]["lock_box_status"] | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          association_id?: string | null
+          building_id?: string | null
+          combination?: string | null
+          created_at?: string | null
+          id?: string
+          key_count?: number | null
+          keys_contained?: string[] | null
+          last_accessed_at?: string | null
+          location_description?: string | null
+          location_type?:
+            | Database["public"]["Enums"]["lock_box_location_type"]
+            | null
+          notes?: string | null
+          portfolio_id: string
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["lock_box_status"] | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          association_id?: string | null
+          building_id?: string | null
+          combination?: string | null
+          created_at?: string | null
+          id?: string
+          key_count?: number | null
+          keys_contained?: string[] | null
+          last_accessed_at?: string | null
+          location_description?: string | null
+          location_type?:
+            | Database["public"]["Enums"]["lock_box_location_type"]
+            | null
+          notes?: string | null
+          portfolio_id?: string
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["lock_box_status"] | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "lock_boxes_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+        ]
       }
       lockbox_batches: {
         Row: {
@@ -9199,59 +9640,278 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_attendees: {
+        Row: {
+          attendee_name: string
+          attendee_role: string | null
+          check_in_time: string | null
+          created_at: string
+          id: string
+          meeting_id: string
+          notes: string | null
+          owner_id: string | null
+          present: boolean
+          signature_data: string | null
+          voting_eligible: boolean | null
+        }
+        Insert: {
+          attendee_name: string
+          attendee_role?: string | null
+          check_in_time?: string | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          notes?: string | null
+          owner_id?: string | null
+          present?: boolean
+          signature_data?: string | null
+          voting_eligible?: boolean | null
+        }
+        Update: {
+          attendee_name?: string
+          attendee_role?: string | null
+          check_in_time?: string | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          notes?: string | null
+          owner_id?: string | null
+          present?: boolean
+          signature_data?: string | null
+          voting_eligible?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      meeting_documents: {
+        Row: {
+          created_at: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          meeting_id: string
+          name: string
+          storage_path: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          meeting_id: string
+          name: string
+          storage_path: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          meeting_id?: string
+          name?: string
+          storage_path?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_documents_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           agenda: string | null
-          aiSummary: string | null
-          attendees: string | null
-          companyId: number
-          createdAt: string
-          createdById: number | null
-          id: number
+          ai_summary: string | null
+          archived_at: string | null
+          association_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string | null
+          id: string
           location: string | null
-          meetingType: Database["public"]["Enums"]["meeting_type"]
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
           minutes: string | null
-          propertyId: number
-          scheduledAt: string | null
+          portfolio_id: string
+          quorum_met: boolean | null
+          quorum_requirement: number | null
+          start_time: string | null
           status: Database["public"]["Enums"]["meeting_status"]
           title: string
-          updatedAt: string
+          total_units: number | null
+          updated_at: string
         }
         Insert: {
           agenda?: string | null
-          aiSummary?: string | null
-          attendees?: string | null
-          companyId: number
-          createdAt?: string
-          createdById?: number | null
-          id?: number
+          ai_summary?: string | null
+          archived_at?: string | null
+          association_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
           location?: string | null
-          meetingType?: Database["public"]["Enums"]["meeting_type"]
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
           minutes?: string | null
-          propertyId: number
-          scheduledAt?: string | null
+          portfolio_id: string
+          quorum_met?: boolean | null
+          quorum_requirement?: number | null
+          start_time?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           title: string
-          updatedAt?: string
+          total_units?: number | null
+          updated_at?: string
         }
         Update: {
           agenda?: string | null
-          aiSummary?: string | null
-          attendees?: string | null
-          companyId?: number
-          createdAt?: string
-          createdById?: number | null
-          id?: number
+          ai_summary?: string | null
+          archived_at?: string | null
+          association_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
           location?: string | null
-          meetingType?: Database["public"]["Enums"]["meeting_type"]
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
           minutes?: string | null
-          propertyId?: number
-          scheduledAt?: string | null
+          portfolio_id?: string
+          quorum_met?: boolean | null
+          quorum_requirement?: number | null
+          start_time?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           title?: string
-          updatedAt?: string
+          total_units?: number | null
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "meetings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "meetings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "meetings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "meetings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
       }
       message_templates: {
         Row: {
@@ -10056,6 +10716,222 @@ export type Database = {
           },
         ]
       }
+      owner_payables: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          archived_at: string | null
+          association_id: string
+          bank_account_id: string | null
+          created_at: string | null
+          created_by: string | null
+          due_date: string | null
+          gl_account_id: string | null
+          id: string
+          memo: string | null
+          owner_id: string
+          paid_at: string | null
+          payable_date: string | null
+          payable_number: string | null
+          payable_type: Database["public"]["Enums"]["owner_payable_type"]
+          payment_method: string | null
+          payment_reference: string | null
+          portfolio_id: string
+          status: Database["public"]["Enums"]["payable_bill_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          association_id: string
+          bank_account_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          gl_account_id?: string | null
+          id?: string
+          memo?: string | null
+          owner_id: string
+          paid_at?: string | null
+          payable_date?: string | null
+          payable_number?: string | null
+          payable_type?: Database["public"]["Enums"]["owner_payable_type"]
+          payment_method?: string | null
+          payment_reference?: string | null
+          portfolio_id: string
+          status?: Database["public"]["Enums"]["payable_bill_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          association_id?: string
+          bank_account_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          gl_account_id?: string | null
+          id?: string
+          memo?: string | null
+          owner_id?: string
+          paid_at?: string | null
+          payable_date?: string | null
+          payable_number?: string | null
+          payable_type?: Database["public"]["Enums"]["owner_payable_type"]
+          payment_method?: string | null
+          payment_reference?: string | null
+          portfolio_id?: string
+          status?: Database["public"]["Enums"]["payable_bill_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_payables_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_payables_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "owner_payables_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
       owner_portal_invites: {
         Row: {
           activated_at: string | null
@@ -10113,6 +10989,195 @@ export type Database = {
           },
         ]
       }
+      owner_statements: {
+        Row: {
+          amount_due: number | null
+          amount_past_due: number | null
+          amount_prepaid: number | null
+          association_id: string
+          batch_id: string | null
+          created_at: string | null
+          created_by: string | null
+          delivery_channel: string | null
+          delivery_status: string | null
+          generated_at: string | null
+          id: string
+          occupancy_id: string | null
+          owner_id: string
+          period_end: string
+          period_start: string
+          sent_at: string | null
+          statement_data: Json | null
+          total_due: number | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_due?: number | null
+          amount_past_due?: number | null
+          amount_prepaid?: number | null
+          association_id: string
+          batch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          generated_at?: string | null
+          id?: string
+          occupancy_id?: string | null
+          owner_id: string
+          period_end: string
+          period_start: string
+          sent_at?: string | null
+          statement_data?: Json | null
+          total_due?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_due?: number | null
+          amount_past_due?: number | null
+          amount_prepaid?: number | null
+          association_id?: string
+          batch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          generated_at?: string | null
+          id?: string
+          occupancy_id?: string | null
+          owner_id?: string
+          period_end?: string
+          period_start?: string
+          sent_at?: string | null
+          statement_data?: Json | null
+          total_due?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_occupancy_id_fkey"
+            columns: ["occupancy_id"]
+            isOneToOne: false
+            referencedRelation: "occupancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "owner_statements_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       owners: {
         Row: {
           address_city: string | null
@@ -10127,6 +11192,8 @@ export type Database = {
           electronic_consent_date: string | null
           email: string
           emails: Json
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           first_name: string | null
           full_name: string
           id: string
@@ -10153,6 +11220,8 @@ export type Database = {
           electronic_consent_date?: string | null
           email: string
           emails?: Json
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_name?: string | null
           full_name: string
           id?: string
@@ -10179,6 +11248,8 @@ export type Database = {
           electronic_consent_date?: string | null
           email?: string
           emails?: Json
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_name?: string | null
           full_name?: string
           id?: string
@@ -10223,6 +11294,342 @@ export type Database = {
           },
           {
             foreignKeyName: "owners_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+        ]
+      }
+      parking_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deposit_amount: number | null
+          deposit_paid: boolean
+          deposit_paid_at: string | null
+          deposit_returned: boolean
+          deposit_returned_at: string | null
+          end_date: string | null
+          id: string
+          insurance_company: string | null
+          insurance_policy_number: string | null
+          license_plate: string | null
+          monthly_fee: number | null
+          notes: string | null
+          occupant_name: string | null
+          owner_id: string | null
+          parking_space_id: string
+          portfolio_id: string
+          recurring_charge_id: string | null
+          start_date: string
+          status: string
+          tenant_id: string | null
+          unit_id: string | null
+          updated_at: string
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          deposit_paid_at?: string | null
+          deposit_returned?: boolean
+          deposit_returned_at?: string | null
+          end_date?: string | null
+          id?: string
+          insurance_company?: string | null
+          insurance_policy_number?: string | null
+          license_plate?: string | null
+          monthly_fee?: number | null
+          notes?: string | null
+          occupant_name?: string | null
+          owner_id?: string | null
+          parking_space_id: string
+          portfolio_id: string
+          recurring_charge_id?: string | null
+          start_date?: string
+          status?: string
+          tenant_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number | null
+          deposit_paid?: boolean
+          deposit_paid_at?: string | null
+          deposit_returned?: boolean
+          deposit_returned_at?: string | null
+          end_date?: string | null
+          id?: string
+          insurance_company?: string | null
+          insurance_policy_number?: string | null
+          license_plate?: string | null
+          monthly_fee?: number | null
+          notes?: string | null
+          occupant_name?: string | null
+          owner_id?: string | null
+          parking_space_id?: string
+          portfolio_id?: string
+          recurring_charge_id?: string | null
+          start_date?: string
+          status?: string
+          tenant_id?: string | null
+          unit_id?: string | null
+          updated_at?: string
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_assignments_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_parking_space_id_fkey"
+            columns: ["parking_space_id"]
+            isOneToOne: false
+            referencedRelation: "parking_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_recurring_charge_id_fkey"
+            columns: ["recurring_charge_id"]
+            isOneToOne: false
+            referencedRelation: "unit_recurring_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_recurring_charge_id_fkey"
+            columns: ["recurring_charge_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_charge_schedule"
+            referencedColumns: ["recurring_charge_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
+      parking_spaces: {
+        Row: {
+          active: boolean
+          archived_at: string | null
+          association_id: string
+          created_at: string
+          created_by: string | null
+          deposit_amount: number
+          id: string
+          label: string
+          monthly_fee: number
+          notes: string | null
+          portfolio_id: string
+          space_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          archived_at?: string | null
+          association_id: string
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          id?: string
+          label: string
+          monthly_fee?: number
+          notes?: string | null
+          portfolio_id: string
+          space_type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          archived_at?: string | null
+          association_id?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          id?: string
+          label?: string
+          monthly_fee?: number
+          notes?: string | null
+          portfolio_id?: string
+          space_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "parking_spaces_portfolio_id_fkey"
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
@@ -10615,158 +12022,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_unapplied_credits"
             referencedColumns: ["payment_id"]
-          },
-        ]
-      }
-      payment_intents: {
-        Row: {
-          amount: number
-          charge_id: string | null
-          convenience_fee_cents: number
-          created_at: string
-          created_by: string | null
-          currency: string
-          description: string | null
-          failure_reason: string | null
-          id: string
-          metadata: Json | null
-          method: string | null
-          net_to_association_cents: number | null
-          owner_id: string
-          owner_paid_cents: number | null
-          paid_at: string | null
-          processor: Database["public"]["Enums"]["payment_processor"]
-          processor_fee_cents: number | null
-          processor_payment_id: string | null
-          refunded_at: string | null
-          status: string
-          stripe_checkout_session_id: string | null
-          stripe_payment_intent_id: string | null
-          unit_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          charge_id?: string | null
-          convenience_fee_cents?: number
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          description?: string | null
-          failure_reason?: string | null
-          id?: string
-          metadata?: Json | null
-          method?: string | null
-          net_to_association_cents?: number | null
-          owner_id: string
-          owner_paid_cents?: number | null
-          paid_at?: string | null
-          processor?: Database["public"]["Enums"]["payment_processor"]
-          processor_fee_cents?: number | null
-          processor_payment_id?: string | null
-          refunded_at?: string | null
-          status?: string
-          stripe_checkout_session_id?: string | null
-          stripe_payment_intent_id?: string | null
-          unit_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          charge_id?: string | null
-          convenience_fee_cents?: number
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          description?: string | null
-          failure_reason?: string | null
-          id?: string
-          metadata?: Json | null
-          method?: string | null
-          net_to_association_cents?: number | null
-          owner_id?: string
-          owner_paid_cents?: number | null
-          paid_at?: string | null
-          processor?: Database["public"]["Enums"]["payment_processor"]
-          processor_fee_cents?: number | null
-          processor_payment_id?: string | null
-          refunded_at?: string | null
-          status?: string
-          stripe_checkout_session_id?: string | null
-          stripe_payment_intent_id?: string | null
-          unit_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_intents_charge_id_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "aged_receivables"
-            referencedColumns: ["charge_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_charge_id_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "charges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_intents_charge_id_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "v_charge_balances"
-            referencedColumns: ["charge_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "owners"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_intents_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "v_homeowner_ledgers"
-            referencedColumns: ["owner_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "delinquent_units"
-            referencedColumns: ["unit_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "unit_balances"
-            referencedColumns: ["unit_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_intents_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_homeowner_ledgers"
-            referencedColumns: ["unit_id"]
-          },
-          {
-            foreignKeyName: "payment_intents_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_unit_account_summary"
-            referencedColumns: ["unit_id"]
           },
         ]
       }
@@ -11884,6 +13139,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          disabled_at: string | null
           display_name: string | null
           email: string | null
           full_name: string | null
@@ -11905,6 +13161,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          disabled_at?: string | null
           display_name?: string | null
           email?: string | null
           full_name?: string | null
@@ -11926,6 +13183,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          disabled_at?: string | null
           display_name?: string | null
           email?: string | null
           full_name?: string | null
@@ -13017,6 +14275,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_settings: {
+        Row: {
+          alert_type: string
+          enabled: boolean
+          id: string
+          lead_days: number
+          portfolio_id: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          enabled?: boolean
+          id?: string
+          lead_days?: number
+          portfolio_id: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          enabled?: boolean
+          id?: string
+          lead_days?: number
+          portfolio_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "reminder_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "reminder_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "reminder_settings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
           },
         ]
       }
@@ -14258,6 +15579,121 @@ export type Database = {
           },
         ]
       }
+      statement_batches: {
+        Row: {
+          association_id: string
+          batch_name: string
+          created_at: string | null
+          created_by: string | null
+          delivery_channel: string | null
+          failed_count: number | null
+          generated_count: number | null
+          id: string
+          period_end: string
+          period_start: string
+          sent_count: number | null
+          status: string | null
+          total_owners: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          association_id: string
+          batch_name: string
+          created_at?: string | null
+          created_by?: string | null
+          delivery_channel?: string | null
+          failed_count?: number | null
+          generated_count?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          sent_count?: number | null
+          status?: string | null
+          total_owners?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          association_id?: string
+          batch_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          delivery_channel?: string | null
+          failed_count?: number | null
+          generated_count?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          sent_count?: number | null
+          status?: string | null
+          total_owners?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "statement_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statement_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_manager_workload"
+            referencedColumns: ["manager_id"]
+          },
+        ]
+      }
       statements: {
         Row: {
           association_id: string
@@ -14411,162 +15847,6 @@ export type Database = {
           },
         ]
       }
-      stripe_customers: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string
-          stripe_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          stripe_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          stripe_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      stripe_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          currency: string
-          description: string | null
-          id: string
-          metadata: Json | null
-          paid_at: string | null
-          status: string
-          stripe_customer_id: string
-          stripe_invoice_id: string | null
-          stripe_payment_id: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          currency?: string
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          paid_at?: string | null
-          status: string
-          stripe_customer_id: string
-          stripe_invoice_id?: string | null
-          stripe_payment_id: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          currency?: string
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          paid_at?: string | null
-          status?: string
-          stripe_customer_id?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      stripe_subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          canceled_at: string | null
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string
-          metadata: Json | null
-          status: string
-          stripe_customer_id: string
-          stripe_price_id: string
-          stripe_subscription_id: string
-          trial_end: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          canceled_at?: string | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          metadata?: Json | null
-          status: string
-          stripe_customer_id: string
-          stripe_price_id: string
-          stripe_subscription_id: string
-          trial_end?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean | null
-          canceled_at?: string | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          metadata?: Json | null
-          status?: string
-          stripe_customer_id?: string
-          stripe_price_id?: string
-          stripe_subscription_id?: string
-          trial_end?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      stripe_webhook_events: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          event_type: string
-          id: string
-          payload: Json | null
-          processed: boolean | null
-          processed_at: string | null
-          stripe_event_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type: string
-          id?: string
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          stripe_event_id: string
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          event_type?: string
-          id?: string
-          payload?: Json | null
-          processed?: boolean | null
-          processed_at?: string | null
-          stripe_event_id?: string
-        }
-        Relationships: []
-      }
       subscription_events: {
         Row: {
           actor_user_id: string | null
@@ -14577,7 +15857,6 @@ export type Database = {
           id: string
           payload: Json
           portfolio_id: string
-          stripe_event_id: string | null
           subscription_id: string
           to_status: Database["public"]["Enums"]["subscription_status"] | null
           to_tier: Database["public"]["Enums"]["portfolio_tier"] | null
@@ -14593,7 +15872,6 @@ export type Database = {
           id?: string
           payload?: Json
           portfolio_id: string
-          stripe_event_id?: string | null
           subscription_id: string
           to_status?: Database["public"]["Enums"]["subscription_status"] | null
           to_tier?: Database["public"]["Enums"]["portfolio_tier"] | null
@@ -14609,7 +15887,6 @@ export type Database = {
           id?: string
           payload?: Json
           portfolio_id?: string
-          stripe_event_id?: string | null
           subscription_id?: string
           to_status?: Database["public"]["Enums"]["subscription_status"] | null
           to_tier?: Database["public"]["Enums"]["portfolio_tier"] | null
@@ -14676,8 +15953,6 @@ export type Database = {
           seats_included: number
           seats_used: number
           status: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           tier: Database["public"]["Enums"]["portfolio_tier"]
           trial_ends_at: string | null
           units_limit: number | null
@@ -14699,8 +15974,6 @@ export type Database = {
           seats_included?: number
           seats_used?: number
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           trial_ends_at?: string | null
           units_limit?: number | null
@@ -14722,8 +15995,6 @@ export type Database = {
           seats_included?: number
           seats_used?: number
           status?: Database["public"]["Enums"]["subscription_status"]
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["portfolio_tier"]
           trial_ends_at?: string | null
           units_limit?: number | null
@@ -15158,6 +16429,215 @@ export type Database = {
           },
         ]
       }
+      tenants: {
+        Row: {
+          archived_at: string | null
+          association_id: string | null
+          created_at: string
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          first_name: string
+          id: string
+          insurance_document_url: string | null
+          insurance_expiration: string | null
+          insurance_policy_number: string | null
+          last_name: string
+          lease_document_url: string | null
+          lease_end: string | null
+          lease_start: string | null
+          notes: string | null
+          owner_id: string | null
+          phone: string | null
+          portfolio_id: string
+          status: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          association_id?: string | null
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name: string
+          id?: string
+          insurance_document_url?: string | null
+          insurance_expiration?: string | null
+          insurance_policy_number?: string | null
+          last_name: string
+          lease_document_url?: string | null
+          lease_end?: string | null
+          lease_start?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          portfolio_id: string
+          status?: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          association_id?: string | null
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string
+          id?: string
+          insurance_document_url?: string | null
+          insurance_expiration?: string | null
+          insurance_policy_number?: string | null
+          last_name?: string
+          lease_document_url?: string | null
+          lease_end?: string | null
+          lease_start?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          portfolio_id?: string
+          status?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "aged_receivables"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "association_ownership_totals"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "associations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_income"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "receivable_payments_ledger"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_charges_by_category"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["association_id"]
+          },
+          {
+            foreignKeyName: "tenants_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "tenants_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "tenants_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "tenants_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "tenants_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "tenants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "tenants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "tenants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "tenants_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       ticket_attachments: {
         Row: {
           companyId: number
@@ -15494,6 +16974,140 @@ export type Database = {
           },
         ]
       }
+      unit_pets: {
+        Row: {
+          archived_at: string | null
+          breed: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string | null
+          pet_type: string
+          portfolio_id: string
+          tenant_id: string | null
+          unit_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          breed?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id?: string | null
+          pet_type: string
+          portfolio_id: string
+          tenant_id?: string | null
+          unit_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          breed?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string | null
+          pet_type?: string
+          portfolio_id?: string
+          tenant_id?: string | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_pets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_pets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_pets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_metrics"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_summary"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "v_portfolio_health"
+            referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_pets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "delinquent_units"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "unit_balances"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_pets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_homeowner_ledgers"
+            referencedColumns: ["unit_id"]
+          },
+          {
+            foreignKeyName: "unit_pets_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_unit_account_summary"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       unit_recurring_charges: {
         Row: {
           active: boolean
@@ -15504,6 +17118,7 @@ export type Database = {
           end_date: string | null
           frequency: Database["public"]["Enums"]["recurring_frequency"]
           id: string
+          identifier: string | null
           last_posted_at: string | null
           memo: string | null
           next_post_date: string
@@ -15520,6 +17135,7 @@ export type Database = {
           end_date?: string | null
           frequency?: Database["public"]["Enums"]["recurring_frequency"]
           id?: string
+          identifier?: string | null
           last_posted_at?: string | null
           memo?: string | null
           next_post_date?: string
@@ -15536,6 +17152,7 @@ export type Database = {
           end_date?: string | null
           frequency?: Database["public"]["Enums"]["recurring_frequency"]
           id?: string
+          identifier?: string | null
           last_posted_at?: string | null
           memo?: string | null
           next_post_date?: string
@@ -19076,6 +20693,7 @@ export type Database = {
           charge_type: Database["public"]["Enums"]["charge_type"] | null
           end_date: string | null
           frequency: Database["public"]["Enums"]["recurring_frequency"] | null
+          identifier: string | null
           is_assessment: boolean | null
           is_fee: boolean | null
           last_posted_at: string | null
@@ -19441,6 +21059,7 @@ export type Database = {
         Returns: {
           avatar_url: string | null
           created_at: string | null
+          disabled_at: string | null
           display_name: string | null
           email: string | null
           full_name: string | null
@@ -19496,6 +21115,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      bulk_create_charges: {
+        Args: {
+          p_charge_category_id?: string
+          p_charges: Json
+          p_description?: string
+          p_due_date?: string
+          p_gl_account_id?: string
+        }
+        Returns: {
+          charge_ids: string[]
+          inserted_count: number
+        }[]
+      }
+      bulk_create_recurring_charges: {
+        Args: {
+          p_charge_category_id?: string
+          p_frequency?: string
+          p_memo?: string
+          p_start_date?: string
+          p_subscriptions: Json
+        }
+        Returns: {
+          inserted_count: number
+          subscription_ids: string[]
+        }[]
+      }
+      bulk_queue_reports: {
+        Args: {
+          p_association_ids: string[]
+          p_date_end?: string
+          p_date_start?: string
+          p_output_format?: string
+          p_report_slugs: string[]
+          p_scope?: string
+        }
+        Returns: {
+          queued_count: number
+          run_ids: string[]
+        }[]
+      }
+      bulk_update_statement_settings: {
+        Args: { p_association_ids: string[]; p_settings: Json }
+        Returns: number
+      }
       calc_next_maintenance_due: {
         Args: {
           p_custom_interval_days: number
@@ -19512,6 +21175,10 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_meeting_quorum: {
+        Args: { p_meeting_id: string }
+        Returns: Json
+      }
       can_access_association: { Args: { a_id: string }; Returns: boolean }
       can_access_association_mvp: { Args: { a_id: string }; Returns: boolean }
       can_access_portfolio: { Args: { p_id: string }; Returns: boolean }
@@ -19520,6 +21187,7 @@ export type Database = {
       can_edit_association_mvp: { Args: { a_id: string }; Returns: boolean }
       can_manage_finance: { Args: { p_id: string }; Returns: boolean }
       can_read_gl: { Args: { gl_id: string }; Returns: boolean }
+      can_view_association_row: { Args: { p_assoc: string }; Returns: boolean }
       cancel_autopay: {
         Args: { p_mandate_id: string; p_reason?: string }
         Returns: {
@@ -19536,7 +21204,6 @@ export type Database = {
           last_failure_at: string | null
           last_failure_reason: string | null
           last_run_at: string | null
-          last_run_payment_intent_id: string | null
           mandate_document_url: string | null
           mandate_ip_address: string | null
           mandate_signed_at: string | null
@@ -19622,6 +21289,7 @@ export type Database = {
       current_resident_unit_ids: { Args: never; Returns: string[] }
       current_role_name: { Args: never; Returns: string }
       current_vendor_id: { Args: never; Returns: string }
+      delete_budget_line: { Args: { p_id: string }; Returns: undefined }
       dispatch_webhook: {
         Args: {
           p_event: Database["public"]["Enums"]["webhook_event"]
@@ -19664,7 +21332,6 @@ export type Database = {
           last_failure_at: string | null
           last_failure_reason: string | null
           last_run_at: string | null
-          last_run_payment_intent_id: string | null
           mandate_document_url: string | null
           mandate_ip_address: string | null
           mandate_signed_at: string | null
@@ -19694,9 +21361,54 @@ export type Database = {
         Args: { p_month?: number; p_year?: number }
         Returns: number
       }
+      generate_owner_statements: {
+        Args: {
+          p_association_id: string
+          p_batch_name?: string
+          p_delivery_channel?: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: string
+      }
       generate_recurring_bills: { Args: never; Returns: number }
       generate_recurring_journal_entries: { Args: never; Returns: number }
       generate_recurring_work_orders: { Args: never; Returns: number }
+      get_budget_vs_actuals: {
+        Args: { p_association_id: string; p_fiscal_year: number }
+        Returns: {
+          annual_actual: number
+          annual_budget: number
+          annual_variance: number
+          annual_variance_pct: number
+          budget_line_id: string
+          category: string
+          gl_account_id: string
+          gl_account_name: string
+          gl_account_number: number
+          monthly_actuals: number[]
+          monthly_budget: number[]
+          monthly_variance: number[]
+          notes: string
+        }[]
+      }
+      get_charge_categories_for_portfolio: {
+        Args: never
+        Returns: {
+          charge_type: string
+          code: string
+          default_amount: number
+          default_frequency: string
+          id: string
+          is_assessment: boolean
+          name: string
+        }[]
+      }
+      get_meeting_financial_snapshot: {
+        Args: { p_association_id: string }
+        Returns: Json
+      }
+      get_vault_secret: { Args: { p_name: string }; Returns: string }
       has_entitlement: {
         Args: { p_feature_key: string; p_portfolio_id: string }
         Returns: boolean
@@ -19788,6 +21500,23 @@ export type Database = {
       is_platform_operator_safe: { Args: never; Returns: boolean }
       is_portal_resident: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      list_budget_lines: {
+        Args: { p_association_id: string; p_fiscal_year?: number }
+        Returns: {
+          annual_total: number
+          association_id: string
+          category: string
+          created_at: string
+          fiscal_year: number
+          gl_account_id: string
+          gl_account_name: string
+          gl_account_number: number
+          id: string
+          monthly_amounts: number[]
+          notes: string
+          updated_at: string
+        }[]
+      }
       list_company_invitations: {
         Args: never
         Returns: {
@@ -19800,6 +21529,7 @@ export type Database = {
           status: string
         }[]
       }
+      manager_is_scoped: { Args: never; Returns: boolean }
       mark_webhook_delivery: {
         Args: {
           p_delivery_id: string
@@ -19992,6 +21722,18 @@ export type Database = {
         }
         Returns: string
       }
+      record_meeting_attendance: {
+        Args: {
+          p_attendee_name: string
+          p_attendee_role?: string
+          p_meeting_id: string
+          p_notes?: string
+          p_owner_id?: string
+          p_signature_data?: string
+          p_voting_eligible?: boolean
+        }
+        Returns: string
+      }
       relink_all_portal_users: {
         Args: never
         Returns: {
@@ -20004,6 +21746,7 @@ export type Database = {
         Returns: {
           avatar_url: string | null
           created_at: string | null
+          disabled_at: string | null
           display_name: string | null
           email: string | null
           full_name: string | null
@@ -20032,6 +21775,10 @@ export type Database = {
       render_invitation_email: {
         Args: { inv: Database["public"]["Tables"]["user_invitations"]["Row"] }
         Returns: Json
+      }
+      reorder_agenda_items: {
+        Args: { p_item_ids: number[]; p_meeting_id: number }
+        Returns: undefined
       }
       report_data_delinquency: {
         Args: { p_params?: Json; p_portfolio_id: string }
@@ -20168,6 +21915,7 @@ export type Database = {
         Args: { p_project_url: string; p_service_role_key: string }
         Returns: string
       }
+      slugify_association_name: { Args: { p_name: string }; Returns: string }
       stage_owner_activation: {
         Args: { p_message?: string; p_owner_id: string; p_subject?: string }
         Returns: Json
@@ -20190,38 +21938,74 @@ export type Database = {
         }
         Returns: number
       }
-      subscribe_unit_to_charge: {
-        Args: {
-          p_amount?: number
-          p_charge_category_id: string
-          p_frequency?: Database["public"]["Enums"]["recurring_frequency"]
-          p_memo?: string
-          p_start_date?: string
-          p_unit_id: string
-        }
-        Returns: {
-          active: boolean
-          amount: number
-          charge_category_id: string
-          created_at: string
-          created_by: string | null
-          end_date: string | null
-          frequency: Database["public"]["Enums"]["recurring_frequency"]
-          id: string
-          last_posted_at: string | null
-          memo: string | null
-          next_post_date: string
-          start_date: string
-          unit_id: string
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "unit_recurring_charges"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      subscribe_unit_to_charge:
+        | {
+            Args: {
+              p_amount?: number
+              p_charge_category_id: string
+              p_frequency?: Database["public"]["Enums"]["recurring_frequency"]
+              p_memo?: string
+              p_start_date?: string
+              p_unit_id: string
+            }
+            Returns: {
+              active: boolean
+              amount: number
+              charge_category_id: string
+              created_at: string
+              created_by: string | null
+              end_date: string | null
+              frequency: Database["public"]["Enums"]["recurring_frequency"]
+              id: string
+              identifier: string | null
+              last_posted_at: string | null
+              memo: string | null
+              next_post_date: string
+              start_date: string
+              unit_id: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "unit_recurring_charges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_amount?: number
+              p_charge_category_id: string
+              p_frequency?: Database["public"]["Enums"]["recurring_frequency"]
+              p_identifier?: string
+              p_memo?: string
+              p_start_date?: string
+              p_unit_id: string
+            }
+            Returns: {
+              active: boolean
+              amount: number
+              charge_category_id: string
+              created_at: string
+              created_by: string | null
+              end_date: string | null
+              frequency: Database["public"]["Enums"]["recurring_frequency"]
+              id: string
+              identifier: string | null
+              last_posted_at: string | null
+              memo: string | null
+              next_post_date: string
+              start_date: string
+              unit_id: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "unit_recurring_charges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       suspend_portfolio: {
         Args: { p_portfolio_id: string; p_reason: string }
         Returns: {
@@ -20294,6 +22078,7 @@ export type Database = {
         Returns: {
           avatar_url: string | null
           created_at: string | null
+          disabled_at: string | null
           display_name: string | null
           email: string | null
           full_name: string | null
@@ -20322,6 +22107,18 @@ export type Database = {
       unapply_payment: {
         Args: { p_charge_id?: string; p_payment_id: string }
         Returns: number
+      }
+      upsert_budget_line: {
+        Args: {
+          p_association_id: string
+          p_category: string
+          p_fiscal_year: number
+          p_gl_account_id: string
+          p_id: string
+          p_monthly_amounts: number[]
+          p_notes?: string
+        }
+        Returns: string
       }
       verify_api_key: {
         Args: { p_raw_key: string }
@@ -20515,6 +22312,14 @@ export type Database = {
         | "failed"
       lease_generation_method: "appfolio_lease_templates" | "pdf_form_templates"
       lease_template_slot: "new_lease" | "renewal" | "renewal_month_to_month"
+      lock_box_location_type:
+        | "building"
+        | "unit"
+        | "gate"
+        | "entrance"
+        | "pool"
+        | "other"
+      lock_box_status: "active" | "inactive" | "lost" | "retired"
       lockbox_batch_status:
         | "received"
         | "processing"
@@ -20528,8 +22333,7 @@ export type Database = {
         | "annual_meeting"
         | "special_meeting"
         | "committee_meeting"
-        | "vendor_meeting"
-        | "internal"
+        | "executive_session"
       message_channel: "in_app" | "email" | "text"
       message_direction: "owner_to_manager" | "manager_to_owner"
       mvp_company_role:
@@ -20556,6 +22360,7 @@ export type Database = {
         | "general"
       occupancy_status: "current" | "future" | "past"
       occupancy_type: "owner" | "tenant"
+      owner_payable_type: "refund" | "settlement" | "distribution" | "other"
       payable_bill_status:
         | "draft"
         | "pending_approval"
@@ -21163,6 +22968,15 @@ export const Constants = {
         "pdf_form_templates",
       ],
       lease_template_slot: ["new_lease", "renewal", "renewal_month_to_month"],
+      lock_box_location_type: [
+        "building",
+        "unit",
+        "gate",
+        "entrance",
+        "pool",
+        "other",
+      ],
+      lock_box_status: ["active", "inactive", "lost", "retired"],
       lockbox_batch_status: [
         "received",
         "processing",
@@ -21177,8 +22991,7 @@ export const Constants = {
         "annual_meeting",
         "special_meeting",
         "committee_meeting",
-        "vendor_meeting",
-        "internal",
+        "executive_session",
       ],
       message_channel: ["in_app", "email", "text"],
       message_direction: ["owner_to_manager", "manager_to_owner"],
@@ -21209,6 +23022,7 @@ export const Constants = {
       ],
       occupancy_status: ["current", "future", "past"],
       occupancy_type: ["owner", "tenant"],
+      owner_payable_type: ["refund", "settlement", "distribution", "other"],
       payable_bill_status: [
         "draft",
         "pending_approval",
