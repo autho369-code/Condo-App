@@ -2,8 +2,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { Badge } from '@/components/ui/shell';
+import { Button } from '@/components/ui/button';
+import { Input, Label } from '@/components/ui/input';
 import { date, money } from '@/lib/utils';
 import { CreditCard, DollarSign, AlertCircle, Clock, FileText } from 'lucide-react';
+import { generateInvoice, markInvoicePaid, voidInvoice } from '../companies/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,8 +41,9 @@ const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_r
 const thead = 'border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500';
 const trow = 'border-b border-gray-50 last:border-0 hover:bg-gray-50/60';
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requirePlatformOperator();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date();
@@ -87,6 +91,13 @@ export default async function BillingPage() {
     .order('created_at', { ascending: false })
     .limit(50);
 
+  // Companies for the "generate invoice" picker
+  const { data: companies } = await db
+    .from('portfolios')
+    .select('id, company_name')
+    .is('archived_at', null)
+    .order('company_name');
+
   const mrr = (activeSubs ?? []).reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
   const paidAmount = (paidThisMonth ?? []).reduce((sum: number, i: any) => sum + (i.total_cents ?? 0), 0) / 100;
 
@@ -96,6 +107,13 @@ export default async function BillingPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Billing &amp; Payments</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide billing overview across all companies</p>
       </div>
+
+      {sp.error && (<div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>)}
+      {(sp.invoice_generated || sp.invoice_paid || sp.invoice_voided) && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {sp.invoice_generated ? 'Invoice generated.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -109,8 +127,35 @@ export default async function BillingPage() {
       {/* Invoices Table */}
       <div className={card}>
         <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Invoices</h2>
-          <p className="mt-0.5 text-xs text-gray-500">All invoices across the platform</p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-950">Invoices</h2>
+              <p className="mt-0.5 text-xs text-gray-500">All invoices across the platform. Billed offline — generate one, then mark it paid.</p>
+            </div>
+            <form action={generateInvoice as any} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="return_to" value="/platform-operator/billing" />
+              <div>
+                <Label htmlFor="inv_company" className="text-xs">Company</Label>
+                <select id="inv_company" name="portfolio_id" required className="h-9 w-48 rounded-md border border-gray-300 bg-white px-2 text-sm">
+                  <option value="">Select company</option>
+                  {(companies ?? []).map((c: any) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="inv_amount" className="text-xs">Amount ($)</Label>
+                <Input id="inv_amount" name="amount" type="number" step="0.01" min="0" placeholder="Plan price" className="h-9 w-28" />
+              </div>
+              <div>
+                <Label htmlFor="inv_start" className="text-xs">Period start</Label>
+                <Input id="inv_start" name="period_start" type="date" className="h-9 w-36" />
+              </div>
+              <div>
+                <Label htmlFor="inv_end" className="text-xs">Period end</Label>
+                <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
+              </div>
+              <Button type="submit" size="sm">Generate</Button>
+            </form>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -122,11 +167,12 @@ export default async function BillingPage() {
                 <th className="px-4 py-2.5 text-right font-medium">Amount</th>
                 <th className="px-4 py-2.5 text-left font-medium">Status</th>
                 <th className="px-4 py-2.5 text-left font-medium">Paid Date</th>
+                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {(invoices ?? []).length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">No invoices found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No invoices yet — generate one above.</td></tr>
               ) : (
                 (invoices ?? []).map((inv: any) => (
                   <tr key={inv.id} className={trow}>
@@ -138,6 +184,24 @@ export default async function BillingPage() {
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(inv.total_cents)}</td>
                     <td className="px-4 py-3"><Badge status={inv.status ?? 'open'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {inv.status !== 'paid' && inv.status !== 'void' ? (
+                        <div className="flex justify-end gap-1">
+                          <form action={markInvoicePaid as any}>
+                            <input type="hidden" name="invoice_id" value={inv.id} />
+                            <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
+                            <input type="hidden" name="return_to" value="/platform-operator/billing" />
+                            <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                          </form>
+                          <form action={voidInvoice as any}>
+                            <input type="hidden" name="invoice_id" value={inv.id} />
+                            <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
+                            <input type="hidden" name="return_to" value="/platform-operator/billing" />
+                            <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                          </form>
+                        </div>
+                      ) : <span className="text-xs text-gray-400">—</span>}
+                    </td>
                   </tr>
                 ))
               )}
