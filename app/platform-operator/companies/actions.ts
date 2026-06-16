@@ -340,6 +340,103 @@ export async function forcePasswordReset(formData: FormData) {
   ok(returnTo, 'reset_forced');
 }
 
+// Directly set a temporary password (more reliable than emailed reset when
+// email deliverability is uncertain). The operator shares it with the admin.
+export async function setTemporaryPassword(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const profileId = formData.get('profile_id') as string;
+  const newPassword = (formData.get('new_password') as string) || '';
+  const returnTo = (formData.get('return_to') as string) || COMPANIES;
+  if (newPassword.trim().length < 8) fail(returnTo, 'Temporary password must be at least 8 characters.');
+
+  const svc = createServiceClient() as any;
+  const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
+  if (!profile) fail(returnTo, 'User not found.');
+
+  const { error } = await svc.auth.admin.updateUserById(profileId, { password: newPassword.trim() });
+  if (error) fail(returnTo, `Could not set password: ${error.message}`);
+
+  await audit(svc, me, 'password_set', profile.portfolio_id, { email: profile.email, user_id: profileId });
+  revalidatePath(returnTo);
+  ok(returnTo, 'password_set');
+}
+
+// ── Invoicing ─────────────────────────────────────────────────────────────
+function invoiceNumber(): string {
+  const d = new Date();
+  const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INV-${ym}-${rand}`;
+}
+
+// Generate an invoice for a company. Amount defaults to the subscription's
+// monthly price; period defaults to the current calendar month.
+export async function generateInvoice(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const portfolioId = formData.get('portfolio_id') as string;
+  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const periodStart = (formData.get('period_start') as string) || '';
+  const periodEnd = (formData.get('period_end') as string) || '';
+  const amountInput = (formData.get('amount') as string) || '';
+
+  const svc = createServiceClient() as any;
+  const { data: sub } = await svc.from('subscriptions')
+    .select('id, price_monthly_cents').eq('portfolio_id', portfolioId).maybeSingle();
+  const totalCents = amountInput ? Math.round(parseFloat(amountInput) * 100) : (sub?.price_monthly_cents ?? 0);
+  if (!totalCents || totalCents <= 0) fail(returnTo, 'Enter an amount (or set the plan price first).');
+
+  const now = new Date();
+  const ps = periodStart || new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const pe = periodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  const { error } = await svc.from('invoices').insert({
+    portfolio_id: portfolioId,
+    subscription_id: sub?.id ?? null,
+    number: invoiceNumber(),
+    period_start: ps,
+    period_end: pe,
+    subtotal_cents: totalCents,
+    total_cents: totalCents,
+    status: 'open',
+  });
+  if (error) fail(returnTo, `Could not generate invoice: ${error.message}`);
+
+  await audit(svc, me, 'invoice_generated', portfolioId, { total_cents: totalCents, period_start: ps, period_end: pe });
+  revalidatePath(returnTo);
+  ok(returnTo, 'invoice_generated');
+}
+
+export async function markInvoicePaid(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const invoiceId = formData.get('invoice_id') as string;
+  const portfolioId = formData.get('portfolio_id') as string;
+  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+
+  const svc = createServiceClient() as any;
+  const { error } = await svc.from('invoices')
+    .update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', invoiceId);
+  if (error) fail(returnTo, `Could not mark invoice paid: ${error.message}`);
+
+  await audit(svc, me, 'invoice_marked_paid', portfolioId, { invoice_id: invoiceId });
+  revalidatePath(returnTo);
+  ok(returnTo, 'invoice_paid');
+}
+
+export async function voidInvoice(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const invoiceId = formData.get('invoice_id') as string;
+  const portfolioId = formData.get('portfolio_id') as string;
+  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+
+  const svc = createServiceClient() as any;
+  const { error } = await svc.from('invoices').update({ status: 'void' }).eq('id', invoiceId);
+  if (error) fail(returnTo, `Could not void invoice: ${error.message}`);
+
+  await audit(svc, me, 'invoice_voided', portfolioId, { invoice_id: invoiceId });
+  revalidatePath(returnTo);
+  ok(returnTo, 'invoice_voided');
+}
+
 export async function unlockAccount(formData: FormData) {
   const me = await requirePlatformOperator();
   const profileId = formData.get('profile_id') as string;

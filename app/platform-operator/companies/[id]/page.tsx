@@ -18,15 +18,19 @@ import {
   changePlan,
   disableLogin,
   forcePasswordReset,
+  generateInvoice,
   inviteAdmin,
+  markInvoicePaid,
   reactivateCompany,
   regenerateInvitation,
   resendInvitation,
   sendPasswordReset,
+  setTemporaryPassword,
   suspendCompany,
   transferOwnership,
   unlockAccount,
   updateCompanyDetails,
+  voidInvoice,
 } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +43,11 @@ function subStatusChip(status: string | null | undefined) {
     canceled: { label: 'Cancelled', tone: 'neutral' },
     expired: { label: 'Cancelled', tone: 'neutral' },
     paused: { label: 'Paused', tone: 'warning' },
+    // invoice statuses
+    open: { label: 'Open', tone: 'warning' },
+    paid: { label: 'Paid', tone: 'success' },
+    void: { label: 'Void', tone: 'neutral' },
+    draft: { label: 'Draft', tone: 'neutral' },
   };
   const m = status ? map[status.toLowerCase()] : null;
   return <StatusChip tone={m?.tone ?? 'neutral'}>{m?.label ?? status ?? 'Not configured'}</StatusChip>;
@@ -88,6 +97,10 @@ const BANNERS: Record<string, string> = {
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
   updated: 'Company details updated.',
+  password_set: 'Temporary password set. Share it with the user securely.',
+  invoice_generated: 'Invoice generated.',
+  invoice_paid: 'Invoice marked paid.',
+  invoice_voided: 'Invoice voided.',
 };
 
 export default async function CompanyDetailPage({
@@ -322,6 +335,12 @@ export default async function CompanyDetailPage({
                           <input type="hidden" name="return_to" value={returnTo} />
                           <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Disable Login</Button>
                         </form>
+                        <form action={setTemporaryPassword as any} className="flex items-center gap-1">
+                          <input type="hidden" name="profile_id" value={member.id} />
+                          <input type="hidden" name="return_to" value={returnTo} />
+                          <input name="new_password" type="text" placeholder="New temp password" minLength={8} required className="h-8 w-40 rounded-md border border-gray-300 px-2 text-xs" />
+                          <Button type="submit" variant="ghost" size="sm">Set Password</Button>
+                        </form>
                       </div>
                     </TD>
                   </TR>
@@ -520,7 +539,29 @@ export default async function CompanyDetailPage({
       {/* ── Billing history ─────────────────────────────────────────── */}
       <Card id="billing">
         <CardHeader>
-          <CardTitle>Billing history</CardTitle>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <CardTitle>Billing history</CardTitle>
+            <form action={generateInvoice as any} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="portfolio_id" value={id} />
+              <input type="hidden" name="return_to" value={returnTo} />
+              <div>
+                <Label htmlFor="inv_amount" className="text-xs">Amount ($)</Label>
+                <Input id="inv_amount" name="amount" type="number" step="0.01" min="0"
+                  defaultValue={subscription?.price_monthly_cents ? (subscription.price_monthly_cents / 100).toFixed(2) : ''}
+                  placeholder="Plan price" className="h-9 w-28" />
+              </div>
+              <div>
+                <Label htmlFor="inv_start" className="text-xs">Period start</Label>
+                <Input id="inv_start" name="period_start" type="date" className="h-9 w-36" />
+              </div>
+              <div>
+                <Label htmlFor="inv_end" className="text-xs">Period end</Label>
+                <Input id="inv_end" name="period_end" type="date" className="h-9 w-36" />
+              </div>
+              <Button type="submit" size="sm">Generate invoice</Button>
+            </form>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Billed offline: generate an invoice (defaults to the plan price + current month), then mark it paid when payment arrives. The company admin sees it on their Billing page.</p>
         </CardHeader>
         <CardBody className="p-0">
           <Table className="border-0">
@@ -531,11 +572,12 @@ export default async function CompanyDetailPage({
                 <TH className="text-right">Total</TH>
                 <TH>Status</TH>
                 <TH>Paid</TH>
+                <TH className="text-right">Actions</TH>
               </TR>
             </THead>
             <tbody>
               {(invoices ?? []).length === 0 ? (
-                <TR><TD colSpan={5} className="text-center text-gray-500">No invoices found.</TD></TR>
+                <TR><TD colSpan={6} className="text-center text-gray-500">No invoices yet — generate one above.</TD></TR>
               ) : (
                 (invoices ?? []).map((inv: any) => (
                   <TR key={inv.id}>
@@ -546,6 +588,24 @@ export default async function CompanyDetailPage({
                     <TD className="text-right tabular-nums">{money((inv.total_cents ?? 0) / 100)}</TD>
                     <TD>{subStatusChip(inv.status)}</TD>
                     <TD className="text-xs text-gray-500">{date(inv.paid_at)}</TD>
+                    <TD className="text-right">
+                      {inv.status !== 'paid' && inv.status !== 'void' ? (
+                        <div className="flex justify-end gap-1">
+                          <form action={markInvoicePaid as any}>
+                            <input type="hidden" name="invoice_id" value={inv.id} />
+                            <input type="hidden" name="portfolio_id" value={id} />
+                            <input type="hidden" name="return_to" value={returnTo} />
+                            <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                          </form>
+                          <form action={voidInvoice as any}>
+                            <input type="hidden" name="invoice_id" value={inv.id} />
+                            <input type="hidden" name="portfolio_id" value={id} />
+                            <input type="hidden" name="return_to" value={returnTo} />
+                            <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                          </form>
+                        </div>
+                      ) : <span className="text-xs text-gray-400">—</span>}
+                    </TD>
                   </TR>
                 ))
               )}
