@@ -406,6 +406,62 @@ export async function generateInvoice(formData: FormData) {
   ok(returnTo, 'invoice_generated');
 }
 
+// Email the invoice to the company's billing contact via the email queue.
+export async function sendInvoice(formData: FormData) {
+  const me = await requirePlatformOperator();
+  const invoiceId = formData.get('invoice_id') as string;
+  const portfolioId = formData.get('portfolio_id') as string;
+  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+
+  const svc = createServiceClient() as any;
+  const { data: inv } = await svc.from('invoices')
+    .select('id, number, period_start, period_end, total_cents, notes, portfolio_id')
+    .eq('id', invoiceId).maybeSingle();
+  if (!inv) fail(returnTo, 'Invoice not found.');
+
+  // Recipient: subscription billing_email, else a company admin's email.
+  const { data: sub } = await svc.from('subscriptions').select('billing_email').eq('portfolio_id', inv.portfolio_id).maybeSingle();
+  let toEmail = (sub?.billing_email as string | null) ?? null;
+  if (!toEmail) {
+    const { data: admin } = await svc.from('profiles')
+      .select('email').eq('portfolio_id', inv.portfolio_id).eq('hoa_role', 'company_admin').limit(1).maybeSingle();
+    toEmail = admin?.email ?? null;
+  }
+  if (!toEmail) fail(returnTo, 'No billing email on file — add a company admin or set a billing email first.');
+
+  const { data: company } = await svc.from('portfolios').select('company_name').eq('id', inv.portfolio_id).maybeSingle();
+  const amount = `$${(((inv.total_cents ?? 0) as number) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const period = inv.period_start ? `${inv.period_start} to ${inv.period_end}` : '';
+  const body = [
+    '<p>Hello,</p>',
+    `<p>Invoice <strong>${inv.number ?? inv.id}</strong> for <strong>${company?.company_name ?? 'your company'}</strong> is ready.</p>`,
+    '<ul>',
+    `<li>Amount due: <strong>${amount}</strong></li>`,
+    period ? `<li>Billing period: ${period}</li>` : '',
+    '</ul>',
+    inv.notes ? `<p>${inv.notes}</p>` : '',
+    `<p>You can view this invoice on your Billing page in Portier369. For remittance details or questions, reply to this email or contact ${FROM_ADDRESS}.</p>`,
+    '<p>— The Portier369 team</p>',
+  ].join('');
+
+  const { error } = await svc.from('email_queue').insert({
+    to_email: toEmail,
+    to_name: company?.company_name ?? null,
+    subject: `Invoice ${inv.number ?? ''} from Portier369`.trim(),
+    body,
+    status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
+    portfolio_id: inv.portfolio_id,
+  });
+  if (error) fail(returnTo, `Could not queue the invoice email: ${error.message}`);
+
+  await svc.from('invoices').update({ sent_at: new Date().toISOString() }).eq('id', invoiceId);
+  await audit(svc, me, 'invoice_sent', inv.portfolio_id, { invoice_id: invoiceId, to_email: toEmail });
+  revalidatePath(returnTo);
+  ok(returnTo, 'invoice_sent');
+}
+
 export async function markInvoicePaid(formData: FormData) {
   const me = await requirePlatformOperator();
   const invoiceId = formData.get('invoice_id') as string;

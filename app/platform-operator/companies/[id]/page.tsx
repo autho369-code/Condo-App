@@ -21,6 +21,7 @@ import {
   generateInvoice,
   inviteAdmin,
   markInvoicePaid,
+  sendInvoice,
   reactivateCompany,
   regenerateInvitation,
   resendInvitation,
@@ -99,6 +100,7 @@ const BANNERS: Record<string, string> = {
   updated: 'Company details updated.',
   password_set: 'Temporary password set. Share it with the user securely.',
   invoice_generated: 'Invoice generated.',
+  invoice_sent: 'Invoice emailed to the company billing contact.',
   invoice_paid: 'Invoice marked paid.',
   invoice_voided: 'Invoice voided.',
 };
@@ -130,7 +132,7 @@ export default async function CompanyDetailPage({
     db.from('subscriptions').select('id, tier, status, billing_email, seats_used, seats_included, associations_limit, units_limit, price_monthly_cents, trial_ends_at, current_period_end').eq('portfolio_id', id).maybeSingle(),
     db.from('profiles').select('id, email, full_name, display_name, hoa_role, last_login_at, mfa_enrolled_at').eq('portfolio_id', id).in('hoa_role', ['company_admin', 'manager']).order('hoa_role'),
     db.from('associations').select('id, name, city, state, unit_count, status').eq('portfolio_id', id).is('archived_at', null).order('name').limit(20),
-    db.from('invoices').select('id, number, period_start, period_end, total_cents, status, paid_at').eq('portfolio_id', id).order('period_start', { ascending: false }).limit(20),
+    db.from('invoices').select('id, number, period_start, period_end, total_cents, status, paid_at, sent_at').eq('portfolio_id', id).order('period_start', { ascending: false }).limit(20),
     db.from('user_invitations').select('id, email, full_name, hoa_role, status, expires_at, created_at, metadata').eq('portfolio_id', id).order('created_at', { ascending: false }).limit(20),
     db.from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'company').eq('entity_id', id).order('created_at', { ascending: false }).limit(30),
   ]);
@@ -589,22 +591,33 @@ export default async function CompanyDetailPage({
                     <TD>{subStatusChip(inv.status)}</TD>
                     <TD className="text-xs text-gray-500">{date(inv.paid_at)}</TD>
                     <TD className="text-right">
-                      {inv.status !== 'paid' && inv.status !== 'void' ? (
-                        <div className="flex justify-end gap-1">
-                          <form action={markInvoicePaid as any}>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        {inv.status !== 'void' && (
+                          <form action={sendInvoice as any}>
                             <input type="hidden" name="invoice_id" value={inv.id} />
                             <input type="hidden" name="portfolio_id" value={id} />
                             <input type="hidden" name="return_to" value={returnTo} />
-                            <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                            <Button type="submit" variant="ghost" size="sm">{inv.sent_at ? 'Resend' : 'Send'}</Button>
                           </form>
-                          <form action={voidInvoice as any}>
-                            <input type="hidden" name="invoice_id" value={inv.id} />
-                            <input type="hidden" name="portfolio_id" value={id} />
-                            <input type="hidden" name="return_to" value={returnTo} />
-                            <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
-                          </form>
-                        </div>
-                      ) : <span className="text-xs text-gray-400">—</span>}
+                        )}
+                        {inv.status !== 'paid' && inv.status !== 'void' && (
+                          <>
+                            <form action={markInvoicePaid as any}>
+                              <input type="hidden" name="invoice_id" value={inv.id} />
+                              <input type="hidden" name="portfolio_id" value={id} />
+                              <input type="hidden" name="return_to" value={returnTo} />
+                              <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                            </form>
+                            <form action={voidInvoice as any}>
+                              <input type="hidden" name="invoice_id" value={inv.id} />
+                              <input type="hidden" name="portfolio_id" value={id} />
+                              <input type="hidden" name="return_to" value={returnTo} />
+                              <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                            </form>
+                          </>
+                        )}
+                        {inv.status === 'void' && <span className="text-xs text-gray-400">—</span>}
+                      </div>
                     </TD>
                   </TR>
                 ))

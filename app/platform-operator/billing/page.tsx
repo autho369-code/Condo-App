@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { date, money } from '@/lib/utils';
 import { CreditCard, DollarSign, AlertCircle, Clock, FileText } from 'lucide-react';
-import { generateInvoice, markInvoicePaid, voidInvoice } from '../companies/actions';
+import { generateInvoice, markInvoicePaid, sendInvoice, voidInvoice } from '../companies/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,9 +109,9 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       </div>
 
       {sp.error && (<div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>)}
-      {(sp.invoice_generated || sp.invoice_paid || sp.invoice_voided) && (
+      {(sp.invoice_generated || sp.invoice_sent || sp.invoice_paid || sp.invoice_voided) && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {sp.invoice_generated ? 'Invoice generated.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'}
+          {sp.invoice_generated ? 'Invoice generated.' : sp.invoice_sent ? 'Invoice emailed to the company billing contact.' : sp.invoice_paid ? 'Invoice marked paid.' : 'Invoice voided.'}
         </div>
       )}
 
@@ -185,22 +185,33 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-3"><Badge status={inv.status ?? 'open'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
                     <td className="px-4 py-3 text-right">
-                      {inv.status !== 'paid' && inv.status !== 'void' ? (
-                        <div className="flex justify-end gap-1">
-                          <form action={markInvoicePaid as any}>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        {inv.status !== 'void' && (
+                          <form action={sendInvoice as any}>
                             <input type="hidden" name="invoice_id" value={inv.id} />
                             <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
                             <input type="hidden" name="return_to" value="/platform-operator/billing" />
-                            <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                            <Button type="submit" variant="ghost" size="sm">{inv.sent_at ? 'Resend' : 'Send'}</Button>
                           </form>
-                          <form action={voidInvoice as any}>
-                            <input type="hidden" name="invoice_id" value={inv.id} />
-                            <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
-                            <input type="hidden" name="return_to" value="/platform-operator/billing" />
-                            <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
-                          </form>
-                        </div>
-                      ) : <span className="text-xs text-gray-400">—</span>}
+                        )}
+                        {inv.status !== 'paid' && inv.status !== 'void' && (
+                          <>
+                            <form action={markInvoicePaid as any}>
+                              <input type="hidden" name="invoice_id" value={inv.id} />
+                              <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
+                              <input type="hidden" name="return_to" value="/platform-operator/billing" />
+                              <Button type="submit" variant="ghost" size="sm">Mark paid</Button>
+                            </form>
+                            <form action={voidInvoice as any}>
+                              <input type="hidden" name="invoice_id" value={inv.id} />
+                              <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />
+                              <input type="hidden" name="return_to" value="/platform-operator/billing" />
+                              <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Void</Button>
+                            </form>
+                          </>
+                        )}
+                        {inv.status === 'void' && <span className="text-xs text-gray-400">—</span>}
+                      </div>
                     </td>
                   </tr>
                 ))
