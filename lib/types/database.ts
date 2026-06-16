@@ -22388,7 +22388,7 @@ export type Database = {
       payment_type: "payment" | "charge" | "credit" | "refund"
       period_status: "open" | "soft_closed" | "closed"
       portfolio_profile_type: "association_management" | "property_management"
-      portfolio_tier: "core" | "plus" | "max"
+      portfolio_tier: "foundation" | "growth" | "portfolio" | "enterprise"
       portier_role:
         | "super_admin"
         | "company_admin"
@@ -23053,7 +23053,7 @@ export const Constants = {
       payment_type: ["payment", "charge", "credit", "refund"],
       period_status: ["open", "soft_closed", "closed"],
       portfolio_profile_type: ["association_management", "property_management"],
-      portfolio_tier: ["core", "plus", "max"],
+      portfolio_tier: ["foundation", "growth", "portfolio", "enterprise"],
       portier_role: [
         "super_admin",
         "company_admin",

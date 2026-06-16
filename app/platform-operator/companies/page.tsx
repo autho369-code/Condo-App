@@ -9,6 +9,7 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { date, money } from '@/lib/utils';
+import { PLANS, planOptionLabel } from '@/lib/billing/plans';
 import { archiveCompany, createCompanyWithAdmin, reactivateCompany, suspendCompany } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -155,15 +156,13 @@ export default async function CompaniesPage({
             </div>
             <div>
               <Label htmlFor="tier">Plan</Label>
-              <select id="tier" name="tier" required className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="core">Core</option>
-                <option value="plus">Plus</option>
-                <option value="max">Max</option>
+              <select id="tier" name="tier" required defaultValue="foundation" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                {PLANS.map((p) => <option key={p.id} value={p.id}>{planOptionLabel(p)}</option>)}
               </select>
             </div>
             <div>
               <Label htmlFor="max_units">Maximum units</Label>
-              <Input id="max_units" name="max_units" type="number" min={1} required />
+              <Input id="max_units" name="max_units" type="number" min={1} placeholder="Defaults to the plan's unit cap" />
             </div>
             <div className="col-span-full">
               <Button type="submit">Create Company &amp; Send Invitation</Button>

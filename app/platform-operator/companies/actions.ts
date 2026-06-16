@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
+import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 
 const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const COMPANIES = '/platform-operator/companies';
@@ -66,8 +67,9 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const lastName = (formData.get('last_name') as string)?.trim();
   const email = (formData.get('admin_email') as string)?.trim().toLowerCase();
   const phone = (formData.get('phone_number') as string)?.trim() || null;
-  const tier = (formData.get('tier') as string) || 'core';
+  const tier = (formData.get('tier') as string) || 'foundation';
   const maxUnits = parseInt(formData.get('max_units') as string, 10) || null;
+  const plan = PLAN_BY_ID[tier as PlanId];
 
   if (!companyName || !firstName || !lastName || !email) {
     fail(COMPANIES, 'Company name, admin first/last name, and email are required.');
@@ -97,7 +99,12 @@ export async function createCompanyWithAdmin(formData: FormData) {
   // No trials: companies start as active subscriptions immediately.
   if (phone) await svc.from('portfolios').update({ phone_number: phone }).eq('id', portfolioId);
   await svc.from('subscriptions')
-    .update({ status: 'active', trial_ends_at: null, ...(maxUnits ? { units_limit: maxUnits } : {}) })
+    .update({
+      status: 'active',
+      trial_ends_at: null,
+      units_limit: maxUnits ?? plan?.unitsLimit ?? null,
+      ...(plan && !plan.custom ? { price_monthly_cents: plan.priceMonthlyCents } : {}),
+    })
     .eq('portfolio_id', portfolioId);
   await svc.from('user_invitations')
     .update({ hoa_role: 'company_admin', full_name: fullName })
@@ -472,8 +479,14 @@ export async function changePlan(formData: FormData) {
   const priceMonthly = formData.get('price_monthly') as string;
   const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
 
+  const plan = PLAN_BY_ID[tier as PlanId];
   const update: Record<string, unknown> = { tier };
+  // Price: explicit input wins; otherwise use the plan's standard price (skip
+  // for custom/Enterprise so the operator sets it).
   if (priceMonthly) update.price_monthly_cents = Math.round(parseFloat(priceMonthly) * 100);
+  else if (plan && !plan.custom) update.price_monthly_cents = plan.priceMonthlyCents;
+  // Move the unit cap to match the selected plan (non-custom tiers).
+  if (plan && plan.unitsLimit != null) update.units_limit = plan.unitsLimit;
 
   const svc = createServiceClient() as any;
   const { error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId);
