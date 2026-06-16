@@ -20,6 +20,7 @@ export default async function LoginPage({
   const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true';
   const modes = getVisibleLoginModes(params.mode);
   const isAdminMode = mode.id === 'admin';
+  const isScoped = isAdminMode || mode.id === 'company_admin';
 
   // Tenant branding from subdomain
   const h = await headers();
@@ -45,17 +46,17 @@ export default async function LoginPage({
         ) : (
           <>
             <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">
-              {isAdminMode ? 'Platform sign in' : 'Welcome back'}
+              {isScoped ? mode.title : 'Welcome back'}
             </h1>
             <p className="mt-1.5 text-sm leading-6 text-gray-500">
-              {isAdminMode ? 'Restricted platform access.' : 'Sign in to your workspace.'}
+              {isScoped ? mode.description : 'Sign in to your workspace.'}
             </p>
           </>
         )}
       </header>
 
       {/* Role switcher */}
-      {!isAdminMode && (
+      {!isScoped && (
         <nav
           aria-label="Account type"
           className="grid grid-cols-3 gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
@@ -130,7 +131,7 @@ export default async function LoginPage({
 
       {/* Below-card actions */}
       <div className="space-y-3 text-center">
-        {mode.id !== 'admin' && (
+        {!isScoped && (
           <p className="text-sm text-gray-500">
             Need a new account?{' '}
             <Link href="/signup" className="font-medium text-gray-900 underline-offset-4 hover:underline">

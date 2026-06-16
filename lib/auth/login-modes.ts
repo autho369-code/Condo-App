@@ -1,4 +1,4 @@
-export type LoginModeId = 'manager' | 'owner' | 'vendor' | 'admin';
+export type LoginModeId = 'manager' | 'owner' | 'vendor' | 'admin' | 'company_admin';
 
 export interface LoginModeConfig {
   id: LoginModeId;
@@ -40,18 +40,27 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
   },
   admin: {
     id: 'admin',
-    label: 'Admin',
-    title: 'Admin Sign In',
-    description: 'For platform operators and superadmins managing every portfolio.',
+    label: 'Operator',
+    title: 'Operator Sign In',
+    description: 'For platform operators managing every company and portfolio.',
     defaultNext: '/platform-operator',
-    submitLabel: 'Sign in as admin',
-    note: 'Superadmin means your Supabase Auth user is active in platform_operators.',
+    submitLabel: 'Sign in',
+    note: 'Operator access requires an active platform_operators record.',
+  },
+  company_admin: {
+    id: 'company_admin',
+    label: 'Company Admin',
+    title: 'Company Admin Sign In',
+    description: 'For company administrators managing your organization’s portfolio.',
+    defaultNext: '/company-admin/overview',
+    submitLabel: 'Sign in',
+    note: 'Company admin access is provisioned by your platform operator.',
   },
 };
 
 export function normalizeLoginMode(value?: FormDataEntryValue | string | string[] | null): LoginModeId {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === 'owner' || raw === 'vendor' || raw === 'admin' ? raw : 'manager';
+  return raw === 'owner' || raw === 'vendor' || raw === 'admin' || raw === 'company_admin' ? raw : 'manager';
 }
 
 export function safeInternalNext(value?: FormDataEntryValue | string | string[] | null): string | null {
@@ -74,5 +83,6 @@ export function getLoginNext(params: { mode?: string | string[] | null; next?: s
 export function getVisibleLoginModes(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig[] {
   const mode = normalizeLoginMode(value);
   if (mode === 'admin') return [loginModes.admin];
+  if (mode === 'company_admin') return [loginModes.company_admin];
   return [loginModes.manager, loginModes.owner, loginModes.vendor];
 }

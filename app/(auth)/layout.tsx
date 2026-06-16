@@ -79,13 +79,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10 space-y-5">
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/login"
+              href="/login?mode=admin"
               className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
             >
               Operator
             </Link>
             <Link
-              href="/login"
+              href="/login?mode=company_admin"
               className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
             >
               Company Admin
