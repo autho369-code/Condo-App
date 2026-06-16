@@ -99,13 +99,6 @@ export default function SecurityPage() {
         Security is an ongoing program, not a one-time state. This page describes current practices and may evolve as
         the platform grows.
       </p>
-
-      <p className="!mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-        This page is a working draft prepared for review by qualified legal counsel and security review, and may be
-        updated before and after it is relied upon. It is provided for transparency and is not legal advice. Specific
-        claims (for example, certifications and encryption details) should be confirmed before being relied upon
-        contractually.
-      </p>
     </LegalShell>
   )
 }

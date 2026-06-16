@@ -202,11 +202,6 @@ export default function PrivacyPage() {
         Questions about this Policy, or requests to exercise your rights, can be sent to{' '}
         <a href="mailto:hello@portier369.com" className="text-[#1E3A5F] underline underline-offset-2">hello@portier369.com</a>.
       </p>
-
-      <p className="!mt-10 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-        This Privacy Policy is a working draft prepared for review by qualified legal counsel and may be updated before
-        and after it is relied upon. It is provided for transparency and is not legal advice.
-      </p>
     </LegalShell>
   )
 }

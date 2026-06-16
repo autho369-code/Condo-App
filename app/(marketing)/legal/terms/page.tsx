@@ -186,11 +186,6 @@ export default function TermsPage() {
         Questions about these Terms can be sent to{' '}
         <a href="mailto:hello@portier369.com" className="text-[#1E3A5F] underline underline-offset-2">hello@portier369.com</a>.
       </p>
-
-      <p className="!mt-10 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-        These Terms are a working draft prepared for review by qualified legal counsel before they are relied upon for
-        a binding agreement. This draft is provided for transparency and is not legal advice.
-      </p>
     </LegalShell>
   )
 }
