@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { ViolationLetterDrafter } from '@/components/ai/violation-letter-drafter';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -73,6 +74,8 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
             <div className="px-5 py-8 text-center text-sm text-gray-500">No updates recorded yet.</div>
           )}
         </section>
+
+        <ViolationLetterDrafter violationId={violation.id} />
 
         <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="text-sm font-semibold text-gray-950">Evidence and documents</h2>

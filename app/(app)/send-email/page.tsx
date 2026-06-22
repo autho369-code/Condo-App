@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/rpcs/notifications';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, Surface } from '@/components/ui/shell';
+import { CommunicationDrafter } from '@/components/ai/communication-drafter';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,6 +124,9 @@ export default async function SendEmailPage({
           <Field label="Additional recipients" htmlFor="additional_recipients">
             <Input id="additional_recipients" name="additional_recipients" placeholder="Comma-separated emails" />
           </Field>
+
+          {/* AI drafting copilot */}
+          <CommunicationDrafter subjectId="subject" bodyId="message" />
 
           {/* Subject */}
           <Field label="Subject" htmlFor="subject" required>
