@@ -40,11 +40,12 @@ but a few worth addressing before scale:
 - [x] **CRITICAL fixed: `portfolios`** public SELECT exposed every column
       (incl. `ai_api_key`) to anon. Locked to staff/operator; branding now via a
       SECURITY DEFINER `tenant_branding()` function (safe columns only). (2026-06-22)
-- [ ] **Remaining "always true" review** — `leads` / `lead_messages` / `bookings`
-      have public SELECT/UPDATE (lead PII readable/editable by anyone); keep the
-      public INSERT for the contact/demo forms but restrict SELECT/UPDATE to staff.
-      (`house_rules`, `feature_entitlements`, `user_roles`, `maintenance_templates`,
-      provider/services tables = reference/public-by-design, OK.)
+- [x] **Fixed: unused lead/marketplace tables** — `leads`/`lead_messages`/`bookings`
+      + `providers`/`services`/`provider_*` had public read/update (lead PII). They're
+      unused + empty (demo form only emails via Resend), so dropped all public
+      policies (RLS deny-all). (2026-06-22) Remaining benign always-true policies are
+      reference/by-design: `house_rules`, `feature_entitlements`, `user_roles`,
+      `maintenance_templates`, `portfolios` branding (now via SECDEF fn), audit/marketing INSERTs.
 - [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
       confirm each is intentional/locked, add policies where a real surface needs them.
 - [ ] (Minor) set a fixed `search_path` on the ~20 flagged functions.
