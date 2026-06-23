@@ -16,6 +16,7 @@ export const appModules: AppModule[] = [
     children: [
       { label: 'Directory', href: '/associations' },
       { label: 'New association', href: '/associations/new' },
+      { label: 'Import data (CSV)', href: '/owners/import' },
       { label: 'Units', href: '/units' },
       { label: 'Parking', href: '/parking' },
     ],

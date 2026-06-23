@@ -122,7 +122,7 @@ export function AssociationsPanel() {
           <PanelLink href="/assessments/update">Update Assessments</PanelLink>
           <PanelLink href="/units/new">New Unit</PanelLink>
           <PanelLink href="/unit-types/new">New Unit Type</PanelLink>
-          <PanelLink href="/units/bulk-import-ownership">Bulk Import Ownership Percentages</PanelLink>
+          <PanelLink href="/owners/import">Import Owners &amp; Units (CSV)</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
@@ -162,7 +162,7 @@ export function AssociationsPanel() {
       <ContextPanel title="Tasks">
         <PanelSection title="Help Topics">
           <PanelLink href="/help/adding-a-property">Adding a Property</PanelLink>
-          <PanelLink href="/help/import-association">Importing a New Association</PanelLink>
+          <PanelLink href="/owners/import">Importing a New Association</PanelLink>
           <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
           <PanelLink href="/help/property-groups">Property Groups</PanelLink>
           <PanelLink href="/help/lease-templates">Lease Templates</PanelLink>
@@ -196,7 +196,7 @@ export function AssociationsPanel() {
         <PanelLink href="/bulk-statement-settings/new">Bulk Update Statement Settings</PanelLink>
       </PanelSection>
       <PanelSection title="Help Topics">
-        <PanelLink href="/help/import-association">Import a New Association</PanelLink>
+        <PanelLink href="/owners/import">Import a New Association</PanelLink>
         <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
         <PanelLink href="/help/property-groups">Managing Property Groups</PanelLink>
         <PanelLink href="/help/owner-statements">Sending Owner Statements</PanelLink>
