@@ -34,8 +34,17 @@ Mostly pre-existing + by-design (this app's RLS helpers/RPCs are SECURITY DEFINE
 but a few worth addressing before scale:
 - [x] **Fixed "Exposed Auth Users"** — `v_manager_workload` no longer joins
       `auth.users` (uses `profiles.last_login_at`). (2026-06-22)
-- [ ] **Review "RLS Policy Always True" (×10)** — tighten broad policies
-      (e.g. `mgr_assoc_scope`) so they don't allow cross-portfolio reads.
+- [x] **CRITICAL fixed: `platform_operators`** privilege escalation — was
+      `ALL/public/USING(true)` (anyone could self-insert as an operator). Now
+      operator-only. (2026-06-22)
+- [x] **CRITICAL fixed: `portfolios`** public SELECT exposed every column
+      (incl. `ai_api_key`) to anon. Locked to staff/operator; branding now via a
+      SECURITY DEFINER `tenant_branding()` function (safe columns only). (2026-06-22)
+- [ ] **Remaining "always true" review** — `leads` / `lead_messages` / `bookings`
+      have public SELECT/UPDATE (lead PII readable/editable by anyone); keep the
+      public INSERT for the contact/demo forms but restrict SELECT/UPDATE to staff.
+      (`house_rules`, `feature_entitlements`, `user_roles`, `maintenance_templates`,
+      provider/services tables = reference/public-by-design, OK.)
 - [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
       confirm each is intentional/locked, add policies where a real surface needs them.
 - [ ] (Minor) set a fixed `search_path` on the ~20 flagged functions.
