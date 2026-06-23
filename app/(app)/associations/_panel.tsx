@@ -84,7 +84,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="/assessments/update">Update Assessments</PanelLink>
+          <PanelLink href="/charges">Update Assessments</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=annual-budget-comparison">Annual Budget Comparison</PanelLink>
@@ -119,9 +119,8 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="/assessments/update">Update Assessments</PanelLink>
+          <PanelLink href="/charges">Update Assessments</PanelLink>
           <PanelLink href="/units/new">New Unit</PanelLink>
-          <PanelLink href="/unit-types/new">New Unit Type</PanelLink>
           <PanelLink href="/owners/import">Import Owners &amp; Units (CSV)</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">

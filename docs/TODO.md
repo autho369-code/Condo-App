@@ -29,6 +29,17 @@ Mostly on Mirsad / external; not code.
 - [ ] **Tighten DMARC** — currently `p=none` (monitor). Move to `quarantine` then
       `reject` once you've confirmed legit mail passes.
 
+## 🛡️ Security hardening (from Supabase advisor scan 2026-06-22)
+Mostly pre-existing + by-design (this app's RLS helpers/RPCs are SECURITY DEFINER),
+but a few worth addressing before scale:
+- [ ] **Fix "Exposed Auth Users"** — the `v_manager_workload` view exposes
+      `auth.users`; rebuild it to not select auth.users PII (1 ERROR).
+- [ ] **Review "RLS Policy Always True" (×10)** — tighten broad policies
+      (e.g. `mgr_assoc_scope`) so they don't allow cross-portfolio reads.
+- [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
+      confirm each is intentional/locked, add policies where a real surface needs them.
+- [ ] (Minor) set a fixed `search_path` on the ~20 flagged functions.
+
 ## 🟢 Optional / cleanup (no rush)
 - [ ] Decide fate of the orphaned `/platform-operator/overview` page vs the root
       `/platform-operator` dashboard (duplicate command-center).
