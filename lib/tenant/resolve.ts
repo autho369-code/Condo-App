@@ -33,27 +33,14 @@ export async function resolveTenant(hostname: string): Promise<TenantBranding | 
 
   const supabase = await createClient();
 
-  // 1. Try custom domain
-  const { data: byDomain } = await (supabase as any)
-    .from('portfolios')
-    .select('id, company_name, logo_url, brand_color, support_email, support_phone, public_website')
-    .eq('custom_domain', clean)
-    .maybeSingle();
-
-  if (byDomain) return mapBranding(byDomain);
-
-  // 2. Try subdomain
-  const slug = clean.replace(`.${APEX_DOMAIN}`, '');
-  if (slug === clean) return null; // not a subdomain of ours
-
-  const { data: bySlug } = await (supabase as any)
-    .from('portfolios')
-    .select('id, company_name, logo_url, brand_color, support_email, support_phone, public_website')
-    .eq('slug', slug)
-    .maybeSingle();
-
-  if (bySlug) return mapBranding(bySlug);
-
+  // Branding via a SECURITY DEFINER function that returns ONLY branding columns,
+  // so anon never needs SELECT on the full portfolios row (which holds secrets
+  // like ai_api_key). Matches custom_domain (preferred) or subdomain slug.
+  const slug = clean.endsWith(`.${APEX_DOMAIN}`) ? clean.replace(`.${APEX_DOMAIN}`, '') : null;
+  const { data: rows } = await (supabase as any)
+    .rpc('tenant_branding', { p_host: clean, p_slug: slug });
+  const row = rows?.[0];
+  if (row) return mapBranding(row);
   return null;
 }
 

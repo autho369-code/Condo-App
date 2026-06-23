@@ -36,11 +36,9 @@ export async function middleware(request: NextRequest) {
       : null
 
     if (slug) {
-      const { data: portfolio } = await (supabase as any)
-        .from('portfolios')
-        .select('id, company_name, logo_url, brand_color, support_email, support_phone, public_website, slug')
-        .eq('slug', slug)
-        .maybeSingle()
+      const { data: brandingRows } = await (supabase as any)
+        .rpc('tenant_branding', { p_slug: slug })
+      const portfolio = brandingRows?.[0]
 
       if (portfolio) {
         response.headers.set('x-portfolio-id', portfolio.id)
