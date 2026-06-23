@@ -4,6 +4,7 @@ import type { AppModule } from './modules';
 export const boardModules: AppModule[] = [
   { label: 'Dashboard', href: '/board' },
   { label: 'Meetings', href: '/board/meetings' },
+  { label: 'Approvals', href: '/board/approvals' },
   { label: 'Financials', href: '/board/financials' },
   { label: 'Budget vs Actual', href: '/board/budget' },
   { label: 'Delinquencies', href: '/board/delinquencies' },
