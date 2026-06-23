@@ -48,7 +48,9 @@ but a few worth addressing before scale:
       `maintenance_templates`, `portfolios` branding (now via SECDEF fn), audit/marketing INSERTs.
 - [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
       confirm each is intentional/locked, add policies where a real surface needs them.
-- [ ] (Minor) set a fixed `search_path` on the ~20 flagged functions.
+- [x] **Fixed: pinned `search_path`** on all 20 app functions. (2026-06-22)
+- [ ] (Lower-risk, deferred) review the 8 SECURITY DEFINER views — converting to
+      `security_invoker` can change results, so each needs per-view testing.
 
 ## 🟢 Optional / cleanup (no rush)
 - [ ] Decide fate of the orphaned `/platform-operator/overview` page vs the root
