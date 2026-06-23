@@ -32,8 +32,8 @@ Mostly on Mirsad / external; not code.
 ## 🛡️ Security hardening (from Supabase advisor scan 2026-06-22)
 Mostly pre-existing + by-design (this app's RLS helpers/RPCs are SECURITY DEFINER),
 but a few worth addressing before scale:
-- [ ] **Fix "Exposed Auth Users"** — the `v_manager_workload` view exposes
-      `auth.users`; rebuild it to not select auth.users PII (1 ERROR).
+- [x] **Fixed "Exposed Auth Users"** — `v_manager_workload` no longer joins
+      `auth.users` (uses `profiles.last_login_at`). (2026-06-22)
 - [ ] **Review "RLS Policy Always True" (×10)** — tighten broad policies
       (e.g. `mgr_assoc_scope`) so they don't allow cross-portfolio reads.
 - [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
