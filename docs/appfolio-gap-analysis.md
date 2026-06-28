@@ -20,6 +20,20 @@
 > - **Reporting:** verified ~119 active `report_definitions` vs AppFolio's ~90 — full parity-plus.
 > - Resale/estoppel certificate (the one real reporting gap) was scoped to MD §11-135 but the user
 >   **declined to build it** for now.
+>
+> **Also stale below — these shipped 2026-06-21/22 (verified in code 2026-06-27), but the §1/§2/§4 rows still say MISSING/PARTIAL:**
+> - **AI conversational Assistant: MISSING → HAVE.** `/assistant` page + `/api/ai/assistant`, grounded in RLS-scoped
+>   portfolio snapshot (no NL→SQL). This is the Realm-X-Assistant analog. Doc §1.6/§2-AI/§4 understate it.
+> - **AI violation-letter drafting + comms copilot: SHIPPED** (`/api/ai/draft-violation-letter`, `/api/ai/draft-communication`).
+>   Roadmap Tier 1 #1 & #2 are DONE.
+> - **AI image-based violation/maintenance diagnostics: MISSING → HAVE** (`/api/ai/analyze-violation-photo`),
+>   plus insurance-cert extraction. The Realm-X "Maintenance Performer" analog exists on BYO-key infra.
+> - **Report Builder: PARTIAL → HAVE.** `/reports/builder` (curated catalog + saved views + CSV export). Roadmap Tier 2 #6 DONE.
+> - **Board approval queue + digital sign-off: PARTIAL → HAVE.** `/board/approvals` + `approval_decisions` + `cast_board_approval`
+>   (majority/unanimous/any-one/percentage voting). Roadmap Tier 2 #8 DONE.
+> - Net: §4 "AppFolio leads on generative-AI maturity" is now only partly true — we ship a conversational
+>   Assistant + 4 AI features on BYO-key (no AI tax). AppFolio's remaining AI edge is mainly **Flows** (teachable
+>   automation) and agentic **Performers**.
 
 ---
 
@@ -135,7 +149,7 @@ Legend: **HAVE** · **PARTIAL** · **MISSING** · **SKIP** (intentional non-goal
 | Resident maintenance/service requests | **HAVE** | Owner portal service requests + manager work orders |
 | Work-order tracking + vendor assignment | **HAVE** | Work orders, recurring WOs, inspections, PO, vendor portal w/ status updates |
 | Triage + auto-notify homeowner | **PARTIAL** | Have WO + comms; confirm automatic status-change notifications to owner |
-| AI image-based maintenance diagnostics | **MISSING** | We have the AI plumbing (BYO-key + image extraction) but not this feature |
+| AI image-based maintenance diagnostics | **HAVE** | `/api/ai/analyze-violation-photo` (image → category/severity) on BYO-key infra |
 
 ### Communications
 | AppFolio capability | Status | Note |
@@ -150,18 +164,18 @@ Legend: **HAVE** · **PARTIAL** · **MISSING** · **SKIP** (intentional non-goal
 ### AI
 | AppFolio capability | Status | Note |
 |---|---|---|
-| Conversational assistant (reports/bulk/draft) | **MISSING** | BYO-key infra exists; no Assistant UX yet |
-| AI inbox triage + reply drafting | **MISSING** | Roadmapped (comms copilot) |
-| Teachable workflow automation (Flows) | **MISSING** | No flow engine |
-| AI agents (leasing/maintenance performers) | **MISSING** | N/A leasing; maintenance agent buildable on our infra |
-| Document/image extraction | **HAVE** | Insurance-cert extraction live (we ship AI today, AppFolio gates it behind Max) |
+| Conversational assistant (reports/bulk/draft) | **HAVE** | `/assistant` + `/api/ai/assistant`, grounded in RLS-scoped portfolio snapshot (no NL→SQL); BYO-key |
+| AI inbox triage + reply drafting | **PARTIAL** | Comms copilot drafts owner/board emails (`/api/ai/draft-communication`) + violation letters (`/api/ai/draft-violation-letter`); no automatic inbox triage |
+| Teachable workflow automation (Flows) | **MISSING** | No flow engine (AppFolio's remaining clear AI edge) |
+| AI agents (leasing/maintenance performers) | **PARTIAL** | Image-based violation/maintenance diagnostics (`/api/ai/analyze-violation-photo`); no autonomous agent loop. Leasing N/A |
+| Document/image extraction | **HAVE** | Insurance-cert extraction + violation-photo analysis live; BYO-key, no AI tax (AppFolio gates Realm-X behind Max) |
 
 ### Reporting
 | AppFolio capability | Status | Note |
 |---|---|---|
 | Real-time reports | **HAVE** | Reports + metrics |
 | Scheduled reports | **HAVE** | Scheduled reports (AppFolio parity-plus in some respects) |
-| User-defined report builder + drill-down | **PARTIAL** | Fixed report set; no ad-hoc builder |
+| User-defined report builder + drill-down | **HAVE** | `/reports/builder` — curated catalog + saved views + CSV export (no arbitrary SQL) |
 | Owner dashboards w/ field-level visibility | **PARTIAL** | Owner portal dashboards exist; granular field-visibility control unconfirmed |
 
 ### Mobile
@@ -182,7 +196,7 @@ Legend: **HAVE** · **PARTIAL** · **MISSING** · **SKIP** (intentional non-goal
 | Violations | **HAVE** | Violations, compliance, hearings, file-a-violation |
 | Architectural reviews | **HAVE+** | Real `architectural_requests` workflow (2026-06-27): owner submission, manager queue w/ approve/deny/more-info, board review, threaded in-app messaging. Replaced the prior violations-table text-match hack. |
 | Amenity reservations | **HAVE** | `amenity_reservations` table + request→approve workflow; manager (`/amenities`), owner (`/portal/amenities`), per-association pages all exist |
-| Board approvals (invoices, bids, items, check-signing) | **PARTIAL** | Board financials/projects/ARC; no formal approval-queue / digital check-signing |
+| Board approvals (invoices, bids, items, check-signing) | **HAVE** | `/board/approvals` queue + `approval_decisions` + `cast_board_approval` digital sign-off (majority/unanimous/any-one/percentage). Physical check-signing N/A (offline remittance) |
 | Document access (CC&Rs, minutes) | **HAVE** | Governing docs, meeting minutes, documents |
 | HOA website builder (public site) | **PARTIAL/SKIP** | Per-company subdomain only; per-association public sites = paid add-on later |
 | Reserve study | **MISSING** | (see accounting) |
