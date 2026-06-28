@@ -3,6 +3,23 @@
 > Compiled 2026-06-21. AppFolio data is from public marketing/help/review pages (cited inline).
 > Portier369 "what we have" is verified from the live system this session (treat as ground truth).
 > Scope focus: **community-association / HOA** management, since that is Portier369's market.
+> Business context (confirmed 2026-06-27): the operator manages **Maryland condominium
+> associations only — no rental/real-estate management**. Rental/leasing/screening and
+> owner *distributions* (rent collected → paid out to owners) are firm non-goals, not
+> just "rental side." Maryland statutory items (e.g. §11-135 resale certificate) apply.
+
+> **Changelog — 2026-06-27 session** (live AppFolio walk-through + builds; supersedes stale rows below):
+> - **Architectural reviews: now genuinely HAVE+.** Was a violations-table text-match hack; rebuilt as a
+>   real `architectural_requests` + `architectural_request_messages` workflow — owner portal submission,
+>   manager review queue (approve/deny/more-info), board review, and **threaded in-app messaging**. Deployed.
+> - **In-app messaging: PARTIAL → HAVE (for ARC).** Threaded owner↔manager↔board messaging now ships on
+>   architectural requests. General owner↔manager messaging outside ARC is still email-based.
+> - **Amenity reservations: the "MISSING" row below is WRONG → HAVE.** `amenity_reservations` table +
+>   request→approve workflow, manager/board/owner pages all exist.
+> - **Inventory + Metrics:** already built; were just missing from the sidebar nav — now surfaced (deployed).
+> - **Reporting:** verified ~119 active `report_definitions` vs AppFolio's ~90 — full parity-plus.
+> - Resale/estoppel certificate (the one real reporting gap) was scoped to MD §11-135 but the user
+>   **declined to build it** for now.
 
 ---
 
@@ -125,7 +142,7 @@ Legend: **HAVE** · **PARTIAL** · **MISSING** · **SKIP** (intentional non-goal
 |---|---|---|
 | Email to owners/board | **HAVE** | Resend queue + cron, announcements, send-email, communication center |
 | SMS/text | **PARTIAL** | SMS records only; no live gateway (Twilio etc.) |
-| In-app messaging | **PARTIAL** | Owner→manager email; no threaded in-app messaging |
+| In-app messaging | **HAVE (ARC) / PARTIAL (general)** | Threaded owner↔manager↔board messaging shipped on architectural requests (2026-06-27); general owner↔manager outside ARC still email |
 | Association calendar/events | **HAVE** | Calendar in manager + owner + board |
 | Surveys | **HAVE** | Surveys module |
 | Automated physical mailing | **MISSING** | No print-and-mail integration (Lob/PostGrid) |
@@ -163,8 +180,8 @@ Legend: **HAVE** · **PARTIAL** · **MISSING** · **SKIP** (intentional non-goal
 | AppFolio capability | Status | Note |
 |---|---|---|
 | Violations | **HAVE** | Violations, compliance, hearings, file-a-violation |
-| Architectural reviews | **HAVE** | ARC in board + manager + owner portals |
-| Amenity reservations | **MISSING** | No amenity/facility booking module |
+| Architectural reviews | **HAVE+** | Real `architectural_requests` workflow (2026-06-27): owner submission, manager queue w/ approve/deny/more-info, board review, threaded in-app messaging. Replaced the prior violations-table text-match hack. |
+| Amenity reservations | **HAVE** | `amenity_reservations` table + request→approve workflow; manager (`/amenities`), owner (`/portal/amenities`), per-association pages all exist |
 | Board approvals (invoices, bids, items, check-signing) | **PARTIAL** | Board financials/projects/ARC; no formal approval-queue / digital check-signing |
 | Document access (CC&Rs, minutes) | **HAVE** | Governing docs, meeting minutes, documents |
 | HOA website builder (public site) | **PARTIAL/SKIP** | Per-company subdomain only; per-association public sites = paid add-on later |
@@ -228,8 +245,9 @@ architecture makes features cheap that are expensive for AppFolio.
    most-used capability at zero incremental AI cost to us. *Effort: S.*
 3. **Auto-notify owner on work-order/service-request status change** — *Rationale:* closes a PARTIAL gap vs
    AppFolio's "auto keep homeowner informed"; we already have WO + Resend queue. *Effort: S.*
-4. **Threaded in-app owner↔manager messaging** — *Rationale:* upgrades our email-only flow toward AppFolio's
-   in-app messaging; reuses existing comms tables. *Effort: S–M.*
+4. **Threaded in-app owner↔manager messaging** — *Status: DELIVERED for architectural requests (2026-06-27)
+   via `architectural_request_messages` + shared `ArcMessageThread` component.* Remaining: generalize the same
+   thread pattern to service requests / violations / a standalone owner↔manager inbox. *Effort: S–M.*
 5. **Automatic late-fee assessment rule** — *Rationale:* converts charges from manual to automated, matching
    AppFolio; cron + charge insert into existing journal. *Effort: S.*
 
