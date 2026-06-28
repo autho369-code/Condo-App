@@ -24,6 +24,7 @@ export const ownerModules: AppModule[] = [
   { label: 'How to Pay', href: '/portal/pay' },
   { label: 'Work Orders', href: '/portal/work-orders' },
   { label: 'Violations', href: '/portal/violations' },
+  { label: 'Architectural Requests', href: '/portal/architectural' },
   { label: 'Amenities', href: '/portal/amenities' },
   { label: 'Hearings', href: '/portal/hearings' },
   { label: 'Communications', href: '/portal/communications' },
