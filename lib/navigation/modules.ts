@@ -39,6 +39,7 @@ export const appModules: AppModule[] = [
   },
   { label: 'Reports', href: '/reports' },
   { label: 'Report Builder', href: '/reports/builder' },
+  { label: 'Metrics', href: '/metrics' },
   { label: 'Violations', href: '/violations' },
   { label: 'Architectural Reviews', href: '/architectural-reviews' },
   { label: 'Insurance', href: '/insurance' },
@@ -51,6 +52,7 @@ export const appModules: AppModule[] = [
     children: [
       { label: 'Work Orders', href: '/work-orders' },
       { label: 'Preventive', href: '/maintenance' },
+      { label: 'Inventory', href: '/inventory' },
     ],
   },
   { label: 'Lock Boxes', href: '/lock-boxes' },
