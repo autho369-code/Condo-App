@@ -120,7 +120,7 @@ export default async function WorkOrdersOversightPage({
             <option value="">All</option>
             <option value="emergency">Emergency</option>
             <option value="high">High</option>
-            <option value="medium">Medium</option>
+            <option value="normal">Normal</option>
             <option value="low">Low</option>
           </select>
         </label>
@@ -128,10 +128,12 @@ export default async function WorkOrdersOversightPage({
           Status
           <select name="status" defaultValue={sp.status ?? ''} className={selectCls}>
             <option value="">All</option>
-            <option value="open">Open</option>
+            <option value="new">New</option>
+            <option value="assigned">Assigned</option>
+            <option value="scheduled">Scheduled</option>
             <option value="in_progress">In Progress</option>
-            <option value="pending">Pending</option>
             <option value="completed">Completed</option>
+            <option value="billed">Billed</option>
             <option value="closed">Closed</option>
             <option value="cancelled">Cancelled</option>
           </select>
