@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { StatusChip } from '@/components/operations/status-chip';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { postArchitecturalMessage, withdrawArchitecturalRequest } from '@/lib/rpcs/architectural';
-import { ARC_STATUS_TONE, arcStatusLabel } from '../page';
+import { ARC_STATUS_TONE, arcStatusLabel } from '@/components/architectural/status';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';

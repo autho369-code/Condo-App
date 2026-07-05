@@ -4,23 +4,11 @@ import { requireOwner } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { StatusChip, type Tone } from '@/components/operations/status-chip';
+import { StatusChip } from '@/components/operations/status-chip';
+import { ARC_STATUS_TONE, arcStatusLabel } from '@/components/architectural/status';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
-
-export const ARC_STATUS_TONE: Record<string, Tone> = {
-  submitted:    'info',
-  under_review: 'warning',
-  more_info:    'warning',
-  approved:     'success',
-  denied:       'danger',
-  withdrawn:    'neutral',
-};
-
-export function arcStatusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 const CATEGORY_LABEL: Record<string, string> = {
   exterior_paint: 'Exterior paint',

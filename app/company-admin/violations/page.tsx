@@ -20,13 +20,22 @@ export default async function ViolationsOversightPage() {
   const today = new Date()
   const firstOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
 
-  // Fetch all violations with joins
-  const { data: allViolations } = await db
-    .from('violations')
-    .select(`id, status, title, violation_type, date_observed, hearing_date, fine_amount, created_at, due_date, notice_sent_at, association_id, unit_id, owner_id, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`)
+  // violations has no portfolio_id column — scope by the portfolio's associations.
+  const { data: assocRows } = await db
+    .from('associations')
+    .select('id')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .order('created_at', { ascending: false })
+  const assocIds = (assocRows ?? []).map((a: any) => a.id)
+
+  const { data: allViolations } = assocIds.length
+    ? await db
+        .from('violations')
+        .select(`id, status, title, violation_type, date_observed, hearing_date, fine_amount, created_at, due_date, notice_sent_at, association_id, unit_id, owner_id, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`)
+        .in('association_id', assocIds)
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+    : { data: [] as any[] }
 
   const violations = allViolations ?? []
 

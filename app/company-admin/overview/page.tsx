@@ -112,11 +112,10 @@ export default async function OverviewPage() {
     .not('status', 'in', '("closed","cured")')
 
   const openArchReviewsQuery = db
-    .from('violations')
+    .from('architectural_requests')
     .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
-    .eq('hearing_required', true)
+    .eq('portfolio_id', portfolioId)
+    .in('status', ['submitted', 'under_review', 'more_info'])
 
   const subscriptionQuery = db
     .from('subscriptions')

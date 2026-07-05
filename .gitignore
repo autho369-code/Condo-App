@@ -12,3 +12,7 @@ tsconfig.tsbuildinfo
 .worktrees/
 supabase/.temp/
 .claude/
+
+# local data backups + analysis artifacts
+backups/
+.understand-anything/
