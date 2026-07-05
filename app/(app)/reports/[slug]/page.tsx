@@ -942,16 +942,20 @@ async function ARAgingView({
   const { data: rows } = await q;
   const assocs = associations;
 
-  const BUCKETS = ['current', '1-30', '31-60', '61-90', '90+'];
+  // aged_receivables emits underscore bucket keys: current, 1_30, 31_60, 61_90, 90_plus
+  const BUCKETS = ['current', '1_30', '31_60', '61_90', '90_plus'];
+  const BUCKET_LABEL: Record<string, string> = {
+    current: 'Current', '1_30': '1-30 days', '31_60': '31-60 days', '61_90': '61-90 days', '90_plus': '90+ days',
+  };
   const totals: Record<string, { count: number; amount: number }> = {};
   for (const b of BUCKETS) totals[b] = { count: 0, amount: 0 };
   for (const r of (rows ?? []) as any[]) {
-    const b = r.aging_bucket in totals ? r.aging_bucket : '90+';
+    const b = r.aging_bucket in totals ? r.aging_bucket : '90_plus';
     totals[b].count += 1;
     totals[b].amount += Number(r.balance_due ?? 0);
   }
   const grand = Object.values(totals).reduce((s, v) => s + v.amount, 0);
-  const pastDue = grand - totals['current'].amount;
+  const pastDue = totals['31_60'].amount + totals['61_90'].amount + totals['90_plus'].amount;
   const distinctUnits = new Set((rows ?? []).map((r: any) => r.unit_id)).size;
 
   return (
@@ -977,10 +981,10 @@ async function ARAgingView({
         {BUCKETS.map((b) => (
           <Tile
             key={b}
-            label={b === 'current' ? 'Current' : `${b} days`}
+            label={BUCKET_LABEL[b]}
             value={money(totals[b].amount)}
             sub={`${totals[b].count} ${totals[b].count === 1 ? 'charge' : 'charges'}`}
-            tone={b === 'current' ? 'positive' : totals[b].amount > 0 ? (b === '90+' ? 'danger' : 'warning') : 'neutral'}
+            tone={b === 'current' ? 'positive' : totals[b].amount > 0 ? (b === '90_plus' ? 'danger' : 'warning') : 'neutral'}
           />
         ))}
       </div>
@@ -1049,14 +1053,17 @@ async function ARAgingView({
 
 function BucketPill({ bucket }: { bucket: string }) {
   const m: Record<string, string> = {
-    current: 'bg-green-100 text-green-700',
-    '1-30':  'bg-yellow-100 text-yellow-800',
-    '31-60': 'bg-orange-100 text-orange-800',
-    '61-90': 'bg-red-100 text-red-800',
-    '90+':   'bg-red-200 text-red-900',
+    current:   'bg-green-100 text-green-700',
+    '1_30':    'bg-yellow-100 text-yellow-800',
+    '31_60':   'bg-orange-100 text-orange-800',
+    '61_90':   'bg-red-100 text-red-800',
+    '90_plus': 'bg-red-200 text-red-900',
   };
-  const cls = m[bucket] ?? m['90+'];
-  return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{bucket === 'current' ? 'current' : `${bucket}d`}</span>;
+  const label: Record<string, string> = {
+    current: 'current', '1_30': '1-30d', '31_60': '31-60d', '61_90': '61-90d', '90_plus': '90+d',
+  };
+  const cls = m[bucket] ?? m['90_plus'];
+  return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{label[bucket] ?? bucket}</span>;
 }
 
 // ═══════════════════════════════════════════════════════════════
