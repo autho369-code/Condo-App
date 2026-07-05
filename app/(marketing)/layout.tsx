@@ -46,6 +46,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <span className="text-lg font-semibold text-gray-900">Portier369</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
+            <Link href="/features" className="text-gray-600 hover:text-gray-900 transition">Features</Link>
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
             <Link href="/company" className="text-gray-600 hover:text-gray-900 transition">Company</Link>
           </nav>
@@ -72,6 +73,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <div>
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Product</div>
                 <div className="space-y-2 text-sm">
+                  <Link href="/features" className="block text-gray-600 hover:text-gray-900">Features</Link>
                   <Link href="/pricing" className="block text-gray-600 hover:text-gray-900">Pricing</Link>
                   <Link href="/demo" className="block text-gray-600 hover:text-gray-900">Proposal</Link>
                 </div>

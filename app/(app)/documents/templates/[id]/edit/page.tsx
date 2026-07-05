@@ -14,6 +14,16 @@ const LETTER_TYPES = [
   { value: 'general', label: 'General' },
 ];
 
+// template_category is a DB enum (association|owner|vendor|applicant|statement|generic),
+// distinct from letter_type — inserting the letter_type value fails the enum check.
+const TEMPLATE_CATEGORY_FOR_LETTER_TYPE: Record<string, string> = {
+  violation_notice: 'owner',
+  welcome_letter: 'owner',
+  assessment_letter: 'owner',
+  board_packet: 'association',
+  general: 'generic',
+};
+
 export default function EditTemplatePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -93,7 +103,7 @@ export default function EditTemplatePage() {
       .update({
         name: name.trim(),
         letter_type: letterType,
-        template_category: letterType,
+        template_category: TEMPLATE_CATEGORY_FOR_LETTER_TYPE[letterType] ?? 'generic',
         subject: subject.trim(),
         body: body.trim(),
         merge_variables: mergeVarsObj,
