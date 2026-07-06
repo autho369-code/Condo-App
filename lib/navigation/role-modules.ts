@@ -25,6 +25,8 @@ export const boardModules: AppModule[] = [
 
 export const ownerModules: AppModule[] = [
   { label: 'Dashboard', href: '/portal' },
+  { label: 'AI Assistant', href: '/portal/assistant' },
+  { label: 'My Home', href: '/portal/home' },
   { label: 'My Account', href: '/portal/account' },
   { label: 'How to Pay', href: '/portal/pay' },
   { label: 'Work Orders', href: '/portal/work-orders' },
@@ -37,7 +39,9 @@ export const ownerModules: AppModule[] = [
   { label: 'Meetings', href: '/portal/meetings' },
   { label: 'Documents', href: '/portal/documents' },
   { label: 'Insurance', href: '/portal/insurance' },
+  { label: 'Vehicles', href: '/portal/vehicles' },
   { label: 'Lease', href: '/portal/lease' },
+  { label: 'Emergency Info', href: '/portal/emergency' },
   { label: 'Profile', href: '/portal/profile' },
 ];
 

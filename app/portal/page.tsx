@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
-import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar } from 'lucide-react'
+import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +57,33 @@ export default async function OwnerDashboard() {
     } catch {}
   }
 
+  // Recent payments on the owner's units
+  let recentPayments: any[] = []
+  if (unitIds.length > 0) {
+    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').in('unit_id', unitIds).order('payment_date', { ascending: false }).limit(5)
+    recentPayments = pays ?? []
+  }
+
+  // Emergency notice: any open emergency-priority work order in the community
+  let emergencies: any[] = []
+  if (assocId) {
+    const { data: em } = await db.from('work_orders').select('id, title').eq('association_id', assocId).eq('priority', 'emergency').is('archived_at', null).in('status', ['new', 'assigned', 'scheduled', 'in_progress']).limit(3)
+    emergencies = em ?? []
+  }
+
+  // Management contact — public branding fields only, resolved server-side.
+  let support: { name: string | null; email: string | null; phone: string | null } | null = null
+  if (assocId) {
+    try {
+      const svc = createServiceClient() as any
+      const { data: assoc } = await svc.from('associations').select('portfolio_id').eq('id', assocId).maybeSingle()
+      if (assoc?.portfolio_id) {
+        const { data: pf } = await svc.from('portfolios').select('company_name, support_email, support_phone').eq('id', assoc.portfolio_id).maybeSingle()
+        if (pf) support = { name: pf.company_name ?? null, email: pf.support_email ?? null, phone: pf.support_phone ?? null }
+      }
+    } catch {}
+  }
+
   const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
   return (
@@ -65,6 +92,19 @@ export default async function OwnerDashboard() {
         <p className="text-sm text-gray-500">Welcome back</p>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{me.profile?.full_name ?? 'Owner'}</h1>
       </div>
+
+      {/* Emergency notice */}
+      {emergencies.length > 0 && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4">
+          <div className="flex items-start gap-3">
+            <Siren className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div>
+              <div className="text-sm font-semibold text-red-800">Emergency work in progress in your community</div>
+              <p className="mt-0.5 text-[13px] text-red-700">{emergencies.map((e: any) => e.title).join(' · ')}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -183,6 +223,54 @@ export default async function OwnerDashboard() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Recent payments */}
+        <div className={card}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-950">Recent Payments</h2>
+            <Link href="/portal/ledger" className="text-sm font-medium text-gray-500 hover:text-gray-950 hover:underline">Full ledger</Link>
+          </div>
+          {recentPayments.length === 0 ? (
+            <p className="py-4 text-sm text-gray-400">No payments recorded yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {recentPayments.map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between border-b border-gray-50 py-2 last:border-0">
+                  <div>
+                    <div className="text-sm text-gray-900">{money(Number(p.amount ?? 0))}</div>
+                    <div className="text-xs capitalize text-gray-500">{(p.method ?? 'payment').replace(/_/g, ' ')}</div>
+                  </div>
+                  <div className="text-xs tabular-nums text-gray-500">{date(p.payment_date)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Contact management */}
+        <div className={card}>
+          <h2 className="mb-4 text-sm font-semibold text-gray-950">Your Management Company</h2>
+          {support ? (
+            <div className="space-y-2.5">
+              {support.name && <div className="text-sm font-medium text-gray-900">{support.name}</div>}
+              {support.email && (
+                <a href={`mailto:${support.email}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                  <Mail className="h-4 w-4 text-gray-400" /> {support.email}
+                </a>
+              )}
+              {support.phone && (
+                <a href={`tel:${support.phone}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-950 hover:underline">
+                  <Phone className="h-4 w-4 text-gray-400" /> {support.phone}
+                </a>
+              )}
+              <Link href="/portal/communications" className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-gray-600 hover:text-gray-950 hover:underline">
+                <MessageSquare className="h-4 w-4 text-gray-400" /> Send a message
+              </Link>
+            </div>
+          ) : (
+            <p className="py-2 text-sm text-gray-400">Contact details will appear here once your management company adds them.</p>
           )}
         </div>
       </div>
