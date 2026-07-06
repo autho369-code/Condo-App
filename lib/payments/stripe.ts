@@ -45,10 +45,18 @@ function formEncode(obj: Record<string, unknown>, prefix = ''): string[] {
   return parts;
 }
 
-async function stripeRequest<T = any>(path: string, body?: Record<string, unknown>, method: 'POST' | 'GET' = body ? 'POST' : 'GET'): Promise<T> {
+async function stripeRequest<T = any>(
+  path: string,
+  body?: Record<string, unknown>,
+  options?: { method?: 'POST' | 'GET'; stripeAccount?: string | null },
+): Promise<T> {
+  const headers: Record<string, string> = { ...authHeaders() };
+  // Connect: act on the association's own connected account (direct charges —
+  // funds settle straight to the association's bank, never the platform's).
+  if (options?.stripeAccount) headers['Stripe-Account'] = options.stripeAccount;
   const res = await fetch(`${STRIPE_API}${path}`, {
-    method,
-    headers: authHeaders(),
+    method: options?.method ?? (body ? 'POST' : 'GET'),
+    headers,
     body: body ? formEncode(body).join('&') : undefined,
   });
   const json = await res.json();
@@ -56,6 +64,33 @@ async function stripeRequest<T = any>(path: string, body?: Record<string, unknow
     throw new Error(json?.error?.message || `Stripe ${path} failed (${res.status})`);
   }
   return json as T;
+}
+
+// ── Connect: per-association Stripe accounts ────────────────────────────────
+
+/** Create a Standard connected account for an association (its OWN Stripe account). */
+export async function createConnectedAccount(params: { associationName: string; email?: string | null }) {
+  return stripeRequest<{ id: string }>('/accounts', {
+    type: 'standard',
+    business_profile: { name: params.associationName },
+    email: params.email ?? undefined,
+    metadata: { association_name: params.associationName },
+  });
+}
+
+/** One-time onboarding link that walks the association through Stripe setup. */
+export async function createAccountLink(accountId: string, refreshUrl: string, returnUrl: string) {
+  return stripeRequest<{ url: string }>('/account_links', {
+    account: accountId,
+    refresh_url: refreshUrl,
+    return_url: returnUrl,
+    type: 'account_onboarding',
+  });
+}
+
+/** Current status of a connected account (charges_enabled, details_submitted). */
+export async function getConnectedAccount(accountId: string) {
+  return stripeRequest<{ id: string; charges_enabled: boolean; details_submitted: boolean; payouts_enabled: boolean }>(`/accounts/${accountId}`);
 }
 
 /**
@@ -71,6 +106,8 @@ export async function createCheckoutSession(params: {
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;
+  /** The association's connected account — required for per-association settlement. */
+  stripeAccount?: string | null;
 }) {
   return stripeRequest<{ id: string; url: string; payment_intent?: string }>('/checkout/sessions', {
     mode: 'payment',
@@ -91,11 +128,11 @@ export async function createCheckoutSession(params: {
     payment_intent_data: { metadata: params.metadata },
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-  });
+  }, { stripeAccount: params.stripeAccount ?? null });
 }
 
-export async function retrievePaymentIntent(paymentIntentId: string) {
-  return stripeRequest<any>(`/payment_intents/${paymentIntentId}?expand[0]=latest_charge`);
+export async function retrievePaymentIntent(paymentIntentId: string, stripeAccount?: string | null) {
+  return stripeRequest<any>(`/payment_intents/${paymentIntentId}?expand[0]=latest_charge`, undefined, { stripeAccount: stripeAccount ?? null });
 }
 
 /**

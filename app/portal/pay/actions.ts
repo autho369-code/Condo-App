@@ -34,13 +34,18 @@ export async function startOnlinePayment(formData: FormData) {
   // Validate the unit belongs to this owner and resolve association/portfolio.
   const { data: occ } = await svc
     .from('occupancies')
-    .select('unit_id, association_id, associations(portfolio_id, name), units(unit_number)')
+    .select('unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled), units(unit_number)')
     .eq('owner_id', me.owner_id)
     .eq('unit_id', unitId)
     .eq('status', 'current')
     .maybeSingle();
   if (!occ?.association_id || !occ?.associations?.portfolio_id) {
     redirect(`${RETURN}?error=${encodeURIComponent('That unit is not linked to your account.')}`);
+  }
+  // Per-association Stripe accounts: money settles to THIS association's own
+  // bank. No connected account, no online payments.
+  if (!occ.associations.stripe_account_id || !occ.associations.stripe_charges_enabled) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled for your association yet — please use the payment instructions below.')}`);
   }
 
   const { data: intent, error } = await svc
@@ -68,6 +73,7 @@ export async function startOnlinePayment(formData: FormData) {
       successUrl: `${SITE_URL}/portal/pay/success?intent=${intent.id}`,
       cancelUrl: `${SITE_URL}/portal/pay?canceled=1`,
       metadata: { intent_id: intent.id, unit_id: unitId, association_id: occ.association_id },
+      stripeAccount: occ.associations.stripe_account_id,
     });
   } catch (err: any) {
     await svc.from('payment_intents').update({ status: 'failed', failure_reason: err?.message ?? 'Checkout creation failed' }).eq('id', intent.id);

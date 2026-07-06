@@ -24,6 +24,8 @@ type AssociationRemit = {
   remit_payee: string | null;
   remit_address: string | null;
   payment_instructions: string | null;
+  stripe_account_id: string | null;
+  stripe_charges_enabled: boolean | null;
 };
 
 export default async function PayPage({
@@ -50,7 +52,7 @@ export default async function PayPage({
   const { data: associations } = associationIds.length
     ? await (supabase as any)
         .from('associations')
-        .select('id, name, remit_payee, remit_address, payment_instructions')
+        .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled')
         .in('id', associationIds)
     : { data: [] };
   const assocById = new Map<string, AssociationRemit>(
@@ -97,7 +99,7 @@ export default async function PayPage({
               </p>
             </CardHeader>
             <CardBody>
-              {onlinePayments && unit.unit_id && (
+              {onlinePayments && unit.unit_id && assoc?.stripe_account_id && assoc?.stripe_charges_enabled && (
                 <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-gray-500" />

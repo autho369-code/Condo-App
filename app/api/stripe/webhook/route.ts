@@ -144,25 +144,29 @@ export async function POST(request: NextRequest) {
       case 'payout.created': {
         const payoutId = obj.id;
         const amount = (obj.amount ?? 0) / 100;
-        // v1 runs a single Stripe account for the platform's one merchant, so
-        // the payout portfolio is the portfolio with online payments (env
-        // override available for explicitness).
-        let portfolioId = process.env.STRIPE_PORTFOLIO_ID ?? null;
-        if (!portfolioId) {
-          const { data: anyIntent } = await svc.from('payment_intents').select('portfolio_id').eq('status', 'succeeded').order('created_at', { ascending: false }).limit(1).maybeSingle();
-          portfolioId = anyIntent?.portfolio_id ?? null;
+        // Per-association Stripe accounts (Connect): the event carries the
+        // connected account id, which maps 1:1 to an association — payouts
+        // settle to THAT association's own bank, never a shared one.
+        const connectedAccount: string | null = event.account ?? null;
+        let associationId: string | null = null;
+        let portfolioId: string | null = null;
+        if (connectedAccount) {
+          const { data: assoc } = await svc
+            .from('associations')
+            .select('id, portfolio_id')
+            .eq('stripe_account_id', connectedAccount)
+            .maybeSingle();
+          associationId = assoc?.id ?? null;
+          portfolioId = assoc?.portfolio_id ?? null;
         }
-        if (!portfolioId) {
-          const { data: onlyPortfolio } = await svc.from('portfolios').select('id').is('archived_at', null).limit(2);
-          if ((onlyPortfolio ?? []).length === 1) portfolioId = onlyPortfolio[0].id;
-        }
-        if (!portfolioId) break;
+        if (!portfolioId) break; // unknown connected account — ignore
 
         const arrival = obj.arrival_date ? new Date(obj.arrival_date * 1000).toISOString().slice(0, 10) : null;
         await svc.from('payout_batches').upsert({
           processor: 'stripe',
           processor_payout_id: payoutId,
           portfolio_id: portfolioId,
+          association_id: associationId,
           amount,
           arrival_date: arrival,
           status: event.type === 'payout.paid' ? 'paid' : 'pending',
@@ -170,14 +174,17 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'processor,processor_payout_id' });
 
         if (event.type === 'payout.paid') {
-          // Attribute this payout to unsettled succeeded intents (exact batch
-          // sum match — Rule 1 of the matching spec).
-          const { data: unsettled } = await svc
+          // Attribute this payout to the association's unsettled succeeded
+          // intents (exact batch sum match — Rule 1 of the matching spec).
+          let unsettledQuery = svc
             .from('payment_intents')
             .select('id, amount')
-            .eq('portfolio_id', portfolioId)
             .eq('status', 'succeeded')
             .is('processor_payout_id', null);
+          unsettledQuery = associationId
+            ? unsettledQuery.eq('association_id', associationId)
+            : unsettledQuery.eq('portfolio_id', portfolioId);
+          const { data: unsettled } = await unsettledQuery;
           const total = (unsettled ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
           await svc.from('payout_batches').update({ expected_amount: total, updated_at: now })
             .eq('processor_payout_id', payoutId).eq('processor', 'stripe');
@@ -195,6 +202,18 @@ export async function POST(request: NextRequest) {
           // Try to reconcile against the Plaid bank feed immediately.
           await reconcilePayouts(svc);
         }
+        break;
+      }
+
+      case 'account.updated': {
+        // Connected-account onboarding progress → keep the association row current.
+        const acctId = obj.id ?? event.account;
+        if (!acctId) break;
+        await svc.from('associations').update({
+          stripe_charges_enabled: !!obj.charges_enabled,
+          stripe_details_submitted: !!obj.details_submitted,
+          ...(obj.charges_enabled ? { stripe_onboarded_at: now } : {}),
+        }).eq('stripe_account_id', acctId);
         break;
       }
 
