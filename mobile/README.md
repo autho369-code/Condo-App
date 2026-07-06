@@ -29,16 +29,36 @@ npx cap open ios     # opens Xcode (macOS only)
 npm run assets       # regenerate icons/splashes after changing assets/logo.png
 ```
 
-## Building for Google Play (any OS with Android Studio)
+## Building for Google Play
 
-1. Install Android Studio (bundles the SDK + JDK).
-2. `npx cap open android`, let Gradle sync.
-3. **Build → Generate Signed App Bundle** → create/upload keystore
-   (⚠️ back the keystore up — losing it means losing the app listing).
-4. Upload the `.aab` in [Play Console](https://play.google.com/console)
-   ($25 one-time developer fee) → create the app listing → submit for review.
-5. Play data-safety form: declare account-based auth, email collection, and
-   payment processing via Stripe.
+**Already done on this machine (2026-07-06):** a signed release is built —
+`mobile/dist/Portier369-1.0-playstore.aab` (upload this to Play Console) and
+`mobile/dist/Portier369-1.0-test.apk` (sideload on any Android phone to test).
+
+Signing setup:
+- Upload keystore: `C:\Users\autho\portier369-keys\portier369-upload.keystore`
+  (password in `keystore-password.txt` next to it).
+  **⚠️ BACK BOTH FILES UP somewhere safe (password manager + cloud). Losing
+  the keystore means losing the ability to update the app.**
+- Gradle reads `android/keystore.properties` (gitignored) for the paths.
+- Local toolchain (no Android Studio needed): portable JDK 21 + SDK in
+  `C:\Users\autho\android-toolchain\`.
+
+Rebuild after native changes:
+```bash
+cd mobile/android
+JAVA_HOME="C:\Users\autho\android-toolchain\jdk21" ./gradlew bundleRelease
+```
+Bump `versionCode`/`versionName` in `android/app/build.gradle` for every
+Play upload.
+
+Then in [Play Console](https://play.google.com/console) ($25 one-time fee):
+create the app → upload the `.aab` → fill the listing (copy in
+`store-listing.md`, screenshots in `store-assets/`) → data-safety form
+(declare account auth, email collection, Stripe payments) → submit.
+Note: **register as an organization** — new personal accounts must run a
+14-day/12-tester closed test before production; organization accounts are
+exempt.
 
 ## Building for the Apple App Store (requires a Mac + Xcode)
 
