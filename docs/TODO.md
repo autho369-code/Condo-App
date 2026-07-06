@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-06-22.
+Last updated: 2026-07-06.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -20,6 +20,20 @@ Mostly on Mirsad / external; not code.
       real dues, work orders, and a board cycle. Use `docs/ONBOARDING_CHECKLIST.md`.
 - [ ] **Replace seed data** — swap the Granville sample for the first client's real
       data (import path is built + verified: `/owners/import`).
+- [ ] **Write the operational manual for company admins and managers** (requested
+      by Mirsad 2026-07-06). Day-to-day runbook, not marketing. Must cover at
+      minimum:
+      - Assign a **site manager on every association** — that field drives where
+        owner-portal "Send a message" emails land (fallback: company admins, then
+        portfolio support email). Manager replies from their own inbox (reply-to
+        is the owner) — there is no in-app inbox to monitor.
+      - Set portfolio **support email/phone** (feeds the owner dashboard contact
+        card and is the messaging safety net).
+      - Inviting users (the invitation chain), resetting passwords per role.
+      - Work-order lifecycle, violation workflow, ARC review flow.
+      - Payments: association Stripe Connect onboarding (Payments tab), AutoPay,
+        and the payment-instructions text owners see on "How to Pay."
+      - Where owner messages / announcements are logged (communications log).
 
 ## 🟡 Should-do soon (non-blocking, smaller)
 - [ ] **Set an AI key** at `/settings/ai` to switch on the AI features (violation
@@ -68,8 +82,10 @@ Detail + rationale in `docs/appfolio-gap-analysis.md`.
       (current board sign-off is a typed-name signature, not a vendor e-sign).
 - [ ] **Operator cross-company analytics** + partner **API / webhooks** (leans into
       the multi-tenant cockpit).
-- [ ] *(Deliberately NOT pursuing — by design):* online owner payments at scale,
-      native mobile apps, third-party integration marketplace.
+- [ ] *(Deliberately NOT pursuing — by design):* third-party integration
+      marketplace. *(Formerly on this list but since BUILT: online owner payments
+      (Stripe Connect, 2026-07-06) and native mobile apps (Capacitor iOS/Android
+      in `mobile/`, 2026-07-06).)*
 
 ---
 
