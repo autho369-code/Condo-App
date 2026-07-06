@@ -21,29 +21,50 @@ async function requestPasswordReset(formData: FormData) {
     const { createServiceClient } = await import('@/lib/supabase/server');
     const svc = createServiceClient() as any;
 
-    const { data: profile } = await svc
-      .from('profiles')
-      .select('id, email, full_name, portfolio_id')
-      .ilike('email', email)
-      .maybeSingle();
-    if (!profile?.email) done();
-
+    // Generate the link FIRST — this works for every auth user regardless of
+    // role. Vendors have no profiles row, so a profiles-based lookup would
+    // silently exclude them; profile/owner/vendor lookups below are only
+    // best-effort metadata for the email.
     const { data: linkData, error } = await svc.auth.admin.generateLink({
       type: 'recovery',
-      email: profile.email,
+      email,
       options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
     });
     if (error || !linkData?.properties?.action_link) done();
 
+    const userId = linkData.user?.id
+    let toName: string | null = null
+    let portfolioId: string | null = null
+    if (userId) {
+      const { data: profile } = await svc.from('profiles').select('full_name, portfolio_id').eq('id', userId).maybeSingle();
+      if (profile) {
+        toName = profile.full_name ?? null
+        portfolioId = profile.portfolio_id ?? null
+      } else {
+        const { data: vendor } = await svc.from('vendors').select('name, portfolio_id').eq('auth_user_id', userId).maybeSingle();
+        if (vendor) {
+          toName = vendor.name ?? null
+          portfolioId = vendor.portfolio_id ?? null
+        }
+      }
+      if (!toName) {
+        const { data: owner } = await svc.from('owners').select('full_name, portfolio_id').eq('auth_user_id', userId).maybeSingle();
+        if (owner) {
+          toName = owner.full_name ?? null
+          portfolioId = portfolioId ?? owner.portfolio_id ?? null
+        }
+      }
+    }
+
     await svc.from('email_queue').insert({
-      to_email: profile.email,
-      to_name: profile.full_name,
+      to_email: email,
+      to_name: toName,
       subject: 'Reset your Portier369 password',
-      body: `<p>Hello${profile.full_name ? ` ${profile.full_name}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      body: `<p>Hello${toName ? ` ${toName}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
       from_name: FROM_NAME,
-      portfolio_id: profile.portfolio_id,
+      portfolio_id: portfolioId,
     });
   } catch {
     // Swallow everything — same confirmation either way.

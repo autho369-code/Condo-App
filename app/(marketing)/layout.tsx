@@ -83,6 +83,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 <div className="space-y-2 text-sm">
                   <a href="mailto:hello@portier369.com" className="block text-gray-600 hover:text-gray-900">Contact</a>
                   <Link href="/login" className="block text-gray-600 hover:text-gray-900">Sign in</Link>
+                  <Link href="/login?mode=company_admin" className="block text-gray-600 hover:text-gray-900">Company admin</Link>
+                  <Link href="/login?mode=admin" className="block text-gray-600 hover:text-gray-900">Operator</Link>
                 </div>
               </div>
               <div>

@@ -108,6 +108,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <span className="text-[15px] font-semibold tracking-tight text-gray-950">Portier369</span>
           </div>
           {children}
+
+          {/* Staff entry points — visible on every screen size */}
+          <footer className="mt-8 border-t border-gray-200/80 pt-5 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-400">Staff access</p>
+            <div className="mt-2 flex items-center justify-center gap-4 text-[13px]">
+              <Link href="/login?mode=company_admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
+                Company admin sign in
+              </Link>
+              <span aria-hidden className="text-gray-300">·</span>
+              <Link href="/login?mode=admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
+                Platform operator sign in
+              </Link>
+            </div>
+          </footer>
         </div>
       </main>
     </div>
