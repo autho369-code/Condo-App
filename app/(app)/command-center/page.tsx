@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { requireStaff } from '@/lib/auth/me'
+import { requireAuth } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
 import { date, money } from '@/lib/utils'
@@ -23,8 +24,9 @@ const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_r
 
 async function runMatching() {
   'use server'
-  const { requireStaff: req } = await import('@/lib/auth/me')
-  await req()
+  const { requireAuth: req } = await import('@/lib/auth/me')
+  const me = await req()
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) return
   const { createServiceClient } = await import('@/lib/supabase/server')
   const { reconcilePayouts } = await import('@/lib/payments/reconcile')
   await reconcilePayouts(createServiceClient() as any)
@@ -49,7 +51,10 @@ function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: R
 }
 
 export default async function FinancialCommandCenterPage() {
-  await requireStaff()
+  // Managers, company admins, and operators — the spec's "same financial
+  // data filtered by permissions" (RLS scopes every query below).
+  const me = await requireAuth()
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
   const supabase = await createClient()
   const db = supabase as any
   const todayDate = new Date().toISOString().slice(0, 10)
