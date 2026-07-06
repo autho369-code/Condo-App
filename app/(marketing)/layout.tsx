@@ -40,14 +40,14 @@ const jsonLd = {
 async function getCityLinks() {
   const filePath = path.join(process.cwd(), 'cities.csv');
   const fileContents = await fs.readFile(filePath, 'utf8');
-  const cities = fileContents.split('\n').slice(1).map(line => {
-      const [city, state] = line.split(',');
-      if (!city) return null;
-      return {
+  const cities = fileContents.split('\n').slice(1).flatMap(line => {
+      const [city] = line.split(',');
+      if (!city) return [];
+      return [{
           href: `/local/${city.toLowerCase().replace(/ /g, '-')}`,
           name: city
-      }
-  }).filter(Boolean);
+      }];
+  });
   return cities;
 }
 
@@ -87,7 +87,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               </div>
               <p className="text-[15px] leading-6 text-gray-500 max-w-xs">The operating system for condominium and HOA management.</p>
             </div>
-            <div className="flex gap-12">
+            <div className="flex flex-wrap gap-x-12 gap-y-8">
               <div>
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Product</div>
                 <div className="space-y-2 text-sm">

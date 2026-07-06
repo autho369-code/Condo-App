@@ -14,7 +14,7 @@ export async function generateStaticParams() {
   }));
 }
 
-async function getCityData(slug) {
+async function getCityData(slug: string) {
   const filePath = path.join(process.cwd(), 'cities.csv');
   const fileContents = await fs.readFile(filePath, 'utf8');
   const cityLine = fileContents.split('\n').find(line => line.toLowerCase().startsWith(slug.replace(/-/g, ' ')));
@@ -36,8 +36,9 @@ const keyFeatures = [
     { title: 'Platform Command Center', desc: 'CEO-level visibility. Doors under management, company health, provisioning — every management company in one view.' },
 ];
 
-export default async function CityPage({ params }) {
-  const { city, state, neighborhoods } = await getCityData(params.slug);
+export default async function CityPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const { city, state, neighborhoods } = await getCityData(slug);
   
   const faqItems = [
     {

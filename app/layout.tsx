@@ -1,6 +1,6 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-inter' })
 
@@ -26,6 +26,12 @@ export const metadata: Metadata = {
   authors: [{ name: 'Portier369' }],
   creator: 'Portier369',
   applicationName: 'Portier369',
+  appleWebApp: {
+    capable: true,
+    title: 'Portier369',
+    statusBarStyle: 'default',
+  },
+  formatDetection: { telephone: false },
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
@@ -48,6 +54,13 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#1E3A5F',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
