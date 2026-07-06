@@ -25,6 +25,7 @@ export const appModules: AppModule[] = [
     label: 'Accounting',
     href: '/accounting',
     children: [
+      { label: 'Command Center', href: '/command-center' },
       { label: 'Receivables', href: '/charges' },
       { label: 'Payables', href: '/bills' },
       { label: 'Bank accounts', href: '/bank-accounts' },
