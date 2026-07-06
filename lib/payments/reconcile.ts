@@ -73,6 +73,17 @@ export async function reconcilePayouts(svc: SupabaseClient): Promise<ReconcileSu
         match_method: 'stripe_payout',
         match_confidence: refMatch ? 1 : 0.9,
       }).eq('id', pick.id);
+      // Payment timeline: every intent settled by this payout is now fully reconciled.
+      const { data: settledIntents } = await db
+        .from('payment_intents')
+        .select('id')
+        .eq('processor_payout_id', payout.processor_payout_id);
+      for (const i of settledIntents ?? []) {
+        await db.from('payment_events').insert([
+          { payment_intent_id: i.id, event: 'bank_deposit_detected', detail: `Bank deposit matched (${pick.name ?? 'deposit'} on ${pick.date})` },
+          { payment_intent_id: i.id, event: 'reconciled', detail: 'Ledger, Stripe payout, and bank deposit all match' },
+        ]);
+      }
       summary.reconciled++;
     } else if (amountMatches.length > 1) {
       await db.from('payout_batches').update({

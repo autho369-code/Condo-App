@@ -51,6 +51,46 @@ async function connectStripe(formData: FormData) {
   }
 }
 
+const ALLOCATION_CLASSES = [
+  { value: 'late_fee', label: 'Late Fees' },
+  { value: 'nsf_fee', label: 'NSF Fees' },
+  { value: 'fine', label: 'Fines / Violations' },
+  { value: 'interest', label: 'Interest' },
+  { value: 'legal', label: 'Legal' },
+  { value: 'special_assessment', label: 'Special Assessments' },
+  { value: 'assessment', label: 'Assessments' },
+  { value: 'other', label: 'Everything Else' },
+] as const;
+
+async function saveAllocationOrder(formData: FormData) {
+  'use server';
+  const { requireStaff: req } = await import('@/lib/auth/me');
+  await req();
+  const associationId = formData.get('association_id') as string;
+  const slug = (formData.get('slug') as string) || associationId;
+  const back = `/associations/${slug}/payments`;
+
+  const order: string[] = [];
+  for (let i = 0; i < ALLOCATION_CLASSES.length; i++) {
+    const v = (formData.get(`priority_${i}`) as string) || '';
+    if (v) order.push(v);
+  }
+  const allowed = new Set(ALLOCATION_CLASSES.map((c) => c.value as string));
+  const unique = [...new Set(order)].filter((v) => allowed.has(v));
+  if (unique.length !== ALLOCATION_CLASSES.length) {
+    redirect(`${back}?error=${encodeURIComponent('Each charge class must appear exactly once in the allocation order.')}`);
+  }
+
+  const { createClient: cc } = await import('@/lib/supabase/server');
+  const supabase = await cc();
+  const { error } = await (supabase as any)
+    .from('associations')
+    .update({ payment_allocation_order: unique })
+    .eq('id', associationId);
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  redirect(`${back}?allocation_saved=1`);
+}
+
 async function refreshStripeStatus(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
@@ -84,7 +124,7 @@ export default async function AssociationPaymentsTab({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; returned?: string; refreshed?: string; refresh?: string }>;
+  searchParams: Promise<{ error?: string; returned?: string; refreshed?: string; refresh?: string; allocation_saved?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
@@ -97,7 +137,7 @@ export default async function AssociationPaymentsTab({
 
   const { data: assoc } = await db
     .from('associations')
-    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_details_submitted, stripe_onboarded_at, remit_payee, remit_address, payment_instructions')
+    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_details_submitted, stripe_onboarded_at, remit_payee, remit_address, payment_instructions, payment_allocation_order')
     .eq('id', id)
     .maybeSingle();
   if (!assoc) notFound();
@@ -195,6 +235,40 @@ export default async function AssociationPaymentsTab({
             Onboarding is completed on Stripe by the association (EIN, bank account for deposits). When Charges Enabled
             turns on, owners see &quot;Pay online&quot; automatically on their How to Pay page.
           </p>
+        </div>
+
+        {sp.allocation_saved && <Alert tone="success" title="Allocation order saved">New payments now apply to charges in this order.</Alert>}
+
+        <div className={card}>
+          <h2 className="text-sm font-semibold text-gray-950">Payment Allocation Policy</h2>
+          <p className="mt-1 max-w-lg text-[13px] leading-5 text-gray-500">
+            When an owner pays without picking a specific charge, the payment applies to open charges in this order
+            (oldest first within each class). Every association can set its own policy.
+          </p>
+          <form action={saveAllocationOrder as any} className="mt-4 space-y-2.5">
+            <input type="hidden" name="association_id" value={assoc.id} />
+            <input type="hidden" name="slug" value={slug} />
+            {ALLOCATION_CLASSES.map((_, i) => {
+              const current = (assoc.payment_allocation_order ?? [])[i] ?? ALLOCATION_CLASSES[i].value;
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-6 text-right text-sm font-semibold tabular-nums text-gray-400">{i + 1}.</span>
+                  <select
+                    name={`priority_${i}`}
+                    defaultValue={current}
+                    className="h-9 w-64 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+                  >
+                    {ALLOCATION_CLASSES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+            <div className="pt-2">
+              <Button type="submit">Save allocation order</Button>
+            </div>
+          </form>
         </div>
 
         <div className={card}>

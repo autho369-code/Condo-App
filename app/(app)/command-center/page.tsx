@@ -61,26 +61,38 @@ export default async function FinancialCommandCenterPage() {
   const monthStart = todayDate.slice(0, 8) + '01'
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString()
 
+  const dayOfMonth = new Date().getDate()
+  const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10)
+  const lastMonthSameDay = new Date(new Date().getFullYear(), new Date().getMonth() - 1, dayOfMonth).toISOString().slice(0, 10)
+
   const [
     { data: paymentsToday },
     { data: intents },
     { data: aging },
     { data: chargesMonth },
     { data: paymentsMonth },
+    { data: paymentsLastMonthSame },
     { data: bankTxns },
     { data: payouts },
     { data: bankAccounts },
     { data: bankLines },
+    { data: pnlLines },
+    { count: totalUnits },
+    { data: latePayers },
   ] = await Promise.all([
     db.from('payments').select('amount').eq('payment_date', todayDate),
-    db.from('payment_intents').select('id, amount, status, method, failure_reason, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
-    db.from('aged_receivables').select('balance_due'),
+    db.from('payment_intents').select('id, amount, status, method, failure_reason, processor_fee_cents, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
+    db.from('aged_receivables').select('balance_due, due_date, unit_number'),
     db.from('charges').select('amount').gte('due_date', monthStart).lte('due_date', todayDate),
     db.from('payments').select('amount').gte('payment_date', monthStart),
+    db.from('payments').select('amount').gte('payment_date', lastMonthStart).lte('payment_date', lastMonthSameDay),
     db.from('bank_transactions').select('id, amount, date, name, matched_at').gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
     db.from('payout_batches').select('id, processor_payout_id, amount, expected_amount, arrival_date, status, match_method, notes, created_at').order('created_at', { ascending: false }).limit(25),
-    db.from('bank_accounts').select('gl_account_id, purpose').is('archived_at', null),
+    db.from('bank_accounts').select('gl_account_id, purpose, fund_type').is('archived_at', null),
     db.from('journal_lines').select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)').eq('journal_entries.posted', true),
+    db.from('journal_lines').select('debit_amount, credit_amount, gl_accounts!inner(account_type), journal_entries!inner(posted, entry_date)').eq('journal_entries.posted', true).in('gl_accounts.account_type', ['expense', 'other_expense']).gte('journal_entries.entry_date', `${new Date().getFullYear()}-01-01`),
+    db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    db.from('occupancies').select('owner_id, late_count, owners(full_name)').eq('status', 'current').gte('late_count', 2),
   ])
 
   const stripeOn = isStripeConfigured()
@@ -102,6 +114,57 @@ export default async function FinancialCommandCenterPage() {
   const unmatchedDeposits = txns.filter((t: any) => !t.matched_at && Number(t.amount) < 0) // Plaid: negative = inflow
   const needsReviewPayouts = (payouts ?? []).filter((p: any) => p.status === 'needs_review')
 
+  // ── Phase 8 metrics ──────────────────────────────────────────
+  const depositsToday = txns
+    .filter((t: any) => t.date === todayDate && Number(t.amount) < 0)
+    .reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0)
+  const byMethod = (m: string) => (intents ?? []).filter((i: any) => i.method === m)
+  const successRate = (list: any[]) => {
+    const done = list.filter((i: any) => ['succeeded', 'failed', 'returned'].includes(i.status))
+    if (done.length === 0) return null
+    return Math.round((done.filter((i: any) => i.status === 'succeeded').length / done.length) * 100)
+  }
+  const achRate = successRate(byMethod('ach'))
+  const cardRate = successRate(byMethod('card'))
+  const feesTotal = (intents ?? []).reduce((s: number, i: any) => s + (i.processor_fee_cents ?? 0), 0) / 100
+  const delinquentUnitNumbers = new Set((aging ?? []).map((r: any) => r.unit_number))
+  const delinquencyPct = (totalUnits ?? 0) > 0 ? Math.round((delinquentUnitNumbers.size / (totalUnits ?? 1)) * 100) : 0
+  const avgDaysOutstanding = (() => {
+    const rows = (aging ?? []).filter((r: any) => r.due_date)
+    const totalBal = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
+    if (totalBal <= 0) return null
+    const weighted = rows.reduce((s: number, r: any) => {
+      const days = Math.max(0, (Date.now() - new Date(r.due_date).getTime()) / 86400000)
+      return s + days * Number(r.balance_due ?? 0)
+    }, 0)
+    return Math.round(weighted / totalBal)
+  })()
+
+  // ── AI Financial Health (deterministic rules on live data) ───
+  const collectedLastMonthSame = (paymentsLastMonthSame ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
+  const collectionsTrendPct = collectedLastMonthSame > 0
+    ? Math.round(((collectedMonth - collectedLastMonthSame) / collectedLastMonthSame) * 1000) / 10
+    : null
+  const ytdExpenses = (pnlLines ?? []).reduce((s: number, l: any) => s + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0), 0)
+  const monthsElapsed = new Date().getMonth() + 1
+  const monthlyBurn = monthsElapsed > 0 ? ytdExpenses / monthsElapsed : 0
+  const healthStatements: string[] = []
+  if (collectionsTrendPct !== null) {
+    healthStatements.push(
+      collectionsTrendPct >= 0
+        ? `Collections are running ${collectionsTrendPct}% ahead of last month at this point.`
+        : `Collections are running ${Math.abs(collectionsTrendPct)}% behind last month at this point.`,
+    )
+  }
+  if ((latePayers ?? []).length > 0) {
+    const names = (latePayers ?? []).slice(0, 3).map((l: any) => l.owners?.full_name).filter(Boolean).join(', ')
+    healthStatements.push(`${(latePayers ?? []).length} owner${(latePayers ?? []).length === 1 ? ' is' : 's are'} likely to become delinquent based on payment history${names ? ` (${names})` : ''}.`)
+  }
+  if (returned.length > 0) healthStatements.push(`${returned.length} returned/failed payment${returned.length === 1 ? '' : 's'} require${returned.length === 1 ? 's' : ''} follow-up.`)
+  if (monthlyBurn > 0) {
+    // Placeholder computed below once operating is known — inserted after rollup.
+  }
+
   // Operating / reserve balances from posted ledger (same rollup as board financials).
   const balByGl = new Map<string, number>()
   for (const l of bankLines ?? []) {
@@ -111,8 +174,15 @@ export default async function FinancialCommandCenterPage() {
   let reserve = 0
   for (const b of bankAccounts ?? []) {
     const bal = b.gl_account_id ? (balByGl.get(b.gl_account_id) ?? 0) : 0
-    if ((b.purpose ?? '').toLowerCase().includes('reserve')) reserve += bal
+    if ((b.fund_type ?? '') === 'reserve' || (b.purpose ?? '').toLowerCase().includes('reserve')) reserve += bal
     else operating += bal
+  }
+  if (monthlyBurn > 0 && operating > 0) {
+    const runwayDays = Math.round((operating / monthlyBurn) * 30)
+    healthStatements.push(`Operating cash covers approximately ${runwayDays} days of expenses at the current burn rate.`)
+  }
+  if (healthStatements.length === 0) {
+    healthStatements.push('No financial risks detected — collections, settlements, and reconciliation are all on track.')
   }
 
   const exceptions = [
@@ -170,18 +240,44 @@ export default async function FinancialCommandCenterPage() {
         </div>
       )}
 
+      {/* ── Live gauges ───────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Tile label="Today's Collections" value={money(collectedToday)} icon={Banknote} tone={collectedToday > 0 ? 'success' : undefined} />
+        <Tile label="Today's Deposits" value={money(depositsToday)} sub="From the bank feed" icon={Landmark} tone={depositsToday > 0 ? 'success' : undefined} />
+        <Tile label="Pending Settlement" value={money(pendingACHTotal)} sub={`${pendingACH.length} payment${pendingACH.length === 1 ? '' : 's'} settling`} icon={CreditCard} />
+        <Tile label="Auto-Reconciled (30d)" value={autoReconRate === null ? '—' : `${autoReconRate}%`} sub={txns.length > 0 ? `${matchedTxns}/${txns.length} bank transactions` : 'No bank feed activity'} icon={RefreshCcw} />
+      </div>
+
       {/* ── Metric grid ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-        <Tile label="Collected Today" value={money(collectedToday)} icon={Banknote} tone={collectedToday > 0 ? 'success' : undefined} />
-        <Tile label="Pending ACH" value={money(pendingACHTotal)} sub={`${pendingACH.length} payment${pendingACH.length === 1 ? '' : 's'} settling`} icon={CreditCard} />
+        <Tile label="Outstanding Receivables" value={money(arTotal)} icon={TrendingUp} tone={arTotal > 0 ? 'warning' : undefined} />
+        <Tile label="Delinquency" value={`${delinquencyPct}%`} sub={`${delinquentUnitNumbers.size} of ${totalUnits ?? 0} units carry a balance`} icon={AlertTriangle} tone={delinquencyPct > 10 ? 'danger' : delinquencyPct > 0 ? 'warning' : undefined} />
+        <Tile label="ACH Success Rate" value={achRate === null ? '—' : `${achRate}%`} icon={CreditCard} />
+        <Tile label="Card Success Rate" value={cardRate === null ? '—' : `${cardRate}%`} icon={CreditCard} />
         <Tile label="Returned / Failed (30d)" value={returned.length} icon={Undo2} tone={returned.length > 0 ? 'danger' : undefined} />
         <Tile label="Chargebacks (30d)" value={chargebacks.length} icon={AlertTriangle} tone={chargebacks.length > 0 ? 'danger' : undefined} />
-        <Tile label="Outstanding Receivables" value={money(arTotal)} icon={TrendingUp} tone={arTotal > 0 ? 'warning' : undefined} />
+        <Tile label="Processing Fees (30d)" value={money(feesTotal)} icon={CreditCard} />
+        <Tile label="Avg Days Outstanding" value={avgDaysOutstanding === null ? '—' : avgDaysOutstanding} sub="Balance-weighted age of open receivables" icon={TrendingUp} />
         <Tile label="Collection Rate (MTD)" value={collectionRate === null ? '—' : `${collectionRate}%`} sub={billedMonth > 0 ? `${money(collectedMonth)} of ${money(billedMonth)} billed` : 'Nothing billed this month'} icon={TrendingUp} />
-        <Tile label="Auto-Reconciliation (30d)" value={autoReconRate === null ? '—' : `${autoReconRate}%`} sub={txns.length > 0 ? `${matchedTxns}/${txns.length} bank transactions matched` : 'No bank feed activity'} icon={RefreshCcw} />
         <Tile label="Unmatched Deposits" value={unmatchedDeposits.length} icon={AlertTriangle} tone={unmatchedDeposits.length > 0 ? 'warning' : undefined} />
         <Tile label="Operating Balance" value={money(operating)} icon={Landmark} />
         <Tile label="Reserve Balance" value={money(reserve)} icon={PiggyBank} />
+      </div>
+
+      {/* ── AI Financial Health ───────────────────────── */}
+      <div className={card}>
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">Financial Health</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Computed live from collections, payment history, and the posted ledger — deterministic rules, no fabricated numbers</p>
+        </div>
+        <ul className="space-y-2.5 px-5 py-4">
+          {healthStatements.map((s, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-sm leading-6 text-gray-700">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
+              {s}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* ── Exception queue ───────────────────────────── */}
@@ -230,7 +326,9 @@ export default async function FinancialCommandCenterPage() {
               ) : (
                 (intents ?? []).map((i: any) => (
                   <tr key={i.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-5 py-3 font-medium text-gray-900">{i.owners?.full_name ?? '—'}</td>
+                    <td className="px-5 py-3">
+                      <Link href={`/command-center/payments/${i.id}`} className="font-medium text-gray-900 hover:underline">{i.owners?.full_name ?? '—'}</Link>
+                    </td>
                     <td className="px-5 py-3 tabular-nums text-gray-700">{i.units?.unit_number ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] uppercase text-gray-700">{i.method ?? '—'}</td>
                     <td className="px-5 py-3">

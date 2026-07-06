@@ -132,7 +132,63 @@ export async function createCheckoutSession(params: {
 }
 
 export async function retrievePaymentIntent(paymentIntentId: string, stripeAccount?: string | null) {
-  return stripeRequest<any>(`/payment_intents/${paymentIntentId}?expand[0]=latest_charge`, undefined, { stripeAccount: stripeAccount ?? null });
+  return stripeRequest<any>(
+    `/payment_intents/${paymentIntentId}?expand[0]=latest_charge&expand[1]=latest_charge.balance_transaction`,
+    undefined,
+    { stripeAccount: stripeAccount ?? null },
+  );
+}
+
+// ── AutoPay: saved payment methods + off-session charging ───────────────────
+
+/** Checkout in setup mode: saves a card/bank for future off-session AutoPay runs. */
+export async function createSetupCheckoutSession(params: {
+  customerEmail?: string | null;
+  successUrl: string;
+  cancelUrl: string;
+  metadata: Record<string, string>;
+  stripeAccount: string;
+}) {
+  return stripeRequest<{ id: string; url: string }>('/checkout/sessions', {
+    mode: 'setup',
+    payment_method_types: ['card', 'us_bank_account'],
+    customer_creation: 'always',
+    customer_email: params.customerEmail ?? undefined,
+    metadata: params.metadata,
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+  }, { stripeAccount: params.stripeAccount });
+}
+
+export async function getSetupIntent(setupIntentId: string, stripeAccount: string) {
+  return stripeRequest<{ id: string; payment_method: string; customer: string | null }>(
+    `/setup_intents/${setupIntentId}`, undefined, { stripeAccount });
+}
+
+export async function getPaymentMethod(paymentMethodId: string, stripeAccount: string) {
+  return stripeRequest<any>(`/payment_methods/${paymentMethodId}`, undefined, { stripeAccount });
+}
+
+/** Charge a saved method without the owner present (AutoPay run). */
+export async function createOffSessionPaymentIntent(params: {
+  amountCents: number;
+  customer: string;
+  paymentMethod: string;
+  description: string;
+  metadata: Record<string, string>;
+  stripeAccount: string;
+}) {
+  return stripeRequest<{ id: string; status: string; latest_charge?: any }>('/payment_intents', {
+    amount: params.amountCents,
+    currency: 'usd',
+    customer: params.customer,
+    payment_method: params.paymentMethod,
+    payment_method_types: ['card', 'us_bank_account'],
+    confirm: true,
+    off_session: true,
+    description: params.description,
+    metadata: params.metadata,
+  }, { stripeAccount: params.stripeAccount });
 }
 
 /**

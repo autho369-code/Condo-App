@@ -81,5 +81,9 @@ export async function startOnlinePayment(formData: FormData) {
   }
 
   await svc.from('payment_intents').update({ processor_session_id: session.id }).eq('id', intent.id);
+  await svc.from('payment_events').insert([
+    { payment_intent_id: intent.id, event: 'initiated', detail: `Owner started a $${amount.toFixed(2)} payment from the portal` },
+    { payment_intent_id: intent.id, event: 'checkout_created', detail: 'Redirected to secure Stripe checkout' },
+  ]);
   redirect(session.url);
 }
