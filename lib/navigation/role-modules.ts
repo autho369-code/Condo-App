@@ -71,6 +71,7 @@ export const companyAdminModules: AppModule[] = [
 
 export const platformOperatorModules: AppModule[] = [
   { label: 'Overview', href: '/platform-operator' },
+  { label: 'Platform Intelligence', href: '/platform-operator/insights' },
   { label: 'Companies', href: '/platform-operator/companies' },
   { label: 'Invitations', href: '/platform-operator/invitations' },
   { label: 'Users', href: '/platform-operator/users' },
@@ -79,8 +80,11 @@ export const platformOperatorModules: AppModule[] = [
   { label: 'Door Usage', href: '/platform-operator/door-usage' },
   { label: 'Revenue', href: '/platform-operator/revenue' },
   { label: 'Association Health', href: '/platform-operator/association-health' },
+  { label: 'Announcements', href: '/platform-operator/announcements' },
   { label: 'Communications', href: '/platform-operator/communications' },
   { label: 'Support Requests', href: '/platform-operator/support' },
+  { label: 'System Monitor', href: '/platform-operator/system' },
+  { label: 'Security Center', href: '/platform-operator/security' },
   { label: 'Audit Logs', href: '/platform-operator/audit-logs' },
 ];
 
