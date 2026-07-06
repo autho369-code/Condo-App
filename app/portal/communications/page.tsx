@@ -65,21 +65,39 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
     })
     if (error) redirect('/portal/communications?error=' + encodeURIComponent(error.message))
 
-    // Notify the management office. Resolve recipients the same way the manager
-    // communication-center does: company_admin profiles in the portfolio, then
-    // fall back to the portfolio support_email. If none resolve, we still keep
-    // the logged message above and don't crash the owner's flow.
+    // Notify the right person, white-glove style: the association's dedicated
+    // property manager first (associations.site_manager_user_id), then the
+    // portfolio's company admins, then the portfolio support_email. If none
+    // resolve, we still keep the logged message above and don't crash the
+    // owner's flow.
     if (portfolioId) {
       try {
         const recipients: { email: string; name: string | null }[] = []
-        const { data: admins } = await svc
-          .from('profiles')
-          .select('email, full_name')
-          .eq('portfolio_id', portfolioId)
-          .eq('hoa_role', 'company_admin')
-        ;(admins ?? []).forEach((a: any) => {
-          if (a.email) recipients.push({ email: a.email, name: a.full_name ?? null })
-        })
+        if (aid) {
+          const { data: assoc } = await svc
+            .from('associations')
+            .select('site_manager_user_id')
+            .eq('id', aid)
+            .maybeSingle()
+          if (assoc?.site_manager_user_id) {
+            const { data: mgr } = await svc
+              .from('profiles')
+              .select('email, full_name')
+              .eq('id', assoc.site_manager_user_id)
+              .maybeSingle()
+            if (mgr?.email) recipients.push({ email: mgr.email, name: mgr.full_name ?? null })
+          }
+        }
+        if (recipients.length === 0) {
+          const { data: admins } = await svc
+            .from('profiles')
+            .select('email, full_name')
+            .eq('portfolio_id', portfolioId)
+            .eq('hoa_role', 'company_admin')
+          ;(admins ?? []).forEach((a: any) => {
+            if (a.email) recipients.push({ email: a.email, name: a.full_name ?? null })
+          })
+        }
         if (recipients.length === 0) {
           const { data: pf } = await svc.from('portfolios').select('support_email, company_name').eq('id', portfolioId).maybeSingle()
           if (pf?.support_email) recipients.push({ email: pf.support_email, name: pf.company_name ?? 'Management office' })
