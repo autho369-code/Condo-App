@@ -19,9 +19,9 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   const { data: occs } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).limit(1)
   const assocId = occs?.[0]?.association_id
 
-  // Messages sent by this owner
+  // Messages sent by this owner (sender_id references auth.users)
   const { data: msgs } = await db.from('communications_log')
-    .select('subject, channel, status, created_at').eq('sender_id', ownerId)
+    .select('subject, channel, status, created_at').eq('sender_id', me.auth_user_id)
     .order('created_at', { ascending: false }).limit(50)
 
   // Announcements
@@ -56,7 +56,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
     const { error } = await svc.from('communications_log').insert({
       portfolio_id: portfolioId,
       association_id: aid,
-      sender_id: me2.owner_id,
+      sender_id: me2.auth_user_id,
       direction: 'inbound',
       channel: 'email',
       subject,
