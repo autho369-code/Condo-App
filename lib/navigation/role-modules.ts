@@ -86,7 +86,12 @@ export const platformOperatorModules: AppModule[] = [
 
 export const vendorModules: AppModule[] = [
   { label: 'Dashboard', href: '/vendor' },
+  { label: 'AI Assistant', href: '/vendor/assistant' },
   { label: 'Work Orders', href: '/vendor/work-orders' },
+  { label: 'Schedule', href: '/vendor/schedule' },
+  { label: 'Properties', href: '/vendor/properties' },
+  { label: 'Payments', href: '/vendor/payments' },
+  { label: 'Performance', href: '/vendor/performance' },
   { label: 'Compliance', href: '/vendor/compliance' },
   { label: 'Profile', href: '/vendor/profile' },
 ];

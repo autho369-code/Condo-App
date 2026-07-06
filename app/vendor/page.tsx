@@ -14,20 +14,33 @@ export default async function VendorDashboard() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: vendor }, { data: workOrders }, { data: compliance }] = await Promise.all([
+  const todayDate = new Date().toISOString().slice(0, 10);
+
+  const [{ data: vendor }, { data: workOrders }, { data: compliance }, { data: openBills }] = await Promise.all([
     db.from('vendors').select('id, name, trade').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
-      .select('id, number, title, status, priority, scheduled_date, created_at, associations(name)')
+      .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
-      .limit(50),
+      .limit(100),
     db.from('vendor_compliance').select('*').eq('vendor_id', me.vendor_id).maybeSingle(),
+    db.from('payable_bills')
+      .select('amount, status')
+      .eq('vendor_id', me.vendor_id)
+      .is('archived_at', null)
+      .not('status', 'in', '("paid","void")'),
   ]);
 
   const wos = workOrders ?? [];
   const open = wos.filter((w: any) => OPEN_STATUSES.includes((w.status ?? '').toLowerCase()));
   const scheduled = open.filter((w: any) => w.scheduled_date);
+  const emergencies = open.filter((w: any) => (w.priority ?? '').toLowerCase() === 'emergency');
+  const today = open.filter((w: any) => w.scheduled_date === todayDate);
+  const inProgress = open.filter((w: any) => (w.status ?? '').toLowerCase() === 'in_progress');
+  const newAssignments = open.filter((w: any) => ['new', 'assigned'].includes((w.status ?? '').toLowerCase()));
+  const completed = wos.filter((w: any) => ['done', 'completed', 'billed', 'closed'].includes((w.status ?? '').toLowerCase()));
+  const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0), 0);
 
   // Compliance expirations within 30 days or past
   const soon = Date.now() + 30 * 86400000;
@@ -60,10 +73,23 @@ export default async function VendorDashboard() {
         </Alert>
       )}
 
-      <MetricStrip className="mb-6 lg:grid-cols-3">
-        <Metric label="Open work orders" value={open.length} accent="blue" />
-        <Metric label="Scheduled" value={scheduled.length} accent="violet" />
-        <Metric label="All assigned" value={wos.length} sub="last 50 shown" />
+      {emergencies.length > 0 && (
+        <Alert tone="danger" className="mb-5">
+          {emergencies.length} emergency job{emergencies.length === 1 ? '' : 's'} assigned to you:{' '}
+          {emergencies.slice(0, 3).map((e: any) => e.title).join(' · ')} —{' '}
+          <Link href="/vendor/work-orders" className="font-semibold underline underline-offset-2">open work orders</Link>
+        </Alert>
+      )}
+
+      <MetricStrip className="mb-6 lg:grid-cols-4">
+        <Metric label="Jobs today" value={today.length} accent="blue" />
+        <Metric label="New assignments" value={newAssignments.length} accent="violet" />
+        <Metric label="In progress" value={inProgress.length} />
+        <Metric label="Emergency" value={emergencies.length} accent={emergencies.length > 0 ? 'red' : undefined} />
+        <Metric label="Scheduled" value={scheduled.length} />
+        <Metric label="Completed" value={completed.length} sub="recent history" accent="emerald" />
+        <Metric label="Pending payment" value={`$${pendingPay.toLocaleString()}`} sub={<Link href="/vendor/payments" className="underline underline-offset-2">payment status</Link>} />
+        <Metric label="All assigned" value={wos.length} sub="last 100 shown" />
       </MetricStrip>
 
       <Surface padded={false}>
