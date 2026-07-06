@@ -3,8 +3,13 @@ import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/types/database'
 
 const APEX_DOMAIN = 'portier369.com'
-const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card']
+const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local']
 const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo', '/legal', '/api/maintenance/send-reminders', '/api/payments/reconcile', '/api/payments/autopay-run', '/api/stripe/webhook', '/report-card']
+// Crawler + PWA assets — must never bounce to /login
+const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest']
+// Next serves icon/OG conventions at hashed paths (e.g. /opengraph-image-pwu6ef),
+// so these match by prefix. Also covers /icon-192, /icon-512, /icon-1024.
+const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image']
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || APEX_DOMAIN
@@ -64,9 +69,12 @@ export async function middleware(request: NextRequest) {
 
   // Auth session refresh
   const { data: { user } } = await supabase.auth.getUser()
-  const isPublic = [...PUBLIC_PATHS, ...MARKETING_PATHS].some((p) =>
-    request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + '/')
-  )
+  const isPublic =
+    PUBLIC_ASSETS.includes(request.nextUrl.pathname) ||
+    PUBLIC_ASSET_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p)) ||
+    [...PUBLIC_PATHS, ...MARKETING_PATHS].some((p) =>
+      request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + '/')
+    )
   const isRoot = request.nextUrl.pathname === '/'
 
   if (!user && !isPublic && !isRoot) {
