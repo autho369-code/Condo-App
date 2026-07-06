@@ -14,7 +14,19 @@ const STARTERS = [
   "What's on the calendar this week?",
 ];
 
-export function PortfolioAssistant() {
+export function PortfolioAssistant({
+  endpoint = '/api/ai/assistant',
+  title = 'Portfolio Assistant',
+  subtitle = 'Ask about receivables, work orders, bills, violations, and more.',
+  starters = STARTERS,
+  configureHint,
+}: {
+  endpoint?: string;
+  title?: string;
+  subtitle?: string;
+  starters?: string[];
+  configureHint?: React.ReactNode;
+} = {}) {
   const [messages, setMessages] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,7 +54,7 @@ export function PortfolioAssistant() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/ai/assistant', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, history }),
@@ -79,8 +91,8 @@ export function PortfolioAssistant() {
           <Sparkles className="h-4 w-4 text-white" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Portfolio Assistant</h2>
-          <p className="text-xs text-gray-500">Ask about receivables, work orders, bills, violations, and more.</p>
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">{title}</h2>
+          <p className="text-xs text-gray-500">{subtitle}</p>
         </div>
       </div>
 
@@ -90,7 +102,7 @@ export function PortfolioAssistant() {
           <div className="py-6 text-center">
             <p className="text-sm text-gray-600">Ask a question about your portfolio to get started.</p>
             <div className="mx-auto mt-4 flex max-w-xl flex-wrap justify-center gap-2">
-              {STARTERS.map((s) => (
+              {starters.map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -128,11 +140,15 @@ export function PortfolioAssistant() {
 
         {notConfigured && (
           <p className="text-sm text-gray-700">
-            AI isn&apos;t set up yet.{' '}
-            <a href="/settings/ai" className="font-medium text-blue-600 underline-offset-4 hover:underline">
-              Set up AI in Settings → AI
-            </a>
-            .
+            {configureHint ?? (
+              <>
+                AI isn&apos;t set up yet.{' '}
+                <a href="/settings/ai" className="font-medium text-blue-600 underline-offset-4 hover:underline">
+                  Set up AI in Settings → AI
+                </a>
+                .
+              </>
+            )}
           </p>
         )}
         {error && (
