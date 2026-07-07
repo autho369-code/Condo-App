@@ -56,13 +56,28 @@ export default async function AssociationUnitsTab({
 
   const unitIds = (units ?? []).map((u: any) => u.id);
 
-  const { data: occs } = unitIds.length > 0
-    ? await (supabase as any)
-        .from('occupancies')
-        .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
-        .in('unit_id', unitIds)
-        .eq('status', 'current')
-    : { data: [] as any[] };
+  const [{ data: occs }, { data: activeTenants }] = unitIds.length > 0
+    ? await Promise.all([
+        (supabase as any)
+          .from('occupancies')
+          .select('unit_id, owner_id, occupancy_type, status, is_primary, share_pct, dues_amount')
+          .in('unit_id', unitIds)
+          .eq('status', 'current'),
+        // Renters live in the tenants table (occupancies only tracks owners in
+        // practice) — this is what the owner detail page reads too.
+        (supabase as any)
+          .from('tenants')
+          .select('unit_id, first_name, last_name, status')
+          .in('unit_id', unitIds)
+          .is('archived_at', null)
+          .eq('status', 'active'),
+      ])
+    : [{ data: [] as any[] }, { data: [] as any[] }];
+
+  const tenantByUnit = new Map<string, any>();
+  (activeTenants ?? []).forEach((t: any) => {
+    if (!tenantByUnit.has(t.unit_id)) tenantByUnit.set(t.unit_id, t);
+  });
 
   const ownerIds = Array.from(new Set((occs ?? []).map((o: any) => o.owner_id).filter(Boolean)));
   const { data: owners } = ownerIds.length > 0
@@ -97,7 +112,10 @@ export default async function AssociationUnitsTab({
     const dues = primaryOwner?.dues_amount ?? null;
 
     const tenantOcc = tenantOccs[0];
-    const renter = tenantOcc ? (ownerById.get(tenantOcc.owner_id)?.full_name ?? null) : null;
+    const tenantRow = tenantByUnit.get(u.id);
+    const renter = tenantRow
+      ? [tenantRow.first_name, tenantRow.last_name].filter(Boolean).join(' ')
+      : tenantOcc ? (ownerById.get(tenantOcc.owner_id)?.full_name ?? null) : null;
 
     return {
       id: u.id,
@@ -109,8 +127,9 @@ export default async function AssociationUnitsTab({
     };
   });
 
-  const occupiedUnits = rows.filter((r) => occByUnit.get(r.id)?.length).length;
+  const occupiedUnits = rows.filter((r) => occByUnit.get(r.id)?.length || tenantByUnit.has(r.id)).length;
   const ownerOccupied = rows.filter((r) => {
+    if (tenantByUnit.has(r.id)) return false; // rented out
     const list = occByUnit.get(r.id) ?? [];
     return list.some((o: any) => o.occupancy_type === 'owner');
   }).length;

@@ -108,13 +108,13 @@ export default async function MetricsPage() {
   // ── Fetch portfolio health metrics ──
   const [
     { data: health },
-    { data: associations },
+    { count: associationCount },
     { count: openWorkOrders },
     { count: openViolations },
     { data: arData },
     { data: billsAwaiting },
     { count: unitCount },
-    { count: occupiedCount },
+    { data: currentOccupancies },
   ] = await Promise.all([
     db.from('v_portfolio_health').select('*').eq('portfolio_id', portfolioId).maybeSingle(),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portfolio_id', portfolioId),
@@ -123,18 +123,20 @@ export default async function MetricsPage() {
     db.from('unit_balances').select('balance').gt('balance', 0),
     db.from('payable_bills').select('id, amount').is('archived_at', null).eq('status', 'approved'),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('unit_owners').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    // Occupied = units with a current occupancy (occupancies is the source of
+    // truth; unit_owners is a legacy link table and can be empty)
+    db.from('occupancies').select('unit_id').eq('status', 'current'),
   ]);
 
   const arBalance = (arData ?? []).reduce((sum: number, r: any) => sum + (r.balance ?? 0), 0);
   const billsAwaitingTotal = (billsAwaiting ?? []).reduce((sum: number, r: any) => sum + (r.amount ?? 0), 0);
   const totalUnits = unitCount ?? 0;
-  const occupiedUnits = occupiedCount ?? 0;
+  const occupiedUnits = new Set(((currentOccupancies ?? []) as any[]).map((o: any) => o.unit_id).filter(Boolean)).size;
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
 
   // ── Build top KPI strip ──
   const topMetrics = [
-    { label: 'Associations', value: associations ?? 0, sublabel: 'Active HOAs' },
+    { label: 'Associations', value: associationCount ?? 0, sublabel: 'Active HOAs' },
     { label: 'Total units', value: totalUnits, sublabel: `${occupiedUnits} occupied` },
     { label: 'Open work orders', value: openWorkOrders ?? 0 },
     { label: 'Open violations', value: openViolations ?? 0 },

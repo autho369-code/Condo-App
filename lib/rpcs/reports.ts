@@ -39,6 +39,16 @@ export async function queueReport(formData: FormData) {
   });
   if (error) { failTo(error.message); return; }
 
+  // Process synchronously so the run page shows a finished result (or an
+  // honest failure) instead of a forever-"queued" row — there is no
+  // background worker for report runs.
+  const { processReportRun } = await import('@/lib/reports/process');
+  try {
+    await processReportRun((data as any).id);
+  } catch (e) {
+    console.error('[reports] processReportRun failed for run', (data as any).id, e);
+  }
+
   revalidatePath('/reports/runs');
   redirect(`/reports/runs/${(data as any).id}`);
 }

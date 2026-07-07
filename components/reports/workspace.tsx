@@ -16,8 +16,17 @@ export function Workspace({
       <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
         {header}
       </div>
-      <div className="bg-gray-50 px-8 py-6">
-        {children}
+      <div className="bg-gray-50 px-4 py-6 sm:px-8">
+        {rail ? (
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <div className="min-w-0 flex-1">{children}</div>
+            <aside className="w-full shrink-0 lg:w-80">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 lg:sticky lg:top-6">{rail}</div>
+            </aside>
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );
