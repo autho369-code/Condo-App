@@ -1,5 +1,10 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { Screenshot } from '@/components/marketing/screenshot'
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 // Static — hero uses illustrative demo data, no DB calls
 

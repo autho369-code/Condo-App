@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
   },
   formatDetection: { telephone: false },
-  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     locale: 'en_US',

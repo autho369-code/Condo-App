@@ -2,8 +2,9 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Company — Portier369',
-  description: 'Built by property managers, for property managers. Portier369 replaces fragmented systems with one unified platform.',
+  title: 'About Us — Built by Property Managers',
+  description: 'Built by property managers, for property managers. Portier369 replaces fragmented systems with one unified platform for HOA and condo management companies across the USA.',
+  alternates: { canonical: '/company' },
 };
 
 export default function CompanyPage() {

@@ -1,6 +1,11 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Request a Proposal — Portier369' }
+export const metadata = {
+  title: 'Request a Proposal — See Portier369 in Action',
+  description:
+    'Get a free, no-obligation proposal for your management company or association. See how Portier369 handles accounting, violations, work orders, and portals.',
+  alternates: { canonical: '/demo' },
+}
 
 const assocRanges = ['1–10','11–25','26–50','51–100','100+']
 const doorRanges = ['Under 250','251–1,000','1,001–4,000','4,001–10,000','10,000+']

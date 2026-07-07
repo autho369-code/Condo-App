@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { FeaturePage } from '@/components/marketing/feature-page'
 
 export const metadata: Metadata = {
-  title: 'Association Accounting — Portier369 | HOA & Condo Management Software',
+  title: 'HOA Accounting Software — Fund Accounting, AP & AR',
   description:
     'Double-entry general ledger, AR aging, bill approval workflows, budgets vs. actuals, bank reconciliation with automatic bank feeds, and a 119-report library built for community associations.',
+  alternates: { canonical: '/features/accounting' },
 }
 
 export default function AccountingFeaturePage() {

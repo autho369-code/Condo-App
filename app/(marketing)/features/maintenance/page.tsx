@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { FeaturePage } from '@/components/marketing/feature-page'
 
 export const metadata: Metadata = {
-  title: 'Maintenance & Operations — Portier369 | HOA & Condo Management Software',
+  title: 'HOA Work Order, Maintenance & Violation Software',
   description:
     'Work orders, preventive maintenance calendars, inspections, violations with the full notice-to-hearing lifecycle, architectural reviews, vendor compliance, and inventory for community associations.',
+  alternates: { canonical: '/features/maintenance' },
 }
 
 export default function MaintenanceFeaturePage() {

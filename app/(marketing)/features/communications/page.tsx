@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { FeaturePage } from '@/components/marketing/feature-page'
 
 export const metadata: Metadata = {
-  title: 'Communications — Portier369 | HOA & Condo Management Software',
+  title: 'HOA Communication Software — Notices, Email & SMS',
   description:
     'Centralized owner and board communications: email campaigns, SMS notifications, AI-drafted letters and notices, document templates with merge variables, and threaded request messaging.',
+  alternates: { canonical: '/features/communications' },
 }
 
 export default function CommunicationsFeaturePage() {

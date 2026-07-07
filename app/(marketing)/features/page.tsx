@@ -2,9 +2,10 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Features — Portier369 | HOA & Condo Management Software',
+  title: 'HOA & Condo Management Software Features',
   description:
     'Explore Portier369 features: association accounting, maintenance and work orders, communications, and dedicated portals for boards, owners, and vendors.',
+  alternates: { canonical: '/features' },
 }
 
 const CATEGORIES = [

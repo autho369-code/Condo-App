@@ -1,0 +1,33 @@
+# Portier369
+
+> Portier369 is all-in-one property management software for condominium and HOA
+> management companies and self-managed community associations across the USA.
+> It covers association accounting (true double-entry general ledger, AR aging,
+> budgets, bank reconciliation), violations with full notice-to-hearing due
+> process, work orders and preventive maintenance, architectural reviews, and
+> dedicated portals for managers, boards, owners, and vendors. Headquartered in
+> Chicago, Illinois; serves all 50 states.
+
+Pricing: transparent per-door plans starting at $157/month, everything
+included — no hidden modules, no implementation fees, no long-term contracts.
+
+## Key pages
+
+- [Features](https://portier369.com/features): full capability overview
+- [Association Accounting](https://portier369.com/features/accounting): fund accounting, AP/AR, reporting
+- [Maintenance & Violations](https://portier369.com/features/maintenance): work orders, inspections, violation lifecycle
+- [Communications](https://portier369.com/features/communications): notices, email, SMS, AI-drafted letters
+- [Portals](https://portier369.com/features/portals): board, owner, and vendor portals
+- [Pricing](https://portier369.com/pricing): per-door plans
+- [Request a Proposal](https://portier369.com/demo): sales contact
+- [HOA Laws by State](https://portier369.com/hoa-laws): plain-English guides to all 50 states' HOA and condo statutes
+- [Locations](https://portier369.com/local): major-metro guides
+- [Contact](https://portier369.com/contact): hello@portier369.com
+
+## Facts
+
+- Category: community association management software (HOA / condo / CAM)
+- Not a rental or leasing product — no tenant screening, rent collection, or leasing tools
+- Six role-scoped workspaces: platform operator, company admin, manager, board, owner, vendor
+- Payments: per-association Stripe accounts; owners pay assessments online
+- Data migration from AppFolio, Buildium, Vantaca, CINC, TOPS, and spreadsheets is included

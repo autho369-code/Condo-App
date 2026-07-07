@@ -8,8 +8,23 @@ const jsonLd = {
       '@id': 'https://portier369.com/#organization',
       name: 'Portier369',
       url: 'https://portier369.com',
-      description: 'The operating system for condominium and HOA management.',
+      logo: 'https://portier369.com/opengraph-image',
+      description:
+        'The operating system for condominium and HOA management — serving community association management companies across all 50 US states.',
       email: 'hello@portier369.com',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Chicago',
+        addressRegion: 'IL',
+        addressCountry: 'US',
+      },
+      areaServed: 'US',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: 'hello@portier369.com',
+        url: 'https://portier369.com/contact',
+      },
     },
     {
       '@type': 'SoftwareApplication',
@@ -79,9 +94,18 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 </div>
               </div>
               <div>
+                <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Resources</div>
+                <div className="space-y-2 text-sm">
+                  <Link href="/hoa-laws" className="block text-gray-600 hover:text-gray-900">HOA Laws by State</Link>
+                  <Link href="/local" className="block text-gray-600 hover:text-gray-900">Locations</Link>
+                  <Link href="/legal/security" className="block text-gray-600 hover:text-gray-900">Security</Link>
+                </div>
+              </div>
+              <div>
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Company</div>
                 <div className="space-y-2 text-sm">
-                  <a href="mailto:hello@portier369.com" className="block text-gray-600 hover:text-gray-900">Contact</a>
+                  <Link href="/company" className="block text-gray-600 hover:text-gray-900">About</Link>
+                  <Link href="/contact" className="block text-gray-600 hover:text-gray-900">Contact</Link>
                   <Link href="/login" className="block text-gray-600 hover:text-gray-900">Sign in</Link>
                   <Link href="/login?mode=company_admin" className="block text-gray-600 hover:text-gray-900">Company admin</Link>
                   <Link href="/login?mode=admin" className="block text-gray-600 hover:text-gray-900">Operator</Link>

@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { FeaturePage } from '@/components/marketing/feature-page'
 
 export const metadata: Metadata = {
-  title: 'Board, Owner & Vendor Portals — Portier369 | HOA & Condo Management Software',
+  title: 'Board Portal, Owner Portal & Vendor Portal Software',
   description:
     'Six purpose-built workspaces: platform operator, company admin, manager, board, owner, and vendor — each scoped to exactly the data that role should see, enforced at the database level.',
+  alternates: { canonical: '/features/portals' },
 }
 
 export default function PortalsFeaturePage() {

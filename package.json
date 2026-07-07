@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit --incremental false",
     "check:dashboard-text": "node scripts/check-dashboard-text.mjs",
     "check:routes": "node scripts/audit-local-links.mjs",
+    "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
