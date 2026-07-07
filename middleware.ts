@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/types/database'
 
 const APEX_DOMAIN = 'portier369.com'
-const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact']
+const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare']
 const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo', '/legal', '/api/maintenance/send-reminders', '/api/payments/reconcile', '/api/payments/autopay-run', '/api/stripe/webhook', '/report-card']
 // Crawler + PWA assets — must never bounce to /login
 const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt']

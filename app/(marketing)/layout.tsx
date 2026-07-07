@@ -98,6 +98,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <div className="space-y-2 text-sm">
                   <Link href="/hoa-laws" className="block text-gray-600 hover:text-gray-900">HOA Laws by State</Link>
                   <Link href="/local" className="block text-gray-600 hover:text-gray-900">Locations</Link>
+                  <Link href="/compare/appfolio-alternative" className="block text-gray-600 hover:text-gray-900">AppFolio Alternative</Link>
+                  <Link href="/compare/buildium-alternative" className="block text-gray-600 hover:text-gray-900">Buildium Alternative</Link>
                   <Link href="/legal/security" className="block text-gray-600 hover:text-gray-900">Security</Link>
                 </div>
               </div>

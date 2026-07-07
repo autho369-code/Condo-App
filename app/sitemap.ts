@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { STATE_LAWS } from '@/lib/seo/hoa-states'
 import { LOCAL_CITIES } from '@/lib/seo/local-cities'
+import { COMPETITORS } from '@/lib/seo/competitors'
 
 const BASE = 'https://portier369.com'
 
@@ -51,6 +52,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ]
 
+  const compare = [
+    {
+      url: `${BASE}/compare`,
+      lastModified: CONTENT_UPDATED,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    ...COMPETITORS.map((c) => ({
+      url: `${BASE}/compare/${c.slug}`,
+      lastModified: CONTENT_UPDATED,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    })),
+  ]
+
   const local = [
     {
       url: `${BASE}/local`,
@@ -66,5 +82,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ]
 
-  return [...core, ...legal, ...hoaLaws, ...local]
+  return [...core, ...legal, ...compare, ...hoaLaws, ...local]
 }
