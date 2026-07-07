@@ -850,6 +850,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         </Section>
 
         {/* ── Contact Edit ── */}
+        <div id="contact" className="scroll-mt-20">
         <Section title="Contact">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-sm">
             <div>
@@ -941,6 +942,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             </form>
           </details>
         </Section>
+        </div>
 
         {/* ── Federal tax, payout & accounting preferences (finance staff) ── */}
         <Section title="Federal Tax, Payout & Accounting Preferences">

@@ -100,9 +100,11 @@ const PANELS: PanelDef[] = [
       return [
         { title: 'Tasks', icon: 'tasks', links: [
           { label: 'Record charge', href: '/charges/new' },
+          { label: 'Charge late fee', href: '/charges/new' },
           { label: 'Receivables for this owner', href: `/charges?owner=${ownerId}` },
           { label: 'Send statement', href: `/owners/${ownerId}?view=statements` },
           { label: 'Owner payable / refund', href: '/bills/owner-payable/new' },
+          { label: 'Edit owner / contact info', href: `/owners/${ownerId}#contact` },
           { label: 'Manage portal access', href: `/owners/${ownerId}#portal-access` },
           { label: 'Management agreement', href: `/owners/management-agreements?owner=${ownerId}` },
           { label: 'Send email', href: '/send-email' },
@@ -131,9 +133,10 @@ const PANELS: PanelDef[] = [
       if (view === 'directory') {
         return [
           { title: 'Tasks', icon: 'tasks', links: [
-            { label: 'New owner', href: '/owners/new' },
-            { label: 'Send owner form', href: '/owners/forms' },
+            { label: 'Export directory (CSV)', href: '/owners/directory/export' },
             { label: 'Send announcement', href: '/communication-center' },
+            { label: 'Send owner form', href: '/owners/forms' },
+            { label: 'New owner', href: '/owners/new' },
           ]},
           { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
         ];
@@ -212,7 +215,10 @@ const PANELS: PanelDef[] = [
         { label: 'Bookable amenities (by association)', href: '/associations' },
         { label: 'Send amenity notice', href: '/send-email' },
       ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+      { title: 'Reports', icon: 'reports', links: [
+        { label: 'Amenities assigned', href: '/reports/amenities_assigned' },
+        { label: 'All reports', href: '/reports' },
+      ]},
     ],
   },
   {
@@ -223,7 +229,10 @@ const PANELS: PanelDef[] = [
         { label: 'Active assignments', href: '/lock-boxes?tab=assignments' },
         { label: 'Key inventory', href: '/lock-boxes?tab=keys' },
       ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+      { title: 'Reports', icon: 'reports', links: [
+        { label: 'Keys report', href: '/reports/keys' },
+        { label: 'All reports', href: '/reports' },
+      ]},
     ],
   },
   {
