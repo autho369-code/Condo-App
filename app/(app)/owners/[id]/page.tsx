@@ -1206,6 +1206,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No recorded changes yet. Edits to this owner are logged automatically from now on.</p>}
           </Section>
 
+          <div id="portal-access" className="scroll-mt-20">
           <Section title="Portal access">
             <div className="space-y-3 px-4 py-4 text-sm">
               <div className="flex items-center gap-2">
@@ -1237,6 +1238,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </p>
             </div>
           </Section>
+          </div>
         </div>
       </div>
     </DataWorkspace>

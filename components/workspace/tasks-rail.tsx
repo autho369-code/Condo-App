@@ -10,14 +10,19 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   ClipboardList, X, Star, BarChart3, ChevronRight, PanelRightClose, PanelRightOpen,
 } from 'lucide-react';
 
 type PanelLink = { label: string; href: string };
 type PanelSection = { title: string; icon?: 'tasks' | 'reports'; links: PanelLink[] };
-type PanelDef = { match: RegExp; sections: PanelSection[] };
+type PanelDef = {
+  match: RegExp;
+  sections?: PanelSection[];
+  // For route families whose panel depends on the URL (record id, ?view= tab)
+  build?: (pathname: string, view: string) => PanelSection[];
+};
 
 const PANELS: PanelDef[] = [
   {
@@ -88,16 +93,61 @@ const PANELS: PanelDef[] = [
     ],
   },
   {
+    // Individual owner record — actions scoped to this owner
+    match: /^\/owners\/[0-9a-f]{8}-[0-9a-f-]+$/,
+    build: (pathname) => {
+      const ownerId = pathname.split('/')[2];
+      return [
+        { title: 'Tasks', icon: 'tasks', links: [
+          { label: 'Record charge', href: '/charges/new' },
+          { label: 'Receivables for this owner', href: `/charges?owner=${ownerId}` },
+          { label: 'Send statement', href: `/owners/${ownerId}?view=statements` },
+          { label: 'Owner payable / refund', href: '/bills/owner-payable/new' },
+          { label: 'Manage portal access', href: `/owners/${ownerId}#portal-access` },
+          { label: 'Management agreement', href: `/owners/management-agreements?owner=${ownerId}` },
+          { label: 'Send email', href: '/send-email' },
+        ]},
+        { title: 'Reports', icon: 'reports', links: [
+          { label: 'Owner ledger', href: '/reports/homeowner_ledger' },
+          { label: 'Delinquency', href: '/reports/delinquency' },
+          { label: 'All reports', href: '/reports' },
+        ]},
+      ];
+    },
+  },
+  {
     match: /^\/owners/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New owner', href: '/owners/new' },
-        { label: 'Management agreement', href: '/owners/management-agreements/new' },
-        { label: 'Send email', href: '/send-email' },
-        { label: 'Statement settings', href: '/bulk-statement-settings/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
+    build: (_pathname, view) => {
+      if (view === 'tenants') {
+        return [
+          { title: 'Tasks', icon: 'tasks', links: [
+            { label: 'Add tenant (via owner record)', href: '/owners' },
+            { label: 'Export leases (CSV)', href: '/owners/leases/export' },
+            { label: 'Lease renewal notice', href: '/send-email' },
+          ]},
+          { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+        ];
+      }
+      if (view === 'directory') {
+        return [
+          { title: 'Tasks', icon: 'tasks', links: [
+            { label: 'New owner', href: '/owners/new' },
+            { label: 'Send owner form', href: '/owners/forms' },
+            { label: 'Send announcement', href: '/communication-center' },
+          ]},
+          { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+        ];
+      }
+      return [
+        { title: 'Tasks', icon: 'tasks', links: [
+          { label: 'New owner', href: '/owners/new' },
+          { label: 'Management agreement', href: '/owners/management-agreements/new' },
+          { label: 'Send email', href: '/send-email' },
+          { label: 'Statement settings', href: '/bulk-statement-settings/new' },
+        ]},
+        { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+      ];
+    },
   },
   {
     match: /^\/vendors/,
@@ -121,12 +171,72 @@ const PANELS: PanelDef[] = [
     ],
   },
   {
-    match: /^\/(calendar|meetings)/,
+    match: /^\/meetings/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'New meeting', href: '/meetings/new' },
+        { label: 'Minutes & sign-in (open a meeting)', href: '/meetings' },
+        { label: 'Send meeting notice', href: '/send-email' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [
+        { label: 'Board packet', href: '/reports/board_packet' },
+        { label: 'All reports', href: '/reports' },
+      ]},
+    ],
+  },
+  {
+    match: /^\/calendar/,
     sections: [
       { title: 'Tasks', icon: 'tasks', links: [
         { label: 'New event', href: '/calendar/new' },
         { label: 'New meeting', href: '/meetings/new' },
       ]},
+    ],
+  },
+  {
+    match: /^\/architectural-reviews/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'Review queue', href: '/architectural-reviews' },
+        { label: 'Send decision letter', href: '/letters/new' },
+        { label: 'Email the owner', href: '/send-email' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+    ],
+  },
+  {
+    match: /^\/amenities/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'Manage reservations', href: '/amenities' },
+        { label: 'Bookable amenities (by association)', href: '/associations' },
+        { label: 'Send amenity notice', href: '/send-email' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+    ],
+  },
+  {
+    match: /^\/lock-boxes/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'Add lock box', href: '/lock-boxes/new' },
+        { label: 'Active assignments', href: '/lock-boxes?tab=assignments' },
+        { label: 'Key inventory', href: '/lock-boxes?tab=keys' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+    ],
+  },
+  {
+    match: /^\/(communication-center|surveys)/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'Compose email', href: '/send-email' },
+        { label: 'Send SMS', href: '/sms' },
+        { label: 'New letter', href: '/letters/new' },
+        { label: 'Review drafts', href: '/communication-center' },
+        { label: 'Surveys', href: '/surveys' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
     ],
   },
   {
@@ -137,7 +247,7 @@ const PANELS: PanelDef[] = [
     ],
   },
   {
-    match: /^\/(documents|letters|sms|send-email|inbox|communication-center)/,
+    match: /^\/(documents|letters|sms|send-email|inbox)/,
     sections: [
       { title: 'Tasks', icon: 'tasks', links: [
         { label: 'Generate document', href: '/documents/generate' },
@@ -164,8 +274,10 @@ const PANELS: PanelDef[] = [
   },
 ];
 
-function panelFor(pathname: string): PanelSection[] | null {
-  for (const p of PANELS) if (p.match.test(pathname)) return p.sections;
+function panelFor(pathname: string, view: string): PanelSection[] | null {
+  for (const p of PANELS) {
+    if (p.match.test(pathname)) return p.build ? p.build(pathname, view) : (p.sections ?? null);
+  }
   return null;
 }
 
@@ -193,9 +305,11 @@ function SectionBlock({ section }: { section: PanelSection }) {
   );
 }
 
-export default function TasksRail() {
+function TasksRailInner() {
   const pathname = usePathname() || '';
-  const sections = panelFor(pathname);
+  const searchParams = useSearchParams();
+  const view = searchParams?.get('view') ?? '';
+  const sections = panelFor(pathname, view);
   const [desktopOpen, setDesktopOpen] = React.useState(true);
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
@@ -267,5 +381,14 @@ export default function TasksRail() {
         </div>
       )}
     </>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerender.
+export default function TasksRail() {
+  return (
+    <React.Suspense fallback={null}>
+      <TasksRailInner />
+    </React.Suspense>
   );
 }
