@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-07-06.
+Last updated: 2026-07-07.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -34,6 +34,21 @@ Mostly on Mirsad / external; not code.
       - Payments: association Stripe Connect onboarding (Payments tab), AutoPay,
         and the payment-instructions text owners see on "How to Pay."
       - Where owner messages / announcements are logged (communications log).
+
+- [ ] **Set the platform Stripe keys in Vercel** (`STRIPE_SECRET_KEY`,
+      `STRIPE_WEBHOOK_SECRET` + the Connect webhook endpoint) — the entire
+      online-payments system is built and dormant behind this one config step.
+      Flagged by every external audit round as the last env gap.
+- [x] **AppFolio gap audits (all 4 rounds) executed 2026-07-06/07** — ~40 items:
+      owner tax/1099/payout/prefs + attachments + audit log, packet config,
+      reserve/loan/fee tracking, committees + lock-box creation, portal access
+      controls, meeting depth, person-level vehicles, report EXECUTION fixed
+      (rail + worker — reports had never been runnable), metrics rewired (health
+      view never had the fields), units/tenancy sync, TasksRail panels for all
+      seven flagged sections. Remaining honest gaps deliberately deferred:
+      staff-side "submit ARC request on owner's behalf" flow, amenity image
+      upload (same placeholder pattern as approvals had), maintenance SLA /
+      inspection-compliance metrics (no data source yet).
 
 ## 🟡 Should-do soon (non-blocking, smaller)
 - [ ] **Set an AI key** at `/settings/ai` to switch on the AI features (violation
