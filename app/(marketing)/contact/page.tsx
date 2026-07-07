@@ -31,6 +31,10 @@ export default function ContactPage() {
             Headquartered in Chicago, Illinois — serving community association management companies and self-managed
             associations in all 50 states.
           </p>
+          <p className="mt-3 text-[15px] text-gray-600">
+            5107 N Western Ave, Suite 1S, Chicago, IL 60625 ·{' '}
+            <a href="tel:+18476522338" className="font-semibold text-[#1E3A5F] hover:underline">(847) 652-2338</a>
+          </p>
 
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -60,7 +64,12 @@ export default function ContactPage() {
           </div>
 
           <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm leading-6 text-gray-600">
-            <span className="font-semibold text-gray-900">Portier369</span> · Chicago, Illinois, USA ·{' '}
+            <span className="font-semibold text-gray-900">Portier369</span> · 5107 N Western Ave, Suite 1S, Chicago,
+            IL 60625 ·{' '}
+            <a href="tel:+18476522338" className="text-[#1E3A5F] hover:underline">
+              (847) 652-2338
+            </a>{' '}
+            ·{' '}
             <a href="mailto:hello@portier369.com" className="text-[#1E3A5F] hover:underline">
               hello@portier369.com
             </a>
