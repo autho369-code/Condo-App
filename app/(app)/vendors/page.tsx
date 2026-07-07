@@ -90,6 +90,7 @@ export default async function VendorsPage({
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link href="/owners" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Owners</Link>
           <Link href="/owners?view=directory" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Directory</Link>
+          <Link href="/owners?view=tenants" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Tenants</Link>
           <Link href="/vendors" className="whitespace-nowrap border-b-2 border-gray-950 px-4 py-2.5 text-sm font-medium text-gray-950">Vendors</Link>
         </nav>
 

@@ -74,6 +74,22 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       : Promise.resolve({ data: [] }),
   ]);
 
+  // ── Cross-module records for this owner (board seat, HO-6, vehicles, agreements) ──
+  const [{ data: boardSeats }, { data: ho6Policies }, { data: parkingRows }, { data: mgmtAgreements }] = await Promise.all([
+    db.from('board_members')
+      .select('id, role, term_start, term_end, active, associations(name)')
+      .eq('owner_id', id).eq('active', true),
+    db.from('insurance_policies')
+      .select('id, policy_number, insurance_company, coverage_amount, expiration_date, status')
+      .eq('owner_id', id).is('archived_at', null).order('expiration_date', { ascending: false }).limit(5),
+    db.from('parking_assignments')
+      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, status, parking_spaces(space_number)')
+      .eq('owner_id', id).eq('status', 'active'),
+    db.from('management_agreements')
+      .select('id, name, status, start_date, end_date')
+      .eq('owner_id', id).is('archived_at', null).order('start_date', { ascending: false }).limit(5),
+  ]);
+
   const activeTenantsByUnit = new Map<string, any[]>();
   for (const t of (tenants ?? []).filter((t: any) => t.status === 'active')) {
     const list = activeTenantsByUnit.get(t.unit_id) ?? [];
@@ -282,6 +298,22 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       }
     >
       <div className="space-y-6">
+        {/* ── Status badges: standing at a glance ── */}
+        <div className="flex flex-wrap items-center gap-2">
+          {totalBalance > 0 && pastDueCount > 0 ? (
+            <StatusChip tone="danger">Delinquent — {money(totalBalance)} past due</StatusChip>
+          ) : totalBalance > 0 ? (
+            <StatusChip tone="warning">Balance due — {money(totalBalance)}</StatusChip>
+          ) : (
+            <StatusChip tone="success">Current</StatusChip>
+          )}
+          {(boardSeats ?? []).map((s: any) => (
+            <StatusChip key={s.id} tone="info">
+              Board — {s.role ?? 'Member'}{s.associations?.name ? ` · ${s.associations.name}` : ''}
+            </StatusChip>
+          ))}
+        </div>
+
         {/* ── Financial Summary ── */}
         <MetricStrip metrics={financialMetrics} />
 
@@ -921,6 +953,73 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 ))}
               </ul>
             ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No violations on file.</p>}
+          </Section>
+
+          <Section
+            title={`Insurance (HO-6) (${ho6Policies?.length ?? 0})`}
+            right={<Link href="/insurance" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">All policies</Link>}
+          >
+            {ho6Policies && ho6Policies.length > 0 ? (
+              <ul className="divide-y divide-gray-100">
+                {ho6Policies.map((pol: any) => {
+                  const expired = pol.expiration_date && pol.expiration_date < todayStr;
+                  return (
+                    <li key={pol.id} className="px-4 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{pol.insurance_company ?? 'Policy'}{pol.policy_number ? ` · ${pol.policy_number}` : ''}</span>
+                        <StatusChip tone={expired ? 'danger' : 'success'}>{expired ? 'Expired' : 'Active'}</StatusChip>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {pol.coverage_amount != null ? `${money(pol.coverage_amount)} coverage · ` : ''}
+                        {pol.expiration_date ? `Expires ${date(pol.expiration_date)}` : 'No expiration on file'}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No HO-6 policy on file.</p>}
+          </Section>
+
+          <Section
+            title={`Vehicles & parking (${parkingRows?.length ?? 0})`}
+            right={<Link href="/parking" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Parking</Link>}
+          >
+            {parkingRows && parkingRows.length > 0 ? (
+              <ul className="divide-y divide-gray-100">
+                {parkingRows.map((v: any) => (
+                  <li key={v.id} className="px-4 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {[v.vehicle_color, v.vehicle_make, v.vehicle_model].filter(Boolean).join(' ') || 'Vehicle on file'}
+                      </span>
+                      {v.license_plate && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}</span>}
+                    </div>
+                    <div className="text-xs text-gray-500">Space {v.parking_spaces?.space_number ?? '—'}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No vehicles or parking assignments on file.</p>}
+          </Section>
+
+          <Section
+            title={`Management agreements (${mgmtAgreements?.length ?? 0})`}
+            right={<Link href={`/owners/management-agreements?owner=${id}`} className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">New agreement</Link>}
+          >
+            {mgmtAgreements && mgmtAgreements.length > 0 ? (
+              <ul className="divide-y divide-gray-100">
+                {mgmtAgreements.map((ag: any) => (
+                  <li key={ag.id} className="px-4 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{ag.name ?? 'Management agreement'}</span>
+                      <StatusChip tone={ag.status === 'active' ? 'success' : 'neutral'}>{ag.status ?? '—'}</StatusChip>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {ag.start_date ? date(ag.start_date) : '—'} — {ag.end_date ? date(ag.end_date) : 'ongoing'}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No management agreements on file.</p>}
           </Section>
         </div>
       </div>
