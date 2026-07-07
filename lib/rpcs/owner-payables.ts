@@ -58,6 +58,26 @@ export async function payOwnerPayable(id: string) {
     redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
   };
   const supabase = await createClient();
+
+  // Respect the owner's "Hold payments" accounting preference (owner profile →
+  // Federal Tax, Payout & Accounting Preferences). Approval is allowed; paying is not.
+  const { data: payable } = await (supabase as any)
+    .from('owner_payables')
+    .select('owner_id, owners(full_name)')
+    .eq('id', id)
+    .maybeSingle();
+  if (payable?.owner_id) {
+    const { data: fin } = await (supabase as any)
+      .from('owner_financial_details')
+      .select('hold_payments')
+      .eq('owner_id', payable.owner_id)
+      .maybeSingle();
+    if (fin?.hold_payments) {
+      failTo(`Payments to ${payable.owners?.full_name ?? 'this owner'} are on hold. Clear "Hold payments" on the owner profile first.`);
+      return;
+    }
+  }
+
   const { error } = await (supabase as any)
     .from('owner_payables')
     .update({ status: 'paid', paid_at: new Date().toISOString() })

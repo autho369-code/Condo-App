@@ -26,6 +26,11 @@ const LIVE_REPORT_SLUGS = [
   'income_statement',
   'cash_flow',
   'general_ledger',
+  'owner_1099_summary',
+  'owner_1099_detail',
+  'owner_vehicle_info',
+  'homeowner_vehicle_info',
+  'vehicle_info',
 ] as const;
 
 type LiveReportSlug = (typeof LIVE_REPORT_SLUGS)[number];
@@ -96,6 +101,11 @@ async function LiveReportView(
     case 'income_statement':  return <IncomeStatementView {...ctx} />;
     case 'cash_flow':         return <CashFlowView {...ctx} />;
     case 'general_ledger':    return <GeneralLedgerView {...ctx} />;
+    case 'owner_1099_summary': return <Owner1099View {...ctx} detail={false} />;
+    case 'owner_1099_detail':  return <Owner1099View {...ctx} detail={true} />;
+    case 'owner_vehicle_info':
+    case 'homeowner_vehicle_info':
+    case 'vehicle_info':      return <VehicleInfoView {...ctx} />;
     default:                  return <QueuedReportView {...ctx} />;
   }
 }
@@ -1069,6 +1079,247 @@ function BucketPill({ bucket }: { bucket: string }) {
 // ═══════════════════════════════════════════════════════════════
 // QUEUED REPORT VIEW — Run form + recent runs for this definition
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// OWNER 1099 (summary + detail) — owners flagged send_1099, with
+// paid owner payables in the period. owner_financial_details is
+// finance-staff-only via RLS, so non-finance staff see an empty set.
+// ═══════════════════════════════════════════════════════════════
+async function Owner1099View({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, detail,
+}: ReportContext & { detail: boolean }) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  const { data: finRows } = await db
+    .from('owner_financial_details')
+    .select('owner_id, taxpayer_name, taxpayer_id, sending_preference_1099, electronic_1099_consent, owners(id, full_name, email)')
+    .eq('send_1099', true);
+  const flagged = (finRows ?? []) as any[];
+  const flaggedIds = flagged.map((r: any) => r.owner_id);
+
+  let payables: any[] = [];
+  if (flaggedIds.length > 0) {
+    let payQ = db
+      .from('owner_payables')
+      .select('id, owner_id, association_id, amount, memo, payable_type, payable_date, paid_at, status, associations(name)')
+      .in('owner_id', flaggedIds)
+      .eq('status', 'paid')
+      .gte('payable_date', period.from)
+      .lte('payable_date', period.to)
+      .order('payable_date', { ascending: false });
+    if (selectedAssociation) payQ = payQ.eq('association_id', selectedAssociation);
+    const { data } = await payQ;
+    payables = (data ?? []) as any[];
+  }
+
+  const paidByOwner = new Map<string, { total: number; count: number }>();
+  for (const p of payables) {
+    const cur = paidByOwner.get(p.owner_id) ?? { total: 0, count: 0 };
+    cur.total += Number(p.amount ?? 0);
+    cur.count += 1;
+    paidByOwner.set(p.owner_id, cur);
+  }
+  const totalPaid = payables.reduce((s, p) => s + Number(p.amount ?? 0), 0);
+  const mask = (v: string | null) => (v ? `•••-${v.slice(-4)}` : '—');
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
+              {' · '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' · '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={`${period.from} → ${period.to}`}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <Tile label="Owners flagged for 1099" value={flagged.length} tone="neutral" sub="Send 1099? = Yes" />
+          <Tile label="Paid this period" value={money(totalPaid)} tone="positive" sub={`${payables.length} payables`} />
+          <Tile label="Period" value={period.label} tone="neutral" sub={`${period.from} → ${period.to}`} />
+        </div>
+
+        {flagged.length === 0 ? (
+          <Section title="No owners flagged" subtitle="Flag owners on their profile">
+            <p className="px-5 py-6 text-sm text-gray-500">
+              No owners have &quot;Send 1099?&quot; enabled (or your role does not include finance access).
+              Enable it in the owner profile under Federal Tax, Payout &amp; Accounting Preferences.
+            </p>
+          </Section>
+        ) : detail ? (
+          <Section title="Paid owner payables" subtitle={`${payables.length} rows`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-5 py-2 text-left font-semibold">Date</th>
+                    <th className="px-4 py-2 text-left font-semibold">Owner</th>
+                    <th className="px-4 py-2 text-left font-semibold">Association</th>
+                    <th className="px-4 py-2 text-left font-semibold">Type</th>
+                    <th className="px-4 py-2 text-left font-semibold">Memo</th>
+                    <th className="px-4 py-2 text-right font-semibold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payables.map((p: any) => {
+                    const fin = flagged.find((f: any) => f.owner_id === p.owner_id);
+                    return (
+                      <tr key={p.id}>
+                        <td className="px-5 py-2 tabular-nums">{date(p.payable_date)}</td>
+                        <td className="px-4 py-2 font-medium text-gray-900">{fin?.owners?.full_name ?? '—'}</td>
+                        <td className="px-4 py-2 text-gray-600">{p.associations?.name ?? '—'}</td>
+                        <td className="px-4 py-2 capitalize text-gray-600">{String(p.payable_type ?? '').replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2 text-gray-600">{p.memo ?? '—'}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{money(p.amount)}</td>
+                      </tr>
+                    );
+                  })}
+                  {payables.length === 0 && (
+                    <tr><td colSpan={6} className="px-5 py-6 text-center text-gray-500">No paid owner payables in this period.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        ) : (
+          <Section title="1099 summary by owner" subtitle={`${flagged.length} owners`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-5 py-2 text-left font-semibold">Owner</th>
+                    <th className="px-4 py-2 text-left font-semibold">Taxpayer name</th>
+                    <th className="px-4 py-2 text-left font-semibold">Taxpayer ID</th>
+                    <th className="px-4 py-2 text-left font-semibold">Preference</th>
+                    <th className="px-4 py-2 text-left font-semibold">E-consent</th>
+                    <th className="px-4 py-2 text-right font-semibold">Paid (period)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {flagged.map((f: any) => {
+                    const paid = paidByOwner.get(f.owner_id) ?? { total: 0, count: 0 };
+                    return (
+                      <tr key={f.owner_id}>
+                        <td className="px-5 py-2 font-medium text-gray-900">
+                          <Link href={`/owners/${f.owner_id}`} className="hover:underline">{f.owners?.full_name ?? '—'}</Link>
+                        </td>
+                        <td className="px-4 py-2 text-gray-600">{f.taxpayer_name ?? '—'}</td>
+                        <td className="px-4 py-2 tabular-nums text-gray-600">{mask(f.taxpayer_id)}</td>
+                        <td className="px-4 py-2 capitalize text-gray-600">{f.sending_preference_1099}</td>
+                        <td className="px-4 py-2 text-gray-600">{f.electronic_1099_consent ? 'Yes' : 'No'}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{money(paid.total)}<span className="ml-1 text-xs text-gray-400">({paid.count})</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
+      </div>
+    </Workspace>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OWNER VEHICLE INFO — active parking assignments with vehicle data
+// ═══════════════════════════════════════════════════════════════
+async function VehicleInfoView({
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+}: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+
+  const { data } = await db
+    .from('parking_assignments')
+    .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(space_number), units(unit_number, buildings(associations(id, name)))')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  let rows = (data ?? []) as any[];
+  if (selectedAssociation) {
+    rows = rows.filter((r: any) => r.units?.buildings?.associations?.id === selectedAssociation);
+  }
+  const withVehicle = rows.filter((r: any) => r.vehicle_make || r.vehicle_model || r.license_plate);
+
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
+              {' · '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' · '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle="Active parking assignments"
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          <Tile label="Vehicles on file" value={withVehicle.length} tone="neutral" sub="From parking assignments" />
+          <Tile label="Active assignments" value={rows.length} tone="neutral" />
+          <Tile label="Missing vehicle info" value={rows.length - withVehicle.length} tone={rows.length - withVehicle.length > 0 ? 'danger' : 'positive'} />
+        </div>
+        <Section title="Vehicles" subtitle={`${rows.length} assignments`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr>
+                  <th className="px-5 py-2 text-left font-semibold">Owner / occupant</th>
+                  <th className="px-4 py-2 text-left font-semibold">Association</th>
+                  <th className="px-4 py-2 text-left font-semibold">Unit</th>
+                  <th className="px-4 py-2 text-left font-semibold">Vehicle</th>
+                  <th className="px-4 py-2 text-left font-semibold">Plate</th>
+                  <th className="px-4 py-2 text-left font-semibold">Space</th>
+                  <th className="px-4 py-2 text-left font-semibold">Insurance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {rows.map((r: any) => (
+                  <tr key={r.id}>
+                    <td className="px-5 py-2 font-medium text-gray-900">
+                      {r.owners?.id
+                        ? <Link href={`/owners/${r.owners.id}`} className="hover:underline">{r.owners.full_name}</Link>
+                        : (r.occupant_name ?? '—')}
+                    </td>
+                    <td className="px-4 py-2 text-gray-600">{r.units?.buildings?.associations?.name ?? '—'}</td>
+                    <td className="px-4 py-2 text-gray-600">{r.units?.unit_number ?? '—'}</td>
+                    <td className="px-4 py-2 text-gray-600">{[r.vehicle_color, r.vehicle_make, r.vehicle_model].filter(Boolean).join(' ') || '—'}</td>
+                    <td className="px-4 py-2 tabular-nums text-gray-600">{r.license_plate ?? '—'}</td>
+                    <td className="px-4 py-2 text-gray-600">{r.parking_spaces?.space_number ?? '—'}</td>
+                    <td className="px-4 py-2 text-gray-600">{r.insurance_company ?? '—'}</td>
+                  </tr>
+                ))}
+                {rows.length === 0 && (
+                  <tr><td colSpan={7} className="px-5 py-6 text-center text-gray-500">No active parking assignments.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </div>
+    </Workspace>
+  );
+}
+
 function QueuedReportView(ctx: ReportContext) {
   const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope } = ctx;
 

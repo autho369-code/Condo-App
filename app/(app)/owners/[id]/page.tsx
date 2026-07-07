@@ -12,6 +12,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
 import { addPet, addTenant, endTenancy, removePet, saveOwnerEmergencyContact } from './occupancy-actions';
+import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
   return full ?? [last, first].filter(Boolean).join(', ') ?? '—';
 }
 
-export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string }> }) {
+export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
   await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
@@ -40,7 +41,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: units },
   ] = await Promise.all([
     db.from('owners')
-      .select('id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
+      .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
@@ -75,7 +76,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   ]);
 
   // ── Cross-module records for this owner (board seat, HO-6, vehicles, agreements) ──
-  const [{ data: boardSeats }, { data: ho6Policies }, { data: parkingRows }, { data: mgmtAgreements }] = await Promise.all([
+  const [
+    { data: boardSeats }, { data: ho6Policies }, { data: parkingRows }, { data: mgmtAgreements },
+    { data: finDetails }, { data: attachments }, { data: auditRows },
+  ] = await Promise.all([
     db.from('board_members')
       .select('id, role, term_start, term_end, active, associations(name)')
       .eq('owner_id', id).eq('active', true),
@@ -88,7 +92,23 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     db.from('management_agreements')
       .select('id, name, status, start_date, end_date')
       .eq('owner_id', id).is('archived_at', null).order('start_date', { ascending: false }).limit(5),
+    // RLS: only finance staff get a row back — others see the restricted note
+    db.from('owner_financial_details').select('*').eq('owner_id', id).maybeSingle(),
+    db.from('owner_attachments').select('id, file_name, file_path, content_type, size_bytes, created_at').eq('owner_id', id).order('created_at', { ascending: false }),
+    db.from('audit_logs').select('action, actor_email, changes, created_at').eq('entity_type', 'owner').eq('entity_id', id).order('created_at', { ascending: false }).limit(15),
   ]);
+
+  // 1-hour signed links for attachments (private bucket)
+  const attachmentUrlByPath = new Map<string, string>();
+  if ((attachments ?? []).length > 0) {
+    const svc2 = createServiceClient() as any;
+    const { data: signed } = await svc2.storage.from('association-documents')
+      .createSignedUrls((attachments ?? []).map((a: any) => a.file_path), 3600);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) attachmentUrlByPath.set(s.path, s.signedUrl);
+    }
+  }
+  const maskTail = (v: string | null | undefined) => (v ? `••••${v.slice(-4)}` : null);
 
   const activeTenantsByUnit = new Map<string, any[]>();
   for (const t of (tenants ?? []).filter((t: any) => t.status === 'active')) {
@@ -270,6 +290,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'financial' && <div className="mb-4"><Alert tone="success" title="Financial details saved" /></div>}
+      {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
       {sp.portal_created === '1' && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="flex items-start justify-between">
@@ -916,6 +938,89 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           </details>
         </Section>
 
+        {/* ── Federal tax, payout & accounting preferences (finance staff) ── */}
+        <Section title="Federal Tax, Payout & Accounting Preferences">
+          {finDetails === null && (
+            <p className="px-5 py-3 text-xs text-gray-500">
+              No details on file yet, or your role does not include finance access. Values below save only for finance-permitted staff.
+            </p>
+          )}
+          <details className="group px-5 py-4">
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">
+              {finDetails ? 'Edit details' : 'Add details'}
+              {finDetails?.hold_payments && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">Payments on hold</span>}
+              {finDetails?.send_1099 && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">1099 enabled</span>}
+            </summary>
+            <form action={saveOwnerFinancialDetails.bind(null, id, owner.portfolio_id)} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Federal tax</div>
+              <div>
+                <Label htmlFor="taxpayer_name">Taxpayer name</Label>
+                <Input id="taxpayer_name" name="taxpayer_name" defaultValue={finDetails?.taxpayer_name ?? ''} />
+              </div>
+              <div>
+                <Label htmlFor="taxpayer_id">Taxpayer ID (SSN/EIN)</Label>
+                <Input id="taxpayer_id" name="taxpayer_id" placeholder={maskTail(finDetails?.taxpayer_id) ?? 'Not on file'} autoComplete="off" />
+                <p className="mt-1 text-xs text-gray-500">Leave blank to keep the stored value.</p>
+              </div>
+              <div>
+                <Label htmlFor="tax_form_account_number">Tax form account number</Label>
+                <Input id="tax_form_account_number" name="tax_form_account_number" defaultValue={finDetails?.tax_form_account_number ?? ''} />
+              </div>
+              <div>
+                <Label htmlFor="sending_preference_1099">1099 sending preference</Label>
+                <select id="sending_preference_1099" name="sending_preference_1099" defaultValue={finDetails?.sending_preference_1099 ?? 'paper'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                  <option value="paper">Paper</option>
+                  <option value="electronic">Electronic</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="send_1099" defaultChecked={Boolean(finDetails?.send_1099)} className="h-4 w-4 rounded border-gray-300" /> Send 1099?
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="electronic_1099_consent" defaultChecked={Boolean(finDetails?.electronic_1099_consent)} className="h-4 w-4 rounded border-gray-300" /> Consented to electronic 1099
+              </label>
+
+              <div className="md:col-span-2 mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Payout bank account (reimbursements &amp; owner payables)</div>
+              <div>
+                <Label htmlFor="bank_routing_number">Bank routing number</Label>
+                <Input id="bank_routing_number" name="bank_routing_number" placeholder={maskTail(finDetails?.bank_routing_number) ?? 'Not on file'} autoComplete="off" />
+              </div>
+              <div>
+                <Label htmlFor="bank_account_number">Bank account number</Label>
+                <Input id="bank_account_number" name="bank_account_number" placeholder={maskTail(finDetails?.bank_account_number) ?? 'Not on file'} autoComplete="off" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700 md:col-span-2">
+                <input type="checkbox" name="paid_by_ach" defaultChecked={Boolean(finDetails?.paid_by_ach)} className="h-4 w-4 rounded border-gray-300" /> Pay this owner by ACH
+              </label>
+
+              <div className="md:col-span-2 mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Accounting preferences</div>
+              <div>
+                <Label htmlFor="check_consolidation">Check consolidation</Label>
+                <select id="check_consolidation" name="check_consolidation" defaultValue={finDetails?.check_consolidation ?? 'single_check'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                  <option value="single_check">All payables on a single check</option>
+                  <option value="separate_checks">Separate check per payable</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="default_check_memo">Default check memo</Label>
+                <Input id="default_check_memo" name="default_check_memo" defaultValue={finDetails?.default_check_memo ?? ''} />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="check_stub_show_detail" defaultChecked={finDetails ? Boolean(finDetails.check_stub_show_detail) : true} className="h-4 w-4 rounded border-gray-300" /> Show detail on check stub
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="hold_payments" defaultChecked={Boolean(finDetails?.hold_payments)} className="h-4 w-4 rounded border-gray-300" /> Hold payments
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="email_echeck_receipt" defaultChecked={Boolean(finDetails?.email_echeck_receipt)} className="h-4 w-4 rounded border-gray-300" /> Email eCheck receipt
+              </label>
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">Save financial details</Button>
+              </div>
+            </form>
+          </details>
+        </Section>
+
         {/* ── Recent activity ── */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Section title={`Service requests (${srs?.length ?? 0})`}>
@@ -1020,6 +1125,54 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 ))}
               </ul>
             ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No management agreements on file.</p>}
+          </Section>
+
+          <Section title={`Attachments (${attachments?.length ?? 0})`}>
+            <div className="divide-y divide-gray-100">
+              {(attachments ?? []).map((a: any) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                  <div className="min-w-0">
+                    {attachmentUrlByPath.has(a.file_path) ? (
+                      <a href={attachmentUrlByPath.get(a.file_path)} target="_blank" rel="noreferrer" className="block truncate font-medium text-gray-900 hover:underline">{a.file_name}</a>
+                    ) : (
+                      <span className="block truncate font-medium text-gray-900">{a.file_name}</span>
+                    )}
+                    <div className="text-xs text-gray-500">
+                      {a.size_bytes != null ? `${Math.max(1, Math.round(a.size_bytes / 1024))} KB · ` : ''}{date(a.created_at)}
+                    </div>
+                  </div>
+                  <form action={removeOwnerAttachment.bind(null, id, a.id)}>
+                    <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Remove</button>
+                  </form>
+                </div>
+              ))}
+              {(attachments ?? []).length === 0 && (
+                <p className="px-4 py-4 text-center text-sm text-gray-500">No attachments yet.</p>
+              )}
+              <form action={addOwnerAttachment.bind(null, id, owner.portfolio_id)} className="flex items-center gap-2 px-4 py-3">
+                <input type="file" name="file" required className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 hover:file:bg-gray-50" />
+                <Button type="submit" size="sm" variant="secondary">Upload</Button>
+              </form>
+            </div>
+          </Section>
+
+          <Section title="Audit log">
+            {auditRows && auditRows.length > 0 ? (
+              <ul className="divide-y divide-gray-100">
+                {auditRows.map((r: any, i: number) => (
+                  <li key={i} className="px-4 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium capitalize">{String(r.action).replace(/[:_]/g, ' ')}</span>
+                      <span className="text-xs text-gray-400">{date(r.created_at)}</span>
+                    </div>
+                    <div className="truncate text-xs text-gray-500">
+                      {r.actor_email ?? 'system'}
+                      {r.changes ? ` · ${Object.keys(r.changes).join(', ')}` : ''}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No recorded changes yet. Edits to this owner are logged automatically from now on.</p>}
           </Section>
         </div>
       </div>
