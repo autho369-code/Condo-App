@@ -1,6 +1,4 @@
 import Link from 'next/link'
-import { promises as fs } from 'fs';
-import path from 'path';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -37,23 +35,7 @@ const jsonLd = {
   ],
 }
 
-async function getCityLinks() {
-  const filePath = path.join(process.cwd(), 'cities.csv');
-  const fileContents = await fs.readFile(filePath, 'utf8');
-  const cities = fileContents.split('\n').slice(1).flatMap(line => {
-      const [city] = line.split(',');
-      if (!city) return [];
-      return [{
-          href: `/local/${city.toLowerCase().replace(/ /g, '-')}`,
-          name: city
-      }];
-  });
-  return cities;
-}
-
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const cityLinks = await getCityLinks();
-
   return (
     <div className="min-h-screen bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -104,14 +86,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
                   <Link href="/login?mode=company_admin" className="block text-gray-600 hover:text-gray-900">Company admin</Link>
                   <Link href="/login?mode=admin" className="block text-gray-600 hover:text-gray-900">Operator</Link>
                 </div>
-              </div>
-              <div>
-                  <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Locations</div>
-                  <div className="space-y-2 text-sm">
-                      {cityLinks.slice(0, 10).map(link => (
-                          <Link key={link.href} href={link.href} className="block text-gray-600 hover:text-gray-900">{link.name}</Link>
-                      ))}
-                  </div>
               </div>
               <div>
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Legal</div>
