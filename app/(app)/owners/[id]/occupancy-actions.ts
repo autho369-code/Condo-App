@@ -142,3 +142,39 @@ export async function removePet(petId: string, ownerId: string) {
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }
+
+// ── Vehicles (person-level, independent of parking-space assignment) ──
+export async function addVehicle(ownerId: string, formData: FormData) {
+  const me = await requireStaff();
+  const make = (formData.get('make') as string)?.trim();
+  const plate = (formData.get('license_plate') as string)?.trim();
+  if (!make && !plate) fail(ownerId, 'Enter at least a make or a license plate.');
+
+  const supabase = await createClient();
+  const yearRaw = (formData.get('year') as string)?.trim();
+  const { error } = await (supabase as any).from('owner_vehicles').insert({
+    portfolio_id: me.portfolio?.id,
+    owner_id: ownerId,
+    make: make || null,
+    model: (formData.get('model') as string)?.trim() || null,
+    color: (formData.get('color') as string)?.trim() || null,
+    year: yearRaw ? parseInt(yearRaw, 10) || null : null,
+    license_plate: plate || null,
+    plate_state: (formData.get('plate_state') as string)?.trim() || null,
+  });
+  if (error) fail(ownerId, `Could not add vehicle: ${error.message}`);
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}`);
+}
+
+export async function removeVehicle(vehicleId: string, ownerId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await (supabase as any)
+    .from('owner_vehicles')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', vehicleId);
+  if (error) fail(ownerId, `Could not remove vehicle: ${error.message}`);
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}`);
+}

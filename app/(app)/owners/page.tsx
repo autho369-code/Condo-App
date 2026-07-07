@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +29,7 @@ type OwnerRow = {
   associationAddress: string | null;
   unitNumber: string | null;
   occupancyType: string | null;
+  balance: number;
 };
 
 function formatName(first?: string | null, last?: string | null, full?: string | null) {
@@ -96,6 +97,21 @@ export default async function OwnersPage({
     }
   }
 
+  // Outstanding balance per owner (for the at-a-glance delinquency chip)
+  const occUnitIds = [...new Set((occupancies ?? []).map((o: any) => o.unit_id).filter(Boolean))];
+  const balanceByUnit = new Map<string, number>();
+  if (occUnitIds.length > 0) {
+    const { data: balances } = await (supabase as any)
+      .from('unit_balances').select('unit_id, balance').in('unit_id', occUnitIds);
+    for (const b of balances ?? []) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
+  }
+  const balanceByOwner = new Map<string, number>();
+  for (const occupancy of occupancies ?? []) {
+    const o = occupancy as any;
+    if (!o.owner_id || !o.unit_id) continue;
+    balanceByOwner.set(o.owner_id, (balanceByOwner.get(o.owner_id) ?? 0) + (balanceByUnit.get(o.unit_id) ?? 0));
+  }
+
   let rows: OwnerRow[] = (owners ?? []).map((owner: any) => {
     const occupancy = occupancyByOwner.get(owner.id);
     const association = occupancy?.units?.buildings?.associations;
@@ -113,6 +129,7 @@ export default async function OwnersPage({
       associationAddress: assocAddress(association),
       unitNumber: occupancy?.units?.unit_number ?? null,
       occupancyType: occupancy?.occupancy_type ?? null,
+      balance: balanceByOwner.get(owner.id) ?? 0,
     };
   });
 
@@ -324,7 +341,10 @@ export default async function OwnersPage({
               rows.map((row) => (
                 <TR key={row.id} className="hover:bg-gray-50">
                   <TD>
-                    <Link href={`/owners/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/owners/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
+                      {row.balance > 0 && <StatusChip tone="danger">{money(row.balance)} due</StatusChip>}
+                    </div>
                     <div className="mt-1 text-xs text-gray-500">{row.preferredComm.replace(/_/g, ' ')} preferred</div>
                   </TD>
                   <TD>

@@ -8,6 +8,7 @@ import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
+import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,75 @@ export default async function AssociationProfileTab({
       .from('associations')
       .update({ site_manager_user_id: userId, site_manager: displayName })
       .eq('id', id);
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
+
+  // Reserve fund settings + loans (audit 2.5)
+  const [{ data: reserve }, { data: loans }] = await Promise.all([
+    (supabase as any).from('reserve_fund_settings').select('*').eq('association_id', id).maybeSingle(),
+    (supabase as any).from('association_loans').select('*').eq('association_id', id).is('archived_at', null).order('created_at'),
+  ]);
+
+  async function saveReserveSettings(formData: FormData) {
+    'use server';
+    const me2 = await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const num = (k: string) => { const v = ((formData.get(k) as string) || '').replace(/[$,%\s]/g, ''); return v ? Number(v) : null; };
+    const dt = (k: string) => ((formData.get(k) as string) || '').trim() || null;
+    const { error } = await (sb as any).from('reserve_fund_settings').upsert({
+      association_id: id,
+      portfolio_id: assoc.portfolio_id,
+      target_amount: num('target_amount'),
+      monthly_contribution: num('monthly_contribution'),
+      percent_funded: num('percent_funded'),
+      last_study_date: dt('last_study_date'),
+      next_study_due: dt('next_study_due'),
+      notes: ((formData.get('reserve_notes') as string) || '').trim() || null,
+      updated_at: new Date().toISOString(),
+      updated_by: (me2 as any).auth_user_id,
+    }, { onConflict: 'association_id' });
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
+
+  async function addLoan(formData: FormData) {
+    'use server';
+    await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const lender = ((formData.get('lender') as string) || '').trim();
+    if (!lender) fail('Lender name is required.');
+    const num = (k: string) => { const v = ((formData.get(k) as string) || '').replace(/[$,%\s]/g, ''); return v ? Number(v) : null; };
+    const dt = (k: string) => ((formData.get(k) as string) || '').trim() || null;
+    const { error } = await (sb as any).from('association_loans').insert({
+      portfolio_id: assoc.portfolio_id,
+      association_id: id,
+      lender,
+      loan_type: ((formData.get('loan_type') as string) || 'mortgage'),
+      original_principal: num('original_principal'),
+      current_balance: num('current_balance'),
+      interest_rate: num('interest_rate'),
+      term_months: num('term_months'),
+      start_date: dt('start_date'),
+      maturity_date: dt('maturity_date'),
+      payment_amount: num('payment_amount'),
+      next_payment_date: dt('next_payment_date'),
+    });
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
+
+  async function archiveLoan(loanId: string) {
+    'use server';
+    await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const { error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId);
     if (error) fail(error.message);
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
@@ -202,6 +272,124 @@ export default async function AssociationProfileTab({
               <Button type="submit">Save payment instructions</Button>
             </div>
           </form>
+        </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section title="Reserve Fund" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            Reserve study targets and contribution schedule. Feeds the Reserve Fund Analysis report;
+            actual reserve balances come from bank accounts designated fund type &quot;reserve&quot;.
+          </p>
+          <form action={saveReserveSettings} className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="target_amount">Target funding level ($)</Label>
+              <Input id="target_amount" name="target_amount" defaultValue={reserve?.target_amount ?? ''} inputMode="decimal" />
+            </div>
+            <div>
+              <Label htmlFor="monthly_contribution">Monthly contribution ($)</Label>
+              <Input id="monthly_contribution" name="monthly_contribution" defaultValue={reserve?.monthly_contribution ?? ''} inputMode="decimal" />
+            </div>
+            <div>
+              <Label htmlFor="percent_funded">Percent funded (last study, %)</Label>
+              <Input id="percent_funded" name="percent_funded" defaultValue={reserve?.percent_funded ?? ''} inputMode="decimal" />
+            </div>
+            <div>
+              <Label htmlFor="last_study_date">Last reserve study</Label>
+              <Input id="last_study_date" name="last_study_date" type="date" defaultValue={reserve?.last_study_date ?? ''} />
+            </div>
+            <div>
+              <Label htmlFor="next_study_due">Next study due</Label>
+              <Input id="next_study_due" name="next_study_due" type="date" defaultValue={reserve?.next_study_due ?? ''} />
+            </div>
+            <div>
+              <Label htmlFor="reserve_notes">Notes</Label>
+              <Input id="reserve_notes" name="reserve_notes" defaultValue={reserve?.notes ?? ''} />
+            </div>
+            <div className="flex justify-end sm:col-span-2">
+              <Button type="submit">Save reserve settings</Button>
+            </div>
+          </form>
+        </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section title={`Loans & Mortgages (${loans?.length ?? 0})`} padded>
+          {(loans ?? []).length > 0 && (
+            <ul className="mb-4 divide-y divide-gray-100">
+              {(loans ?? []).map((l: any) => (
+                <li key={l.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-900">{l.lender}</span>
+                    <span className="ml-2 text-xs capitalize text-gray-500">{String(l.loan_type).replace(/_/g, ' ')}</span>
+                    <div className="text-xs text-gray-500">
+                      {l.current_balance != null ? `Balance $${Number(l.current_balance).toLocaleString()}` : 'No balance'}
+                      {l.interest_rate != null ? ` · ${l.interest_rate}%` : ''}
+                      {l.payment_amount != null ? ` · $${Number(l.payment_amount).toLocaleString()}/${l.payment_frequency ?? 'mo'}` : ''}
+                      {l.next_payment_date ? ` · next ${date(l.next_payment_date)}` : ''}
+                      {l.maturity_date ? ` · matures ${date(l.maturity_date)}` : ''}
+                    </div>
+                  </div>
+                  <form action={archiveLoan.bind(null, l.id)}>
+                    <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Archive</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          <details>
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">+ Add loan / mortgage</summary>
+            <form action={addLoan} className="mt-4 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="lender">Lender *</Label>
+                <Input id="lender" name="lender" required />
+              </div>
+              <div>
+                <Label htmlFor="loan_type">Type</Label>
+                <select id="loan_type" name="loan_type" defaultValue="mortgage" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                  <option value="mortgage">Mortgage</option>
+                  <option value="line_of_credit">Line of credit</option>
+                  <option value="note">Note</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="original_principal">Original principal ($)</Label>
+                <Input id="original_principal" name="original_principal" inputMode="decimal" />
+              </div>
+              <div>
+                <Label htmlFor="current_balance">Current balance ($)</Label>
+                <Input id="current_balance" name="current_balance" inputMode="decimal" />
+              </div>
+              <div>
+                <Label htmlFor="interest_rate">Interest rate (%)</Label>
+                <Input id="interest_rate" name="interest_rate" inputMode="decimal" />
+              </div>
+              <div>
+                <Label htmlFor="term_months">Term (months)</Label>
+                <Input id="term_months" name="term_months" inputMode="numeric" />
+              </div>
+              <div>
+                <Label htmlFor="payment_amount">Payment amount ($)</Label>
+                <Input id="payment_amount" name="payment_amount" inputMode="decimal" />
+              </div>
+              <div>
+                <Label htmlFor="next_payment_date">Next payment date</Label>
+                <Input id="next_payment_date" name="next_payment_date" type="date" />
+              </div>
+              <div>
+                <Label htmlFor="start_date">Start date</Label>
+                <Input id="start_date" name="start_date" type="date" />
+              </div>
+              <div>
+                <Label htmlFor="maturity_date">Maturity date</Label>
+                <Input id="maturity_date" name="maturity_date" type="date" />
+              </div>
+              <div className="flex justify-end sm:col-span-2">
+                <Button type="submit">Add loan</Button>
+              </div>
+            </form>
+          </details>
         </Section>
       </div>
     </Workspace>

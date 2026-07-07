@@ -31,6 +31,13 @@ const LIVE_REPORT_SLUGS = [
   'owner_vehicle_info',
   'homeowner_vehicle_info',
   'vehicle_info',
+  'loan_statement',
+  'reserve_fund_analysis',
+  'fund_balance_sheet',
+  'trust_account_balance',
+  'trust_account_detail',
+  'management_fee_summary',
+  'owner_prepaid',
 ] as const;
 
 type LiveReportSlug = (typeof LIVE_REPORT_SLUGS)[number];
@@ -106,6 +113,13 @@ async function LiveReportView(
     case 'owner_vehicle_info':
     case 'homeowner_vehicle_info':
     case 'vehicle_info':      return <VehicleInfoView {...ctx} />;
+    case 'loan_statement':    return <LoanStatementView {...ctx} />;
+    case 'reserve_fund_analysis': return <ReserveFundView {...ctx} />;
+    case 'fund_balance_sheet':
+    case 'trust_account_balance': return <FundBalanceView {...ctx} trustOnly={ctx.slug === 'trust_account_balance'} />;
+    case 'trust_account_detail':  return <TrustDetailView {...ctx} />;
+    case 'management_fee_summary': return <ManagementFeeSummaryView {...ctx} />;
+    case 'owner_prepaid':     return <OwnerPrepaidView {...ctx} />;
     default:                  return <QueuedReportView {...ctx} />;
   }
 }
@@ -1240,16 +1254,35 @@ async function VehicleInfoView({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data } = await db
-    .from('parking_assignments')
-    .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(space_number), units(unit_number, buildings(associations(id, name)))')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+  const [{ data }, { data: personVehicles }] = await Promise.all([
+    db.from('parking_assignments')
+      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(space_number), units(unit_number, buildings(associations(id, name)))')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false }),
+    db.from('owner_vehicles')
+      .select('id, make, model, color, year, license_plate, plate_state, owners(id, full_name)')
+      .is('archived_at', null)
+      .order('created_at', { ascending: false }),
+  ]);
 
   let rows = (data ?? []) as any[];
   if (selectedAssociation) {
     rows = rows.filter((r: any) => r.units?.buildings?.associations?.id === selectedAssociation);
   }
+  // Person-level vehicles (owner record, no parking space required)
+  const ownerRows = ((personVehicles ?? []) as any[]).map((v: any) => ({
+    id: `ov-${v.id}`,
+    vehicle_make: v.make,
+    vehicle_model: v.model,
+    vehicle_color: [v.year, v.color].filter(Boolean).join(' '),
+    license_plate: v.license_plate ? `${v.license_plate}${v.plate_state ? ` (${v.plate_state})` : ''}` : null,
+    insurance_company: null,
+    occupant_name: null,
+    owners: v.owners,
+    parking_spaces: null,
+    units: null,
+  }));
+  rows = [...ownerRows, ...rows];
   const withVehicle = rows.filter((r: any) => r.vehicle_make || r.vehicle_model || r.license_plate);
 
   return (
@@ -1317,6 +1350,440 @@ async function VehicleInfoView({
         </Section>
       </div>
     </Workspace>
+  );
+}
+
+// Shared: derived balance per bank account GL through a date
+async function bankGlBalances(db: any, glIds: string[], toDate: string, associationId?: string) {
+  const balByGl: Record<string, number> = {};
+  if (glIds.length === 0) return balByGl;
+  let q = db
+    .from('journal_lines')
+    .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted, entry_date)')
+    .in('gl_account_id', glIds)
+    .eq('journal_entries.posted', true)
+    .lte('journal_entries.entry_date', toDate);
+  if (associationId) q = q.eq('association_id', associationId);
+  const { data } = await q;
+  for (const l of (data ?? []) as any[]) {
+    balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
+  }
+  return balByGl;
+}
+
+function LiveReportShell({ ctx, subtitle, children }: { ctx: ReportContext; subtitle: string; children: React.ReactNode }) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope } = ctx;
+  return (
+    <Workspace
+      header={
+        <WorkspaceHeader
+          eyebrow={
+            <>
+              <Link href="/reports" className="transition-colors hover:text-gray-700">Reports</Link>
+              {' · '}
+              <span className="text-gray-400">{CATEGORY_LABELS[def.category] ?? def.category}</span>
+              {' · '}
+              <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold uppercase text-green-700">live</span>
+            </>
+          }
+          title={def.name}
+          subtitle={subtitle}
+        />
+      }
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+    >
+      <div className="space-y-4">{children}</div>
+    </Workspace>
+  );
+}
+
+const thCls = 'px-4 py-2 text-left font-semibold';
+const thRight = 'px-4 py-2 text-right font-semibold';
+
+// ═══ LOAN STATEMENT ═══
+async function LoanStatementView(ctx: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  let q = db.from('association_loans').select('*, associations(name)').is('archived_at', null).order('created_at');
+  if (ctx.selectedAssociation) q = q.eq('association_id', ctx.selectedAssociation);
+  const { data } = await q;
+  const loans = (data ?? []) as any[];
+  const totalBalance = loans.reduce((s, l) => s + Number(l.current_balance ?? 0), 0);
+  const active = loans.filter((l) => l.status === 'active');
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle="Loans and mortgages by association">
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label="Active loans" value={active.length} tone="neutral" />
+        <Tile label="Total outstanding" value={money(totalBalance)} tone={totalBalance > 0 ? 'danger' : 'positive'} />
+        <Tile label="Next payment" value={active.map((l) => l.next_payment_date).filter(Boolean).sort()[0] ? date(active.map((l) => l.next_payment_date).filter(Boolean).sort()[0]) : '—'} tone="neutral" />
+      </div>
+      <Section title="Loans" subtitle={`${loans.length} records`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Lender</th>
+                <th className={thCls}>Association</th>
+                <th className={thCls}>Type</th>
+                <th className={thRight}>Original</th>
+                <th className={thRight}>Balance</th>
+                <th className={thRight}>Rate</th>
+                <th className={thRight}>Payment</th>
+                <th className={thCls}>Next due</th>
+                <th className={thCls}>Matures</th>
+                <th className={thCls}>Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loans.map((l: any) => (
+                <tr key={l.id}>
+                  <td className="px-5 py-2 font-medium text-gray-900">{l.lender}</td>
+                  <td className="px-4 py-2 text-gray-600">{l.associations?.name ?? '—'}</td>
+                  <td className="px-4 py-2 capitalize text-gray-600">{String(l.loan_type).replace(/_/g, ' ')}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{l.original_principal != null ? money(l.original_principal) : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{l.current_balance != null ? money(l.current_balance) : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{l.interest_rate != null ? `${l.interest_rate}%` : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{l.payment_amount != null ? money(l.payment_amount) : '—'}</td>
+                  <td className="px-4 py-2 tabular-nums text-gray-600">{l.next_payment_date ? date(l.next_payment_date) : '—'}</td>
+                  <td className="px-4 py-2 tabular-nums text-gray-600">{l.maturity_date ? date(l.maturity_date) : '—'}</td>
+                  <td className="px-4 py-2 capitalize text-gray-600">{String(l.status).replace(/_/g, ' ')}</td>
+                </tr>
+              ))}
+              {loans.length === 0 && (
+                <tr><td colSpan={10} className="px-5 py-6 text-center text-gray-500">No loans on file. Add them on the association Profile tab.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ RESERVE FUND ANALYSIS ═══
+async function ReserveFundView(ctx: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  let sq = db.from('reserve_fund_settings').select('*, associations(id, name)');
+  if (ctx.selectedAssociation) sq = sq.eq('association_id', ctx.selectedAssociation);
+  const [{ data: settings }, { data: reserveBanks }] = await Promise.all([
+    sq,
+    db.from('bank_accounts').select('id, name, association_id, gl_account_id, fund_type').eq('fund_type', 'reserve').is('archived_at', null),
+  ]);
+  const rows = (settings ?? []) as any[];
+  const banks = (reserveBanks ?? []) as any[];
+  const balByGl = await bankGlBalances(db, banks.map((b) => b.gl_account_id).filter(Boolean), ctx.period.to);
+  const balanceByAssoc = new Map<string, number>();
+  for (const b of banks) {
+    if (!b.association_id) continue;
+    balanceByAssoc.set(b.association_id, (balanceByAssoc.get(b.association_id) ?? 0) + (balByGl[b.gl_account_id] ?? 0));
+  }
+  const totalTarget = rows.reduce((s, r) => s + Number(r.target_amount ?? 0), 0);
+  const totalActual = [...balanceByAssoc.values()].reduce((s, v) => s + v, 0);
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={`Reserve position as of ${ctx.period.to}`}>
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label="Reserve balance (banks)" value={money(totalActual)} tone="positive" sub="Accounts designated 'reserve'" />
+        <Tile label="Target funding" value={money(totalTarget)} tone="neutral" />
+        <Tile label="Funded vs target" value={totalTarget > 0 ? `${Math.round((totalActual / totalTarget) * 100)}%` : '—'} tone={totalTarget > 0 && totalActual >= totalTarget ? 'positive' : 'neutral'} />
+      </div>
+      <Section title="Reserve fund by association" subtitle={`${rows.length} configured`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Association</th>
+                <th className={thRight}>Reserve balance</th>
+                <th className={thRight}>Target</th>
+                <th className={thRight}>% of target</th>
+                <th className={thRight}>Monthly contribution</th>
+                <th className={thRight}>Study % funded</th>
+                <th className={thCls}>Last study</th>
+                <th className={thCls}>Next due</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((r: any) => {
+                const bal = balanceByAssoc.get(r.association_id) ?? 0;
+                const pct = r.target_amount ? Math.round((bal / Number(r.target_amount)) * 100) : null;
+                return (
+                  <tr key={r.association_id}>
+                    <td className="px-5 py-2 font-medium text-gray-900">{r.associations?.name ?? '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{money(bal)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{r.target_amount != null ? money(r.target_amount) : '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{pct != null ? `${pct}%` : '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{r.monthly_contribution != null ? money(r.monthly_contribution) : '—'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{r.percent_funded != null ? `${r.percent_funded}%` : '—'}</td>
+                    <td className="px-4 py-2 tabular-nums text-gray-600">{r.last_study_date ? date(r.last_study_date) : '—'}</td>
+                    <td className="px-4 py-2 tabular-nums text-gray-600">{r.next_study_due ? date(r.next_study_due) : '—'}</td>
+                  </tr>
+                );
+              })}
+              {rows.length === 0 && (
+                <tr><td colSpan={8} className="px-5 py-6 text-center text-gray-500">No reserve settings configured yet. Set targets on each association&apos;s Profile tab.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ FUND BALANCE SHEET / TRUST ACCOUNT BALANCE ═══
+async function FundBalanceView(ctx: ReportContext & { trustOnly: boolean }) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  let bq = db.from('bank_accounts').select('id, name, bank_name, fund_type, association_id, gl_account_id, associations(name)').is('archived_at', null).order('name');
+  if (ctx.selectedAssociation) bq = bq.eq('association_id', ctx.selectedAssociation);
+  const { data } = await bq;
+  let banks = (data ?? []) as any[];
+  if (ctx.trustOnly) banks = banks.filter((b) => b.fund_type && b.fund_type !== 'operating' && b.fund_type !== 'petty_cash');
+  const balByGl = await bankGlBalances(db, banks.map((b) => b.gl_account_id).filter(Boolean), ctx.period.to, ctx.selectedAssociation || undefined);
+
+  const groups = new Map<string, any[]>();
+  for (const b of banks) {
+    const k = b.fund_type ?? 'unassigned';
+    groups.set(k, [...(groups.get(k) ?? []), b]);
+  }
+  const total = banks.reduce((s, b) => s + (balByGl[b.gl_account_id] ?? 0), 0);
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={ctx.trustOnly ? `Trust-designated funds as of ${ctx.period.to}` : `Balances by fund as of ${ctx.period.to}`}>
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label={ctx.trustOnly ? 'Trust funds total' : 'All funds total'} value={money(total)} tone="positive" />
+        <Tile label="Accounts" value={banks.length} tone="neutral" />
+        <Tile label="Fund types" value={groups.size} tone="neutral" />
+      </div>
+      {[...groups.entries()].map(([fund, accts]) => {
+        const sub = accts.reduce((s: number, b: any) => s + (balByGl[b.gl_account_id] ?? 0), 0);
+        return (
+          <Section key={fund} title={fund.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} subtitle={`${accts.length} accounts · ${money(sub)}`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                  <tr>
+                    <th className="px-5 py-2 text-left font-semibold">Account</th>
+                    <th className={thCls}>Bank</th>
+                    <th className={thCls}>Association</th>
+                    <th className={thRight}>Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {accts.map((b: any) => (
+                    <tr key={b.id}>
+                      <td className="px-5 py-2 font-medium text-gray-900">{b.name}</td>
+                      <td className="px-4 py-2 text-gray-600">{b.bank_name ?? '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">{b.associations?.name ?? '—'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{money(balByGl[b.gl_account_id] ?? 0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        );
+      })}
+      {banks.length === 0 && (
+        <Section title="No accounts">
+          <p className="px-5 py-6 text-sm text-gray-500">
+            {ctx.trustOnly
+              ? 'No bank accounts are designated as trust funds (reserve, special assessment, escrow…). Set a fund type on each bank account.'
+              : 'No bank accounts found.'}
+          </p>
+        </Section>
+      )}
+    </LiveReportShell>
+  );
+}
+
+// ═══ TRUST ACCOUNT DETAIL ═══
+async function TrustDetailView(ctx: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  const { data: banksData } = await db.from('bank_accounts').select('id, name, fund_type, gl_account_id').is('archived_at', null);
+  const trustBanks = ((banksData ?? []) as any[]).filter((b) => b.fund_type && b.fund_type !== 'operating' && b.fund_type !== 'petty_cash');
+  const glIds = trustBanks.map((b) => b.gl_account_id).filter(Boolean);
+  const nameByGl = new Map(trustBanks.map((b) => [b.gl_account_id, `${b.name} (${b.fund_type})`]));
+
+  let lines: any[] = [];
+  if (glIds.length > 0) {
+    let lq = db
+      .from('journal_lines')
+      .select('id, gl_account_id, debit_amount, credit_amount, association_id, journal_entries!inner(entry_date, posted, memo, description)')
+      .in('gl_account_id', glIds)
+      .eq('journal_entries.posted', true)
+      .gte('journal_entries.entry_date', ctx.period.from)
+      .lte('journal_entries.entry_date', ctx.period.to);
+    if (ctx.selectedAssociation) lq = lq.eq('association_id', ctx.selectedAssociation);
+    const { data } = await lq;
+    lines = ((data ?? []) as any[]).sort((a, b) => String(b.journal_entries?.entry_date).localeCompare(String(a.journal_entries?.entry_date)));
+  }
+  const inflows = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
+  const outflows = lines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={`Trust activity ${ctx.period.from} → ${ctx.period.to}`}>
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label="Deposits" value={money(inflows)} tone="positive" />
+        <Tile label="Withdrawals" value={money(outflows)} tone="danger" />
+        <Tile label="Net" value={money(inflows - outflows)} tone={inflows - outflows >= 0 ? 'positive' : 'danger'} />
+      </div>
+      <Section title="Trust account activity" subtitle={`${lines.length} entries`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Date</th>
+                <th className={thCls}>Account</th>
+                <th className={thCls}>Memo</th>
+                <th className={thRight}>Debit</th>
+                <th className={thRight}>Credit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {lines.slice(0, 200).map((l: any) => (
+                <tr key={l.id}>
+                  <td className="px-5 py-2 tabular-nums">{date(l.journal_entries?.entry_date)}</td>
+                  <td className="px-4 py-2 text-gray-600">{nameByGl.get(l.gl_account_id) ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-600">{l.journal_entries?.memo ?? l.journal_entries?.description ?? '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{Number(l.debit_amount) ? money(l.debit_amount) : ''}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{Number(l.credit_amount) ? money(l.credit_amount) : ''}</td>
+                </tr>
+              ))}
+              {lines.length === 0 && (
+                <tr><td colSpan={5} className="px-5 py-6 text-center text-gray-500">No trust account activity in this period.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ MANAGEMENT FEE SUMMARY ═══
+async function ManagementFeeSummaryView(ctx: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  let q = db.from('management_fees').select('*, associations(name)')
+    .gte('month', ctx.period.from.slice(0, 7) + '-01')
+    .lte('month', ctx.period.to)
+    .order('month', { ascending: false });
+  if (ctx.selectedAssociation) q = q.eq('association_id', ctx.selectedAssociation);
+  const { data } = await q;
+  const rows = (data ?? []) as any[];
+  const cents = (v: any) => Number(v ?? 0) / 100;
+  const totalFees = rows.reduce((s, r) => s + cents(r.fee_amount_cents), 0);
+  const totalCollected = rows.reduce((s, r) => s + cents(r.collected_cents), 0);
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={`Management fees ${ctx.period.from} → ${ctx.period.to}`}>
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label="Fees billed" value={money(totalFees)} tone="neutral" />
+        <Tile label="Collected" value={money(totalCollected)} tone="positive" />
+        <Tile label="Months × associations" value={rows.length} tone="neutral" />
+      </div>
+      <Section title="Fee summary" subtitle={`${rows.length} rows`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Month</th>
+                <th className={thCls}>Association</th>
+                <th className={thRight}>Doors</th>
+                <th className={thRight}>Fee</th>
+                <th className={thRight}>Collected</th>
+                <th className={thRight}>Delinquent</th>
+                <th className={thRight}>Avg / door</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((r: any) => (
+                <tr key={r.id}>
+                  <td className="px-5 py-2 tabular-nums">{String(r.month).slice(0, 7)}</td>
+                  <td className="px-4 py-2 text-gray-600">{r.associations?.name ?? '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{r.door_count ?? '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money(cents(r.fee_amount_cents))}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money(cents(r.collected_cents))}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money(cents(r.delinquent_cents))}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money(cents(r.avg_per_door_cents))}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={7} className="px-5 py-6 text-center text-gray-500">No management fee records in this period.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ OWNER PREPAID ═══
+async function OwnerPrepaidView(ctx: ReportContext) {
+  const supabase = await createClient();
+  const db = supabase as any;
+  const [{ data: balances }, { data: occs }] = await Promise.all([
+    db.from('unit_balances').select('unit_id, unit_number, balance').lt('balance', 0),
+    db.from('occupancies').select('owner_id, unit_id, owners(id, full_name, email), units(unit_number, buildings(associations(id, name)))').eq('status', 'current'),
+  ]);
+  const occByUnit = new Map(((occs ?? []) as any[]).map((o: any) => [o.unit_id, o]));
+  let rows = ((balances ?? []) as any[]).map((b: any) => {
+    const o = occByUnit.get(b.unit_id);
+    return {
+      unitId: b.unit_id,
+      unitNumber: b.unit_number ?? o?.units?.unit_number ?? '—',
+      credit: Math.abs(Number(b.balance ?? 0)),
+      owner: o?.owners ?? null,
+      association: o?.units?.buildings?.associations ?? null,
+    };
+  });
+  if (ctx.selectedAssociation) rows = rows.filter((r) => r.association?.id === ctx.selectedAssociation);
+  rows.sort((a, b) => b.credit - a.credit);
+  const total = rows.reduce((s, r) => s + r.credit, 0);
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle="Owners with prepaid / credit balances">
+      <div className="grid grid-cols-3 gap-3">
+        <Tile label="Total prepaid credit" value={money(total)} tone="positive" />
+        <Tile label="Units in credit" value={rows.length} tone="neutral" />
+        <Tile label="Largest credit" value={rows[0] ? money(rows[0].credit) : '—'} tone="neutral" />
+      </div>
+      <Section title="Prepaid balances" subtitle={`${rows.length} units`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr>
+                <th className="px-5 py-2 text-left font-semibold">Owner</th>
+                <th className={thCls}>Association</th>
+                <th className={thCls}>Unit</th>
+                <th className={thRight}>Prepaid credit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((r) => (
+                <tr key={r.unitId}>
+                  <td className="px-5 py-2 font-medium text-gray-900">
+                    {r.owner ? <Link href={`/owners/${r.owner.id}`} className="hover:underline">{r.owner.full_name}</Link> : '—'}
+                  </td>
+                  <td className="px-4 py-2 text-gray-600">{r.association?.name ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-600">{r.unitNumber}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{money(r.credit)}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={4} className="px-5 py-6 text-center text-gray-500">No prepaid credits — no unit currently carries a negative balance.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </LiveReportShell>
   );
 }
 

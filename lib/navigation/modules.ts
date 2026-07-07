@@ -79,6 +79,7 @@ export const appModules: AppModule[] = [
       { label: 'Opt-Ins', href: '/sms/opt-ins' },
       { label: 'Inbox', href: '/inbox' },
       { label: 'Letters', href: '/letters' },
+      { label: 'Surveys', href: '/surveys' },
     ],
   },
   { label: 'Settings', href: '/settings' },

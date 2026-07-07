@@ -11,7 +11,7 @@ import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
-import { addPet, addTenant, endTenancy, removePet, saveOwnerEmergencyContact } from './occupancy-actions';
+import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact } from './occupancy-actions';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 
 export const dynamic = 'force-dynamic';
@@ -78,7 +78,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   // ── Cross-module records for this owner (board seat, HO-6, vehicles, agreements) ──
   const [
     { data: boardSeats }, { data: ho6Policies }, { data: parkingRows }, { data: mgmtAgreements },
-    { data: finDetails }, { data: attachments }, { data: auditRows },
+    { data: finDetails }, { data: attachments }, { data: auditRows }, { data: ownerVehicles },
   ] = await Promise.all([
     db.from('board_members')
       .select('id, role, term_start, term_end, active, associations(name)')
@@ -96,6 +96,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     db.from('owner_financial_details').select('*').eq('owner_id', id).maybeSingle(),
     db.from('owner_attachments').select('id, file_name, file_path, content_type, size_bytes, created_at').eq('owner_id', id).order('created_at', { ascending: false }),
     db.from('audit_logs').select('action, actor_email, changes, created_at').eq('entity_type', 'owner').eq('entity_id', id).order('created_at', { ascending: false }).limit(15),
+    db.from('owner_vehicles').select('*').eq('owner_id', id).is('archived_at', null).order('created_at'),
   ]);
 
   // 1-hour signed links for attachments (private bucket)
@@ -1086,12 +1087,25 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
           </Section>
 
           <Section
-            title={`Vehicles & parking (${parkingRows?.length ?? 0})`}
+            title={`Vehicles (${(ownerVehicles?.length ?? 0) + (parkingRows?.length ?? 0)})`}
             right={<Link href="/parking" className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Parking</Link>}
           >
-            {parkingRows && parkingRows.length > 0 ? (
+            {((ownerVehicles?.length ?? 0) + (parkingRows?.length ?? 0)) > 0 ? (
               <ul className="divide-y divide-gray-100">
-                {parkingRows.map((v: any) => (
+                {(ownerVehicles ?? []).map((v: any) => (
+                  <li key={v.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <div>
+                      <span className="font-medium">
+                        {[v.year, v.color, v.make, v.model].filter(Boolean).join(' ') || 'Vehicle on file'}
+                      </span>
+                      {v.license_plate && <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}{v.plate_state ? ` (${v.plate_state})` : ''}</span>}
+                    </div>
+                    <form action={removeVehicle.bind(null, v.id, id)}>
+                      <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Remove</button>
+                    </form>
+                  </li>
+                ))}
+                {(parkingRows ?? []).map((v: any) => (
                   <li key={v.id} className="px-4 py-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">
@@ -1099,11 +1113,25 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       </span>
                       {v.license_plate && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}</span>}
                     </div>
-                    <div className="text-xs text-gray-500">Space {v.parking_spaces?.space_number ?? '—'}</div>
+                    <div className="text-xs text-gray-500">Parking space {v.parking_spaces?.space_number ?? '—'}</div>
                   </li>
                 ))}
               </ul>
-            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No vehicles or parking assignments on file.</p>}
+            ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No vehicles on file.</p>}
+            <details className="border-t border-gray-100 px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">+ Add vehicle</summary>
+              <form action={addVehicle.bind(null, id)} className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <Input name="make" placeholder="Make" />
+                <Input name="model" placeholder="Model" />
+                <Input name="color" placeholder="Color" />
+                <Input name="year" placeholder="Year" inputMode="numeric" />
+                <Input name="license_plate" placeholder="Plate" />
+                <Input name="plate_state" placeholder="State" />
+                <div className="col-span-2 flex justify-end sm:col-span-3">
+                  <Button type="submit" size="sm" variant="secondary">Add vehicle</Button>
+                </div>
+              </form>
+            </details>
           </Section>
 
           <Section
