@@ -20,9 +20,9 @@ Mostly on Mirsad / external; not code.
       real dues, work orders, and a board cycle. Use `docs/ONBOARDING_CHECKLIST.md`.
 - [ ] **Replace seed data** — swap the Granville sample for the first client's real
       data (import path is built + verified: `/owners/import`).
-- [ ] **Write the operational manual for company admins and managers** (requested
-      by Mirsad 2026-07-06). Day-to-day runbook, not marketing. Must cover at
-      minimum:
+- [x] **Write the operational manual for company admins and managers** (requested
+      by Mirsad 2026-07-06; DELIVERED 2026-07-06: `docs/manuals/` —
+      Manager Runbook + Company Admin Guide, .docx + .pdf). Covered:
       - Assign a **site manager on every association** — that field drives where
         owner-portal "Send a message" emails land (fallback: company admins, then
         portfolio support email). Manager replies from their own inbox (reply-to
