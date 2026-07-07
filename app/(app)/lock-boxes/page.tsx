@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -247,6 +248,7 @@ export default async function LockBoxesPage({
     <DataWorkspace
       title="Lock Boxes"
       description="Manage physical lock boxes \u2014 locations, assignments, and key tracking per unit and building."
+      actions={<Link href="/lock-boxes/new"><Button>Add Lock Box</Button></Link>}
     >
       <div className="space-y-4">
         {/* Metric strip */}

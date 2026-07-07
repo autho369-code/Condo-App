@@ -11,7 +11,7 @@ import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
-import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact } from './occupancy-actions';
+import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, setOwnerPortalAccess } from './occupancy-actions';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 
 export const dynamic = 'force-dynamic';
@@ -293,6 +293,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
       {sp.saved === 'financial' && <div className="mb-4"><Alert tone="success" title="Financial details saved" /></div>}
       {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
+      {sp.saved === 'reset_sent' && <div className="mb-4"><Alert tone="success" title="Password reset email queued" /></div>}
+      {sp.saved === 'portal_enabled' && <div className="mb-4"><Alert tone="success" title="Portal access enabled" /></div>}
+      {sp.saved === 'portal_disabled' && <div className="mb-4"><Alert tone="success" title="Portal access disabled">The owner can no longer sign in.</Alert></div>}
       {sp.portal_created === '1' && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="flex items-start justify-between">
@@ -1201,6 +1204,38 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 ))}
               </ul>
             ) : <p className="px-4 py-6 text-center text-sm text-gray-500">No recorded changes yet. Edits to this owner are logged automatically from now on.</p>}
+          </Section>
+
+          <Section title="Portal access">
+            <div className="space-y-3 px-4 py-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Status:</span>
+                <StatusChip tone={owner.portal_activated ? 'success' : 'neutral'}>
+                  {owner.portal_activated ? 'Active' : 'Not active'}
+                </StatusChip>
+                {owner.portal_login_last_at && (
+                  <span className="text-xs text-gray-400">Last login {date(owner.portal_login_last_at)}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <form action={sendOwnerPasswordReset.bind(null, id)}>
+                  <Button type="submit" size="sm" variant="secondary">Send password reset</Button>
+                </form>
+                {owner.portal_activated ? (
+                  <form action={setOwnerPortalAccess.bind(null, id, false)}>
+                    <button type="submit" className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">Disable portal access</button>
+                  </form>
+                ) : (
+                  <form action={setOwnerPortalAccess.bind(null, id, true)}>
+                    <Button type="submit" size="sm" variant="secondary">Enable portal access</Button>
+                  </form>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Disabling blocks sign-in immediately (the owner record and history are kept).
+                The reset email goes to {owner.email ?? 'the owner’s email on file'}.
+              </p>
+            </div>
           </Section>
         </div>
       </div>

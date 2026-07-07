@@ -178,3 +178,55 @@ export async function removeVehicle(vehicleId: string, ownerId: string) {
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }
+
+// ── Owner portal access controls (audit: reset password / enable-disable) ──
+const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
+
+export async function sendOwnerPasswordReset(ownerId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: owner } = await (supabase as any).from('owners').select('email, full_name, portfolio_id').eq('id', ownerId).maybeSingle();
+  if (!owner?.email) fail(ownerId, 'This owner has no email on file.');
+
+  const svc = createServiceClient() as any;
+  const { data: linkData, error } = await svc.auth.admin.generateLink({
+    type: 'recovery',
+    email: owner.email,
+    options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+  });
+  if (error || !linkData?.properties?.action_link) fail(ownerId, `Could not generate a reset link: ${error?.message ?? 'no portal account exists for this email yet'}`);
+
+  const { error: qErr } = await svc.from('email_queue').insert({
+    to_email: owner.email,
+    to_name: owner.full_name,
+    subject: 'Reset your Portier369 password',
+    body: `<p>Hello${owner.full_name ? ` ${owner.full_name}` : ''},</p><p>Your management company sent you a link to reset your Portier369 owner-portal password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not expect this email, contact your management office.</p>`,
+    status: 'pending',
+    from_address: 'hello@portier369.com',
+    from_name: 'Portier369',
+    portfolio_id: owner.portfolio_id,
+  });
+  if (qErr) fail(ownerId, `Reset link created but the email could not be queued: ${qErr.message}`);
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=reset_sent`);
+}
+
+export async function setOwnerPortalAccess(ownerId: string, enable: boolean) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: owner } = await (supabase as any).from('owners').select('auth_user_id').eq('id', ownerId).maybeSingle();
+  if (!owner) fail(ownerId, 'Owner not found.');
+
+  if (owner.auth_user_id) {
+    const svc = createServiceClient() as any;
+    // ban_duration 'none' lifts the ban; ~100 years effectively disables.
+    const { error: banErr } = await svc.auth.admin.updateUserById(owner.auth_user_id, {
+      ban_duration: enable ? 'none' : '876000h',
+    });
+    if (banErr) fail(ownerId, `Could not ${enable ? 'enable' : 'disable'} sign-in: ${banErr.message}`);
+  }
+  const { error } = await (supabase as any).from('owners').update({ portal_activated: enable }).eq('id', ownerId);
+  if (error) fail(ownerId, error.message);
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=${enable ? 'portal_enabled' : 'portal_disabled'}`);
+}

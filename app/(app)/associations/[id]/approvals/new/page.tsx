@@ -75,6 +75,20 @@ export default async function NewApprovalPage({
       default:                            requiredVotes = Math.floor(boardMemberIds.length / 2) + 1;
     }
 
+    // Upload attachments to the private bucket; paths recorded on the request.
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const svc = createServiceClient() as any;
+    const files = formData.getAll('attachments').filter((f): f is File => f instanceof File && f.size > 0);
+    const uploaded: { name: string; path: string }[] = [];
+    for (const file of files) {
+      if (file.size > 25 * 1024 * 1024) throw new Error(`${file.name} is over the 25 MB attachment limit.`);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `approvals/${id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await svc.storage.from('association-documents').upload(path, file, { contentType: file.type || undefined });
+      if (upErr) throw new Error(`Could not upload ${file.name}: ${upErr.message}`);
+      uploaded.push({ name: file.name, path });
+    }
+
     const { error } = await (supabase as any).from('approval_requests').insert({
       portfolio_id: portfolioId,
       association_id: id,
@@ -89,6 +103,7 @@ export default async function NewApprovalPage({
       required_votes: requiredVotes,
       status: 'pending',
       requested_at: new Date().toISOString(),
+      attachments: uploaded.length > 0 ? uploaded : null,
     });
 
     if (error) throw new Error(`Could not create approval: ${error.message}`);
@@ -170,10 +185,14 @@ export default async function NewApprovalPage({
         </Section>
 
         <Section title="Attachments" padded>
-          <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-500">
-            Drag Files Here&nbsp;&nbsp;or&nbsp;&nbsp;
-            <Button type="button" size="sm" variant="secondary" disabled>Choose Files to Add</Button>
-            <div className="mt-1 text-xs text-gray-400">Attachment upload pending Storage bucket wiring</div>
+          <div className="rounded-xl border-2 border-dashed border-gray-200 px-6 py-8 text-center text-sm text-gray-500">
+            <input
+              type="file"
+              name="attachments"
+              multiple
+              className="mx-auto block w-full max-w-md text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50"
+            />
+            <div className="mt-2 text-xs text-gray-400">Quotes, contracts, photos — up to 25 MB each. Attached when you create the approval.</div>
           </div>
         </Section>
       </form>

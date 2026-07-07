@@ -128,6 +128,68 @@ export default async function MetricsPage() {
     db.from('occupancies').select('unit_id').eq('status', 'current'),
   ]);
 
+  // Revenue/expenses MTD + portal activation are computed here —
+  // v_portfolio_health never carried these fields, so reading them off
+  // `health` always rendered $0 / 0%.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthStartStr = monthStart.toISOString().slice(0, 10);
+  const [{ data: mtdLines }, { data: incomeExpenseAccounts }, { data: ownerFlags }, { data: cashBanks }] = await Promise.all([
+    db.from('journal_lines')
+      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
+      .eq('journal_entries.posted', true)
+      .gte('journal_entries.entry_date', monthStartStr),
+    db.from('gl_accounts').select('id, account_type').in('account_type', ['income', 'other_income', 'expense', 'other_expense']),
+    db.from('owners').select('portal_activated').is('archived_at', null),
+    db.from('bank_accounts').select('gl_account_id').is('archived_at', null),
+  ]);
+  const typeByGl = new Map(((incomeExpenseAccounts ?? []) as any[]).map((a: any) => [a.id, a.account_type]));
+  let revenueMtd = 0;
+  let expensesMtd = 0;
+  for (const l of (mtdLines ?? []) as any[]) {
+    const t = typeByGl.get(l.gl_account_id);
+    if (t === 'income' || t === 'other_income') revenueMtd += Number(l.credit_amount ?? 0) - Number(l.debit_amount ?? 0);
+    if (t === 'expense' || t === 'other_expense') expensesMtd += Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
+  }
+  const ownersAll = (ownerFlags ?? []) as any[];
+  const portalActivatedCount = ownersAll.filter((o: any) => o.portal_activated).length;
+  const portalActivationPct = ownersAll.length > 0 ? (portalActivatedCount / ownersAll.length) * 100 : 0;
+  const portalNotActivated = ownersAll.length - portalActivatedCount;
+
+  // Cash position (bank GL balances) + MTD collection rate — also never
+  // present on the health view.
+  const bankGlIds = ((cashBanks ?? []) as any[]).map((b: any) => b.gl_account_id).filter(Boolean);
+  const [{ data: bankLines }, { data: chargesMtd }, { data: paymentsMtd }] = await Promise.all([
+    bankGlIds.length > 0
+      ? db.from('journal_lines')
+          .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)')
+          .in('gl_account_id', bankGlIds)
+          .eq('journal_entries.posted', true)
+      : Promise.resolve({ data: [] }),
+    db.from('charges').select('amount').gte('created_at', monthStartStr),
+    db.from('payments').select('amount').gte('created_at', monthStartStr),
+  ]);
+  const cashPosition = ((bankLines ?? []) as any[]).reduce(
+    (s: number, l: any) => s + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0), 0);
+
+  // Operations + delinquency tiles (also unbacked by the health view)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [{ count: pendingApprovals }, { count: woCompletedMtd }, { count: woOverdue }, { data: delinqRows }] = await Promise.all([
+    db.from('approval_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('archived_at', null),
+    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).gte('completed_date', monthStartStr),
+    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
+      .lt('scheduled_date', todayStr)
+      .not('status', 'in', '("done","completed","billed","closed","cancelled")'),
+    portfolioId ? db.rpc('report_data_delinquency', { p_portfolio_id: portfolioId, p_params: {} }) : Promise.resolve({ data: [] }),
+  ]);
+  const delinq = (Array.isArray(delinqRows) ? delinqRows : []) as any[];
+  const delinq0_30 = delinq.filter((r) => (r.days_past_due ?? 0) <= 30).length;
+  const delinq31_60 = delinq.filter((r) => (r.days_past_due ?? 0) > 30 && (r.days_past_due ?? 0) <= 60).length;
+  const delinq61Plus = delinq.filter((r) => (r.days_past_due ?? 0) > 60).length;
+  const chargesMtdTotal = ((chargesMtd ?? []) as any[]).reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0);
+  const paymentsMtdTotal = ((paymentsMtd ?? []) as any[]).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+  const collectionRatePct = chargesMtdTotal > 0 ? Math.min(100, (paymentsMtdTotal / chargesMtdTotal) * 100) : (paymentsMtdTotal > 0 ? 100 : 0);
+
   const arBalance = (arData ?? []).reduce((sum: number, r: any) => sum + (r.balance ?? 0), 0);
   const billsAwaitingTotal = (billsAwaiting ?? []).reduce((sum: number, r: any) => sum + (r.amount ?? 0), 0);
   const totalUnits = unitCount ?? 0;
@@ -180,13 +242,13 @@ export default async function MetricsPage() {
             />
             <MetricTile
               label="Collection Rate"
-              value={health?.collection_rate_pct ?? 0}
+              value={collectionRatePct}
               format="pct"
               href="/reports/delinquency"
             />
             <MetricTile
               label="Cash Position"
-              value={health?.cash_position ?? 0}
+              value={cashPosition}
               format="money"
               href="/bank-accounts"
             />
@@ -194,18 +256,18 @@ export default async function MetricsPage() {
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <MetricTile
               label="Revenue (MTD)"
-              value={health?.revenue_mtd ?? 0}
+              value={revenueMtd}
               format="money"
             />
             <MetricTile
               label="Expenses (MTD)"
-              value={health?.expenses_mtd ?? 0}
+              value={expensesMtd}
               format="money"
               inverse
             />
             <MetricTile
               label="Net Operating Income"
-              value={(health?.revenue_mtd ?? 0) - (health?.expenses_mtd ?? 0)}
+              value={revenueMtd - expensesMtd}
               format="money"
             />
           </div>
@@ -238,7 +300,7 @@ export default async function MetricsPage() {
             />
             <MetricTile
               label="Pending Approvals"
-              value={health?.pending_approvals ?? 0}
+              value={pendingApprovals ?? 0}
               format="count"
               inverse
             />
@@ -246,12 +308,12 @@ export default async function MetricsPage() {
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <MetricTile
               label="Work Orders Completed"
-              value={health?.wo_completed ?? 0}
+              value={woCompletedMtd ?? 0}
               format="count"
             />
             <MetricTile
               label="Overdue Work Orders"
-              value={health?.wo_overdue ?? 0}
+              value={woOverdue ?? 0}
               format="count"
               inverse
               href="/work-orders?status=overdue"
@@ -283,12 +345,12 @@ export default async function MetricsPage() {
             />
             <MetricTile
               label="Portal Activated"
-              value={health?.portal_activation_pct ?? 0}
+              value={portalActivationPct}
               format="pct"
             />
             <MetricTile
               label="Delinquency (0–30d)"
-              value={health?.delinquency_0_30 ?? 0}
+              value={delinq0_30}
               format="count"
               inverse
             />
@@ -296,19 +358,19 @@ export default async function MetricsPage() {
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <MetricTile
               label="Delinquency (31–60d)"
-              value={health?.delinquency_31_60 ?? 0}
+              value={delinq31_60}
               format="count"
               inverse
             />
             <MetricTile
               label="Delinquency (61+d)"
-              value={health?.delinquency_61_plus ?? 0}
+              value={delinq61Plus}
               format="count"
               inverse
             />
             <MetricTile
               label="Portal Not Activated"
-              value={health?.portal_not_activated_count ?? 0}
+              value={portalNotActivated}
               format="count"
               inverse
               href="/owners/activations"

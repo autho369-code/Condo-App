@@ -91,11 +91,36 @@ export default async function AssociationProfileTab({
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
 
-  // Reserve fund settings + loans (audit 2.5)
-  const [{ data: reserve }, { data: loans }] = await Promise.all([
+  // Reserve fund settings + loans (audit 2.5) + management fee policy (audit 2.6)
+  const [{ data: reserve }, { data: loans }, { data: feePolicies }] = await Promise.all([
     (supabase as any).from('reserve_fund_settings').select('*').eq('association_id', id).maybeSingle(),
     (supabase as any).from('association_loans').select('*').eq('association_id', id).is('archived_at', null).order('created_at'),
+    (supabase as any).from('management_fee_policies').select('*').eq('association_id', id).order('effective_from', { ascending: false }).limit(5),
   ]);
+  const currentFee = (feePolicies ?? []).find((p: any) => !p.effective_to) ?? (feePolicies ?? [])[0] ?? null;
+
+  async function saveManagementFee(formData: FormData) {
+    'use server';
+    const me2 = await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const amountRaw = ((formData.get('fee_amount') as string) || '').replace(/[$,%\s]/g, '');
+    if (!amountRaw) fail('Enter a fee amount.');
+    const today = new Date().toISOString().slice(0, 10);
+    // End the current open policy, then start the new one (history preserved)
+    await (sb as any).from('management_fee_policies').update({ effective_to: today }).eq('association_id', id).is('effective_to', null);
+    const { error } = await (sb as any).from('management_fee_policies').insert({
+      association_id: id,
+      fee_type: ((formData.get('fee_type') as string) || 'per_door'),
+      amount: Number(amountRaw),
+      effective_from: ((formData.get('effective_from') as string) || '').trim() || today,
+      notes: ((formData.get('fee_notes') as string) || '').trim() || null,
+      created_by: (me2 as any).auth_user_id,
+    });
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
 
   async function saveReserveSettings(formData: FormData) {
     'use server';
@@ -270,6 +295,50 @@ export default async function AssociationProfileTab({
             </div>
             <div className="flex justify-end">
               <Button type="submit">Save payment instructions</Button>
+            </div>
+          </form>
+        </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section title="Management Fee" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            What the management company charges this association. Saving a new rate closes the
+            current one and keeps the history — the Management Fee Summary report reads from here.
+          </p>
+          {currentFee && (
+            <p className="mb-4 text-sm text-gray-900">
+              Current: <span className="font-semibold">
+                {currentFee.fee_type === 'percentage' ? `${currentFee.amount}% of assessments`
+                  : currentFee.fee_type === 'flat_monthly' ? `$${Number(currentFee.amount).toLocaleString()}/month flat`
+                  : `$${Number(currentFee.amount).toLocaleString()}/door/month`}
+              </span>
+              <span className="ml-2 text-xs text-gray-500">since {currentFee.effective_from}</span>
+            </p>
+          )}
+          <form action={saveManagementFee} className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-4">
+            <div>
+              <Label htmlFor="fee_type">Fee type</Label>
+              <select id="fee_type" name="fee_type" defaultValue={currentFee?.fee_type ?? 'per_door'} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                <option value="per_door">Per door / month</option>
+                <option value="flat_monthly">Flat monthly</option>
+                <option value="percentage">% of assessments</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="fee_amount">Amount</Label>
+              <Input id="fee_amount" name="fee_amount" inputMode="decimal" placeholder="e.g. 22" />
+            </div>
+            <div>
+              <Label htmlFor="effective_from">Effective from</Label>
+              <Input id="effective_from" name="effective_from" type="date" />
+            </div>
+            <div className="flex items-end justify-end">
+              <Button type="submit">Save fee</Button>
+            </div>
+            <div className="sm:col-span-4">
+              <Label htmlFor="fee_notes">Notes</Label>
+              <Input id="fee_notes" name="fee_notes" placeholder="e.g. Renegotiated at 2026 renewal" />
             </div>
           </form>
         </Section>
