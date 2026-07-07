@@ -32,6 +32,7 @@ export default async function AssociationProfileTab({
       id, name, address, address_line_2, city, state, zip,
       portfolio_id, status, archived_at, created_at,
       remit_payee, remit_address, payment_instructions,
+      site_manager, site_manager_user_id,
       portfolio:portfolios ( id, company_name )
     `)
     .eq('id', id)
@@ -52,6 +53,37 @@ export default async function AssociationProfileTab({
         remit_address: ((formData.get('remit_address') as string) || '').trim() || null,
         payment_instructions: ((formData.get('payment_instructions') as string) || '').trim() || null,
       })
+      .eq('id', id);
+    if (error) fail(error.message);
+    revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
+
+  // Managers in this portfolio, for the site-manager assignment dropdown
+  const { data: managerProfiles } = await (supabase as any)
+    .from('profiles')
+    .select('id, full_name, email')
+    .eq('portfolio_id', assoc.portfolio_id)
+    .eq('hoa_role', 'manager')
+    .order('full_name');
+
+  // The assigned site manager receives owner-portal messages for this
+  // association (fallback: company admins, then the portfolio support email).
+  async function saveSiteManager(formData: FormData) {
+    'use server';
+    await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const userId = ((formData.get('site_manager_user_id') as string) || '').trim() || null;
+    let displayName: string | null = null;
+    if (userId) {
+      const { data: mgr } = await (sb as any).from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
+      if (!mgr) fail('Selected manager was not found.');
+      displayName = mgr.full_name ?? mgr.email ?? null;
+    }
+    const { error } = await (sb as any)
+      .from('associations')
+      .update({ site_manager_user_id: userId, site_manager: displayName })
       .eq('id', id);
     if (error) fail(error.message);
     revalidatePath(`/associations/${assocParam}/profile`);
@@ -116,6 +148,33 @@ export default async function AssociationProfileTab({
           <dd className="text-gray-900">{assoc.created_at ? formatDate(assoc.created_at) : <span className="text-gray-400">—</span>}</dd>
         </dl>
       </Section>
+
+      <div className="mt-6">
+        <Section title="Site Manager" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            The assigned manager receives messages owners send from the owner portal
+            (as regular email, reply-to the owner). If no manager is assigned, messages
+            fall back to your company admins.
+          </p>
+          <form action={saveSiteManager} className="flex max-w-2xl items-end gap-3">
+            <div className="flex-1">
+              <Label htmlFor="site_manager_user_id">Assigned manager</Label>
+              <select
+                id="site_manager_user_id"
+                name="site_manager_user_id"
+                defaultValue={assoc.site_manager_user_id ?? ''}
+                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              >
+                <option value="">— Not assigned (messages go to company admins) —</option>
+                {(managerProfiles ?? []).map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.full_name ?? m.email}</option>
+                ))}
+              </select>
+            </div>
+            <Button type="submit">Save</Button>
+          </form>
+        </Section>
+      </div>
 
       <div className="mt-6">
         <Section title="Payment Instructions" padded>
