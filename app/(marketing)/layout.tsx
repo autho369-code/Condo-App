@@ -107,6 +107,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Company</div>
                 <div className="space-y-2 text-sm">
                   <Link href="/company" className="block text-gray-600 hover:text-gray-900">About</Link>
+                  <Link href="/customers/stellar-property-management" className="block text-gray-600 hover:text-gray-900">Customer Story</Link>
                   <Link href="/contact" className="block text-gray-600 hover:text-gray-900">Contact</Link>
                   <Link href="/login" className="block text-gray-600 hover:text-gray-900">Sign in</Link>
                   <Link href="/login?mode=company_admin" className="block text-gray-600 hover:text-gray-900">Company admin</Link>

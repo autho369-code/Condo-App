@@ -142,7 +142,10 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
             </h2>
             <p className="mt-2 text-[15px] leading-7 text-gray-600">
               Associations, units, owners, vendors, open balances, and documents are imported for you — keep your
-              history, skip the rekeying, and see the platform on your own portfolio before you commit.
+              history, skip the rekeying, and see the platform on your own portfolio before you commit.{' '}
+              <Link href="/customers/stellar-property-management" className="font-semibold text-[#1E3A5F] hover:underline">
+                Read how a 42-association Chicago company made the switch →
+              </Link>
             </p>
             <Link
               href="/demo"

@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/features/communications', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/features/portals', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/company', priority: 0.7, changeFrequency: 'monthly' as const },
+    { path: '/customers/stellar-property-management', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/contact', priority: 0.6, changeFrequency: 'yearly' as const },
     { path: '/demo', priority: 0.8, changeFrequency: 'monthly' as const },
   ].map((r) => ({
