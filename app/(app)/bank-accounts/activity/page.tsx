@@ -14,10 +14,10 @@ export const dynamic = 'force-dynamic';
 export default async function BankActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bank_account_id?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ bank_account_id?: string; from?: string; to?: string; q?: string }>;
 }) {
   await requireStaff();
-  const { bank_account_id = '', from = '', to = '' } = await searchParams;
+  const { bank_account_id = '', from = '', to = '', q: search = '' } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -69,6 +69,13 @@ export default async function BankActivityPage({
     });
   }
 
+  // Apply the search box (payee/memo/reference) before computing period totals.
+  const needle = search.trim().toLowerCase();
+  if (needle) {
+    sourceRows = sourceRows.filter((r) =>
+      [r.payee, r.description, r.reference].some((v) => v?.toLowerCase().includes(needle)),
+    );
+  }
   const rows = toActivityRows(sourceRows, 0);
 
   return (
@@ -81,10 +88,12 @@ export default async function BankActivityPage({
           { label: 'Transactions', value: rows.length, sublabel: selectedAccount?.name ?? 'No account selected' },
           { label: 'Cash in', value: money(rows.reduce((sum, row) => sum + row.cashIn, 0)) },
           { label: 'Cash out', value: money(rows.reduce((sum, row) => sum + row.cashOut, 0)) },
-          { label: 'Ending balance', value: money(rows.at(-1)?.runningBalance ?? 0) },
+          // Running balance starts from 0 for the shown period, so this is the
+          // period's net movement — not the account's true ending balance.
+          { label: 'Net change (period)', value: money(rows.at(-1)?.runningBalance ?? 0) },
         ]} />
 
-        <FilterBar action="/bank-accounts/activity" searchPlaceholder="Search payee or memo">
+        <FilterBar action="/bank-accounts/activity" searchDefault={search} searchPlaceholder="Search payee or memo">
           <FilterSelect label="Account" name="bank_account_id" defaultValue={selectedAccount?.id ?? bank_account_id}>
             {accountList.length === 0 && <option value="">No bank accounts</option>}
             {accountList.map((account: any) => <option key={account.id} value={account.id}>{account.name}</option>)}

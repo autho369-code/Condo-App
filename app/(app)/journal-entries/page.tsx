@@ -202,7 +202,7 @@ export default async function JournalEntriesPage({
       title="Journal Entries"
       description="Create, review, and post journal entries. Manage recurring entries and upload batches."
       actions={
-        <Link href={filterParams({ tab: 'history' })}>
+        <Link href="/journal-entries/new">
           <Button><Plus className="h-4 w-4" /> New entry</Button>
         </Link>
       }

@@ -115,12 +115,30 @@ export async function runScheduleNow(formData: FormData) {
   'use server';
   const supabase = await createClient();
   const id = formData.get('id') as string;
-  // Force next_run_at to now so the enqueuer picks it up
+  // Force next_run_at to now so the enqueuer picks it up...
   const { error } = await (supabase as any)
     .from('scheduled_reports')
     .update({ next_run_at: new Date().toISOString() })
     .eq('id', id);
   if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
+
+  // ...then run the enqueue + execute pipeline immediately instead of waiting
+  // for the hourly cron tick, so "Run now" actually produces a run.
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const { processReportRun } = await import('@/lib/reports/process');
+  const svc = createServiceClient() as any;
+  await svc.rpc('enqueue_scheduled_reports');
+  const { data: runs } = await svc
+    .from('report_runs')
+    .select('id')
+    .eq('status', 'queued')
+    .eq('scheduled_report_id', id)
+    .order('created_at', { ascending: true })
+    .limit(3);
+  for (const run of runs ?? []) {
+    try { await processReportRun(run.id); } catch { /* run row records its own failure */ }
+  }
+
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports/runs');
 }

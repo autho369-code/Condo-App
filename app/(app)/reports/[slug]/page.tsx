@@ -1023,17 +1023,6 @@ async function ARAgingView({
       <Section
         title="Open charges"
         subtitle="Every receivable with a positive balance"
-        actions={
-          <select
-            className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            defaultValue=""
-          >
-            <option value="">All associations</option>
-            {(assocs ?? []).map((a: any) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-        }
       >
         {(rows ?? []).length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">No open receivables. All units paid up.</p>

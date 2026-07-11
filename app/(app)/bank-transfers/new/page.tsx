@@ -33,17 +33,54 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
     if (from === to) redirect('/bank-transfers/new?error=' + encodeURIComponent('Source and destination must be different accounts.'));
     if (!Number.isFinite(amount) || amount <= 0) redirect('/bank-transfers/new?error=' + encodeURIComponent('Enter an amount greater than zero.'));
 
-    const { error } = await (supabase as any).from('bank_transfers').insert({
+    const db = supabase as any;
+    const transferDate = (formData.get('transfer_date') as string) || new Date().toISOString().slice(0, 10);
+    const memo = (formData.get('memo') as string)?.trim() || null;
+    const reference = (formData.get('reference_number') as string)?.trim() || null;
+
+    const { data: transfer, error } = await db.from('bank_transfers').insert({
       portfolio_id: me.portfolio?.id,
       from_bank_account_id: from,
       to_bank_account_id: to,
       amount,
-      transfer_date: (formData.get('transfer_date') as string) || new Date().toISOString().slice(0, 10),
-      reference_number: (formData.get('reference_number') as string)?.trim() || null,
-      memo: (formData.get('memo') as string)?.trim() || null,
+      transfer_date: transferDate,
+      reference_number: reference,
+      memo,
       created_by: me.auth_user_id,
-    });
-    if (error) redirect('/bank-transfers/new?error=' + encodeURIComponent(error.message));
+    }).select('id').single();
+    if (error || !transfer) redirect('/bank-transfers/new?error=' + encodeURIComponent(error?.message ?? 'Could not record transfer.'));
+
+    // Post the transfer to the GL (debit destination, credit source) so it
+    // affects balances instead of sitting "Incomplete" forever. Requires both
+    // bank accounts to be linked to GL accounts.
+    const { data: banks } = await db.from('bank_accounts').select('id, name, gl_account_id').in('id', [from, to]);
+    const fromBank = (banks ?? []).find((b: any) => b.id === from);
+    const toBank = (banks ?? []).find((b: any) => b.id === to);
+    if (fromBank?.gl_account_id && toBank?.gl_account_id && fromBank.gl_account_id !== toBank.gl_account_id) {
+      const { data: entry } = await db.from('journal_entries').insert({
+        portfolio_id: me.portfolio?.id,
+        entry_date: transferDate,
+        description: `Bank transfer — ${fromBank.name} → ${toBank.name}`,
+        reference_number: reference,
+        memo,
+        posted: false,
+        created_by: me.auth_user_id,
+      }).select('id').single();
+      if (entry) {
+        const { error: linesErr } = await db.from('journal_lines').insert([
+          { entry_id: entry.id, gl_account_id: toBank.gl_account_id, debit_amount: amount, credit_amount: 0, memo, sort_order: 0 },
+          { entry_id: entry.id, gl_account_id: fromBank.gl_account_id, debit_amount: 0, credit_amount: amount, memo, sort_order: 1 },
+        ]);
+        if (!linesErr) {
+          const { error: postErr } = await db.from('journal_entries').update({ posted: true }).eq('id', entry.id);
+          if (!postErr) {
+            await db.from('bank_transfers').update({ journal_entry_id: entry.id }).eq('id', transfer.id);
+          }
+        } else {
+          await db.from('journal_entries').delete().eq('id', entry.id); // roll back the orphan draft
+        }
+      }
+    }
     redirect('/bank-transfers');
   }
 

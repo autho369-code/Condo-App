@@ -110,7 +110,7 @@ export default async function SettingsPage({
             </div>
             <Field label="Logo URL" name="logo_url" defaultValue={ps.logo_url} placeholder="https://..." />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Support Email" name="support_email" defaultValue={ps.billing_email} placeholder="support@company.com" />
+              <Field label="Support Email" name="support_email" defaultValue={ps.support_email} placeholder="support@company.com" />
               <Field label="Billing Email" name="billing_email" defaultValue={ps.billing_email} placeholder="billing@company.com" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

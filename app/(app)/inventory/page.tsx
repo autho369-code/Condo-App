@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
+import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -39,12 +40,13 @@ function formatMoney(cents: number | null): string {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; view?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const category = sp.category ?? 'all';
+  const view = sp.view === 'categories' ? 'categories' : 'items';
 
   // Query inventory_items — if the table doesn't exist yet, supabase returns an error
   // that we catch gracefully so the page still renders with an empty list.
@@ -99,18 +101,19 @@ export default async function InventoryPage({
     <DataWorkspace
       title="Inventory"
       description="Consumables and parts kept on-hand for common maintenance — filters, bulbs, paint, hardware."
+      actions={<Link href="/inventory/new"><Button>New Inventory Item</Button></Link>}
     >
       <div className="space-y-4">
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link
             href="/inventory"
-            className="whitespace-nowrap border-b-2 border-gray-950 px-4 py-2.5 text-sm font-medium text-gray-950"
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${view === 'items' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
           >
             All Items
           </Link>
           <Link
             href="/inventory?view=categories"
-            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${view === 'categories' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
           >
             Categories
           </Link>
@@ -161,6 +164,42 @@ export default async function InventoryPage({
             The inventory_items table has not been created yet in Supabase. Run the migration to
             enable inventory management. ({queryError})
           </Alert>
+        ) : view === 'categories' ? (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Category</TH>
+                <TH>Items</TH>
+                <TH>Total Quantity</TH>
+                <TH>Total Value</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {categories.length === 0 && allRows.every((r) => !r.category) && allRows.length === 0 ? (
+                <TR>
+                  <TD colSpan={4} className="py-10 text-center text-gray-500">
+                    No inventory items yet. Use New Inventory Item to add your first item.
+                  </TD>
+                </TR>
+              ) : (
+                [...categories, ...(allRows.some((r) => !r.category) ? ['Uncategorized'] : [])].map((c) => {
+                  const items = allRows.filter((r) => (c === 'Uncategorized' ? !r.category : r.category === c));
+                  return (
+                    <TR key={c} className="hover:bg-gray-50">
+                      <TD>
+                        <Link href={c === 'Uncategorized' ? '/inventory' : `/inventory?category=${encodeURIComponent(c)}`} className="font-medium text-gray-950 hover:underline">
+                          {c}
+                        </Link>
+                      </TD>
+                      <TD className="tabular-nums text-gray-900">{items.length}</TD>
+                      <TD className="tabular-nums text-gray-900">{items.reduce((s, r) => s + r.quantity_on_hand, 0)}</TD>
+                      <TD className="tabular-nums text-gray-900">{formatMoney(items.reduce((s, r) => s + (r.total_value ?? 0), 0))}</TD>
+                    </TR>
+                  );
+                })
+              )}
+            </tbody>
+          </Table>
         ) : (
           <Table>
             <THead>

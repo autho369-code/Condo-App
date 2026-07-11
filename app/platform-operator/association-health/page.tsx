@@ -58,18 +58,11 @@ export default async function AssociationHealthPage() {
   const todayDate = now.toISOString().slice(0, 10);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
-  // Try v_company_health view
-  let healthRows: any[] = [];
-  try {
-    const { data } = await db.from('v_company_health').select('*');
-    healthRows = data ?? [];
-  } catch { healthRows = []; }
-
-  // Fallback: compute from raw tables
+  // Compute per-association health from raw tables. (v_company_health is a
+  // per-COMPANY aggregate — using it here rendered blank rows and zeroed
+  // counters, so this page always computes its own per-association rows.)
   let assocHealthData: any[] = [];
-  if (healthRows.length > 0) {
-    assocHealthData = healthRows;
-  } else {
+  {
     // Fetch associations with portfolio info
     const { data: assocs } = await db
       .from('associations')

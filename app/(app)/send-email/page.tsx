@@ -138,19 +138,15 @@ export default async function SendEmailPage({
             <Textarea id="message" name="message" required rows={10} defaultValue={sp.message ?? ''} />
           </Field>
 
-          {/* Attachments — placeholder; actual upload via storage bucket is tracked in FINAL_INTEGRATION.md */}
+          {/* File attachments aren't supported by the email pipeline yet — no
+              dropzone is shown so files can't be silently dropped. To share a
+              file, upload it in Documents and paste its link in the message. */}
           <Field label="Attachments">
-            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-sm text-gray-600">
-              <strong>Drag files here</strong>
-              <span className="mx-3 text-gray-400">or</span>
-              <label className="inline-block cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                Choose files to add
-                <input type="file" name="attachments" multiple className="hidden" />
-              </label>
-              <p className="mt-2 text-xs text-gray-400">
-                Upload pipeline lands in next integration pass — see FINAL_INTEGRATION.md
-              </p>
-            </div>
+            <p className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm text-gray-500">
+              Direct file attachments aren&apos;t supported yet. Upload the file in{' '}
+              <Link href="/documents" className="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-950">Documents</Link>{' '}
+              and paste its share link into the message instead.
+            </p>
           </Field>
 
           {/* Actions */}

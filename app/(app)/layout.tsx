@@ -1,11 +1,13 @@
 import { headers } from 'next/headers';
 import Sidebar from '@/components/nav/sidebar';
 import TasksRail from '@/components/workspace/tasks-rail';
-import { requireAuth } from '@/lib/auth/me';
+import { requireStaff } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const me = await requireAuth();
+  // Staff-only workspace: owners/board/vendors are redirected to their own
+  // surface (defense-in-depth on top of RLS).
+  const me = await requireStaff();
   const h = await headers();
   const tenant = tenantFromHeaders(h);
   const displayName = tenant?.companyName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369';

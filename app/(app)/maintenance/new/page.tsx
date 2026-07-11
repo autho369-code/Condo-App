@@ -46,12 +46,14 @@ async function createTask(formData: FormData) {
     notes: (formData.get('notes') as string) || null,
   });
 
-  if (error) return { error: error.message };
+  // Redirect back with the message — a plain form action ignores return
+  // values, so returning { error } silently swallowed failures.
+  if (error) redirect('/maintenance/new?error=' + encodeURIComponent(error.message));
   revalidatePath('/maintenance');
   redirect('/maintenance');
 }
 
-export default async function NewMaintenancePage({ searchParams }: { searchParams: Promise<{ template?: string; assoc?: string }> }) {
+export default async function NewMaintenancePage({ searchParams }: { searchParams: Promise<{ template?: string; assoc?: string; error?: string }> }) {
   await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
@@ -75,6 +77,11 @@ export default async function NewMaintenancePage({ searchParams }: { searchParam
         <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Add maintenance task</h1>
         <p className="mt-1 text-sm text-gray-500">Tasks auto-recur based on frequency and appear on the association calendar.</p>
       </div>
+      {sp.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span className="font-semibold">Could not create task:</span> {sp.error}
+        </div>
+      )}
 
       <form action={createTask as any} className="space-y-6">
         <Section title="Task details" padded>

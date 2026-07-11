@@ -24,7 +24,9 @@ export interface MeResult {
 }
 
 function localPreviewEnabled() {
-  return process.env.LOCAL_PREVIEW_MODE === 'true';
+  // Never honor preview mode in production — it fabricates a super-admin
+  // identity and must not be reachable on a deployed instance.
+  return process.env.LOCAL_PREVIEW_MODE === 'true' && process.env.NODE_ENV !== 'production';
 }
 
 function localPreviewMe(): MeResult {
@@ -80,15 +82,26 @@ export async function requirePortfolioAdmin(): Promise<MeResult> {
   return me;
 }
 
+/** Where a user's "home" surface is, by role precedence. */
+export function roleHome(me: MeResult): string {
+  if (me.is_platform_operator) return '/platform-operator';
+  if (me.is_company_admin) return '/company-admin/overview';
+  if (me.is_staff) return '/dashboard';
+  if (me.is_board) return '/board';
+  if (me.vendor_id) return '/vendor';
+  if (me.owner_id) return '/portal';
+  return '/login';
+}
+
 export async function requireStaff(): Promise<MeResult> {
   const me = await requireAuth();
-  if (!me.is_staff && !me.is_platform_operator) redirect('/portal');
+  if (!me.is_staff && !me.is_platform_operator) redirect(roleHome(me));
   return me;
 }
 
 export async function requireBoard(): Promise<MeResult> {
   const me = await requireAuth();
-  if (!me.is_board && !me.is_platform_operator) redirect('/portal');
+  if (!me.is_board && !me.is_platform_operator) redirect(roleHome(me));
   return me;
 }
 

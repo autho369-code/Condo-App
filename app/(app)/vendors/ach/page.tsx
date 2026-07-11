@@ -7,10 +7,35 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
+import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/entities';
+import { Field, Input } from '@/components/ui/input';
+
+async function saveVendorBankDetails(formData: FormData) {
+  'use server';
+  await requireStaff();
+  const supabase = await createClient();
+  const vendorId = formData.get('vendor_id') as string;
+  const routing = ((formData.get('bank_routing_number') as string) ?? '').replace(/\D/g, '');
+  const account = ((formData.get('bank_account_number') as string) ?? '').replace(/\D/g, '');
+  const fail = (m: string) => redirect(`/vendors/ach?vendor=${vendorId}&error=${encodeURIComponent(m)}`);
+
+  if (!vendorId) redirect('/vendors/ach');
+  if (routing.length !== 9) fail('Routing number must be exactly 9 digits.');
+  if (account.length < 4 || account.length > 17) fail('Account number must be 4–17 digits.');
+
+  const { error } = await (supabase as any).from('vendors').update({
+    bank_routing_number: routing,
+    bank_account_number: account,
+    savings_account: formData.get('savings_account') === 'on',
+    ach_status: 'pending',
+  }).eq('id', vendorId);
+  if (error) fail(error.message);
+  redirect(`/vendors/ach?vendor=${vendorId}`);
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -277,7 +302,46 @@ export default async function VendorAchPage({
     );
   }
 
-  // If no focus vendor (or vendor without bank info), show overview list
+  // Focused vendor WITHOUT bank info: let staff add the bank details here so
+  // the verify -> activate workflow can actually start.
+  if (focusVendor && !(focusVendor.bank_routing_number && focusVendor.bank_account_number)) {
+    return (
+      <DataWorkspace
+        title="Add Vendor Bank Details"
+        description={`Enter ${focusVendor.name}'s bank account so ACH can be verified and activated.`}
+        actions={
+          <>
+            <Link href="/vendors/ach"><Button variant="secondary">All vendors</Button></Link>
+            <Link href="/vendors"><Button variant="ghost">Back to vendors</Button></Link>
+          </>
+        }
+      >
+        <div className="max-w-2xl space-y-5">
+          {sp.error && <Alert tone="danger" title="Could not save bank details">{sp.error}</Alert>}
+          <form action={saveVendorBankDetails} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <input type="hidden" name="vendor_id" value={focusVendor.id} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Routing number">
+                <Input name="bank_routing_number" inputMode="numeric" required placeholder="9 digits" />
+              </Field>
+              <Field label="Account number">
+                <Input name="bank_account_number" inputMode="numeric" required placeholder="Vendor's deposit account" />
+              </Field>
+            </div>
+            <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="savings_account" className="h-4 w-4 rounded border-gray-300" />
+              This is a savings account
+            </label>
+            <div className="mt-6">
+              <Button type="submit">Save bank details</Button>
+            </div>
+          </form>
+        </div>
+      </DataWorkspace>
+    );
+  }
+
+  // If no focus vendor, show overview list
   return (
     <DataWorkspace
       title="Vendor ACH Setup"
@@ -338,7 +402,9 @@ export default async function VendorAchPage({
                         Review authorization →
                       </Link>
                     ) : (
-                      <span className="text-xs text-gray-400">Add bank details first</span>
+                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
+                        Add bank details →
+                      </Link>
                     )}
                   </TD>
                 </TR>

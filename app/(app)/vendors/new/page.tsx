@@ -114,6 +114,14 @@ export default async function NewVendorPage({
               </select>
             </div>
             <div><Label htmlFor="payment_terms">Payment terms</Label><Input id="payment_terms" name="payment_terms" placeholder="Net 30, due on receipt..." /></div>
+            <div>
+              <Label htmlFor="bank_routing_number">Bank routing # (for ACH)</Label>
+              <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" placeholder="9 digits — required for ACH payments" />
+            </div>
+            <div>
+              <Label htmlFor="bank_account_number">Bank account # (for ACH)</Label>
+              <Input id="bank_account_number" name="bank_account_number" inputMode="numeric" placeholder="Vendor's deposit account" />
+            </div>
           </div>
         </section>
 

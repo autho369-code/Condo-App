@@ -29,6 +29,7 @@ export const ownerModules: AppModule[] = [
   { label: 'My Home', href: '/portal/home' },
   { label: 'My Account', href: '/portal/account' },
   { label: 'How to Pay', href: '/portal/pay' },
+  { label: 'AutoPay', href: '/portal/autopay' },
   { label: 'Work Orders', href: '/portal/work-orders' },
   { label: 'Violations', href: '/portal/violations' },
   { label: 'Architectural Requests', href: '/portal/architectural' },

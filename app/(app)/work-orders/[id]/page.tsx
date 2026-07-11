@@ -282,7 +282,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
                   <TD>{(e.vendors as any)?.name ?? '—'}</TD>
                   <TD className="text-right font-medium tabular-nums">{money(e.amount)}</TD>
                   <TD>{date(e.submitted_at)}</TD>
-                  <TD>{e.approved_at ? 'âœ“ approved' : e.rejected_at ? 'âœ— rejected' : 'pending'}</TD>
+                  <TD>{e.approved_at ? '✓ approved' : e.rejected_at ? '✗ rejected' : 'pending'}</TD>
                   <TD className="text-right">
                     {!e.approved_at && !e.rejected_at && (
                       <form action={approveEstimate.bind(null, e.id, id) as any}>

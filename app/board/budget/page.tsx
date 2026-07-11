@@ -224,8 +224,10 @@ export default async function BoardBudgetPage() {
                   <div className="space-y-3">
                     {(fees ?? []).reverse().map((m: any) => {
                       const mn = new Date(m.month).getMonth()
-                      const budget = m.fee_amount_cents ?? 0
-                      const actual = m.collected_cents ?? 0
+                      // _cents columns are integer cents — convert to dollars
+                      // before money() (which formats, but does not divide).
+                      const budget = (m.fee_amount_cents ?? 0) / 100
+                      const actual = (m.collected_cents ?? 0) / 100
                       const maxVal = Math.max(budget, actual, 1)
                       return (
                         <div key={m.month} className="space-y-1">

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ReportViolationForm from './report-violation-form';
 
@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic';
 
 async function submitReport(formData: FormData) {
   'use server';
-  const supabase = await createClient();
   const report = {
     association_id: formData.get('association_id') as string,
     reporter_name: formData.get('reporter_name') as string,
@@ -34,13 +33,35 @@ async function submitReport(formData: FormData) {
   if (aiSeverity) (report as any).ai_severity = aiSeverity;
   if (aiConfidence) (report as any).ai_confidence = parseInt(aiConfidence, 10);
 
-  await (supabase as any).from('violation_cases').insert(report);
+  // Server-side required-field validation (the client form also enforces these,
+  // but a public endpoint must not rely on that).
+  if (!report.association_id || !report.reporter_name || !report.reporter_contact ||
+      !report.violation_description || !report.reporter_signature) {
+    redirect(`/report-violation?error=missing${report.association_id ? `&assoc=${report.association_id}` : ''}`);
+  }
+
+  // Public (anonymous) reporters have no violation_cases INSERT policy under
+  // RLS, so this controlled, validated insert runs with the service client —
+  // server action only; nothing is exposed to the browser.
+  const service = createServiceClient();
+  const { error } = await (service as any).from('violation_cases').insert(report);
+  if (error) {
+    console.error('report-violation insert failed:', error.message);
+    redirect(`/report-violation?error=save&assoc=${report.association_id}`);
+  }
   redirect('/report-violation/confirmation');
 }
 
-export default async function ReportViolationPage({ searchParams }: { searchParams: Promise<{ assoc?: string }> }) {
-  const supabase = await createClient();
+export default async function ReportViolationPage({ searchParams }: { searchParams: Promise<{ assoc?: string; error?: string }> }) {
+  // Anonymous visitors have no RLS read access to associations, so this
+  // public intake page loads its dropdown data via the service client
+  // (server component only; nothing reaches the browser but id + name).
+  const supabase = createServiceClient();
   const sp = await searchParams;
+  const errorMessage =
+    sp.error === 'missing' ? 'Please complete all required fields and sign the report.' :
+    sp.error === 'save' ? 'We could not save your report. Please try again, or contact your management office directly.' :
+    null;
 
   const { data: associations } = await (supabase as any)
     .from('associations')
@@ -57,11 +78,18 @@ export default async function ReportViolationPage({ searchParams }: { searchPara
     .order('sort_order') : { data: [] };
 
   return (
-    <ReportViolationForm
-      associations={associations ?? []}
-      rules={rules ?? []}
-      assocId={assocId}
-      submitReport={submitReport}
-    />
+    <>
+      {errorMessage && (
+        <div className="mx-auto mt-6 max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+          {errorMessage}
+        </div>
+      )}
+      <ReportViolationForm
+        associations={associations ?? []}
+        rules={rules ?? []}
+        assocId={assocId}
+        submitReport={submitReport}
+      />
+    </>
   );
 }

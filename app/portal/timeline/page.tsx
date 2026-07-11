@@ -24,7 +24,8 @@ export default async function OwnerTimelinePage() {
       ? db.from('work_orders').select('id, title, status, created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     db.from('violations').select('id, title, status, date_observed').eq('owner_id', ownerId).is('archived_at', null).order('date_observed', { ascending: false }).limit(30),
-    db.from('communications_log').select('subject, channel, status, created_at').eq('sender_id', ownerId).order('created_at', { ascending: false }).limit(30),
+    // sender_id holds the auth user id, not the owner id (matches /portal/communications)
+    db.from('communications_log').select('subject, channel, status, created_at').eq('sender_id', me.auth_user_id).order('created_at', { ascending: false }).limit(30),
   ])
 
   interface Entry { date: string; icon: any; title: string; detail: string; color: string; }

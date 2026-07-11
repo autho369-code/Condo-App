@@ -17,7 +17,7 @@ export default async function LoginPage({
   // When absent, leave next empty so the server resolves the destination from
   // the account's actual role instead of the login tab's default.
   const next = safeInternalNext(params.next) ?? '';
-  const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true';
+  const localPreview = process.env.LOCAL_PREVIEW_MODE === 'true' && process.env.NODE_ENV !== 'production';
   const modes = getVisibleLoginModes(params.mode);
   const isAdminMode = mode.id === 'admin';
   const isScoped = isAdminMode || mode.id === 'company_admin';

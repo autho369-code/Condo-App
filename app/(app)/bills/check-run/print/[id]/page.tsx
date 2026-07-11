@@ -70,7 +70,7 @@ export default async function PrintChecksPage({
   const { data: checks } = await (supabase as any)
     .from('payable_bills')
     .select(`
-      id, bill_number, amount, memo, paid_at, bill_date, due_date,
+      id, bill_number, check_number, amount, memo, paid_at, bill_date, due_date,
       vendors(name, address_street, address_city, address_state, address_zip, taxpayer_id),
       associations(name),
       gl_accounts(number, name),
@@ -78,7 +78,7 @@ export default async function PrintChecksPage({
     `)
     .eq('paid_at', seed?.paid_at ?? '1970-01-01')
     .eq('bank_account_id', seed?.bank_account_id ?? '00000000-0000-0000-0000-000000000000')
-    .order('bill_number');
+    .order('check_number');
 
   return (
     <div className="space-y-4">
@@ -116,7 +116,7 @@ export default async function PrintChecksPage({
 
                 {/* Check number + date, top-right */}
                 <div className="check-meta">
-                  <div className="check-num">#{c.bill_number ?? '—'}</div>
+                  <div className="check-num">#{c.check_number ?? c.bill_number ?? '—'}</div>
                   <div>Date: <span className="mono">{date(c.paid_at)}</span></div>
                 </div>
 
@@ -158,7 +158,7 @@ export default async function PrintChecksPage({
 
                 {/* MICR line */}
                 <div className="micr">
-                  ⑆{bank?.routing_number ?? '000000000'}⑆ {bank?.account_number ? '*'.repeat(Math.max(0, bank.account_number.length - 4)) + bank.account_number.slice(-4) : '****'}⑈ {c.bill_number ?? ''}⑈
+                  ⑆{bank?.routing_number ?? '000000000'}⑆ {bank?.account_number ? '*'.repeat(Math.max(0, bank.account_number.length - 4)) + bank.account_number.slice(-4) : '****'}⑈ {c.check_number ?? ''}⑈
                 </div>
               </div>
 
@@ -169,7 +169,7 @@ export default async function PrintChecksPage({
               <div className="panel stub-panel">
                 <div className="stub-head">
                   <div className="stub-title">Payment advice — for your records</div>
-                  <div className="stub-sub">{bank?.company_name ?? ''} · Check #{c.bill_number}</div>
+                  <div className="stub-sub">{bank?.company_name ?? ''} · Check #{c.check_number ?? c.bill_number ?? '—'}</div>
                 </div>
                 <div className="stub-grid">
                   <div><div className="stub-label">Vendor</div><div>{v?.name}</div></div>
@@ -190,7 +190,7 @@ export default async function PrintChecksPage({
               <div className="panel stub-panel">
                 <div className="stub-head">
                   <div className="stub-title">AP file copy</div>
-                  <div className="stub-sub">Check #{c.bill_number} · {date(c.paid_at)} · {money(amt)}</div>
+                  <div className="stub-sub">Check #{c.check_number ?? c.bill_number ?? '—'} · {date(c.paid_at)} · {money(amt)}</div>
                 </div>
                 <div className="stub-grid">
                   <div><div className="stub-label">Paid to</div><div className="font-medium">{v?.name}</div></div>

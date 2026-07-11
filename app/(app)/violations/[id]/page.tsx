@@ -36,7 +36,7 @@ export default async function ViolationDetailPage({ params }: { params: Promise<
     <DataWorkspace
       title={violation.title}
       description={`${violation.associations?.name ?? 'Association'}${violation.units?.unit_number ? ` - Unit ${violation.units.unit_number}` : ''}${violation.owners?.full_name ? ` - ${violation.owners.full_name}` : ''}`}
-      actions={<><Link href="/violations"><Button variant="secondary">Back</Button></Link><Button>Preview notice</Button></>}
+      actions={<><Link href="/violations"><Button variant="secondary">Back</Button></Link><Link href="/documents/generate?type=violation_notice"><Button>Generate notice</Button></Link></>}
       rail={<DetailRail />}
     >
       <div className="space-y-6">

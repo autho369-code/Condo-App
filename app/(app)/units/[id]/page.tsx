@@ -43,12 +43,12 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               <Link href="/units" className="transition-colors hover:text-gray-700">Units</Link>
-              {' Ã‚Â· '}
+              {' · '}
               <span className="text-gray-400">{(unit.buildings as any)?.associations?.name}</span>
             </div>
             <h1 className="mt-1 text-xl font-semibold text-gray-900">Unit {unit.unit_number}</h1>
             <div className="mt-1 text-sm text-gray-500">
-              {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` Ã‚Â· ${unit.bathrooms} ba` : ''}{unit.sqft ? ` Ã‚Â· ${unit.sqft} sqft` : ''}
+              {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` · ${unit.bathrooms} ba` : ''}{unit.sqft ? ` · ${unit.sqft} sqft` : ''}
             </div>
           </div>
         </div>

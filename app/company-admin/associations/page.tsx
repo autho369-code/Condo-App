@@ -25,7 +25,7 @@ export default async function CompanyAdminAssociationsPage({
 
   const { data: associations } = await db
     .from('associations')
-    .select(`id, slug, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, profiles:profiles(full_name, email))`)
+    .select(`id, slug, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, ended_at, profiles:profiles(full_name, email))`)
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')

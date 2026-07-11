@@ -225,6 +225,7 @@ export default function MeetingDetailClient() {
 
     if (uploadErr) {
       console.error('Upload failed:', uploadErr)
+      alert('Upload failed: ' + uploadErr.message)
       setUploading(false)
       return
     }
@@ -614,6 +615,19 @@ export default function MeetingDetailClient() {
                         {d.file_type ?? 'Unknown'} &middot; {d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : 'Unknown size'}
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const { data, error } = await supabase.storage
+                          .from('association-documents')
+                          .createSignedUrl(d.storage_path, 60 * 10)
+                        if (error || !data?.signedUrl) { alert('Could not open the file: ' + (error?.message ?? 'unknown error')); return }
+                        window.open(data.signedUrl, '_blank', 'noopener')
+                      }}
+                      className="shrink-0 text-xs font-medium text-blue-600 transition-colors hover:text-blue-800"
+                    >
+                      Download
+                    </button>
                   </div>
                 ))
               )}
