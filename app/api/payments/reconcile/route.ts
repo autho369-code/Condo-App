@@ -6,20 +6,20 @@
  * arrive after the payout webhook still auto-reconcile without a human.
  * Scheduled via vercel.json cron; also safe to invoke manually.
  *
- * When CRON_SECRET is set, requires Vercel's `Authorization: Bearer` header.
+ * Requires Vercel's `Authorization: Bearer ${CRON_SECRET}` header and
+ * fails closed when CRON_SECRET is not configured.
  * The job is idempotent — it only links unmatched records.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { reconcilePayouts } from '@/lib/payments/reconcile';
 import { createServiceClient } from '@/lib/supabase/server';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   try {
     const summary = await reconcilePayouts(createServiceClient() as any);

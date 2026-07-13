@@ -8,14 +8,18 @@
  *   3. Email delivery — queues one email per delivery target with the download
  *      link, via the same email_queue pipeline the rest of the app uses.
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { processReportRun } from '@/lib/reports/process';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const svc = createServiceClient() as any;
 
@@ -58,10 +62,13 @@ export async function GET() {
           const { error: mailErr } = await svc.from('email_queue').insert({
             to_email: to,
             subject: `Scheduled report: ${sched.name}`,
-            body_html:
+            // Column is `body` — email_queue has no body_html column.
+            body:
               `<p>Your scheduled report <strong>${sched.name}</strong> is ready.</p>` +
               `<p><a href="${done.output_url}">Download the report</a> (link valid for 30 days).</p>`,
             status: 'pending',
+            from_address: 'hello@portier369.com',
+            from_name: 'Portier369',
           });
           if (!mailErr) queuedEmails++;
         }

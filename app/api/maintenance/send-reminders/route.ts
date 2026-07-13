@@ -2,10 +2,14 @@
  * GET /api/maintenance/send-reminders
  * Called daily by cron. Sends email/SMS reminders to vendors for upcoming maintenance tasks.
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDueReminders, buildReminderContent } from '@/lib/maintenance/reminders';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const reminders = await getDueReminders();
 
@@ -18,15 +22,20 @@ export async function GET() {
       const { subject, body } = buildReminderContent(reminder);
 
       try {
-        // Queue email via the existing email pipeline
-        const { createClient } = await import('@/lib/supabase/server');
-        const supabase = await createClient();
-        await (supabase as any).from('email_queue').insert({
+        // Queue email via the existing email pipeline. Cron has no user
+        // session, so use the service client (email_queue is RLS-locked),
+        // and the column is `body` — inserting `body_html` fails outright.
+        const { createServiceClient } = await import('@/lib/supabase/server');
+        const svc = createServiceClient();
+        const { error: insertErr } = await (svc as any).from('email_queue').insert({
           to_email: reminder.vendorEmail,
           subject,
-          body_html: body.replace(/\n/g, '<br>'),
+          body: body.replace(/\n/g, '<br>'),
           status: 'pending',
+          from_address: 'hello@portier369.com',
+          from_name: 'Portier369',
         });
+        if (insertErr) throw new Error(insertErr.message);
 
         results.push({ task: reminder.taskName, vendor: reminder.vendorEmail, status: 'queued' });
       } catch (e: any) {

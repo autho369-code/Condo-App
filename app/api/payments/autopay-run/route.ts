@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isStripeConfigured, createOffSessionPaymentIntent } from '@/lib/payments/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,10 +46,8 @@ function nextMonthly(day: number): string {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
   if (!isStripeConfigured()) {
     return NextResponse.json({ skipped: 'stripe not configured' });
   }

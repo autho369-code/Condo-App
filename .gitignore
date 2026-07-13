@@ -16,3 +16,4 @@ supabase/.temp/
 # local data backups + analysis artifacts
 backups/
 .understand-anything/
+.env*
