@@ -42,6 +42,7 @@ export default async function ArchitecturalReviewsTab({
 
   async function saveSettings(formData: FormData) {
     'use server';
+    await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
 
     await (supabase as any).from('architectural_review_settings').upsert({

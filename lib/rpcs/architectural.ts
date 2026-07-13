@@ -73,6 +73,7 @@ export async function submitArchitecturalRequest(formData: FormData) {
 
 /** Owner withdraws their own open request. RLS enforces ownership + status. */
 export async function withdrawArchitecturalRequest(requestId: string) {
+  await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('architectural_requests')
@@ -98,6 +99,9 @@ export async function postArchitecturalMessage(
   const body = (formData.get('body') as string)?.trim();
   const back = `${basePath}/${requestId}`;
   if (!me.auth_user_id) { redirect('/login'); return; }
+  // Never trust the caller-supplied role label — derive it from the session
+  // so a resident cannot post as "staff"/"board".
+  authorRole = (me.is_staff || me.is_platform_operator) ? 'staff' : me.is_board ? 'board' : 'owner';
   if (!body) { redirect(`${back}?error=${encodeURIComponent('Message cannot be empty')}`); return; }
 
   const supabase = await createClient();
@@ -120,6 +124,11 @@ export async function decideArchitecturalRequest(
 ) {
   const me = await getMe();
   if (!me.auth_user_id) { redirect('/login'); return; }
+  // Decisions are a staff/board power — an owner must never decide their own request.
+  if (!me.is_staff && !me.is_board && !me.is_platform_operator) {
+    redirect(`${basePath}/${requestId}?error=${encodeURIComponent('Only staff or board members can record decisions.')}`);
+    return;
+  }
 
   const decision = String(formData.get('decision') ?? '');
   const notes    = (formData.get('decision_notes') as string)?.trim() || null;

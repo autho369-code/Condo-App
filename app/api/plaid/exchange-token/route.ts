@@ -4,12 +4,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
 import { createClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { requireStaff } from '@/lib/auth/me';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getMe();
-    if (!user || !user.auth_user_id) {
+    // Banking connections are a staff-only capability.
+    let user;
+    try {
+      user = await requireStaff();
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

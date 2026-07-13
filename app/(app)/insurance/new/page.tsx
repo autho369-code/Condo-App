@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 async function addPolicy(formData: FormData) {
   'use server';
+  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const db = supabase as any;
   const failTo = (msg: string) => redirect(`/insurance/new?error=${encodeURIComponent(msg)}`);

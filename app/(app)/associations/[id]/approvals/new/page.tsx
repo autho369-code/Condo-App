@@ -54,6 +54,7 @@ export default async function NewApprovalPage({
 
   async function createApproval(formData: FormData) {
     'use server';
+    await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
 
     const name = String(formData.get('name') ?? '').trim();

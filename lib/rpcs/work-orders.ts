@@ -1,9 +1,11 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function updateWorkOrderStatus(workOrderId: string, newStatus: string, note?: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const failTo = (msg: string) => {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
@@ -28,6 +30,7 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
 }
 
 export async function updateWorkOrder(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const failTo = (msg: string) => {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
@@ -68,6 +71,7 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
 }
 
 export async function assignVendor(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const failTo = (msg: string) => {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
@@ -97,6 +101,7 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
 }
 
 export async function unassignVendor(workOrderId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_orders').update({ vendor_id: null }).eq('id', workOrderId);
   if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
@@ -108,6 +113,7 @@ export async function unassignVendor(workOrderId: string) {
 }
 
 export async function addLaborEntry(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_order_labor_entries').insert({
     work_order_id: workOrderId,
@@ -122,6 +128,7 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
 }
 
 export async function addEstimate(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_order_estimates').insert({
     work_order_id: workOrderId,
@@ -134,6 +141,7 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
 }
 
 export async function approveEstimate(estimateId: string, workOrderId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_order_estimates')
     .update({ approved_at: new Date().toISOString() })
@@ -143,6 +151,7 @@ export async function approveEstimate(estimateId: string, workOrderId: string) {
 }
 
 export async function addNote(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
@@ -157,6 +166,7 @@ export async function addNote(workOrderId: string, formData: FormData) {
  * Used by staff to triage owner-submitted requests.
  */
 export async function createWorkOrderFromServiceRequest(serviceRequestId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
 
   const { data: sr, error: srErr } = await (supabase as any).from('service_requests')

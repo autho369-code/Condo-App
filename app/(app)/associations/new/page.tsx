@@ -48,6 +48,9 @@ export default async function NewPropertyPage() {
     'use server';
     const supabase = await createClient();
     const m = await getMe();
+    if (!m.is_staff && !m.is_company_admin && !m.is_platform_operator) {
+      redirect('/associations/new?error=' + encodeURIComponent('Staff access required.'));
+    }
 
     const name = String(formData.get('name') ?? '').trim();
     const address = String(formData.get('address') ?? '').trim();

@@ -1,9 +1,15 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function updatePortfolioPolicy(portfolioId: string, formData: FormData) {
+  // In-action guard + scope: policy edits (late fees, MFA requirements,
+  // convenience fees) always target the CALLER's portfolio — the bound
+  // parameter is ignored in favor of the session's portfolio.
+  const me = await requirePortfolioAdmin();
+  portfolioId = me.portfolio?.id ?? portfolioId;
   const supabase = await createClient();
 
   const reminderDays = (formData.get('reminder_days') as string || '14,7,1,-7,-30')

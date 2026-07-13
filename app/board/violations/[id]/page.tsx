@@ -35,6 +35,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 // Server action for adding board comments
 async function addBoardComment(formData: FormData) {
   'use server'
+  await (await import('@/lib/auth/me')).requireBoard();  // in-action guard: board members only
   const supabase = await createClient()
   const violationId = formData.get('violation_id') as string
   const comment = formData.get('comment') as string

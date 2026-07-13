@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/types/database';
@@ -7,6 +8,7 @@ import type { Database } from '@/lib/types/database';
 type PayableBillStatus = Database['public']['Enums']['payable_bill_status'];
 
 export async function createBill(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/new?error=${encodeURIComponent(msg)}`);
   };
@@ -59,6 +61,7 @@ function parsePayableBillStatus(value: FormDataEntryValue | null): PayableBillSt
 }
 
 export async function approveBill(billId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
   };
@@ -73,6 +76,7 @@ export async function approveBill(billId: string) {
 }
 
 export async function voidBill(billId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
   };
@@ -87,6 +91,7 @@ export async function voidBill(billId: string) {
 }
 
 export async function writeChecks(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/check-run?error=${encodeURIComponent(msg)}`);
   };

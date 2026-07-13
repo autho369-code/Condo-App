@@ -83,6 +83,7 @@ async function addTask(formData: FormData) {'use server';
 }
 
 async function updateTask(formData: FormData) {'use server';
+  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
   const id = formData.get('id') as string;
@@ -112,6 +113,7 @@ async function updateTask(formData: FormData) {'use server';
 }
 
 async function deleteTask(formData: FormData) {'use server';
+  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const id = formData.get('id') as string;
   await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);

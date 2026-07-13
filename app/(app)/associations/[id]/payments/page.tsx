@@ -17,7 +17,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 async function connectStripe(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
-  await req();
+  const me = await req();
   const associationId = formData.get('association_id') as string;
   const slug = (formData.get('slug') as string) || associationId;
   const back = `/associations/${slug}/payments`;
@@ -29,8 +29,12 @@ async function connectStripe(formData: FormData) {
 
   const { createServiceClient } = await import('@/lib/supabase/server');
   const svc = createServiceClient() as any;
-  const { data: assoc } = await svc.from('associations').select('id, name, stripe_account_id').eq('id', associationId).maybeSingle();
+  const { data: assoc } = await svc.from('associations').select('id, name, portfolio_id, stripe_account_id').eq('id', associationId).maybeSingle();
   if (!assoc) redirect(`${back}?error=${encodeURIComponent('Association not found.')}`);
+  // Scope: never let staff of one company touch another company's Stripe account.
+  if (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id) {
+    redirect(`${back}?error=${encodeURIComponent('That association is not in your portfolio.')}`);
+  }
 
   let accountId = assoc.stripe_account_id as string | null;
   try {
@@ -94,7 +98,7 @@ async function saveAllocationOrder(formData: FormData) {
 async function refreshStripeStatus(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
-  await req();
+  const me = await req();
   const associationId = formData.get('association_id') as string;
   const slug = (formData.get('slug') as string) || associationId;
   const back = `/associations/${slug}/payments`;
@@ -102,8 +106,11 @@ async function refreshStripeStatus(formData: FormData) {
   const { isStripeConfigured, getConnectedAccount } = await import('@/lib/payments/stripe');
   const { createServiceClient } = await import('@/lib/supabase/server');
   const svc = createServiceClient() as any;
-  const { data: assoc } = await svc.from('associations').select('id, stripe_account_id').eq('id', associationId).maybeSingle();
+  const { data: assoc } = await svc.from('associations').select('id, portfolio_id, stripe_account_id').eq('id', associationId).maybeSingle();
   if (!assoc?.stripe_account_id || !isStripeConfigured()) redirect(back);
+  if (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id) {
+    redirect(`${back}?error=${encodeURIComponent('That association is not in your portfolio.')}`);
+  }
 
   try {
     const account = await getConnectedAccount(assoc.stripe_account_id);

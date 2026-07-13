@@ -15,6 +15,7 @@ export default async function NewBankAdjustmentPage() {
 
   async function handleSubmit(formData: FormData) {
     'use server';
+    await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
     const { error } = await (supabase as any).from('bank_adjustments').insert({
       bank_account_id: formData.get('bank_account_id') || null,

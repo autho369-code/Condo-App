@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
 export async function POST(request: NextRequest) {
+  // Staff-only: server actions/route handlers are callable endpoints, so the
+  // guard lives in the handler itself (middleware alone is not sufficient).
+  try {
+    await (await import('@/lib/auth/me')).requireStaff();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { templateId, to, subject, body } = await request.json();
 

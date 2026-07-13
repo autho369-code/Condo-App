@@ -2,6 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
+  // Staff-only: server actions/route handlers are callable endpoints, so the
+  // guard lives in the handler itself (middleware alone is not sufficient).
+  try {
+    await (await import('@/lib/auth/me')).requireStaff();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const associationId = searchParams.get('association_id');
   if (!associationId) return NextResponse.json({ error: 'association_id required' }, { status: 400 });

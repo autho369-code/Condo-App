@@ -1,11 +1,13 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 /* ============ Charge Categories ============ */
 
 export async function createChargeCategory(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/charge-categories/new?error=${encodeURIComponent(msg)}`);
   };
@@ -30,6 +32,7 @@ export async function createChargeCategory(formData: FormData) {
 }
 
 export async function updateChargeCategory(id: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
   };
@@ -52,6 +55,7 @@ export async function updateChargeCategory(id: string, formData: FormData) {
 }
 
 export async function archiveChargeCategory(id: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
   };
@@ -66,6 +70,7 @@ export async function archiveChargeCategory(id: string) {
 /* ============ Per-Unit Subscriptions ============ */
 
 export async function subscribeUnitToCharge(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const unit_id            = formData.get('unit_id') as string;
   const failTo = (msg: string) => {
@@ -92,6 +97,7 @@ export async function subscribeUnitToCharge(formData: FormData) {
 }
 
 export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
   };
@@ -104,6 +110,7 @@ export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
 }
 
 export async function updateUnitSubscription(id: string, unitId: string, formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
   };
@@ -121,6 +128,7 @@ export async function updateUnitSubscription(id: string, unitId: string, formDat
 /* ============ Ad-hoc charges + manual receipts ============ */
 
 export async function postAdHocCharge(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const unit_id            = formData.get('unit_id') as string;
   const failTo = (msg: string) => {
@@ -143,6 +151,7 @@ export async function postAdHocCharge(formData: FormData) {
 }
 
 export async function recordReceipt(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const unit_id      = formData.get('unit_id') as string;
   const failTo = (msg: string) => {
@@ -163,6 +172,7 @@ export async function recordReceipt(formData: FormData) {
 }
 
 export async function unapplyPayment(paymentId: string, unitId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
   };

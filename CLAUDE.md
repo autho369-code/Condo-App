@@ -37,8 +37,8 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
 ## Architecture map
 - `app/(app)/*` — manager workspace (dark left sidebar + content + right TasksRail)
 - `app/board/*` — board portal · `app/portal/*` — owner portal
-- `app/company-admin/*` — company admin · `app/platform-operator/*` + `app/platform/*`
-  — platform operator (DUPLICATED — consolidation pending, ask before touching)
+- `app/company-admin/*` — company admin · `app/platform-operator/*` — platform
+  operator (`app/platform/*` is only a legacy redirect shim to /platform-operator)
 - `app/vendor/*` — vendor portal (dashboard, work orders + status updates,
   compliance, profile) — built on the unified shell
 - Shared UI: `components/ui/*` (primitives), `components/operations/*` (list-page
@@ -72,5 +72,7 @@ Migrate every page to the design system. Work through
 - Don't invent new status colors — use `Badge`/`toneForStatus` or `StatusChip`.
 - Don't copy AppFolio's interface text, icons, or visual layout verbatim
   (functionality parity yes, expression no).
-- Don't touch `app/platform/*` vs `app/platform-operator/*` consolidation or
-  delete any database table without explicit user approval.
+- Don't delete any database table without explicit user approval.
+- Every Server Action must re-check authorization INSIDE the action body
+  (actions are callable endpoints; page-level guards are not enough) and
+  verify formData-supplied IDs belong to the caller's own scope.

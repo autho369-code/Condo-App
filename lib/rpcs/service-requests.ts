@@ -83,6 +83,7 @@ function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceR
 
 /** Resident cancels one of their own open requests. RLS enforces ownership. */
 export async function cancelServiceRequest(serviceRequestId: string) {
+  await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('service_requests')

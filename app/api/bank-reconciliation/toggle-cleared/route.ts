@@ -2,6 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  // Staff-only: server actions/route handlers are callable endpoints, so the
+  // guard lives in the handler itself (middleware alone is not sufficient).
+  try {
+    await (await import('@/lib/auth/me')).requireStaff();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = await createClient();
   const db = supabase as any;
 

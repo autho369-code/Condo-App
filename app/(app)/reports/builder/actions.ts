@@ -23,6 +23,7 @@ export async function saveReportView(formData: FormData) {
   if (!req) failTo(query, 'Run a valid report before saving.');
 
   const me = await getMe();
+  if (!me.is_staff && !me.is_platform_operator) failTo(query, 'Staff access required.');
   const portfolioId = me.portfolio?.id;
   if (!portfolioId) failTo(query, 'No portfolio in scope — cannot save.');
 
@@ -44,6 +45,7 @@ export async function saveReportView(formData: FormData) {
 }
 
 export async function deleteReportView(formData: FormData) {
+  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const id = String(formData.get('id') ?? '');
   const query = String(formData.get('query') ?? '');
   if (!id) failTo(query, 'Missing report id.');

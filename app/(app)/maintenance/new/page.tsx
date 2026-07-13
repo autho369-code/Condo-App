@@ -23,6 +23,7 @@ const REMINDER_OPTIONS = [30, 14, 10, 7, 5, 3, 1];
 
 async function createTask(formData: FormData) {
   'use server';
+  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const db = supabase as any;
 

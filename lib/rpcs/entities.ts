@@ -298,7 +298,8 @@ export async function createBuilding(formData: FormData) {
 export async function updateBuilding(id: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
-  const failTo = (msg: string) => redirect(`/buildings/${id}?error=${encodeURIComponent(msg)}`);
+  // There is no /buildings/[id] page — errors land on the Units workspace.
+  const failTo = (msg: string) => redirect(`/units?error=${encodeURIComponent(msg)}`);
 
   const amenitiesCsv = str(formData, 'amenities');
   const amenities = amenitiesCsv != null

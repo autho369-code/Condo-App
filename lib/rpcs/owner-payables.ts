@@ -1,9 +1,11 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function createOwnerPayable(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/owner-payable/new?error=${encodeURIComponent(msg)}`);
   };
@@ -41,6 +43,7 @@ export async function createOwnerPayable(formData: FormData) {
 }
 
 export async function approveOwnerPayable(id: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
   };
@@ -54,6 +57,7 @@ export async function approveOwnerPayable(id: string) {
 }
 
 export async function payOwnerPayable(id: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
   };
@@ -87,6 +91,7 @@ export async function payOwnerPayable(id: string) {
 }
 
 export async function voidOwnerPayable(id: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const failTo = (msg: string) => {
     redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
   };

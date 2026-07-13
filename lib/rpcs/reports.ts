@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -12,6 +13,7 @@ import { redirect } from 'next/navigation';
  * report_runs.status='succeeded' with output_url.
  */
 export async function queueReport(formData: FormData) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
 
   const failTo = (msg: string) => {
@@ -71,6 +73,7 @@ function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'xlsx' | '
  * checks this status before each step and bails early.
  */
 export async function cancelReportRun(runId: string) {
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('report_runs')
@@ -85,7 +88,7 @@ export async function cancelReportRun(runId: string) {
 // ── Scheduled report actions ──
 
 export async function toggleSchedule(formData: FormData) {
-  'use server';
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const id = formData.get('id') as string;
   const active = formData.get('active') === 'true';
@@ -99,7 +102,7 @@ export async function toggleSchedule(formData: FormData) {
 }
 
 export async function deleteSchedule(formData: FormData) {
-  'use server';
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const id = formData.get('id') as string;
   const { error } = await (supabase as any)
@@ -112,9 +115,20 @@ export async function deleteSchedule(formData: FormData) {
 }
 
 export async function runScheduleNow(formData: FormData) {
-  'use server';
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const id = formData.get('id') as string;
+
+  // Scope check before any service-role work: the schedule must be visible to
+  // the caller under RLS (their own portfolio). A silent 0-row update would
+  // otherwise let any staff trigger the global enqueue pipeline.
+  const { data: owned } = await (supabase as any)
+    .from('scheduled_reports')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!owned) redirect(`/scheduled-reports?error=${encodeURIComponent('Schedule not found in your portfolio.')}`);
+
   // Force next_run_at to now so the enqueuer picks it up...
   const { error } = await (supabase as any)
     .from('scheduled_reports')
@@ -144,7 +158,7 @@ export async function runScheduleNow(formData: FormData) {
 }
 
 export async function createSchedule(formData: FormData) {
-  'use server';
+  await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const failTo = (msg: string) => {
     redirect(`/scheduled-reports?error=${encodeURIComponent(msg)}`);
