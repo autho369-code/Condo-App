@@ -62,10 +62,13 @@ export async function GET(request: NextRequest) {
           const { error: mailErr } = await svc.from('email_queue').insert({
             to_email: to,
             subject: `Scheduled report: ${sched.name}`,
-            body_html:
+            // Column is `body` — email_queue has no body_html column.
+            body:
               `<p>Your scheduled report <strong>${sched.name}</strong> is ready.</p>` +
               `<p><a href="${done.output_url}">Download the report</a> (link valid for 30 days).</p>`,
             status: 'pending',
+            from_address: 'hello@portier369.com',
+            from_name: 'Portier369',
           });
           if (!mailErr) queuedEmails++;
         }

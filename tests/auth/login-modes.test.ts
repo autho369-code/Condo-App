@@ -18,14 +18,16 @@ describe('login mode routing', () => {
   it('sets role-specific default destinations', () => {
     expect(getLoginNext({ mode: 'manager' })).toBe('/dashboard');
     expect(getLoginNext({ mode: 'owner' })).toBe('/portal');
-    expect(getLoginNext({ mode: 'admin' })).toBe('/platform/portfolios');
+    // Operators land in the current operator portal, NOT the legacy
+    // app/platform/* section (duplicated — consolidation pending).
+    expect(getLoginNext({ mode: 'admin' })).toBe('/platform-operator');
   });
 
   it('allows only internal next paths', () => {
     expect(safeInternalNext('/reports')).toBe('/reports');
     expect(safeInternalNext('https://bad.example/dashboard')).toBeNull();
     expect(safeInternalNext('//bad.example/dashboard')).toBeNull();
-    expect(getLoginNext({ mode: 'admin', next: 'https://bad.example/dashboard' })).toBe('/platform/portfolios');
+    expect(getLoginNext({ mode: 'admin', next: 'https://bad.example/dashboard' })).toBe('/platform-operator');
   });
 
   it('hides admin sign in from public login choices', () => {
