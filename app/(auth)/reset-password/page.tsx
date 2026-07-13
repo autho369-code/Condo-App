@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [checking, setChecking] = useState(true);
   const [hasSession, setHasSession] = useState(false);
@@ -19,8 +18,10 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Client is created inside the effect (browser only) so build-time
+    // prerendering never needs Supabase env vars to render this page.
     let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    createClient().auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
       setHasSession(!!session);
       setChecking(false);
@@ -41,7 +42,7 @@ export default function ResetPasswordPage() {
       return;
     }
     setSaving(true);
-    const { error: updateErr } = await supabase.auth.updateUser({ password });
+    const { error: updateErr } = await createClient().auth.updateUser({ password });
     setSaving(false);
     if (updateErr) {
       setError(updateErr.message || 'Could not update your password. The reset link may have expired — request a new one.');
