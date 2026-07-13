@@ -2,10 +2,14 @@
  * GET /api/maintenance/send-reminders
  * Called daily by cron. Sends email/SMS reminders to vendors for upcoming maintenance tasks.
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDueReminders, buildReminderContent } from '@/lib/maintenance/reminders';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const reminders = await getDueReminders();
 

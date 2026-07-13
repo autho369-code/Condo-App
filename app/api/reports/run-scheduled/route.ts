@@ -8,14 +8,18 @@
  *   3. Email delivery — queues one email per delivery target with the download
  *      link, via the same email_queue pipeline the rest of the app uses.
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { processReportRun } from '@/lib/reports/process';
+import { requireCronSecret } from '@/lib/server/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const svc = createServiceClient() as any;
 
