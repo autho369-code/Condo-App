@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
+import { roleHome, type MeResult } from '@/lib/auth/me';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
@@ -21,13 +22,10 @@ export async function loginWithPassword(formData: FormData) {
 
   if (explicitNext) redirect(explicitNext);
 
-  // Role precedence: platform operator → company admin → board → staff → owner → vendor
-  if (me?.is_platform_operator) redirect('/platform-operator');
-  if (me?.is_company_admin) redirect('/company-admin/overview');
-  if (me?.is_board) redirect('/board');
-  if (me?.is_staff || me?.is_full_access_staff) redirect('/dashboard');
-  if (me?.vendor_id) redirect('/vendor');
-  if (me?.owner_id) redirect('/portal');
+  // Single source of truth for role precedence — the same roleHome() every
+  // guard uses, so login never lands somewhere a guard would bounce from.
+  const home = me ? roleHome(me as MeResult) : '/login';
+  if (home !== '/login') redirect(home);
 
   // Fallback to the tab's default if role couldn't be resolved
   redirect(getLoginModeConfig(mode).defaultNext);

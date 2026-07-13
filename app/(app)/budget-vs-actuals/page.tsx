@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireAuth, roleHome } from '@/lib/auth/me';
+import { redirect } from 'next/navigation';
 import { money } from '@/lib/utils';
 import { BarChart3 } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -18,7 +19,10 @@ export default async function BudgetVsActualsPage({
 }: {
   searchParams: Promise<{ association?: string; year?: string }>;
 }) {
-  await requireStaff();
+  // Finance-read surface: staff AND company admins (linked from the
+  // company-admin Financials page).
+  const me = await requireAuth();
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
   const supabase = await createClient();
   const db = supabase as any;
   const { association, year } = await searchParams;

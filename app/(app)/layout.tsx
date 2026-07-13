@@ -1,13 +1,17 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import Sidebar from '@/components/nav/sidebar';
 import TasksRail from '@/components/workspace/tasks-rail';
-import { requireStaff } from '@/lib/auth/me';
+import { requireAuth, roleHome } from '@/lib/auth/me';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // Staff-only workspace: owners/board/vendors are redirected to their own
-  // surface (defense-in-depth on top of RLS).
-  const me = await requireStaff();
+  // Staff workspace. Company admins are admitted at the layout so their nav
+  // links into shared finance surfaces (/command-center, /budget-vs-actuals)
+  // work; owners/board/vendors are redirected to their own surface. Each page
+  // still enforces its own narrower guard (defense-in-depth on top of RLS).
+  const me = await requireAuth();
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
   const h = await headers();
   const tenant = tenantFromHeaders(h);
   const displayName = tenant?.companyName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369';

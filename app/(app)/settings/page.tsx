@@ -12,11 +12,20 @@ import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// Server Actions are callable endpoints in their own right — every mutation
+// below re-checks authorization INSIDE the action (defense-in-depth on top of
+// the page-level requirePortfolioAdmin) and scopes targets to the caller's
+// own portfolio before touching anything.
+
 async function inviteStaff(formData: FormData) {
   'use server';
+  const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
+  const me = await guard();
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const { error } = await (supabase as any).rpc('invite_staff', {
-    p_portfolio_id: formData.get('portfolio_id') as string,
+    // Never trust a portfolio id from the form — invitations always target
+    // the caller's own portfolio.
+    p_portfolio_id: me.portfolio?.id,
     p_email: formData.get('email') as string,
     p_role_name: (formData.get('role_name') as string) || 'Property Manager',
     p_message: (formData.get('message') as string) || undefined,
@@ -29,6 +38,8 @@ async function inviteStaff(formData: FormData) {
 
 async function resetStaffPassword(formData: FormData) {
   'use server';
+  const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
+  const me = await guard();
   const authUserId = formData.get('auth_user_id') as string;
   const email = formData.get('email') as string;
 
@@ -36,10 +47,23 @@ async function resetStaffPassword(formData: FormData) {
     redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=no_auth_user');
   }
 
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const adminClient = createServiceClient();
+
+  // The target must be a member of the caller's own portfolio — a portfolio
+  // admin must never be able to reset an account outside their company.
+  const { data: target } = await (adminClient as any)
+    .from('profiles')
+    .select('id, portfolio_id, email')
+    .eq('id', authUserId)
+    .maybeSingle();
+  if (!target || !me.portfolio?.id || target.portfolio_id !== me.portfolio.id) {
+    redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=' + encodeURIComponent('That account is not in your portfolio.'));
+  }
+
   // Generate a secure random temporary password: 12 chars, alphanumeric
   const tempPassword = randomBytes(9).toString('base64url').slice(0, 12);
 
-  const adminClient = (await import('@/lib/supabase/server')).createServiceClient();
   const { error } = await (adminClient.auth as any).admin.updateUserById(authUserId, {
     password: tempPassword,
     email_confirm: true,
@@ -49,11 +73,34 @@ async function resetStaffPassword(formData: FormData) {
     redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=' + encodeURIComponent(error.message));
   }
 
-  redirect('/settings?reset_success=' + encodeURIComponent(email) + '&temp_password=' + encodeURIComponent(tempPassword));
+  await (adminClient as any).from('audit_logs').insert({
+    entity_type: 'profile',
+    entity_id: authUserId,
+    action: 'password_set',
+    actor_id: me.auth_user_id,
+    actor_email: me.profile?.email ?? me.email ?? null,
+    changes: { target_email: target.email, method: 'temporary_password' },
+  });
+
+  // Never place the secret in the URL (history, logs, analytics, referrers).
+  // A short-lived HttpOnly cookie carries it for exactly one page render.
+  const { cookies } = await import('next/headers');
+  (await cookies()).set('temp_pw_once', JSON.stringify({ email, pw: tempPassword }), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/settings',
+    maxAge: 90,
+  });
+  redirect('/settings?reset_success=' + encodeURIComponent(email));
 }
 
 async function removeStaffMember(formData: FormData) {
   'use server';
+  const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
+  await guard();
+  // RLS scopes the caller's client; the SECURITY DEFINER RPC re-validates the
+  // caller's authority over the target profile in Postgres.
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   await (supabase as any).rpc('remove_staff_member', {
     p_profile_id: formData.get('profile_id') as string,
@@ -64,6 +111,8 @@ async function removeStaffMember(formData: FormData) {
 
 async function changeStaffRole(formData: FormData) {
   'use server';
+  const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
+  await guard();
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const role = formData.get('role') as string;
   if (role) {
@@ -78,12 +127,23 @@ async function changeStaffRole(formData: FormData) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset_success?: string; temp_password?: string; reset_error?: string; reason?: string; invite_error?: string; error?: string }>;
+  searchParams: Promise<{ reset_success?: string; reset_error?: string; reason?: string; invite_error?: string; error?: string }>;
 }) {
   const sp = await searchParams;
   const me = await requirePortfolioAdmin();
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id as string;
+
+  // One-time temporary password from the reset action (HttpOnly cookie, never
+  // the URL). It expires on its own after 90 seconds.
+  let tempPw: { email: string; pw: string } | null = null;
+  if (sp.reset_success) {
+    try {
+      const { cookies } = await import('next/headers');
+      const raw = (await cookies()).get('temp_pw_once')?.value;
+      if (raw) tempPw = JSON.parse(raw);
+    } catch { /* expired or malformed — the alert simply omits the password */ }
+  }
 
   const [{ data: portfolio }, { data: team }, { data: invites }] = await Promise.all([
     (supabase as any).from('portfolios').select('*').eq('id', portfolioId).single(),
@@ -101,8 +161,14 @@ export default async function SettingsPage({
         {/* ======== FEEDBACK ======== */}
         {sp.reset_success && (
           <Alert tone="success" title={`Password reset for ${sp.reset_success}.`}>
-            Temporary password: <code className="rounded bg-emerald-100 px-2 py-0.5 font-mono font-bold">{sp.temp_password}</code>{' '}
-            Share this password with the team member. They will be prompted to change it on next login.
+            {tempPw?.pw ? (
+              <>
+                Temporary password: <code className="rounded bg-emerald-100 px-2 py-0.5 font-mono font-bold">{tempPw.pw}</code>{' '}
+                Copy it now — it is shown only once. Share it with the team member securely; they should change it after signing in.
+              </>
+            ) : (
+              <>The one-time display window has passed. Run the reset again if you still need a temporary password.</>
+            )}
           </Alert>
         )}
         {sp.reset_error && (

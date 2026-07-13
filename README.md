@@ -1,157 +1,105 @@
-# condo-app UI scaffold
+# Portier369 (condo-app)
 
-Next.js 15 (App Router) + Supabase Auth + Tailwind CSS.
+HOA/community-association management SaaS. Next.js 15 (App Router) + Supabase + Tailwind, deployed on Vercel at **portier369.com**.
 
-Connects to the Supabase project `termxngysvotnfbzbgrv` (condo-app). Every page flows the user's Supabase session through to RLS — the database, not the frontend, decides what data is visible.
+Connects to the Supabase project `termxngysvotnfbzbgrv` (~190 tables). Every page flows the user's Supabase session through to RLS — the database, not the frontend, decides what data is visible. See `CLAUDE.md` for the non-negotiable engineering rules and `docs/DESIGN_SYSTEM.md` before touching any UI.
 
-## File map
+## Application map
+
+Six role-scoped surfaces share one design system (dark sidebar + light content) and one auth chain (invitation-only, top-down):
 
 ```
 app/
-├── (auth)/               ← public pages (login, signup, accept-invitation)
-├── (app)/                ← staff-facing authenticated app
-│   ├── dashboard/        ← v_dashboard_summary widgets
-│   ├── associations/     ← HOA list + detail with board + units
-│   ├── units/            ← v_unit_account_summary (all units)
-│   ├── owners/ vendors/  ← directories
-│   ├── charges/          ← aged_receivables (open charges)
-│   ├── bills/            ← v_check_writing_queue (weekly check run)
-│   ├── work-orders/      ← open WOs with vendor + priority
-│   └── settings/         ← invite staff, team directory, pending invitations
-├── portal/               ← owner / board / vendor portal
-│   ├── page              ← balance + credit overview
-│   └── ledger/           ← v_charge_balances + payments history
-├── platform/             ← super-admin (you)
-│   ├── portfolios/       ← v_portfolio_health + provision_portfolio form
-│   └── operators/        ← list of platform operators
-└── api/auth/callback/    ← OAuth / magic-link code exchange
+├── (marketing)/          ← public site: home, /features/*, /pricing, /company,
+│                            /compare, /local, /hoa-laws, /demo (lead form), /legal/*
+├── (auth)/               ← login (role tabs), signup, forgot/reset password, accept-invitation
+├── (app)/                ← MANAGER workspace: dashboard, associations, units, owners,
+│                            accounting (GL, charges, bills, banking, budgets, 1099),
+│                            119 reports + builder, work orders, violations, ARC,
+│                            maintenance, inventory, communications, SMS, documents,
+│                            command-center (payments/reconciliation), settings
+├── company-admin/        ← COMPANY ADMIN executive suite: overview, financials,
+│                            manager performance, compliance, AI insights, billing
+├── board/                ← BOARD portal: financials, budget vs actual, delinquencies,
+│                            approvals (e-voting), homeowners, compliance, AI assistant
+├── portal/               ← OWNER portal: balance, pay online/AutoPay, My Home,
+│                            requests, ARC, amenities, vehicles, insurance, AI assistant
+├── vendor/               ← VENDOR portal: work orders, schedule, properties,
+│                            payments status, compliance, performance, AI assistant
+├── platform-operator/    ← PLATFORM OPERATOR: companies, users, billing, revenue,
+│                            platform intelligence, system monitor, security center
+├── platform/             ← legacy → redirects to /platform-operator
+└── api/                  ← auth callback, AI assistants (per role), Stripe webhook,
+                             Plaid, cron routes (reconcile, autopay, reminders, reports)
 
 lib/
-├── supabase/{server,client,middleware}.ts  ← 3 clients (cookies/browser/service)
-├── auth/me.ts            ← me() RPC wrapper + route guards (requireStaff, etc.)
-└── auth/actions.ts       ← login / signup / logout / acceptInvitation Server Actions
-
-components/
-├── ui/{button,card,input,table}.tsx   ← primitive UI
-└── nav/sidebar.tsx                    ← tier-aware nav (reads me())
-
-middleware.ts             ← Supabase session refresh on every request
+├── supabase/{server,client,middleware}.ts  ← cookie / browser / service-role clients
+├── auth/me.ts            ← me() RPC wrapper, roleHome(), route guards (requireStaff, …)
+├── payments/             ← Stripe (per-association Connect accounts), reconciliation
+├── plaid/                ← bank feed sync + GL auto-match
+├── reports/              ← report catalog + execution engine
+├── ai/                   ← per-role data snapshots for the AI assistants (BYO key)
+├── navigation/           ← role-scoped sidebar module lists
+└── server/cron-auth.ts   ← fail-closed CRON_SECRET guard for scheduled endpoints
 ```
 
 ## Setup
 
 ```bash
-cd condo-app-ui
 npm install
 cp .env.local.example .env.local
-# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-# SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_PORTAL_URL
-npm run types   # generates lib/types/database.ts from your schema
+# Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#           SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_PORTAL_URL
+# Optional (feature-gated): RESEND_API_KEY, PLAID_*, STRIPE_SECRET_KEY,
+#           STRIPE_WEBHOOK_SECRET, CRON_SECRET
+npm run types      # regenerate lib/types/database.ts from the live schema
 npm run dev
 ```
 
-Open http://localhost:3000 → it redirects to `/login`.
+Checks to run before every push: `npm run typecheck`, `npm test`, `npm run build`. Never push red.
 
-## Deploy to Vercel without the CLI
+## Auth & authorization model
 
-This repo is ready for Vercel dashboard deployment. You do not need to install the Vercel CLI.
+1. `/login` (role tabs: Manager / Owner / Vendor, plus Company Admin & Operator entries in the footer) → `loginWithPassword` Server Action → destination resolved by the account's ACTUAL role via `roleHome()`.
+2. `middleware.ts` refreshes the session cookie and bounces logged-out users to `/login`; `PUBLIC_PATHS` / `MARKETING_PATHS` list everything reachable without a session. Public `/api/*` entries are each independently protected in their route handler (cron secret or Stripe signature).
+3. Every layout guards its surface (`requireStaff`, `requireOwner`, `requireBoard`, `requireVendor`, `requirePortfolioAdmin`, `requirePlatformOperator`) and **every Server Action re-checks authorization inside the action** — actions are callable endpoints, page-level guards are not enough.
+4. RLS is enabled on all tables with portfolio-scoped policies (`can_access_portfolio`, `can_manage_finance`, `is_any_staff`, board/resident/vendor read policies). The service-role client (`createServiceClient`) is server-only and used only where RLS intentionally blocks the acting role (e.g. cron jobs, owner-initiated log rows) — always behind a role guard.
+5. Invitations flow operator → company admin → managers → owners/board/vendors. All accounts are invitation-based; self-serve password reset via `/forgot-password` (Resend email pipeline).
+6. `LOCAL_PREVIEW_MODE=true` fabricates an operator identity for local demos. It refuses to run in production (module-level assertion) — never set it in Vercel.
 
-1. Import `autho369-code/Condo-App` in the Vercel dashboard.
-2. Select the Next.js framework preset.
-3. Use `npm ci` for install and `npm run build` for build.
-4. Add the Supabase environment variables from `.env.local.example`.
-5. Do not set `LOCAL_PREVIEW_MODE` in Vercel.
+## Payments architecture (Stripe + Plaid)
 
-Full steps are in `docs/deployment/vercel.md`.
+Truth hierarchy: **Portier ledger → Stripe → bank**. Each association has its OWN Stripe account (Connect Standard, direct charges) settling to its own bank — no commingling. Owner payments post to the double-entry ledger on success; payouts are batch-matched to online payments and reconciled against the Plaid bank feed every 15 minutes (`/api/payments/reconcile`), with ambiguity routed to the Command Center exception queue. Dormant until `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (Connect webhook) are configured; offline payment recording works regardless.
 
-## Auth flow
+## Scheduled jobs (vercel.json crons)
 
-1. `/login` calls `loginWithPassword` Server Action → `supabase.auth.signInWithPassword`.
-2. Middleware (`middleware.ts` → `lib/supabase/middleware.ts`) refreshes the session cookie on every request.
-3. Protected routes call `requireAuth()` / `requireStaff()` / `requirePlatformOperator()` from `lib/auth/me.ts` in their page or layout — these throw `redirect()` if the user doesn't qualify.
-4. `/accept-invitation?token=<x>` calls the `accept_invitation(token)` Postgres RPC — validates the token, applies portfolio_id + role_id + hoa_role to the profile.
-5. Logout button in the sidebar is a Server Action that clears the session and redirects to `/login`.
+All cron endpoints require `Authorization: Bearer ${CRON_SECRET}` (fail-closed; Vercel sends it automatically once the env var exists):
 
-## How each page gets data
-
-All queries run as the logged-in user. RLS does the filtering.
-
-| Page | Source | Notes |
+| Route | Schedule | Job |
 |---|---|---|
-| `/dashboard` | `v_dashboard_summary` + `v_unit_account_summary` | One row from summary view + top-10 outstanding |
-| `/associations` | `associations` table | RLS scopes to user's portfolio |
-| `/associations/[id]` | `associations` + `v_unit_account_summary` + `board_members` | Full HOA detail |
-| `/units` | `v_unit_account_summary` | Charged / paid / balance / credit per unit |
-| `/owners`, `/vendors` | tables | Simple lists |
-| `/charges` | `aged_receivables` | Open-charge buckets by age |
-| `/bills` | `v_check_writing_queue` | Weekly check run |
-| `/work-orders` | `work_orders` + joins | Open WOs only |
-| `/settings` | `profiles` + `v_pending_invitations` | Team + pending invites |
-| `/portal` | `v_unit_account_summary` | Resident's own units |
-| `/portal/ledger` | `v_charge_balances` + `payments` | RLS-scoped to their unit |
-| `/platform/portfolios` | `v_portfolio_health` | Platform-operator-only |
-| `/platform/operators` | `platform_operators` | Platform-operator-only |
+| `/api/maintenance/send-reminders` | daily 13:00 UTC | vendor maintenance reminders |
+| `/api/payments/reconcile` | every 15 min | payout ↔ bank-feed matching |
+| `/api/payments/autopay-run` | daily 14:00 UTC | owner AutoPay collection |
+| `/api/reports/run-scheduled` | hourly :05 | scheduled report execution + email delivery |
 
-## Server Actions
+## Tests
 
-| Action | Calls | Used by |
-|---|---|---|
-| `loginWithPassword` | `auth.signInWithPassword` | /login |
-| `signupWithPassword` | `auth.signUp` | /signup |
-| `logout` | `auth.signOut` | Sidebar |
-| `acceptInvitation(token)` | `public.accept_invitation(p_token)` | /accept-invitation |
-| `provisionPortfolio` | `public.provision_portfolio(...)` | /platform/portfolios |
-| `inviteStaff` | `public.invite_staff(...)` | /settings |
+`npm test` (Vitest). Coverage focuses on authorization primitives and pure logic: `roleHome()` precedence, login-mode routing, the fail-closed cron guard, the `LOCAL_PREVIEW_MODE` production kill-switch, navigation module integrity, report catalog, and operations components.
 
-Add more by wrapping the Postgres RPCs we built (e.g. `invite_owner`, `invite_vendor`, `assign_role`, `suspend_portfolio`, `post_ad_hoc_charge`, `record_check_run`, `enroll_autopay`, `queue_report_run`, `request_data_export`).
+## Conventions
 
-## Sidebar renders based on user tier
+- **Server Components by default**; fetch as the logged-in user, let RLS filter.
+- **Mutations**: guard inside the action → validate input → verify the target is in the caller's scope → mutate → `revalidatePath` → redirect with `?error=`/success params (fail loudly — see `lib/rpcs/calendar.ts` `failTo` pattern).
+- **Verify Supabase columns before writing queries** — check `supabase/migrations/` or the live schema; many past bugs were queries against columns that don't exist.
+- **Every link must resolve** — confirm the target `page.tsx` exists before adding an href.
+- **Design system**: shared components only (`components/ui`, `components/operations`, `components/workspace`); no ad-hoc layouts, no new colors. Mobile-first at 375px.
+- **Secrets never in URLs** — one-time values travel via short-lived HttpOnly cookies (see the staff password reset flow).
 
-`components/nav/sidebar.tsx` calls `getMe()` once and renders sections conditionally:
+## Known deferrals / next iterations
 
-- Platform operator → Platform (Portfolios, Operators)
-- Any staff → Manage, Operations
-- Finance staff → + Accounting (Charges, Bills)
-- Full-access staff → + Admin (Settings)
-- Residents / Board → My Portal (Overview, Ledger, Pay, Requests)
-
-So a logged-in Accountant never sees the "Settings" item. An owner only sees the portal. A platform operator sees everything.
-
-## Generate TypeScript types
-
-```bash
-npm run types
-```
-runs:
-```bash
-supabase gen types typescript --project-id termxngysvotnfbzbgrv --schema public > lib/types/database.ts
-```
-
-After that, all `supabase.from('table')` calls become strongly typed.
-
-## What's missing (next iterations)
-
-- **Board portal views** — `/portal` works for residents; a board-specific view could read `v_portfolio_health` filtered to their association and show approval voting UI.
-- **Vendor portal** — separate `/vendor/*` routes showing their WOs, bills, document-request uploads.
-- **Reports UI** — `/reports` page that lists `report_definitions`, lets you kick off `queue_report_run`, polls `report_runs.status`, then presents the CSV download.
-- **Real-time updates** — Supabase realtime on `charges`, `payments`, `work_orders` so the dashboard updates live.
-- **Design polish** — this scaffold uses minimal Tailwind primitives. Drop in shadcn/ui or your design system for production styling.
-- **Charge category management UI** — table with inline-edit on the 13 seeded categories so staff can adjust default amounts / GL mappings.
-- **Unit recurring charges UI** — per-unit panel with subscribe / unsubscribe.
-- **Admin RPCs not yet wired in UI**: `suspend_portfolio`, `rotate_api_key`, `resend_invitation`, `unapply_payment`, `post_ad_hoc_charge`, `record_check_run`.
-
-Each of those is a page that follows the same pattern: `requireXxx()` guard → Server Component query → Table/Card layout → Server Action for mutations → `revalidatePath` on success.
-
-## Tips
-
-- **Server Components by default** — do all data fetching server-side. Only drop to `'use client'` for genuinely interactive pieces (forms with local state, charts, etc.).
-- **Pass `me()` as a prop** — don't call it multiple times in one render. Fetch once in the layout, pass to children.
-- **Use `revalidatePath` after mutations** — Server Actions must invalidate the page they return to, or you'll see stale data.
-- **Respect the middleware matcher** — it excludes static assets. If you add new auth-required paths, no change needed.
-- **Service-role client is server-only** — `createServiceClient()` in `lib/supabase/server.ts` should only be called from Server Components / Route Handlers / Server Actions. Never expose it to the browser.
-
-## What this scaffold actually proves
-
-It's a working Next.js 15 app with end-to-end flow: login → session cookie → RLS-scoped queries → tier-aware navigation → Server Action mutations → auto-revalidation. Drop it onto Vercel, point it at your Supabase project, and you have a functional admin panel.
-
-From here, the work is UI polish + filling in pages for RPCs that aren't yet wired up. The hard architectural decisions — where the auth lives, how RLS drives the view, how mutations flow — are already made.
+- Generated-types adoption: high-traffic paths still use `any` casts; migrate incrementally starting with `MeResult.profile/portfolio` (type-only refactor).
+- Central `lib/env.ts` validation for required env vars (currently non-null assertions).
+- Typed domain layer (`lib/domain/*`) to consolidate repeated Supabase queries.
+- GL engine expansion: chart-of-accounts management, budgeting workflow, year-end close, financial statement generation (CPA to verify mappings afterward).
+- Board officer permission tiers (President/Treasurer/Secretary) and manager-facing Vendor Performance Score — planned selling points, need schema design.
+- `app/platform/*` is a legacy redirect shim to `/platform-operator`; delete after external links age out.

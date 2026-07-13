@@ -23,6 +23,15 @@ export interface MeResult {
   resident_unit_ids: string[];
 }
 
+// Fail LOUDLY (at module load, i.e. build/boot) if someone sets the local
+// preview flag on a production deployment — it fabricates a super-admin
+// identity and must never be silently ignored there.
+if (process.env.LOCAL_PREVIEW_MODE === 'true' && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'LOCAL_PREVIEW_MODE=true is set in a production build. Remove it from the environment — preview mode fabricates a platform-operator identity.',
+  );
+}
+
 function localPreviewEnabled() {
   // Never honor preview mode in production — it fabricates a super-admin
   // identity and must not be reachable on a deployed instance.
