@@ -9,7 +9,7 @@ const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password'
 const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt']
 // Next serves icon/OG conventions at hashed paths (e.g. /opengraph-image-pwu6ef),
 // so these match by prefix. Also covers /icon-192, /icon-512, /icon-1024.
-const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image']
+const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/manuals/']
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || APEX_DOMAIN

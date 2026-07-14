@@ -54,6 +54,11 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 <p>You have been invited to administer <strong>${companyName}</strong> on Portier369.</p>
 <p><a href="${url}">Set up your account</a></p>
 <p>This invitation expires ${expiry}.</p>
+<p>Your operating documents — keep these handy while you get set up:</p>
+<ul>
+<li><a href="${SITE_URL}/manuals/Portier369-Company-Admin-Guide.pdf">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
+<li><a href="${SITE_URL}/manuals/Portier369-Manager-Runbook.pdf">Manager Runbook</a> — daily operations for your property managers</li>
+</ul>
 <p>— The Portier369 team</p>`.trim();
 }
 

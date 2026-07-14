@@ -24,7 +24,7 @@ export async function inviteManager(formData: FormData) {
     p_portfolio_id: me.portfolio!.id,
     p_email: email,
     p_role_name: roleName,
-    p_message: `You have been invited to manage associations for ${me.portfolio?.company_name ?? 'your company'}.`,
+    p_message: `You have been invited to manage associations for ${me.portfolio?.company_name ?? 'your company'}. Your operating document (Manager Runbook): https://portier369.com/manuals/Portier369-Manager-Runbook.pdf`,
   })
   if (error) fail(error.message)
 

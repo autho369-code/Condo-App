@@ -109,6 +109,22 @@ export default async function OnboardPage({
 
         {errorMessage && <Alert tone="danger" title="Something went wrong:">{errorMessage}</Alert>}
 
+        {/* Operating documents — every new client starts here */}
+        <Surface>
+          <h2 className="mb-1 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Your operating documents</h2>
+          <p className="text-sm text-gray-600">
+            Keep these open while you set up — they walk through every step below and the day-to-day operations after launch.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a href="/manuals/Portier369-Company-Admin-Guide.pdf" target="_blank" rel="noopener noreferrer">
+              <Button variant="secondary">Company Admin Guide (PDF)</Button>
+            </a>
+            <a href="/manuals/Portier369-Manager-Runbook.pdf" target="_blank" rel="noopener noreferrer">
+              <Button variant="secondary">Manager Runbook (PDF)</Button>
+            </a>
+          </div>
+        </Surface>
+
         {/* Trial countdown */}
         {subscription?.status === 'trialing' && subscription.trial_ends_at && (
           <Alert tone="info">
