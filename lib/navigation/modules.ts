@@ -2,6 +2,8 @@ export type AppModule = {
   label: string;
   href: string;
   children?: { label: string; href: string }[];
+  /** Render as a filled call-to-action button in the sidebar (e.g. Pay Assessments). */
+  accent?: boolean;
 };
 
 export const appModules: AppModule[] = [

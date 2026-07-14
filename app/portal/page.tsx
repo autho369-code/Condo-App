@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
+import { Button } from '@/components/ui/button'
 import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
 
@@ -88,9 +89,19 @@ export default async function OwnerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-gray-500">Welcome back</p>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{me.profile?.full_name ?? 'Owner'}</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-gray-500">Welcome back</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">{me.profile?.full_name ?? 'Owner'}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/portal/ledger">
+            <Button variant="secondary">Account Ledger</Button>
+          </Link>
+          <Link href="/portal/pay">
+            <Button><CreditCard className="h-4 w-4" /> Pay Assessments</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Emergency notice */}
@@ -109,31 +120,42 @@ export default async function OwnerDashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Current Balance', value: money(totalDue), color: totalDue > 0 ? 'text-red-700' : 'text-emerald-700' },
+          { label: 'Current Balance', value: money(totalDue), color: totalDue > 0 ? 'text-red-700' : 'text-emerald-700', href: '/portal/ledger', hint: 'View ledger' },
           { label: 'Open Work Orders', value: openWO.length, color: 'text-gray-950' },
           { label: 'Open Violations', value: violations.length, color: violations.length > 0 ? 'text-amber-700' : 'text-gray-950' },
           { label: 'Next Due', value: occs.length > 0 ? nextDue : '—', color: 'text-gray-950' },
-        ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
-            <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
-          </div>
-        ))}
+        ].map(s => {
+          const inner = (
+            <>
+              <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
+              <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
+              {s.hint && <div className="mt-1 text-[11px] font-medium text-gray-500">{s.hint} →</div>}
+            </>
+          )
+          const cls = 'rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
+          return s.href
+            ? <Link key={s.label} href={s.href} className={cls + ' block transition hover:border-gray-300 hover:bg-gray-50/60'}>{inner}</Link>
+            : <div key={s.label} className={cls}>{inner}</div>
+        })}
       </div>
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: 'Pay Assessment', icon: CreditCard, href: '/portal/pay' },
+          { label: 'Pay Assessments', icon: CreditCard, href: '/portal/pay', primary: true },
+          { label: 'Account Ledger', icon: FileText, href: '/portal/ledger' },
           { label: 'Submit Work Order', icon: Wrench, href: '/portal/work-orders/new' },
           { label: 'Contact Management', icon: MessageSquare, href: '/portal/communications' },
           { label: 'Upload Insurance', icon: Shield, href: '/portal/insurance' },
-          { label: 'View Documents', icon: FileText, href: '/portal/documents' },
           { label: 'Calendar', icon: Calendar, href: '/portal/calendar' },
         ].map(a => (
-          <Link key={a.label} href={a.href} className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200/70 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60">
-            <a.icon className="h-6 w-6 text-gray-400" />
-            <span className="text-xs font-medium text-gray-700">{a.label}</span>
+          <Link key={a.label} href={a.href} className={
+            a.primary
+              ? 'flex flex-col items-center gap-2 rounded-2xl border border-gray-950 bg-gray-950 p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-gray-800'
+              : 'flex flex-col items-center gap-2 rounded-2xl border border-gray-200/70 bg-white p-4 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300 hover:bg-gray-50/60'
+          }>
+            <a.icon className={a.primary ? 'h-6 w-6 text-white/80' : 'h-6 w-6 text-gray-400'} />
+            <span className={a.primary ? 'text-xs font-semibold text-white' : 'text-xs font-medium text-gray-700'}>{a.label}</span>
           </Link>
         ))}
       </div>

@@ -102,6 +102,17 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
 
       <nav className="flex-1 overflow-y-auto py-3 [scrollbar-width:thin] [scrollbar-color:#27272a_transparent]">
         {modules.map((s) => {
+          if (s.accent) return (
+            <Link key={s.label} href={s.href}
+              className={
+                'my-1.5 flex h-[34px] items-center justify-center px-3 mx-2 rounded-md text-[13px] font-semibold transition-colors duration-100 ' +
+                (active(s.href)
+                  ? 'bg-white text-gray-950'
+                  : 'bg-white/[0.92] text-gray-950 hover:bg-white')
+              }>
+              {s.label}
+            </Link>
+          )
           if (!s.children) return (
             <Link key={s.label} href={s.href}
               className={itemBase + ' ' + (active(s.href) ? itemActive : itemIdle)}>
