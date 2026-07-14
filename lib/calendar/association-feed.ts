@@ -14,21 +14,27 @@ export type AssociationCalendarItem = {
   kind: 'meeting' | 'vendor' | 'maintenance' | 'event';
 };
 
+export type AssociationCalendarFeed = {
+  items: AssociationCalendarItem[];
+  /** IANA timezone the calendar should render in (associations.timezone). */
+  timeZone: string;
+};
+
 export async function getAssociationCalendarFeed(
   associationIds: string[],
   days = 90,
-): Promise<AssociationCalendarItem[]> {
+): Promise<AssociationCalendarFeed> {
   const ids = (associationIds ?? []).filter(Boolean);
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return { items: [], timeZone: 'America/Chicago' };
 
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date().toISOString();
   const horizon = new Date(Date.now() + days * 86400000).toISOString();
 
-  const [{ data: events }, { data: meetings }, { data: tasks }] = await Promise.all([
+  const [{ data: events }, { data: meetings }, { data: tasks }, { data: assoc }] = await Promise.all([
     db.from('calendar_events')
-      .select('id, title, event_type, start_datetime, location, vendors(name)')
+      .select('id, title, event_type, start_datetime, location, vendor_id, vendors(name)')
       .in('association_id', ids)
       .is('archived_at', null)
       .gte('start_datetime', now)
@@ -50,9 +56,10 @@ export async function getAssociationCalendarFeed(
       .gte('next_due_date', now.slice(0, 10))
       .lte('next_due_date', horizon.slice(0, 10))
       .order('next_due_date'),
+    db.from('associations').select('timezone').in('id', ids).limit(1).maybeSingle(),
   ]);
 
-  return [
+  const items: AssociationCalendarItem[] = [
     ...(meetings ?? []).map((m: any): AssociationCalendarItem => ({
       key: `m-${m.id}`,
       when: m.start_time,
@@ -61,14 +68,27 @@ export async function getAssociationCalendarFeed(
       location: m.location ?? null,
       kind: 'meeting',
     })),
-    ...(events ?? []).map((e: any): AssociationCalendarItem => ({
-      key: `e-${e.id}`,
-      when: e.start_datetime,
-      title: e.title,
-      detail: e.vendors?.name ? `Vendor visit · ${e.vendors.name}` : (e.event_type ?? 'event').replace(/_/g, ' '),
-      location: e.location ?? null,
-      kind: e.vendors?.name ? 'vendor' : 'event',
-    })),
+    ...(events ?? []).map((e: any): AssociationCalendarItem => {
+      const typeLabel = (e.event_type ?? 'event').replace(/_/g, ' ');
+      // Avoid "Water Shutoff / water shutoff" — when the type merely repeats
+      // the title, describe the kind instead. Vendor names are RLS-hidden
+      // from residents, so vendor_id (not the embed) decides the kind.
+      const detail = e.vendors?.name
+        ? `Vendor visit · ${e.vendors.name}`
+        : e.vendor_id
+          ? 'Vendor visit'
+          : typeLabel.toLowerCase() === String(e.title ?? '').toLowerCase()
+            ? 'Community event'
+            : typeLabel;
+      return {
+        key: `e-${e.id}`,
+        when: e.start_datetime,
+        title: e.title,
+        detail,
+        location: e.location ?? null,
+        kind: e.vendor_id ? 'vendor' : 'event',
+      };
+    }),
     ...(tasks ?? []).map((t: any): AssociationCalendarItem => ({
       key: `t-${t.id}`,
       when: `${t.next_due_date}T12:00:00Z`,
@@ -78,4 +98,6 @@ export async function getAssociationCalendarFeed(
       kind: 'maintenance',
     })),
   ].sort((a, b) => a.when.localeCompare(b.when));
+
+  return { items, timeZone: assoc?.timezone ?? 'America/Chicago' };
 }

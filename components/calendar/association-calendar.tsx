@@ -5,7 +5,7 @@ import type { AssociationCalendarItem } from '@/lib/calendar/association-feed';
 
 const ICON = { meeting: CalendarDays, vendor: Truck, maintenance: Wrench, event: Calendar } as const;
 
-export function AssociationCalendar({ items }: { items: AssociationCalendarItem[] }) {
+export function AssociationCalendar({ items, timeZone = 'America/Chicago' }: { items: AssociationCalendarItem[]; timeZone?: string }) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -15,10 +15,11 @@ export function AssociationCalendar({ items }: { items: AssociationCalendarItem[
     );
   }
 
-  // Group by month
+  // Group by month — in the association's timezone, never the server's (UTC),
+  // so a 5:30 PM Chicago meeting doesn't render as 10:30 PM.
   const grouped = new Map<string, AssociationCalendarItem[]>();
   for (const item of items) {
-    const key = new Date(item.when).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const key = new Date(item.when).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone });
     const list = grouped.get(key) ?? [];
     list.push(item);
     grouped.set(key, list);
@@ -37,9 +38,11 @@ export function AssociationCalendar({ items }: { items: AssociationCalendarItem[
                 <div key={item.key} className="flex items-start gap-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:border-gray-300">
                   <div className="w-14 flex-shrink-0 text-center">
                     <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
-                      {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                      {d.toLocaleDateString('en-US', { weekday: 'short', timeZone })}
                     </div>
-                    <div className="text-2xl font-semibold tabular-nums text-blue-600">{d.getDate()}</div>
+                    <div className="text-2xl font-semibold tabular-nums text-blue-600">
+                      {d.toLocaleDateString('en-US', { day: 'numeric', timeZone })}
+                    </div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -50,7 +53,7 @@ export function AssociationCalendar({ items }: { items: AssociationCalendarItem[
                     <div className="mt-1.5 flex items-center gap-4 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone })}
                       </span>
                       {item.location && (
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {item.location}</span>

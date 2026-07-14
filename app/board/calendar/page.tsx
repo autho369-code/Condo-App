@@ -8,7 +8,7 @@ export default async function BoardCalendarPage() {
   const me = await requireBoard()
 
   // Same shared feed the owner portal renders — identical calendar for everyone.
-  const items = await getAssociationCalendarFeed(me.board_association_ids ?? [])
+  const { items, timeZone } = await getAssociationCalendarFeed(me.board_association_ids ?? [])
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -18,7 +18,7 @@ export default async function BoardCalendarPage() {
           Meetings, community events, vendor visits, and scheduled maintenance — next 90 days
         </p>
       </div>
-      <AssociationCalendar items={items} />
+      <AssociationCalendar items={items} timeZone={timeZone} />
     </div>
   )
 }
