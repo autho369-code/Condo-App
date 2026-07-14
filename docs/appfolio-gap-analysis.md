@@ -8,6 +8,14 @@
 > owner *distributions* (rent collected → paid out to owners) are firm non-goals, not
 > just "rental side." Maryland statutory items (e.g. §11-135 resale certificate) apply.
 
+> **Changelog — 2026-07-14 session** (parallel-agent parity wave; supersedes stale rows below):
+> - **Auto-notify homeowner on WO/SR status change: PARTIAL → HAVE.** Every status-update path (staff, vendor portal, cancellations) queues a white-labeled owner email (`lib/notifications/status-change.ts`).
+> - **Automatic late-fee assessment: PARTIAL → HAVE.** Per-association rules (flat/% + grace days) on the profile tab; daily cron posts through `assess_late_fee()` mirroring the manual charge path; one fee per charge guaranteed. Default OFF per association.
+> - **In-app messaging: HAVE (ARC) → HAVE (ARC + work orders).** Threaded owner↔manager↔board↔vendor discussion on every work order, same component as ARC.
+> - **AI-assisted invoice processing: PARTIAL → HAVE.** `/bills/new` "Extract from invoice (AI)": vision extraction (vendor/dates/amount/lines/confidence) prefills the bill for manager review — on BYO-key, vs AppFolio gating this behind Max.
+> - **Uploads at scale (beats AppFolio web UX pain):** architectural documents (multi-select, up to 10 × 25 MB) and insurance certificates upload browser→storage via signed URLs; phone HEIC photos accepted.
+> - Also this session: owner+board single login (dual-role RLS), same association calendar for owners/board (one shared feed, association timezone), insurance policy upload + 30/15-day expiry reminders, operating documents (governing-docs checklist + client manuals at /manuals), white-label email everywhere, board-member marking UI on the owner page.
+>
 > **Changelog — 2026-06-27 session** (live AppFolio walk-through + builds; supersedes stale rows below):
 > - **Architectural reviews: now genuinely HAVE+.** Was a violations-table text-match hack; rebuilt as a
 >   real `architectural_requests` + `architectural_request_messages` workflow — owner portal submission,
