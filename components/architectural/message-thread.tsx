@@ -12,12 +12,14 @@ const ROLE_LABEL: Record<string, string> = {
   owner: 'Homeowner',
   staff: 'Management',
   board: 'Board',
+  vendor: 'Vendor',
 };
 
 const ROLE_BADGE: Record<string, string> = {
   owner: 'bg-blue-50 text-blue-700 ring-blue-600/20',
   staff: 'bg-gray-100 text-gray-700 ring-gray-500/20',
   board: 'bg-violet-50 text-violet-700 ring-violet-600/20',
+  vendor: 'bg-amber-50 text-amber-700 ring-amber-600/20',
 };
 
 function fmt(ts: string): string {
@@ -29,9 +31,9 @@ function fmt(ts: string): string {
 }
 
 /**
- * In-app discussion thread for an architectural request. `postAction` is a
- * server action already bound to the request id + author role, so this stays a
- * server component with no client JS.
+ * In-app discussion thread. Generic: nothing here is ARC-specific — work-order
+ * pages reuse it too. `postAction` is a server action already bound to the
+ * parent entity id, so this stays a server component with no client JS.
  */
 export function ArcMessageThread({
   messages,

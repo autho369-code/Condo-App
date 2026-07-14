@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 
 export async function updateWorkOrderStatus(workOrderId: string, newStatus: string, note?: string) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
@@ -25,6 +26,8 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
     note: note || `Status changed to ${newStatus}`,
     new_status: newStatus,
   });
+  // Auto keep homeowner informed — never fails the action (helper never throws)
+  await notifyOwnerOfStatusChange({ kind: 'work_order', id: workOrderId, newStatus });
   revalidatePath(`/work-orders/${workOrderId}`);
   revalidatePath('/work-orders');
 }
@@ -96,6 +99,10 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
     note: note || `Assigned to vendor${vendor?.name ? ': ' + vendor.name : ''}`,
     new_status: bumpStatus ? 'assigned' : null,
   });
+  // Auto keep homeowner informed when assignment also changed the status
+  if (bumpStatus) {
+    await notifyOwnerOfStatusChange({ kind: 'work_order', id: workOrderId, newStatus: 'assigned' });
+  }
   revalidatePath(`/work-orders/${workOrderId}`);
   revalidatePath('/work-orders');
 }

@@ -4,9 +4,12 @@ import { ArrowLeft } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
+import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { PageHeader, Surface, SectionTitle, Badge, Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { Field, Select, Textarea } from '@/components/ui/input';
+import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
+import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +48,12 @@ export default async function VendorWorkOrderDetail({
     .order('created_at', { ascending: false })
     .limit(30);
 
+  const { data: messages } = await db
+    .from('work_order_messages')
+    .select('id, author_name, author_role, body, created_at')
+    .eq('work_order_id', id)
+    .order('created_at', { ascending: true });
+
   async function postUpdate(formData: FormData) {
     'use server';
     const me2 = await requireVendor();
@@ -69,8 +78,13 @@ export default async function VendorWorkOrderDetail({
     if (newStatus) {
       const patch: Record<string, any> = { status: newStatus };
       if (newStatus === 'done') patch.completed_date = new Date().toISOString().slice(0, 10);
-      const { error: upErr } = await db2.from('work_orders').update(patch).eq('id', woId).eq('vendor_id', me2.vendor_id);
+      const { data: updated, error: upErr } = await db2.from('work_orders').update(patch).eq('id', woId).eq('vendor_id', me2.vendor_id).select('id');
       if (upErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(upErr.message)}`);
+      // Auto keep homeowner informed — only when the update actually matched this
+      // vendor's work order. Helper never throws, so it can't fail the action.
+      if (updated && updated.length > 0) {
+        await notifyOwnerOfStatusChange({ kind: 'work_order', id: woId, newStatus });
+      }
     }
 
     revalidatePath(`/vendor/work-orders/${woId}`);
@@ -158,6 +172,15 @@ export default async function VendorWorkOrderDetail({
                 ))}
               </ul>
             )}
+          </Surface>
+
+          <Surface>
+            <SectionTitle title="Discussion" description="Messages here are visible to the management team and the homeowner." />
+            <ArcMessageThread
+              messages={(messages ?? []) as ArcMessage[]}
+              postAction={postWorkOrderMessage.bind(null, id, '/vendor/work-orders') as any}
+              placeholder="Ask the management team a question…"
+            />
           </Surface>
         </div>
 

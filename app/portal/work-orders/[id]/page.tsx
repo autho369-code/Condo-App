@@ -1,18 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { notFound } from 'next/navigation'
-import { Badge } from '@/components/ui/shell'
+import { Badge, Alert } from '@/components/ui/shell'
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card'
+import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread'
+import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerWorkOrderDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function OwnerWorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
   const { id } = await params
+  const sp = await searchParams
 
   // RLS scopes work_orders to the owner's unit; no owner_id column exists.
   const { data: wo } = await db.from('work_orders')
@@ -21,9 +25,18 @@ export default async function OwnerWorkOrderDetail({ params }: { params: Promise
 
   if (!wo) return notFound()
 
+  const { data: messages } = await db.from('work_order_messages')
+    .select('id, author_name, author_role, body, created_at')
+    .eq('work_order_id', id)
+    .order('created_at', { ascending: true })
+
+  const postAction = postWorkOrderMessage.bind(null, id, '/portal/work-orders')
+
   return (
     <div className="space-y-6 max-w-3xl">
       <Link href="/portal/work-orders" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to work orders</Link>
+
+      {sp.error && <Alert tone="danger" title="Could not post message:">{sp.error}</Alert>}
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -44,6 +57,17 @@ export default async function OwnerWorkOrderDetail({ params }: { params: Promise
           <div><span className="text-gray-500">Completed:</span> <span className="text-gray-900">{wo.completed_date ? date(wo.completed_date) : '—'}</span></div>
         </div>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Discussion</CardTitle></CardHeader>
+        <CardBody>
+          <ArcMessageThread
+            messages={(messages ?? []) as ArcMessage[]}
+            postAction={postAction as any}
+            placeholder="Ask a question or add details for the management team…"
+          />
+        </CardBody>
+      </Card>
     </div>
   )
 }

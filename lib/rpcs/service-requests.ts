@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import type { Database } from '@/lib/types/database';
 
 type ServiceRequestPriority = Database['public']['Enums']['service_request_priority'];
@@ -85,10 +86,16 @@ function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceR
 export async function cancelServiceRequest(serviceRequestId: string) {
   await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('service_requests')
     .update({ status: 'cancelled' })
-    .eq('id', serviceRequestId);
+    .eq('id', serviceRequestId)
+    .select('id');
   if (error) { redirect(`/portal/service-requests?error=${encodeURIComponent(error.message)}`); return; }
+  // Only notify when RLS let the update through (0 rows = not this owner's request)
+  if (updated && updated.length > 0) {
+    // Confirmation email to the owner — never fails the action (helper never throws)
+    await notifyOwnerOfStatusChange({ kind: 'service_request', id: serviceRequestId, newStatus: 'cancelled' });
+  }
   revalidatePath('/portal/service-requests');
 }

@@ -24,6 +24,12 @@ const intn = (f: FormData, k: string, fallback: number | null = null) => {
   const v = str(f, k);
   return v == null ? fallback : parseInt(v, 10);
 };
+// Boolean from a <select> with "true"/"false" values; null (absent) is
+// stripped like every other field so partial forms don't clobber columns.
+const boolStr = (f: FormData, k: string) => {
+  const v = str(f, k);
+  return v == null ? null : v === 'true';
+};
 
 // ============================================================================
 // ASSOCIATIONS
@@ -133,6 +139,12 @@ export async function updateAssociation(id: string, formData: FormData) {
     late_fee_amount_override:     num(formData, 'late_fee_amount_override'),
     late_fee_grace_days_override: intn(formData, 'late_fee_grace_days_override'),
     late_fee_eligible_charges:    str(formData, 'late_fee_eligible_charges'),
+
+    // --- Automatic late-fee assessment (daily cron: /api/billing/assess-late-fees) ---
+    late_fee_enabled:    boolStr(formData, 'late_fee_enabled'),
+    late_fee_amount:     num(formData, 'late_fee_amount'),
+    late_fee_is_percent: boolStr(formData, 'late_fee_is_percent'),
+    late_fee_grace_days: intn(formData, 'late_fee_grace_days'),
 
     budget_variance_threshold_amount: num(formData, 'budget_variance_threshold_amount'),
     budget_variance_threshold_op:     str(formData, 'budget_variance_threshold_op'),

@@ -6,6 +6,7 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspac
 import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
+import { updateAssociation } from '@/lib/rpcs/entities';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
@@ -33,6 +34,7 @@ export default async function AssociationProfileTab({
       id, name, address, address_line_2, city, state, zip,
       portfolio_id, status, archived_at, created_at,
       remit_payee, remit_address, payment_instructions,
+      late_fee_enabled, late_fee_amount, late_fee_is_percent, late_fee_grace_days,
       site_manager, site_manager_user_id,
       portfolio:portfolios ( id, company_name )
     `)
@@ -57,6 +59,15 @@ export default async function AssociationProfileTab({
       .eq('id', id);
     if (error) fail(error.message);
     revalidatePath(`/associations/${assocParam}/profile`);
+    redirect(`/associations/${assocParam}/profile?saved=1`);
+  }
+
+  // Automatic late-fee policy — persisted through the shared updateAssociation
+  // action (lib/rpcs/entities.ts), which whitelists the late_fee_* fields and
+  // re-checks authorization inside the action body.
+  async function saveLateFees(formData: FormData) {
+    'use server';
+    await updateAssociation(id, formData);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
 
@@ -295,6 +306,53 @@ export default async function AssociationProfileTab({
             </div>
             <div className="flex justify-end">
               <Button type="submit">Save payment instructions</Button>
+            </div>
+          </form>
+        </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section title="Late Fees" padded>
+          <p className="mb-4 text-sm leading-6 text-gray-500">
+            When enabled, a nightly job automatically posts a late fee on each overdue
+            assessment once it is past the due date plus the grace period. Each overdue
+            charge is assessed at most once.
+          </p>
+          <form action={saveLateFees} className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-4">
+            <div>
+              <Label htmlFor="late_fee_enabled">Automatic late fees</Label>
+              <select
+                id="late_fee_enabled"
+                name="late_fee_enabled"
+                defaultValue={assoc.late_fee_enabled ? 'true' : 'false'}
+                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              >
+                <option value="false">Disabled</option>
+                <option value="true">Enabled</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="late_fee_is_percent">Fee type</Label>
+              <select
+                id="late_fee_is_percent"
+                name="late_fee_is_percent"
+                defaultValue={assoc.late_fee_is_percent ? 'true' : 'false'}
+                className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              >
+                <option value="false">Flat amount ($)</option>
+                <option value="true">% of unpaid balance</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="late_fee_amount">Amount</Label>
+              <Input id="late_fee_amount" name="late_fee_amount" inputMode="decimal" defaultValue={assoc.late_fee_amount ?? ''} placeholder="e.g. 25" />
+            </div>
+            <div>
+              <Label htmlFor="late_fee_grace_days">Grace period (days)</Label>
+              <Input id="late_fee_grace_days" name="late_fee_grace_days" inputMode="numeric" defaultValue={assoc.late_fee_grace_days ?? 10} />
+            </div>
+            <div className="flex justify-end sm:col-span-4">
+              <Button type="submit">Save late-fee policy</Button>
             </div>
           </form>
         </Section>

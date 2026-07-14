@@ -9,6 +9,8 @@ import {
   updateWorkOrderStatus, updateWorkOrder, assignVendor, unassignVendor,
   addLaborEntry, addEstimate, approveEstimate, addNote,
 } from '@/lib/rpcs/work-orders';
+import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
+import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +62,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     { data: labor },
     { data: estimates },
     { data: vendors },
+    { data: messages },
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
@@ -70,6 +73,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     (supabase as any).from('work_order_labor_entries').select('id, tech_name, date_worked, hours, hourly_rate, labor_cost, description').eq('work_order_id', id).order('date_worked', { ascending: false }),
     (supabase as any).from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
     (supabase as any).from('vendors').select('id, name, trade').is('archived_at', null).order('name'),
+    (supabase as any).from('work_order_messages').select('id, author_name, author_role, body, created_at').eq('work_order_id', id).order('created_at', { ascending: true }),
   ]);
   if (!wo) notFound();
 
@@ -305,6 +309,16 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           <Button type="submit">Add estimate</Button>
           <Input name="notes" placeholder="Notes" className="md:col-span-3" />
         </form>
+      </Section>
+
+      <Section title="Discussion">
+        <div className="px-5 py-4">
+          <ArcMessageThread
+            messages={(messages ?? []) as ArcMessage[]}
+            postAction={postWorkOrderMessage.bind(null, id, '/work-orders') as any}
+            placeholder="Message the homeowner, board, or vendor…"
+          />
+        </div>
       </Section>
 
       <Section title="Activity log">
