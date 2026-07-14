@@ -4,6 +4,7 @@ import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Shield, FileText } from 'lucide-react'
+import { AddInsurancePolicyForm } from '@/components/insurance/add-policy-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,85 +51,6 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         certificateUrl = signed?.signedUrl ?? null
       } catch {}
     }
-  }
-
-  async function saveInsurance(formData: FormData) {
-    'use server'
-    const me2 = await requireOwner()
-    const supabase2 = await createClient()
-    const fail = (msg: string): never => redirect('/portal/insurance?error=' + encodeURIComponent(msg))
-
-    const carrier = ((formData.get('carrier') as string) ?? '').trim()
-    const policyNumber = ((formData.get('policy_number') as string) ?? '').trim()
-    const effective = (formData.get('effective_date') as string) || ''
-    const expiration = (formData.get('expiration_date') as string) || ''
-    const coverageRaw = ((formData.get('coverage_amount') as string) ?? '').replace(/[$,\s]/g, '')
-    const coverage = coverageRaw ? Number(coverageRaw) : null
-
-    if (!carrier) fail('Insurance carrier is required.')
-    if (!policyNumber) fail('Policy number is required.')
-    if (!effective) fail('Policy start date is required.')
-    if (!expiration) fail('Policy end date is required.')
-    if (expiration <= effective) fail('Policy end date must be after the start date.')
-    if (coverage !== null && !Number.isFinite(coverage)) fail('Coverage amount must be a number.')
-
-    // Resolve the owner's association for record-keeping
-    const { data: occ } = await (supabase2 as any)
-      .from('occupancies')
-      .select('association_id')
-      .eq('owner_id', me2.owner_id)
-      .limit(1)
-      .maybeSingle()
-    const associationId = occ?.association_id ?? null
-
-    // Upload the policy document into the association records bucket
-    let filePath: string | null = null
-    const file = formData.get('certificate') as File | null
-    if (file && file.size > 0) {
-      if (file.size > 10 * 1024 * 1024) fail('Policy document must be under 10 MB.')
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      filePath = `insurance/${me2.owner_id}/${Date.now()}-${safeName}`
-      const svc = createServiceClient() as any
-      const { error: upErr } = await svc.storage.from(BUCKET).upload(filePath, file, { contentType: file.type || undefined })
-      if (upErr) fail(`Document upload failed: ${upErr.message}`)
-    }
-
-    const { error } = await (supabase2 as any).from('insurance_policies').insert({
-      owner_id: me2.owner_id,
-      association_id: associationId,
-      insurance_company: carrier,
-      policy_number: policyNumber,
-      coverage_amount: coverage,
-      effective_date: effective,
-      expiration_date: expiration,
-      certificate_file_url: filePath,
-      extraction_status: 'manual',
-      remind_owner: formData.get('remind_owner') === 'on',
-      remind_manager: formData.get('remind_manager') === 'on',
-      status: 'active',
-    })
-    if (error) fail(error.message)
-
-    // File the document into the association records so staff and the owner
-    // see it under Documents as well.
-    if (filePath && file) {
-      try {
-        const svc = createServiceClient() as any
-        await svc.from('documents').insert({
-          entity_type: 'owner',
-          entity_id: me2.owner_id,
-          doc_type: 'insurance_policy',
-          file_name: file.name,
-          file_url: filePath,
-          uploaded_at: new Date().toISOString(),
-          uploaded_by: me2.auth_user_id ?? null,
-          expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
-        })
-      } catch {}
-    }
-
-    revalidatePath('/portal/insurance')
-    redirect('/portal/insurance?saved=1')
   }
 
   async function updateReminders(formData: FormData) {
@@ -227,38 +149,11 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         </div>
       )}
 
-      {/* Add policy form */}
+      {/* Add policy form — certificate uploads browser→storage (large PDFs OK) */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <h2 className="mb-1 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
         <p className="mb-4 text-sm text-gray-500">Upload your policy document — it is saved to your association records.</p>
-        <form action={saveInsurance} className="space-y-4">
-          <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier <span className="text-red-600">*</span></span>
-            <input name="carrier" required className={input} placeholder="e.g. State Farm" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number <span className="text-red-600">*</span></span>
-            <input name="policy_number" required className={input} /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Coverage Amount</span>
-            <input name="coverage_amount" inputMode="decimal" className={input} placeholder="e.g. 300,000" /></label>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="block"><span className="text-sm font-medium text-gray-700">Policy Start Date <span className="text-red-600">*</span></span>
-              <input type="date" name="effective_date" required className={input} /></label>
-            <label className="block"><span className="text-sm font-medium text-gray-700">Policy End Date <span className="text-red-600">*</span></span>
-              <input type="date" name="expiration_date" required className={input} /></label>
-          </div>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Document (PDF or photo)</span>
-            <input type="file" name="certificate" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800" />
-            <span className="mt-1 block text-xs text-gray-400">Max 10 MB. Stored in your association&apos;s records.</span></label>
-          <div className="space-y-2 pt-1">
-            <label className="flex items-center gap-2.5 text-sm text-gray-700">
-              <input type="checkbox" name="remind_owner" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
-              Email me 30 and 15 days before expiration
-            </label>
-            <label className="flex items-center gap-2.5 text-sm text-gray-700">
-              <input type="checkbox" name="remind_manager" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
-              Also notify my property manager
-            </label>
-          </div>
-          <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Save Policy</button>
-        </form>
+        <AddInsurancePolicyForm />
       </div>
     </div>
   )
