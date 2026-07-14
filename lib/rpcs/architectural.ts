@@ -132,7 +132,9 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
 // overload a single multipart POST. Cap of 10 documents per request.
 const ATTACH_BUCKET = 'association-documents';
 const MAX_ARCH_ATTACHMENTS = 10;
-const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+// Files go browser→storage via signed URLs (Vercel caps server-action bodies
+// at ~4.5 MB), so large plan sets are fine.
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
 const OPEN_STATUSES = ['submitted', 'under_review', 'more_info'];
 
@@ -195,6 +197,86 @@ export async function addArchitecturalAttachment(
     .eq('id', requestId);
   if (error) { failTo(error.message); return; }
   revalidatePath(back);
+}
+
+/**
+ * Direct-to-storage upload flow. Vercel caps request bodies at ~4.5 MB, so
+ * files must NOT travel through server actions. The client asks for a signed
+ * upload URL (small JSON), sends the file browser→Supabase Storage, then
+ * records the attachment. Both steps re-verify ownership and open status.
+ */
+async function verifyArchAttachmentAccess(requestId: string) {
+  const me = await getMe();
+  if (!me.auth_user_id) return { error: 'Not signed in', req: null as any, svc: null as any };
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const svc = createServiceClient() as any;
+  const { data: req } = await svc
+    .from('architectural_requests')
+    .select('id, owner_id, status, attachments')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) return { error: 'Request not found', req: null, svc };
+  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
+  const isStaff = me.is_staff || me.is_platform_operator;
+  if (!isOwner && !isStaff) return { error: 'Only the requesting owner or staff can add documents', req: null, svc };
+  if (!OPEN_STATUSES.includes(req.status)) return { error: 'Documents can only be added while the request is open', req: null, svc };
+  return { error: null as string | null, req, svc, me };
+}
+
+export async function createArchAttachmentUpload(
+  requestId: string,
+  fileName: string,
+  fileSize: number,
+): Promise<{ error?: string; path?: string; token?: string }> {
+  const { error, req, svc } = await verifyArchAttachmentAccess(requestId);
+  if (error) return { error };
+  if (!fileName) return { error: 'Missing file name' };
+  if (!fileSize || fileSize <= 0) return { error: 'Empty file' };
+  if (fileSize > MAX_ATTACHMENT_BYTES) return { error: `"${fileName}" is over ${Math.round(MAX_ATTACHMENT_BYTES / 1048576)} MB` };
+  const existing = Array.isArray(req.attachments) ? req.attachments : [];
+  if (existing.length >= MAX_ARCH_ATTACHMENTS) return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `architectural/${requestId}/${Date.now()}-${safeName}`;
+  const { data, error: signErr } = await svc.storage.from(ATTACH_BUCKET).createSignedUploadUrl(path);
+  if (signErr || !data?.token) return { error: signErr?.message ?? 'Could not authorize the upload' };
+  return { path, token: data.token };
+}
+
+export async function recordArchAttachment(
+  requestId: string,
+  basePath: string,
+  file: { path: string; name: string; size: number },
+): Promise<{ error?: string; ok?: boolean }> {
+  const access = await verifyArchAttachmentAccess(requestId);
+  if (access.error) return { error: access.error };
+  const { req, svc, me } = access as any;
+  // Only accept paths this flow issued for this request
+  if (!file.path?.startsWith(`architectural/${requestId}/`)) return { error: 'Invalid document reference' };
+
+  const existing = Array.isArray(req.attachments) ? req.attachments : [];
+  if (existing.some((a: any) => a?.path === file.path)) return { ok: true };
+  if (existing.length >= MAX_ARCH_ATTACHMENTS) return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
+
+  const { error } = await svc
+    .from('architectural_requests')
+    .update({
+      attachments: [
+        ...existing,
+        {
+          name: file.name,
+          path: file.path,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+          uploaded_by: me.auth_user_id,
+          uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
+        },
+      ],
+    })
+    .eq('id', requestId);
+  if (error) return { error: error.message };
+  revalidatePath(`${basePath}/${requestId}`);
+  return { ok: true };
 }
 
 /** Remove a previously uploaded document (owner while open, or staff). */

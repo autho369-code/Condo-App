@@ -2,9 +2,10 @@
 // pages. Files upload ONE AT A TIME (each submit is its own request, 10 MB
 // cap) so large plan sets don't overload a single POST. Server component —
 // signs private-bucket URLs at render time.
-import { FileText, Paperclip, X } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase/server';
-import { addArchitecturalAttachment, removeArchitecturalAttachment } from '@/lib/rpcs/architectural';
+import { removeArchitecturalAttachment } from '@/lib/rpcs/architectural';
+import { ArcAttachmentsUploader } from './attachments-uploader';
 
 const BUCKET = 'association-documents';
 // Keep in sync with MAX_ARCH_ATTACHMENTS in lib/rpcs/architectural.ts
@@ -50,7 +51,6 @@ export async function ArcAttachments({
     } catch {}
   }
 
-  const uploadAction = addArchitecturalAttachment.bind(null, requestId, basePath);
   const removeAction = removeArchitecturalAttachment.bind(null, requestId, basePath);
 
   return (
@@ -90,27 +90,7 @@ export async function ArcAttachments({
       )}
 
       {canUpload && docs.length < MAX_DOCS && (
-        <form action={uploadAction as any} className="space-y-2 border-t border-gray-100 pt-3">
-          <label className="block text-sm font-medium text-gray-700" htmlFor={`arc-doc-${requestId}`}>
-            Add a document
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id={`arc-doc-${requestId}`}
-              type="file"
-              name="document"
-              required
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx"
-              className="block text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800"
-            />
-            <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50">
-              <Paperclip className="h-4 w-4 text-gray-400" /> Upload
-            </button>
-          </div>
-          <p className="text-xs text-gray-400">
-            Upload one document at a time — plans, drawings, contractor quotes, photos. Up to {MAX_DOCS} documents, max 10 MB each. Uploading one by one keeps large files from failing.
-          </p>
-        </form>
+        <ArcAttachmentsUploader requestId={requestId} basePath={basePath} remaining={MAX_DOCS - docs.length} />
       )}
     </div>
   );
