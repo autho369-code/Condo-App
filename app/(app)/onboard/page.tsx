@@ -7,6 +7,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { OPERATING_DOCS, REQUIRED_OPERATING_TYPES } from '@/lib/associations/operating-docs';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,21 +48,47 @@ export default async function OnboardPage({
   const { error: errorMessage } = await searchParams;
   const supabase = await createClient();
 
-  const [{ count: associationCount }, { count: unitCount }, { count: ownerCount }, { count: staffCount }, { data: subscription }] = await Promise.all([
-    (supabase as any).from('associations').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
+  const [{ data: assocRows }, { count: unitCount }, { count: ownerCount }, { count: staffCount }, { data: subscription }] = await Promise.all([
+    (supabase as any).from('associations').select('id, name').eq('portfolio_id', me.portfolio.id).is('archived_at', null),
     (supabase as any).from('units').select('*', { count: 'exact', head: true }),
     (supabase as any).from('owners').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id),
     (supabase as any).from('profiles').select('*', { count: 'exact', head: true }).eq('portfolio_id', me.portfolio.id).eq('hoa_role', 'manager'),
     (supabase as any).from('subscriptions').select('*').eq('portfolio_id', me.portfolio.id).maybeSingle(),
   ]);
+  const associations = assocRows ?? [];
+  const associationCount = associations.length;
+
+  // Operating documents: every client must have all required types on file.
+  const missingDocsByAssoc: { id: string; name: string; missing: string[] }[] = [];
+  if (associationCount > 0) {
+    const { data: docRows } = await (supabase as any)
+      .from('documents')
+      .select('entity_id, doc_type')
+      .eq('entity_type', 'association')
+      .in('entity_id', associations.map((a: any) => a.id))
+      .in('doc_type', REQUIRED_OPERATING_TYPES);
+    const typesByAssoc = new Map<string, Set<string>>();
+    for (const d of docRows ?? []) {
+      const set = typesByAssoc.get(d.entity_id) ?? new Set<string>();
+      set.add(d.doc_type);
+      typesByAssoc.set(d.entity_id, set);
+    }
+    for (const a of associations) {
+      const have = typesByAssoc.get(a.id) ?? new Set<string>();
+      const missing = OPERATING_DOCS.filter((o) => o.required && !have.has(o.type)).map((o) => o.label);
+      if (missing.length > 0) missingDocsByAssoc.push({ id: a.id, name: a.name, missing });
+    }
+  }
+  const operatingDocsDone = associationCount > 0 && missingDocsByAssoc.length === 0;
 
   // Step status
   const steps = [
-    { key: '1', label: 'Add your first association', done: (associationCount ?? 0) > 0 },
+    { key: '1', label: 'Add your first association', done: associationCount > 0 },
     { key: '2', label: 'Add buildings + units',      done: (unitCount ?? 0) > 0 },
     { key: '3', label: 'Import owners',          done: (ownerCount ?? 0) > 0 },
-    { key: '4', label: 'Invite your team',           done: (staffCount ?? 0) > 1 },
-    { key: '5', label: 'Set up payment instructions + finish', done: false },
+    { key: '4', label: 'Upload operating documents',  done: operatingDocsDone },
+    { key: '5', label: 'Invite your team',           done: (staffCount ?? 0) > 1 },
+    { key: '6', label: 'Set up payment instructions + finish', done: false },
   ];
   const progress = Math.round(steps.filter((s) => s.done).length / steps.length * 100);
 
@@ -131,11 +158,10 @@ export default async function OnboardPage({
           )}
         </Surface>
 
-        {/* STEP 2-4 (links to existing pages) */}
+        {/* STEP 2-3 (links to existing pages) */}
         {[
           { ...steps[1], href: '/associations', desc: 'Open the association you just created and add its buildings and units.' },
           { ...steps[2], href: '/owners',       desc: 'Add owner contact info. We\'ll match them to units in the next step.' },
-          { ...steps[3], href: '/settings',     desc: 'Add accountants, property managers, and on-site staff.' },
         ].map((s, i) => (
           <Surface key={s.key}>
             <div className="mb-3 flex items-center justify-between">
@@ -155,10 +181,61 @@ export default async function OnboardPage({
           </Surface>
         ))}
 
-        {/* STEP 5 — Payment instructions + finish */}
+        {/* STEP 4 — Operating documents (required for every client) */}
+        <Surface>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+              {steps[3].done ? '✓ ' : '4 — '}{steps[3].label}
+            </h2>
+            {steps[3].done && <StatusChip tone="success">Done</StatusChip>}
+          </div>
+          <p className="text-sm text-gray-600">
+            Every client needs its operating documents on file: {OPERATING_DOCS.filter((o) => o.required).map((o) => o.label).join(', ')}.
+            Owners and board members see them in their portals under Governing Documents.
+          </p>
+          {missingDocsByAssoc.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {missingDocsByAssoc.map((a) => (
+                <li key={a.id} className="text-sm text-gray-600">
+                  <Link href={`/associations/${a.id}/documents`} className="font-medium text-amber-700 hover:underline">{a.name}</Link>
+                  <span className="text-gray-500"> — missing: {a.missing.join(', ')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {associationCount > 0 && (
+            <div className="mt-4">
+              <Link href={missingDocsByAssoc.length > 0 ? `/associations/${missingDocsByAssoc[0].id}/documents` : '/associations'}>
+                <Button variant={steps[3].done ? 'secondary' : 'primary'}>
+                  {steps[3].done ? 'Manage' : 'Upload documents'}
+                </Button>
+              </Link>
+            </div>
+          )}
+        </Surface>
+
+        {/* STEP 5 — Invite your team */}
+        <Surface>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+              {steps[4].done ? '✓ ' : '5 — '}{steps[4].label}
+            </h2>
+            {steps[4].done && <StatusChip tone="success">Done</StatusChip>}
+          </div>
+          <p className="text-sm text-gray-600">Add accountants, property managers, and on-site staff.</p>
+          <div className="mt-4">
+            <Link href="/settings">
+              <Button variant={steps[4].done ? 'secondary' : 'primary'}>
+                {steps[4].done ? 'Manage' : 'Open'}
+              </Button>
+            </Link>
+          </div>
+        </Surface>
+
+        {/* STEP 6 — Payment instructions + finish */}
         <Surface>
           <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
-            5 — Set up payment instructions
+            6 — Set up payment instructions
           </h2>
           <p className="text-sm text-gray-600">
             Tell owners how to pay assessments. Open each association&apos;s profile and add your

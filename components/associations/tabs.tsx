@@ -13,6 +13,7 @@ const TABS = [
   { slug: 'budget',                label: 'Budget' },
   { slug: 'amenities',             label: 'Amenities' },
   { slug: 'payments',              label: 'Payments' },
+  { slug: 'documents',             label: 'Documents' },
 ] as const;
 
 export type AssociationTabSlug = (typeof TABS)[number]['slug'];
