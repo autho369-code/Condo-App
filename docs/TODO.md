@@ -50,9 +50,23 @@ Mostly on Mirsad / external; not code.
       (rail + worker — reports had never been runnable), metrics rewired (health
       view never had the fields), units/tenancy sync, TasksRail panels for all
       seven flagged sections. Remaining honest gaps deliberately deferred:
-      - staff-side "submit ARC request on owner's behalf" flow — **in progress 2026-07-14**
-      - amenity image upload (same placeholder pattern as approvals had) — **in progress 2026-07-14**
+      - staff-side "submit ARC request on owner's behalf" flow — **DONE 2026-07-14** (`/architectural-reviews/new`, occupancy-pick prevents forged owner/unit pairing)
+      - amenity image upload (same placeholder pattern as approvals had) — **DONE 2026-07-14** (signed-URL render, 5 MB cap)
       - maintenance SLA / inspection-compliance metrics (no data source yet) — still deferred.
+
+- [x] **File uploads actually work with large files (2026-07-14, PM).** Both the
+      architectural-documents and insurance-certificate uploaders originally posted
+      files through server actions, which Vercel caps at ~4.5 MB — real plan PDFs
+      failed. Rebuilt browser→Supabase Storage via signed upload URLs
+      (`createSignedUploadUrl` server actions + client uploader components):
+      ARC documents multi-select 4+ (max 10/request, 25 MB each, sequential);
+      insurance certificate 25 MB. Bucket now accepts WebP/HEIC (iPhone photos
+      were rejected). Verified against live storage with an 8 MB PDF + HEIC.
+      Also fixed same-day: missing `calendar_events.vendor_id` FK (events were
+      invisible everywhere), calendar timezone (UTC→association timezone,
+      default America/Chicago), board/owner calendar parity (one shared feed),
+      owner+board single login (dual-role RLS), board-member marking UI on the
+      owner page.
 
 ## 🟡 Should-do soon (non-blocking, smaller)
 - [ ] **Set an AI key** at `/settings/ai` to switch on the AI features (violation
