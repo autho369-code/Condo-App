@@ -53,7 +53,10 @@ export async function GET(request: NextRequest) {
     // Resolve assigned managers for the affected associations
     const assocIds = Array.from(new Set(due.map((p) => p.association_id).filter(Boolean)));
     const managersByAssoc = new Map<string, { email: string; name: string | null }[]>();
-    const supportByPortfolio = new Map<string, string | null>();
+    // White-label branding: every email presents as the management company —
+    // sender name, reply-to, and signature. Only the sending address stays on
+    // the verified portier369.com domain (Resend requirement).
+    const brandByPortfolio = new Map<string, { companyName: string | null; supportEmail: string | null; supportPhone: string | null }>();
     if (assocIds.length > 0) {
       const { data: assignments } = await svc
         .from('association_managers')
@@ -73,11 +76,16 @@ export async function GET(request: NextRequest) {
         list.push({ email: pr.email, name: pr.full_name ?? null });
         managersByAssoc.set(a.association_id, list);
       }
-      // Fallback: management company support address when no manager is assigned
       const portfolioIds = Array.from(new Set(due.map((p) => p.associations?.portfolio_id).filter(Boolean)));
       if (portfolioIds.length > 0) {
-        const { data: pfs } = await svc.from('portfolios').select('id, support_email').in('id', portfolioIds);
-        for (const pf of pfs ?? []) supportByPortfolio.set(pf.id, pf.support_email ?? null);
+        const { data: pfs } = await svc.from('portfolios').select('id, company_name, support_email, support_phone').in('id', portfolioIds);
+        for (const pf of pfs ?? []) {
+          brandByPortfolio.set(pf.id, {
+            companyName: pf.company_name ?? null,
+            supportEmail: pf.support_email ?? null,
+            supportPhone: pf.support_phone ?? null,
+          });
+        }
       }
     }
 
@@ -87,6 +95,14 @@ export async function GET(request: NextRequest) {
     for (const p of due) {
       const ownerName = p.owners?.full_name ?? 'Owner';
       const assocName = p.associations?.name ?? 'your association';
+      const brand = p.associations?.portfolio_id ? brandByPortfolio.get(p.associations.portfolio_id) : undefined;
+      const companyName = brand?.companyName ?? assocName;
+      const managers = p.association_id ? (managersByAssoc.get(p.association_id) ?? []) : [];
+      // Replies from the owner go to their manager (or the company inbox) —
+      // never to the platform.
+      const replyTo = managers[0]?.email ?? brand?.supportEmail ?? null;
+      const contactLine = [brand?.supportEmail, brand?.supportPhone].filter(Boolean).join(' · ');
+      const signature = `— ${companyName}${contactLine ? `\n${contactLine}` : ''}`;
       const details =
         `Carrier: ${p.insurance_company}\n` +
         `Policy #: ${p.policy_number}\n` +
@@ -97,29 +113,32 @@ export async function GET(request: NextRequest) {
         emails.push({
           to: p.owners.email,
           toName: ownerName,
+          fromName: companyName,
+          replyTo,
           subject: `Your insurance policy expires in ${p.daysLeft} days`,
           text:
             `Hi ${ownerName},\n\nThis is a reminder that your HO6 insurance policy on file with ${assocName} expires on ${p.expiration_date}.\n\n${details}\n\n` +
-            `Please renew your policy and upload the new certificate in your owner portal:\n${PORTAL_URL}\n\n— Portier369`,
+            `Please renew your policy and upload the new certificate in your owner portal:\n${PORTAL_URL}\n\n${signature}`,
           associationId: p.association_id ?? null,
           portfolioId: p.associations?.portfolio_id ?? null,
         });
       }
 
       if (p.remind_manager) {
-        let recipients = p.association_id ? (managersByAssoc.get(p.association_id) ?? []) : [];
-        if (recipients.length === 0) {
-          const fallback = p.associations?.portfolio_id ? supportByPortfolio.get(p.associations.portfolio_id) : null;
-          if (fallback) recipients = [{ email: fallback, name: null }];
+        let recipients = managers;
+        if (recipients.length === 0 && brand?.supportEmail) {
+          recipients = [{ email: brand.supportEmail, name: null }];
         }
         for (const r of recipients) {
           emails.push({
             to: r.email,
             toName: r.name,
+            fromName: companyName,
+            replyTo: p.owners?.email ?? null,
             subject: `Owner insurance expiring in ${p.daysLeft} days — ${ownerName} (${assocName})`,
             text:
               `The HO6 insurance policy for ${ownerName} at ${assocName} expires on ${p.expiration_date}.\n\n${details}\n\n` +
-              `Review insurance tracking:\n${MANAGER_URL}\n\n— Portier369`,
+              `Review insurance tracking:\n${MANAGER_URL}\n\n${signature}`,
             associationId: p.association_id ?? null,
             portfolioId: p.associations?.portfolio_id ?? null,
           });

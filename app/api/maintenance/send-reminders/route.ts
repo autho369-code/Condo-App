@@ -27,13 +27,17 @@ export async function GET(request: NextRequest) {
         // and the column is `body` — inserting `body_html` fails outright.
         const { createServiceClient } = await import('@/lib/supabase/server');
         const svc = createServiceClient();
+        // White-label: the vendor sees the management company as the sender
+        // and replies go to the company office, not the platform.
         const { error: insertErr } = await (svc as any).from('email_queue').insert({
           to_email: reminder.vendorEmail,
           subject,
           body: body.replace(/\n/g, '<br>'),
           status: 'pending',
           from_address: 'hello@portier369.com',
-          from_name: 'Portier369',
+          from_name: reminder.companyName ?? reminder.associationName ?? 'Portier369',
+          reply_to: reminder.supportEmail ?? null,
+          portfolio_id: reminder.portfolioId ?? null,
         });
         if (insertErr) throw new Error(insertErr.message);
 

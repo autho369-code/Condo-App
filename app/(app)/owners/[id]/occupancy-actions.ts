@@ -183,7 +183,7 @@ export async function removeVehicle(vehicleId: string, ownerId: string) {
 const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 
 export async function sendOwnerPasswordReset(ownerId: string) {
-  await requireStaff();
+  const me = await requireStaff();
   const supabase = await createClient();
   const { data: owner } = await (supabase as any).from('owners').select('email, full_name, portfolio_id').eq('id', ownerId).maybeSingle();
   if (!owner?.email) fail(ownerId, 'This owner has no email on file.');
@@ -196,14 +196,17 @@ export async function sendOwnerPasswordReset(ownerId: string) {
   });
   if (error || !linkData?.properties?.action_link) fail(ownerId, `Could not generate a reset link: ${error?.message ?? 'no portal account exists for this email yet'}`);
 
+  // White-label: the owner sees their management company as the sender.
+  const companyName = me.portfolio?.company_name ?? 'Your management company';
   const { error: qErr } = await svc.from('email_queue').insert({
     to_email: owner.email,
     to_name: owner.full_name,
-    subject: 'Reset your Portier369 password',
-    body: `<p>Hello${owner.full_name ? ` ${owner.full_name}` : ''},</p><p>Your management company sent you a link to reset your Portier369 owner-portal password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not expect this email, contact your management office.</p>`,
+    subject: 'Reset your owner portal password',
+    body: `<p>Hello${owner.full_name ? ` ${owner.full_name}` : ''},</p><p>${companyName} sent you a link to reset your owner-portal password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not expect this email, contact your management office.</p>`,
     status: 'pending',
     from_address: 'hello@portier369.com',
-    from_name: 'Portier369',
+    from_name: me.portfolio?.company_name ?? 'Portier369',
+    reply_to: me.portfolio?.support_email ?? null,
     portfolio_id: owner.portfolio_id,
   });
   if (qErr) fail(ownerId, `Reset link created but the email could not be queued: ${qErr.message}`);
