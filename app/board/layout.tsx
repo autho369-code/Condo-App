@@ -22,12 +22,17 @@ export default async function BoardLayout({ children }: { children: React.ReactN
   const me = await requireBoard()
   const associationName = await getAssociationName(me.board_association_ids)
 
+  // Board members who are also owners get both portals on one login.
+  const modules = me.owner_id
+    ? [boardModules[0], { label: 'My Owner Portal', href: '/portal' }, ...boardModules.slice(1)]
+    : boardModules
+
   return (
     <div className="flex min-h-screen">
       <Sidebar
         portfolioName={associationName ?? me.portfolio?.company_name ?? me.portfolio?.name ?? 'Portier369'}
         userEmail={me.email ?? undefined}
-        modules={boardModules}
+        modules={modules}
         subtitle="Board portal"
       />
       <main className="h-screen min-w-0 flex-1 overflow-y-auto bg-[#f6f7f9] pt-12 lg:pt-0">

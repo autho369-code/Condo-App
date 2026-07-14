@@ -15,11 +15,30 @@ export default async function OwnerCalendarPage() {
 
   let events: any[] = []
   if (assocId) {
-    const { data: ev } = await db.from('calendar_events')
-      .select('id, title, start_datetime, location, description')
-      .eq('association_id', assocId)
-      .order('start_datetime', { ascending: true }).limit(100)
-    events = ev ?? []
+    // Community events + scheduled board activity (meetings) on one calendar.
+    const [{ data: ev }, { data: mtgs }] = await Promise.all([
+      db.from('calendar_events')
+        .select('id, title, start_datetime, location, description')
+        .eq('association_id', assocId)
+        .is('archived_at', null)
+        .order('start_datetime', { ascending: true }).limit(100),
+      db.from('meetings')
+        .select('id, title, meeting_type, start_time, location')
+        .eq('association_id', assocId)
+        .eq('status', 'scheduled')
+        .is('archived_at', null)
+        .order('start_time', { ascending: true }).limit(100),
+    ])
+    events = [
+      ...(ev ?? []),
+      ...(mtgs ?? []).map((m: any) => ({
+        id: `meeting-${m.id}`,
+        title: m.title,
+        start_datetime: m.start_time,
+        location: m.location,
+        description: `${(m.meeting_type ?? 'board').replace(/_/g, ' ')} meeting`,
+      })),
+    ].sort((a: any, b: any) => String(a.start_datetime).localeCompare(String(b.start_datetime)))
   }
 
   // Group by month

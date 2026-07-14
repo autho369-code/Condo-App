@@ -12,6 +12,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
 import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, setOwnerPortalAccess } from './occupancy-actions';
+import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,16 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   const currentOccs = (occs ?? []).filter((o: any) => o.status === 'current');
   const pastOccs    = (occs ?? []).filter((o: any) => o.status === 'past');
+
+  // Associations this owner belongs to — the options for a new board seat.
+  const boardAssociationOptions = Array.from(
+    new Map<string, { id: string; name: string }>(
+      currentOccs
+        .map((o: any) => o.units?.buildings?.associations)
+        .filter((a: any) => a?.id)
+        .map((a: any): [string, { id: string; name: string }] => [a.id, { id: a.id, name: a.name ?? 'Association' }]),
+    ).values(),
+  );
 
   // ── Tenancy & pets for this owner's current units ──
   const ownedUnitIds = currentOccs.map((o: any) => o.units?.id).filter(Boolean);
@@ -296,6 +307,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       {sp.saved === 'reset_sent' && <div className="mb-4"><Alert tone="success" title="Password reset email queued" /></div>}
       {sp.saved === 'portal_enabled' && <div className="mb-4"><Alert tone="success" title="Portal access enabled" /></div>}
       {sp.saved === 'portal_disabled' && <div className="mb-4"><Alert tone="success" title="Portal access disabled">The owner can no longer sign in.</Alert></div>}
+      {sp.saved === 'board' && <div className="mb-4"><Alert tone="success" title="Board seat added">Their existing login now opens both the board portal and their owner portal.</Alert></div>}
+      {sp.saved === 'board_end' && <div className="mb-4"><Alert tone="success" title="Board seat ended" /></div>}
       {sp.portal_created === '1' && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="flex items-start justify-between">
@@ -356,6 +369,73 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             <Button variant="secondary" size="sm">View charges</Button>
           </Link>
         </div>
+
+        {/* ── Board Membership: mark this owner as a board member ── */}
+        <Section title="Board Membership">
+          <div className="space-y-4 px-5 py-4">
+            {(boardSeats ?? []).length === 0 ? (
+              <p className="text-sm text-gray-500">
+                Not on a board. Add a seat below — the owner&apos;s existing login opens the board portal
+                immediately alongside their owner portal (one login, both portals).
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {(boardSeats ?? []).map((s: any) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                    <div className="text-sm">
+                      <span className="font-medium capitalize text-gray-900">{(s.role ?? 'director').replace(/_/g, ' ')}</span>
+                      <span className="text-gray-500"> — {s.associations?.name ?? 'Association'}</span>
+                      {s.term_start && (
+                        <span className="ml-2 text-xs text-gray-400">
+                          term {date(s.term_start)}{s.term_end ? ` – ${date(s.term_end)}` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <form action={endBoardSeat.bind(null, id) as any}>
+                      <input type="hidden" name="seat_id" value={s.id} />
+                      <button type="submit" className="text-xs font-medium text-red-600 hover:underline">End seat</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {boardAssociationOptions.length === 0 ? (
+              <p className="border-t border-gray-100 pt-3 text-xs text-gray-400">Link this owner to a unit first — board seats attach to their association.</p>
+            ) : (
+              <form action={addOwnerToBoard.bind(null, id) as any} className="grid grid-cols-1 items-end gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div>
+                  <Label htmlFor="board_association">Association</Label>
+                  <select id="board_association" name="association_id" required defaultValue={boardAssociationOptions[0]?.id}
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                    {boardAssociationOptions.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="board_role">Role</Label>
+                  <select id="board_role" name="role" required defaultValue="director"
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15">
+                    <option value="president">President</option>
+                    <option value="vice_president">Vice President</option>
+                    <option value="secretary">Secretary</option>
+                    <option value="treasurer">Treasurer</option>
+                    <option value="director">Director</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="board_term_start">Term start</Label>
+                  <Input id="board_term_start" type="date" name="term_start" />
+                </div>
+                <div>
+                  <Label htmlFor="board_term_end">Term end</Label>
+                  <Input id="board_term_end" type="date" name="term_end" />
+                </div>
+                <Button type="submit">Add to board</Button>
+              </form>
+            )}
+          </div>
+        </Section>
 
         {/* ── Owner Profile ── */}
         <Section title="Owner Profile">
