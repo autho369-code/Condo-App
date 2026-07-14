@@ -3,15 +3,42 @@
 *`C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`.*
 *The **CURRENT STATE** section below is authoritative; everything under HISTORICAL LOG is old and may be stale.*
 *Engineering reference: [`docs/IMPLEMENTATION_SPEC.md`](IMPLEMENTATION_SPEC.md) — system architecture, data-model & RLS contracts, role/invite chain, module specs.*
-*Last updated: 2026-06-14.*
+*Last updated: 2026-07-14.*
 
 ---
 
 ## 🎯 The Goal
 Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar Property Group** — to functional parity with **AppFolio Property Manager**, then beyond, with an original design. Live at **portier369.com** (Vercel auto-deploys `main`).
 
-## ✅ Current State (2026-06-14)
+## ✅ Current State (2026-07-14)
 - **Live & green.** Design-system migration 100% done; all "New X" create forms built; self-service account/security (password change) page shipped.
+- **Shipped 2026-07-14** (six commits, all live):
+  - **Insurance policy upload + expiry reminders** — policy document upload,
+    policy period dates, and automated 30/15-day expiry email reminders to the
+    owner **and** the manager, white-labeled as the management company.
+  - **Architectural request document uploads** — owners attach supporting
+    documents one at a time, up to 10 per request.
+  - **Association operating/governing documents** — dedicated documents tab on
+    the association detail page + a required onboarding step so every new
+    client's governing docs get loaded.
+  - **White-label email fixes** — all outbound mail sends as the management
+    company (not Portier369); fixed the dead maintenance-reminder cron and the
+    maintenance-comms `company_name` bug.
+  - **Operating manuals delivered to clients** — Manager Runbook + Company
+    Admin Guide published at `/manuals/*` (`public/manuals/`), linked in staff
+    invite emails and on `/onboard`.
+  - **Owner portal nav** — Account Ledger entry + prominent Pay Assessments CTA.
+- **2026-07-12: ship-readiness security re-review** — 46 unguarded server
+  actions given in-action authorization guards, API auth + scope checks, no
+  secrets in URLs, preview-mode kill-switch, cron worker endpoints secured with
+  timing-safe auth.
+- **Route + nav hygiene verified 2026-07-14:** all 140 sidebar hrefs across all
+  six role navs resolve to real pages; `npm run check:routes` reports only 4
+  false positives (the `/manuals/*.pdf` static files in `public/` and the
+  `/owners/leases/export` `route.ts` handler — the audit script only scans
+  `page.tsx` files). `npm run check:dashboard-text` clean.
+- **In progress (another agent, 2026-07-14):** staff-side "submit ARC request
+  on owner's behalf" flow and amenity image upload.
 - **Clean test data:** the database now holds ONE realistic association — **Granville Courts** (Stellar portfolio) — with full accounting so every screen shows real numbers. All prior fake/seed data was backed up to `backups/seed-backup-*.json`, then hard-deleted.
 - **7 personas** — all `@portier369.com`, password `Portier2026!`:
   - `hello@` — super-admin / platform operator
@@ -24,7 +51,7 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 - **Accounting (Granville):** $10,500 dues billed · $8,400 collected · **$2,100 A/R** · operating + reserve bank accounts · FY2026 budget · 2 vendor bills · 4 balanced journal entries. Books balance (DB-trigger enforced).
 - **Verified in the running app:** manager dashboard, board portal (financials/budget/delinquencies), owner portal, vendor portal — all rendering real Granville data.
 
-## 🔧 Fixed this session (committed + live)
+## 🔧 Fixed 2026-06-14 session (committed + live)
 - **Fail-loud forms (commit effe358):** server actions on plain `<form action>` were silently swallowing errors (`return { error }`). Converted ~30 money/ops actions to redirect back with `?error=` + visible Alert on ~24 pages (signup also surfaces `?notice=`). Multi-agent security audit + review (verdict SHIP); RLS, invite RPCs, secrets confirmed clean. Build green.
 - **Docs:** added `IMPLEMENTATION_SPEC.md`, `legal-review-package.md` (counsel-ready), `email-deliverability-setup.md` (SPF/DKIM/DMARC runbook). Reusable `impl-spec` skill added.
 - Board **Financials** showed $0 → added board read-only RLS on `journal_lines`/`journal_entries`/`bank_accounts` (association-scoped). Migration `board_read_financials_rls.sql`.
@@ -34,6 +61,11 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 - **Tenants** reachable by SMS (+ accurate email recipient count); tenant login removed.
 
 ## 📋 Open items / next
+*(Authoritative open list: `docs/TODO.md`. Launch gates remaining as of
+2026-07-14 — all on Mirsad / external, not code: legal counsel sign-off on
+`/legal/*`, platform Stripe keys in Vercel, remittance decision, real-client
+pilot, seed-data swap. In-flight code (another agent): staff-side ARC
+submission + amenity image upload.)*
 - ✅ **Plaid** — closed (bank-feed reconciliation, prior session). Reconciliation-only; no online collection.
 - ⏳ **SMS provider** — placeholder. Twilio at launch (US 10DLC registration; don't pay until a real pilot). Email already delivers via Resend.
 - 🟡 **Legal — DRAFTED & corporate facts filled (commits 9961434, 811edbd).** `/legal/*` (privacy, terms, security) have full substantive clauses (AI/PII disclosure, sub-processors, DPA, breach notice, CCPA/CPRA + multi-state, retention, governing law, arbitration, liability carve-outs, indemnification, confidentiality, security posture). Entity = **Portier369, Inc.**, an Illinois corporation, Glenview IL; governing law Illinois; venue/arbitration Cook County, Illinois. **Only remaining: final counsel sign-off** before first paying client. Gap analysis: `docs/legal-review-package.md`.

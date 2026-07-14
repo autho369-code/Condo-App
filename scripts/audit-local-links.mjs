@@ -48,11 +48,23 @@ function routeFromPage(path) {
   return route === '/' ? '/' : route.replace(/\/$/, '');
 }
 
-const routePatterns = walk(appDir, (path) => path.endsWith('page.tsx')).map(routeFromPage);
+// Route handlers (route.ts) and static assets under public/ resolve too.
+const routePatterns = [
+  ...walk(appDir, (path) => path.endsWith('page.tsx')).map(routeFromPage),
+  ...walk(appDir, (path) => path.endsWith(`${sep}route.ts`)).map((path) =>
+    routeFromPage(path.replace(/route\.ts$/, 'page.tsx'))),
+];
+const publicDir = join(root, 'public');
+const publicFiles = new Set(
+  existsSync(publicDir)
+    ? walk(publicDir).map((path) => '/' + relative(publicDir, path).split(sep).join('/'))
+    : [],
+);
 
 function matchesRoute(href) {
   const path = href.split('?')[0].split('#')[0].replace(/\/$/, '') || '/';
   if (ignoredPrefixes.some((prefix) => path.startsWith(prefix))) return true;
+  if (publicFiles.has(path)) return true;
   return routePatterns.some((pattern) => {
     const escaped = pattern
       .split('/')

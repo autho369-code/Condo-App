@@ -1,7 +1,7 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-07-07.
+Last updated: 2026-07-14.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
@@ -22,7 +22,11 @@ Mostly on Mirsad / external; not code.
       data (import path is built + verified: `/owners/import`).
 - [x] **Write the operational manual for company admins and managers** (requested
       by Mirsad 2026-07-06; DELIVERED 2026-07-06: `docs/manuals/` —
-      Manager Runbook + Company Admin Guide, .docx + .pdf). Covered:
+      Manager Runbook + Company Admin Guide, .docx + .pdf).
+      **UPDATE 2026-07-14: the manuals are now DELIVERED to clients** — published
+      at `public/manuals/` (served at `/manuals/Portier369-Manager-Runbook.pdf`
+      and `/manuals/Portier369-Company-Admin-Guide.pdf`), linked in the staff
+      invite emails, and linked from the `/onboard` page. Covered:
       - Assign a **site manager on every association** — that field drives where
         owner-portal "Send a message" emails land (fallback: company admins, then
         portfolio support email). Manager replies from their own inbox (reply-to
@@ -46,9 +50,9 @@ Mostly on Mirsad / external; not code.
       (rail + worker — reports had never been runnable), metrics rewired (health
       view never had the fields), units/tenancy sync, TasksRail panels for all
       seven flagged sections. Remaining honest gaps deliberately deferred:
-      staff-side "submit ARC request on owner's behalf" flow, amenity image
-      upload (same placeholder pattern as approvals had), maintenance SLA /
-      inspection-compliance metrics (no data source yet).
+      - staff-side "submit ARC request on owner's behalf" flow — **in progress 2026-07-14**
+      - amenity image upload (same placeholder pattern as approvals had) — **in progress 2026-07-14**
+      - maintenance SLA / inspection-compliance metrics (no data source yet) — still deferred.
 
 ## 🟡 Should-do soon (non-blocking, smaller)
 - [ ] **Set an AI key** at `/settings/ai` to switch on the AI features (violation
@@ -105,6 +109,25 @@ Detail + rationale in `docs/appfolio-gap-analysis.md`.
 ---
 
 ## ✅ Recently completed (this work cycle)
+- [x] **2026-07-14 batch (all committed + pushed):**
+      - Insurance: policy document upload + policy period dates + automated
+        30/15-day expiry email reminders to owner **and** manager, white-labeled
+        as the management company.
+      - Architectural requests: owners can upload supporting documents
+        one at a time, up to 10 per request.
+      - Association operating/governing documents: new documents tab on the
+        association detail page + required onboarding step so every new client
+        gets their governing docs loaded.
+      - White-label email fixes: all outbound mail now sends as the management
+        company (not Portier369) — includes fixing the dead maintenance-reminder
+        cron and the maintenance-comms `company_name` bug.
+      - Operating manuals published to clients at `/manuals/*`
+        (`public/manuals/`), linked in invite emails and on `/onboard`.
+      - Owner portal nav: Account Ledger entry + prominent Pay Assessments CTA.
+- [x] **2026-07-12:** full ship-readiness security re-review — 46 unguarded
+      server actions given in-action guards, API auth + scope checks, no secrets
+      in URLs, preview-mode kill-switch, secured cron worker endpoints
+      (timing-safe auth), build fixes.
 - [x] Full-site audit + ~30 bug fixes across all six roles
 - [x] Stripe fully removed (code, deps, DB tables/columns, types)
 - [x] Operator billing: generate / **send** / mark-paid / void invoices

@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Button } from '@/components/ui/button';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
@@ -79,6 +81,11 @@ export default async function ArchitecturalReviewQueue({
     <DataWorkspace
       title="Architectural Reviews"
       description="Review homeowner modification requests, discuss in-thread, and record the board's decision."
+      actions={
+        <Link href="/architectural-reviews/new">
+          <Button size="sm"><Plus className="h-4 w-4" /> New request</Button>
+        </Link>
+      }
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />

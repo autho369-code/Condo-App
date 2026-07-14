@@ -71,6 +71,62 @@ export async function submitArchitecturalRequest(formData: FormData) {
   redirect(`/portal/architectural/${req.id}?submitted=1`);
 }
 
+/**
+ * Staff submits an architectural request ON BEHALF OF a homeowner (phone/walk-in
+ * requests). The form posts an occupancy id — we resolve unit/owner/association
+ * server-side from that single row so a forged unit+owner pairing is impossible.
+ * The staff member's own client performs both the lookup and the insert, so RLS
+ * (arch_req_staff_all → can_access_association) scopes everything to
+ * associations this staffer actually manages.
+ */
+export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
+  const failTo = (msg: string) =>
+    redirect(`/architectural-reviews/new?error=${encodeURIComponent(msg)}`);
+
+  const me = await getMe();
+  if (!me.auth_user_id) { redirect('/login'); return; }
+  // In-action guard: submitting for another owner is a staff-only power.
+  if (!me.is_staff && !me.is_platform_operator) { failTo('Only staff can submit a request on an owner’s behalf'); return; }
+
+  const occupancyId = (formData.get('occupancy_id') as string)?.trim();
+  const title       = (formData.get('title') as string)?.trim();
+  const description = (formData.get('description') as string)?.trim();
+  const category    = parseCategory(formData.get('category'));
+
+  if (!occupancyId)             { failTo('Choose the homeowner and unit this request is for'); return; }
+  if (!title)                   { failTo('Please give the request a short title'); return; }
+  if (!description)             { failTo('Please describe the modification'); return; }
+  if (description.length < 10)  { failTo('Please give at least a sentence describing the work'); return; }
+
+  const supabase = await createClient();
+
+  // Resolve owner + unit + association from the occupancy row (RLS-scoped).
+  const { data: occ, error: occErr } = await (supabase as any)
+    .from('occupancies')
+    .select('id, unit_id, owner_id, association_id, status, associations!occupancies_association_id_fkey(portfolio_id)')
+    .eq('id', occupancyId)
+    .maybeSingle();
+  if (occErr || !occ) { failTo('That homeowner/unit was not found or is outside your portfolio'); return; }
+  if (!occ.owner_id)  { failTo('That unit has no owner on file — link an owner first'); return; }
+
+  const { data: req, error } = await (supabase as any).from('architectural_requests').insert({
+    association_id: occ.association_id,
+    portfolio_id:   (occ.associations as any)?.portfolio_id ?? null,
+    unit_id:        occ.unit_id,
+    owner_id:       occ.owner_id,          // the homeowner the request belongs to
+    submitted_by:   me.auth_user_id,       // the staffer who keyed it in
+    title,
+    description,
+    category,
+    status:         'submitted',
+  }).select('id').single();
+
+  if (error || !req) { failTo(error?.message ?? 'Failed to submit request'); return; }
+
+  revalidatePath('/architectural-reviews');
+  redirect(`/architectural-reviews/${req.id}`);
+}
+
 // Documents live in the association records bucket. Each document uploads in
 // its own request (one file per submit, 10 MB cap) so large plan sets don't
 // overload a single multipart POST. Cap of 10 documents per request.

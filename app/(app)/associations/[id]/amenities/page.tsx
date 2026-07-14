@@ -1,24 +1,30 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
 
 type AmenityInsert = Database['public']['Tables']['association_amenities']['Insert'];
 
+// Amenity photos live alongside the other association files in the private
+// association-documents bucket (rendered via short-lived signed URLs).
+const IMAGE_BUCKET = 'association-documents';
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+
 export default async function AmenitiesTab({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; error?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
@@ -41,21 +47,67 @@ export default async function AmenitiesTab({
     .is('archived_at', null)
     .order('name');
 
+  // Resolve image links. image_url may be a full https URL (legacy/external —
+  // use directly) or a private-bucket object path (needs a signed URL).
+  const imageSrcByAmenity = new Map<string, string>();
+  const pathsToSign: string[] = [];
+  for (const a of (amenities ?? []) as Array<{ id: string; image_url: string | null }>) {
+    const url = a.image_url?.trim();
+    if (!url) continue;
+    if (/^https?:\/\//i.test(url)) imageSrcByAmenity.set(a.id, url);
+    else pathsToSign.push(url);
+  }
+  if (pathsToSign.length > 0) {
+    const svc = createServiceClient() as any;
+    const { data: signed } = await svc.storage.from(IMAGE_BUCKET).createSignedUrls(pathsToSign, 3600);
+    const signedByPath = new Map<string, string>();
+    for (const s of signed ?? []) {
+      if (s?.path && s?.signedUrl) signedByPath.set(s.path, s.signedUrl);
+    }
+    for (const a of (amenities ?? []) as Array<{ id: string; image_url: string | null }>) {
+      const url = a.image_url?.trim();
+      if (url && !imageSrcByAmenity.has(a.id)) {
+        const signedUrl = signedByPath.get(url);
+        if (signedUrl) imageSrcByAmenity.set(a.id, signedUrl);
+      }
+    }
+  }
+
   async function createAmenity(formData: FormData) {
     'use server';
+    const failTo = (msg: string) =>
+      redirect(`/associations/${id}/amenities?new=1&error=${encodeURIComponent(msg)}`);
     await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
     const name = String(formData.get('name') ?? '').trim();
-    if (!name) throw new Error('Title is required.');
+    if (!name) { failTo('Title is required.'); return; }
 
     const allowReservations = formData.get('allow_reservations') === 'on';
     const pricingMode = parsePricingMode(formData.get('pricing_mode'));
     const priceRaw = String(formData.get('price_amount') ?? '').trim();
     const reserveMethod = parseReserveMethod(formData.get('reserve_method'));
 
+    // Optional amenity photo → private storage; we keep the object PATH in
+    // image_url and sign it at render time (same pattern as owner documents).
+    let imagePath: string | null = null;
+    const image = formData.get('image') as File | null;
+    if (image && image.size > 0) {
+      if (image.size > MAX_IMAGE_BYTES) { failTo('The image must be 5 MB or smaller.'); return; }
+      if (!image.type.startsWith('image/')) { failTo('Only image files (JPG, PNG, GIF, WebP) can be uploaded.'); return; }
+      const svc = createServiceClient() as any;
+      const safeName = image.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `amenities/${id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await svc.storage
+        .from(IMAGE_BUCKET)
+        .upload(path, image, { contentType: image.type || undefined });
+      if (upErr) { failTo(`Image upload failed: ${upErr.message}`); return; }
+      imagePath = path;
+    }
+
     const payload: AmenityInsert = {
       association_id: id,
       name,
+      image_url: imagePath,
       description_html: (formData.get('description_html') as string) || null,
       opens_at: (formData.get('opens_at') as string) || null,
       closes_at: (formData.get('closes_at') as string) || null,
@@ -73,8 +125,17 @@ export default async function AmenitiesTab({
 
     const { error } = await (supabase as any).from('association_amenities').insert(payload);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Don't strand an orphaned image in storage if the row insert failed.
+      if (imagePath) {
+        try {
+          await (createServiceClient() as any).storage.from(IMAGE_BUCKET).remove([imagePath]);
+        } catch {}
+      }
+      failTo(error.message); return;
+    }
     revalidatePath(`/associations/${id}/amenities`);
+    redirect(`/associations/${id}/amenities`);
   }
 
   const rail = null;
@@ -97,6 +158,10 @@ export default async function AmenitiesTab({
       }
       rail={rail}
     >
+      {sp.error && (
+        <Alert tone="danger" title="Could not create amenity">{sp.error}</Alert>
+      )}
+
       {(!amenities || amenities.length === 0) && !showCreate && (
         <Section padded>
           <p className="text-center text-sm italic text-gray-500">
@@ -149,9 +214,9 @@ export default async function AmenitiesTab({
                 )}
               </dl>
             </div>
-            {a.image_url && (
+            {imageSrcByAmenity.has(a.id) && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={a.image_url} alt={a.name} className="h-24 w-32 rounded-lg border border-gray-200 object-cover" />
+              <img src={imageSrcByAmenity.get(a.id)} alt={a.name} className="h-24 w-32 rounded-lg border border-gray-200 object-cover" />
             )}
           </div>
         </Section>
@@ -169,8 +234,8 @@ export default async function AmenitiesTab({
             </FormRow>
 
             <FormRow label="Image">
-              <input type="file" name="image" disabled className="text-sm" />
-              <div className="mt-1 text-xs text-gray-400">Image upload pending Storage bucket wiring</div>
+              <input type="file" name="image" accept="image/*" className="text-sm" />
+              <div className="mt-1 text-xs text-gray-400">Optional photo shown next to the amenity. JPG, PNG, GIF, or WebP — max 5 MB.</div>
             </FormRow>
 
             <FormRow label="Description" required>
