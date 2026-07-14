@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
+import { signSignaturePaths } from '@/lib/board/signature'
 import { date } from '@/lib/utils'
 import { castApproval } from './actions'
 import {
@@ -95,7 +96,7 @@ interface Decision {
   signature_name: string | null
   comment: string | null
   decided_at: string
-  board_members?: { full_name: string | null } | null
+  board_members?: { full_name: string | null; signature_url: string | null } | null
 }
 
 export default async function BoardApprovalsPage({
@@ -142,7 +143,7 @@ export default async function BoardApprovalsPage({
   if (requestIds.length > 0) {
     const { data: decisionsData } = await db
       .from('approval_decisions')
-      .select('id, approval_request_id, decided_by, decision, signature_name, comment, decided_at, board_members(full_name)')
+      .select('id, approval_request_id, decided_by, decision, signature_name, comment, decided_at, board_members(full_name, signature_url)')
       .in('approval_request_id', requestIds)
       .order('decided_at', { ascending: true })
     for (const d of (decisionsData ?? []) as Decision[]) {
@@ -152,6 +153,10 @@ export default async function BoardApprovalsPage({
       if (d.decided_by === me.auth_user_id) myDecisionByRequest.set(d.approval_request_id, d)
     }
   }
+
+  // Signed display URLs for each decider's captured signature (private bucket).
+  const allDecisions = Array.from(decisionsByRequest.values()).flat()
+  const sigUrlByRef = await signSignaturePaths(allDecisions.map((d) => d.board_members?.signature_url))
 
   const pending = requests.filter((r) => r.status === 'pending')
   const decided = requests.filter((r) => r.status !== 'pending')
@@ -191,6 +196,7 @@ export default async function BoardApprovalsPage({
               request={r}
               decisions={decisionsByRequest.get(r.id) ?? []}
               myDecision={myDecisionByRequest.get(r.id)}
+              sigUrlByRef={sigUrlByRef}
               showForm
             />
           ))
@@ -213,6 +219,7 @@ export default async function BoardApprovalsPage({
               request={r}
               decisions={decisionsByRequest.get(r.id) ?? []}
               myDecision={myDecisionByRequest.get(r.id)}
+              sigUrlByRef={sigUrlByRef}
             />
           ))}
         </section>
@@ -259,11 +266,13 @@ function RequestCard({
   request: r,
   decisions,
   myDecision,
+  sigUrlByRef,
   showForm,
 }: {
   request: ApprovalRequest
   decisions: Decision[]
   myDecision?: Decision
+  sigUrlByRef: Map<string, string>
   showForm?: boolean
 }) {
   const eligible = eligibleCount(r)
@@ -317,19 +326,32 @@ function RequestCard({
         <div className="mt-4">
           <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Sign-offs</div>
           <ul className="mt-2 divide-y divide-gray-100">
-            {decisions.map((d) => (
-              <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                <span className="font-medium text-gray-900">{d.board_members?.full_name ?? 'Board member'}</span>
-                <StatusChip tone={decisionTone(d.decision)}>{d.decision}</StatusChip>
-                {d.signature_name && (
-                  <span className="inline-flex items-center gap-1 text-xs italic text-gray-500">
-                    <PenLine className="h-3 w-3" /> {d.signature_name}
-                  </span>
-                )}
-                <span className="ml-auto text-xs tabular-nums text-gray-400">{date(d.decided_at)}</span>
-                {d.comment && <p className="w-full text-xs text-gray-500">{d.comment}</p>}
-              </li>
-            ))}
+            {decisions.map((d) => {
+              const sigRef = d.board_members?.signature_url?.trim()
+              const sigUrl = sigRef ? sigUrlByRef.get(sigRef) : undefined
+              return (
+                <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
+                  <span className="font-medium text-gray-900">{d.board_members?.full_name ?? 'Board member'}</span>
+                  <StatusChip tone={decisionTone(d.decision)}>{d.decision}</StatusChip>
+                  {sigUrl ? (
+                    <span className="inline-flex items-center rounded-lg border border-gray-100 bg-white px-2 py-0.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={sigUrl}
+                        alt={`Signature of ${d.board_members?.full_name ?? 'board member'}`}
+                        className="h-7 w-auto max-w-[140px] object-contain"
+                      />
+                    </span>
+                  ) : d.signature_name ? (
+                    <span className="inline-flex items-center gap-1 text-xs italic text-gray-500">
+                      <PenLine className="h-3 w-3" /> {d.signature_name}
+                    </span>
+                  ) : null}
+                  <span className="ml-auto text-xs tabular-nums text-gray-400">{date(d.decided_at)}</span>
+                  {d.comment && <p className="w-full text-xs text-gray-500">{d.comment}</p>}
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}

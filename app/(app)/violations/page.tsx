@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, ShieldAlert } from 'lucide-react';
+import { Plus, ShieldAlert, Smartphone } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
@@ -157,9 +157,14 @@ export default async function ViolationsPage({
       title="Violations"
       description="Track rule enforcement from observation through notices, hearings, fines, and resolution."
       actions={
-        <Link href="/violations/new">
-          <Button><Plus className="h-4 w-4" /> New violation</Button>
-        </Link>
+        <>
+          <Link href="/violations/field">
+            <Button variant="secondary"><Smartphone className="h-4 w-4" /> Field capture</Button>
+          </Link>
+          <Link href="/violations/new">
+            <Button><Plus className="h-4 w-4" /> New violation</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-6">

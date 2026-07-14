@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { SignatureCapture } from '@/components/board/signature-capture'
+import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
 import { date, money } from '@/lib/utils'
 import {
   Heart,
@@ -128,6 +130,11 @@ export default async function BoardDashboardPage() {
   const pendingVotes = (approvals ?? []).length
   const assocNames = (assoc ?? []).map((a: any) => a.name).join(', ')
 
+  // My e-signature: attached to approval sign-offs (AppFolio parity).
+  const mySeats = await findMyBoardSeats(me)
+  const mySigPath = mySeats.find((s) => s.signature_url)?.signature_url ?? null
+  const mySigUrl = mySigPath ? (await signSignaturePaths([mySigPath])).get(mySigPath) ?? null : null
+
   return (
     <div className="space-y-6">
       <div>
@@ -205,6 +212,19 @@ export default async function BoardDashboardPage() {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* ── My signature ──────────────────────────────── */}
+      <div className={card}>
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">My Signature</h2>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Captured once and attached to every approval you sign off on.
+          </p>
+        </div>
+        <div className="p-5">
+          <SignatureCapture currentSignatureUrl={mySigUrl} />
         </div>
       </div>
 

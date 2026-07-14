@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
+import { signSignaturePaths } from '@/lib/board/signature';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,13 +29,16 @@ export default async function BoardTab({
 
   const { data: members } = await (supabase as any)
     .from('board_members')
-    .select('id, full_name, role, term_start, term_end, signature_on_file, phone, email, active')
+    .select('id, full_name, role, term_start, term_end, signature_on_file, signature_url, phone, email, active')
     .eq('association_id', id)
     .order('active', { ascending: false })
     .order('role');
 
   const current = (members ?? []).filter((m: any) => m.active);
   const past = (members ?? []).filter((m: any) => !m.active);
+
+  // Signed thumbnails for captured signatures (private bucket).
+  const sigUrlByRef = await signSignaturePaths(current.map((m: any) => m.signature_url));
 
   const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
@@ -82,7 +86,18 @@ export default async function BoardTab({
                 <td className="px-4 py-3 text-gray-700">{humanRole(m.role)}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_start ? formatDate(m.term_start) : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-gray-700">{m.term_end ? formatDate(m.term_end) : <span className="text-gray-400">—</span>}</td>
-                <td className="px-4 py-3 text-gray-700">{m.signature_on_file ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-3 text-gray-700">
+                  {m.signature_url && sigUrlByRef.get(m.signature_url.trim()) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={sigUrlByRef.get(m.signature_url.trim())}
+                      alt={`${m.full_name} signature`}
+                      className="h-8 w-auto max-w-[120px] rounded border border-gray-100 bg-white object-contain"
+                    />
+                  ) : (
+                    m.signature_on_file ? 'Yes' : 'No'
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-700">{m.phone || <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-gray-700">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-700 hover:underline">{m.email}</a> : <span className="text-gray-400">—</span>}</td>
               </tr>
