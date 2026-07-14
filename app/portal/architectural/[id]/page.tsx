@@ -6,6 +6,7 @@ import { requireOwner } from '@/lib/auth/me';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { StatusChip } from '@/components/operations/status-chip';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
+import { ArcAttachments, type ArcAttachment } from '@/components/architectural/attachments';
 import { postArchitecturalMessage, withdrawArchitecturalRequest } from '@/lib/rpcs/architectural';
 import { ARC_STATUS_TONE, arcStatusLabel } from '@/components/architectural/status';
 import { date } from '@/lib/utils';
@@ -32,7 +33,7 @@ export default async function OwnerArchitecturalDetail({
 
   const { data: req } = await (supabase as any)
     .from('architectural_requests')
-    .select('id, title, description, category, status, decision_notes, decided_at, created_at, owner_id, units(unit_number)')
+    .select('id, title, description, category, status, decision_notes, decided_at, created_at, owner_id, attachments, units(unit_number)')
     .eq('id', id)
     .eq('owner_id', me.owner_id)
     .maybeSingle();
@@ -56,7 +57,7 @@ export default async function OwnerArchitecturalDetail({
 
       {submitted && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Your request was submitted. The board or architectural committee will review it and may follow up in the discussion below.
+          Your request was submitted. Now upload your supporting documents below — plans, drawings, quotes, photos — one at a time. The board or architectural committee will review and may follow up in the discussion.
         </div>
       )}
       {error && (
@@ -93,6 +94,19 @@ export default async function OwnerArchitecturalDetail({
               </button>
             </form>
           )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
+        <CardBody>
+          <ArcAttachments
+            requestId={id}
+            basePath="/portal/architectural"
+            attachments={(req.attachments ?? []) as ArcAttachment[]}
+            canUpload={isOpen}
+            canRemove={isOpen}
+          />
         </CardBody>
       </Card>
 

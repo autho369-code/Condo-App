@@ -71,6 +71,116 @@ export async function submitArchitecturalRequest(formData: FormData) {
   redirect(`/portal/architectural/${req.id}?submitted=1`);
 }
 
+// Documents live in the association records bucket. Each document uploads in
+// its own request (one file per submit, 10 MB cap) so large plan sets don't
+// overload a single multipart POST. Cap of 10 documents per request.
+const ATTACH_BUCKET = 'association-documents';
+const MAX_ARCH_ATTACHMENTS = 10;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+const OPEN_STATUSES = ['submitted', 'under_review', 'more_info'];
+
+/**
+ * Attach one document (plans, drawings, quotes, photos) to a request.
+ * Writes go through the service client after an explicit ownership/staff
+ * check — residents have no UPDATE grant on attachments under RLS.
+ */
+export async function addArchitecturalAttachment(
+  requestId: string,
+  basePath: string,
+  formData: FormData,
+) {
+  const me = await getMe();
+  const back = `${basePath}/${requestId}`;
+  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
+  if (!me.auth_user_id) { redirect('/login'); return; }
+
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const svc = createServiceClient() as any;
+  const { data: req } = await svc
+    .from('architectural_requests')
+    .select('id, owner_id, status, attachments')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) { failTo('Request not found'); return; }
+
+  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
+  const isStaff = me.is_staff || me.is_platform_operator;
+  if (!isOwner && !isStaff) { failTo('Only the requesting owner or staff can add documents'); return; }
+  if (!OPEN_STATUSES.includes(req.status)) { failTo('Documents can only be added while the request is open'); return; }
+
+  const file = formData.get('document') as File | null;
+  if (!file || file.size === 0) { failTo('Choose a document to upload'); return; }
+  if (file.size > MAX_ATTACHMENT_BYTES) { failTo('Each document must be under 10 MB. Upload files one at a time.'); return; }
+
+  const existing = Array.isArray(req.attachments) ? req.attachments : [];
+  if (existing.length >= MAX_ARCH_ATTACHMENTS) { failTo(`This request already has ${MAX_ARCH_ATTACHMENTS} documents — remove one first.`); return; }
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `architectural/${requestId}/${Date.now()}-${safeName}`;
+  const { error: upErr } = await svc.storage.from(ATTACH_BUCKET).upload(path, file, { contentType: file.type || undefined });
+  if (upErr) { failTo(`Upload failed: ${upErr.message}`); return; }
+
+  const { error } = await svc
+    .from('architectural_requests')
+    .update({
+      attachments: [
+        ...existing,
+        {
+          name: file.name,
+          path,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+          uploaded_by: me.auth_user_id,
+          uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
+        },
+      ],
+    })
+    .eq('id', requestId);
+  if (error) { failTo(error.message); return; }
+  revalidatePath(back);
+}
+
+/** Remove a previously uploaded document (owner while open, or staff). */
+export async function removeArchitecturalAttachment(
+  requestId: string,
+  basePath: string,
+  formData: FormData,
+) {
+  const me = await getMe();
+  const back = `${basePath}/${requestId}`;
+  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
+  if (!me.auth_user_id) { redirect('/login'); return; }
+
+  const path = formData.get('path') as string;
+  if (!path) { failTo('Missing document reference'); return; }
+
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const svc = createServiceClient() as any;
+  const { data: req } = await svc
+    .from('architectural_requests')
+    .select('id, owner_id, status, attachments')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) { failTo('Request not found'); return; }
+
+  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
+  const isStaff = me.is_staff || me.is_platform_operator;
+  if (!isOwner && !isStaff) { failTo('Only the requesting owner or staff can remove documents'); return; }
+  if (isOwner && !isStaff && !OPEN_STATUSES.includes(req.status)) { failTo('Documents can no longer be changed on a decided request'); return; }
+
+  const existing = Array.isArray(req.attachments) ? req.attachments : [];
+  if (!existing.some((a: any) => a?.path === path)) { failTo('Document not found on this request'); return; }
+
+  const { error } = await svc
+    .from('architectural_requests')
+    .update({ attachments: existing.filter((a: any) => a?.path !== path) })
+    .eq('id', requestId);
+  if (error) { failTo(error.message); return; }
+  try { await svc.storage.from(ATTACH_BUCKET).remove([path]); } catch {}
+  revalidatePath(back);
+}
+
 /** Owner withdraws their own open request. RLS enforces ownership + status. */
 export async function withdrawArchitecturalRequest(requestId: string) {
   await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership

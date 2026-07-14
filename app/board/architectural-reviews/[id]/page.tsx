@@ -6,6 +6,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread'
 import { postArchitecturalMessage } from '@/lib/rpcs/architectural'
+import { ArcAttachments, type ArcAttachment } from '@/components/architectural/attachments'
 import { date } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,7 @@ export default async function BoardArchitecturalDetail({
 
   const { data: req } = await db
     .from('architectural_requests')
-    .select('id, title, description, category, status, decision_notes, created_at, association_id, units(unit_number), owners(full_name)')
+    .select('id, title, description, category, status, decision_notes, created_at, association_id, attachments, units(unit_number), owners(full_name)')
     .eq('id', id)
     .in('association_id', ids)
     .maybeSingle()
@@ -72,6 +73,17 @@ export default async function BoardArchitecturalDetail({
             <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{req.decision_notes}</p>
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-900">Documents</h2>
+        <ArcAttachments
+          requestId={id}
+          basePath="/board/architectural-reviews"
+          attachments={(req.attachments ?? []) as ArcAttachment[]}
+          canUpload={false}
+          canRemove={false}
+        />
       </div>
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

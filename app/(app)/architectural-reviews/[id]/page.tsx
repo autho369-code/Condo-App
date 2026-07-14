@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { postArchitecturalMessage, decideArchitecturalRequest } from '@/lib/rpcs/architectural';
+import { ArcAttachments, type ArcAttachment } from '@/components/architectural/attachments';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,7 @@ export default async function ManagerArchitecturalDetail({
 
   const { data: req } = await db
     .from('architectural_requests')
-    .select('id, title, description, category, status, decision_notes, decided_at, created_at, associations(name), units(unit_number), owners(full_name)')
+    .select('id, title, description, category, status, decision_notes, decided_at, created_at, attachments, associations(name), units(unit_number), owners(full_name)')
     .eq('id', id)
     .maybeSingle();
 
@@ -81,6 +82,16 @@ export default async function ManagerArchitecturalDetail({
               <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{req.decision_notes}</p>
             </div>
           )}
+        </Section>
+
+        <Section title="Documents" padded>
+          <ArcAttachments
+            requestId={id}
+            basePath="/architectural-reviews"
+            attachments={(req.attachments ?? []) as ArcAttachment[]}
+            canUpload={!decided}
+            canRemove={true}
+          />
         </Section>
 
         {!decided && (
