@@ -8,6 +8,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/insurance/send-reminders",
+      "schedule": "30 13 * * *"
+    },
+    {
       "path": "/api/payments/reconcile",
       "schedule": "*/15 * * * *"
     },

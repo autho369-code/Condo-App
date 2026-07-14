@@ -1,13 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { Shield } from 'lucide-react'
+import { Shield, FileText } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+// Uploaded certificates live alongside the rest of the association records.
+const BUCKET = 'association-documents'
+
+const input =
+  'mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
+
+export default async function OwnerInsurancePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; reminders?: string }> }) {
   const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
@@ -18,7 +24,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   try {
     const { data } = await db
       .from('insurance_policies')
-      .select('id, insurance_company, policy_number, coverage_amount, effective_date, expiration_date, status, created_at')
+      .select('id, insurance_company, policy_number, coverage_amount, effective_date, expiration_date, certificate_file_url, remind_owner, remind_manager, status, created_at')
       .eq('owner_id', me.owner_id)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
@@ -32,20 +38,116 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   const expired = !!(expDate && expDate < new Date())
   const expiringSoon = !!(expDate && !expired && expDate < new Date(Date.now() + 30 * 86400000))
 
-  async function uploadInsurance(formData: FormData) {
+  // Signed link to the uploaded certificate (private bucket)
+  let certificateUrl: string | null = null
+  if (current?.certificate_file_url) {
+    if (/^https?:\/\//i.test(current.certificate_file_url)) {
+      certificateUrl = current.certificate_file_url
+    } else {
+      try {
+        const svc = createServiceClient() as any
+        const { data: signed } = await svc.storage.from(BUCKET).createSignedUrl(current.certificate_file_url, 3600)
+        certificateUrl = signed?.signedUrl ?? null
+      } catch {}
+    }
+  }
+
+  async function saveInsurance(formData: FormData) {
     'use server'
-    const supabase2 = await createClient()
     const me2 = await requireOwner()
+    const supabase2 = await createClient()
+    const fail = (msg: string): never => redirect('/portal/insurance?error=' + encodeURIComponent(msg))
+
+    const carrier = ((formData.get('carrier') as string) ?? '').trim()
+    const policyNumber = ((formData.get('policy_number') as string) ?? '').trim()
+    const effective = (formData.get('effective_date') as string) || ''
+    const expiration = (formData.get('expiration_date') as string) || ''
+    const coverageRaw = ((formData.get('coverage_amount') as string) ?? '').replace(/[$,\s]/g, '')
+    const coverage = coverageRaw ? Number(coverageRaw) : null
+
+    if (!carrier) fail('Insurance carrier is required.')
+    if (!policyNumber) fail('Policy number is required.')
+    if (!effective) fail('Policy start date is required.')
+    if (!expiration) fail('Policy end date is required.')
+    if (expiration <= effective) fail('Policy end date must be after the start date.')
+    if (coverage !== null && !Number.isFinite(coverage)) fail('Coverage amount must be a number.')
+
+    // Resolve the owner's association for record-keeping
+    const { data: occ } = await (supabase2 as any)
+      .from('occupancies')
+      .select('association_id')
+      .eq('owner_id', me2.owner_id)
+      .limit(1)
+      .maybeSingle()
+    const associationId = occ?.association_id ?? null
+
+    // Upload the policy document into the association records bucket
+    let filePath: string | null = null
+    const file = formData.get('certificate') as File | null
+    if (file && file.size > 0) {
+      if (file.size > 10 * 1024 * 1024) fail('Policy document must be under 10 MB.')
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      filePath = `insurance/${me2.owner_id}/${Date.now()}-${safeName}`
+      const svc = createServiceClient() as any
+      const { error: upErr } = await svc.storage.from(BUCKET).upload(filePath, file, { contentType: file.type || undefined })
+      if (upErr) fail(`Document upload failed: ${upErr.message}`)
+    }
+
     const { error } = await (supabase2 as any).from('insurance_policies').insert({
       owner_id: me2.owner_id,
-      insurance_company: (formData.get('carrier') as string) || null,
-      policy_number: (formData.get('policy_number') as string) || null,
-      expiration_date: (formData.get('expiration_date') as string) || null,
+      association_id: associationId,
+      insurance_company: carrier,
+      policy_number: policyNumber,
+      coverage_amount: coverage,
+      effective_date: effective,
+      expiration_date: expiration,
+      certificate_file_url: filePath,
+      extraction_status: 'manual',
+      remind_owner: formData.get('remind_owner') === 'on',
+      remind_manager: formData.get('remind_manager') === 'on',
       status: 'active',
     })
-    if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
+    if (error) fail(error.message)
+
+    // File the document into the association records so staff and the owner
+    // see it under Documents as well.
+    if (filePath && file) {
+      try {
+        const svc = createServiceClient() as any
+        await svc.from('documents').insert({
+          entity_type: 'owner',
+          entity_id: me2.owner_id,
+          doc_type: 'insurance_policy',
+          file_name: file.name,
+          file_url: filePath,
+          uploaded_at: new Date().toISOString(),
+          uploaded_by: me2.auth_user_id ?? null,
+          expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
+        })
+      } catch {}
+    }
+
     revalidatePath('/portal/insurance')
     redirect('/portal/insurance?saved=1')
+  }
+
+  async function updateReminders(formData: FormData) {
+    'use server'
+    const me2 = await requireOwner()
+    const supabase2 = await createClient()
+    const policyId = formData.get('policy_id') as string
+    if (!policyId) redirect('/portal/insurance?error=' + encodeURIComponent('Missing policy.'))
+    const { error } = await (supabase2 as any)
+      .from('insurance_policies')
+      .update({
+        remind_owner: formData.get('remind_owner') === 'on',
+        remind_manager: formData.get('remind_manager') === 'on',
+      })
+      .eq('id', policyId)
+      .eq('owner_id', me2.owner_id)
+    if (error) redirect('/portal/insurance?error=' + encodeURIComponent(error.message))
+    revalidatePath('/portal/insurance')
+    redirect('/portal/insurance?reminders=1')
   }
 
   return (
@@ -59,7 +161,10 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
       )}
       {banner.saved === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Insurance policy saved.</div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Insurance policy saved to your association records.</div>
+      )}
+      {banner.reminders === '1' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Reminder preferences updated.</div>
       )}
 
       {/* Status card */}
@@ -70,12 +175,42 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
           </div>
           <div>
             <div className="font-semibold text-gray-900">{hasInsurance ? (expired ? 'Insurance Expired' : expiringSoon ? 'Expiring Soon' : 'Insurance Current') : 'No Insurance on File'}</div>
-            {expDate && <div className="text-sm text-gray-500">Expires: {expDate.toLocaleDateString()}</div>}
+            {current && (
+              <div className="text-sm text-gray-500">
+                Policy period: {current.effective_date ? date(current.effective_date) : '—'} — {current.expiration_date ? date(current.expiration_date) : '—'}
+              </div>
+            )}
           </div>
         </div>
         {current?.insurance_company && <div className="text-sm text-gray-600 mt-2"><span className="text-gray-500">Carrier:</span> {current.insurance_company}</div>}
         {current?.policy_number && <div className="text-sm text-gray-600"><span className="text-gray-500">Policy #:</span> {current.policy_number}</div>}
+        {current?.coverage_amount && <div className="text-sm text-gray-600"><span className="text-gray-500">Coverage:</span> ${Number(current.coverage_amount).toLocaleString()}</div>}
+        {certificateUrl && (
+          <a href={certificateUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">
+            <FileText className="h-4 w-4 text-gray-400" /> View policy document
+          </a>
+        )}
       </div>
+
+      {/* Reminder preferences for the current policy */}
+      {current && (
+        <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <h2 className="text-sm font-semibold text-gray-950">Expiration Reminders</h2>
+          <p className="mt-1 mb-4 text-sm text-gray-500">Email notices are sent 30 days and 15 days before the policy expires.</p>
+          <form action={updateReminders} className="space-y-3">
+            <input type="hidden" name="policy_id" value={current.id} />
+            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+              <input type="checkbox" name="remind_owner" defaultChecked={current.remind_owner !== false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
+              Email me before this policy expires
+            </label>
+            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+              <input type="checkbox" name="remind_manager" defaultChecked={current.remind_manager !== false} className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
+              Also notify my property manager
+            </label>
+            <button type="submit" className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50">Save Reminder Settings</button>
+          </form>
+        </div>
+      )}
 
       {/* Policy history */}
       {policies.length > 1 && (
@@ -85,20 +220,43 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
             {policies.slice(1).map((p) => (
               <li key={p.id} className="py-2 flex items-center justify-between text-sm">
                 <span className="text-gray-700">{p.insurance_company ?? 'Policy'}{p.policy_number ? ` · #${p.policy_number}` : ''}</span>
-                <span className="text-gray-500">{p.expiration_date ? `exp. ${date(p.expiration_date)}` : ''}</span>
+                <span className="text-gray-500">{p.effective_date ? date(p.effective_date) : ''}{p.expiration_date ? ` — ${date(p.expiration_date)}` : ''}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Upload form */}
+      {/* Add policy form */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <h2 className="mb-4 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
-        <form action={uploadInsurance} className="space-y-4">
-          <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier</span><input name="carrier" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" placeholder="e.g. State Farm" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number</span><input name="policy_number" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
-          <label className="block"><span className="text-sm font-medium text-gray-700">Expiration Date</span><input type="date" name="expiration_date" className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
+        <h2 className="mb-1 text-sm font-semibold text-gray-950">Add Insurance Policy</h2>
+        <p className="mb-4 text-sm text-gray-500">Upload your policy document — it is saved to your association records.</p>
+        <form action={saveInsurance} className="space-y-4">
+          <label className="block"><span className="text-sm font-medium text-gray-700">Insurance Carrier <span className="text-red-600">*</span></span>
+            <input name="carrier" required className={input} placeholder="e.g. State Farm" /></label>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Number <span className="text-red-600">*</span></span>
+            <input name="policy_number" required className={input} /></label>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Coverage Amount</span>
+            <input name="coverage_amount" inputMode="decimal" className={input} placeholder="e.g. 300,000" /></label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block"><span className="text-sm font-medium text-gray-700">Policy Start Date <span className="text-red-600">*</span></span>
+              <input type="date" name="effective_date" required className={input} /></label>
+            <label className="block"><span className="text-sm font-medium text-gray-700">Policy End Date <span className="text-red-600">*</span></span>
+              <input type="date" name="expiration_date" required className={input} /></label>
+          </div>
+          <label className="block"><span className="text-sm font-medium text-gray-700">Policy Document (PDF or photo)</span>
+            <input type="file" name="certificate" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic" className="mt-1 block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800" />
+            <span className="mt-1 block text-xs text-gray-400">Max 10 MB. Stored in your association&apos;s records.</span></label>
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+              <input type="checkbox" name="remind_owner" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
+              Email me 30 and 15 days before expiration
+            </label>
+            <label className="flex items-center gap-2.5 text-sm text-gray-700">
+              <input type="checkbox" name="remind_manager" defaultChecked className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-blue-500/30" />
+              Also notify my property manager
+            </label>
+          </div>
           <button type="submit" className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">Save Policy</button>
         </form>
       </div>
