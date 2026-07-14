@@ -13,6 +13,8 @@
 > - **Automatic late-fee assessment: PARTIAL → HAVE.** Per-association rules (flat/% + grace days) on the profile tab; daily cron posts through `assess_late_fee()` mirroring the manual charge path; one fee per charge guaranteed. Default OFF per association.
 > - **In-app messaging: HAVE (ARC) → HAVE (ARC + work orders).** Threaded owner↔manager↔board↔vendor discussion on every work order, same component as ARC.
 > - **AI-assisted invoice processing: PARTIAL → HAVE.** `/bills/new` "Extract from invoice (AI)": vision extraction (vendor/dates/amount/lines/confidence) prefills the bill for manager review — on BYO-key, vs AppFolio gating this behind Max.
+> - **E-signature: MISSING → HAVE (board sign-off).** Signature pad (draw/typed) on the board dashboard; approval decisions render the decider's actual signature + timestamp; manager Board tab shows thumbnails.
+> - **Field violation submission w/ photo + GPS: PARTIAL → HAVE (web).** /violations/field — phone-first capture: camera photos direct-to-storage, auto-GPS with accuracy, searchable unit chips, ~30-second filing; detail page shows thumbnails + View-on-map. Native-app gap now reduced to app-store presence only.
 > - **Uploads at scale (beats AppFolio web UX pain):** architectural documents (multi-select, up to 10 × 25 MB) and insurance certificates upload browser→storage via signed URLs; phone HEIC photos accepted.
 > - Also this session: owner+board single login (dual-role RLS), same association calendar for owners/board (one shared feed, association timezone), insurance policy upload + 30/15-day expiry reminders, operating documents (governing-docs checklist + client manuals at /manuals), white-label email everywhere, board-member marking UI on the owner page.
 >
