@@ -72,6 +72,57 @@ export async function submitArchitecturalRequest(formData: FormData) {
 }
 
 /**
+ * Same validation + insert as submitArchitecturalRequest, but RETURNS the new
+ * request id instead of redirecting — used by the owner's one-screen form,
+ * which continues uploading the attached documents after creation.
+ */
+export async function createArchitecturalRequest(input: {
+  unitId: string;
+  title: string;
+  description: string;
+  category: string;
+}): Promise<{ error?: string; id?: string }> {
+  const me = await getMe();
+  if (!me.auth_user_id) return { error: 'Not authenticated' };
+  if (!me.owner_id) return { error: 'Only owners can submit architectural requests' };
+
+  const unitId = input.unitId;
+  const title = (input.title ?? '').trim();
+  const description = (input.description ?? '').trim();
+  const category = parseCategory(input.category);
+
+  if (!unitId) return { error: 'Unit is required' };
+  if (!title) return { error: 'Please give your request a short title' };
+  if (!description || description.length < 10) return { error: 'Please give us at least a sentence describing the work' };
+
+  const supabase = await createClient();
+
+  const { data: unit, error: unitErr } = await (supabase as any)
+    .from('units')
+    .select('id, buildings!inner(association_id, associations!inner(portfolio_id))')
+    .eq('id', unitId)
+    .maybeSingle();
+  if (unitErr || !unit) return { error: 'Unit not found or you no longer have access to it' };
+
+  const { data: req, error } = await (supabase as any).from('architectural_requests').insert({
+    association_id: (unit.buildings as any).association_id,
+    portfolio_id:   (unit.buildings as any).associations.portfolio_id,
+    unit_id:        unitId,
+    owner_id:       me.owner_id,
+    submitted_by:   me.auth_user_id,
+    title,
+    description,
+    category,
+    status:         'submitted',
+  }).select('id').single();
+  if (error || !req) return { error: error?.message ?? 'Failed to submit request' };
+
+  revalidatePath('/portal/architectural');
+  revalidatePath('/portal');
+  return { id: req.id };
+}
+
+/**
  * Staff submits an architectural request ON BEHALF OF a homeowner (phone/walk-in
  * requests). The form posts an occupancy id — we resolve unit/owner/association
  * server-side from that single row so a forged unit+owner pairing is impossible.

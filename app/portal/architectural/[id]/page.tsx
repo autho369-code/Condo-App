@@ -57,7 +57,7 @@ export default async function OwnerArchitecturalDetail({
 
       {submitted && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Your request was submitted. Now upload your supporting documents below — plans, drawings, quotes, photos — one at a time. The board or architectural committee will review and may follow up in the discussion.
+          Your request was submitted. Your documents are listed below — you can add more any time while the request is open. The board or architectural committee will review and may follow up in the discussion.
         </div>
       )}
       {error && (
