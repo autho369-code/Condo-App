@@ -4,6 +4,7 @@
 // hits Submit once, and the request is created + files stream to storage
 // one-by-one (signed URLs — reliable for large plans/photos, no size choke).
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FileText, Paperclip, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -201,7 +202,7 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-        <a href="/portal/architectural" className="text-sm text-gray-600 hover:underline">Cancel</a>
+        <Link href="/portal/architectural" className="text-sm text-gray-600 hover:underline">Cancel</Link>
         <Button type="submit" size="lg" disabled={busy}>
           {busy ? (
             <span className="inline-flex items-center gap-2"><Paperclip className="h-4 w-4 animate-pulse" /> {phase ?? 'Submitting…'}</span>
