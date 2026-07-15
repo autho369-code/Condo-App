@@ -407,6 +407,49 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
+          PIPER — AI RECEPTIONIST (call now)
+          ═══════════════════════════════════════════════ */}
+      <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+            <div>
+              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Don&apos;t take our word for it — call</span>
+              <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+                Talk to Piper. She answers on the first ring, at 3 PM or 3 AM.
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-gray-500">
+                Piper is our AI receptionist — ask her anything about the platform, the pricing, or how migration
+                from AppFolio works, and she&apos;ll answer like a colleague who knows the product cold. She&apos;s also the
+                fastest way to book a personal demo.
+              </p>
+              <p className="mt-4 text-lg leading-relaxed text-gray-500">
+                She&apos;s built on the same philosophy as everything in Portier369: white-glove service, automated. The
+                platform that answers your phone this well runs your owners&apos; portals the same way.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:p-10">
+              <div className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Call Piper now</div>
+              <a
+                href="tel:+18722698818"
+                className="mt-4 block text-4xl font-semibold tracking-[-0.02em] text-[#1E3A5F] hover:underline sm:text-5xl"
+              >
+                (872) 269-8818
+              </a>
+              <p className="mt-4 text-sm leading-6 text-gray-500">
+                Real product answers, 24/7 · Book a demo by phone · A human follows up within one business day
+              </p>
+              <a
+                href="/demo"
+                className="mt-6 inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+              >
+                Prefer a form? Request a proposal
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           FINAL CTA
           ═══════════════════════════════════════════════ */}
       <section className="relative overflow-hidden py-24 sm:py-28 bg-[#060709]">
