@@ -147,7 +147,10 @@ export async function POST(request: NextRequest) {
         headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
         body: JSON.stringify({ model: MODEL, messages: chat, tools: TOOLS, temperature: 0.5, max_tokens: 400 }),
       });
-      if (!r.ok) throw new Error(`llm ${r.status}`);
+      if (!r.ok) {
+        const errBody = await r.text().catch(() => '');
+        throw new Error(`llm ${r.status}: ${errBody.slice(0, 300)}`);
+      }
       const data = await r.json();
       const msg = data.choices?.[0]?.message;
       if (!msg) throw new Error('empty completion');
@@ -171,9 +174,13 @@ export async function POST(request: NextRequest) {
       }
     }
     return NextResponse.json({ reply: 'Thanks — the team will follow up shortly. Anything else I can help with?' });
-  } catch (e) {
+  } catch (e: any) {
+    console.error('piper chat error:', e?.message ?? e);
     return NextResponse.json({
       reply: 'I hit a snag on my end. You can reach the team at hello@portier369.com or call me at (872) 269-8818.',
     });
   }
 }
+
+// LLM round-trips (with a tool call) can exceed Vercel's default timeout.
+export const maxDuration = 60;
