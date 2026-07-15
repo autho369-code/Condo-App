@@ -355,7 +355,7 @@ function TasksRailInner() {
       {/* Desktop rail (xl+) */}
       <aside
         className={
-          'hidden xl:flex h-screen flex-shrink-0 flex-col overflow-hidden border-l border-gray-200/80 bg-white transition-[width] duration-200 ' +
+          'hidden xl:flex print:hidden h-screen flex-shrink-0 flex-col overflow-hidden border-l border-gray-200/80 bg-white transition-[width] duration-200 ' +
           (desktopOpen ? 'w-64' : 'w-11')
         }
         aria-label="Tasks panel"
