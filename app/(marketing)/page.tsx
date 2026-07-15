@@ -459,7 +459,7 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          WHITE GLOVE TIMELINE
+          GUIDED ONBOARDING TIMELINE
           ═══════════════════════════════════════════════ */}
       <section className="relative overflow-hidden py-20 sm:py-24 bg-[#060709]">
         <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[480px] w-[760px] -translate-x-1/2 rounded-full opacity-[0.12]" style={{ background: 'radial-gradient(circle, #6d8dff 0%, transparent 70%)' }} />
@@ -468,20 +468,21 @@ export default async function HomePage() {
           <div className="text-center mb-14">
             <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#8fa6ff]">Onboarding</span>
             <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-white sm:text-[44px]">
-              White-glove setup, included.
+              Guided onboarding included. Advanced migration available.
             </h2>
             <p className="mt-4 text-lg leading-8 text-zinc-400 max-w-2xl mx-auto">
-              Every management company gets hands-on onboarding. Most go live in under a week.
+              Standard onboarding gets your first association live — most companies launch in under a week.
+              Historical documents, financial history, and legacy-system conversion are available as professional services.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { step: '1', title: 'Data Import', desc: 'Migrate from any legacy system' },
-              { step: '2', title: 'Account Setup', desc: 'Configure your company profile' },
-              { step: '3', title: 'Association Config', desc: 'Set up every community' },
-              { step: '4', title: 'Training', desc: 'Your team learns the platform' },
+              { step: '1', title: 'Account Setup', desc: 'Configure your company profile' },
+              { step: '2', title: 'Association Config', desc: 'Set up every community' },
+              { step: '3', title: 'Data Import', desc: 'Spreadsheet owner, unit & vendor imports' },
+              { step: '4', title: 'Training', desc: 'Remote administrator training session' },
               { step: '5', title: 'Go Live', desc: 'Launch with support standing by' },
-              { step: '6', title: 'Ongoing Support', desc: 'Dedicated help when you need it' },
+              { step: '6', title: 'Ongoing Support', desc: 'Standard support on every plan' },
             ].map((item, i) => (
               <div key={item.step} className="relative text-center">
                 <div className="flex items-center justify-center mb-3">
@@ -565,11 +566,11 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Premium services</span>
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Professional services — quoted separately</span>
             <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Hands-on services when you need them.
             </h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Expert services for management companies that want white-glove support, custom development, or operational outsourcing.</p>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Beyond the standard onboarding included with every subscription: expert services for management companies that want white-glove support, custom development, or operational outsourcing — scoped and quoted up front.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -663,7 +664,7 @@ export default async function HomePage() {
             Run your entire portfolio from one platform.
           </h2>
           <p className="mt-5 text-lg leading-8 text-zinc-400 max-w-xl mx-auto">
-            White-glove setup included. No long-term contract required.
+            Guided onboarding included. No long-term contract required.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-[15px] font-semibold text-gray-950 shadow-lg shadow-black/30 transition hover:bg-zinc-100">
