@@ -281,6 +281,16 @@ const PANELS: PanelDef[] = [
       ]},
     ],
   },
+  {
+    match: /^\/automation-center/,
+    sections: [
+      { title: 'Tasks', icon: 'tasks', links: [
+        { label: 'New flow', href: '/automation-center/flows/new' },
+        { label: 'Create event automation', href: '/calendar/new' },
+      ]},
+      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
+    ],
+  },
 ];
 
 function panelFor(pathname: string, view: string): PanelSection[] | null {

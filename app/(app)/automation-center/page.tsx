@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BellRing, ListChecks, Plus } from 'lucide-react';
+import { BellRing, ListChecks, Plus, Workflow } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ export default async function AutomationCenterPage() {
   const db = supabase as any;
   const now = new Date().toISOString();
 
-  const [{ data: reminders }, { data: tasks }] = await Promise.all([
+  const [{ data: reminders }, { data: tasks }, { count: activeFlows }] = await Promise.all([
     db
       .from('calendar_event_reminders')
       .select('id, remind_at, recipient_group, action, status, calendar_events(title, event_type), associations(name)')
@@ -32,6 +32,10 @@ export default async function AutomationCenterPage() {
       .select('id, task_type, title, description, due_at, status, associations(name), calendar_events(title)')
       .order('due_at', { ascending: true })
       .limit(150),
+    db
+      .from('automation_flows')
+      .select('id', { count: 'exact', head: true })
+      .eq('enabled', true),
   ]);
 
   const reminderRows = reminders ?? [];
@@ -43,9 +47,14 @@ export default async function AutomationCenterPage() {
       title="Automation Center"
       description="Review what the system is scheduled to do for association events, vendor confirmations, resident notices, and after-event follow-ups."
       actions={
-        <Link href="/calendar/new">
-          <Button><Plus className="h-4 w-4" /> Create event automation</Button>
-        </Link>
+        <>
+          <Link href="/automation-center/flows">
+            <Button variant="secondary"><Workflow className="h-4 w-4" /> Flows</Button>
+          </Link>
+          <Link href="/calendar/new">
+            <Button><Plus className="h-4 w-4" /> Create event automation</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-6">
@@ -55,6 +64,7 @@ export default async function AutomationCenterPage() {
             { label: 'Due now', value: dueSoon },
             { label: 'Open follow-ups', value: taskRows.filter((task: any) => task.status === 'open').length },
             { label: 'Completed tasks', value: taskRows.filter((task: any) => task.status === 'completed').length },
+            { label: 'Active flows', value: activeFlows ?? 0 },
           ]}
         />
 

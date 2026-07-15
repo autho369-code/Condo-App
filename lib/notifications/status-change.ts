@@ -34,8 +34,12 @@ function statusLabel(status: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Owner of a unit: active unit_owners row first (primary preferred), then current owner occupancy. */
-async function resolveUnitOwnerId(svc: any, unitId: string): Promise<string | null> {
+/**
+ * Owner of a unit: active unit_owners row first (primary preferred), then
+ * current owner occupancy. Exported so the automation-flows cron resolves
+ * charge/work-order subjects to owners the exact same way.
+ */
+export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<string | null> {
   const { data: uo } = await svc
     .from('unit_owners')
     .select('owner_id, is_primary')
