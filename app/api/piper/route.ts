@@ -117,7 +117,8 @@ async function saveWebLead(svc: any, a: any, sessionId: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  // strip BOM/whitespace — env vars set from Windows pipes can carry U+FEFF
+  const apiKey = (process.env.DEEPSEEK_API_KEY ?? '').replace(/^﻿/, '').trim();
   if (!apiKey) return NextResponse.json({ error: 'Chat is temporarily unavailable.' }, { status: 503 });
 
   let body: any;
