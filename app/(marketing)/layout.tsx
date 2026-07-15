@@ -12,7 +12,7 @@ const jsonLd = {
       description:
         'The operating system for condominium and HOA management — serving community association management companies across all 50 US states.',
       email: 'hello@portier369.com',
-      telephone: '+1-847-652-2338',
+      telephone: '+1-872-269-8818',
       address: {
         '@type': 'PostalAddress',
         streetAddress: '5107 N Western Ave, Suite 1S',
@@ -25,7 +25,7 @@ const jsonLd = {
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'sales',
-        telephone: '+1-847-652-2338',
+        telephone: '+1-872-269-8818',
         email: 'hello@portier369.com',
         url: 'https://portier369.com/contact',
       },
@@ -90,7 +90,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               <div className="mt-4 space-y-1 text-sm text-gray-500">
                 <p>5107 N Western Ave, Suite 1S, Chicago, IL 60625</p>
                 <p>
-                  <a href="tel:+18476522338" className="hover:text-gray-900">(847) 652-2338</a>
+                  <a href="tel:+18722698818" className="hover:text-gray-900">(872) 269-8818</a>
                   {' · '}
                   <a href="mailto:hello@portier369.com" className="hover:text-gray-900">hello@portier369.com</a>
                 </p>

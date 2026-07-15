@@ -33,7 +33,7 @@ export default function ContactPage() {
           </p>
           <p className="mt-3 text-[15px] text-gray-600">
             5107 N Western Ave, Suite 1S, Chicago, IL 60625 ·{' '}
-            <a href="tel:+18476522338" className="font-semibold text-[#1E3A5F] hover:underline">(847) 652-2338</a>
+            <a href="tel:+18722698818" className="font-semibold text-[#1E3A5F] hover:underline">(872) 269-8818</a>
           </p>
 
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -66,8 +66,8 @@ export default function ContactPage() {
           <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm leading-6 text-gray-600">
             <span className="font-semibold text-gray-900">Portier369</span> · 5107 N Western Ave, Suite 1S, Chicago,
             IL 60625 ·{' '}
-            <a href="tel:+18476522338" className="text-[#1E3A5F] hover:underline">
-              (847) 652-2338
+            <a href="tel:+18722698818" className="text-[#1E3A5F] hover:underline">
+              (872) 269-8818
             </a>{' '}
             ·{' '}
             <a href="mailto:hello@portier369.com" className="text-[#1E3A5F] hover:underline">
