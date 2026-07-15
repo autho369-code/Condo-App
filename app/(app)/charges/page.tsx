@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Plus, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -41,7 +42,7 @@ export default async function ChargesPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string; filter?: string; association_id?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { tab: tabParam, q = '', filter = '', association_id = '' } = await searchParams;
   const tab = parseTab(tabParam);
   const supabase = await createClient();
@@ -162,6 +163,123 @@ export default async function ChargesPage({
   // Charges by category outstanding
   const categoryBreakdown = (vChargesByCategory ?? []).slice(0, 5);
 
+  // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
+  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  let exportTable: ExportTable;
+  let exportFooter: string | undefined;
+  if (tab === 'receipts') {
+    exportTable = {
+      title: 'Receipts',
+      columns: [
+        { header: 'Date' },
+        { header: 'Payer' },
+        { header: 'Method' },
+        { header: 'Unit' },
+        { header: 'Association' },
+        { header: 'Amount', align: 'right' },
+        { header: 'Reference' },
+      ],
+      rows: filteredReceipts.map((r: any) => [
+        date(r.payment_date),
+        r.owner_name ?? '—',
+        r.method ?? '—',
+        r.unit_number ?? '—',
+        r.association_name ?? '—',
+        money(r.amount),
+        r.reference ?? '—',
+      ]),
+    };
+  } else if (tab === 'bank-deposits') {
+    exportTable = {
+      title: 'Bank Deposits',
+      columns: [
+        { header: 'Batch Date' },
+        { header: 'Bank Account' },
+        { header: 'Provider' },
+        { header: 'Total Amount', align: 'right' },
+        { header: 'Items' },
+        { header: 'Deposit Reference' },
+        { header: 'Status' },
+      ],
+      rows: filteredDeposits.map((d: any) => [
+        date(d.batch_date),
+        d.bank_accounts?.name ?? '—',
+        d.provider ?? '—',
+        money(d.total_amount_cents ? Number(d.total_amount_cents) / 100 : 0),
+        d.total_items ?? 0,
+        d.deposit_reference ?? '—',
+        d.status ?? '—',
+      ]),
+    };
+  } else if (tab === 'owner-delinquency') {
+    const filteredDelinquentTotal = filteredDelinquent.reduce(
+      (s: number, u: any) => s + Number(u.balance ?? 0),
+      0,
+    );
+    exportTable = {
+      title: 'Owner Delinquency',
+      columns: [
+        { header: 'Unit' },
+        { header: 'Balance', align: 'right' },
+        { header: 'Oldest Due' },
+      ],
+      rows: filteredDelinquent.map((u: any) => [
+        u.unit_number ?? '—',
+        money(u.balance),
+        date(u.oldest_due),
+      ]),
+    };
+    exportFooter = `Total balance due: ${money(filteredDelinquentTotal)}`;
+  } else if (tab === 'chargeback-insights') {
+    exportTable = {
+      title: 'Chargeback Insights',
+      columns: [
+        { header: 'Unit' },
+        { header: 'Association' },
+        { header: 'Violation Type' },
+        { header: 'Dispute Status' },
+        { header: 'Resolution Status' },
+        { header: 'Fine Amount', align: 'right' },
+        { header: 'Created' },
+      ],
+      rows: (violations ?? []).map((v: any) => [
+        v.units?.unit_number ?? '—',
+        v.units?.associations?.name ?? '—',
+        v.violation_type ?? '—',
+        v.dispute_status ?? '—',
+        v.status ?? '—',
+        money(v.fine_amount),
+        date(v.created_at),
+      ]),
+    };
+  } else {
+    const filteredChargesTotal = filteredCharges.reduce(
+      (s: number, c: any) => s + Number(c.balance_due ?? 0),
+      0,
+    );
+    exportTable = {
+      title: 'Charges',
+      columns: [
+        { header: 'Unit' },
+        { header: 'Association' },
+        { header: 'Description' },
+        { header: 'Balance', align: 'right' },
+        { header: 'Due' },
+        { header: 'Aging' },
+      ],
+      rows: filteredCharges.map((c: any) => [
+        c.unit_number ?? '—',
+        c.association_name ?? '—',
+        c.description ?? '—',
+        money(c.balance_due),
+        date(c.due_date),
+        formatBucket(c.aging_bucket),
+      ]),
+    };
+    exportFooter = `Total balance due: ${money(filteredChargesTotal)}`;
+  }
+
   const metrics = [
     { label: 'Receipts', value: receiptsCount, sublabel: `${money(totalReceipts)} total` },
     { label: 'Outstanding', value: money(totalOutstanding), sublabel: `${(charges ?? []).length} open charges` },
@@ -175,6 +293,13 @@ export default async function ChargesPage({
       description="Receipts, open charges, bank deposits, owner delinquency, and chargeback dispute tracking."
       actions={
         <>
+          <ExportActions
+            documentTitle="Receivables"
+            companyName={companyName}
+            filename={`receivables-${tab}-${exportStamp}`}
+            tables={[exportTable]}
+            footerLine={exportFooter}
+          />
           <Link href="/charges/new">
             <Button><Plus className="h-4 w-4" /> New charge</Button>
           </Link>

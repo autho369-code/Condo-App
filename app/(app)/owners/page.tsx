@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
+import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -57,7 +58,7 @@ export default async function OwnersPage({
 }: {
   searchParams: Promise<{ view?: string; letter?: string; q?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const sp = await searchParams;
   const view = sp.view === 'directory' || sp.view === 'tenants' ? sp.view : 'homeowners';
   const letter = sp.letter ?? 'all';
@@ -159,6 +160,56 @@ export default async function OwnersPage({
   const ownerOccupied = occupiedUnitIds.size - tenantOccupied;
   const occupancyPct = occupiedUnitIds.size > 0 ? Math.round((ownerOccupied / occupiedUnitIds.size) * 100) : null;
 
+  // ── Export (mirrors the active view's on-screen list, same filters) ──
+  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportTable: ExportTable =
+    view === 'tenants'
+      ? {
+          title: 'Tenants',
+          columns: [
+            { header: 'Tenant' },
+            { header: 'Email' },
+            { header: 'Phone' },
+            { header: 'Association' },
+            { header: 'Unit' },
+            { header: 'Lease Start' },
+            { header: 'Lease End' },
+          ],
+          rows: tenantRows
+            .filter((t) => !q || [`${t.first_name} ${t.last_name}`, t.email, t.phone, t.units?.unit_number].some((v: any) => v?.toLowerCase?.().includes(q)))
+            .map((t) => [
+              `${t.last_name}, ${t.first_name}`,
+              t.email ?? 'No email',
+              t.phone ?? 'No phone',
+              t.units?.buildings?.associations?.name ?? '—',
+              t.units?.unit_number ?? '—',
+              t.lease_start ? date(t.lease_start) : '—',
+              t.lease_end ? date(t.lease_end) : '—',
+            ]),
+        }
+      : {
+          title: view === 'directory' ? 'Owner Directory' : 'Owners',
+          columns: [
+            { header: 'Name' },
+            { header: 'Email' },
+            { header: 'Phone' },
+            { header: 'Association' },
+            { header: 'Unit' },
+            { header: 'Portal' },
+            { header: 'Balance Due', align: 'right' },
+          ],
+          rows: rows.map((row) => [
+            row.name,
+            row.email ?? 'No email on file',
+            row.phone ?? 'No phone',
+            row.associationName ?? 'No current association',
+            row.unitNumber ?? '—',
+            row.portalActivated ? 'Active' : 'Not active',
+            row.balance > 0 ? money(row.balance) : '—',
+          ]),
+        };
+
   const tabs = [
     { label: 'Owners', href: '/owners', active: view === 'homeowners' },
     { label: 'Directory', href: '/owners?view=directory', active: view === 'directory' },
@@ -181,6 +232,12 @@ export default async function OwnersPage({
       description="Search owners, confirm current unit links, and launch portal, packet, ACH, and agreement workflows."
       actions={
         <>
+          <ExportActions
+            documentTitle="Owners Directory"
+            companyName={companyName}
+            filename={`owners-${view}-${exportStamp}`}
+            tables={[exportTable]}
+          />
           {view === 'tenants' && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler returns a CSV download, not a page
             <a href="/owners/leases/export">

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
+import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { date, money } from '@/lib/utils'
 import {
   Clock,
@@ -174,14 +175,58 @@ export default async function BoardDelinquenciesPage() {
     return { tone: 'info', label: 'Recent' }
   }
 
+  // ── Export setup: association names for the white-label header, plus the
+  //    exact rows rendered below mapped to pre-rendered strings ──
+  const { data: assocNameRows } = await db
+    .from('associations')
+    .select('name')
+    .in('id', boardAssocIds)
+  const associationNames = (assocNameRows ?? [])
+    .map((a: any) => a.name)
+    .filter(Boolean)
+    .join(', ')
+
+  const exportDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const exportTables: ExportTable[] = [
+    {
+      title: 'Delinquent Accounts',
+      columns: [
+        { header: 'Unit' },
+        { header: 'Owner' },
+        { header: 'Amount Due', align: 'right' },
+        { header: 'Days Past Due', align: 'right' },
+        { header: 'Last Payment' },
+        { header: 'Status' },
+      ],
+      rows: delinquentRows.map((row: any) => [
+        row.unit_number ?? '—',
+        row.owner_email ? `${row.owner_name} (${row.owner_email})` : row.owner_name ?? '—',
+        money(row.amount_due),
+        row.days_past_due,
+        row.last_payment_date ? date(row.last_payment_date) : '—',
+        severity(row.days_past_due).label,
+      ]),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Delinquencies</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
-          Delinquent accounts across your association{boardAssocIds.length > 1 ? 's' : ''}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Delinquencies</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+            Delinquent accounts across your association{boardAssocIds.length > 1 ? 's' : ''}
+          </p>
+        </div>
+        <ExportActions
+          documentTitle="Delinquencies"
+          subtitle={associationNames || undefined}
+          companyName={me.portfolio?.company_name ?? associationNames}
+          filename={`delinquencies-${exportDate}`}
+          tables={exportTables}
+          footerLine={`Total outstanding: ${money(totalDelinquentAmount)}`}
+        />
       </div>
 
       {/* ── Stats Cards ── */}

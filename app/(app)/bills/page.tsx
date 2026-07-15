@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Plus, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
@@ -61,7 +62,7 @@ export default async function BillsPage({
 }: {
   searchParams: Promise<{ tab?: string; status?: string; q?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { tab: tabParam, status: statusParam, q = '' } = await searchParams;
   const tab = parseTab(tabParam);
   const statusFilter = parseStatus(statusParam);
@@ -190,12 +191,72 @@ export default async function BillsPage({
     { label: 'Overdue', value: overdueCount, sublabel: `${money(overdueTotal)}` },
   ];
 
+  // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
+  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportTable: ExportTable | null =
+    tab === 'bills'
+      ? {
+          title: 'Bills',
+          columns: [
+            { header: 'Payee' },
+            { header: 'Ref #' },
+            { header: 'Bill Date' },
+            { header: 'For' },
+            { header: 'GL Account' },
+            { header: 'Due Date' },
+            { header: 'Amount', align: 'right' },
+            { header: 'Status' },
+            { header: 'Cash Account' },
+          ],
+          rows: filteredBills.map((b: any) => [
+            `${b.vendors?.name ?? '—'}${b.vendors?.payment_type ? ` - ${b.vendors.payment_type}` : ''}`,
+            b.bill_number ?? '—',
+            date(b.bill_date),
+            b.associations?.name ?? '—',
+            b.gl_accounts ? `${b.gl_accounts.number}: ${b.gl_accounts.name}` : '—',
+            date(b.due_date),
+            money(b.amount),
+            billStatusLabel(b.status),
+            b.bank_accounts?.name ?? '—',
+          ]),
+        }
+      : tab === 'payments'
+      ? {
+          title: 'Payments',
+          columns: [
+            { header: 'Payee' },
+            { header: 'For' },
+            { header: 'Memo' },
+            { header: 'Amount', align: 'right' },
+            { header: 'Bill Date' },
+            { header: 'Paid' },
+          ],
+          rows: filteredPayments.map((b: any) => [
+            b.vendors?.name ?? '—',
+            b.associations?.name ?? '—',
+            b.memo ?? '—',
+            money(b.amount),
+            date(b.bill_date),
+            date(b.paid_at),
+          ]),
+        }
+      : null;
+
   return (
     <DataWorkspace
       title="Payables"
       description="Vendor bills, payments, recurring payables, loans, and online payment tracking."
       actions={
         <>
+          {exportTable && (
+            <ExportActions
+              documentTitle="Vendor Bills"
+              companyName={companyName}
+              filename={`vendor-bills-${tab}-${exportStamp}`}
+              tables={[exportTable]}
+            />
+          )}
           <Link href="/bills/new">
             <Button><Plus className="h-4 w-4" /> New bill</Button>
           </Link>
@@ -436,6 +497,23 @@ export default async function BillsPage({
       </div>
     </DataWorkspace>
   );
+}
+
+function billStatusLabel(status: string): string {
+  switch (status) {
+    case 'paid':
+      return 'Paid';
+    case 'approved':
+      return 'Approved';
+    case 'pending_approval':
+      return 'Pending Approval';
+    case 'draft':
+      return 'On Hold';
+    case 'void':
+      return 'Void';
+    default:
+      return status;
+  }
 }
 
 function BillStatusChip({ status }: { status: string }) {

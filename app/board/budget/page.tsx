@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { money } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
 
@@ -51,13 +52,69 @@ export default async function BoardBudgetPage() {
 
   const currentMonth = new Date().getMonth() + 1
 
+  // ── Export setup: mirror the rendered tables with pre-rendered strings.
+  //    Built BEFORE the JSX below (which reverses `fees` in place). ──
+  const associationNames = allReports.map((r) => r.associationName).join(', ')
+  const exportDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+  const exportTables: ExportTable[] = allReports
+    .filter((report) => report.rows.length > 0)
+    .map((report) => ({
+      title: `${report.associationName} — Budget by GL Account (FY${currentYear})`,
+      columns: [
+        { header: 'GL Account' },
+        { header: 'Category' },
+        { header: 'Budget', align: 'right' as const },
+        { header: 'Actual', align: 'right' as const },
+        { header: 'Variance', align: 'right' as const },
+        { header: 'Variance %', align: 'right' as const },
+      ],
+      rows: report.rows.map((row: any) => [
+        `${row.gl_account_number} — ${row.gl_account_name}`,
+        row.category ?? '—',
+        money(row.annual_budget),
+        money(row.annual_actual),
+        money(row.annual_variance),
+        `${row.annual_variance_pct}%`,
+      ]),
+    }))
+  if (fees && fees.length > 0) {
+    exportTables.push({
+      title: 'Management Fee Collection History',
+      columns: [
+        { header: 'Month' },
+        { header: 'Collected', align: 'right' },
+        { header: 'Budget', align: 'right' },
+        { header: 'Variance %', align: 'right' },
+      ],
+      rows: [...fees].reverse().map((m: any) => {
+        const budget = (m.fee_amount_cents ?? 0) / 100
+        const actual = (m.collected_cents ?? 0) / 100
+        return [
+          MONTHS[new Date(m.month).getMonth()],
+          money(actual),
+          money(budget),
+          budget > 0 ? `${(((actual - budget) / budget) * 100).toFixed(0)}%` : '—',
+        ]
+      }),
+    })
+  }
+
   const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — FY{currentYear}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — FY{currentYear}</p>
+        </div>
+        <ExportActions
+          documentTitle={`Budget vs Actual — FY${currentYear}`}
+          subtitle={associationNames || undefined}
+          companyName={me.portfolio?.company_name ?? associationNames}
+          filename={`budget-vs-actual-${exportDate}`}
+          tables={exportTables}
+        />
       </div>
 
       {/* Per-association reports */}
@@ -222,7 +279,8 @@ export default async function BoardBudgetPage() {
                 </div>
                 <div className="p-5">
                   <div className="space-y-3">
-                    {(fees ?? []).reverse().map((m: any) => {
+                    {/* copy before reversing — in-place reverse() flipped order on alternating associations */}
+                    {[...(fees ?? [])].reverse().map((m: any) => {
                       const mn = new Date(m.month).getMonth()
                       // _cents columns are integer cents — convert to dollars
                       // before money() (which formats, but does not divide).

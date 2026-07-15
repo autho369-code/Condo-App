@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Plus, ShieldAlert, Smartphone } from 'lucide-react';
+import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
@@ -76,7 +77,7 @@ export default async function ViolationsPage({
     q?: string;
   }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
 
   const filters = await searchParams;
   const todayDate = new Date().toISOString().slice(0, 10);
@@ -151,6 +152,33 @@ export default async function ViolationsPage({
     },
   ];
 
+  // ── Export (mirrors the on-screen table, same filters) ──
+  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportTable: ExportTable = {
+    columns: [
+      { header: 'Case #' },
+      { header: 'Title' },
+      { header: 'Association' },
+      { header: 'Status' },
+      { header: 'Severity' },
+      { header: 'Reported Date' },
+      { header: 'Cure Deadline' },
+    ],
+    rows: filtered.map((v: any) => {
+      const sd = statusDisplay(v.status);
+      return [
+        formatCaseNumber(v.id),
+        v.title ?? 'Untitled',
+        v.associations?.name ?? '—',
+        isOverdue(v, todayDate) ? `${sd.label} (Overdue)` : sd.label,
+        formatLabel(v.violation_type),
+        date(v.reported_date),
+        date(v.cure_deadline),
+      ];
+    }),
+  };
+
   // ── Render ──
   return (
     <DataWorkspace
@@ -158,6 +186,12 @@ export default async function ViolationsPage({
       description="Track rule enforcement from observation through notices, hearings, fines, and resolution."
       actions={
         <>
+          <ExportActions
+            documentTitle="Violations"
+            companyName={companyName}
+            filename={`violations-${exportStamp}`}
+            tables={[exportTable]}
+          />
           <Link href="/violations/field">
             <Button variant="secondary"><Smartphone className="h-4 w-4" /> Field capture</Button>
           </Link>

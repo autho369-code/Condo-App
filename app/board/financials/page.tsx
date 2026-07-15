@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { date, money } from '@/lib/utils'
 import {
   DollarSign,
@@ -162,14 +163,68 @@ export default async function BoardFinancialsPage() {
     })
   } catch { /* may not exist */ }
 
+  // ── Export setup: association names for the white-label header, plus the
+  //    exact rows rendered below mapped to pre-rendered strings ──
+  const { data: assocNameRows } = await db
+    .from('associations')
+    .select('name')
+    .in('id', boardAssocIds)
+  const associationNames = (assocNameRows ?? [])
+    .map((a: any) => a.name)
+    .filter(Boolean)
+    .join(', ')
+
+  const exportDate = `${currentYear}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const exportTables: ExportTable[] = [
+    {
+      title: `Financial Summary (${currentYear} YTD)`,
+      columns: [{ header: 'Metric' }, { header: 'Value', align: 'right' }],
+      rows: [
+        ['YTD Income', money(ytdIncome)],
+        ['YTD Expenses', money(ytdExpenses)],
+        ['Net Operating Income', money(netOperatingIncome)],
+        ['Bank Balance', money(bankBalance)],
+        ['Reserve Balance', money(reserveBalance)],
+        ['Budget Variance', `${budgetVariancePct >= 0 ? '+' : ''}${budgetVariancePct}%`],
+      ],
+    },
+    {
+      title: 'Recent Transactions',
+      columns: [
+        { header: 'Date' },
+        { header: 'Description' },
+        { header: 'Type' },
+        { header: 'Association' },
+        { header: 'Amount', align: 'right' },
+      ],
+      rows: recentTransactions.map((txn: any) => [
+        date(txn.created_at),
+        txn.description ?? '—',
+        txn.type ?? '—',
+        txn.associations?.name ?? '—',
+        money(txn.amount),
+      ]),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">
-          Financial overview for your association{boardAssocIds.length > 1 ? 's' : ''}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Financials</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+            Financial overview for your association{boardAssocIds.length > 1 ? 's' : ''}
+          </p>
+        </div>
+        <ExportActions
+          documentTitle="Financials"
+          subtitle={associationNames || undefined}
+          companyName={me.portfolio?.company_name ?? associationNames}
+          filename={`financials-${exportDate}`}
+          tables={exportTables}
+          footerLine={`Net operating income (${currentYear} YTD): ${money(netOperatingIncome)}`}
+        />
       </div>
 
       {/* ── Financial Summary Cards ── */}

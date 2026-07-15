@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Plus, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/me';
+import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -80,6 +82,7 @@ export default async function WorkOrdersPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string }>;
 }) {
+  const me = await requireStaff();
   const { tab: tabParam, q = '', status = '', priority = '', association_id = '', vendor_id = '' } = await searchParams;
   const tab = parseTab(tabParam);
   const supabase = await createClient();
@@ -146,15 +149,51 @@ export default async function WorkOrdersPage({
     { label: 'Completed this month', value: completedMonthCount, sublabel: 'All time' },
   ];
 
+  // ── Export (mirrors the on-screen table, same tab + filters) ──
+  const companyName = me.portfolio?.company_name ?? 'Management company';
+  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportTable: ExportTable = {
+    columns: [
+      { header: '#' },
+      { header: 'Description' },
+      { header: 'Association' },
+      { header: 'Unit' },
+      { header: 'Status' },
+      { header: 'Priority' },
+      { header: 'Vendor' },
+      { header: 'Scheduled' },
+    ],
+    rows: filtered.map((w: any) => [
+      w.number ?? w.id.slice(0, 8),
+      w.trade
+        ? `${w.title ?? w.description ?? 'Untitled'} (${formatLabel(w.trade)})`
+        : (w.title ?? w.description ?? 'Untitled'),
+      w.associations?.name ?? '—',
+      w.units?.unit_number ?? '—',
+      statusChip(w.status).label,
+      priorityBadge(w.priority).label,
+      w.vendors?.name ?? 'Unassigned',
+      date(w.scheduled_date),
+    ]),
+  };
+
   // ── Render ──
   return (
     <DataWorkspace
       title="Work Orders"
       description="Track, dispatch, and manage maintenance work orders across associations and units."
       actions={
-        <Link href="/work-orders/new">
-          <Button><Plus className="h-4 w-4" /> New work order</Button>
-        </Link>
+        <>
+          <ExportActions
+            documentTitle="Work Orders"
+            companyName={companyName}
+            filename={`work-orders-${tab}-${exportStamp}`}
+            tables={[exportTable]}
+          />
+          <Link href="/work-orders/new">
+            <Button><Plus className="h-4 w-4" /> New work order</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-6">
