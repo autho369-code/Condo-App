@@ -11,6 +11,7 @@
 
 ## Target Audience
 **Target companies:** Small-to-mid HOA/condo management companies (1–1,000 doors) and self-managed associations; multi-company MSP/operator resellers are a structural second market (platform-operator cockpit).
+**Beachhead geography (decided 2026-07-14):** Illinois — Chicago metro first (Cook, DuPage, Lake, Will counties), then downstate; company is Illinois-based (legal pages: Portier369, Inc., Cook County). Expansion: adjacent Midwest states (WI, IN) in Q3.
 **Decision-makers:** Owner/principal of the management company; company admin/ops lead; senior property manager.
 **Primary use case:** Replace spreadsheets + email + legacy tools (or overpriced AppFolio) with one system that runs accounting, compliance, and resident communication for every association.
 **Jobs to be done:**
