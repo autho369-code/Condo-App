@@ -88,7 +88,7 @@ export default function CompanyPage() {
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_25px_70px_-20px_rgba(30,58,95,0.08)]">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Radical transparency</h3>
-              <p className="text-gray-600 leading-relaxed">No hidden modules. No implementation fees. No long-term contracts. Predictable, door-based pricing that scales with your portfolio — not your headaches.</p>
+              <p className="text-gray-600 leading-relaxed">No hidden modules. No long-term contracts. Standard onboarding included, and any professional migration work quoted up front. Predictable, door-based pricing that scales with your portfolio — not your headaches.</p>
             </div>
           </div>
         </div>

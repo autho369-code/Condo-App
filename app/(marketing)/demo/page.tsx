@@ -13,7 +13,7 @@ const titles = ['Owner','President','Operations Director','Company Administrator
 const software = ['AppFolio','Buildium','Vantaca','CINC Systems','TOPS','Excel / Manual Processes','Other']
 const challenges = ['Work Orders','Violations','Board Communication','Vendor Coordination','Architectural Reviews','Reporting','Resident Requests','Portfolio Visibility','Scaling Operations']
 const timelines = ['Immediately','Within 30 Days','Within 90 Days','Researching Options']
-const lookingFor = ['Software Demonstration','Pricing Proposal','Portfolio Migration Review','White Glove Setup Information','Custom Enterprise Solution']
+const lookingFor = ['Software Demonstration','Pricing Proposal','Portfolio Migration Review','Guided Onboarding Information','Custom Enterprise Solution']
 const markets = ['Condominiums','HOAs','Townhomes','Mixed Portfolio']
 const contactTimes = ['Morning','Afternoon','Evening']
 
@@ -55,7 +55,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
                   { title: 'Board & Owner Portals', desc: 'Self-service access for every stakeholder in every association.' },
                   { title: 'Vendor Coordination', desc: 'Compliance tracking, work order assignment, and 1099 records.' },
                   { title: 'Violation Management', desc: 'Automated workflows from photo capture to hearing resolution.' },
-                  { title: 'White Glove Onboarding', desc: 'Data migration, training, and launch support included.' },
+                  { title: 'Guided Onboarding', desc: 'Standard setup, spreadsheet imports, training, and launch support included.' },
                 ].map(item => (
                   <div key={item.title} className="flex gap-3">
                     <svg className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -139,10 +139,10 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
               <p className="text-sm text-gray-500">Which plan fits your portfolio? Pricing is based on active doors. All plans include unlimited owners, board members, and vendors.</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
-                  { name: 'Foundation', price: '$157/mo', doors: 'Up to 200 units', desc: 'Owner Portal, Board Portal, Manager Dashboard, Work Orders, Violations, Document Management, White Glove Setup' },
-                  { name: 'Growth', price: '$382/mo', doors: 'Up to 600 units', desc: 'Everything in Foundation + Vendor Portal, Maintenance Calendar, Compliance Tracking, Association Health Scores, SMS Notifications' },
-                  { name: 'Portfolio', price: '$642/mo', doors: 'Up to 1,000 units', desc: 'Everything in Growth + Company Admin Dashboard, Architectural Reviews, AI Automation, Advanced Reporting, API Access' },
-                  { name: 'Enterprise', price: 'Custom', doors: '1,000+ units', desc: 'Everything in Portfolio + Multi-Office, Custom Integrations, SLA Guarantee, Volume Pricing' },
+                  { name: 'Foundation', price: '$157/mo', doors: 'Up to 200 units', desc: 'Complete core platform, standard support, standard usage allowances, guided onboarding' },
+                  { name: 'Growth', price: '$382/mo', doors: 'Up to 600 units', desc: 'Complete core platform, priority support, higher usage allowances, guided onboarding' },
+                  { name: 'Portfolio', price: '$642/mo', doors: 'Up to 1,000 units', desc: 'Complete core platform, priority support, dedicated success manager, API access, guided onboarding' },
+                  { name: 'Enterprise', price: 'Custom', doors: '1,000+ units', desc: 'Complete core platform, SLA guarantee, multi-office support, custom onboarding, volume pricing' },
                 ].map(plan => (
                   <label key={plan.name} className={`relative flex flex-col rounded-xl border p-4 cursor-pointer hover:border-[#1E3A5F]/40 transition has-[:checked]:border-[#1E3A5F] has-[:checked]:bg-[#1E3A5F]/5 has-[:checked]:ring-2 has-[:checked]:ring-[#1E3A5F] ${plan.name === 'Growth' ? 'border-gray-300' : 'border-gray-200'}`}>
                     <input type="radio" name="selected_plan" value={plan.name} className="sr-only" />
@@ -209,7 +209,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
               <p className="text-sm font-semibold text-[#1E3A5F] mb-3">Built For Property Management Companies</p>
               <p className="text-sm text-gray-600 mb-3 leading-relaxed">Portier369 was designed by property management professionals to help management companies scale operations, improve oversight, and simplify community management.</p>
               <div className="grid grid-cols-2 gap-1.5">
-                {['Portfolio-Level Visibility','Manager Accountability','Board & Owner Portals','Vendor Coordination','Violation Management','White Glove Onboarding'].map(item => (
+                {['Portfolio-Level Visibility','Manager Accountability','Board & Owner Portals','Vendor Coordination','Violation Management','Guided Onboarding'].map(item => (
                   <div key={item} className="flex items-center gap-2 text-sm text-gray-700">
                     <svg className="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg> {item}
                   </div>

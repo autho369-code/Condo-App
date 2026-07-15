@@ -4,7 +4,7 @@ import { FeaturePage } from '@/components/marketing/feature-page'
 export const metadata: Metadata = {
   title: 'HOA Accounting Software — Fund Accounting, AP & AR',
   description:
-    'Double-entry general ledger, AR aging, bill approval workflows, budgets vs. actuals, bank reconciliation with automatic bank feeds, and a 119-report library built for community associations.',
+    'Double-entry general ledger, AR aging, bill approval workflows, budgets vs. actuals, bank reconciliation with automatic bank feeds, and a deep report library built for community associations.',
   alternates: { canonical: '/features/accounting' },
 }
 
@@ -53,10 +53,10 @@ export default function AccountingFeaturePage() {
         },
         {
           eyebrow: 'Reporting',
-          title: 'A 119-report library — plus a builder for everything else.',
+          title: 'A deep report library — plus a builder for everything else.',
           body: 'Income statements, balance sheets, budget vs. actual, AR aging, delinquency, and dozens more, all scoped per association or across the portfolio. Save custom views with the report builder and schedule any report to send itself.',
           bullets: [
-            '119 reports across accounting, association, maintenance, and transactions',
+            '100+ reports across accounting, association, maintenance, and transactions',
             'Custom report builder with saved views and CSV export',
             'Scheduled report runs delivered automatically',
             'Board-safe financial views scoped to their association only',

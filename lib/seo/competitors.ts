@@ -31,7 +31,7 @@ export const COMPETITORS: Competitor[] = [
     whatItIs:
       'AppFolio Property Manager is a large, publicly traded property management platform built primarily for rental portfolios, with a community-associations offering alongside its leasing, screening, and marketing tools.',
     answer:
-      'Portier369 is an AppFolio alternative built exclusively for HOA and condominium management — no leasing, screening, or rental tooling you pay for but never use. You get association fund accounting, the full violation notice-to-hearing lifecycle, architectural reviews, and six role-scoped portals, with transparent per-door pricing from $157/month, no implementation fees, and no long-term contract.',
+      'Portier369 is an AppFolio alternative built exclusively for HOA and condominium management — no leasing, screening, or rental tooling you pay for but never use. You get association fund accounting, the full violation notice-to-hearing lifecycle, architectural reviews, and six role-scoped portals, with transparent per-door pricing from $157/month, standard onboarding included, and no long-term contract.',
     whySwitch: [
       {
         title: 'Built for associations, not adapted from rentals',
@@ -39,21 +39,21 @@ export const COMPETITORS: Competitor[] = [
       },
       {
         title: 'Pricing you can put in a budget meeting',
-        body: 'AppFolio prices per unit per month with monthly minimums and onboarding fees, and advanced capabilities sit in higher tiers. Portier369 is per-door from $157/month with everything included — every feature, every portal, no implementation fee, cancel anytime.',
+        body: 'AppFolio prices per unit per month with monthly minimums and onboarding fees, and advanced capabilities sit in higher tiers. Portier369 is per-door from $157/month with every feature and every portal included, standard onboarding included, cancel anytime.',
       },
       {
         title: 'A portal for every seat at the table',
         body: 'Boards, owners, vendors, managers, company admins, and the platform operator each get a purpose-built workspace, scoped at the database level to exactly what that role should see. Board members get financial oversight without asking the manager to export reports.',
       },
       {
-        title: 'Migration is part of the product',
-        body: 'Guided data migration — associations, units, owners, vendors, open balances, and documents — is included. Teams switching from AppFolio are not rekeying their portfolio or paying a services invoice to leave.',
+        title: 'We assist with migration',
+        body: 'Standard onboarding is included with every plan: spreadsheet-based import of units, owners, and vendors, admin training, and launch assistance. If you also want us to retrieve your data from AppFolio, migrate historical documents, or convert financial history, those are available as quoted professional services — scoped up front, no surprises.',
       },
     ],
     table: [
       { dimension: 'Primary focus', portier: 'HOA & condo associations only', competitor: 'Rental property management, with an associations segment' },
       { dimension: 'Pricing model', portier: 'Per-door from $157/mo, all features included', competitor: 'Per-unit with monthly minimums and tiered plans' },
-      { dimension: 'Implementation fees', portier: 'None', competitor: 'Onboarding fees apply' },
+      { dimension: 'Implementation fees', portier: 'Standard onboarding included; professional migration quoted', competitor: 'Onboarding fees apply' },
       { dimension: 'Contract', portier: 'Month to month', competitor: 'Annual agreements are standard' },
       { dimension: 'Violation lifecycle', portier: 'Photo → notice → hearing → fine, fully automated', competitor: 'Violation tracking available' },
       { dimension: 'Architectural reviews', portier: 'Built-in workflow with owner messaging', competitor: 'Available within its associations offering' },
@@ -76,12 +76,12 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Can I migrate from AppFolio to Portier369?',
         answer:
-          'Yes. Guided migration is included: associations, units, owners, vendors, open balances, and documents are imported for you, so you keep your history and skip the rekeying.',
+          'Yes — we assist with migration. Standard onboarding is included: spreadsheet-based import of your units, owners, and vendors, plus admin training and launch assistance. Retrieving data from AppFolio, migrating historical documents, and converting financial history are available as quoted professional services.',
       },
       {
         question: 'How does Portier369 pricing compare to AppFolio?',
         answer:
-          'Portier369 uses flat per-door pricing starting at $157/month with every feature included, no implementation fees, and no long-term contract. AppFolio prices per unit per month with monthly minimums, onboarding fees, and feature tiers — total cost depends heavily on portfolio size and tier.',
+          'Portier369 uses flat per-door pricing starting at $157/month with every feature included, standard onboarding included, and no long-term contract. AppFolio prices per unit per month with monthly minimums, onboarding fees, and feature tiers — total cost depends heavily on portfolio size and tier.',
       },
     ],
   },
@@ -91,7 +91,7 @@ export const COMPETITORS: Competitor[] = [
     whatItIs:
       'Buildium is a RealPage-owned property management platform aimed mainly at residential rental portfolios, with an association-management capability that shares the rental product’s foundation.',
     answer:
-      'Portier369 is a Buildium alternative purpose-built for community associations — HOA and condo management is the whole product, not a module on a rental platform. It covers fund accounting, the complete violation lifecycle with hearings, architectural reviews, preventive maintenance, and six role-scoped portals, at flat per-door pricing from $157/month with no implementation fees and no annual contract.',
+      'Portier369 is a Buildium alternative purpose-built for community associations — HOA and condo management is the whole product, not a module on a rental platform. It covers fund accounting, the complete violation lifecycle with hearings, architectural reviews, preventive maintenance, and six role-scoped portals, at flat per-door pricing from $157/month with standard onboarding included and no annual contract.',
     whySwitch: [
       {
         title: 'Association-first, not rentals-first',
@@ -114,7 +114,7 @@ export const COMPETITORS: Competitor[] = [
       { dimension: 'Primary focus', portier: 'HOA & condo associations only', competitor: 'Residential rental management, with an associations capability' },
       { dimension: 'Ownership', portier: 'Independent', competitor: 'RealPage (acquired 2020)' },
       { dimension: 'Pricing model', portier: 'Per-door from $157/mo, all features included', competitor: 'Tiered plans (per-unit) with add-ons and transaction fees' },
-      { dimension: 'Implementation fees', portier: 'None', competitor: 'Varies by plan and onboarding scope' },
+      { dimension: 'Implementation fees', portier: 'Standard onboarding included; professional migration quoted', competitor: 'Varies by plan and onboarding scope' },
       { dimension: 'Contract', portier: 'Month to month', competitor: 'Monthly or annual plans' },
       { dimension: 'Violation lifecycle', portier: 'Photo → notice → hearing → fine, fully automated', competitor: 'Violation tracking available' },
       { dimension: 'Architectural reviews', portier: 'Built-in workflow with owner messaging', competitor: 'Not a core workflow' },
@@ -136,12 +136,12 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Can I migrate from Buildium to Portier369?',
         answer:
-          'Yes. Guided migration is included — associations, units, owners, vendors, open balances, and documents come over without manual rekeying, so switching does not mean losing history.',
+          'Yes — we assist with migration. Standard onboarding is included: spreadsheet-based import of units, owners, and vendors, admin training, and launch assistance. If you want us to retrieve your data from Buildium, migrate historical documents, or convert financial history, those are quoted as professional services.',
       },
       {
         question: 'What does Portier369 cost compared to Buildium?',
         answer:
-          'Portier369 is per-door from $157/month with everything included and no implementation fees. Buildium uses tiered per-unit plans where several capabilities and lower transaction fees require higher tiers, so effective cost depends on plan choice and add-ons.',
+          'Portier369 is per-door from $157/month with every feature included and standard onboarding included; professional migration services are quoted separately. Buildium uses tiered per-unit plans where several capabilities and lower transaction fees require higher tiers, so effective cost depends on plan choice and add-ons.',
       },
     ],
   },
@@ -159,7 +159,7 @@ export const COMPETITORS: Competitor[] = [
       },
       {
         title: 'Pricing on the website, not after the discovery call',
-        body: 'Vantaca pricing is quote-based. Portier369 publishes it: per-door from $157/month, everything included, unlimited owners, board members, and vendors, no implementation fee, month to month.',
+        body: 'Vantaca pricing is quote-based. Portier369 publishes it: per-door from $157/month for the complete core platform, unlimited owners, board members, and vendors, standard onboarding included, month to month.',
       },
       {
         title: 'Automation on every tier',
@@ -201,7 +201,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Can I migrate from Vantaca to Portier369?',
         answer:
-          'Yes. Guided migration is included: associations, units, owners, vendors, open balances, and documents are imported with you, so leaving an enterprise platform does not mean a services invoice or lost history.',
+          'Yes — we assist with migration. Standard onboarding is included with every plan: spreadsheet-based import of units, owners, and vendors, admin training, and launch assistance. Retrieving data from Vantaca, migrating historical documents, and converting financial history are available as quoted professional services, scoped before you commit.',
       },
     ],
   },
@@ -223,7 +223,7 @@ export const COMPETITORS: Competitor[] = [
       },
       {
         title: 'Published pricing, month to month',
-        body: 'CINC pricing is quote-based. Portier369 is per-door from $157/month, every feature included, no implementation fee, cancel anytime.',
+        body: 'CINC pricing is quote-based. Portier369 is per-door from $157/month, every feature included, standard onboarding included, cancel anytime.',
       },
       {
         title: 'Automation and AI without surcharges',
@@ -261,7 +261,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Can I migrate from CINC Systems to Portier369?',
         answer:
-          'Yes. Guided migration is included — associations, units, owners, vendors, open balances, and documents are imported with you, and month-to-month terms mean you are never locked in after the move.',
+          'Yes — we assist with migration. Standard onboarding is included: spreadsheet-based import of units, owners, and vendors, admin training, and launch assistance. Retrieval of data from CINC, historical document migration, and financial history conversion are quoted as professional services — and month-to-month terms mean you are never locked in after the move.',
       },
     ],
   },
@@ -271,7 +271,7 @@ export const COMPETITORS: Competitor[] = [
     whatItIs:
       'TOPS [ONE], now part of Enumerate, is one of the longest-standing community association management and accounting platforms, widely deployed at established management companies since the on-premise era.',
     answer:
-      'Portier369 is a modern TOPS [ONE] / Enumerate alternative: the association accounting depth legacy shops rely on — double-entry GL, budgets, AR aging, automatic late fees — rebuilt as a fast, mobile-first web platform with six white-labeled portals, workflow automation, and AI assistance, at published per-door pricing from $157/month with migration included.',
+      'Portier369 is a modern TOPS [ONE] / Enumerate alternative: the association accounting depth legacy shops rely on — double-entry GL, budgets, AR aging, automatic late fees — rebuilt as a fast, mobile-first web platform with six white-labeled portals, workflow automation, and AI assistance, at published per-door pricing from $157/month with standard onboarding included and migration assistance available.',
     whySwitch: [
       {
         title: 'Leave the legacy stack without losing the ledger',
@@ -287,7 +287,7 @@ export const COMPETITORS: Competitor[] = [
       },
       {
         title: 'Simple, published pricing',
-        body: 'Per-door from $157/month, everything included, no modules, no implementation fee, month to month — versus quote-based legacy contracts and paid add-on modules.',
+        body: 'Per-door from $157/month, every feature included, no modules, standard onboarding included, month to month — versus quote-based legacy contracts and paid add-on modules.',
       },
     ],
     table: [
@@ -300,7 +300,7 @@ export const COMPETITORS: Competitor[] = [
       { dimension: 'Architectural reviews', portier: 'Built-in with uploads, messaging, board sign-off', competitor: 'Available' },
       { dimension: 'Workflow automation', portier: 'Flows engine included', competitor: 'Varies by module' },
       { dimension: 'AI assistance', portier: 'Included, bring-your-own-model', competitor: 'Limited' },
-      { dimension: 'Exports & reporting', portier: '~119 reports; print/CSV/branded-PDF everywhere', competitor: 'Established report library' },
+      { dimension: 'Exports & reporting', portier: '100+ reports; print/CSV/branded-PDF everywhere', competitor: 'Established report library' },
     ],
     whenTheyWin: [
       'Decades of history live in TOPS and your team’s processes are built around it — the retraining cost is real',
@@ -316,7 +316,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Can Portier369 import my TOPS/Enumerate data?',
         answer:
-          'Guided migration is included: associations, units, owners, vendors, open balances, and documents are imported with you. Historical ledgers can be brought over as opening balances plus archived exports so nothing is lost.',
+          'Yes — we assist with migration. Standard onboarding is included: spreadsheet-based import of units, owners, and vendors, admin training, and launch assistance. Retrieving data from TOPS/Enumerate, migrating historical documents, and converting financial history (for example, bringing history over as opening balances plus archived exports) are available as quoted professional services.',
       },
       {
         question: 'Why do management companies leave legacy platforms like TOPS?',
@@ -335,7 +335,7 @@ export const COMPETITORS: Competitor[] = [
     whySwitch: [
       {
         title: 'Real fund accounting, not just payments',
-        body: 'PayHOA centers on collecting dues. Portier369 runs the books: double-entry GL, budgets vs actuals, AR aging, automatic late fees, bank reconciliation, closed periods, and ~119 reports with print/CSV/PDF export — the records an audit or a lawsuit actually asks for.',
+        body: 'PayHOA centers on collecting dues. Portier369 runs the books: double-entry GL, budgets vs actuals, AR aging, automatic late fees, bank reconciliation, closed periods, and 100+ reports with print/CSV/PDF export — the records an audit or a lawsuit actually asks for.',
       },
       {
         title: 'Governance workflows built in',
@@ -381,7 +381,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'How hard is it to switch from PayHOA to Portier369?',
         answer:
-          'Guided migration is included: owners, units, and open balances import from CSV, operating documents get a built-in checklist, and white-glove setup on every plan means a volunteer board is walked through it — typically live within a week.',
+          'Standard onboarding is included on every plan: owners, units, and open balances import from spreadsheets, operating documents get a built-in checklist, and admin training plus launch assistance mean a volunteer board is walked through it — typically live within a week. If you want us to retrieve historical data from PayHOA, that work is quoted separately.',
       },
     ],
   },

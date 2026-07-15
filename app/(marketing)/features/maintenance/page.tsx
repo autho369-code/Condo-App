@@ -41,8 +41,8 @@ export default function MaintenanceFeaturePage() {
         },
         {
           eyebrow: 'Violations',
-          title: 'The entire violation lifecycle, automated.',
-          body: 'Photo capture, notice generation from templates, cure deadlines, hearing scheduling, and fine assessment — managed as a workflow instead of a paper trail. Boards see violation status without calling the office.',
+          title: 'The violation workflow, without the paper chase.',
+          body: 'Photo capture, notice generation from templates, cure deadlines, hearing scheduling, and fine assessment — the administrative workflow is automated while management and board approvals stay in control of every decision. Boards see violation status without calling the office.',
           bullets: [
             'Violation cases with photos, types, and cure deadlines',
             'Notice letters generated from templates — AI-drafted if you want',

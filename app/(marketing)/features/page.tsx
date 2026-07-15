@@ -13,7 +13,7 @@ const CATEGORIES = [
     href: '/features/accounting',
     color: '#1E3A5F',
     title: 'Association Accounting',
-    desc: 'True double-entry general ledger, AR aging, bill approval workflows, budgets vs. actuals, bank reconciliation with automatic bank feeds, and a 119-report library with a custom report builder.',
+    desc: 'True double-entry general ledger, AR aging, bill approval workflows, budgets vs. actuals, bank reconciliation with automatic bank feeds, and a deep report library with a custom report builder.',
     points: ['Double-entry GL', 'AR aging & delinquencies', 'Bank feeds & reconciliation', 'Report builder'],
   },
   {

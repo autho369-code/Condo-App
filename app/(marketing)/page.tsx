@@ -33,21 +33,22 @@ export default async function HomePage() {
             Built from 29 years in community management
           </div>
           <h1 className="mx-auto max-w-4xl text-[40px] font-semibold leading-[1.04] tracking-[-0.03em] text-white sm:text-6xl lg:text-[68px]">
-            Run your entire property
-            <br className="hidden sm:block" /> management company,{' '}
-            <span className="bg-gradient-to-r from-[#a9bcff] to-[#6d8dff] bg-clip-text text-transparent">from one platform.</span>
+            Property Management Software
+            <br className="hidden sm:block" />{' '}
+            <span className="bg-gradient-to-r from-[#a9bcff] to-[#6d8dff] bg-clip-text text-transparent">Built by Property Managers.</span>
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-8 text-zinc-400 sm:text-lg">
-            Accounting, maintenance, violations, board approvals, owner communications, and vendor management — every
-            workflow drawn from how property managers actually work, not how software teams imagine they do.
+            Built specifically for condominium associations, HOAs and management companies. Manage accounting,
+            violations, maintenance, inspections, vendors, communications, AI automation and owner services from
+            one modern platform.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-[15px] font-semibold text-gray-950 shadow-lg shadow-black/30 transition hover:bg-zinc-100">
-              Request Proposal
+              Request Demo
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
             <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-7 py-3.5 text-[15px] font-semibold text-white transition hover:bg-white/[0.08]">
-              View pricing
+              See Pricing
             </Link>
           </div>
 
@@ -102,6 +103,21 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
+          TRUST BAR — who it's built for
+          ═══════════════════════════════════════════════ */}
+      <section className="border-b border-gray-100 bg-white py-8">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-center gap-x-10 gap-y-4 px-6 lg:px-8">
+          <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-gray-400">Built for</span>
+          {['Condominium Associations', 'HOA Communities', 'Management Companies', 'Self-Managed Communities'].map(item => (
+            <div key={item} className="flex items-center gap-2">
+              <svg className="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+              <span className="text-[15px] font-medium text-gray-700">{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           PRODUCT SHOWCASE — Screenshots
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
@@ -118,7 +134,7 @@ export default async function HomePage() {
               { shot: 'board.png', title: 'Board Portal', desc: 'Financial visibility, violation oversight, budget tracking, and documents — scoped to the association only.', color: '#7C3AED', metrics: [['Operating cash', '$84.2k'], ['Reserve fund', '$210k'], ['Delinquency', '3.1%']], rows: [['Q2 Income statement', 'Ready'], ['Budget vs actual', 'On track'], ['June minutes', 'Approved']] },
               { shot: 'owner.png', title: 'Owner Self-Service', desc: 'Pay assessments, submit requests, view documents, upload insurance — everything owners need.', color: '#059669', metrics: [['Balance due', '$0'], ['Next dues', 'Jul 1'], ['Requests', '2']], rows: [['Autopay', 'Active'], ['HO6 insurance', 'Current'], ['Pool key request', 'In review']] },
               { shot: 'maintenance.png', title: 'Maintenance Calendar', desc: 'Annual, seasonal, and vendor maintenance tracked across every association. Automated reminders before every deadline.', color: '#0D9488', metrics: [['This month', '12'], ['Overdue', '0'], ['Vendors', '8']], rows: [['HVAC seasonal service', 'Jun 18'], ['Gutter cleaning', 'Jun 24'], ['Fire inspection', 'Jul 02']] },
-              { shot: 'violations.png', title: 'Violation Workflow', desc: 'Photo capture → notice generation → hearing scheduling → fine assessment — the entire lifecycle automated.', color: '#D97706', metrics: [['Open cases', '7'], ['Hearings', '2'], ['Cured', '31']], rows: [['Unit 4B · Parking', 'Notice sent'], ['Unit 2A · Trash', 'Hearing set'], ['Unit 7C · Pet', 'Cured']] },
+              { shot: 'violations.png', title: 'Violation Workflow', desc: 'Photo capture, notice generation, hearing scheduling, fine assessment — automates the administrative workflow while keeping management and board approvals in control.', color: '#D97706', metrics: [['Open cases', '7'], ['Hearings', '2'], ['Cured', '31']], rows: [['Unit 4B · Parking', 'Notice sent'], ['Unit 2A · Trash', 'Hearing set'], ['Unit 7C · Pet', 'Cured']] },
               { shot: 'platform.png', title: 'Platform Command Center', desc: 'CEO-level visibility. Doors under management, company health, provisioning — every management company in one view.', color: '#1E3A5F', metrics: [['Companies', '12'], ['Associations', '147'], ['Doors', '4,280']], rows: [['Stellar Property Mgmt', 'Healthy'], ['Manage369', 'Healthy'], ['ABC Management', 'Trial']] },
             ].map(item => (
               <div key={item.title} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition group">
@@ -205,31 +221,239 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          DIFFERENTIATORS
+          WHY MANAGEMENT COMPANIES ARE SWITCHING
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">What sets us apart</span>
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Why switch</span>
             <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
-              Designed for how property managers actually work.
+              Why Management Companies Are Switching
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: 'Association Health Scores', body: 'Every community gets a real-time health score — open work orders, overdue violations, delinquency, and manager response times weighted into one number. Spot problems before boards start calling.', stat: 'Proactive, not reactive' },
-              { label: 'Annual Maintenance Calendar', body: 'HVAC seasonal service, gutter cleaning, pool opening, fire inspections, elevator certifications. Automated reminders across every association. Nothing falls through the cracks.', stat: 'Never miss a deadline' },
-              { label: 'Automated Violation Workflow', body: 'Photo capture → notice generation → hearing scheduling → fine assessment. The entire violation lifecycle is automated. Managers spend less time on paperwork.', stat: 'Close violations faster' },
-              { label: 'Compliance Tracking', body: 'Monitor insurance, licenses, certifications, and contracts for every vendor. Automated expiration alerts. 1099-ready records and complete audit trails.', stat: 'Audit-ready always' },
-              { label: 'Board Governance', body: 'Financial visibility, documents, minutes, calendars, violations, and reports — without operational control over the management company. Association-scoped access only.', stat: 'Visibility without risk' },
-              { label: 'Bring Your Own AI', body: 'Connect your own OpenAI, Claude, or Gemini key. Auto-draft violation notices, summarize board meetings, generate owner responses — running on your credentials.', stat: 'Your AI, your rules' },
+              { label: 'No hidden software modules', body: 'Every plan comes with the full platform — no feature gates to discover after you sign.' },
+              { label: 'Modern interface', body: 'A clean, fast workspace your team learns in days, not months.' },
+              { label: 'AI automation', body: 'AI drafts notices, summarizes meetings, and answers calls — so managers spend time on communities, not paperwork.' },
+              { label: 'Board transparency', body: 'Boards see live financials, documents, and approvals scoped to their own association.' },
+              { label: 'Built for condominiums', body: 'Assessments, violations, ARC reviews, and board governance are the core of the product, not an afterthought.' },
+              { label: 'Secure cloud platform', body: 'Encrypted, role-scoped, automatically backed up — with your records exportable anytime.' },
             ].map(item => (
               <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition">
-                <div className="text-xs font-semibold uppercase tracking-wider text-[#0D9488] mb-2">{item.stat}</div>
                 <h3 className="text-xl font-semibold text-gray-900">{item.label}</h3>
                 <p className="mt-3 text-base text-gray-500 leading-relaxed">{item.body}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          PORTIER AI RECEPTIONIST — flagship
+          ═══════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-24 bg-white">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Portier AI Receptionist</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+              Meet Your 24/7 AI Receptionist
+            </h2>
+            <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-gray-500">
+              Portier AI Receptionist recognizes registered owners by their phone number, immediately identifies
+              their association and unit, understands community-specific information, answers common questions,
+              routes emergency requests, creates maintenance requests, records every conversation, and assists
+              managers around the clock.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            {/* Call workflow — vertical graphic */}
+            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] sm:p-7">
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">How a call flows</div>
+              <div className="mt-5 space-y-0">
+                {['Owner calls', 'Phone number recognized', 'Association identified', 'Unit identified'].map((step, i) => (
+                  <div key={step} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#1E3A5F]/15 bg-[#1E3A5F]/5 text-[13px] font-semibold text-[#1E3A5F]">{i + 1}</div>
+                      <div className="w-px flex-1 bg-gray-200" />
+                    </div>
+                    <div className="pb-6 pt-1.5 text-[15px] font-medium text-gray-800">{step}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Then, depending on the call</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {['Question answered', 'Maintenance request created', 'Emergency routed', 'Manager notified'].map(outcome => (
+                  <div key={outcome} className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-[13px] font-medium leading-snug text-emerald-800">
+                    {outcome}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature grid */}
+            <div className="lg:col-span-3 grid grid-cols-1 content-start gap-4 sm:grid-cols-2">
+              {[
+                { title: 'Owner recognition', desc: 'Matches incoming calls to registered owners by phone number — callers are greeted by name.' },
+                { title: 'Association knowledge', desc: 'Understands each community’s rules, hours, amenities, and contacts.' },
+                { title: 'Emergency routing', desc: 'Recognizes urgent situations and routes them to the right person immediately.' },
+                { title: 'After-hours assistance', desc: 'Answers at 3 PM or 3 AM — owners never land in voicemail.' },
+                { title: 'Maintenance intake', desc: 'Creates maintenance requests with the association and unit already identified.' },
+                { title: 'Conversation records', desc: 'Every conversation is recorded and summarized for the manager.' },
+                { title: 'Manager notifications', desc: 'Managers are notified the moment a call needs their attention.' },
+                { title: 'Multi-language ready', desc: 'Ready to assist owners in the language they’re most comfortable in.' },
+              ].map(item => (
+                <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
+                  <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live call card */}
+          <div className="mt-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+            <div>
+              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Don&apos;t take our word for it — call</span>
+              <h3 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-gray-950 sm:text-4xl">
+                Talk to Piper. She answers on the first ring, at 3 PM or 3 AM.
+              </h3>
+              <p className="mt-5 text-lg leading-relaxed text-gray-500">
+                Piper is our own line running the Portier AI Receptionist — ask her anything about the platform,
+                the pricing, or how migration from AppFolio works, and she&apos;ll answer like a colleague who knows
+                the product cold. She&apos;s also the fastest way to book a personal demo.
+              </p>
+              <p className="mt-4 text-lg leading-relaxed text-gray-500">
+                For management companies, the AI Receptionist is available as an add-on for your own phone lines —
+                greeting your owners under your brand, around the clock.
+              </p>
+              <Link href="/ai-receptionist" className="mt-5 inline-flex items-center gap-1 text-base font-medium text-[#1E3A5F] hover:text-[#152940] transition">
+                Learn more about the AI Receptionist <span>&rarr;</span>
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:p-10">
+              <div className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Call Piper now</div>
+              <a
+                href="tel:+18722698818"
+                className="mt-4 block text-4xl font-semibold tracking-[-0.02em] text-[#1E3A5F] hover:underline sm:text-5xl"
+              >
+                (872) 269-8818
+              </a>
+              <p className="mt-4 text-sm leading-6 text-gray-500">
+                Real product answers, 24/7 · Book a demo by phone · A human follows up within one business day
+              </p>
+              <a
+                href="/demo"
+                className="mt-6 inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+              >
+                Prefer a form? Request a demo
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          PORTIER AI COMMAND CENTER
+          ═══════════════════════════════════════════════ */}
+      <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Portier AI Command Center</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+              AI assists managers throughout every workflow.
+            </h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+              One AI suite woven through the platform — drafting, summarizing, and finding answers inside the
+              tools your team already uses.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { title: 'AI Receptionist', desc: 'Answers owner calls day and night, and routes what matters.' },
+              { title: 'AI Notice Writer', desc: 'Drafts violation and community notices for manager review.' },
+              { title: 'AI Meeting Minutes', desc: 'Turns board meetings into structured, ready-to-approve minutes.' },
+              { title: 'AI Financial Assistant', desc: 'Explains financials and helps prepare board-ready reports.' },
+              { title: 'AI Violation Assistant', desc: 'Helps document violations and draft the next step in each case.' },
+              { title: 'AI Board Assistant', desc: 'Helps boards find answers and prepare between meetings.' },
+              { title: 'AI Knowledge Base', desc: 'Answers questions straight from your community documents.' },
+              { title: 'AI Search', desc: 'Finds any record, document, or conversation in seconds.' },
+            ].map(item => (
+              <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
+                <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-2.5 text-sm font-medium text-gray-600 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Portier AI runs on your company&apos;s own AI provider key — no per-seat AI tax.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
+          BUILT FOR GROWING MANAGEMENT COMPANIES
+          ═══════════════════════════════════════════════ */}
+      <section className="py-16 sm:py-20 bg-white">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24 items-center">
+            <div>
+              <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">For company leadership</span>
+              <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+                Built for Growing Management Companies
+              </h2>
+              <p className="mt-6 text-lg text-gray-500 leading-relaxed">
+                Running one association well is table stakes. Portier369 gives company leadership one view of
+                every manager, every association, and every dollar — so you can grow the portfolio without
+                losing the standard of service that won it.
+              </p>
+              <div className="mt-8 space-y-4">
+                {[
+                  ['Company admin dashboard', 'every association, manager, and open item in one view.'],
+                  ['Managers & assignments', 'see who owns which associations and balance workloads.'],
+                  ['Portfolio health scores', 'spot struggling associations before the board calls.'],
+                  ['Performance', 'track how quickly work orders, violations, and requests get resolved.'],
+                  ['Revenue', 'management revenue across the portfolio, in one place.'],
+                  ['AI activity', 'see where AI is saving your team time across workflows.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="flex items-start gap-3">
+                    <svg className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    <span className="text-base text-gray-600 leading-relaxed"><span className="font-semibold text-gray-900">{title}</span> — {desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-2 w-2 rounded-full bg-[#1E3A5F]" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company Admin</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[['Associations', '24'], ['Managers', '6'], ['On-time rate', '96%']].map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                    <div className="text-lg font-bold tabular-nums leading-none text-[#1E3A5F]">{value}</div>
+                    <div className="mt-1 text-[9px] font-medium uppercase tracking-wide text-gray-400 leading-tight">{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                {[
+                  ['Lakeview Terrace Condominiums', 'Healthy', '#059669'],
+                  ['Maple Grove HOA', 'Healthy', '#059669'],
+                  ['Riverside Commons', 'Watch', '#D97706'],
+                  ['Oak Park Manor', 'Healthy', '#059669'],
+                ].map(([name, status, color]) => (
+                  <div key={name} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                    <span className="text-sm font-medium text-gray-700 truncate">{name}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0" style={{ backgroundColor: color + '14', color }}>{status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -269,6 +493,11 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
+          <div className="mt-12 text-center">
+            <Link href="/onboarding" className="inline-flex items-center gap-1 text-base font-medium text-[#8fa6ff] hover:text-white transition">
+              See how onboarding works <span>&rarr;</span>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -277,11 +506,11 @@ export default async function HomePage() {
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20 bg-white">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          {/* Everything Included banner */}
+          {/* Flat-price banner */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-6 py-2.5 text-base font-semibold text-emerald-700 shadow-sm">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-              Everything Included. No Hidden Modules. No Implementation Fees. No Long-Term Contracts.
+              One Flat Door-Based Price. No Hidden Modules. No Long-Term Contracts.
             </div>
           </div>
 
@@ -292,10 +521,10 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { name: 'Foundation', price: '$157', doors: 'Up to 200 Units', desc: 'For self-managed associations and smaller management companies.', cta: 'Request Proposal', href: '/demo', features: ['Owner Portal', 'Board Portal', 'Manager Dashboard', 'Work Orders', 'Violations', 'Document Management', 'Assessment Tracking', 'Email Communications', 'White Glove Setup'] },
-              { name: 'Growth', price: '$382', doors: 'Up to 600 Units', desc: 'For growing management companies that need stronger operational control.', cta: 'Request Proposal', href: '/demo', featured: true, features: ['Everything in Foundation', 'Vendor Portal', 'Maintenance Calendar', 'Compliance Tracking', 'Vendor Coordination', 'Association Health Scores', 'SMS Notifications', 'Portfolio Visibility', 'Priority Support'] },
-              { name: 'Portfolio', price: '$642', doors: 'Up to 1,000 Units', desc: 'For established management companies managing multiple associations.', cta: 'Request Proposal', href: '/demo', features: ['Everything in Growth', 'Company Admin Dashboard', 'Architectural Reviews', 'Board Management Tools', 'AI Automation', 'Advanced Reporting', 'API Access', 'Multi-Manager Oversight', 'Dedicated Success Manager'] },
-              { name: 'Enterprise', price: 'Custom', doors: '1,000+ Units', desc: 'For large management companies and multi-office operations.', cta: 'Request Proposal', href: '/demo', features: ['Everything in Portfolio', 'Multi-Office Support', 'Custom Integrations', 'Custom AI Workflows', 'Enterprise Security Controls', 'Dedicated Support Team', 'SLA Guarantee', 'Custom Onboarding', 'Volume Pricing'] },
+              { name: 'Foundation', price: '$157', doors: 'Up to 200 Units', desc: 'For self-managed associations and smaller management companies.', cta: 'Request Proposal', href: '/demo', features: ['Complete core platform', 'Up to 200 units under management', 'Standard support', 'Standard usage allowances', 'Guided onboarding included'] },
+              { name: 'Growth', price: '$382', doors: 'Up to 600 Units', desc: 'For growing management companies that need stronger operational control.', cta: 'Request Proposal', href: '/demo', featured: true, features: ['Complete core platform', 'Up to 600 units under management', 'Priority support', 'Higher usage allowances', 'Guided onboarding included'] },
+              { name: 'Portfolio', price: '$642', doors: 'Up to 1,000 Units', desc: 'For established management companies managing multiple associations.', cta: 'Request Proposal', href: '/demo', features: ['Complete core platform', 'Up to 1,000 units under management', 'Priority support', 'Dedicated success manager', 'API access', 'Guided onboarding included'] },
+              { name: 'Enterprise', price: 'Custom', doors: '1,000+ Units', desc: 'For large management companies and multi-office operations.', cta: 'Request Proposal', href: '/demo', features: ['Complete core platform', 'Custom door capacity', 'SLA guarantee', 'Multi-office support', 'Dedicated support team', 'Custom onboarding'] },
             ].map(plan => (
               <div key={plan.name} className={`relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${plan.featured ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F] shadow-[0_12px_40px_rgba(30,58,95,0.12)] scale-[1.03]' : 'border-gray-200 shadow-[0_4px_20px_rgba(0,0,0,0.04)]'}`}>
                 {plan.featured && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#1E3A5F] px-4 py-1 text-xs font-semibold text-white">Most Popular</div>}
@@ -364,6 +593,11 @@ export default async function HomePage() {
               Contact hello@portier369.com for service pricing
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </a>
+            <div className="mt-4">
+              <Link href="/professional-services" className="inline-flex items-center gap-1 text-base font-medium text-[#1E3A5F] hover:text-[#152940] transition">
+                Explore professional services <span>&rarr;</span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -391,11 +625,17 @@ export default async function HomePage() {
               Portier369 combines operational experience with modern automation so management companies can run more associations, respond faster, and deliver a better experience to boards and owners.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="mt-14">
+            <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Security, in plain English</span>
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { title: 'Row-level security', desc: 'Supabase RLS enforced on every database query. No portfolio can access another portfolio\'s data. Period.' },
-              { title: 'Your data, portable', desc: 'Export anything, anytime. No vendor lock-in. Your records belong to you — always.' },
-              { title: 'Enterprise infrastructure', desc: 'AWS via Vercel. Automatic backups. Point-in-time recovery. Built to run your business.' },
+              { title: 'Encrypted data', desc: 'Your data is encrypted in transit and at rest.' },
+              { title: 'Role-based permissions', desc: 'Owners, boards, managers, and vendors each see only what their role allows.' },
+              { title: 'Automatic backups', desc: 'Your records are backed up automatically, every day.' },
+              { title: 'Disaster recovery', desc: 'Point-in-time recovery is designed to protect your books if the worst happens.' },
+              { title: 'Audit history', desc: 'Key actions are logged, so you can see who did what and when.' },
+              { title: 'Secure cloud infrastructure', desc: 'Runs on enterprise cloud infrastructure — and you can export your records anytime.' },
             ].map(item => (
               <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
                 <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
@@ -403,48 +643,10 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          PIPER — AI RECEPTIONIST (call now)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-            <div>
-              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Don&apos;t take our word for it — call</span>
-              <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
-                Talk to Piper. She answers on the first ring, at 3 PM or 3 AM.
-              </h2>
-              <p className="mt-6 text-lg leading-relaxed text-gray-500">
-                Piper is our AI receptionist — ask her anything about the platform, the pricing, or how migration
-                from AppFolio works, and she&apos;ll answer like a colleague who knows the product cold. She&apos;s also the
-                fastest way to book a personal demo.
-              </p>
-              <p className="mt-4 text-lg leading-relaxed text-gray-500">
-                She&apos;s built on the same philosophy as everything in Portier369: white-glove service, automated. The
-                platform that answers your phone this well runs your owners&apos; portals the same way.
-              </p>
-            </div>
-            <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:p-10">
-              <div className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Call Piper now</div>
-              <a
-                href="tel:+18722698818"
-                className="mt-4 block text-4xl font-semibold tracking-[-0.02em] text-[#1E3A5F] hover:underline sm:text-5xl"
-              >
-                (872) 269-8818
-              </a>
-              <p className="mt-4 text-sm leading-6 text-gray-500">
-                Real product answers, 24/7 · Book a demo by phone · A human follows up within one business day
-              </p>
-              <a
-                href="/demo"
-                className="mt-6 inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
-              >
-                Prefer a form? Request a proposal
-              </a>
-            </div>
+          <div className="mt-6">
+            <Link href="/legal/security" className="inline-flex items-center gap-1 text-base font-medium text-[#1E3A5F] hover:text-[#152940] transition">
+              Read our security overview <span>&rarr;</span>
+            </Link>
           </div>
         </div>
       </section>

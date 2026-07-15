@@ -134,9 +134,9 @@ export default function StellarCaseStudyPage() {
             The switch, without the pain
           </h2>
           <p className="mt-3 text-[15px] leading-7 text-gray-600">
-            All 42 associations — units, owners, vendors, open balances, and documents — were migrated with
-            Portier369&apos;s included guided migration. No rekeying, no lost history, no services invoice on the way
-            out the door.
+            All 42 associations — units, owners, vendors, open balances, and documents — were brought over
+            through Portier369&apos;s onboarding: spreadsheet-based imports handled with the team, plus scoped
+            migration work quoted up front. No rekeying, no lost history, no surprises.
           </p>
 
           <div className="mt-12 rounded-2xl border border-[#1E3A5F]/15 bg-[#1E3A5F]/[0.03] p-6">

@@ -43,7 +43,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
     },
     {
       question: `How much does HOA software cost for a ${c.city} community?`,
-      answer: 'Portier369 uses transparent per-door pricing starting at $157/month with everything included — no hidden modules or implementation fees. Request a free proposal to see exact pricing for your portfolio.',
+      answer: 'Portier369 uses transparent per-door pricing starting at $157/month — every plan includes the complete core platform with no hidden software modules, and standard onboarding is included. Request a free proposal to see exact pricing for your portfolio.',
     },
     {
       question: 'Can we migrate our existing data to Portier369?',

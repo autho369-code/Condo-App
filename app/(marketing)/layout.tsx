@@ -66,6 +66,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
             <Link href="/features" className="text-gray-600 hover:text-gray-900 transition">Features</Link>
+            <Link href="/ai-receptionist" className="text-gray-600 hover:text-gray-900 transition">AI Receptionist</Link>
+            <Link href="/professional-services" className="hidden text-gray-600 hover:text-gray-900 transition lg:block">Professional Services</Link>
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition">Pricing</Link>
             <Link href="/company" className="text-gray-600 hover:text-gray-900 transition">Company</Link>
           </nav>
@@ -101,6 +103,9 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Product</div>
                 <div className="space-y-2 text-sm">
                   <Link href="/features" className="block text-gray-600 hover:text-gray-900">Features</Link>
+                  <Link href="/ai-receptionist" className="block text-gray-600 hover:text-gray-900">AI Receptionist</Link>
+                  <Link href="/professional-services" className="block text-gray-600 hover:text-gray-900">Professional Services</Link>
+                  <Link href="/onboarding" className="block text-gray-600 hover:text-gray-900">Onboarding</Link>
                   <Link href="/pricing" className="block text-gray-600 hover:text-gray-900">Pricing</Link>
                   <Link href="/demo" className="block text-gray-600 hover:text-gray-900">Proposal</Link>
                 </div>
