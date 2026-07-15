@@ -118,6 +118,111 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
+          PORTIER AI RECEPTIONIST — flagship
+          ═══════════════════════════════════════════════ */}
+      <section className="py-20 sm:py-24 bg-white">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Portier AI Receptionist</span>
+            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
+              Meet Piper — Your 24/7 AI Receptionist
+            </h2>
+            <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-gray-500">
+              Portier AI Receptionist recognizes registered owners by their phone number, immediately identifies
+              their association and unit, understands community-specific information, answers common questions,
+              routes emergency requests, creates maintenance requests, records every conversation, and assists
+              managers around the clock.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            {/* Call workflow — vertical graphic */}
+            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] sm:p-7">
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">How a call flows</div>
+              <div className="mt-5 space-y-0">
+                {['Owner calls', 'Phone number recognized', 'Association identified', 'Unit identified'].map((step, i) => (
+                  <div key={step} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#1E3A5F]/15 bg-[#1E3A5F]/5 text-[13px] font-semibold text-[#1E3A5F]">{i + 1}</div>
+                      <div className="w-px flex-1 bg-gray-200" />
+                    </div>
+                    <div className="pb-6 pt-1.5 text-[15px] font-medium text-gray-800">{step}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Then, depending on the call</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {['Question answered', 'Maintenance request created', 'Emergency routed', 'Manager notified'].map(outcome => (
+                  <div key={outcome} className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-[13px] font-medium leading-snug text-emerald-800">
+                    {outcome}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature grid */}
+            <div className="lg:col-span-3 grid grid-cols-1 content-start gap-4 sm:grid-cols-2">
+              {[
+                { title: 'Owner recognition', desc: 'Matches incoming calls to registered owners by phone number — callers are greeted by name.' },
+                { title: 'Association knowledge', desc: 'Understands each community’s rules, hours, amenities, and contacts.' },
+                { title: 'Emergency routing', desc: 'Recognizes urgent situations and routes them to the right person immediately.' },
+                { title: 'After-hours assistance', desc: 'Answers at 3 PM or 3 AM — owners never land in voicemail.' },
+                { title: 'Maintenance intake', desc: 'Creates maintenance requests with the association and unit already identified.' },
+                { title: 'Conversation records', desc: 'Every conversation is recorded and summarized for the manager.' },
+                { title: 'Manager notifications', desc: 'Managers are notified the moment a call needs their attention.' },
+                { title: 'Multi-language ready', desc: 'Ready to assist owners in the language they’re most comfortable in.' },
+              ].map(item => (
+                <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
+                  <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live call card */}
+          <div className="mt-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+            <div>
+              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Don&apos;t take our word for it — call</span>
+              <h3 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-gray-950 sm:text-4xl">
+                Talk to Piper. She answers on the first ring, at 3 PM or 3 AM.
+              </h3>
+              <p className="mt-5 text-lg leading-relaxed text-gray-500">
+                Piper is our own line running the Portier AI Receptionist — ask her anything about the platform,
+                the pricing, or how migration from AppFolio works, and she&apos;ll answer like a colleague who knows
+                the product cold. She&apos;s also the fastest way to book a personal demo.
+              </p>
+              <p className="mt-4 text-lg leading-relaxed text-gray-500">
+                For management companies, the AI Receptionist is available as an add-on for your own phone lines —
+                greeting your owners under your brand, around the clock.
+              </p>
+              <Link href="/ai-receptionist" className="mt-5 inline-flex items-center gap-1 text-base font-medium text-[#1E3A5F] hover:text-[#152940] transition">
+                Learn more about the AI Receptionist <span>&rarr;</span>
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:p-10">
+              <div className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Call Piper now</div>
+              <a
+                href="tel:+18722698818"
+                className="mt-4 block text-4xl font-semibold tracking-[-0.02em] text-[#1E3A5F] hover:underline sm:text-5xl"
+              >
+                (872) 269-8818
+              </a>
+              <p className="mt-4 text-sm leading-6 text-gray-500">
+                Real product answers, 24/7 · Book a demo by phone · A human follows up within one business day
+              </p>
+              <a
+                href="/demo"
+                className="mt-6 inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
+              >
+                Prefer a form? Request a demo
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           PRODUCT SHOWCASE — Screenshots
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
@@ -245,111 +350,6 @@ export default async function HomePage() {
                 <p className="mt-3 text-base text-gray-500 leading-relaxed">{item.body}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          PORTIER AI RECEPTIONIST — flagship
-          ═══════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-24 bg-white">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Portier AI Receptionist</span>
-            <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
-              Meet Your 24/7 AI Receptionist
-            </h2>
-            <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-gray-500">
-              Portier AI Receptionist recognizes registered owners by their phone number, immediately identifies
-              their association and unit, understands community-specific information, answers common questions,
-              routes emergency requests, creates maintenance requests, records every conversation, and assists
-              managers around the clock.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Call workflow — vertical graphic */}
-            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] sm:p-7">
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">How a call flows</div>
-              <div className="mt-5 space-y-0">
-                {['Owner calls', 'Phone number recognized', 'Association identified', 'Unit identified'].map((step, i) => (
-                  <div key={step} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#1E3A5F]/15 bg-[#1E3A5F]/5 text-[13px] font-semibold text-[#1E3A5F]">{i + 1}</div>
-                      <div className="w-px flex-1 bg-gray-200" />
-                    </div>
-                    <div className="pb-6 pt-1.5 text-[15px] font-medium text-gray-800">{step}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Then, depending on the call</div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {['Question answered', 'Maintenance request created', 'Emergency routed', 'Manager notified'].map(outcome => (
-                  <div key={outcome} className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 text-[13px] font-medium leading-snug text-emerald-800">
-                    {outcome}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Feature grid */}
-            <div className="lg:col-span-3 grid grid-cols-1 content-start gap-4 sm:grid-cols-2">
-              {[
-                { title: 'Owner recognition', desc: 'Matches incoming calls to registered owners by phone number — callers are greeted by name.' },
-                { title: 'Association knowledge', desc: 'Understands each community’s rules, hours, amenities, and contacts.' },
-                { title: 'Emergency routing', desc: 'Recognizes urgent situations and routes them to the right person immediately.' },
-                { title: 'After-hours assistance', desc: 'Answers at 3 PM or 3 AM — owners never land in voicemail.' },
-                { title: 'Maintenance intake', desc: 'Creates maintenance requests with the association and unit already identified.' },
-                { title: 'Conversation records', desc: 'Every conversation is recorded and summarized for the manager.' },
-                { title: 'Manager notifications', desc: 'Managers are notified the moment a call needs their attention.' },
-                { title: 'Multi-language ready', desc: 'Ready to assist owners in the language they’re most comfortable in.' },
-              ].map(item => (
-                <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition">
-                  <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Live call card */}
-          <div className="mt-10 grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-            <div>
-              <span className="text-sm font-semibold uppercase tracking-[0.15em] text-[#1E3A5F]">Don&apos;t take our word for it — call</span>
-              <h3 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-gray-950 sm:text-4xl">
-                Talk to Piper. She answers on the first ring, at 3 PM or 3 AM.
-              </h3>
-              <p className="mt-5 text-lg leading-relaxed text-gray-500">
-                Piper is our own line running the Portier AI Receptionist — ask her anything about the platform,
-                the pricing, or how migration from AppFolio works, and she&apos;ll answer like a colleague who knows
-                the product cold. She&apos;s also the fastest way to book a personal demo.
-              </p>
-              <p className="mt-4 text-lg leading-relaxed text-gray-500">
-                For management companies, the AI Receptionist is available as an add-on for your own phone lines —
-                greeting your owners under your brand, around the clock.
-              </p>
-              <Link href="/ai-receptionist" className="mt-5 inline-flex items-center gap-1 text-base font-medium text-[#1E3A5F] hover:text-[#152940] transition">
-                Learn more about the AI Receptionist <span>&rarr;</span>
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:p-10">
-              <div className="text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">Call Piper now</div>
-              <a
-                href="tel:+18722698818"
-                className="mt-4 block text-4xl font-semibold tracking-[-0.02em] text-[#1E3A5F] hover:underline sm:text-5xl"
-              >
-                (872) 269-8818
-              </a>
-              <p className="mt-4 text-sm leading-6 text-gray-500">
-                Real product answers, 24/7 · Book a demo by phone · A human follows up within one business day
-              </p>
-              <a
-                href="/demo"
-                className="mt-6 inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400"
-              >
-                Prefer a form? Request a demo
-              </a>
-            </div>
           </div>
         </div>
       </section>
