@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PiperWidget } from '@/components/marketing/piper-widget'
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -80,6 +81,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
         </div>
       </header>
       <main>{children}</main>
+      <PiperWidget />
       <footer className="border-t border-gray-100 bg-gray-50">
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <div className="flex flex-wrap items-start justify-between gap-8">
