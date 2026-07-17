@@ -14,6 +14,14 @@ const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/man
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || APEX_DOMAIN
   const clean = hostname.split(':')[0].toLowerCase()
+
+  // www is NOT a tenant — canonical-redirect to the apex domain
+  if (clean === `www.${APEX_DOMAIN}`) {
+    const url = request.nextUrl.clone()
+    url.hostname = APEX_DOMAIN
+    return NextResponse.redirect(url, 308)
+  }
+
   const isSubdomain = clean !== APEX_DOMAIN && clean !== 'localhost' && !clean.startsWith('127.') && !clean.startsWith('192.')
   const pathname = request.nextUrl.pathname
 
