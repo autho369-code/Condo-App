@@ -17,3 +17,4 @@ supabase/.temp/
 backups/
 .understand-anything/
 .env*
+graphify-out/
