@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { InsuranceExpirationWidget } from '@/components/dashboard/insurance-expiration-widget';
 import { RemindersWidget } from '@/components/dashboard/reminders-widget';
+import { TrendCharts, type MonthPoint } from '@/components/dashboard/trend-charts';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,6 +133,45 @@ export default async function DashboardPage({
     arBalanceQuery.eq('association_id', assocFilter);
   }
 
+  // ── Trend chart queries (last 6 months) ───────────────────────
+  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+  const sinceDate = sixMonthsAgo.toISOString().slice(0, 10);
+  const sinceIso = sixMonthsAgo.toISOString();
+
+  const paymentsInQuery = db
+    .from('receivable_payments_ledger')
+    .select('amount, payment_date')
+    .gte('payment_date', sinceDate);
+  const billsPaidQuery = db
+    .from('payable_bills')
+    .select('amount, updated_at')
+    .is('archived_at', null)
+    .eq('status', 'paid')
+    .gte('updated_at', sinceIso);
+  const chargesBilledQuery = db
+    .from('charges')
+    .select('amount, due_date')
+    .gte('due_date', sinceDate);
+  const woOpenedQuery = db
+    .from('work_orders')
+    .select('created_at')
+    .is('archived_at', null)
+    .gte('created_at', sinceIso);
+  const woCompletedQuery = db
+    .from('work_orders')
+    .select('updated_at')
+    .is('archived_at', null)
+    .in('status', ['done', 'completed', 'billed', 'closed'])
+    .gte('updated_at', sinceIso);
+
+  if (assocFilter) {
+    paymentsInQuery.eq('association_id', assocFilter);
+    billsPaidQuery.eq('association_id', assocFilter);
+    chargesBilledQuery.eq('association_id', assocFilter);
+    woOpenedQuery.eq('association_id', assocFilter);
+    woCompletedQuery.eq('association_id', assocFilter);
+  }
+
   // ── Activity feed queries ─────────────────────────────────────
   const recentViolationsQuery = db
     .from('violations')
@@ -186,6 +226,11 @@ export default async function DashboardPage({
     { data: recentWorkOrders },
     { data: recentBills },
     { data: recentPayments },
+    { data: trendPaymentsIn },
+    { data: trendBillsPaid },
+    { data: trendChargesBilled },
+    { data: trendWoOpened },
+    { data: trendWoCompleted },
   ] = await Promise.all([
     openViolationsQuery,
     overdueViolationsQuery,
@@ -205,7 +250,45 @@ export default async function DashboardPage({
     recentWorkOrdersQuery,
     recentBillsQuery,
     recentPaymentsQuery,
+    paymentsInQuery,
+    billsPaidQuery,
+    chargesBilledQuery,
+    woOpenedQuery,
+    woCompletedQuery,
   ]);
+
+  // ── Bucket trend data by month ───────────────────────────────
+  const monthKeys: string[] = [];
+  const monthLabels: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    monthLabels.push(d.toLocaleString('en-US', { month: 'short' }));
+  }
+  const bucket = (rows: any[] | null, dateKey: string, amountKey?: string) => {
+    const sums = new Map(monthKeys.map((k) => [k, 0]));
+    for (const row of rows ?? []) {
+      const key = String(row[dateKey] ?? '').slice(0, 7);
+      if (sums.has(key)) sums.set(key, (sums.get(key) ?? 0) + (amountKey ? Number(row[amountKey]) || 0 : 1));
+    }
+    return monthKeys.map((k) => sums.get(k) ?? 0);
+  };
+
+  const zip = (a: number[], b: number[]): MonthPoint[] =>
+    monthLabels.map((label, i) => ({ label, a: a[i], b: b[i] }));
+
+  const cashFlowSeries = zip(
+    bucket(trendPaymentsIn, 'payment_date', 'amount'),
+    bucket(trendBillsPaid, 'updated_at', 'amount'),
+  );
+  const billedCollectedSeries = zip(
+    bucket(trendChargesBilled, 'due_date', 'amount'),
+    bucket(trendPaymentsIn, 'payment_date', 'amount'),
+  );
+  const workOrderSeries = zip(
+    bucket(trendWoOpened, 'created_at'),
+    bucket(trendWoCompleted, 'updated_at'),
+  );
 
   const commandMetrics = buildCommandMetrics({
     openViolations: openViolations ?? 0,
@@ -406,6 +489,13 @@ export default async function DashboardPage({
 
         {/* ── Demo Metrics Row ─────────────────────────────── */}
         <MetricStrip metrics={demoMetrics} />
+
+        {/* ── Trend charts ─────────────────────────────────── */}
+        <TrendCharts
+          cashFlow={cashFlowSeries}
+          billedCollected={billedCollectedSeries}
+          workOrders={workOrderSeries}
+        />
 
         {/* ── Focus queue ──────────────────────────────────── */}
         <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
