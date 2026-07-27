@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -21,8 +22,7 @@ export async function sendSms(formData: FormData) {
   const db = supabase as any;
 
   const failTo = (msg: string) => {
-    const returnTo = str(formData, 'return_to');
-    const base = returnTo && returnTo.startsWith('/') ? returnTo : '/sms';
+    const base = safeInternalNext(str(formData, 'return_to')) ?? '/sms';
     redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
   };
 
@@ -118,8 +118,8 @@ export async function sendSms(formData: FormData) {
   revalidatePath('/communication-center');
   revalidatePath('/inbox');
 
-  const returnTo = str(formData, 'return_to');
-  if (returnTo && returnTo.startsWith('/')) redirect(returnTo);
+  const returnTo = safeInternalNext(str(formData, 'return_to'));
+  if (returnTo) redirect(returnTo);
   redirect('/sms');
 }
 

@@ -9,9 +9,8 @@ export const metadata: Metadata = {
 // Static — hero uses illustrative demo data, no DB calls
 
 export default async function HomePage() {
-  // Illustrative figures for the product demo in the hero — they showcase the
-  // platform's scale-handling, not Portier369's own customer count. Kept round
-  // and realistic; no revenue is shown publicly.
+  // Illustrative figures for the product preview. The adjacent visible label
+  // makes clear that these are not Portier369 customer counts or results.
   const companyCount = 12
   const assocCount = 147
   const doorCount = 4280
@@ -54,6 +53,9 @@ export default async function HomePage() {
 
           {/* Product Preview — floats on the dark for depth */}
           <div className="mt-16 lg:mt-20">
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
+              Illustrative sample data — not customer counts or results
+            </p>
             <Screenshot
               file="hero.png"
               alt="Portier369 platform — manager dashboard"
@@ -232,6 +234,9 @@ export default async function HomePage() {
             <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
               Every workflow. Every stakeholder. One platform.
             </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-500">
+              Product previews use illustrative sample data and do not represent customer activity or results.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {[
@@ -279,6 +284,7 @@ export default async function HomePage() {
                   }
                 />
                 <div className="p-5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">Illustrative sample data</p>
                   <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
                   <p className="mt-2 text-[15px] text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
@@ -326,20 +332,20 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          WHY MANAGEMENT COMPANIES ARE SWITCHING
+          REASONS TO CONSIDER PORTIER369
           ═══════════════════════════════════════════════ */}
       <section className="py-16 sm:py-20" style={{ backgroundColor: '#F5F4F1' }}>
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Why switch</span>
+            <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#1E3A5F]">Evaluate the fit</span>
             <h2 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-[44px]">
-              Why Management Companies Are Switching
+              Reasons to Consider Portier369
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { label: 'No hidden software modules', body: 'Every plan comes with the full platform — no feature gates to discover after you sign.' },
-              { label: 'Modern interface', body: 'A clean, fast workspace your team learns in days, not months.' },
+              { label: 'Modern interface', body: 'A clean, focused workspace designed to make common tasks easy to find and complete.' },
               { label: 'AI automation', body: 'AI drafts notices, summarizes meetings, and answers calls — so managers spend time on communities, not paperwork.' },
               { label: 'Board transparency', body: 'Boards see live financials, documents, and approvals scoped to their own association.' },
               { label: 'Built for condominiums', body: 'Assessments, violations, ARC reviews, and board governance are the core of the product, not an afterthought.' },
@@ -431,6 +437,7 @@ export default async function HomePage() {
               <div className="flex items-center gap-2 mb-5">
                 <div className="h-2 w-2 rounded-full bg-[#1E3A5F]" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company Admin</span>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">Illustrative sample data</span>
               </div>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[['Associations', '24'], ['Managers', '6'], ['On-time rate', '96%']].map(([label, value]) => (
@@ -471,7 +478,7 @@ export default async function HomePage() {
               Guided onboarding included. Advanced migration available.
             </h2>
             <p className="mt-4 text-lg leading-8 text-zinc-400 max-w-2xl mx-auto">
-              Standard onboarding gets your first association live — most companies launch in under a week.
+              Standard onboarding follows a guided four-week plan for configuration, imports, training, and launch assistance.
               Historical documents, financial history, and legacy-system conversion are available as professional services.
             </p>
           </div>

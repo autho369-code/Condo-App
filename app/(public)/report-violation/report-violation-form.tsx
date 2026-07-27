@@ -227,6 +227,10 @@ export default function ReportViolationForm({ associations, rules, assocId, subm
 
       {/* ── Main Form ─────────────────────────────────────────────────── */}
       <form action={submitReport} className="space-y-8">
+        <div className="hidden" aria-hidden="true">
+          <label htmlFor="website_confirm">Website</label>
+          <input id="website_confirm" name="website_confirm" tabIndex={-1} autoComplete="off" />
+        </div>
         {/* Association (moved to top for photo analysis dependency) */}
         <section className="rounded-lg border border-gray-200 bg-white p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-4">Association</h2>

@@ -3,6 +3,7 @@ import { FileText, Scale, Users, File } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
+import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +72,7 @@ export default async function OwnerDocumentsPage() {
     if (!url) continue
     if (/^https?:\/\//i.test(url)) {
       linkByDoc.set(d.id, url)
-    } else {
+    } else if (isEntityDocumentStoragePath(url, d.entity_type, d.entity_id)) {
       pathsToSign.push(url)
     }
   }

@@ -1,3 +1,7 @@
+import { safeInternalNext } from '@/lib/security/redirects';
+
+export { safeInternalNext } from '@/lib/security/redirects';
+
 export type LoginModeId = 'manager' | 'owner' | 'vendor' | 'admin' | 'company_admin';
 
 export interface LoginModeConfig {
@@ -61,15 +65,6 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
 export function normalizeLoginMode(value?: FormDataEntryValue | string | string[] | null): LoginModeId {
   const raw = Array.isArray(value) ? value[0] : value;
   return raw === 'owner' || raw === 'vendor' || raw === 'admin' || raw === 'company_admin' ? raw : 'manager';
-}
-
-export function safeInternalNext(value?: FormDataEntryValue | string | string[] | null): string | null {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (typeof raw !== 'string') return null;
-
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return null;
-  return trimmed;
 }
 
 export function getLoginModeConfig(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig {

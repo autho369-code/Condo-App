@@ -391,7 +391,7 @@ One portfolio **Stellar Property Management**
 collected · **$2,100 A/R** · operating + reserve banks · FY2026 budget ·
 2 vendor bills · 4 balanced journal entries.
 
-Logins — all `@portier369.com`, password `Portier2026!`:
+Historical persona inventory (shared credentials have been retired; use verified-email invitations):
 
 | Persona | Email | Role |
 |---|---|---|

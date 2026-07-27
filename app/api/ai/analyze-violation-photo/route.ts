@@ -7,21 +7,55 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, visionCompletion } from '@/lib/ai/service';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import {
+  consumePublicRateLimit,
+  consumeScopedRateLimit,
+  rateLimitHeaders,
+  type RateLimitResult,
+} from '@/lib/server/rate-limit';
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_REQUEST_BYTES = MAX_IMAGE_BYTES + 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IP_POLICY = { scope: 'public:violation-photo:ip', windowSeconds: 3600, maxRequests: 5 };
+const ASSOCIATION_POLICY = { scope: 'public:violation-photo:association', windowSeconds: 3600, maxRequests: 50 };
+
+function blocked(result: RateLimitResult) {
+  return NextResponse.json(
+    { error: result.unavailable ? 'Analysis is temporarily unavailable.' : 'Too many analysis requests. Please try again later.' },
+    { status: result.unavailable ? 503 : 429, headers: rateLimitHeaders(result) },
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const contentLength = Number(request.headers.get('content-length') ?? 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+
+    let db: any;
+    try {
+      db = createServiceClient() as any;
+      const ipLimit = await consumePublicRateLimit(db, request, IP_POLICY);
+      if (!ipLimit.allowed) return blocked(ipLimit);
+    } catch (error) {
+      console.error('violation photo rate-limit setup failed:', error instanceof Error ? error.message : 'unknown error');
+      return blocked({ allowed: false, remaining: 0, retryAfterSeconds: 60, unavailable: true });
+    }
+
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const associationId = formData.get('association_id') as string | null;
+    const fileEntry = formData.get('file');
+    const file = fileEntry instanceof File ? fileEntry : null;
+    const associationEntry = formData.get('association_id');
+    const associationId = typeof associationEntry === 'string' ? associationEntry.trim() : '';
 
     if (!file) {
       return NextResponse.json({ error: 'No photo provided' }, { status: 400 });
     }
-    if (!associationId) {
+    if (!UUID_PATTERN.test(associationId)) {
       return NextResponse.json({ error: 'No association_id provided' }, { status: 400 });
     }
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -31,22 +65,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Photo must be smaller than 8 MB' }, { status: 413 });
     }
 
-    const supabase = await createClient();
-    const db = supabase as any;
-
     // Get the portfolio_id for this association
     const { data: association } = await db
       .from('associations')
       .select('portfolio_id')
       .eq('id', associationId)
-      .single();
+      .is('archived_at', null)
+      .maybeSingle();
 
     if (!association?.portfolio_id) {
       return NextResponse.json({ error: 'Association not found or has no portfolio' }, { status: 400 });
     }
 
-    // Get AI config for this portfolio
-    const config = await getAIConfig(association.portfolio_id);
+    const associationLimit = await consumeScopedRateLimit(db, associationId, ASSOCIATION_POLICY);
+    if (!associationLimit.allowed) return blocked(associationLimit);
+
+    // Public visitors cannot read portfolio secrets through RLS. The service
+    // client stays server-side and is used only after validating the active
+    // association and both abuse-control scopes.
+    const config = await getAIConfig(association.portfolio_id, db);
     if (!config) {
       return NextResponse.json({
         error: 'AI not configured for this association',
@@ -88,7 +125,7 @@ ${rulesContext}
 
 Return ONLY valid JSON. Do not include any other text.`;
 
-    const result = await visionCompletion(config, base64, prompt);
+    const result = await visionCompletion(config, base64, prompt, file.type);
 
     let extracted;
     try {

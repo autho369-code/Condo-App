@@ -1,6 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { requireOwner, requireStaff, requireVendor } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -19,15 +19,16 @@ export async function postWorkOrderMessage(
   basePath: string,
   formData: FormData,
 ) {
-  const me = await getMe();
+  const context = basePath === '/portal/work-orders'
+    ? { me: await requireOwner(), authorRole: 'owner' as const }
+    : basePath === '/vendor/work-orders'
+      ? { me: await requireVendor(), authorRole: 'vendor' as const }
+      : basePath === '/work-orders'
+        ? { me: await requireStaff(), authorRole: 'staff' as const }
+        : null;
+  if (!context) { redirect('/?error=' + encodeURIComponent('Invalid work-order return path')); return; }
+  const { me, authorRole } = context;
   const back = `${basePath}/${workOrderId}`;
-  if (!me.auth_user_id) { redirect('/login'); return; }
-
-  const authorRole: 'owner' | 'staff' | 'board' | 'vendor' =
-    (me.is_staff || me.is_platform_operator) ? 'staff'
-    : me.is_board  ? 'board'
-    : me.vendor_id ? 'vendor'
-    : 'owner';
 
   const body = (formData.get('body') as string)?.trim();
   if (!body) { redirect(`${back}?error=${encodeURIComponent('Message cannot be empty')}`); return; }

@@ -45,7 +45,7 @@ export function ArcAttachmentsUploader({
       const fail = (message: string) =>
         setStatuses((prev) => prev.map((s, idx) => (idx === i ? { ...s, state: 'error', message } : s)));
       try {
-        const signed = await createArchAttachmentUpload(requestId, file.name, file.size);
+        const signed = await createArchAttachmentUpload(requestId, basePath, file.name, file.size);
         if (signed.error || !signed.path || !signed.token) { fail(signed.error ?? 'Could not authorize upload'); continue; }
         const { error: upErr } = await supabase.storage
           .from(BUCKET)

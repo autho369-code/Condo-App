@@ -13,10 +13,16 @@
  * leaves the server).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { chatCompletion, type AIConfig } from '@/lib/ai/service';
+import { chatCompletion, getAIConfig, type AIConfig } from '@/lib/ai/service';
 import { requireBoard } from '@/lib/auth/me';
 import { buildBoardSnapshot } from '@/lib/ai/board-snapshot';
 import { createServiceClient } from '@/lib/supabase/server';
+import {
+  MAX_ASSISTANT_MESSAGE_CHARS,
+  boundedAssistantHistory,
+  guardAuthenticatedAssistantRequest,
+  type AssistantTurn,
+} from '@/lib/ai/request-guard';
 
 const SYSTEM_PROMPT =
   'You are the AI Board Assistant for a condominium/HOA board of directors. ' +
@@ -27,32 +33,15 @@ const SYSTEM_PROMPT =
   'Be concise and conversational; format money with a dollar sign. Use short bullet points for lists. ' +
   'Do not output JSON or code unless asked.';
 
-type Turn = { role: 'user' | 'assistant'; content: string };
-
-async function getBoardAIConfig(associationIds: string[]): Promise<AIConfig | null> {
+async function getBoardAIConfig(associationId: string): Promise<AIConfig | null> {
   const svc = createServiceClient() as any;
-  // Resolve the association's portfolio, then its BYO AI settings.
   const { data: assoc } = await svc
     .from('associations')
     .select('portfolio_id')
-    .in('id', associationIds)
-    .limit(1)
+    .eq('id', associationId)
     .maybeSingle();
   if (!assoc?.portfolio_id) return null;
-
-  const { data: portfolio } = await svc
-    .from('portfolios')
-    .select('ai_provider, ai_model, ai_endpoint, ai_api_key')
-    .eq('id', assoc.portfolio_id)
-    .maybeSingle();
-  if (!portfolio?.ai_provider || !portfolio?.ai_api_key) return null;
-
-  return {
-    provider: portfolio.ai_provider,
-    model: portfolio.ai_model || 'gpt-4o',
-    apiKey: portfolio.ai_api_key,
-    endpoint: portfolio.ai_endpoint || undefined,
-  };
+  return getAIConfig(assoc.portfolio_id, svc);
 }
 
 export async function POST(request: NextRequest) {
@@ -68,19 +57,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No associations linked to your board membership.' }, { status: 400 });
   }
 
-  let body: { question?: string; history?: Turn[] };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const guarded = await guardAuthenticatedAssistantRequest<{
+    question?: unknown;
+    history?: unknown;
+    associationId?: unknown;
+  }>(request, me.auth_user_id);
+  if (!guarded.ok) return guarded.response;
+  const body = guarded.body;
 
-  const question = (body.question ?? '').trim();
+  const question = typeof body.question === 'string' ? body.question.trim() : '';
   if (!question) {
     return NextResponse.json({ error: 'Please enter a question.' }, { status: 400 });
   }
+  if (question.length > MAX_ASSISTANT_MESSAGE_CHARS) {
+    return NextResponse.json({ error: `Question must be ${MAX_ASSISTANT_MESSAGE_CHARS} characters or fewer.` }, { status: 400 });
+  }
+  const associationId = String(body.associationId ?? '');
+  if (!ids.includes(associationId)) {
+    return NextResponse.json({ error: 'Choose an association linked to your board account.' }, { status: 403 });
+  }
 
-  const config = await getBoardAIConfig(ids);
+  const config = await getBoardAIConfig(associationId);
   if (!config) {
     return NextResponse.json(
       { error: 'AI not configured', hint: 'Ask your management company to set up AI for the portfolio.' },
@@ -88,17 +85,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const history: Turn[] = Array.isArray(body.history)
-    ? body.history
-        .filter(
-          (t): t is Turn =>
-            !!t && (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string',
-        )
-        .slice(-6)
-    : [];
+  const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
-    const snapshot = await buildBoardSnapshot();
+    const snapshot = await buildBoardSnapshot(associationId);
 
     const messages = [
       { role: 'system' as const, content: `${SYSTEM_PROMPT}\n\nDATA:\n${JSON.stringify(snapshot)}` },

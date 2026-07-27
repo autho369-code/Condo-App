@@ -14,6 +14,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, setOwnerPortalAccess } from './occupancy-actions';
 import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,10 +113,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
 
   // 1-hour signed links for attachments (private bucket)
   const attachmentUrlByPath = new Map<string, string>();
-  if ((attachments ?? []).length > 0) {
+  const attachmentPaths = (attachments ?? [])
+    .map((a: any) => a.file_path)
+    .filter((path: unknown): path is string => isScopedStoragePath(path, 'owners', id));
+  if (attachmentPaths.length > 0) {
     const svc2 = createServiceClient() as any;
     const { data: signed } = await svc2.storage.from('association-documents')
-      .createSignedUrls((attachments ?? []).map((a: any) => a.file_path), 3600);
+      .createSignedUrls(attachmentPaths, 3600);
     for (const s of signed ?? []) {
       if (s.path && s.signedUrl) attachmentUrlByPath.set(s.path, s.signedUrl);
     }
@@ -136,7 +140,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   }
 
   // Signed URLs for lease / insurance documents (1-hour links)
-  const docPaths = (tenants ?? []).flatMap((t: any) => [t.lease_document_url, t.insurance_document_url]).filter(Boolean);
+  const docPaths = (tenants ?? []).flatMap((tenant: any) =>
+    [tenant.lease_document_url, tenant.insurance_document_url]
+      .filter((path: unknown): path is string => isScopedStoragePath(path, 'tenants', tenant.id)),
+  );
   const signedUrlByPath = new Map<string, string>();
   if (docPaths.length > 0) {
     const svc = createServiceClient() as any;
@@ -306,17 +313,16 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
       {sp.saved === 'reset_sent' && <div className="mb-4"><Alert tone="success" title="Password reset email queued" /></div>}
       {sp.saved === 'portal_enabled' && <div className="mb-4"><Alert tone="success" title="Portal access enabled" /></div>}
-      {sp.saved === 'portal_disabled' && <div className="mb-4"><Alert tone="success" title="Portal access disabled">The owner can no longer sign in.</Alert></div>}
+      {sp.saved === 'portal_disabled' && <div className="mb-4"><Alert tone="success" title="Owner portal access disabled">Owner-portal requests are now blocked for this portfolio. Any separate board, vendor, staff, or other portfolio access remains unchanged.</Alert></div>}
       {sp.saved === 'board' && <div className="mb-4"><Alert tone="success" title="Board seat added">Their existing login now opens both the board portal and their owner portal.</Alert></div>}
       {sp.saved === 'board_end' && <div className="mb-4"><Alert tone="success" title="Board seat ended" /></div>}
       {sp.portal_created === '1' && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-semibold text-green-900">Portal account created</h3>
+              <h3 className="font-semibold text-green-900">Portal invitation queued</h3>
               <p className="text-sm text-green-700 mt-1">
-                Owner can now sign in at <strong>/login</strong> with email <strong>{sp.email}</strong>.
-                A password was auto-generated. The owner should reset it on first sign-in.
+                A private activation link was queued to <strong>{sp.email}</strong>. The owner verifies that email and chooses their own password; staff never see or set it.
               </p>
             </div>
           </div>
@@ -1315,7 +1321,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                Disabling blocks sign-in immediately (the owner record and history are kept).
+                Disabling blocks this portfolio&apos;s owner portal without globally banning the person&apos;s shared sign-in identity. The owner record and history are kept.
                 The reset email goes to {owner.email ?? 'the owner’s email on file'}.
               </p>
             </div>

@@ -11,6 +11,7 @@ import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +61,9 @@ export default async function ViolationDetailPage({
 
   // Sign viewing links for storage paths (http(s) entries pass through as-is).
   const linkByPath = new Map<string, string>();
-  const pathsToSign = attachments.map((a) => a.path).filter((p) => !/^https?:\/\//i.test(p));
+  const pathsToSign = attachments
+    .map((a) => a.path)
+    .filter((path): path is string => isScopedStoragePath(path, 'violations', id));
   if (pathsToSign.length > 0) {
     try {
       const svc = createServiceClient() as any;

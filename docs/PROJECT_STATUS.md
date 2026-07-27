@@ -40,7 +40,7 @@ Build **Portier369** — a multi-tenant HOA/condo management SaaS for **Stellar 
 - **In progress (another agent, 2026-07-14):** staff-side "submit ARC request
   on owner's behalf" flow and amenity image upload.
 - **Clean test data:** the database now holds ONE realistic association — **Granville Courts** (Stellar portfolio) — with full accounting so every screen shows real numbers. All prior fake/seed data was backed up to `backups/seed-backup-*.json`, then hard-deleted.
-- **7 personas** — all `@portier369.com`, password `Portier2026!`:
+- **Historical personas** — shared passwords are retired; provision access only through verified-email invitations:
   - `hello@` — super-admin / platform operator
   - `admin@` — company admin
   - `manager@` — property manager

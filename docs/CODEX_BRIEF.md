@@ -47,6 +47,11 @@ The PDF's "broken Company link" does not exist.
    tier rename silently broke charge creation).
 5. No fabricated content: testimonials, case studies, and metrics must come
    from the owner.
+6. **One association, one Stripe account.** Every association must own a
+   unique Stripe Connect Standard account. All payments are direct charges in
+   that connected-account context; shared merchant accounts, destination
+   charges, pooled balances, and platform custody of association funds are
+   prohibited.
 
 ## Approved build work
 
@@ -64,19 +69,40 @@ The PDF's "broken Company link" does not exist.
 
 ## Release-readiness gates found 2026-07-26
 
-- Apply `20260726000000_atomic_stripe_ledger_posting.sql` before the matching
-  application deploy, then concurrency-test duplicate Stripe deliveries before
-  accepting real payments.
-- Public AI/chat/demo/report endpoints need durable provider-edge rate limiting
-  and bot protection before a broad public launch.
-- Telnyx is not wired. SMS records are queued rather than falsely marked sent;
-  delivery status must come from authenticated provider webhooks.
-- Confirm every variable documented in `.env.local.example` is configured for
-  the appropriate Vercel environments, especially `CRON_SECRET`, Stripe webhook,
-  Plaid, Resend, and AI-provider variables.
-- Production dependency audit still reports high-severity vulnerabilities in
-  the supported Next.js dependency chain. Recheck for a patched stable release
-  immediately before deployment.
+Completed in the staged release branch:
+
+- Durable application throttles and live Vercel firewall limits protect public
+  AI, demo, violation-report, and assistant endpoints.
+- Supported dependency overrides resolve Next.js to patched PostCSS and Sharp
+  versions; the clean production dependency audit reports zero vulnerabilities.
+- Stripe operations fail closed on association, connected-account, mode,
+  amount, currency, and idempotency mismatches. Atomic ledger posting and
+  refund/dispute/payout reconciliation are staged.
+- Current plaintext/default credential paths are retired; owner activation now
+  uses private verified-email invitations and owner-selected passwords.
+- Tenant RLS, SECURITY DEFINER execution boundaries, storage paths, redirects,
+  rich text, AI credentials, and service-role actions were hardened.
+
+Still blocking production release:
+
+- The six 20260726 Supabase migrations are staged but **not applied**. Remote
+  history has 159 versions while local history has invalid names and duplicate
+  versions. Follow the reconciliation runbook and disposable replay; never run
+  the CLI's suggested bulk `repair --status reverted` command.
+- The public Git history contains two credible historical Supabase
+  service-role credentials. Treat them as compromised until legacy keys are
+  rotated/revoked, sessions and affected accounts are reset, database jobs are
+  checked, logs are reviewed, and all old refs/tags are scrubbed.
+- Production has two associations and zero connected Stripe accounts. Each
+  association must separately complete Standard onboarding and prove
+  details_submitted, charges_enabled, and payouts_enabled before Pay Online or
+  AutoPay is enabled.
+- Real production `STRIPE_SECRET_KEY` and Connect
+  `STRIPE_WEBHOOK_SECRET` values must be configured and verified without
+  exposing them. Plaid remains gated on its real credentials if bank feeds are
+  enabled.
+- Telnyx is not wired. SMS remains queued-only until a real gateway and
+  authenticated delivery webhooks exist.
 
 ## Known non-code launch gates (owner's list, not Codex's)
 

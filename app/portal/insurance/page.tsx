@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Shield, FileText } from 'lucide-react'
 import { AddInsurancePolicyForm } from '@/components/insurance/add-policy-form'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   if (current?.certificate_file_url) {
     if (/^https?:\/\//i.test(current.certificate_file_url)) {
       certificateUrl = current.certificate_file_url
-    } else {
+    } else if (isScopedStoragePath(current.certificate_file_url, 'insurance', me.owner_id)) {
       try {
         const svc = createServiceClient() as any
         const { data: signed } = await svc.storage.from(BUCKET).createSignedUrl(current.certificate_file_url, 3600)

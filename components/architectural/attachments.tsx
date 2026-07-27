@@ -6,6 +6,7 @@ import { FileText, X } from 'lucide-react';
 import { createServiceClient } from '@/lib/supabase/server';
 import { removeArchitecturalAttachment } from '@/lib/rpcs/architectural';
 import { ArcAttachmentsUploader } from './attachments-uploader';
+import { isArchitecturalAttachmentPath } from '@/lib/security/tenant-boundaries';
 
 const BUCKET = 'association-documents';
 // Keep in sync with MAX_ARCH_ATTACHMENTS in lib/rpcs/architectural.ts
@@ -39,7 +40,11 @@ export async function ArcAttachments({
   canUpload: boolean;
   canRemove: boolean;
 }) {
-  const docs = (attachments ?? []).filter((a) => a?.path);
+  // The request itself was loaded through the caller's RLS client. Bind every
+  // privileged storage signature to that same request directory as well.
+  const docs = (attachments ?? []).filter((a) =>
+    a?.path && isArchitecturalAttachmentPath(requestId, a.path),
+  );
 
   // Sign viewing links for the private bucket
   const linkByPath = new Map<string, string>();

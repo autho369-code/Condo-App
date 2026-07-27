@@ -12,6 +12,7 @@
 // scoped to that verified identity.
 import { createServiceClient } from '@/lib/supabase/server';
 import type { MeResult } from '@/lib/auth/me';
+import { isSignatureStoragePath } from '@/lib/security/storage-paths';
 
 const BUCKET = 'association-documents';
 
@@ -69,7 +70,7 @@ export async function signSignaturePaths(refs: Array<string | null | undefined>)
     const r = ref?.trim();
     if (!r || out.has(r)) continue;
     if (/^https?:\/\//i.test(r)) out.set(r, r);
-    else if (!toSign.includes(r)) toSign.push(r);
+    else if (isSignatureStoragePath(r) && !toSign.includes(r)) toSign.push(r);
   }
 
   if (toSign.length > 0) {

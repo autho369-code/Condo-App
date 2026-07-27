@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="June 14, 2026">
+    <LegalShell title="Privacy Policy" updated="July 26, 2026">
       <p>
         This Privacy Policy explains how Portier369 (&quot;Portier369,&quot; &quot;we,&quot; &quot;us&quot;) collects, uses, discloses, and
         safeguards information when you use our property management platform and related websites and services
@@ -39,9 +39,11 @@ export default function PrivacyPage() {
         bank account — bank-account and transaction information obtained through our banking-data provider (Plaid). See
         &quot;Payments and financial data&quot; below.
         <br />
-        <strong>Payment information:</strong> for subscription billing of management companies, billing contact and
-        payment-method details are processed by our third-party billing provider; we do not store full card or bank
-        account numbers on our own servers.
+        <strong>Payment information:</strong> where an association enables online assessment payments, Stripe processes
+        payment credentials through that association&apos;s own connected Stripe account. We receive transaction and payout
+        identifiers, status, payment-method type, and limited details such as the last four digits; we do not store full
+        card or bank-account numbers on our own servers. Management-company subscription billing may also be processed
+        by a third-party billing provider.
         <br />
         <strong>Communications:</strong> emails, SMS, and notices sent through the platform, and support correspondence.
         <br />
@@ -59,9 +61,12 @@ export default function PrivacyPage() {
 
       <H2>Payments and financial data</H2>
       <p>
-        Portier369 does not collect online card payments from homeowners. Resident assessments are paid to the
-        management company offline and recorded by a manager; the platform reconciles those payments against the
-        association&apos;s books. We store no homeowner cardholder data.
+        A Customer may enable online assessment payments for an association by connecting that association&apos;s own
+        Standard Stripe account. The association, not Portier369, is the payment recipient for direct charges on that
+        account, and Stripe settles funds to the association&apos;s designated bank account. Portier369 provides the software
+        workflow and accounting records but does not receive or hold association assessment funds. Stripe collects and
+        tokenizes payment credentials; Portier369 stores only the limited identifiers and payment details needed to
+        operate AutoPay, post the association ledger, and reconcile payouts.
       </p>
       <p>
         Where a Customer chooses to connect a bank account, we use <strong>Plaid</strong> to link the account and
@@ -70,6 +75,10 @@ export default function PrivacyPage() {
         the{' '}
         <a href="https://plaid.com/legal/#end-user-privacy-policy" className="text-[#1E3A5F] underline underline-offset-2">
           Plaid End User Privacy Policy
+        </a>
+        . Stripe&apos;s handling of payment information is described in the{' '}
+        <a href="https://stripe.com/privacy" className="text-[#1E3A5F] underline underline-offset-2">
+          Stripe Privacy Policy
         </a>
         . Subscription billing of management companies is handled by our billing provider subject to its own terms.
       </p>
@@ -101,6 +110,7 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong> — application hosting and content delivery.</li>
         <li><strong>Resend</strong> — transactional and bulk email delivery.</li>
         <li><strong>Plaid</strong> — bank-account connectivity and transaction data (where enabled by a Customer).</li>
+        <li><strong>Stripe</strong> — association-owned connected accounts, assessment-payment processing, tokenized payment methods, and payouts (where enabled).</li>
         <li><strong>Our subscription-billing provider</strong> — billing of management-company subscriptions.</li>
         <li>
           <strong>Customer-selected AI provider</strong> — only where a Customer enables AI features and provides its

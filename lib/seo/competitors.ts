@@ -151,11 +151,11 @@ export const COMPETITORS: Competitor[] = [
     whatItIs:
       'Vantaca is an HOA management platform aimed at professional community association management companies, known for its workflow automation engine and enterprise-style implementation programs.',
     answer:
-      'Portier369 is a Vantaca alternative for management companies that want association-first software without an enterprise sales cycle: transparent per-door pricing from $157/month published right on the website, self-serve onboarding measured in days not months, and every capability — accounting, violations with hearings, architectural reviews, board approvals with e-signatures, AI assistance, and workflow automation (Flows) — included on every plan.',
+      'Portier369 is a Vantaca alternative for management companies that want association-first software with transparent per-door pricing from $157/month, a published guided onboarding scope, and core capabilities — accounting, violations with hearings, architectural reviews, board approvals with e-signatures, AI assistance, and workflow automation (Flows) — included on every plan.',
     whySwitch: [
       {
-        title: 'Days to live, not an implementation project',
-        body: 'Vantaca deployments typically run through a structured, months-long implementation program. Portier369 ships with a guided onboarding checklist, CSV importers for owners, units, and balances, an operating-documents workflow, and white-glove setup on every tier — a first association can be live inside a week.',
+        title: 'A published onboarding scope',
+        body: 'Portier369 publishes a guided four-week standard onboarding plan with account configuration, spreadsheet imports, administrator training, and launch assistance. Historical conversion and other advanced migration work are scoped and quoted separately.',
       },
       {
         title: 'Pricing on the website, not after the discovery call',
@@ -173,7 +173,7 @@ export const COMPETITORS: Competitor[] = [
     table: [
       { dimension: 'Primary focus', portier: 'HOA & condo management companies of any size', competitor: 'Larger professional management companies' },
       { dimension: 'Pricing model', portier: 'Published per-door pricing from $157/mo', competitor: 'Quote-based' },
-      { dimension: 'Time to go live', portier: 'Days — guided self-serve + white-glove setup', competitor: 'Structured implementation program (typically months)' },
+      { dimension: 'Onboarding approach', portier: 'Published guided four-week standard scope; advanced migration quoted', competitor: 'Structured implementation program; confirm scope with vendor' },
       { dimension: 'Contract', portier: 'Month to month', competitor: 'Term agreements are standard' },
       { dimension: 'Workflow automation', portier: 'Flows engine included on every plan', competitor: 'Workflow engine is a core strength' },
       { dimension: 'Violation lifecycle', portier: 'Photo → notice → hearing → fine, with mobile field capture', competitor: 'Violation management available' },
@@ -191,7 +191,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'Is Portier369 a good Vantaca alternative for smaller management companies?',
         answer:
-          'Yes — that is the core use case. Portier369 delivers association accounting, violations with hearings, architectural reviews, board approvals, and workflow automation with published per-door pricing from $157/month and onboarding measured in days, which suits companies from 50 to 1,000 doors. Very large operations invested in Vantaca’s enterprise implementation model may prefer to stay.',
+          'Portier369 is designed for association-management portfolios that need accounting, violations with hearings, architectural reviews, board approvals, and workflow automation with published per-door pricing from $157/month. Standard onboarding follows a published guided four-week scope; very large operations with established enterprise implementation processes may prefer to keep those processes.',
       },
       {
         question: 'Does Portier369 have workflow automation like Vantaca?',
@@ -381,7 +381,7 @@ export const COMPETITORS: Competitor[] = [
       {
         question: 'How hard is it to switch from PayHOA to Portier369?',
         answer:
-          'Standard onboarding is included on every plan: owners, units, and open balances import from spreadsheets, operating documents get a built-in checklist, and admin training plus launch assistance mean a volunteer board is walked through it — typically live within a week. If you want us to retrieve historical data from PayHOA, that work is quoted separately.',
+          'Standard onboarding is included on every plan and follows the published guided four-week scope: spreadsheet imports for owners, units, and open balances, an operating-document checklist, administrator training, and launch assistance. Retrieval of historical data from PayHOA is quoted separately.',
       },
     ],
   },

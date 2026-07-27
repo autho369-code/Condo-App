@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { queueEmails } from '@/lib/email/queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,15 +52,33 @@ async function acceptInvite(formData: FormData) {
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) failTo('Invitation has expired.');
 
   // Create the auth user (service role — admin API)
-  const { error: createErr } = await svc.auth.admin.createUser({
+  const siteUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
+  const { data: linkData, error: createErr } = await svc.auth.admin.generateLink({
+    type: 'signup',
     email: invite.email,
     password,
-    email_confirm: true,
-    user_metadata: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
+    options: {
+      redirectTo: `${siteUrl}/api/auth/callback`,
+      data: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
+    },
   });
-  if (createErr && !`${createErr.message}`.toLowerCase().includes('already')) {
-    failTo(createErr.message);
-  }
+  if (createErr || !linkData?.properties?.action_link) failTo(createErr?.message ?? 'Could not create the verification link.');
+
+  const queued = await queueEmails(svc, [{
+    to: invite.email,
+    subject: 'Verify your Portier369 account',
+    text: [
+      'Your password was saved, but your account is not active yet.',
+      '',
+      'Verify this email address to activate your account:',
+      linkData.properties.action_link,
+      '',
+      'If you did not request this account, contact your management office.',
+    ].join('\n'),
+    portfolioId: invite.portfolio_id,
+  }]);
+  if (queued.error || queued.count !== 1) failTo(queued.error ?? 'Could not queue the verification email.');
+  redirect('/login?message=' + encodeURIComponent('Check your email to verify and activate your account.'));
 
   // Sign them in with their new credentials (session client sets cookies)
   const supabase = await createClient();
@@ -67,7 +86,7 @@ async function acceptInvite(formData: FormData) {
     email: invite.email,
     password,
   });
-  if (signInErr) failTo(signInErr.message);
+  if (signInErr) failTo(signInErr?.message ?? 'Sign-in failed');
 
   // Link the profile to the portfolio/role (the auth.users triggers normally do
   // this already; this is a harmless retry).

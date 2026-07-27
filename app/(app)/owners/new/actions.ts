@@ -7,17 +7,12 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { resolveAuthorizedOwnerUnit } from '@/lib/security/tenant-boundaries';
+import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
-}
-
-function genPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let pw = '';
-  for (let i = 0; i < 14; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-  return pw;
 }
 
 export async function createOwnerWithDetails(formData: FormData) {
@@ -34,22 +29,48 @@ export async function createOwnerWithDetails(formData: FormData) {
 
   const unitId = s(formData, 'unit_id');
   const associationId = s(formData, 'association_id');
-
-  // 1) Optional portal auth user
-  let authUserId: string | null = null;
-  const activatePortal = formData.get('activate_portal') === 'on';
-  if (activatePortal) {
-    const password = s(formData, 'portal_password') ?? genPassword();
-    const { data: authUser, error: authErr } = await db.auth.admin.createUser({
-      email, password, email_confirm: true,
-      user_metadata: { full_name: fullName, role: 'owner' },
-    });
-    if (!authErr) authUserId = authUser?.user?.id ?? null;
+  if (!unitId || !associationId) {
+    redirect('/owners/new?error=' + encodeURIComponent('Association and unit are required.'));
   }
 
-  // 2) Owner record
+  // Never trust the paired hidden/select values. Resolve the unit, association,
+  // and portfolio through the caller's RLS-scoped session before creating an
+  // auth user or making any service-role write.
+  const { data: unitScope, error: unitScopeErr } = await db
+    .from('units')
+    .select('id, buildings!inner(association_id, associations!inner(id, portfolio_id))')
+    .eq('id', unitId)
+    .eq('buildings.association_id', associationId)
+    .is('archived_at', null)
+    .maybeSingle();
+  const assignment = resolveAuthorizedOwnerUnit({
+    submittedUnitId: unitId,
+    submittedAssociationId: associationId,
+    callerPortfolioId: me.portfolio?.id,
+    isPlatformOperator: me.is_platform_operator,
+    unit: unitScope,
+  });
+  if (unitScopeErr || !assignment) {
+    redirect('/owners/new?error=' + encodeURIComponent('That unit is not in the selected association or is outside your authorized portfolio.'));
+  }
+  if (!me.is_platform_operator) {
+    const { data: canAccessAssociation, error: associationAccessErr } = await db
+      .rpc('can_access_association', { a_id: assignment.associationId });
+    if (associationAccessErr || canAccessAssociation !== true) {
+      redirect('/owners/new?error=' + encodeURIComponent('You are not authorized to manage the selected association.'));
+    }
+  }
+
+  const warnings: string[] = [];
+  const activatePortal = formData.get('activate_portal') === 'on';
+  const addBoardSeat = formData.get('board_member') === 'on';
+  // Service access is created only after the session-scoped tenant proof above.
+  const svc = activatePortal || addBoardSeat ? createServiceClient() as any : null;
+
+  // 1) Owner record. Portal access stays inactive until the owner follows the
+  // verified-email invitation and chooses their own password.
   const { data: owner, error: ownerErr } = await db.from('owners').insert({
-    portfolio_id: me.portfolio?.id,
+    portfolio_id: assignment.portfolioId,
     first_name: firstName,
     last_name: lastName,
     full_name: fullName,
@@ -60,24 +81,26 @@ export async function createOwnerWithDetails(formData: FormData) {
     address_state: s(formData, 'address_state'),
     address_zip: s(formData, 'address_zip'),
     preferred_comm: s(formData, 'preferred_comm') ?? 'email',
-    portal_activated: activatePortal,
-    auth_user_id: authUserId,
+    portal_activated: false,
+    auth_user_id: null,
     emergency_contact_name: s(formData, 'emergency_contact_name'),
     emergency_contact_phone: s(formData, 'emergency_contact_phone'),
     notes: s(formData, 'notes'),
     created_by: me.auth_user_id,
   }).select('id').single();
-  if (ownerErr || !owner) redirect('/owners/new?error=' + encodeURIComponent(ownerErr?.message ?? 'Failed to create owner.'));
+  if (ownerErr || !owner) {
+    redirect('/owners/new?error=' + encodeURIComponent(ownerErr?.message ?? 'Failed to create owner.'));
+  }
 
   const ownerId = owner.id;
   const moveIn = s(formData, 'move_in_date') ?? new Date().toISOString().slice(0, 10);
 
   // 3) Owner occupancy + regular monthly assessment
-  if (unitId && associationId) {
-    await db.from('occupancies').insert({
+  {
+    const { error: occupancyErr } = await db.from('occupancies').insert({
       owner_id: ownerId,
-      unit_id: unitId,
-      association_id: associationId,
+      unit_id: assignment.unitId,
+      association_id: assignment.associationId,
       occupancy_type: 'owner',
       status: 'current',
       move_in_date: moveIn,
@@ -86,12 +109,11 @@ export async function createOwnerWithDetails(formData: FormData) {
       share_pct: s(formData, 'ownership_pct') ? Number(s(formData, 'ownership_pct')) : 100,
       is_primary: true,
     });
+    if (occupancyErr) warnings.push(`occupancy: ${occupancyErr.message}`);
   }
 
-  const warnings: string[] = [];
-
   // 4) Recurring fee schedule (parallel arrays from the fee builder)
-  if (unitId && associationId) {
+  {
     const cats = formData.getAll('fee_category_id') as string[];
     const amounts = formData.getAll('fee_amount') as string[];
     const freqs = formData.getAll('fee_frequency') as string[];
@@ -103,7 +125,7 @@ export async function createOwnerWithDetails(formData: FormData) {
       const amount = parseFloat(amounts[i] ?? '');
       if (!categoryId || !Number.isFinite(amount)) continue;
       const { error: feeErr } = await db.rpc('subscribe_unit_to_charge', {
-        p_unit_id: unitId,
+        p_unit_id: assignment.unitId,
         p_charge_category_id: categoryId,
         p_amount: amount,
         p_frequency: (freqs[i] ?? 'monthly') || 'monthly',
@@ -116,14 +138,14 @@ export async function createOwnerWithDetails(formData: FormData) {
   }
 
   // 5) Optional tenant / lease when the unit is rented
-  if (unitId && formData.get('is_rented') === 'on') {
+  if (formData.get('is_rented') === 'on') {
     const tFirst = s(formData, 'tenant_first_name');
     const tLast = s(formData, 'tenant_last_name');
     if (tFirst && tLast) {
       const { error: tErr } = await db.from('tenants').insert({
-        portfolio_id: me.portfolio?.id,
-        association_id: associationId,
-        unit_id: unitId,
+        portfolio_id: assignment.portfolioId,
+        association_id: assignment.associationId,
+        unit_id: assignment.unitId,
         owner_id: ownerId,
         first_name: tFirst,
         last_name: tLast,
@@ -144,41 +166,44 @@ export async function createOwnerWithDetails(formData: FormData) {
 
   // 6) Optional: mark this owner as a board member (board of directors seat +
   //    board portal access). A board seat requires an association.
-  if (formData.get('board_member') === 'on') {
-    if (!associationId) {
-      warnings.push('board member: select an association to add a board seat; skipped');
-    } else {
-      const allowedRoles = ['president', 'vice_president', 'secretary', 'treasurer', 'director'];
-      const roleRaw = s(formData, 'board_role') ?? 'director';
-      const role = allowedRoles.includes(roleRaw) ? roleRaw : 'director';
-      const svc = createServiceClient() as any;
-      const { error: bmErr } = await svc.from('board_members').insert({
-        association_id: associationId,
-        owner_id: ownerId,
-        full_name: fullName,
-        email,
-        phone: s(formData, 'phone'),
-        role,
-        active: true,
-        term_start: new Date().toISOString().slice(0, 10),
-        auth_user_id: authUserId,
-      });
-      if (bmErr) {
-        warnings.push(`board member: ${bmErr.message}`);
-      } else if (authUserId) {
-        // Portal was activated now, so the auth user already exists and the
-        // auto-link trigger ran before the board seat existed. Elevate the
-        // profile here so the board portal opens immediately.
-        await svc.from('profiles').update({ hoa_role: 'board' }).eq('id', authUserId);
-      }
+  if (addBoardSeat) {
+    const allowedRoles = ['president', 'vice_president', 'secretary', 'treasurer', 'director'];
+    const roleRaw = s(formData, 'board_role') ?? 'director';
+    const role = allowedRoles.includes(roleRaw) ? roleRaw : 'director';
+    const { error: bmErr } = await svc.from('board_members').insert({
+      // This value is derived from the RLS-visible unit, never from the form.
+      association_id: assignment.associationId,
+      owner_id: ownerId,
+      full_name: fullName,
+      email,
+      phone: s(formData, 'phone'),
+      role,
+      active: true,
+      term_start: new Date().toISOString().slice(0, 10),
+      auth_user_id: null,
+    });
+    if (bmErr) {
+      warnings.push(`board member: ${bmErr.message}`);
     }
+  }
+
+  let portalInvitationQueued = false;
+  if (activatePortal && svc) {
+    const invitation = await queueOwnerPortalInvitation(svc, {
+      email,
+      fullName,
+      portfolioId: assignment.portfolioId,
+      invitedBy: me.auth_user_id,
+    });
+    if (invitation.error) warnings.push(`portal invitation: ${invitation.error}`);
+    else portalInvitationQueued = true;
   }
 
   revalidatePath('/owners');
   revalidatePath(`/owners/${ownerId}`);
 
   const params = new URLSearchParams();
-  if (activatePortal && authUserId) { params.set('portal_created', '1'); params.set('email', email); }
+  if (portalInvitationQueued) { params.set('portal_created', '1'); params.set('email', email); }
   if (warnings.length) params.set('warning', warnings.join('; '));
   const qs = params.toString();
   redirect(`/owners/${ownerId}${qs ? `?${qs}` : ''}`);

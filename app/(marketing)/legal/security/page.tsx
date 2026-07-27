@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   return (
-    <LegalShell title="Security" updated="June 14, 2026">
+    <LegalShell title="Security" updated="July 26, 2026">
       <p>
         Portier369 manages sensitive financial and personal data for community associations. Protecting that data is
         foundational to the platform. This page summarizes the measures we use; we are happy to discuss specifics with
@@ -33,8 +33,10 @@ export default function SecurityPage() {
       <H2>Encryption</H2>
       <p>
         Data is encrypted in transit using industry-standard TLS and encrypted at rest by our infrastructure providers.
-        Sensitive integration secrets are held in a dedicated secrets vault. Resident assessment payments are made
-        offline, so we do not collect or store homeowner card or bank account numbers on our own infrastructure.
+        Sensitive integration secrets are held in protected server-side configuration. Where online assessment
+        payments are enabled, Stripe collects and tokenizes card or bank-account credentials through the
+        association&apos;s own connected account. Portier369 stores processor identifiers and limited display details, not
+        full homeowner card numbers, bank-account numbers, or online-banking credentials.
       </p>
 
       <H2>Banking data</H2>

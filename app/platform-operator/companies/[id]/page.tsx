@@ -26,7 +26,6 @@ import {
   regenerateInvitation,
   resendInvitation,
   sendPasswordReset,
-  setTemporaryPassword,
   suspendCompany,
   transferOwnership,
   unlockAccount,
@@ -98,7 +97,6 @@ const BANNERS: Record<string, string> = {
   limits_adjusted: 'Limits updated.',
   ownership_transferred: 'Company ownership transferred.',
   updated: 'Company details updated.',
-  password_set: 'Temporary password set. Share it with the user securely.',
   invoice_generated: 'Invoice generated.',
   invoice_sent: 'Invoice emailed to the company billing contact.',
   invoice_paid: 'Invoice marked paid.',
@@ -336,12 +334,6 @@ export default async function CompanyDetailPage({
                           <input type="hidden" name="profile_id" value={member.id} />
                           <input type="hidden" name="return_to" value={returnTo} />
                           <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700">Disable Login</Button>
-                        </form>
-                        <form action={setTemporaryPassword as any} className="flex items-center gap-1">
-                          <input type="hidden" name="profile_id" value={member.id} />
-                          <input type="hidden" name="return_to" value={returnTo} />
-                          <input name="new_password" type="text" placeholder="New temp password" minLength={8} required className="h-8 w-40 rounded-md border border-gray-300 px-2 text-xs" />
-                          <Button type="submit" variant="ghost" size="sm">Set Password</Button>
                         </form>
                       </div>
                     </TD>

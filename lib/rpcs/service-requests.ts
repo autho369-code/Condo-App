@@ -1,6 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
@@ -21,9 +21,7 @@ export async function submitServiceRequest(formData: FormData) {
     redirect(`/portal/service-requests/new?error=${encodeURIComponent(msg)}`);
   };
 
-  const me = await getMe();
-  if (!me.auth_user_id) { failTo('Not authenticated'); return; }
-  if (!me.owner_id)     { failTo('Only owners can submit service requests'); return; }
+  const me = await requireOwner();
 
   const unitId      = formData.get('unit_id') as string;
   const description = (formData.get('description') as string)?.trim();
@@ -84,7 +82,7 @@ function parseServiceRequestPriority(value: FormDataEntryValue | null): ServiceR
 
 /** Resident cancels one of their own open requests. RLS enforces ownership. */
 export async function cancelServiceRequest(serviceRequestId: string) {
-  await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership
+  await requireOwner();  // in-action guard; RLS enforces ownership
   const supabase = await createClient();
   const { data: updated, error } = await (supabase as any)
     .from('service_requests')

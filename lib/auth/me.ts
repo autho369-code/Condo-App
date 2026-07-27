@@ -2,6 +2,7 @@
 // decide what to show in the sidebar and which pages to allow.
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { isActivePortalRecord } from '@/lib/security/portal-access';
 
 export interface MeResult {
   auth_user_id: string | null;
@@ -118,11 +119,36 @@ export async function requireVendor() {
   const me = await getMe();
   if (!me.auth_user_id) redirect('/login?mode=vendor');
   if (!me.vendor_id) redirect('/login?mode=vendor');
+
+  // Vendor access is tenant-local just like owner access. Never disable the
+  // shared Auth identity because it may also hold staff/board/owner roles.
+  const supabase = await createClient();
+  const { data: vendor, error } = await (supabase as any)
+    .from('vendors')
+    .select('id, portal_activated, archived_at')
+    .eq('id', me.vendor_id)
+    .maybeSingle();
+  if (error || !isActivePortalRecord(vendor)) {
+    redirect('/login?mode=vendor&error=portal_access_disabled');
+  }
   return me;
 }
 
 export async function requireOwner(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.owner_id) redirect('/login?mode=owner');
+
+  // Owner access is tenant-local. Do not use an Auth ban here: one identity can
+  // also hold board/vendor/staff access that must remain intact. Fail closed if
+  // the RLS-scoped owner row cannot be read or is not explicitly activated.
+  const supabase = await createClient();
+  const { data: owner, error } = await (supabase as any)
+    .from('owners')
+    .select('id, portal_activated, archived_at')
+    .eq('id', me.owner_id)
+    .maybeSingle();
+  if (error || !isActivePortalRecord(owner)) {
+    redirect('/login?mode=owner&error=portal_access_disabled');
+  }
   return me;
 }

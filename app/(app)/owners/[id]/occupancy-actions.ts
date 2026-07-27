@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { queueEmails } from '@/lib/email/queue';
 
 const BUCKET = 'association-documents';
 
@@ -185,31 +186,71 @@ const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 export async function sendOwnerPasswordReset(ownerId: string) {
   const me = await requireStaff();
   const supabase = await createClient();
-  const { data: owner } = await (supabase as any).from('owners').select('email, full_name, portfolio_id').eq('id', ownerId).maybeSingle();
-  if (!owner?.email) fail(ownerId, 'This owner has no email on file.');
+  const { data: owner } = await (supabase as any)
+    .from('owners')
+    .select('id, auth_user_id, email, full_name, portfolio_id')
+    .eq('id', ownerId)
+    .maybeSingle();
+  if (!owner?.email || !owner.auth_user_id) fail(ownerId, 'This owner does not have a linked portal account and email.');
 
   const svc = createServiceClient() as any;
+  const verifiedEmail = String(owner.email).trim().toLowerCase();
+  const { data: authData, error: authLookupError } = await svc.auth.admin.getUserById(owner.auth_user_id);
+  const authUser = authData?.user;
+  if (
+    authLookupError
+    || !authUser
+    || authUser.id !== owner.auth_user_id
+    || String(authUser.email ?? '').trim().toLowerCase() !== verifiedEmail
+    || !authUser.email_confirmed_at
+  ) {
+    fail(ownerId, 'The owner record must match a verified portal sign-in email before a reset link can be sent.');
+  }
+
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
-    email: owner.email,
+    email: verifiedEmail,
     options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
   });
-  if (error || !linkData?.properties?.action_link) fail(ownerId, `Could not generate a reset link: ${error?.message ?? 'no portal account exists for this email yet'}`);
+  if (
+    error
+    || !linkData?.properties?.action_link
+    || linkData.user?.id !== owner.auth_user_id
+    || String(linkData.user?.email ?? '').trim().toLowerCase() !== verifiedEmail
+  ) {
+    fail(ownerId, `Could not generate a reset link: ${error?.message ?? 'the linked portal identity did not match'}`);
+  }
 
   // White-label: the owner sees their management company as the sender.
   const companyName = me.portfolio?.company_name ?? 'Your management company';
-  const { error: qErr } = await svc.from('email_queue').insert({
-    to_email: owner.email,
-    to_name: owner.full_name,
+  const queued = await queueEmails(svc, [{
+    to: verifiedEmail,
+    toName: owner.full_name,
     subject: 'Reset your owner portal password',
-    body: `<p>Hello${owner.full_name ? ` ${owner.full_name}` : ''},</p><p>${companyName} sent you a link to reset your owner-portal password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not expect this email, contact your management office.</p>`,
-    status: 'pending',
-    from_address: 'hello@portier369.com',
-    from_name: me.portfolio?.company_name ?? 'Portier369',
-    reply_to: me.portfolio?.support_email ?? null,
-    portfolio_id: owner.portfolio_id,
+    text: [
+      `Hello${owner.full_name ? ` ${owner.full_name}` : ''},`,
+      '',
+      `${companyName} sent you a link to reset your owner-portal password:`,
+      linkData.properties.action_link,
+      '',
+      'This link expires after a short time. If you did not expect this email, contact your management office.',
+    ].join('\n'),
+    fromName: me.portfolio?.company_name ?? 'Portier369',
+    replyTo: me.portfolio?.support_email ?? null,
+    portfolioId: owner.portfolio_id,
+    sentBy: me.auth_user_id,
+  }]);
+  if (queued.error || queued.count !== 1) fail(ownerId, `Reset link created but the email could not be queued: ${queued.error ?? 'unknown queue error'}`);
+
+  const { error: auditError } = await svc.from('audit_logs').insert({
+    entity_type: 'owner',
+    entity_id: owner.id,
+    action: 'password_reset_sent',
+    actor_id: me.auth_user_id,
+    actor_email: me.email ?? null,
+    changes: { target_email: verifiedEmail, method: 'verified_email_recovery_link', delivery: 'email_queue' },
   });
-  if (qErr) fail(ownerId, `Reset link created but the email could not be queued: ${qErr.message}`);
+  if (auditError) fail(ownerId, 'The recovery email was queued, but the required audit event could not be recorded.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}?saved=reset_sent`);
 }
@@ -217,19 +258,26 @@ export async function sendOwnerPasswordReset(ownerId: string) {
 export async function setOwnerPortalAccess(ownerId: string, enable: boolean) {
   await requireStaff();
   const supabase = await createClient();
-  const { data: owner } = await (supabase as any).from('owners').select('auth_user_id').eq('id', ownerId).maybeSingle();
-  if (!owner) fail(ownerId, 'Owner not found.');
-
-  if (owner.auth_user_id) {
-    const svc = createServiceClient() as any;
-    // ban_duration 'none' lifts the ban; ~100 years effectively disables.
-    const { error: banErr } = await svc.auth.admin.updateUserById(owner.auth_user_id, {
-      ban_duration: enable ? 'none' : '876000h',
-    });
-    if (banErr) fail(ownerId, `Could not ${enable ? 'enable' : 'disable'} sign-in: ${banErr.message}`);
+  const { data: owner, error: ownerError } = await (supabase as any)
+    .from('owners')
+    .select('id, auth_user_id')
+    .eq('id', ownerId)
+    .maybeSingle();
+  if (ownerError || !owner) fail(ownerId, ownerError?.message ?? 'Owner not found.');
+  if (enable && !owner.auth_user_id) {
+    fail(ownerId, 'Create or invite the owner portal account before enabling portal access.');
   }
-  const { error } = await (supabase as any).from('owners').update({ portal_activated: enable }).eq('id', ownerId);
-  if (error) fail(ownerId, error.message);
+
+  // This switch is deliberately tenant-local. Never ban/unban the shared auth
+  // identity: the same person may retain a board, vendor, or other portfolio
+  // role. requireOwner() enforces this flag on every owner-portal request.
+  const { data: updated, error } = await (supabase as any)
+    .from('owners')
+    .update({ portal_activated: enable })
+    .eq('id', ownerId)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) fail(ownerId, error?.message ?? 'Owner portal access was not updated in this portfolio.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}?saved=${enable ? 'portal_enabled' : 'portal_disabled'}`);
 }

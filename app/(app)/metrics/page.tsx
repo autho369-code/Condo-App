@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { requireStaff } from '@/lib/auth/me';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -103,6 +103,7 @@ export default async function MetricsPage() {
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
+  const serviceDb = createServiceClient() as any;
   const portfolioId = me.portfolio?.id;
 
   // ── Fetch portfolio health metrics ──
@@ -180,7 +181,10 @@ export default async function MetricsPage() {
     db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
       .lt('scheduled_date', todayStr)
       .not('status', 'in', '("done","completed","billed","closed","cancelled")'),
-    portfolioId ? db.rpc('report_data_delinquency', { p_portfolio_id: portfolioId, p_params: {} }) : Promise.resolve({ data: [] }),
+    // report_data_* functions run with elevated database privileges. The scope
+    // passed here is derived from the authenticated session above, never from
+    // request input, so the RPC itself can remain service-role-only.
+    portfolioId ? serviceDb.rpc('report_data_delinquency', { p_portfolio_id: portfolioId, p_params: {} }) : Promise.resolve({ data: [] }),
   ]);
   const delinq = (Array.isArray(delinqRows) ? delinqRows : []) as any[];
   const delinq0_30 = delinq.filter((r) => (r.days_past_due ?? 0) <= 30).length;

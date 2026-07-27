@@ -7,6 +7,10 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { date, money } from '@/lib/utils';
+import {
+  associationCanAcceptStripePayments,
+  parseAutopayConfiguration,
+} from '@/lib/payments/guards';
 import { RefreshCcw, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -30,54 +34,94 @@ async function startAutopaySetup(formData: FormData) {
   if (!isStripeConfigured()) redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled yet.')}`);
 
   const unitId = (formData.get('unit_id') as string) || '';
-  const mode = (formData.get('mode') as string) || 'current_balance';
-  const day = Math.min(28, Math.max(1, Number(formData.get('day_of_month') || 1)));
-  const maxAmount = Number(((formData.get('max_amount') as string) || '').replace(/[$,]/g, ''));
-  const fixedAmount = Number(((formData.get('fixed_amount') as string) || '').replace(/[$,]/g, ''));
-  const minimumAmount = Number(((formData.get('minimum_amount') as string) || '').replace(/[$,]/g, ''));
-  const includeLateFees = formData.get('include_late_fees') === 'on';
-
   if (!unitId) redirect(`${RETURN}?error=${encodeURIComponent('Pick a unit.')}`);
-  if (!Number.isFinite(maxAmount) || maxAmount < 1) redirect(`${RETURN}?error=${encodeURIComponent('Set a maximum withdrawal amount (your safety cap).')}`);
-  if (mode === 'fixed' && (!Number.isFinite(fixedAmount) || fixedAmount < 1)) redirect(`${RETURN}?error=${encodeURIComponent('Enter the fixed monthly amount.')}`);
-  if (mode === 'minimum' && (!Number.isFinite(minimumAmount) || minimumAmount < 1)) redirect(`${RETURN}?error=${encodeURIComponent('Enter the minimum amount.')}`);
+  const parsed = parseAutopayConfiguration({
+    mode: formData.get('mode') || 'current_balance',
+    dayOfMonth: formData.get('day_of_month') || '1',
+    maxAmount: formData.get('max_amount'),
+    fixedAmount: formData.get('fixed_amount'),
+    minimumAmount: formData.get('minimum_amount'),
+    includeLateFees: formData.get('include_late_fees') === 'on',
+  });
+  if (!parsed.ok) redirect(`${RETURN}?error=${encodeURIComponent(parsed.error)}`);
+  const config = parsed.value;
 
   const svc = createServiceClient() as any;
   const { data: occ } = await svc
     .from('occupancies')
-    .select('unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled)')
+    .select('unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
     .eq('owner_id', me.owner_id)
     .eq('unit_id', unitId)
     .eq('status', 'current')
     .maybeSingle();
-  if (!occ?.associations?.stripe_account_id || !occ.associations.stripe_charges_enabled) {
+  if (!occ?.association_id || !occ?.associations?.portfolio_id || !associationCanAcceptStripePayments(occ.associations)) {
     redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not enabled for your association yet.')}`);
+  }
+
+  const { data: existingMandate } = await svc
+    .from('autopay_mandates')
+    .select('id')
+    .eq('owner_id', me.owner_id)
+    .eq('unit_id', unitId)
+    .neq('status', 'canceled')
+    .limit(1)
+    .maybeSingle();
+  if (existingMandate) {
+    redirect(`${RETURN}?error=${encodeURIComponent('AutoPay is already active or pending for this unit.')}`);
+  }
+
+  await svc.from('stripe_setup_attempts').update({ status: 'expired' })
+    .eq('owner_id', me.owner_id)
+    .eq('unit_id', unitId)
+    .in('status', ['pending', 'session_created'])
+    .lt('expires_at', new Date().toISOString());
+
+  const { data: attempt, error: attemptError } = await svc.from('stripe_setup_attempts').insert({
+    portfolio_id: occ.associations.portfolio_id,
+    association_id: occ.association_id,
+    unit_id: unitId,
+    owner_id: me.owner_id,
+    created_by: me.auth_user_id,
+    processor_account_id: occ.associations.stripe_account_id,
+    mode: config.mode,
+    day_of_month: config.dayOfMonth,
+    authorized_amount_max_cents: config.maxCents,
+    fixed_amount_cents: config.fixedCents,
+    minimum_amount_cents: config.minimumCents,
+    include_late_fees: config.includeLateFees,
+  }).select('id').single();
+  if (attemptError || !attempt) {
+    const message = attemptError?.code === '23505'
+      ? 'AutoPay setup is already in progress for this unit.'
+      : 'Could not reserve a secure AutoPay setup. Please try again.';
+    redirect(`${RETURN}?error=${encodeURIComponent(message)}`);
   }
 
   try {
     const session = await createSetupCheckoutSession({
       customerEmail: me.profile?.email ?? null,
-      successUrl: `${SITE_URL}/portal/autopay?enrolled=1`,
-      cancelUrl: `${SITE_URL}/portal/autopay?canceled=1`,
+      successUrl: `${SITE_URL}/portal/autopay?setup=${attempt.id}`,
+      cancelUrl: `${SITE_URL}/portal/autopay?canceled=1&setup=${attempt.id}`,
       stripeAccount: occ.associations.stripe_account_id,
+      idempotencyKey: `autopay-setup-${attempt.id}`,
       metadata: {
         purpose: 'autopay_setup',
-        owner_id: me.owner_id!,
-        unit_id: unitId,
-        association_id: occ.association_id,
-        portfolio_id: occ.associations.portfolio_id,
-        mode,
-        day_of_month: String(day),
-        max_cents: String(Math.round(maxAmount * 100)),
-        fixed_cents: mode === 'fixed' ? String(Math.round(fixedAmount * 100)) : '',
-        minimum_cents: mode === 'minimum' ? String(Math.round(minimumAmount * 100)) : '',
-        include_late_fees: includeLateFees ? 'true' : 'false',
+        setup_attempt_id: attempt.id,
       },
     });
+    const { error: sessionError } = await svc.from('stripe_setup_attempts').update({
+      processor_session_id: session.id,
+      status: 'session_created',
+    }).eq('id', attempt.id).eq('status', 'pending');
+    if (sessionError) throw sessionError;
     redirect(session.url);
   } catch (err: any) {
     if (err?.digest?.startsWith?.('NEXT_REDIRECT')) throw err;
-    redirect(`${RETURN}?error=${encodeURIComponent(err?.message ?? 'Could not start AutoPay setup.')}`);
+    await svc.from('stripe_setup_attempts').update({
+      status: 'failed',
+      last_error: err?.message ?? 'Stripe setup session creation failed',
+    }).eq('id', attempt.id).neq('status', 'completed');
+    redirect(`${RETURN}?error=${encodeURIComponent('Could not start AutoPay setup. Please try again.')}`);
   }
 }
 
@@ -86,6 +130,9 @@ async function updateMandate(formData: FormData) {
   const me = await requireOwner();
   const mandateId = formData.get('mandate_id') as string;
   const action = formData.get('do') as string;
+  if (!['skip_month', 'vacation', 'resume', 'cancel'].includes(action)) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Choose a valid AutoPay action.')}`);
+  }
   const svc = createServiceClient() as any;
 
   const { data: mandate } = await svc.from('autopay_mandates').select('id, owner_id, next_run_date, day_of_month').eq('id', mandateId).maybeSingle();
@@ -97,7 +144,10 @@ async function updateMandate(formData: FormData) {
     updates.skip_until = mandate.next_run_date ?? new Date().toISOString().slice(0, 10);
   } else if (action === 'vacation') {
     const until = (formData.get('until') as string) || '';
-    if (!until) redirect(`${RETURN}?error=${encodeURIComponent('Pick the date your vacation hold ends.')}`);
+    const today = new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || Number.isNaN(Date.parse(`${until}T00:00:00Z`)) || until < today) {
+      redirect(`${RETURN}?error=${encodeURIComponent('Pick a valid vacation end date that is not in the past.')}`);
+    }
     updates.skip_until = until;
     updates.paused_reason = 'vacation mode';
   } else if (action === 'resume') {
@@ -107,19 +157,33 @@ async function updateMandate(formData: FormData) {
     updates.status = 'canceled';
     updates.canceled_at = new Date().toISOString();
   }
-  await svc.from('autopay_mandates').update(updates).eq('id', mandateId);
+  const { error } = await svc
+    .from('autopay_mandates')
+    .update(updates)
+    .eq('id', mandateId)
+    .eq('owner_id', me.owner_id);
+  if (error) redirect(`${RETURN}?error=${encodeURIComponent('Could not update AutoPay. Please try again.')}`);
   redirect(`${RETURN}?updated=1`);
 }
 
 export default async function AutopayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; enrolled?: string; canceled?: string; updated?: string }>;
+    searchParams: Promise<{ error?: string; enrolled?: string; canceled?: string; updated?: string; setup?: string }>;
 }) {
   const sp = await searchParams;
   const me = await requireOwner();
   const supabase = await createClient();
   const db = supabase as any;
+
+  const setupId = /^[0-9a-f-]{36}$/i.test(sp.setup ?? '') ? sp.setup! : null;
+  const { data: setupAttempt } = setupId
+    ? await (createServiceClient() as any).from('stripe_setup_attempts')
+        .select('status')
+        .eq('id', setupId)
+        .eq('owner_id', me.owner_id)
+        .maybeSingle()
+    : { data: null };
 
   const [{ data: mandates }, { data: occs }] = await Promise.all([
     db.from('autopay_mandates')
@@ -128,14 +192,14 @@ export default async function AutopayPage({
       .neq('status', 'canceled')
       .order('created_at', { ascending: false }),
     db.from('occupancies')
-      .select('unit_id, units(unit_number), associations(id, name, stripe_charges_enabled)')
+      .select('unit_id, units(unit_number), associations(id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at)')
       .eq('owner_id', me.owner_id)
       .eq('status', 'current'),
   ]);
 
   const activeMandateUnitIds = new Set((mandates ?? []).map((m: any) => m.unit_id));
   const enrollableUnits = (occs ?? []).filter(
-    (o: any) => o.associations?.stripe_charges_enabled && !activeMandateUnitIds.has(o.unit_id),
+    (o: any) => associationCanAcceptStripePayments(o.associations) && !activeMandateUnitIds.has(o.unit_id),
   );
   const today = new Date().toISOString().slice(0, 10);
 
@@ -150,6 +214,9 @@ export default async function AutopayPage({
 
       {sp.error && <Alert tone="danger" title="AutoPay error">{sp.error}</Alert>}
       {sp.enrolled && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment activates as soon as Stripe confirms the saved payment method (usually instant).</Alert>}
+      {setupAttempt?.status === 'completed' && <Alert tone="success" title="Payment method saved">Your AutoPay enrollment is active.</Alert>}
+      {setupAttempt && ['pending', 'session_created'].includes(setupAttempt.status) && <Alert tone="info" title="Setup received">Stripe is confirming your saved payment method. This page will show the enrollment once processing completes.</Alert>}
+      {setupAttempt?.status === 'failed' && <Alert tone="danger" title="Setup could not be completed">No AutoPay enrollment was activated. Please start again.</Alert>}
       {sp.canceled && <Alert tone="warning" title="Setup canceled">No payment method was saved. You can start again below.</Alert>}
       {sp.updated && <Alert tone="success" title="AutoPay updated">Your changes are saved.</Alert>}
 

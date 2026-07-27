@@ -10,6 +10,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { date } from '@/lib/utils';
 import { toggleReminder } from './actions';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,9 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
 
   // Signed links for uploaded certificates (private bucket)
   const certLinkById = new Map<string, string>();
-  const toSign = rows.filter((r: any) => r.certificate_file_url && !/^https?:\/\//i.test(r.certificate_file_url));
+  const toSign = rows.filter((r: any) =>
+    isScopedStoragePath(r.certificate_file_url, 'insurance', r.owner_id),
+  );
   if (toSign.length > 0) {
     try {
       const svc = createServiceClient() as any;

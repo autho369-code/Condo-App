@@ -27,12 +27,21 @@ export async function reconcilePayouts(svc: SupabaseClient): Promise<ReconcileSu
 
   const { data: payouts } = await db
     .from('payout_batches')
-    .select('id, portfolio_id, processor_payout_id, amount, arrival_date, status')
+    .select('id, portfolio_id, association_id, processor_account_id, settlement_bank_account_id, processor_payout_id, amount, arrival_date, status')
     .in('status', ['pending', 'paid', 'needs_review'])
     .is('bank_transaction_id', null);
 
   for (const payout of payouts ?? []) {
     summary.examined++;
+    if (!payout.association_id || !payout.processor_account_id || !payout.settlement_bank_account_id) {
+      await db.from('payout_batches').update({
+        status: 'needs_review',
+        notes: 'Select this association\'s Stripe settlement bank account before automatic reconciliation.',
+        updated_at: new Date().toISOString(),
+      }).eq('id', payout.id);
+      summary.needsReview++;
+      continue;
+    }
     const arrival = payout.arrival_date ? new Date(payout.arrival_date) : new Date();
     const from = new Date(arrival.getTime() - 5 * 86400000).toISOString().slice(0, 10);
     const to = new Date(arrival.getTime() + 5 * 86400000).toISOString().slice(0, 10);
@@ -42,6 +51,7 @@ export async function reconcilePayouts(svc: SupabaseClient): Promise<ReconcileSu
       .from('bank_transactions')
       .select('id, amount, date, name, matched_at')
       .eq('portfolio_id', payout.portfolio_id)
+      .eq('bank_account_id', payout.settlement_bank_account_id)
       .gte('date', from)
       .lte('date', to)
       .is('matched_at', null);
@@ -61,23 +71,27 @@ export async function reconcilePayouts(svc: SupabaseClient): Promise<ReconcileSu
       ?? (processorLooking.length === 1 ? processorLooking[0] : undefined);
 
     if (pick) {
+      const claimedAt = new Date().toISOString();
+      const { data: claimed } = await db.from('bank_transactions').update({
+        matched_at: claimedAt,
+        match_method: 'stripe_payout',
+        match_confidence: refMatch ? 1 : 0.9,
+      }).eq('id', pick.id).is('matched_at', null).select('id');
+      if (!claimed?.length) continue;
       await db.from('payout_batches').update({
         bank_transaction_id: pick.id,
         status: 'reconciled',
-        matched_at: new Date().toISOString(),
+        matched_at: claimedAt,
         match_method: refMatch ? 'reference' : 'exact_amount',
         updated_at: new Date().toISOString(),
       }).eq('id', payout.id);
-      await db.from('bank_transactions').update({
-        matched_at: new Date().toISOString(),
-        match_method: 'stripe_payout',
-        match_confidence: refMatch ? 1 : 0.9,
-      }).eq('id', pick.id);
       // Payment timeline: every intent settled by this payout is now fully reconciled.
       const { data: settledIntents } = await db
         .from('payment_intents')
         .select('id')
-        .eq('processor_payout_id', payout.processor_payout_id);
+        .eq('processor_payout_id', payout.processor_payout_id)
+        .eq('processor_account_id', payout.processor_account_id)
+        .eq('association_id', payout.association_id);
       for (const i of settledIntents ?? []) {
         await db.from('payment_events').insert([
           { payment_intent_id: i.id, event: 'bank_deposit_detected', detail: `Bank deposit matched (${pick.name ?? 'deposit'} on ${pick.date})` },

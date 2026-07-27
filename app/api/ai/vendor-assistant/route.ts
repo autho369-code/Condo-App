@@ -8,10 +8,16 @@
  * read the portfolios row; the key never leaves the server).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { chatCompletion, type AIConfig } from '@/lib/ai/service';
+import { chatCompletion, getAIConfig, type AIConfig } from '@/lib/ai/service';
 import { requireVendor } from '@/lib/auth/me';
 import { buildVendorSnapshot } from '@/lib/ai/vendor-snapshot';
 import { createServiceClient } from '@/lib/supabase/server';
+import {
+  MAX_ASSISTANT_MESSAGE_CHARS,
+  boundedAssistantHistory,
+  guardAuthenticatedAssistantRequest,
+  type AssistantTurn,
+} from '@/lib/ai/request-guard';
 
 const SYSTEM_PROMPT =
   'You are the AI Assistant for a contractor/vendor portal in a condominium management platform. ' +
@@ -21,26 +27,12 @@ const SYSTEM_PROMPT =
   'NEVER invent, estimate, or extrapolate numbers, dates, or amounts. ' +
   'Be brief and practical; format money with a dollar sign. Do not output JSON or code unless asked.';
 
-type Turn = { role: 'user' | 'assistant'; content: string };
-
 async function getVendorAIConfig(vendorId: string): Promise<AIConfig | null> {
   const svc = createServiceClient() as any;
   const { data: vendor } = await svc.from('vendors').select('portfolio_id').eq('id', vendorId).maybeSingle();
   if (!vendor?.portfolio_id) return null;
 
-  const { data: portfolio } = await svc
-    .from('portfolios')
-    .select('ai_provider, ai_model, ai_endpoint, ai_api_key')
-    .eq('id', vendor.portfolio_id)
-    .maybeSingle();
-  if (!portfolio?.ai_provider || !portfolio?.ai_api_key) return null;
-
-  return {
-    provider: portfolio.ai_provider,
-    model: portfolio.ai_model || 'gpt-4o',
-    apiKey: portfolio.ai_api_key,
-    endpoint: portfolio.ai_endpoint || undefined,
-  };
+  return getAIConfig(vendor.portfolio_id, svc);
 }
 
 export async function POST(request: NextRequest) {
@@ -54,16 +46,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No vendor record linked to your account.' }, { status: 400 });
   }
 
-  let body: { question?: string; history?: Turn[] };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const guarded = await guardAuthenticatedAssistantRequest<{
+    question?: unknown;
+    history?: unknown;
+  }>(request, me.auth_user_id);
+  if (!guarded.ok) return guarded.response;
+  const body = guarded.body;
 
-  const question = (body.question ?? '').trim();
+  const question = typeof body.question === 'string' ? body.question.trim() : '';
   if (!question) {
     return NextResponse.json({ error: 'Please enter a question.' }, { status: 400 });
+  }
+  if (question.length > MAX_ASSISTANT_MESSAGE_CHARS) {
+    return NextResponse.json({ error: `Question must be ${MAX_ASSISTANT_MESSAGE_CHARS} characters or fewer.` }, { status: 400 });
   }
 
   const config = await getVendorAIConfig(me.vendor_id);
@@ -74,14 +69,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const history: Turn[] = Array.isArray(body.history)
-    ? body.history
-        .filter(
-          (t): t is Turn =>
-            !!t && (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string',
-        )
-        .slice(-6)
-    : [];
+  const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
     const snapshot = await buildVendorSnapshot();

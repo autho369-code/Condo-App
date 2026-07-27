@@ -1,10 +1,12 @@
 'use server';
 // Entity CRUD for Associations, Buildings, Units, Owners, Vendors.
 // Every insert resolves portfolio_id from me() server-side; never trust client.
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff, requirePortfolioAdmin } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { safeInternalNext } from '@/lib/security/redirects';
+import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 
 // ---------- Helpers ----------
 const str  = (f: FormData, k: string) => {
@@ -214,8 +216,8 @@ export async function createBankAccount(formData: FormData) {
   if (payload.association_id) revalidatePath(`/associations/${payload.association_id}`);
 
   // If the form says "return to association", bounce back there.
-  const ret = str(formData, 'return_to');
-  if (ret && ret.startsWith('/')) redirect(ret);
+  const ret = safeInternalNext(str(formData, 'return_to'));
+  if (ret) redirect(ret);
   redirect(`/bank-accounts`);
 }
 
@@ -434,24 +436,8 @@ export async function createOwner(formData: FormData) {
   if (!fullName) failTo('Name is required');
   const email = req(formData, 'email');
 
-  // Create Supabase auth user if portal activated
-  let authUserId: string | null = null;
+  // Portal identities are created only after verified-email invitation.
   const activatePortal = formData.get('activate_portal') === 'on';
-  if (activatePortal) {
-    const password = str(formData, 'portal_password') ?? generatePassword();
-    const { data: authUser, error: authErr } = await (supabase as any).auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: fullName, role: 'owner' },
-    });
-    if (authErr) {
-      console.error('Auth user creation failed:', authErr.message);
-      // Continue anyway — owner record still gets created
-    } else {
-      authUserId = authUser?.user?.id ?? null;
-    }
-  }
 
   const payload = {
     portfolio_id: me.portfolio?.id,
@@ -465,8 +451,8 @@ export async function createOwner(formData: FormData) {
     address_state:  str(formData, 'address_state'),
     address_zip:    str(formData, 'address_zip'),
     preferred_comm: str(formData, 'preferred_comm') ?? 'email',
-    portal_activated: activatePortal,
-    auth_user_id: authUserId,
+    portal_activated: false,
+    auth_user_id: null,
     notes:          str(formData, 'notes'),
     created_by:     me.auth_user_id,
   };
@@ -492,21 +478,27 @@ export async function createOwner(formData: FormData) {
     });
   }
 
+  let portalInvitationQueued = false;
+  if (activatePortal && me.portfolio?.id) {
+    const invitation = await queueOwnerPortalInvitation(createServiceClient() as any, {
+      email,
+      fullName,
+      portfolioId: me.portfolio.id,
+      invitedBy: me.auth_user_id,
+    });
+    if (invitation.error) {
+      redirect(`/owners/${owner.id}?error=${encodeURIComponent(`Owner created, but portal invitation failed: ${invitation.error}`)}`);
+    }
+    portalInvitationQueued = true;
+  }
+
   revalidatePath('/owners');
   revalidatePath(`/owners/${owner.id}`);
-  // Pass the generated password so the manager can share it with the owner
-  if (activatePortal && authUserId) {
-    const pw = str(formData, 'portal_password') ?? 'auto-generated';
+  // Staff see only that the invitation was queued; no password is generated.
+  if (portalInvitationQueued) {
     redirect(`/owners/${owner.id}?portal_created=1&email=${encodeURIComponent(email)}`);
   }
   redirect(`/owners/${owner.id}`);
-}
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let pw = '';
-  for (let i = 0; i < 12; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-  return pw;
 }
 
 export async function updateOwner(id: string, formData: FormData) {

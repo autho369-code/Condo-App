@@ -1,38 +1,46 @@
-// Reset auth user password via Supabase Admin API
+// Request a provider-delivered recovery email without handling credentials.
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-const envPath = path.resolve(__dirname, '..', '.env.local');
-const envContent = fs.readFileSync(envPath, 'utf-8');
-const env = {};
-for (const line of envContent.split('\n')) {
-  const trimmed = line.trim();
-  if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-    const [key, ...rest] = trimmed.split('=');
-    env[key.trim()] = rest.join('=').trim();
+function loadLocalEnv() {
+  const envPath = path.resolve(__dirname, '..', '.env.local');
+  const env = {};
+  for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+      const [key, ...rest] = trimmed.split('=');
+      env[key.trim()] = rest.join('=').trim();
+    }
   }
+  return env;
 }
 
-async function main() {
-  const supabase = createClient(env['NEXT_PUBLIC_SUPABASE_URL'], env['SUPABASE_SERVICE_ROLE_KEY'], {
-    auth: { autoRefreshToken: false, persistSession: false },
+async function requestRecovery(emailArg = process.argv[2]) {
+  const email = String(emailArg ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Usage: node scripts/reset-password.js <verified-email>');
+  }
+
+  const env = loadLocalEnv();
+  const url = env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) throw new Error('Supabase URL/anon key are not configured.');
+
+  const supabase = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const siteUrl = env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/api/auth/callback?next=/reset-password`,
   });
-
-  const email = 'autho369@gmail.com';
-  const newPassword = process.argv[2] || 'Portier2026!';
-
-  const { data, error } = await supabase.auth.admin.updateUserById(
-    'df2e02c5-905a-435c-ba9f-97b789f56391',
-    { password: newPassword, email_confirm: true }
-  );
-
-  if (error) {
-    console.error('Error:', error.message);
-  } else {
-    console.log(`Password reset for ${email}`);
-    console.log(`New password: ${newPassword}`);
-  }
+  if (error) throw error;
+  console.log('Recovery email requested. No password or recovery credential was displayed.');
 }
 
-main();
+if (require.main === module) {
+  requestRecovery().catch((error) => {
+    console.error(`Recovery request failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { requestRecovery };

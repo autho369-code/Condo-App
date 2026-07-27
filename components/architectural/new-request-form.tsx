@@ -88,7 +88,7 @@ export function NewArchitecturalRequestForm({ unitOptions }: { unitOptions: Unit
         const file = files[i];
         setPhase(`Uploading document ${i + 1} of ${files.length}: ${file.name}`);
         try {
-          const signed = await createArchAttachmentUpload(created.id, file.name, file.size);
+          const signed = await createArchAttachmentUpload(created.id, '/portal/architectural', file.name, file.size);
           if (signed.error || !signed.path || !signed.token) { failed.push(file.name); continue; }
           const { error: upErr } = await supabase.storage
             .from(BUCKET)

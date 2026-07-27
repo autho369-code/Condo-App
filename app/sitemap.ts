@@ -7,9 +7,9 @@ const BASE = 'https://portier369.com'
 
 // Bump these when the corresponding content meaningfully changes — a truthful
 // lastModified is what makes crawlers trust the sitemap.
-const CORE_UPDATED = new Date('2026-07-06')
+const CORE_UPDATED = new Date('2026-07-26')
 const LEGAL_UPDATED = new Date('2026-06-14')
-const CONTENT_UPDATED = new Date('2026-07-06')
+const CONTENT_UPDATED = new Date('2026-07-26')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const core = [
@@ -21,7 +21,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/features/communications', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/features/portals', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/company', priority: 0.7, changeFrequency: 'monthly' as const },
-    { path: '/customers/stellar-property-management', priority: 0.8, changeFrequency: 'monthly' as const },
     { path: '/contact', priority: 0.6, changeFrequency: 'yearly' as const },
     { path: '/demo', priority: 0.8, changeFrequency: 'monthly' as const },
   ].map((r) => ({

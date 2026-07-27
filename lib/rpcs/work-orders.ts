@@ -5,6 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 
+async function accessibleWorkOrder(db: any, workOrderId: string) {
+  return db
+    .from('work_orders')
+    .select('id, portfolio_id')
+    .eq('id', workOrderId)
+    .maybeSingle();
+}
+
 export async function updateWorkOrderStatus(workOrderId: string, newStatus: string, note?: string) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
@@ -18,14 +26,20 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
     patch.completed_date = null;
   }
 
-  const { error: e1 } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (e1) { failTo(e1.message); return; }
+  const { data: updated, error: e1 } = await (supabase as any)
+    .from('work_orders')
+    .update(patch)
+    .eq('id', workOrderId)
+    .select('id')
+    .maybeSingle();
+  if (e1 || !updated) { failTo(e1?.message ?? 'Work order not found or not accessible.'); return; }
 
-  await (supabase as any).from('work_order_updates').insert({
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: note || `Status changed to ${newStatus}`,
     new_status: newStatus,
   });
+  if (activityError) { failTo(`Status changed, but its activity entry could not be recorded: ${activityError.message}`); return; }
   // Auto keep homeowner informed — never fails the action (helper never throws)
   await notifyOwnerOfStatusChange({ kind: 'work_order', id: workOrderId, newStatus });
   revalidatePath(`/work-orders/${workOrderId}`);
@@ -63,13 +77,19 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
   // Drop null-out of required fields — title can't be null
   if (!patch.title) delete patch.title;
 
-  const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (error) { failTo(error.message); return; }
+  const { data: updated, error } = await (supabase as any)
+    .from('work_orders')
+    .update(patch)
+    .eq('id', workOrderId)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) { failTo(error?.message ?? 'Work order not found or not accessible.'); return; }
 
-  await (supabase as any).from('work_order_updates').insert({
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: 'Work order details updated',
   });
+  if (activityError) { failTo(`Details changed, but the activity entry could not be recorded: ${activityError.message}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
@@ -85,20 +105,38 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
 
   if (!vendorId) { failTo('Vendor is required'); return; }
 
-  // Look up vendor name for the activity log
-  const { data: vendor } = await (supabase as any).from('vendors').select('name').eq('id', vendorId).maybeSingle();
+  // Both reads use the caller's session/RLS. The explicit portfolio comparison
+  // prevents a vendor id from another tenant being assigned even if a future
+  // policy accidentally makes that vendor visible.
+  const [{ data: workOrder, error: workOrderError }, { data: vendor, error: vendorError }] = await Promise.all([
+    (supabase as any).from('work_orders').select('id, portfolio_id').eq('id', workOrderId).maybeSingle(),
+    (supabase as any).from('vendors').select('id, name, portfolio_id').eq('id', vendorId).maybeSingle(),
+  ]);
+  if (workOrderError || !workOrder) { failTo(workOrderError?.message ?? 'Work order not found or not accessible.'); return; }
+  if (vendorError || !vendor) { failTo(vendorError?.message ?? 'Vendor not found or not accessible.'); return; }
+  if (!workOrder.portfolio_id || vendor.portfolio_id !== workOrder.portfolio_id) {
+    failTo('The selected vendor does not belong to the work order portfolio.');
+    return;
+  }
 
   const patch: Record<string, unknown> = { vendor_id: vendorId };
   if (bumpStatus) patch.status = 'assigned';
 
-  const { error } = await (supabase as any).from('work_orders').update(patch).eq('id', workOrderId);
-  if (error) { failTo(error.message); return; }
+  const { data: updated, error } = await (supabase as any)
+    .from('work_orders')
+    .update(patch)
+    .eq('id', workOrderId)
+    .eq('portfolio_id', workOrder.portfolio_id)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) { failTo(error?.message ?? 'Work order was not updated in this portfolio.'); return; }
 
-  await (supabase as any).from('work_order_updates').insert({
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: note || `Assigned to vendor${vendor?.name ? ': ' + vendor.name : ''}`,
     new_status: bumpStatus ? 'assigned' : null,
   });
+  if (activityError) { failTo(`Vendor assigned, but the activity entry could not be recorded: ${activityError.message}`); return; }
   // Auto keep homeowner informed when assignment also changed the status
   if (bumpStatus) {
     await notifyOwnerOfStatusChange({ kind: 'work_order', id: workOrderId, newStatus: 'assigned' });
@@ -110,18 +148,29 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
 export async function unassignVendor(workOrderId: string) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('work_orders').update({ vendor_id: null }).eq('id', workOrderId);
-  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
-  await (supabase as any).from('work_order_updates').insert({
+  const { data: updated, error } = await (supabase as any)
+    .from('work_orders')
+    .update({ vendor_id: null })
+    .eq('id', workOrderId)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error?.message ?? 'Work order not found or not accessible.')}`); return; }
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: 'Vendor unassigned',
   });
+  if (activityError) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(`Vendor unassigned, but the activity entry could not be recorded: ${activityError.message}`)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
 export async function addLaborEntry(workOrderId: string, formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
+  const { data: workOrder, error: workOrderError } = await accessibleWorkOrder(supabase as any, workOrderId);
+  if (workOrderError || !workOrder) {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
+    return;
+  }
   const { error } = await (supabase as any).from('work_order_labor_entries').insert({
     work_order_id: workOrderId,
     tech_name:     formData.get('tech_name') as string,
@@ -137,9 +186,26 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
 export async function addEstimate(workOrderId: string, formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
+  const vendorId = (formData.get('vendor_id') as string) || null;
+  const { data: workOrder, error: workOrderError } = await accessibleWorkOrder(supabase as any, workOrderId);
+  if (workOrderError || !workOrder) {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
+    return;
+  }
+  if (vendorId) {
+    const { data: vendor, error: vendorError } = await (supabase as any)
+      .from('vendors')
+      .select('id, portfolio_id')
+      .eq('id', vendorId)
+      .maybeSingle();
+    if (vendorError || !vendor || !workOrder.portfolio_id || vendor.portfolio_id !== workOrder.portfolio_id) {
+      redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(vendorError?.message ?? 'Estimate vendor is not accessible in this work order portfolio.')}`);
+      return;
+    }
+  }
   const { error } = await (supabase as any).from('work_order_estimates').insert({
     work_order_id: workOrderId,
-    vendor_id:     (formData.get('vendor_id') as string) || null,
+    vendor_id:     vendorId,
     amount:        parseFloat(formData.get('amount') as string),
     notes:         (formData.get('notes') as string) || null,
   });
@@ -150,16 +216,29 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
 export async function approveEstimate(estimateId: string, workOrderId: string) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('work_order_estimates')
+  const { data: workOrder, error: workOrderError } = await accessibleWorkOrder(supabase as any, workOrderId);
+  if (workOrderError || !workOrder) {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
+    return;
+  }
+  const { data: updated, error } = await (supabase as any).from('work_order_estimates')
     .update({ approved_at: new Date().toISOString() })
-    .eq('id', estimateId);
-  if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
+    .eq('id', estimateId)
+    .eq('work_order_id', workOrderId)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error?.message ?? 'Estimate not found or not accessible for this work order.')}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
 export async function addNote(workOrderId: string, formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
+  const { data: workOrder, error: workOrderError } = await accessibleWorkOrder(supabase as any, workOrderId);
+  if (workOrderError || !workOrder) {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
+    return;
+  }
   const { error } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: formData.get('note') as string,
@@ -187,6 +266,17 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
   const vendorId = (formData.get('vendor_id') as string) || null;
   const scheduledDate = (formData.get('scheduled_date') as string) || null;
 
+  if (vendorId) {
+    const { data: vendor, error: vendorError } = await (supabase as any)
+      .from('vendors')
+      .select('id, portfolio_id')
+      .eq('id', vendorId)
+      .maybeSingle();
+    if (vendorError || !vendor || !sr.portfolio_id || vendor.portfolio_id !== sr.portfolio_id) {
+      return { error: vendorError?.message ?? 'The selected vendor is not accessible in the service request portfolio.' };
+    }
+  }
+
   const { data: wo, error } = await (supabase as any).from('work_orders').insert({
     portfolio_id:       sr.portfolio_id,
     association_id:     sr.association_id,
@@ -203,11 +293,12 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
   }).select('id').single();
   if (error || !wo) return { error: error?.message ?? 'Failed to create work order' };
 
-  await (supabase as any).from('work_order_updates').insert({
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: wo.id,
     note: `Work order created from service request #${serviceRequestId.slice(0, 8)}`,
     new_status: vendorId ? 'assigned' : 'new',
   });
+  if (activityError) return { error: `Work order created, but its activity entry could not be recorded: ${activityError.message}` };
 
   revalidatePath('/work-orders');
   redirect(`/work-orders/${wo.id}`);

@@ -6,6 +6,7 @@ import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createBankAccount } from '@/lib/rpcs/entities';
 import { createClient } from '@/lib/supabase/server';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export default async function NewBankAccountPage({
   await requireStaff();
   const sp = await searchParams;
   const { association, return_to } = sp;
+  const returnTo = safeInternalNext(return_to);
   const supabase = await createClient();
 
   const [{ data: associations }, { data: glAccounts }] = await Promise.all([
@@ -41,7 +43,7 @@ export default async function NewBankAccountPage({
       )}
 
       <form action={createBankAccount as unknown as (formData: FormData) => Promise<void>} className="max-w-3xl space-y-5">
-        {return_to && <input type="hidden" name="return_to" value={return_to} />}
+        {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
 
         <FormSection title="Bank information" description="Internal account identity and bank classification.">
           <Field label="Account name" required><Input name="name" required placeholder="Operating, reserve, trust" /></Field>
@@ -108,7 +110,7 @@ export default async function NewBankAccountPage({
 
         <div className="flex gap-2">
           <Button type="submit">Create bank account</Button>
-          <Link href={return_to && return_to.startsWith('/') ? return_to : '/bank-accounts'}><Button variant="secondary" type="button">Cancel</Button></Link>
+          <Link href={returnTo ?? '/bank-accounts'}><Button variant="secondary" type="button">Cancel</Button></Link>
         </div>
       </form>
     </DataWorkspace>

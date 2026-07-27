@@ -9,6 +9,7 @@
 // violations.attachments as [{ name, path, size, uploaded_at, ... }].
 import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { revalidatePath } from 'next/cache';
 
 const ATTACH_BUCKET = 'association-documents';
@@ -153,7 +154,7 @@ export async function recordViolationAttachment(
   if (access.error) return { error: access.error };
   const { violation, me } = access as any;
   // Only accept paths this flow issued for this violation.
-  if (!file.path?.startsWith(`violations/${violationId}/`)) return { error: 'Invalid photo reference' };
+  if (!isScopedStoragePath(file.path, 'violations', violationId)) return { error: 'Invalid photo reference' };
 
   const existing = Array.isArray(violation.attachments) ? violation.attachments : [];
   if (existing.some((a: any) => a?.path === file.path)) return { ok: true };

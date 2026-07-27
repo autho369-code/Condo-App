@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, Surface } from '@/components/ui/shell';
 import { CommunicationDrafter } from '@/components/ai/communication-drafter';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,8 @@ export default async function SendEmailPage({
 
   const fromEmail = profile?.email ?? me.email ?? 'no-reply@condo-app.example';
   const preAssoc = sp.association ?? '';
-  const closeHref = sp.return_to && sp.return_to.startsWith('/') ? sp.return_to : '/associations';
+  const returnTo = safeInternalNext(sp.return_to);
+  const closeHref = returnTo ?? '/associations';
 
   // Pull counts per recipient group for the preselected association so the
   // user knows how many each bucket resolves to before hitting Send.
@@ -80,7 +82,7 @@ export default async function SendEmailPage({
               <span className="font-semibold">Could not send email:</span> {sp.error}
             </div>
           )}
-          {sp.return_to && <input type="hidden" name="return_to" value={sp.return_to} />}
+          {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
 
           {/* From */}
           <Field label="From" required>

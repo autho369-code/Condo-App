@@ -2,11 +2,11 @@
 *As of 2026-06-14. TEST credentials — rotate before production.*
 
 ## All current logins
-All persona passwords: **`Portier2026!`**
+Shared persona passwords are retired. Use verified-email invitations or the normal recovery-email flow.
 
 | Email | Role | Lands on | Notes |
 |---|---|---|---|
-| `hello@portier369.com` | **Platform Operator** | `/platform-operator` | super-admin; password reset to `Portier2026!` |
+| `hello@portier369.com` | **Platform Operator** | `/platform-operator` | super-admin; access requires its verified-email credential flow |
 | `autho369@gmail.com` | Platform Operator | `/platform-operator` | original seed password (unknown — reset via operator if needed) |
 | `admin@condoapp.io` | Platform Operator | `/platform-operator` | original seed password |
 | `admin@hoa-os.local` | Platform Operator | `/platform-operator` | original seed password |
@@ -17,7 +17,7 @@ All persona passwords: **`Portier2026!`**
 | `vendor@portier369.com` | **Vendor** (Lakefront Maintenance) | `/vendor` | vendor portal |
 | *(Tessa Tenant)* | **Tenant — NO login** | — | data-only contact; reachable by email/SMS only |
 
-Login page: `/login` (one form; it routes by the account's real role). Use `hello@portier369.com` / `Portier2026!` as the platform operator.
+Login page: `/login` (one form; it routes by the account's real role). Never store or share a platform-operator password in this repository.
 
 ## The invitation chain (who invites whom)
 

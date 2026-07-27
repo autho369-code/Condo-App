@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -27,8 +28,7 @@ export async function sendEmail(formData: FormData) {
   const db = supabase as any;
 
   const failTo = (msg: string) => {
-    const returnTo = str(formData, 'return_to');
-    const base = returnTo && returnTo.startsWith('/') ? returnTo : '/send-email';
+    const base = safeInternalNext(str(formData, 'return_to')) ?? '/send-email';
     redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
   };
 
@@ -154,9 +154,9 @@ export async function sendEmail(formData: FormData) {
   if (queueError) { failTo(`Logged but could not queue for delivery: ${queueError.message}`); return; }
 
   // Bounce back to where we came from, or to association detail if not provided
-  const returnTo = str(formData, 'return_to');
+  const returnTo = safeInternalNext(str(formData, 'return_to'));
   revalidatePath('/calendar');
   revalidatePath('/communication-center');
-  if (returnTo && returnTo.startsWith('/')) redirect(returnTo);
+  if (returnTo) redirect(returnTo);
   redirect(`/associations/${associationId}?emailed=${count ?? rows.length}`);
 }

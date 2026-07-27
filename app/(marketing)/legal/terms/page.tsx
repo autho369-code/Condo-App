@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" updated="June 14, 2026">
+    <LegalShell title="Terms of Service" updated="July 26, 2026">
       <p>
         These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Portier369 platform, websites, and
         related services (the &quot;Services&quot;). By accessing or using the Services, you agree to these Terms. If you are
@@ -61,17 +61,20 @@ export default function TermsPage() {
       <H2>Payments and fees</H2>
       <p>
         Subscription fees for the Services are set out in your order and, except as required by law or expressly stated,
-        are non-refundable. The Services do not collect online card payments from homeowners; resident assessments are
-        paid to the management company offline and recorded in the platform, and, where enabled, reconciled against
-        bank-transaction data obtained through our banking-data provider. Subscription billing of management companies
-        may be processed by a third-party billing provider subject to its own terms.
+        are non-refundable. Where a Customer enables online resident assessment payments, each participating
+        association must connect and maintain its own Stripe account. Direct charges are created on that association&apos;s
+        connected account and settle to its designated bank account; Portier369 does not receive, custody, or commingle
+        association assessment funds. The Customer and association are responsible for the accuracy and lawfulness of
+        assessments, payment instructions, refunds, disputes, and any processing fees disclosed at checkout. Stripe
+        services are subject to Stripe&apos;s applicable terms. Subscription billing of management companies may be
+        processed separately by a third-party billing provider.
       </p>
 
       <H2>Third-party services</H2>
       <p>
-        The Services may integrate with third-party providers (for hosting, banking data, email, SMS, and optional AI
-        features). Your use of those integrations may be subject to the third parties&apos; terms, and Portier369 is not
-        responsible for third-party services.
+        The Services may integrate with third-party providers (including Stripe for payment processing, Plaid for
+        banking data, and providers for hosting, email, SMS, and optional AI features). Your use of those integrations
+        may be subject to the third parties&apos; terms, and Portier369 is not responsible for third-party services.
       </p>
 
       <H2>Artificial-intelligence features</H2>
