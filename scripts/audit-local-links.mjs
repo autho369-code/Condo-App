@@ -102,7 +102,7 @@ const lines = [
   '',
   ...(
     placeholders.length
-      ? placeholders.map((item) => `- \`${relative(root, item.file)}\` -> \`${item.href}\``)
+      ? placeholders.map((item) => `- \`${relative(root, item.file).split(sep).join('/')}\` -> \`${item.href}\``)
       : ['- None found.']
   ),
   '',
@@ -110,7 +110,7 @@ const lines = [
   '',
   ...(
     missing.length
-      ? missing.map((item) => `- \`${relative(root, item.file)}\` -> \`${item.href}\``)
+      ? missing.map((item) => `- \`${relative(root, item.file).split(sep).join('/')}\` -> \`${item.href}\``)
       : ['- None found.']
   ),
   '',
