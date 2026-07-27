@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { isSupportedReportOutputFormat } from '@/lib/reports/output';
 
 /**
  * Queue a report run. The DB function stamps the portfolio_id + triggered_by
@@ -42,7 +43,7 @@ export async function queueReport(formData: FormData) {
   if (error) { failTo(error.message); return; }
 
   // Process synchronously so the run page shows a finished result (or an
-  // honest failure) instead of a forever-"queued" row — there is no
+  // honest failure) instead of a forever-"queued" row â€” there is no
   // background worker for report runs.
   const { processReportRun } = await import('@/lib/reports/process');
   try {
@@ -55,21 +56,12 @@ export async function queueReport(formData: FormData) {
   redirect(`/reports/runs/${(data as any).id}`);
 }
 
-function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'xlsx' | 'csv' | 'json' | 'html' {
-  switch (value) {
-    case 'pdf':
-    case 'xlsx':
-    case 'json':
-    case 'html':
-      return value;
-    case 'csv':
-    default:
-      return 'csv';
-  }
+function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'csv' | 'json' {
+  return isSupportedReportOutputFormat(value) ? value : 'csv';
 }
 
 /**
- * Cancel a queued report run. Only works on 'queued' or 'running' — the worker
+ * Cancel a queued report run. Only works on 'queued' or 'running' â€” the worker
  * checks this status before each step and bails early.
  */
 export async function cancelReportRun(runId: string) {
@@ -85,7 +77,7 @@ export async function cancelReportRun(runId: string) {
   revalidatePath(`/reports/runs/${runId}`);
 }
 
-// ── Scheduled report actions ──
+// â”€â”€ Scheduled report actions â”€â”€
 
 export async function toggleSchedule(formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
@@ -180,7 +172,7 @@ export async function createSchedule(formData: FormData) {
     ? recipients.split(',').map((e) => e.trim()).filter(Boolean)
     : [];
 
-  // Compute next_run_at — simple heuristic: next hour
+  // Compute next_run_at â€” simple heuristic: next hour
   const now = new Date();
   const nextRun = new Date(now);
   nextRun.setHours(nextRun.getHours() + 1, 0, 0, 0);
