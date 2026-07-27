@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, visionCompletion } from '@/lib/ai/service';
 import { createClient } from '@/lib/supabase/server';
 
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -20,6 +23,12 @@ export async function POST(request: NextRequest) {
     }
     if (!associationId) {
       return NextResponse.json({ error: 'No association_id provided' }, { status: 400 });
+    }
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      return NextResponse.json({ error: 'Photo must be a JPEG, PNG, or WebP image' }, { status: 415 });
+    }
+    if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: 'Photo must be smaller than 8 MB' }, { status: 413 });
     }
 
     const supabase = await createClient();
@@ -109,9 +118,6 @@ Return ONLY valid JSON. Do not include any other text.`;
 
   } catch (error: any) {
     console.error('Violation photo analysis error:', error);
-    return NextResponse.json({
-      error: error.message || 'Analysis failed',
-      hint: 'Check your AI provider settings and API key.',
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Analysis failed. Please try again.' }, { status: 500 });
   }
 }

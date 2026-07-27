@@ -78,15 +78,16 @@ export async function sendSms(formData: FormData) {
     conversationId = newConv.id;
   }
 
-  // Insert SMS message
+  // Until a provider accepts the message, this is only queued. The gateway
+  // integration must set provider_message_id and advance delivery status.
   const { error: msgErr } = await db.from('sms_messages').insert({
     conversation_id: conversationId,
     direction: 'outbound',
     body,
     from_number: fromNumber,
     to_number: phoneNumber,
-    status: 'sent',
-    sent_at: new Date().toISOString(),
+    status: 'queued',
+    sent_at: null,
     sent_by: me.auth_user_id,
   });
 
@@ -96,11 +97,11 @@ export async function sendSms(formData: FormData) {
   await db.from('communication_messages').insert({
     portfolio_id: me.portfolio?.id,
     channel: 'sms',
-    status: 'sent',
+    status: 'queued',
     recipient_group: recipientType,
     recipient_phone: phoneNumber,
     body,
-    sent_at: new Date().toISOString(),
+    sent_at: null,
     created_by: me.auth_user_id,
   });
 

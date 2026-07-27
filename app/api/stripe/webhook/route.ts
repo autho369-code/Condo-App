@@ -67,23 +67,14 @@ async function captureFee(db: any, intentId: string, piId: string, stripeAccount
 }
 
 async function postLedgerPayment(db: any, intent: any, method: string, piId: string) {
-  // Idempotent: never post twice for the same intent.
-  if (intent.payment_id) return intent.payment_id;
-
-  const { data: payment, error } = await db
-    .from('payments')
-    .insert({
-      unit_id: intent.unit_id,
-      amount: intent.amount,
-      payment_date: new Date().toISOString().slice(0, 10),
-      method,
-      reference: piId,
-      notes: `Online payment via Stripe (${method})`,
-    })
-    .select('id')
-    .single();
+  // Row lock + unique provider reference make concurrent webhook retries safe.
+  const { data: paymentId, error } = await db.rpc('post_stripe_ledger_payment', {
+    p_intent_id: intent.id,
+    p_method: method,
+    p_processor_payment_intent_id: piId,
+  });
   if (error) throw new Error(`ledger post failed: ${error.message}`);
-  return payment.id;
+  return paymentId;
 }
 
 export async function POST(request: NextRequest) {
