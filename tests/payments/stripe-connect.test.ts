@@ -17,8 +17,8 @@ function stripeResponse(payload: Record<string, unknown>) {
 
 describe('Stripe Connect direct-charge requests', () => {
   beforeEach(() => {
-    vi.stubEnv('STRIPE_SECRET_KEY', ['sk', 'test', 'fixture'].join('_'));
-    vi.stubEnv('STRIPE_WEBHOOK_SECRET', ['whsec', 'fixture'].join('_'));
+    vi.stubEnv('STRIPE_SECRET_KEY', ['sk', 'test', 'fixture0123456789abcdef'].join('_'));
+    vi.stubEnv('STRIPE_WEBHOOK_SECRET', ['whsec', 'fixture0123456789abcdef'].join('_'));
     vi.stubEnv('STRIPE_LIVEMODE', 'false');
   });
 

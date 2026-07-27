@@ -20,8 +20,11 @@ describe('portfolio AI credential isolation', () => {
     expect(first).not.toContain('sk-portfolio-secret');
     expect(decryptAICredential(first)).toBe('sk-portfolio-secret');
 
-    const tampered = first.slice(0, -1) + (first.endsWith('A') ? 'B' : 'A');
-    expect(() => decryptAICredential(tampered)).toThrow('Unable to decrypt');
+    const tamperedParts = first.split(':');
+    const tamperedCiphertext = Buffer.from(tamperedParts[3], 'base64url');
+    tamperedCiphertext[0] ^= 1;
+    tamperedParts[3] = tamperedCiphertext.toString('base64url');
+    expect(() => decryptAICredential(tamperedParts.join(':'))).toThrow('Unable to decrypt');
   });
 
   it('can decrypt with the previous key during rotation', () => {

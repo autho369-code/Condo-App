@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = fileURLToPath(new URL(
-  '../../supabase/migrations/20260726040000_database_tenant_security_hardening.sql',
-  import.meta.url,
-));
+const migrationPath = resolve(
+  process.cwd(),
+  'supabase/migrations/20260726040000_database_tenant_security_hardening.sql',
+);
 const migration = readFileSync(migrationPath, 'utf8').toLowerCase();
 
 describe('database tenant-security migration', () => {
