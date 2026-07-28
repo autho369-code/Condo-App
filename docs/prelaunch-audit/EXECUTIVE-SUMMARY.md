@@ -19,7 +19,7 @@ The percentage reflects deployable application code and verified core calculatio
 ## Critical release blockers
 
 1. The migration directory cannot reproduce the linked database: 41 invalid filenames, duplicate versions, and missing historical schema statements. Production history contains 159 applied statements.
-2. The report catalog exposes 119 definitions, but only 18 are live. Queued reports depend on `report_data_dispatch`, which is represented in generated types but absent from local migrations. These reports cannot be called verified.
+2. The report catalog exposes 119 definitions: 17 are live, seven more advertised slugs are handled by the production dispatcher, and 95 advertised reports have no working data source. The dispatcher is represented in generated types but absent from local migrations. These reports cannot be called verified.
 3. The linked staging project cannot yet be replayed or seeded from this audit session because Supabase CLI authentication is unavailable. No unsafe repair or production mutation was attempted.
 4. Authenticated preview credentials and staging audit users/data are not yet available, so role-by-role UI, RLS, storage, and tenant isolation remain incomplete.
 5. Stripe/Plaid workflows have strong code and unit-test coverage but still require provider test-mode execution, signed webhook replay, ledger tie-out, payout attribution, and reconciliation evidence.
