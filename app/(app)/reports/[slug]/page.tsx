@@ -52,13 +52,16 @@ export default async function ReportView({
   searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string }>;
 }) {
   const { slug } = await params;
+  // Preserve the legacy public alias while resolving the canonical catalog row.
+  // Without this mapping the route was listed as live in code but returned 404.
+  const catalogSlug = slug === 'homeowner_vehicle_info' ? 'owner_vehicle_info' : slug;
   const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: def } = await (supabase as any)
     .from('report_definitions')
     .select('id, slug, name, category, description, output_formats')
-    .eq('slug', slug)
+    .eq('slug', catalogSlug)
     .eq('active', true)
     .maybeSingle();
 
