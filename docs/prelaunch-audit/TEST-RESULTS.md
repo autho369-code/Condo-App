@@ -1,28 +1,46 @@
+
 # Test results
 
-Evidence date: 2026-07-28. Production remained read-only.
+Environment date: 2026-07-28  
+Branch: `audit/portier369-prelaunch-verification`  
+Commit: `422e9a4ed21bb53e1d2625dbfaac8cb844d5f5c1`  
+Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmucicea` inspected read-only and found empty.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Clean dependency install | Pass | GitHub Actions CI run 30340344091, job 90214295249. |
-| Production dependency audit | Pass | CI completed `npm audit --omit=dev --audit-level=high`. |
-| Secret scanner self-test and source scan | Pass | CI step completed successfully. |
-| Unit tests | Pass | Full Vitest suite passed in CI. Local execution was sandbox-blocked and is not counted as a pass. |
-| TypeScript | Pass | `npm run typecheck` passed locally and in CI. |
-| Lint | Pass with warnings | CI passed. Local run showed eight non-blocking React hook, image optimization, and missing-alt warnings. |
-| Dashboard text audit | Pass | Local and CI checks passed. |
-| Route audit and generated inventory | Pass | Both CI steps passed and the generated inventory was unchanged. |
-| Production build | Pass | CI and Vercel commit c800cd3 passed. |
-| Vercel preview deployment | Pass | Deployment 8qgkteUgRFyHHhS8pLu7nEXpWGJJ is Ready. |
-| Strict migration validation | Fail | 41 invalid filenames and three duplicate-version groups. |
-| Linked staging database dry run | Blocked | Project ref is linked, but this execution environment has no reusable Supabase access token or database password. Nothing was applied. |
-| Report catalog inventory | Partial | 119 definitions are visible. Seventeen advertised slugs have live page implementations; seven additional advertised slugs are handled by the production dispatcher; 95 advertised reports have no working data source. `report_data_dispatch` is absent from local migrations. |
-| Authenticated manager report-link sweep | Pass for routing | All 120 links on `/reports` (119 definitions plus run history) rendered without a persistent 404 or server-error page. One transient empty Trial Balance response loaded normally on immediate retry. No report run or production record was created. |
-| Queued/generated report execution | Fail | Existing Trial Balance run history shows failed generated runs; source review confirms the dispatcher SQL is not reproducible from migrations. |
-| Legacy `homeowner_vehicle_info` alias | Fail, fix committed | Direct deployed route returned 404. Commit `8ca5c4b` resolves the legacy alias to canonical `owner_vehicle_info`; CI/deployment verification is pending. |
-| Trial Balance export code path | Pass (static/CI) | Scoped live export source, CSV/JSON/PDF serialization, UI wiring, tests, build, and deployment pass. |
-| Trial Balance export authenticated preview run | Blocked | The new preview hostname has no signed-in manager session and no credentials are stored or auto-filled. |
-| Production accounting sample | Pass (limited) | Sampled Trial Balance, Balance Sheet, Income Statement, and A/R cross-checks are documented in the financial audit. |
-| Production mutations | Not run | Prohibited by audit safety rules. |
+| GitHub CI run 30343321381 | Pass | Completed successfully for the commit above. |
+| Vercel deployment | Pass | Deployment status succeeded for the commit above. |
+| `npm ci` | Pass in CI | Clean dependency installation. |
+| `npm run typecheck` / `tsc --noEmit` | Pass | Local and CI. |
+| `npm run lint` | Pass with 8 warnings | Pre-existing hooks/image/accessibility debt. |
+| `npm test` | Pass in CI | Includes report accounting, security migration, disabled-profile access, Stripe, and route tests. |
+| `npm run build` | Pass in CI | Production Next.js build. |
+| `npm audit --omit=dev` | Pass in CI | Production dependency gate. |
+| Migration audit | Audit pass; strict fail | 41 invalid filenames, three duplicate-version groups, and remote/local drift remain. |
+| Authenticated report-link sweep | 120/120 rendered | No persistent 404/server error; Trial Balance needed one retry after a transient blank render. |
+| Advertised report implementations | Fail | 95 of 119 catalog definitions have no live implementation or supported dispatcher case. |
+| Production receivable tie-out | Pass (limited) | $10,650 charges - $8,400 applications = $2,250 open A/R. |
+| Production journal balance | Pass (limited) | Four source batches; every batch had equal debits and credits. |
+| Payment-to-journal traceability | Fail | 24 payments are represented by one aggregate journal; no `source_id` matches an individual payment. |
+| Stripe association onboarding | Not operational | 0 of 2 active associations have a connected account. |
+| Plaid/reconciliation execution | Not tested | 0 Plaid items, bank transactions, or reconciliations. |
+| Production mutations | Not run | Prohibited by the audit safety rules. |
 
-A release pass still requires a reproducible staging database, staging audit personas, authenticated role workflows, Stripe test-mode replay, report-by-report execution evidence, and strict migration validation.
+## Manual workflows exercised
+
+- Authenticated manager dashboard and navigation.
+- Full report catalog link sweep.
+- Trial Balance, Balance Sheet, Income Statement, and A/R Aging aggregate checks.
+- Report-run failure history and unsupported report behavior.
+- Association/unit directory rendering.
+- Read-only production catalog queries for migration state, function grants, auth triggers, role/profile state, provider state, receivables, payments, applications, and journals.
+
+## Commands and gates executed
+
+`npm ci`, `npm audit --omit=dev`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm run check:routes`, `npm run db:migrations:audit`, and `npm run db:migrations:check` (expected strict failure until history is reconciled).
+
+Local Vitest could not start from the disposable workspace because its `node_modules` junction points outside the writable sandbox. GitHub CI ran the same suite successfully and is authoritative.
+
+## Still required
+
+Role-by-role browser/API/RLS tests, clean migration replay, seeded staging financial workflows, provider test-mode webhooks, file-storage isolation, mobile traces, failure injection, and backup/rollback rehearsal remain incomplete.
