@@ -118,6 +118,10 @@ begin
     raise exception 'authentication required';
   end if;
 
+  if not public.is_any_staff() then
+    raise exception 'staff access required';
+  end if;
+
   select p.portfolio_id
   into v_portfolio_id
   from public.profiles p
