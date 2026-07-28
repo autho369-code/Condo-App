@@ -29,6 +29,9 @@ describe('audit log and owner payable scope migration', () => {
     expect(migration).toContain('owner payable portfolio cannot be changed');
     expect(migration).toContain('owner payable association is outside the portfolio');
     expect(migration).toContain('owner payable owner is outside the association');
-    expect(migration).not.toContain('with check (true)');
+    expect(migration).toContain('drop policy if exists owner_payables_update');
+    expect(
+      migration.match(/public\.can_access_portfolio\(portfolio_id\)/g)?.length,
+    ).toBeGreaterThanOrEqual(2);
   });
 });
