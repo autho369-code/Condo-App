@@ -58,7 +58,7 @@ Plaid link/feed and reconciliation code exists, including a protected background
 
 ## Report implementation truth
 
-The report catalog exposes 119 report definitions. Static and UI inspection found 18 live implementations. The remaining queued path calls the database RPC `report_data_dispatch`.
+The report catalog exposes 119 report definitions. Exact catalog-to-code comparison found 17 live implementations and seven additional advertised slugs handled by the production dispatcher. Two dispatcher cases have no matching active catalog slug. Ninety-five advertised reports have no working data source. The remaining queued path calls the database RPC `report_data_dispatch`.
 
 `report_data_dispatch` appears in generated database types and runtime code but is absent from the local migration directory. Therefore queued/scheduled report execution is **BROKEN or NOT REPRODUCIBLE** from source until the exact remote SQL definition is recovered or a reviewed forward migration implements every catalog slug.
 
