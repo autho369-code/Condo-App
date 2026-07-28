@@ -16,7 +16,7 @@ Evidence date: 2026-07-28. Production remained read-only.
 | Vercel preview deployment | Pass | Deployment 8qgkteUgRFyHHhS8pLu7nEXpWGJJ is Ready. |
 | Strict migration validation | Fail | 41 invalid filenames and three duplicate-version groups. |
 | Linked staging database dry run | Blocked | Project ref is linked, but this execution environment has no reusable Supabase access token or database password. Nothing was applied. |
-| Report catalog inventory | Partial | 119 definitions are visible. Eighteen slugs have live page implementations; queued coverage cannot be reproduced because `report_data_dispatch` is absent from local migrations. |
+| Report catalog inventory | Partial | 119 definitions are visible. Seventeen advertised slugs have live page implementations; seven additional advertised slugs are handled by the production dispatcher; 95 advertised reports have no working data source. `report_data_dispatch` is absent from local migrations. |
 | Authenticated manager report-link sweep | Pass for routing | All 120 links on `/reports` (119 definitions plus run history) rendered without a persistent 404 or server-error page. One transient empty Trial Balance response loaded normally on immediate retry. No report run or production record was created. |
 | Queued/generated report execution | Fail | Existing Trial Balance run history shows failed generated runs; source review confirms the dispatcher SQL is not reproducible from migrations. |
 | Legacy `homeowner_vehicle_info` alias | Fail, fix committed | Direct deployed route returned 404. Commit `8ca5c4b` resolves the legacy alias to canonical `owner_vehicle_info`; CI/deployment verification is pending. |
