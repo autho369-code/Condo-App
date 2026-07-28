@@ -2,7 +2,7 @@
 // decide what to show in the sidebar and which pages to allow.
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { isActivePortalRecord } from '@/lib/security/portal-access';
+import { isActivePortalRecord, isActiveProfile } from '@/lib/security/portal-access';
 
 export interface MeResult {
   auth_user_id: string | null;
@@ -25,16 +25,16 @@ export interface MeResult {
 }
 
 // Fail LOUDLY (at module load, i.e. build/boot) if someone sets the local
-// preview flag on a production deployment — it fabricates a super-admin
+// preview flag on a production deployment â€” it fabricates a super-admin
 // identity and must never be silently ignored there.
 if (process.env.LOCAL_PREVIEW_MODE === 'true' && process.env.NODE_ENV === 'production') {
   throw new Error(
-    'LOCAL_PREVIEW_MODE=true is set in a production build. Remove it from the environment — preview mode fabricates a platform-operator identity.',
+    'LOCAL_PREVIEW_MODE=true is set in a production build. Remove it from the environment â€” preview mode fabricates a platform-operator identity.',
   );
 }
 
 function localPreviewEnabled() {
-  // Never honor preview mode in production — it fabricates a super-admin
+  // Never honor preview mode in production â€” it fabricates a super-admin
   // identity and must not be reachable on a deployed instance.
   return process.env.LOCAL_PREVIEW_MODE === 'true' && process.env.NODE_ENV !== 'production';
 }
@@ -69,11 +69,15 @@ export async function getMe(): Promise<MeResult> {
     throw error;
   }
   const me = data as MeResult;
+  if (me?.auth_user_id && !isActiveProfile(me.profile)) {
+    await supabase.auth.signOut();
+    redirect('/login?error=account_disabled');
+  }
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
   return me;
 }
 
-/** Guard helpers — throw redirect if user doesn't have access. */
+/** Guard helpers â€” throw redirect if user doesn't have access. */
 export async function requireAuth(): Promise<MeResult> {
   const me = await getMe();
   if (!me.auth_user_id) redirect('/login');
@@ -152,3 +156,4 @@ export async function requireOwner(): Promise<MeResult> {
   }
   return me;
 }
+
