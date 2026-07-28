@@ -200,7 +200,7 @@ async function TrialBalanceView({
         />
       }
       rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
-        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive supportsLiveExport />}
     >
       <div className="space-y-4">
         {/* Summary tiles */}
