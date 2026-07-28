@@ -1,79 +1,51 @@
 # Financial system audit
 
-Status: active audit. This document separates demonstrated behavior from code presence. The read-only production sample below is evidence for core statement arithmetic only; it is not an accounting certification.
+## Current conclusion
 
-## Verified statement evidence
+The owner receivable subledger ties for the production sample, and every existing journal batch is balanced. Portier369 is **not yet accounting-certified or ready for live payment processing** because receipts do not create transaction-level general-ledger entries, Stripe is not configured for either association, bank-feed/reconciliation tables contain no exercised production data, and the full staging workflow has not been replayed.
 
-- Trial Balance: $23,950 debit and $23,950 credit.
-- Balance Sheet: $13,500 assets and $13,500 liabilities plus equity.
-- Income Statement: $11,450 net income.
-- A/R Aging: $2,250 for the sampled association; $0 for a second association, supporting association scoping in that sample.
-- GitHub CI passes the accounting/report unit suite and production build.
+All database evidence below was obtained with read-only queries. No production records, payments, notifications, or provider events were created.
 
-## Ledger model
+## Production tie-outs observed on 2026-07-28
 
-The application uses journal entries and journal-entry lines for general-ledger reporting, with charges, payments, bills, bank transactions, reconciliation records, payment intents, provider events, and report runs as operational/source records. The audit branch centralizes normal-balance and statement classification logic.
+| Area | Records | Amount | Result |
+| --- | ---: | ---: | --- |
+| Charges | 36 | $10,650.00 | Source population |
+| Payments | 24 | $8,400.00 | Ties to applications |
+| Payment applications | 24 | $8,400.00 | Ties exactly to payments |
+| Open receivables | 12 | $2,250.00 | Charges minus applications ties exactly |
+| Assessment journal batch | 1 entry / 2 lines | $10,500.00 debit and credit | Balanced |
+| Payment journal batch | 1 entry / 2 lines | $8,400.00 debit and credit | Balanced in aggregate |
+| Bill journal batch | 1 entry / 3 lines | $2,050.00 debit and credit | Balanced |
+| Transfer journal batch | 1 entry / 2 lines | $3,000.00 debit and credit | Balanced |
 
-Verified by unit/static evidence:
+The sampled report totals also balanced: Trial Balance debit/credit $23,950.00; Balance Sheet assets and liabilities plus equity $13,500.00; Income Statement net income $11,450.00; A/R Aging $2,250.00.
 
-- Trial Balance and Balance Sheet read posted entries through the report **as-of** date.
-- Reports include shared accounts plus the selected association’s accounts and exclude other associations’ accounts.
-- Requested export formats are validated; CSV, JSON, and real PDF bytes are serialized distinctly.
-- Cross-association Stripe account identifiers and exact USD cents are checked by invariant helpers and passing tests.
+## Ledger model and confirmed gap
 
-Still requiring seeded transaction tracing:
+Manager-recorded receipts insert into `payments`. The `trg_auto_apply_payment` path allocates the receipt into `payment_applications`, which updates `v_charge_balances`, `unit_balances`, and aging. Stripe success follows the same subledger path through `post_stripe_ledger_payment`.
 
-- source-to-journal atomicity;
-- control-account tie-out for A/R and A/P;
-- retained earnings and period close behavior;
-- reversal and refund entries;
-- multi-unit allocation and overpayments;
-- bank-feed clearing and reconciliation;
-- immutable audit evidence.
+The online-payment migration explicitly says that v1 creates no additional journal entry. Therefore a new manual or Stripe receipt can update the owner balance without creating a corresponding transaction-level cash/clearing and A/R journal entry. The one production payment journal is an aggregate $8,400 batch and its `source_id` does not link to any of the 24 payment IDs. This is internally balanced but does not prove per-payment traceability, reversal handling, cash attribution, or audit completeness.
 
-## Assessment and owner-ledger workflow
+Required accounting decision: approve and implement either (a) Dr Cash / Cr A/R when an offline receipt is recorded and Dr Clearing / Cr A/R then Dr Cash / Cr Clearing for Stripe settlement, or (b) another accountant-approved control-account design. The posting must be atomic, idempotent, association-scoped, reversible, and tied to the source payment/provider event.
 
-UI, actions, tables, and RPC types exist for assessments, charges, receipts, credits, late fees, and owner ledgers. This is **PARTIALLY WORKING** until staging proves regular/special assessment generation, partial payments, credits, late fees, multi-unit allocation, reversals, and the resulting owner balance and GL entries in one repeatable scenario.
+## Provider and reconciliation state
 
-## Stripe workflow
+- Associations: 2 active.
+- Stripe connected accounts: 0; charges enabled: 0; details submitted: 0.
+- Stripe payment intents: 0; provider intents: 0.
+- Plaid items: 0; bank transactions: 0; bank reconciliations: 0.
+- Online payment, payout attribution, bank-feed matching, exception handling, reversal, refund, and duplicate webhook behavior are therefore code-present but not operationally proven.
+- Each association must complete its own Stripe Connect onboarding; one shared platform merchant account is not an acceptable substitute for the stated operating model.
 
-The intended architecture is one Stripe Connect account per association, not one shared merchant account.
+## Report remediation in the audit branch
 
-The audit branch verifies and hardens:
+- Trial Balance and Balance Sheet read posted journal lines through the report's as-of date.
+- Financial reports include shared accounts plus the selected association's accounts, not other associations' accounts.
+- Normal-balance and section classification is centralized and unit-tested.
+- Export output is serialized as CSV, JSON, or a real PDF; unsupported configured formats are rejected.
+- The legacy `homeowner_vehicle_info` URL maps to the canonical owner vehicle report.
 
-- association-scoped Connect onboarding and status;
-- charges and payouts must both be enabled before the association is considered active;
-- connected-account ID validation;
-- cross-association account rejection;
-- test/live mode mismatch fails closed;
-- stable idempotency keys for Checkout and AutoPay;
-- duplicate-event/provider identifier constraints in the forward migrations;
-- webhook signature verification and payload size limit.
+## Mandatory staging certification
 
-Status: **CONFIGURATION REQUIRED** and **NOT TESTED end to end**. Required proof is a test-mode connected account for two associations, Checkout and ACH/card fixtures, signed duplicate webhook replay, payment/ledger tie-out, payout attribution, refund/failure handling, and cross-association rejection.
-
-## Plaid and reconciliation
-
-Plaid link/feed and reconciliation code exists, including a protected background reconciliation route. Status: **NOT TESTED end to end**. Required proof is sandbox link, sync/retry, unmatched/partial/full matches, duplicate feed item handling, payout-to-bank matching, and exception-queue evidence.
-
-## Report implementation truth
-
-The report catalog exposes 119 report definitions. Exact catalog-to-code comparison found 17 live implementations and seven additional advertised slugs handled by the production dispatcher. Two dispatcher cases have no matching active catalog slug. Ninety-five advertised reports have no working data source. The remaining queued path calls the database RPC `report_data_dispatch`.
-
-`report_data_dispatch` appears in generated database types and runtime code but is absent from the local migration directory. Therefore queued/scheduled report execution is **BROKEN or NOT REPRODUCIBLE** from source until the exact remote SQL definition is recovered or a reviewed forward migration implements every catalog slug.
-
-No report should be removed to mask this gap. Each definition must receive:
-
-1. a scoped, permission-safe data implementation;
-2. deterministic fixture totals;
-3. UI/CSV/JSON/PDF parity checks;
-4. empty/error/large-data checks;
-5. a scheduled-run test where scheduling is offered.
-
-## Clearing accounts and trust considerations
-
-The code cannot decide the legal/accounting policy for custodial funds. Before enabling real payments, the business must approve merchant-of-record, association-owned connected accounts, operating/reserve treatment, clearing accounts, refunds/chargebacks, escheat/unapplied cash, and trust-account requirements with qualified accounting/legal review.
-
-## Prelaunch financial acceptance test
-
-Create a reversible staging association containing opening balances, regular and special assessments, partial and excess receipts, late fee, credit, vendor bill/payment, transfer, failed/reversed payment, Stripe test payment, unmatched/partial/full bank matches, and a period-close scenario. For each source transaction record the database mutation, journal lines, owner balance, association cash, bank-feed effect, reconciliation status, audit event, UI result, export result, and rollback/error behavior.
+Replay opening balances, assessment, special assessment, late fee, credit, partial/overpayment, offline receipt, test-mode ACH/card, failed payment, reversal/refund, bill approval/payment, transfer, unmatched/partially matched/reconciled bank transactions, and duplicate/concurrent webhooks. For every transaction verify source record, applications, journal entry and lines, owner balance, association cash/clearing, provider event, reconciliation state, audit record, UI, export, and rollback behavior.
