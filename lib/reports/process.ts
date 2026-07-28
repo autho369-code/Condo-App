@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { isSupportedReportOutputFormat, serializeReportOutput } from '@/lib/reports/output';
+import { generateLiveExportRows, supportsLiveExport } from '@/lib/reports/live-export';
 
 // The missing half of the reporting pipeline: executes a queued report_run.
 //
@@ -44,11 +45,12 @@ export async function processReportRun(runId: string): Promise<void> {
     }
 
     const slug = run.report_definitions?.slug;
-    const { data: result, error } = await svc.rpc('report_data_dispatch', {
+    const liveRows = supportsLiveExport(slug) ? await generateLiveExportRows(svc, run.portfolio_id, slug, run.parameters ?? {}) : null;
+    const { data: result, error } = liveRows == null ? await svc.rpc('report_data_dispatch', {
       p_portfolio_id: run.portfolio_id,
       p_slug: slug,
       p_params: run.parameters ?? {},
-    });
+    }) : { data: liveRows, error: null };
     if (error) {
       const notImplemented = /not implemented/i.test(error.message);
       await finish({
