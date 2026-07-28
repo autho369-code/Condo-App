@@ -1,12 +1,12 @@
 
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = fileURLToPath(new URL(
-  '../../supabase/migrations/20260728093000_restore_scoped_report_data_functions.sql',
-  import.meta.url,
-));
+const migrationPath = resolve(
+  process.cwd(),
+  'supabase/migrations/20260728093000_restore_scoped_report_data_functions.sql',
+);
 const migration = readFileSync(migrationPath, 'utf8').toLowerCase();
 
 describe('queued report data migration', () => {
