@@ -12,7 +12,7 @@ Evidence date: 2026-07-28. Production queries were read-only.
 - **Reproduction:** With a Supabase anon or authenticated client, invoke `report_data_dispatch` (or a helper) using another portfolio UUID and a supported slug. Do this only in isolated staging with two marked audit portfolios; do not extract customer data from production.
 - **Business impact:** Unauthorized disclosure of owner names/emails, delinquencies, unit/property data, vendors, violations, and work-order data across companies.
 - **Recommended fix:** Revoke all function privileges from `PUBLIC`, `anon`, and `authenticated`; grant only `service_role`. Keep authorization and portfolio derivation in the authenticated server path.
-- **Fix status:** Code committed in `supabase/migrations/20260726050000_security_definer_execution_boundary.sql`; not applied or verified in staging.
+- **Fix status:** Code committed in `supabase/migrations/20260726050000_security_definer_execution_boundary.sql`; `20260728090000_secure_report_queue_scope.sql` reasserts the boundary after report helper replacement. Neither is applied or verified in staging.
 - **Test status:** Production grant exposure verified read-only. Negative exploit test and fixed-grant test pending staging.
 - **Release status:** Release blocker.
 
@@ -67,6 +67,20 @@ Evidence date: 2026-07-28. Production queries were read-only.
 - **Fix status:** Configuration pending.
 - **Test status:** CI uses non-secret placeholders; deployed configuration pending.
 - **Release status:** Release blocker where required for enabled features.
+
+## SEC-006 — Forged unit and association IDs in queued reports
+
+- **Severity:** High
+- **Affected roles:** Property Manager and any authenticated caller able to queue reports
+- **Boundary:** Portfolio, association, unit, and owner financial ledger
+- **Workflow:** Queue `homeowner_ledger` with a foreign `unit_id`, or bulk-queue foreign association IDs
+- **Evidence:** The production `queue_report_run` function validates the run portfolio but stores arbitrary JSON parameters. The production `report_data_homeowner_ledger` function used `unit_id` without joining it back to `p_portfolio_id`. The production `bulk_queue_reports` function did not prove every submitted association belongs to the caller portfolio.
+- **Reproduction:** In isolated two-portfolio staging, queue a homeowner ledger using Portfolio B’s unit UUID while signed into Portfolio A; separately submit Portfolio B’s association UUID to the bulk RPC.
+- **Business impact:** Cross-company owner charges/payments could be placed in a downloadable report; forged bulk parameters could become exploitable as more report implementations are added.
+- **Recommended fix:** Validate the unit through unit → building → association → portfolio inside the SECURITY DEFINER helper; reject every bulk association not in the caller’s portfolio; normalize actual UI/bulk date parameter names; lock helper grants.
+- **Fix status:** Commit `1e4583e` adds `20260728090000_secure_report_queue_scope.sql`.
+- **Test status:** Migration audit passes in audit mode. SQL application and two-portfolio negative tests are pending staging authentication.
+- **Release status:** Release blocker.
 
 ## Controls verified in source/CI
 
