@@ -1860,9 +1860,14 @@ function ReportRightRail({
   return (
     <>
       <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        {isLive ? 'Export snapshot' : 'Run this report'}
+        {isLive ? 'Live report' : 'Run this report'}
       </div>
 
+      {isLive ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900">
+          This report is calculated live from posted accounting entries. File export is temporarily unavailable because the queued export service does not yet have an audited data source for this report. Use the displayed totals for review; do not rely on a generated file until export verification is complete.
+        </div>
+      ) : (
       <form action={queueReport as any} className="space-y-3">
         <input type="hidden" name="definition_id" value={def.id} />
 
@@ -1980,6 +1985,7 @@ function ReportRightRail({
           {isLive ? 'Export to file' : 'Run now'}
         </Button>
       </form>
+      )}
 
       {inFlight && (
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
