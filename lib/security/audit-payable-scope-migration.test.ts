@@ -1,12 +1,12 @@
 
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = fileURLToPath(new URL(
-  '../../supabase/migrations/20260728094000_audit_log_and_owner_payable_scope.sql',
-  import.meta.url,
-));
+const migrationPath = resolve(
+  process.cwd(),
+  'supabase/migrations/20260728094000_audit_log_and_owner_payable_scope.sql',
+);
 const migration = readFileSync(migrationPath, 'utf8').toLowerCase();
 
 describe('audit log and owner payable scope migration', () => {
