@@ -16,6 +16,20 @@ Evidence date: 2026-07-28. Production queries were read-only.
 - **Test status:** Production grant exposure verified read-only. Negative exploit test and fixed-grant test pending staging.
 - **Release status:** Release blocker.
 
+## SEC-007 — Systemic SECURITY DEFINER exposure
+
+- **Severity:** Critical
+- **Affected roles:** Anonymous users and all authenticated roles
+- **Boundary:** Potentially every company and association
+- **Workflow:** Direct RPC invocation outside the application’s UI/server guards
+- **Evidence:** A read-only production catalog query counted 156 public-schema SECURITY DEFINER functions; 151 are executable by `anon` and 151 by `authenticated`.
+- **Reproduction:** Do not probe customer data in production. In two-portfolio staging, enumerate callable RPCs with the anon and role-specific clients and submit foreign identifiers to each elevated function.
+- **Business impact:** Any elevated function missing an internal authorization check can bypass RLS for reads or writes. Confirmed report-data and bulk-report examples are documented separately.
+- **Recommended fix:** Apply the execution-boundary migration, default all elevated functions to service-only, explicitly regrant only reviewed user-facing RPCs, and add a CI database grant allowlist test.
+- **Fix status:** Broad normalization is committed in `20260726050000_security_definer_execution_boundary.sql`; not applied or tested.
+- **Test status:** Exposure count verified read-only. Post-migration grant inventory and functional compatibility pending staging.
+- **Release status:** Release blocker.
+
 ## SEC-002 — Migration history is not reproducible
 
 - **Severity:** High
