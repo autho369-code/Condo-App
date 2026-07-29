@@ -51,4 +51,19 @@ describe('audited live report exports', () => {
     expect(exporter).toContain("const currentYearStart = \`\${dateTo.slice(0, 4)}-01-01\`");
     expect(exporter).toContain('netIncome(accounts, currentYearTotals)');
   });
+
+  it('carries opening balances into chronological general-ledger running balances', () => {
+    const page = readFileSync(
+      resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),
+      'utf8',
+    );
+    const exporter = readFileSync(
+      resolve(process.cwd(), 'lib/reports/live-export.ts'),
+      'utf8',
+    );
+    expect(page).toContain("lt('journal_entries.entry_date', period.from)");
+    expect(page).toContain('Running Balance');
+    expect(exporter).toContain("'Opening balance': opening");
+    expect(exporter).toContain("'Running balance': running");
+  });
 });
