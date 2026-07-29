@@ -3,7 +3,7 @@
 
 Environment date: 2026-07-28  
 Branch: `audit/portier369-prelaunch-verification`  
-Commit: `007aea54e7ec8a994257c0a6892399d0eb56e594`  
+Commit: `f77e3c3bc73f0341c3f7154de0dbb96f5fa69b4d`  
 Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmucicea` inspected read-only and found empty.
 
 | Check | Result | Evidence |
@@ -20,7 +20,8 @@ Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmu
 | Authenticated manager navigation | 50/50 rendered | 24 top-level and 26 submodule pages; three transient blank pages passed on retry. |
 | Authenticated report-link sweep | 120/120 rendered | No persistent 404/server error; Trial Balance needed one retry after a transient blank render. |
 | Manager-to-Company-Admin boundary | Defect found; fixed in branch | Direct manager access rendered Company Admin before the application/DB role-boundary fix. |
-| Core accounting file exports | 4 implemented in branch | Trial Balance, Balance Sheet, Income Statement, and General Ledger use portfolio/association-validated worker paths. |
+| Core accounting file exports | 5 implemented in branch | Trial Balance, Balance Sheet, Income Statement, General Ledger, and A/R Aging use portfolio/association-validated worker paths. |
+| Accounting classification / roll-forward | Defects fixed in branch | Income Statement now uses account type, not number bands; Balance Sheet current-year earnings are limited to the report year. |
 | Advertised report implementations | Fail | 95 of 119 catalog definitions have no live implementation or supported dispatcher case. |
 | Production receivable tie-out | Pass (limited) | $10,650 charges - $8,400 applications = $2,250 open A/R. |
 | Production journal balance | Pass (limited) | Four source batches; every batch had equal debits and credits. |
