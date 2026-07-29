@@ -25,6 +25,8 @@
     "db:migrations:audit": "node scripts/check-supabase-migrations.mjs --audit",
     "db:migrations:list": "supabase migration list --linked",
     "db:migrations:dry-run": "supabase db push --linked --dry-run",
+    "db:seed:staging": "node scripts/seed-staging-verification.mjs",
+    "verify:staging:reports": "npx --yes tsx scripts/verify-staging-reports.ts",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

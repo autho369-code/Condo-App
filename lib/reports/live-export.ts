@@ -440,7 +440,7 @@ async function bankReconciliationRows(
         Bank: account.bank_name ?? '',
         'Statement date': reconciliation.statement_date,
         'Statement balance': Number(reconciliation.statement_balance ?? 0),
-        'Book balance': Number(reconciliation.book_balance ?? 0),
+        'Book balance': Number(reconciliation.ending_book_balance ?? 0),
         Difference: Number(reconciliation.difference ?? 0),
         Status: reconciliation.status,
         'Completed at': reconciliation.completed_at,
@@ -496,25 +496,54 @@ async function budgetVsActualRows(
 
   const rows: Record<string, unknown>[] = [];
   for (const association of associations ?? []) {
-    const { data, error } = await db.rpc('get_budget_vs_actuals', {
-      p_association_id: association.id,
-      p_fiscal_year: fiscalYear,
-    });
+    const { data, error } = await db
+      .from('budget_lines')
+      .select('id, category, notes, monthly_amounts, gl_account_id, gl_accounts!inner(number, name, account_type, portfolio_id, association_id)')
+      .eq('association_id', association.id)
+      .eq('fiscal_year', fiscalYear)
+      .eq('gl_accounts.portfolio_id', portfolioId)
+      .order('gl_account_id');
     if (error) throw error;
     for (const row of data ?? []) {
-      const monthlyBudget = row.monthly_budget ?? [];
-      const monthlyActuals = row.monthly_actuals ?? [];
+      const account = row.gl_accounts;
+      if (!account || (account.association_id && account.association_id !== association.id)) {
+        throw new Error('Budget account is outside the association scope.');
+      }
+      const monthlyBudget = row.monthly_amounts ?? [];
+      const monthlyActuals: number[] = [];
+      for (let month = 1; month <= 12; month += 1) {
+        const dateFrom = `${fiscalYear}-${String(month).padStart(2, '0')}-01`;
+        const nextMonth = month === 12
+          ? `${fiscalYear + 1}-01-01`
+          : `${fiscalYear}-${String(month + 1).padStart(2, '0')}-01`;
+        const dateTo = new Date(`${nextMonth}T00:00:00.000Z`);
+        dateTo.setUTCDate(dateTo.getUTCDate() - 1);
+        const totals = await loadLedgerTotals(
+          db,
+          [row.gl_account_id],
+          association.id,
+          dateFrom,
+          dateTo.toISOString().slice(0, 10),
+        );
+        monthlyActuals.push(normalBalance(account, totals));
+      }
+      const annualBudget = monthlyBudget.reduce(
+        (sum: number, value: unknown) => sum + Number(value ?? 0),
+        0,
+      );
+      const annualActual = monthlyActuals.reduce((sum, value) => sum + value, 0);
+      const annualVariance = annualActual - annualBudget;
       rows.push({
         Association: association.name,
         'Fiscal year': fiscalYear,
         Category: row.category,
-        'Account #': row.gl_account_number,
-        Account: row.gl_account_name,
+        'Account #': account.number,
+        Account: account.name,
         Notes: row.notes ?? '',
-        'Annual budget': Number(row.annual_budget ?? 0),
-        'Annual actual': Number(row.annual_actual ?? 0),
-        'Annual variance': Number(row.annual_variance ?? 0),
-        'Variance %': Number(row.annual_variance_pct ?? 0),
+        'Annual budget': annualBudget,
+        'Annual actual': annualActual,
+        'Annual variance': annualVariance,
+        'Variance %': annualBudget === 0 ? 0 : (annualVariance / annualBudget) * 100,
         'Jan budget': Number(monthlyBudget[0] ?? 0),
         'Jan actual': Number(monthlyActuals[0] ?? 0),
         'Feb budget': Number(monthlyBudget[1] ?? 0),

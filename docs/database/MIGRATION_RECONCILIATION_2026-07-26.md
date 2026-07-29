@@ -242,6 +242,15 @@ supabase migration squash --linked
 
 Do not run a non-dry-run `db push` until all acceptance criteria below pass.
 
+## 2026-07-29 replay result
+
+The exact production ledger was fetched successfully, but replay failed at
+`20260419155646` because it references `public.schema_migrations`, which is not
+created by the platform bootstrap or `0001_all.sql`. The documented
+current-state baseline fallback was therefore selected. See
+`RECONCILIATION_EVIDENCE_2026-07-29.md` for the candidate history and local
+replay evidence.
+
 ## Acceptance criteria
 
 Reconciliation is complete only when:

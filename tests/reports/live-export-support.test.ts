@@ -77,6 +77,17 @@ describe('audited live report exports', () => {
     expect(exporter).toContain('netIncome(accounts, currentYearTotals)');
   });
 
+  it('uses current schema fields and a worker-safe ledger path for exports', () => {
+    const exporter = readFileSync(
+      resolve(process.cwd(), 'lib/reports/live-export.ts'),
+      'utf8',
+    );
+    expect(exporter).toContain('reconciliation.ending_book_balance');
+    expect(exporter).not.toContain('reconciliation.book_balance');
+    expect(exporter).not.toContain("db.rpc('get_budget_vs_actuals'");
+    expect(exporter).toContain(".from('budget_lines')");
+  });
+
   it('carries opening balances into chronological general-ledger running balances', () => {
     const page = readFileSync(
       resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),

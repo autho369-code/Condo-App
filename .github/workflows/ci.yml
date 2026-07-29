@@ -53,11 +53,8 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
-      # Audit mode inventories the known legacy filename/version findings while
-      # migration-history reconciliation is in progress. Replace this with the
-      # strict db:migrations:check gate once local and linked history agree.
-      - name: Audit Supabase migrations
-        run: npm run db:migrations:audit
+      - name: Check Supabase migrations
+        run: npm run db:migrations:check
 
       - name: Run unit tests
         run: npm test

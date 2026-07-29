@@ -29,23 +29,17 @@ The one-time legacy repair is documented in
 10. `db push --include-all`, `db reset --linked`, and bulk history repair are
     prohibited.
 
-## Current temporary exception
+## Reconciled active history
 
-Until legacy reconciliation is complete, strict checking is expected to fail:
+The candidate active history was rebuilt on 2026-07-29 using the current-state
+baseline fallback documented in `RECONCILIATION_EVIDENCE_2026-07-29.md`.
+Strict checking is now required and must remain a release gate:
 
 ```powershell
 npm run db:migrations:check
 ```
 
-Use audit mode only to inventory the known legacy state:
-
-```powershell
-npm run db:migrations:audit
-```
-
-Audit mode returning zero does **not** mean the migration history is safe. Once
-reconciliation is complete, CI must use strict mode and audit mode must not be a
-release gate.
+Audit mode is diagnostic only and must not replace strict checking.
 
 ## Create a migration
 
