@@ -3,7 +3,7 @@
 
 Environment date: 2026-07-28  
 Branch: `audit/portier369-prelaunch-verification`  
-Commit: `422e9a4ed21bb53e1d2625dbfaac8cb844d5f5c1`  
+Commit: `007aea54e7ec8a994257c0a6892399d0eb56e594`  
 Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmucicea` inspected read-only and found empty.
 
 | Check | Result | Evidence |
@@ -17,7 +17,10 @@ Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmu
 | `npm run build` | Pass in CI | Production Next.js build. |
 | `npm audit --omit=dev` | Pass in CI | Production dependency gate. |
 | Migration audit | Audit pass; strict fail | 41 invalid filenames, three duplicate-version groups, and remote/local drift remain. |
+| Authenticated manager navigation | 50/50 rendered | 24 top-level and 26 submodule pages; three transient blank pages passed on retry. |
 | Authenticated report-link sweep | 120/120 rendered | No persistent 404/server error; Trial Balance needed one retry after a transient blank render. |
+| Manager-to-Company-Admin boundary | Defect found; fixed in branch | Direct manager access rendered Company Admin before the application/DB role-boundary fix. |
+| Core accounting file exports | 4 implemented in branch | Trial Balance, Balance Sheet, Income Statement, and General Ledger use portfolio/association-validated worker paths. |
 | Advertised report implementations | Fail | 95 of 119 catalog definitions have no live implementation or supported dispatcher case. |
 | Production receivable tie-out | Pass (limited) | $10,650 charges - $8,400 applications = $2,250 open A/R. |
 | Production journal balance | Pass (limited) | Four source batches; every batch had equal debits and credits. |
