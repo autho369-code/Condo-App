@@ -21,6 +21,9 @@ export const LIVE_EXPORT_SLUGS = [
   'budget_vs_actual',
   'budget_vs_actuals',
   'annual_budget_comparative',
+  'bank_reconciliation',
+  'bank_account_reconciliation',
+  'bank_reconciliation_detail',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -401,6 +404,80 @@ async function arAgingRows(
   }));
 }
 
+async function bankReconciliationRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+  dateTo: string,
+  detail: boolean,
+) {
+  let accountsQuery = db
+    .from('bank_accounts')
+    .select('id, name, bank_name, association_id, last_reconciliation_date')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .order('name');
+  if (associationId) accountsQuery = accountsQuery.eq('association_id', associationId);
+  const { data: accounts, error: accountsError } = await accountsQuery;
+  if (accountsError) throw accountsError;
+  const accountIds = (accounts ?? []).map((account: any) => account.id);
+  if (accountIds.length === 0) return [];
+  const accountById = new Map((accounts ?? []).map((account: any) => [account.id, account]));
+
+  const { data: reconciliations, error: reconciliationsError } = await db
+    .from('bank_reconciliations')
+    .select('*')
+    .in('bank_account_id', accountIds)
+    .lte('statement_date', dateTo)
+    .order('statement_date', { ascending: false });
+  if (reconciliationsError) throw reconciliationsError;
+
+  if (!detail) {
+    return (reconciliations ?? []).map((reconciliation: any) => {
+      const account: any = accountById.get(reconciliation.bank_account_id) ?? {};
+      return {
+        Account: account.name ?? '',
+        Bank: account.bank_name ?? '',
+        'Statement date': reconciliation.statement_date,
+        'Statement balance': Number(reconciliation.statement_balance ?? 0),
+        'Book balance': Number(reconciliation.book_balance ?? 0),
+        Difference: Number(reconciliation.difference ?? 0),
+        Status: reconciliation.status,
+        'Completed at': reconciliation.completed_at,
+        'Reconciliation ID': reconciliation.id,
+      };
+    });
+  }
+
+  const reconciliationIds = (reconciliations ?? []).map((row: any) => row.id);
+  if (reconciliationIds.length === 0) return [];
+  const reconciliationById = new Map(
+    (reconciliations ?? []).map((row: any) => [row.id, row]),
+  );
+  const { data: items, error: itemsError } = await db
+    .from('bank_reconciliation_items')
+    .select('id, reconciliation_id, journal_line_id, description, amount, type, is_cleared, sort_order')
+    .in('reconciliation_id', reconciliationIds)
+    .order('sort_order');
+  if (itemsError) throw itemsError;
+
+  return (items ?? []).map((item: any) => {
+    const reconciliation: any = reconciliationById.get(item.reconciliation_id) ?? {};
+    const account: any = accountById.get(reconciliation.bank_account_id) ?? {};
+    return {
+      Account: account.name ?? '',
+      Bank: account.bank_name ?? '',
+      'Statement date': reconciliation.statement_date,
+      Description: item.description ?? '',
+      Type: item.type,
+      Amount: Number(item.amount ?? 0),
+      Cleared: Boolean(item.is_cleared),
+      'Journal line ID': item.journal_line_id,
+      'Reconciliation ID': item.reconciliation_id,
+    };
+  });
+}
+
 async function budgetVsActualRows(
   db: ServiceClient,
   portfolioId: string,
@@ -504,5 +581,10 @@ export async function generateLiveExportRows(
     case 'budget_vs_actuals':
     case 'annual_budget_comparative':
       return budgetVsActualRows(db, portfolioId, associationId, fiscalYear);
+    case 'bank_reconciliation':
+    case 'bank_account_reconciliation':
+      return bankReconciliationRows(db, portfolioId, associationId, dateTo, false);
+    case 'bank_reconciliation_detail':
+      return bankReconciliationRows(db, portfolioId, associationId, dateTo, true);
   }
 }
