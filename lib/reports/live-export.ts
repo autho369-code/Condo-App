@@ -254,9 +254,41 @@ async function generalLedgerRows(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map((line: any) => {
+  const openingDate = new Date(`${dateFrom}T00:00:00.000Z`);
+  openingDate.setUTCDate(openingDate.getUTCDate() - 1);
+  const openingTotals = await loadLedgerTotals(
+    db,
+    accountIds,
+    associationId,
+    null,
+    openingDate.toISOString().slice(0, 10),
+  );
+  const orderedLines = [...(data ?? [])].sort((left: any, right: any) => {
+    const leftAccount: any = accountById.get(left.gl_account_id) ?? {};
+    const rightAccount: any = accountById.get(right.gl_account_id) ?? {};
+    return Number(leftAccount.number ?? 0) - Number(rightAccount.number ?? 0)
+      || String(left.journal_entries?.entry_date ?? '').localeCompare(
+        String(right.journal_entries?.entry_date ?? ''),
+      )
+      || Number(left.sort_order ?? 0) - Number(right.sort_order ?? 0)
+      || String(left.id).localeCompare(String(right.id));
+  });
+  const runningByAccount = new Map<string, number>();
+
+  return orderedLines.map((line: any) => {
     const account: any = accountById.get(line.gl_account_id) ?? {};
     const entry = line.journal_entries ?? {};
+    const opening = runningByAccount.has(line.gl_account_id)
+      ? runningByAccount.get(line.gl_account_id)!
+      : normalBalance(account, openingTotals);
+    const movement = normalBalance(account, {
+      [line.gl_account_id]: {
+        debit: Number(line.debit_amount ?? 0),
+        credit: Number(line.credit_amount ?? 0),
+      },
+    });
+    const running = opening + movement;
+    runningByAccount.set(line.gl_account_id, running);
     return {
       Date: entry.entry_date,
       'Account #': account.number ?? '',
@@ -266,6 +298,8 @@ async function generalLedgerRows(
       Reference: entry.reference_number ?? '',
       Debit: Number(line.debit_amount ?? 0),
       Credit: Number(line.credit_amount ?? 0),
+      'Opening balance': opening,
+      'Running balance': running,
       'Entry ID': line.entry_id,
     };
   });
