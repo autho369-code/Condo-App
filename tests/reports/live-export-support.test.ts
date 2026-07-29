@@ -26,4 +26,14 @@ describe('audited live report exports', () => {
     }
     expect(page).toContain('const exportEnabled = supportsLiveExport');
   });
+
+  it('uses account types rather than account-number bands for the income statement', () => {
+    const page = readFileSync(
+      resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),
+      'utf8',
+    );
+    expect(page).toContain("financialSection(account) === 'income'");
+    expect(page).toContain("financialSection(account) === 'expense'");
+    expect(page).not.toContain('const classifyIS =');
+  });
 });
