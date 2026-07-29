@@ -1841,6 +1841,8 @@ function ReportRightRail({
 }) {
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
+  const exportEnabled = supportsLiveExport
+    || ['trial_balance', 'balance_sheet', 'income_statement', 'general_ledger'].includes(def.slug);
 
   const presets: Array<{ k: string; label: string }> = [
     { k: 'this_month',   label: 'This month' },
@@ -1866,7 +1868,7 @@ function ReportRightRail({
         {isLive ? 'Live report' : 'Run this report'}
       </div>
 
-      {isLive && !supportsLiveExport ? (
+      {isLive && !exportEnabled ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900">
           This report is calculated live from posted accounting entries. File export is temporarily unavailable because the queued export service does not yet have an audited data source for this report. Use the displayed totals for review; do not rely on a generated file until export verification is complete.
         </div>
