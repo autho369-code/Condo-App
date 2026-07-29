@@ -51,6 +51,30 @@ async function main() {
     ensureUser('staging.manager.a@portier369.invalid', 'Staging Manager A', ids.portfolioA, 'manager'),
     ensureUser('staging.admin.b@portier369.invalid', 'Staging Admin B', ids.portfolioB, 'company_admin'),
   ])
+  await upsert('report_definitions', [
+    ['trial_balance', 'Trial Balance', 'Debit and credit summary for every general-ledger account'],
+    ['balance_sheet', 'Balance Sheet', 'Assets, liabilities, and equity as of a selected date'],
+    ['income_statement', 'Income Statement', 'Revenue and expenses for a selected period'],
+    ['general_ledger', 'General Ledger', 'Posted journal activity with account balances'],
+    ['ar_aging', 'A/R Aging', 'Outstanding owner receivables by aging bucket'],
+    ['ap_aging', 'A/P Aging', 'Outstanding vendor payables by aging bucket'],
+    ['aged_payables', 'Aged Payables', 'Detailed outstanding vendor payables'],
+    ['aged_payables_summary', 'Aged Payables Summary', 'Outstanding payables summarized by aging bucket'],
+    ['budget_vs_actual', 'Budget vs Actual', 'Budgeted and actual activity with variance'],
+    ['budget_vs_actuals', 'Budget vs Actuals', 'Budgeted and actual activity with monthly variance'],
+    ['annual_budget_comparative', 'Annual Budget Comparative', 'Annual budget compared with actual activity'],
+    ['bank_reconciliation', 'Bank Reconciliation', 'Statement and book balance reconciliation summary'],
+    ['bank_account_reconciliation', 'Bank Account Reconciliation', 'Reconciliation status by bank account'],
+    ['bank_reconciliation_detail', 'Bank Reconciliation Detail', 'Detailed bank reconciliation activity'],
+  ].map(([slug, name, description]) => ({
+    slug,
+    name,
+    description,
+    category: 'accounting',
+    is_system: true,
+    active: true,
+    output_formats: ['pdf', 'xlsx', 'csv', 'json'],
+  })), 'slug')
   await upsert('associations', [
     { id: ids.associationA, portfolio_id: ids.portfolioA, created_by: adminA.id, name: 'Harbor View Staging HOA', slug: 'harbor-view-staging', address: '100 Verification Way', city: 'Seattle', state: 'WA', zip: '98101', fiscal_year_start: 1, unit_count: 1, status: 'active' },
     { id: ids.associationB, portfolio_id: ids.portfolioB, created_by: adminB.id, name: 'Cedar Grove Isolation HOA', slug: 'cedar-grove-isolation', address: '200 Boundary Lane', city: 'Portland', state: 'OR', zip: '97201', fiscal_year_start: 1, unit_count: 1, status: 'active' },

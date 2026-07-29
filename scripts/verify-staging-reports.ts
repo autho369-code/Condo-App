@@ -15,6 +15,14 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 async function main() {
+  const { data: definitions, error: definitionsError } = await db
+    .from('report_definitions')
+    .select('slug')
+    .eq('active', true)
+    .in('slug', [...LIVE_EXPORT_SLUGS])
+  if (definitionsError) throw definitionsError
+  assert(definitions?.length === LIVE_EXPORT_SLUGS.length, `Expected ${LIVE_EXPORT_SLUGS.length} active live report definitions, got ${definitions?.length ?? 0}`)
+
   const output = new Map<string, Record<string, unknown>[]>()
   for (const slug of LIVE_EXPORT_SLUGS) {
     const rows = await generateLiveExportRows(db, portfolioId, slug, params)
