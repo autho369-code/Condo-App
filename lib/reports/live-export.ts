@@ -238,8 +238,10 @@ async function generalLedgerRows(
   dateTo: string,
 ) {
   const accounts = await loadAccounts(db, portfolioId, associationId);
-  const accountById = new Map(accounts.map((account: any) => [account.id, account]));
-  const accountIds = [...accountById.keys()];
+  const accountById = new Map<string, any>(
+    accounts.map((account: any) => [String(account.id), account]),
+  );
+  const accountIds: string[] = accounts.map((account: any) => String(account.id));
   if (accountIds.length === 0) return [];
 
   let query = db
