@@ -312,7 +312,19 @@ async function BalanceSheetView({
 
   // Roll current-year net income (revenue − expenses, cumulative through the as-of
   // date) into equity as retained earnings — otherwise the sheet doesn't balance.
-  const netIncome = calculateNetIncome(accounts, totals);
+  const currentYearStart = `${period.to.slice(0, 4)}-01-01`;
+  const currentYearTotals: Record<string, { debit: number; credit: number }> = {};
+  for (const line of journalLines) {
+    if (line.journal_entries?.entry_date >= currentYearStart) {
+      addLedgerLine(
+        currentYearTotals,
+        line.gl_account_id,
+        line.debit_amount,
+        line.credit_amount,
+      );
+    }
+  }
+  const netIncome = calculateNetIncome(accounts, currentYearTotals);
   totals['__ni__'] = { debit: netIncome < 0 ? -netIncome : 0, credit: netIncome > 0 ? netIncome : 0 };
   const equityDisplay = [...equity, { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' }];
 
