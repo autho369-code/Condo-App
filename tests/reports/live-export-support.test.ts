@@ -36,4 +36,18 @@ describe('audited live report exports', () => {
     expect(page).toContain("financialSection(account) === 'expense'");
     expect(page).not.toContain('const classifyIS =');
   });
+
+  it('limits balance-sheet current-year earnings to the report year', () => {
+    const page = readFileSync(
+      resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),
+      'utf8',
+    );
+    const exporter = readFileSync(
+      resolve(process.cwd(), 'lib/reports/live-export.ts'),
+      'utf8',
+    );
+    expect(page).toContain("const currentYearStart = \`\${period.to.slice(0, 4)}-01-01\`");
+    expect(exporter).toContain("const currentYearStart = \`\${dateTo.slice(0, 4)}-01-01\`");
+    expect(exporter).toContain('netIncome(accounts, currentYearTotals)');
+  });
 });
