@@ -1850,7 +1850,7 @@ function ReportRightRail({
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
   const exportEnabled = supportsLiveExport
-    || ['trial_balance', 'balance_sheet', 'income_statement', 'general_ledger'].includes(def.slug);
+    || ['trial_balance', 'balance_sheet', 'income_statement', 'general_ledger', 'ar_aging'].includes(def.slug);
 
   const presets: Array<{ k: string; label: string }> = [
     { k: 'this_month',   label: 'This month' },
