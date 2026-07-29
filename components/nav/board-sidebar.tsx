@@ -136,7 +136,7 @@ export default function BoardSidebar({ userEmail, associationName }: BoardSideba
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-md border border-[#1E293B] shadow-sm"
+        className="lg:hidden fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-[#1E293B] shadow-sm"
         style={{ backgroundColor: '#0B1121' }}
         aria-label="Toggle menu"
       >
