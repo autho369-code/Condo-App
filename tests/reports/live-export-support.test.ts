@@ -15,6 +15,9 @@ describe('audited live report exports', () => {
       'ap_aging',
       'aged_payables',
       'aged_payables_summary',
+      'budget_vs_actual',
+      'budget_vs_actuals',
+      'annual_budget_comparative',
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
