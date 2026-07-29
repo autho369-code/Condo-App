@@ -74,3 +74,14 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Fix: the tenant-hardening migration rebuilds house-rule and other audited policies; public violation intake already uses a server-side service client and does not require anonymous table reads.
 - Fix status: fixed in branch, not deployed.
 - Test status: policy inventory complete; role regression pending staging.
+
+
+## SEC-008 — Critical — Property manager could enter Company Admin
+
+- Affected roles/boundary: full-access property managers; company-administration boundary.
+- Workflow: an authenticated manager navigates directly to `/company-admin/overview`.
+- Evidence: authenticated role testing rendered the Company Admin Executive Dashboard for `manager@portier369.com`; production profile inspection confirmed `hoa_role = 'manager'`. Application `requirePortfolioAdmin()` and database `can_admin_portfolio()` both treated full-access staff as company administrators.
+- Impact: a property manager could reach company-level administration functions reserved for the explicit Company Admin role.
+- Fix: require `hoa_role = 'company_admin'` (or platform operator), reject disabled identities, and remove the legacy President/full-access shortcuts at both application and database layers.
+- Fix status: fixed in `lib/auth/me.ts` and migration `20260728095000_company_admin_role_boundary.sql`.
+- Test status: unit and migration regression tests added; staging negative-role replay remains required.
