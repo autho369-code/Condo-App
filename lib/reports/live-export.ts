@@ -14,6 +14,7 @@ export const LIVE_EXPORT_SLUGS = [
   'balance_sheet',
   'income_statement',
   'general_ledger',
+  'ar_aging',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -270,6 +271,42 @@ async function generalLedgerRows(
   });
 }
 
+async function arAgingRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+) {
+  let associationsQuery = db
+    .from('associations')
+    .select('id')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null);
+  if (associationId) associationsQuery = associationsQuery.eq('id', associationId);
+  const { data: associations, error: associationsError } = await associationsQuery;
+  if (associationsError) throw associationsError;
+  const associationIds = (associations ?? []).map((association: any) => association.id);
+  if (associationIds.length === 0) return [];
+
+  const { data, error } = await db
+    .from('aged_receivables')
+    .select('*')
+    .in('association_id', associationIds)
+    .order('due_date');
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    Association: row.association_name,
+    Unit: row.unit_number,
+    Description: row.description,
+    'Due date': row.due_date,
+    'Aging bucket': row.aging_bucket,
+    Charged: Number(row.amount ?? 0),
+    Paid: Number(row.total_paid ?? 0),
+    'Balance due': Number(row.balance_due ?? 0),
+    'Charge ID': row.charge_id,
+  }));
+}
+
 export async function generateLiveExportRows(
   db: ServiceClient,
   portfolioId: string,
@@ -291,5 +328,7 @@ export async function generateLiveExportRows(
       return incomeStatementRows(db, portfolioId, associationId, dateFrom, dateTo);
     case 'general_ledger':
       return generalLedgerRows(db, portfolioId, associationId, dateFrom, dateTo);
+    case 'ar_aging':
+      return arAgingRows(db, portfolioId, associationId);
   }
 }
