@@ -153,7 +153,15 @@ async function balanceSheetRows(
     }
   }
 
-  const currentIncome = netIncome(accounts, totals);
+  const currentYearStart = `${dateTo.slice(0, 4)}-01-01`;
+  const currentYearTotals = await loadLedgerTotals(
+    db,
+    accounts.map((account: any) => account.id),
+    associationId,
+    currentYearStart,
+    dateTo,
+  );
+  const currentIncome = netIncome(accounts, currentYearTotals);
   rows.push(accountRow(
     { number: 3650, name: 'Current Year Net Income', account_type: 'equity' },
     currentIncome,
