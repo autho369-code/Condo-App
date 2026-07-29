@@ -11,6 +11,7 @@ describe('audited live report exports', () => {
       'balance_sheet',
       'income_statement',
       'general_ledger',
+      'ar_aging',
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
