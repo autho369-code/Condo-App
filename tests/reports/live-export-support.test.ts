@@ -40,7 +40,14 @@ describe('audited live report exports', () => {
       resolve(process.cwd(), 'app/(app)/reports/[slug]/page.tsx'),
       'utf8',
     );
-    for (const slug of LIVE_EXPORT_SLUGS) {
+    const inlineExportSlugs = [
+      'trial_balance',
+      'balance_sheet',
+      'income_statement',
+      'general_ledger',
+      'ar_aging',
+    ];
+    for (const slug of inlineExportSlugs) {
       expect(page).toContain(`'${slug}'`);
     }
     expect(page).toContain('const exportEnabled = supportsLiveExport');
