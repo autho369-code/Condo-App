@@ -834,12 +834,45 @@ async function GeneralLedgerView({
   const { data: lines } = await lineQuery;
   const journalLines = (lines ?? []) as any[];
 
+  // A general ledger needs the balance brought forward before the selected
+  // period. Without it, the report cannot provide an accurate running balance.
+  const openingTotals: Record<string, { debit: number; credit: number }> = {};
+  if (accounts.length > 0) {
+    let openingQuery = db
+      .from('journal_lines')
+      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
+      .in('gl_account_id', accounts.map((account: any) => account.id))
+      .eq('journal_entries.posted', true)
+      .lt('journal_entries.entry_date', period.from);
+    if (selectedAssociation) {
+      openingQuery = openingQuery.eq('association_id', selectedAssociation);
+    }
+    const { data: openingLines } = await openingQuery;
+    for (const line of openingLines ?? []) {
+      addLedgerLine(
+        openingTotals,
+        line.gl_account_id,
+        line.debit_amount,
+        line.credit_amount,
+      );
+    }
+  }
+
   // Group lines by gl_account_id
   const grouped = new Map<string, any[]>();
   for (const line of journalLines) {
     const accId = line.gl_account_id;
     if (!grouped.has(accId)) grouped.set(accId, []);
     grouped.get(accId)!.push(line);
+  }
+  for (const accountLines of grouped.values()) {
+    accountLines.sort((left, right) => {
+      const leftDate = left.journal_entries?.entry_date ?? '';
+      const rightDate = right.journal_entries?.entry_date ?? '';
+      return leftDate.localeCompare(rightDate)
+        || Number(left.sort_order ?? 0) - Number(right.sort_order ?? 0)
+        || String(left.id).localeCompare(String(right.id));
+    });
   }
 
   // Build account map
@@ -893,6 +926,7 @@ async function GeneralLedgerView({
             const lines = grouped.get(acc.id) ?? [];
             const sumDebit  = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
             const sumCredit = lines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);
+            let runningBalance = normalBalance(acc, openingTotals);
             return (
               <Section
                 key={acc.id}
@@ -908,11 +942,18 @@ async function GeneralLedgerView({
                         <th className="px-4 py-2 text-left font-semibold">Reference</th>
                         <th className="px-4 py-2 text-right font-semibold">Debit</th>
                         <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                        <th className="px-4 py-2 text-right font-semibold">Running Balance</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lines.map((l: any) => {
                         const entry = l.journal_entries;
+                        runningBalance += normalBalance(acc, {
+                          [acc.id]: {
+                            debit: Number(l.debit_amount ?? 0),
+                            credit: Number(l.credit_amount ?? 0),
+                          },
+                        });
                         return (
                           <tr key={l.id} className="border-t border-gray-100 hover:bg-gray-50">
                             <td className="whitespace-nowrap px-5 py-2 text-xs text-gray-600">{date(entry?.entry_date)}</td>
@@ -923,6 +964,7 @@ async function GeneralLedgerView({
                             <td className="px-4 py-2 font-mono text-xs text-gray-500">{entry?.reference_number ?? '\u2014'}</td>
                             <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.debit_amount > 0 ? money(l.debit_amount) : ''}</td>
                             <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.credit_amount > 0 ? money(l.credit_amount) : ''}</td>
+                            <td className="px-4 py-2 text-right tabular-nums font-medium text-gray-900">{money(runningBalance)}</td>
                           </tr>
                         );
                       })}
@@ -930,6 +972,7 @@ async function GeneralLedgerView({
                         <td className="px-5 py-2" colSpan={3}>Account Total</td>
                         <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumDebit)}</td>
                         <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumCredit)}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(runningBalance)}</td>
                       </tr>
                     </tbody>
                   </table>
