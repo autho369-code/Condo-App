@@ -310,7 +310,7 @@ async function generalLedgerRows(
   });
 }
 
-function agingBucket(dueDate: string | null, asOf: string): string {
+export function agingBucket(dueDate: string | null, asOf: string): string {
   if (!dueDate || dueDate >= asOf) return 'Current';
   const due = Date.parse(`${dueDate}T00:00:00.000Z`);
   const reportDate = Date.parse(`${asOf}T00:00:00.000Z`);
