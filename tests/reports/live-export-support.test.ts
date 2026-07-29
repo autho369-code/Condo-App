@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { LIVE_EXPORT_SLUGS, supportsLiveExport } from '@/lib/reports/live-export';
+import { agingBucket, LIVE_EXPORT_SLUGS, supportsLiveExport } from '@/lib/reports/live-export';
 
 describe('audited live report exports', () => {
   it('advertises the core accounting exports implemented by the worker', () => {
@@ -12,9 +12,21 @@ describe('audited live report exports', () => {
       'income_statement',
       'general_ledger',
       'ar_aging',
+      'ap_aging',
+      'aged_payables',
+      'aged_payables_summary',
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
+  });
+
+  it('assigns payable balances to conventional aging buckets', () => {
+    expect(agingBucket(null, '2026-07-28')).toBe('Current');
+    expect(agingBucket('2026-07-28', '2026-07-28')).toBe('Current');
+    expect(agingBucket('2026-07-27', '2026-07-28')).toBe('1-30');
+    expect(agingBucket('2026-06-27', '2026-07-28')).toBe('31-60');
+    expect(agingBucket('2026-05-27', '2026-07-28')).toBe('61-90');
+    expect(agingBucket('2026-04-01', '2026-07-28')).toBe('90+');
   });
 
   it('keeps the report rail allowlist aligned with the worker', () => {
