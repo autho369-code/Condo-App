@@ -15,6 +15,9 @@ export const LIVE_EXPORT_SLUGS = [
   'income_statement',
   'general_ledger',
   'ar_aging',
+  'ap_aging',
+  'aged_payables',
+  'aged_payables_summary',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -307,6 +310,58 @@ async function generalLedgerRows(
   });
 }
 
+function agingBucket(dueDate: string | null, asOf: string): string {
+  if (!dueDate || dueDate >= asOf) return 'Current';
+  const due = Date.parse(`${dueDate}T00:00:00.000Z`);
+  const reportDate = Date.parse(`${asOf}T00:00:00.000Z`);
+  const days = Math.max(1, Math.floor((reportDate - due) / 86_400_000));
+  if (days <= 30) return '1-30';
+  if (days <= 60) return '31-60';
+  if (days <= 90) return '61-90';
+  return '90+';
+}
+
+async function apAgingRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+  asOf: string,
+) {
+  let associationsQuery = db
+    .from('associations')
+    .select('id')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null);
+  if (associationId) associationsQuery = associationsQuery.eq('id', associationId);
+  const { data: associations, error: associationsError } = await associationsQuery;
+  if (associationsError) throw associationsError;
+  const associationIds = (associations ?? []).map((association: any) => association.id);
+  if (associationIds.length === 0) return [];
+
+  const { data, error } = await db
+    .from('payable_bills')
+    .select('id, bill_number, bill_date, due_date, amount, memo, status, association_id, vendors(name), associations(name)')
+    .in('association_id', associationIds)
+    .not('status', 'in', '("paid","void")')
+    .lte('bill_date', asOf)
+    .order('due_date', { ascending: true, nullsFirst: false });
+  if (error) throw error;
+
+  return (data ?? []).map((bill: any) => ({
+    Association: bill.associations?.name ?? '',
+    Vendor: bill.vendors?.name ?? '',
+    'Bill #': bill.bill_number ?? '',
+    'Bill date': bill.bill_date,
+    'Due date': bill.due_date,
+    Memo: bill.memo ?? '',
+    Status: bill.status,
+    'Aging bucket': agingBucket(bill.due_date, asOf),
+    'Balance due': Number(bill.amount ?? 0),
+    'Bill ID': bill.id,
+    'As of': asOf,
+  }));
+}
+
 async function arAgingRows(
   db: ServiceClient,
   portfolioId: string,
@@ -366,5 +421,9 @@ export async function generateLiveExportRows(
       return generalLedgerRows(db, portfolioId, associationId, dateFrom, dateTo);
     case 'ar_aging':
       return arAgingRows(db, portfolioId, associationId);
+    case 'ap_aging':
+    case 'aged_payables':
+    case 'aged_payables_summary':
+      return apAgingRows(db, portfolioId, associationId, dateTo);
   }
 }
