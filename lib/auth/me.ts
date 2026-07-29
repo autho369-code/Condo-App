@@ -90,9 +90,15 @@ export async function requirePlatformOperator(): Promise<MeResult> {
   return me;
 }
 
+export function hasPortfolioAdminAccess(
+  me: Pick<MeResult, 'is_company_admin' | 'is_platform_operator'>,
+): boolean {
+  return me.is_company_admin || me.is_platform_operator;
+}
+
 export async function requirePortfolioAdmin(): Promise<MeResult> {
   const me = await requireAuth();
-  if (!me.is_full_access_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/dashboard');
+  if (!hasPortfolioAdminAccess(me)) redirect('/dashboard');
   return me;
 }
 
