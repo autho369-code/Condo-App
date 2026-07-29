@@ -18,6 +18,9 @@ describe('audited live report exports', () => {
       'budget_vs_actual',
       'budget_vs_actuals',
       'annual_budget_comparative',
+      'bank_reconciliation',
+      'bank_account_reconciliation',
+      'bank_reconciliation_detail',
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
