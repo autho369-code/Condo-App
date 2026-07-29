@@ -18,6 +18,9 @@ export const LIVE_EXPORT_SLUGS = [
   'ap_aging',
   'aged_payables',
   'aged_payables_summary',
+  'budget_vs_actual',
+  'budget_vs_actuals',
+  'annual_budget_comparative',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -398,6 +401,73 @@ async function arAgingRows(
   }));
 }
 
+async function budgetVsActualRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+  fiscalYear: number,
+) {
+  let associationsQuery = db
+    .from('associations')
+    .select('id, name')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .order('name');
+  if (associationId) associationsQuery = associationsQuery.eq('id', associationId);
+  const { data: associations, error: associationsError } = await associationsQuery;
+  if (associationsError) throw associationsError;
+
+  const rows: Record<string, unknown>[] = [];
+  for (const association of associations ?? []) {
+    const { data, error } = await db.rpc('get_budget_vs_actuals', {
+      p_association_id: association.id,
+      p_fiscal_year: fiscalYear,
+    });
+    if (error) throw error;
+    for (const row of data ?? []) {
+      const monthlyBudget = row.monthly_budget ?? [];
+      const monthlyActuals = row.monthly_actuals ?? [];
+      rows.push({
+        Association: association.name,
+        'Fiscal year': fiscalYear,
+        Category: row.category,
+        'Account #': row.gl_account_number,
+        Account: row.gl_account_name,
+        Notes: row.notes ?? '',
+        'Annual budget': Number(row.annual_budget ?? 0),
+        'Annual actual': Number(row.annual_actual ?? 0),
+        'Annual variance': Number(row.annual_variance ?? 0),
+        'Variance %': Number(row.annual_variance_pct ?? 0),
+        'Jan budget': Number(monthlyBudget[0] ?? 0),
+        'Jan actual': Number(monthlyActuals[0] ?? 0),
+        'Feb budget': Number(monthlyBudget[1] ?? 0),
+        'Feb actual': Number(monthlyActuals[1] ?? 0),
+        'Mar budget': Number(monthlyBudget[2] ?? 0),
+        'Mar actual': Number(monthlyActuals[2] ?? 0),
+        'Apr budget': Number(monthlyBudget[3] ?? 0),
+        'Apr actual': Number(monthlyActuals[3] ?? 0),
+        'May budget': Number(monthlyBudget[4] ?? 0),
+        'May actual': Number(monthlyActuals[4] ?? 0),
+        'Jun budget': Number(monthlyBudget[5] ?? 0),
+        'Jun actual': Number(monthlyActuals[5] ?? 0),
+        'Jul budget': Number(monthlyBudget[6] ?? 0),
+        'Jul actual': Number(monthlyActuals[6] ?? 0),
+        'Aug budget': Number(monthlyBudget[7] ?? 0),
+        'Aug actual': Number(monthlyActuals[7] ?? 0),
+        'Sep budget': Number(monthlyBudget[8] ?? 0),
+        'Sep actual': Number(monthlyActuals[8] ?? 0),
+        'Oct budget': Number(monthlyBudget[9] ?? 0),
+        'Oct actual': Number(monthlyActuals[9] ?? 0),
+        'Nov budget': Number(monthlyBudget[10] ?? 0),
+        'Nov actual': Number(monthlyActuals[10] ?? 0),
+        'Dec budget': Number(monthlyBudget[11] ?? 0),
+        'Dec actual': Number(monthlyActuals[11] ?? 0),
+      });
+    }
+  }
+  return rows;
+}
+
 export async function generateLiveExportRows(
   db: ServiceClient,
   portfolioId: string,
@@ -407,6 +477,11 @@ export async function generateLiveExportRows(
   const associationId = stringParam(rawParams, 'association_id');
   const dateTo = stringParam(rawParams, 'date_to') ?? new Date().toISOString().slice(0, 10);
   const dateFrom = stringParam(rawParams, 'date_from') ?? `${dateTo.slice(0, 4)}-01-01`;
+  const fiscalYearText = stringParam(rawParams, 'fiscal_year') ?? dateTo.slice(0, 4);
+  const fiscalYear = Number.parseInt(fiscalYearText, 10);
+  if (!Number.isInteger(fiscalYear) || fiscalYear < 2000 || fiscalYear > 2200) {
+    throw new Error('Fiscal year must be between 2000 and 2200.');
+  }
   if (dateFrom > dateTo) throw new Error('Report start date must not be after end date.');
   await validateAssociation(db, portfolioId, associationId);
 
@@ -425,5 +500,9 @@ export async function generateLiveExportRows(
     case 'aged_payables':
     case 'aged_payables_summary':
       return apAgingRows(db, portfolioId, associationId, dateTo);
+    case 'budget_vs_actual':
+    case 'budget_vs_actuals':
+    case 'annual_budget_comparative':
+      return budgetVsActualRows(db, portfolioId, associationId, fiscalYear);
   }
 }
