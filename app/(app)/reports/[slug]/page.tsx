@@ -461,35 +461,31 @@ async function IncomeStatementView({
     return t.debit - t.credit; // expense: debit positive
   };
 
-  const classifyIS = (acc: any) => {
-    const n = acc.number;
-    if (n >= 4000 && n < 5000) return 'Operating Revenue';
-    if (n >= 7000 && n < 8000) return 'Other Revenue';
-    if (n >= 5000 && n < 6000) return 'Cost of Goods Sold';
-    if (n >= 6000 && n < 7000) return 'Operating Expenses';
-    if (n >= 8000 && n < 9000) return 'Other Expenses';
-    if (n >= 9000 && n < 10000) return 'Non-Operating';
-    return null;
-  };
+  // Account type is authoritative. Associations may use custom account
+  // numbers, so number bands must never decide whether activity is revenue
+  // or expense.
+  const incomeAccounts = allAccounts.filter(
+    (account) => financialSection(account) === 'income',
+  );
+  const expenseAccounts = allAccounts.filter(
+    (account) => financialSection(account) === 'expense',
+  );
 
-  const incomeAccounts = allAccounts.filter((a) => classifyIS(a) && a.number < 5000 || (a.number >= 7000 && a.number < 8000));
-  const expenseAccounts = allAccounts.filter((a) => classifyIS(a) && a.number >= 5000 && a.number < 7000 || (a.number >= 8000));
-
-  // Detailed classification
   const revenueSections = [
-    { label: 'Operating Revenue', items: allAccounts.filter((a) => a.number >= 4000 && a.number < 5000) },
-    { label: 'Other Revenue',     items: allAccounts.filter((a) => a.number >= 7000 && a.number < 8000) },
+    { label: 'Revenue', items: incomeAccounts },
   ];
-
   const expenseSections = [
-    { label: 'Cost of Goods Sold',  items: allAccounts.filter((a) => a.number >= 5000 && a.number < 6000) },
-    { label: 'Operating Expenses',  items: allAccounts.filter((a) => a.number >= 6000 && a.number < 7000) },
-    { label: 'Other Expenses',      items: allAccounts.filter((a) => a.number >= 8000 && a.number < 9000) },
-    { label: 'Non-Operating',       items: allAccounts.filter((a) => a.number >= 9000 && a.number < 10000) },
+    { label: 'Expenses', items: expenseAccounts },
   ];
 
-  const totalRevenue  = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number < 5000 || (a.number >= 7000 && a.number < 8000)) ? getISBalance(a) : 0), 0);
-  const totalExpenses = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number >= 5000 && a.number < 7000 || a.number >= 8000) ? Math.abs(getISBalance(a)) : 0), 0);
+  const totalRevenue = incomeAccounts.reduce(
+    (sum, account) => sum + getISBalance(account),
+    0,
+  );
+  const totalExpenses = expenseAccounts.reduce(
+    (sum, account) => sum + getISBalance(account),
+    0,
+  );
   const netIncome = totalRevenue - totalExpenses;
 
   const renderISSection = (label: string, items: any[], showValues = true) => {
