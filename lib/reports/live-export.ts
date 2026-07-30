@@ -15,6 +15,7 @@ export const LIVE_EXPORT_SLUGS = [
   'income_statement',
   'general_ledger',
   'ar_aging',
+  'delinquency_summary',
   'ap_aging',
   'aged_payables',
   'aged_payables_summary',
@@ -404,6 +405,55 @@ async function arAgingRows(
   }));
 }
 
+async function delinquencySummaryRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+) {
+  const detail = await arAgingRows(db, portfolioId, associationId);
+  const summaries = new Map<string, {
+    current: number;
+    oneToThirty: number;
+    thirtyOneToSixty: number;
+    sixtyOneToNinety: number;
+    overNinety: number;
+    charges: number;
+  }>();
+
+  for (const row of detail) {
+    const association = String(row.Association || 'Unassigned association');
+    const summary = summaries.get(association) ?? {
+      current: 0,
+      oneToThirty: 0,
+      thirtyOneToSixty: 0,
+      sixtyOneToNinety: 0,
+      overNinety: 0,
+      charges: 0,
+    };
+    const amount = Number(row['Balance due'] ?? 0);
+    switch (row['Aging bucket']) {
+      case 'current': summary.current += amount; break;
+      case '1_30': summary.oneToThirty += amount; break;
+      case '31_60': summary.thirtyOneToSixty += amount; break;
+      case '61_90': summary.sixtyOneToNinety += amount; break;
+      case '90_plus': summary.overNinety += amount; break;
+    }
+    summary.charges += 1;
+    summaries.set(association, summary);
+  }
+
+  return [...summaries.entries()].map(([association, summary]) => ({
+    Association: association,
+    Current: summary.current,
+    '1-30 days': summary.oneToThirty,
+    '31-60 days': summary.thirtyOneToSixty,
+    '61-90 days': summary.sixtyOneToNinety,
+    '90+ days': summary.overNinety,
+    'Total delinquent': summary.current + summary.oneToThirty + summary.thirtyOneToSixty + summary.sixtyOneToNinety + summary.overNinety,
+    'Open charges': summary.charges,
+  }));
+}
+
 async function bankReconciliationRows(
   db: ServiceClient,
   portfolioId: string,
@@ -602,6 +652,8 @@ export async function generateLiveExportRows(
       return generalLedgerRows(db, portfolioId, associationId, dateFrom, dateTo);
     case 'ar_aging':
       return arAgingRows(db, portfolioId, associationId);
+    case 'delinquency_summary':
+      return delinquencySummaryRows(db, portfolioId, associationId);
     case 'ap_aging':
     case 'aged_payables':
     case 'aged_payables_summary':
