@@ -112,3 +112,26 @@ export async function writeChecks(formData: FormData) {
   const count = (data as any)?.checks_written ?? bill_ids.length;
   redirect(`/bills/check-run/print/${bill_ids[0]}?count=${count}&start=${starting_check_number}`);
 }
+
+export async function voidPaidCheck(formData: FormData) {
+  await requireStaff();
+  const checkId = formData.get('check_id') as string;
+  const billId = formData.get('bill_id') as string;
+  const reason = (formData.get('reason') as string) || '';
+  const stopPayment = formData.get('stop_payment') === 'true';
+  const failTo = (msg: string) => redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
+  if (!checkId || !billId || reason.trim().length < 3) {
+    failTo('A check and a reason of at least 3 characters are required.');
+    return;
+  }
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('void_payable_check', {
+    p_check_id: checkId,
+    p_reason: reason.trim(),
+    p_stop_payment: stopPayment,
+  });
+  if (error) { failTo(error.message); return; }
+  revalidatePath('/bills');
+  revalidatePath(`/bills/${billId}`);
+  redirect(`/bills/${billId}?check_voided=1`);
+}

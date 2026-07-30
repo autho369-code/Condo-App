@@ -3,7 +3,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Badge } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
-import { approveBill, voidBill } from '@/lib/rpcs/bills';
+import { approveBill, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -23,6 +23,12 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     .maybeSingle();
 
   if (!b) notFound();
+  const { data: checks } = await (supabase as any)
+    .from('payable_checks')
+    .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, bank_accounts(name, bank_name)')
+    .eq('bill_id', id)
+    .order('issued_at', { ascending: false });
+  const issuedCheck = (checks ?? []).find((check: any) => check.status === 'issued');
 
   return (
     <Workspace
@@ -68,6 +74,23 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         </dl>
       </Section>
 
+      {(checks ?? []).length > 0 && (
+        <Section title="Check history" padded>
+          <div className="space-y-3">
+            {(checks ?? []).map((check: any) => (
+              <div key={check.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-medium">Check #{check.check_number} · {money(check.amount)}</div>
+                  <Badge status={check.status} />
+                </div>
+                <div className="mt-1 text-gray-500">{check.bank_accounts?.name ?? 'Bank'} · {date(check.payment_date)}</div>
+                {check.void_reason && <div className="mt-1 text-red-700">{check.void_reason}</div>}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {b.status === 'pending_approval' && (
           <form action={async () => { 'use server'; await approveBill(id); }}>
@@ -81,6 +104,18 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         )}
         {b.status === 'approved' && b.paid_at === null && (
           <Link href="/bills/check-run"><Button variant="secondary">Include in check run</Button></Link>
+        )}
+        {b.status === 'paid' && issuedCheck && (
+          <form action={voidPaidCheck as any} className="flex flex-wrap items-end gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <input type="hidden" name="check_id" value={issuedCheck.id} />
+            <input type="hidden" name="bill_id" value={id} />
+            <label className="text-sm text-red-900">
+              Void/stop reason
+              <input name="reason" required minLength={3} className="mt-1 block rounded-md border border-red-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <Button type="submit" name="stop_payment" value="false" variant="danger">Void check</Button>
+            <Button type="submit" name="stop_payment" value="true" variant="danger">Stop payment</Button>
+          </form>
         )}
       </div>
     </Workspace>

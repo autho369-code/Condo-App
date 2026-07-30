@@ -29,7 +29,10 @@ async function main() {
   assert(written.data?.checks_written === 1 && written.data?.next_check_number === 5002, 'Valid check run returned incorrect sequence data')
   const { data: paid } = await db.from('payable_bills').select('status, check_number, bank_account_id').eq('id', billA).single()
   assert(paid?.status === 'paid' && Number(paid?.check_number) === 5001 && paid?.bank_account_id === bankA, 'Valid check was not recorded correctly')
-  const { data: entries, error: entriesError } = await db.from('journal_entries').select('id, source_type, posted').eq('source_id', billA).in('source_type', ['payable_bill', 'check_payment'])
+  const { data: issuedChecks, error: checksError } = await db.from('payable_checks').select('id, status, check_number, payment_entry_id, run_transaction_id').eq('bill_id', billA).order('issued_at')
+  if (checksError) throw checksError
+  assert(issuedChecks?.length === 1 && issuedChecks[0].status === 'issued' && issuedChecks[0].check_number === 5001, 'Issued check history was not captured')
+  const { data: entries, error: entriesError } = await db.from('journal_entries').select('id, source_type, posted').or(`and(source_type.eq.payable_bill,source_id.eq.${billA}),id.eq.${issuedChecks[0].payment_entry_id}`)
   if (entriesError) throw entriesError
   assert(entries?.length === 2 && entries.every((entry) => entry.posted), 'Bill accrual and check payment were not both posted')
   const { data: lines, error: linesError } = await db.from('journal_lines').select('entry_id, debit_amount, credit_amount').in('entry_id', entries.map((entry) => entry.id))
@@ -43,6 +46,25 @@ async function main() {
   }
   const replay = await db.rpc('record_check_run', { p_bank_account_id: bankA, p_bill_ids: [billA], p_starting_check_number: 5002, p_payment_date: '2026-07-29' })
   assert(replay.error?.message.includes('not approved and unpaid'), 'Paid bill replay was not rejected')
+
+  const voidCheck = await db.rpc('void_payable_check', { p_check_id: issuedChecks[0].id, p_reason: 'CODEX_TEST incorrect vendor address', p_stop_payment: false })
+  if (voidCheck.error) throw voidCheck.error
+  const { data: voidedCheck } = await db.from('payable_checks').select('status, void_entry_id, check_number').eq('id', issuedChecks[0].id).single()
+  assert(voidedCheck?.status === 'voided' && voidedCheck?.void_entry_id, 'Paid check void history was not recorded')
+  const { data: voidPaymentLines } = await db.from('journal_lines').select('debit_amount, credit_amount').in('entry_id', [issuedChecks[0].payment_entry_id, voidedCheck.void_entry_id])
+  assert(voidPaymentLines?.length === 4 && voidPaymentLines.reduce((sum, line) => sum + Number(line.debit_amount) - Number(line.credit_amount), 0) === 0, 'Paid check and void reversal do not net to zero')
+  const { data: reopenedBill } = await db.from('payable_bills').select('status, paid_at, check_number').eq('id', billA).single()
+  assert(reopenedBill?.status === 'approved' && reopenedBill?.paid_at === null && reopenedBill?.check_number === null, 'Voided check did not reopen the bill')
+  const reissue = await db.rpc('record_check_run', { p_bank_account_id: bankA, p_bill_ids: [billA], p_starting_check_number: 5002, p_payment_date: '2026-07-30' })
+  if (reissue.error) throw reissue.error
+  const { data: allChecks } = await db.from('payable_checks').select('id, status, check_number').eq('bill_id', billA).order('check_number')
+  assert(allChecks?.length === 2 && allChecks[0].status === 'voided' && allChecks[1].status === 'issued' && allChecks[1].check_number === 5002, 'Reissue did not preserve the void and issue the next number')
+  const stopped = await db.rpc('void_payable_check', { p_check_id: allChecks[1].id, p_reason: 'CODEX_TEST lost in mail', p_stop_payment: true })
+  if (stopped.error) throw stopped.error
+  const thirdIssue = await db.rpc('record_check_run', { p_bank_account_id: bankA, p_bill_ids: [billA], p_starting_check_number: 5003, p_payment_date: '2026-07-30' })
+  if (thirdIssue.error) throw thirdIssue.error
+  const { data: finalChecks } = await db.from('payable_checks').select('status, check_number').eq('bill_id', billA).order('check_number')
+  assert(finalChecks?.length === 3 && finalChecks[1].status === 'stop_payment' && finalChecks[2].status === 'issued' && finalChecks[2].check_number === 5003, 'Stop payment did not preserve history and reissue the next number')
 
   const approved = await db.rpc('approve_payable_bill', { p_bill_id: billA2 })
   if (approved.error) throw approved.error
@@ -58,7 +80,7 @@ async function main() {
   const { data: voidLines } = await db.from('journal_lines').select('entry_id, debit_amount, credit_amount').in('entry_id', voidEntries.map((entry) => entry.id))
   const net = voidLines.reduce((sum, line) => sum + Number(line.debit_amount) - Number(line.credit_amount), 0)
   assert(net === 0 && voidLines.length === 4, 'Accrual and void reversal do not net to zero')
-  console.log('Check run plus approve/accrue/void/reverse lifecycle: PASS')
+  console.log('Check issue, ledger, void, stop-payment, reissue, approval, and reversal lifecycle: PASS')
 }
 
 main().catch((error) => { console.error(error.message); process.exit(1) })

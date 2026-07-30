@@ -163,6 +163,15 @@ async function main() {
     { id: account(2, 73), association_id: ids.associationB, gl_account_id: account(2, 5), fiscal_year: 2026, category: 'income', monthly_amounts: Array(12).fill(800) },
   ])
   const payableBillIds = [account(1, 81), account(1, 82), account(2, 83)]
+  const oldChecks = await must('find old payable fixture checks', db.from('payable_checks').select('id, payment_entry_id, void_entry_id').in('bill_id', payableBillIds))
+  if (oldChecks.length) {
+    const checkEntryIds = oldChecks.flatMap((row) => [row.payment_entry_id, row.void_entry_id]).filter(Boolean)
+    await must('remove old payable fixture checks', db.from('payable_checks').delete().in('id', oldChecks.map((row) => row.id)))
+    if (checkEntryIds.length) {
+      await must('remove old check fixture lines', db.from('journal_lines').delete().in('entry_id', checkEntryIds))
+      await must('remove old check fixture entries', db.from('journal_entries').delete().in('id', checkEntryIds))
+    }
+  }
   const oldPayableEntries = await must('find old payable fixture entries', db.from('journal_entries').select('id').in('source_id', payableBillIds).in('source_type', ['payable_bill', 'check_payment', 'payable_bill_void']))
   if (oldPayableEntries.length) {
     const oldEntryIds = oldPayableEntries.map((row) => row.id)
