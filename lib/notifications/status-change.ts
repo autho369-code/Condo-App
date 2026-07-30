@@ -20,7 +20,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
 
-const SITE_URL = 'https://portier369.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com').replace(/\/$/, '');
 
 export interface StatusChangeParams {
   kind: 'work_order' | 'service_request';

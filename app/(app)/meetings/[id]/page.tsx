@@ -9,6 +9,7 @@ import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +44,13 @@ export default async function MeetingDetailPage({
 
   // Signed URLs for meeting documents
   const docUrlByPath = new Map<string, string>();
-  if ((documents ?? []).length > 0) {
+  const documentPaths = (documents ?? [])
+    .map((d: any) => d.storage_path)
+    .filter((path: unknown): path is string => isScopedStoragePath(path, 'meetings', id));
+  if (documentPaths.length > 0) {
     const svc = createServiceClient() as any;
     const { data: signed } = await svc.storage.from(BUCKET)
-      .createSignedUrls((documents ?? []).map((d: any) => d.storage_path), 3600);
+      .createSignedUrls(documentPaths, 3600);
     for (const s of signed ?? []) {
       if (s.path && s.signedUrl) docUrlByPath.set(s.path, s.signedUrl);
     }

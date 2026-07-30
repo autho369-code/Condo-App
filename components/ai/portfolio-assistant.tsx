@@ -20,18 +20,25 @@ export function PortfolioAssistant({
   subtitle = 'Ask about receivables, work orders, bills, violations, and more.',
   starters = STARTERS,
   configureHint,
+  scopeOptions,
+  scopeField = 'scopeId',
+  scopeLabel = 'Community',
 }: {
   endpoint?: string;
   title?: string;
   subtitle?: string;
   starters?: string[];
   configureHint?: React.ReactNode;
+  scopeOptions?: Array<{ value: string; label: string }>;
+  scopeField?: string;
+  scopeLabel?: string;
 } = {}) {
   const [messages, setMessages] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [selectedScope, setSelectedScope] = useState(scopeOptions?.[0]?.value ?? '');
 
   const threadRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +64,11 @@ export function PortfolioAssistant({
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, history }),
+        body: JSON.stringify({
+          question: q,
+          history,
+          ...(scopeOptions ? { [scopeField]: selectedScope } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -94,13 +105,33 @@ export function PortfolioAssistant({
           <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">{title}</h2>
           <p className="text-xs text-gray-500">{subtitle}</p>
         </div>
+        {scopeOptions && scopeOptions.length > 0 && (
+          <label className="ml-auto flex items-center gap-2 text-xs font-medium text-gray-600">
+            <span>{scopeLabel}</span>
+            <select
+              value={selectedScope}
+              onChange={(event) => {
+                setSelectedScope(event.target.value);
+                setMessages([]);
+                setError(null);
+                setNotConfigured(false);
+              }}
+              disabled={loading}
+              className="max-w-56 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900"
+            >
+              {scopeOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* Thread */}
       <div ref={threadRef} className="max-h-[52vh] min-h-[280px] space-y-4 overflow-y-auto px-5 py-5">
         {empty ? (
           <div className="py-6 text-center">
-            <p className="text-sm text-gray-600">Ask a question about your portfolio to get started.</p>
+            <p className="text-sm text-gray-600">Ask a question about the selected workspace to get started.</p>
             <div className="mx-auto mt-4 flex max-w-xl flex-wrap justify-center gap-2">
               {starters.map((s) => (
                 <button

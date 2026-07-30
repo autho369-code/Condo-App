@@ -16,6 +16,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, chatCompletion } from '@/lib/ai/service';
 import { requireStaff } from '@/lib/auth/me';
 import { buildPortfolioSnapshot } from '@/lib/ai/portfolio-snapshot';
+import {
+  MAX_ASSISTANT_MESSAGE_CHARS,
+  boundedAssistantHistory,
+  guardAuthenticatedAssistantRequest,
+  type AssistantTurn,
+} from '@/lib/ai/request-guard';
 
 const SYSTEM_PROMPT =
   'You are the Portfolio Assistant for a community-association (HOA/condo) property manager. ' +
@@ -26,8 +32,6 @@ const SYSTEM_PROMPT =
   'NEVER invent, estimate, or extrapolate numbers, names, dates, or amounts — only state what is in the DATA. ' +
   'Be concise and conversational. Format money with a dollar sign and use plain language. ' +
   'When listing items, use short bullet points. Do not output JSON or code unless asked.';
-
-type Turn = { role: 'user' | 'assistant'; content: string };
 
 export async function POST(request: NextRequest) {
   let me;
@@ -45,16 +49,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { question?: string; history?: Turn[] };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+  const guarded = await guardAuthenticatedAssistantRequest<{
+    question?: unknown;
+    history?: unknown;
+  }>(request, me.auth_user_id);
+  if (!guarded.ok) return guarded.response;
+  const body = guarded.body;
 
-  const question = (body.question ?? '').trim();
+  const question = typeof body.question === 'string' ? body.question.trim() : '';
   if (!question) {
     return NextResponse.json({ error: 'Please enter a question.' }, { status: 400 });
+  }
+  if (question.length > MAX_ASSISTANT_MESSAGE_CHARS) {
+    return NextResponse.json({ error: `Question must be ${MAX_ASSISTANT_MESSAGE_CHARS} characters or fewer.` }, { status: 400 });
   }
 
   const config = await getAIConfig(portfolioId);
@@ -66,16 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Cap prior turns to the last ~6 and keep only well-formed entries.
-  const history: Turn[] = Array.isArray(body.history)
-    ? body.history
-        .filter(
-          (t): t is Turn =>
-            !!t &&
-            (t.role === 'user' || t.role === 'assistant') &&
-            typeof t.content === 'string',
-        )
-        .slice(-6)
-    : [];
+  const history: AssistantTurn[] = boundedAssistantHistory(body.history);
 
   try {
     const snapshot = await buildPortfolioSnapshot();

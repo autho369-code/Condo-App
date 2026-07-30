@@ -177,15 +177,10 @@ export default async function NewOwnerPage({ searchParams }: { searchParams: Pro
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
               <input type="checkbox" name="activate_portal" className="mt-1" defaultChecked />
               <span>
-                <span className="block text-sm font-medium text-gray-900">Activate owner portal</span>
-                <span className="block text-xs text-gray-500">Creates a login account so the owner can view their balance, pay dues, and submit maintenance requests.</span>
+                <span className="block text-sm font-medium text-gray-900">Invite to owner portal</span>
+                <span className="block text-xs text-gray-500">Emails a private activation link so the owner can verify their address and choose their own password.</span>
               </span>
             </label>
-            <div>
-              <Label htmlFor="portal_password">Portal password</Label>
-              <Input id="portal_password" name="portal_password" type="text" placeholder="Auto-generated if left blank" />
-              <p className="mt-1 text-xs text-gray-400">Leave blank for a random secure password. The owner can reset it later.</p>
-            </div>
           </div>
         </section>
 

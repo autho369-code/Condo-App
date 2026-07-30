@@ -1,5 +1,6 @@
+
 /**
- * seed-comprehensive.ts — Full Portier369 seed with all modules
+ * seed-comprehensive.ts â€” Full Portier369 seed with all modules
  * Run: npx tsx scripts/seed-comprehensive.ts
  * Populates: units, occupancies, vendors (with compliance + contact),
  *   bills, payments, journal entries, bank transfers, purchase orders,
@@ -21,7 +22,25 @@ for (const line of envContent.split('\n')) {
   }
 }
 
-const db = createClient(env['NEXT_PUBLIC_SUPABASE_URL']!, env['SUPABASE_SERVICE_ROLE_KEY']!, {
+const seedUrl = env['NEXT_PUBLIC_SUPABASE_URL'];
+const seedKey = env['SUPABASE_SERVICE_ROLE_KEY'];
+if (!seedUrl || !seedKey) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+  process.exit(1);
+}
+const targetProjectRef = new URL(seedUrl).hostname.split('.')[0];
+if (
+  targetProjectRef === 'termxngysvotnfbzbgrv' ||
+  env['SUPABASE_ENVIRONMENT'] !== 'staging' ||
+  env['PORTIER369_ALLOW_LEGACY_SEED'] !== 'PORTIER369_AUDIT_2026'
+) {
+  console.error(
+    'Refusing legacy seed: target must be staging and PORTIER369_ALLOW_LEGACY_SEED must equal PORTIER369_AUDIT_2026.',
+  );
+  process.exit(1);
+}
+
+const db = createClient(seedUrl, seedKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
@@ -34,9 +53,9 @@ function futureDays(n: number) { const d = new Date(); d.setDate(d.getDate() + n
 function isoNow() { return new Date().toISOString(); }
 
 async function seed() {
-  console.log('🌱 Seeding Portier369 — comprehensive data...\n');
+  console.log('ðŸŒ± Seeding Portier369 â€” comprehensive data...\n');
 
-  // ── Get existing associations ─────────────────────────────────────
+  // â”€â”€ Get existing associations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const { data: associations } = await db.from('associations').select('id, name, unit_count').is('archived_at', null);
   if (!associations?.length) { console.error('No associations. Create first.'); process.exit(1); }
   console.log(`Found ${associations.length} associations`);
@@ -44,7 +63,7 @@ async function seed() {
   const portfolioId = 'a1000000-0000-0000-0000-000000000001';
   const userId = '11111111-1111-1111-1111-111111111111';
 
-  // ── GL Accounts ────────────────────────────────────────────────────
+  // â”€â”€ GL Accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const glAccounts = [
     { number: 1150, name: 'Operating Cash', account_type: 'asset' },
     { number: 1154, name: 'Security Deposit Account', account_type: 'asset' },
@@ -74,9 +93,9 @@ async function seed() {
   await db.from('gl_accounts').upsert(glAccounts.map(g => ({ ...g, active: true })), { onConflict: 'number' });
   const { data: glRows } = await db.from('gl_accounts').select('id, number').eq('active', true);
   const glMap = new Map(glRows?.map(g => [g.number, g.id]) ?? []);
-  console.log(`  ✓ ${glAccounts.length} GL accounts`);
+  console.log(`  âœ“ ${glAccounts.length} GL accounts`);
 
-  // ── Units + Occupancies ───────────────────────────────────────────
+  // â”€â”€ Units + Occupancies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const unitIds: string[] = [];
   const ownerIdsByAssoc: Record<string, string[]> = {};
   const firstNames = ['James','Maria','Robert','Patricia','David','Jennifer','Michael','Linda','William','Elizabeth','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Christopher','Karen','Daniel','Nancy'];
@@ -126,9 +145,9 @@ async function seed() {
     }
   }
   const totalOwners = Object.values(ownerIdsByAssoc).reduce((s,a) => s + a.length, 0);
-  console.log(`  ✓ ${unitIds.length} units, ${totalOwners} owners with occupancies`);
+  console.log(`  âœ“ ${unitIds.length} units, ${totalOwners} owners with occupancies`);
 
-  // ── Vendors (with compliance + contact) ────────────────────────────
+  // â”€â”€ Vendors (with compliance + contact) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const vendorData = [
     { name: 'ProFix HVAC Services', trade: 'hvac', phones: [{type:'landline',number:'312-555-1001'},{type:'mobile',number:'312-555-2001'}], emails: ['dispatch@profitxhvac.com'] },
     { name: 'Apex Plumbing Co.', trade: 'plumbing', phones: [{type:'landline',number:'312-555-1002'}], emails: ['service@apexplumbing.com'] },
@@ -168,9 +187,9 @@ async function seed() {
       contract_expiration: futureDays(between(90, 600)),
     });
   }
-  console.log(`  ✓ ${vendorIds.length} vendors with compliance dates + contact`);
+  console.log(`  âœ“ ${vendorIds.length} vendors with compliance dates + contact`);
 
-  // ── Bank Accounts ─────────────────────────────────────────────────
+  // â”€â”€ Bank Accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const banks = ['Chase','Bank of America','Wells Fargo','BMO Harris','Fifth Third'];
   const bankAccountIds: string[] = [];
   for (const assoc of associations) {
@@ -190,9 +209,9 @@ async function seed() {
       auto_reconciliation: false,
     });
   }
-  console.log(`  ✓ ${associations.length * 2} bank accounts`);
+  console.log(`  âœ“ ${associations.length * 2} bank accounts`);
 
-  // ── Bills + Journal Entries ──────────────────────────────────────
+  // â”€â”€ Bills + Journal Entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let billsCreated = 0, entriesCreated = 0;
   const allOwnerIds = Object.values(ownerIdsByAssoc).flat();
   for (const assoc of associations) {
@@ -209,7 +228,7 @@ async function seed() {
         bill_date: daysAgo(between(1, 45)),
         due_date: futureDays(between(5, 30)),
         amount, status,
-        memo: `${vendor.name} — ${pick(['Monthly service','Repair','Emergency','Quarterly maint.','Annual inspection'])}`,
+        memo: `${vendor.name} â€” ${pick(['Monthly service','Repair','Emergency','Quarterly maint.','Annual inspection'])}`,
       });
       billsCreated++;
 
@@ -219,7 +238,7 @@ async function seed() {
         await db.from('journal_entries').insert({
           id: jeId, portfolio_id: portfolioId,
           association_id: assoc.id,
-          name: `Bill payment — ${vendor.name}`,
+          name: `Bill payment â€” ${vendor.name}`,
           memo: `Payment for ${vendor.name}`,
           status: 'posted',
           created_by: userId,
@@ -232,9 +251,9 @@ async function seed() {
       }
     }
   }
-  console.log(`  ✓ ${billsCreated} bills, ${entriesCreated} journal entries`);
+  console.log(`  âœ“ ${billsCreated} bills, ${entriesCreated} journal entries`);
 
-  // ── Charges + Payments ────────────────────────────────────────────
+  // â”€â”€ Charges + Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let chargesCreated = 0, paymentsCreated = 0;
   for (const ownerId of allOwnerIds.slice(0, 30)) {
     const amount = cents(200, 800);
@@ -261,9 +280,9 @@ async function seed() {
       paymentsCreated++;
     }
   }
-  console.log(`  ✓ ${chargesCreated} charges, ${paymentsCreated} payments`);
+  console.log(`  âœ“ ${chargesCreated} charges, ${paymentsCreated} payments`);
 
-  // ── Work Orders ──────────────────────────────────────────────────
+  // â”€â”€ Work Orders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const woTypes = ['Plumbing leak','HVAC not cooling','Electrical outlet dead','Light fixture out','Door lock broken','Window seal failed','Elevator inspection','Fire alarm test','Common area cleaning','Carpet replacement','Gutter cleaning','Paint touch-up','Appliance repair','Water heater service'];
   let woCreated = 0;
   for (const assoc of associations) {
@@ -274,7 +293,7 @@ async function seed() {
         unit_id: pick(unitIds),
         vendor_id: vendorIds[vendorData.indexOf(vendor)],
         title: pick(woTypes),
-        description: `Reported by owner — requires ${pick(['immediate','scheduled','routine'])} attention.`,
+        description: `Reported by owner â€” requires ${pick(['immediate','scheduled','routine'])} attention.`,
         status: pick(['new','assigned','in_progress','in_progress','completed']),
         priority: pick(['normal','normal','high','emergency']),
         trade: vendor.trade,
@@ -284,9 +303,9 @@ async function seed() {
       woCreated++;
     }
   }
-  console.log(`  ✓ ${woCreated} work orders`);
+  console.log(`  âœ“ ${woCreated} work orders`);
 
-  // ── Purchase Orders ──────────────────────────────────────────────
+  // â”€â”€ Purchase Orders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let poCreated = 0;
   for (const assoc of associations.slice(0, 3)) {
     for (let i = 0; i < between(1, 3); i++) {
@@ -309,9 +328,9 @@ async function seed() {
       poCreated++;
     }
   }
-  console.log(`  ✓ ${poCreated} purchase orders with line items`);
+  console.log(`  âœ“ ${poCreated} purchase orders with line items`);
 
-  // ── Violations ────────────────────────────────────────────────────
+  // â”€â”€ Violations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const violationTypes = ['Noise complaint','Trash violation','Unauthorized modification','Parking violation','Pet violation','Lease violation','Fire lane obstruction','Common area damage','Unauthorized occupant','Improper storage'];
   let violationsCreated = 0;
   for (const assoc of associations) {
@@ -321,7 +340,7 @@ async function seed() {
       await db.from('violations').insert({
         id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
         title: pick(violationTypes),
-        description: `${pick(['First','Second','Final'])} notice — ${pick(['Owner notified','Board review pending','Photos attached','Witness reported'])}`,
+        description: `${pick(['First','Second','Final'])} notice â€” ${pick(['Owner notified','Board review pending','Photos attached','Witness reported'])}`,
         status: isOpen ? 'open' : pick(['closed','cured']),
         severity: pick(['low','medium','medium','high']),
         reported_date: daysAgo(between(5, 90)),
@@ -331,12 +350,12 @@ async function seed() {
       violationsCreated++;
     }
   }
-  console.log(`  ✓ ${violationsCreated} violations`);
+  console.log(`  âœ“ ${violationsCreated} violations`);
 
-  // ── House Rules ──────────────────────────────────────────────────
+  // â”€â”€ House Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let rulesCreated = 0;
   const rules = [
-    { title: 'Noise ordinance', description: 'Quiet hours 10 PM – 7 AM. No loud music or gatherings during quiet hours.', category: 'Noise' },
+    { title: 'Noise ordinance', description: 'Quiet hours 10 PM â€“ 7 AM. No loud music or gatherings during quiet hours.', category: 'Noise' },
     { title: 'Trash disposal', description: 'All trash must be bagged and placed in designated dumpsters. No loose items.', category: 'Cleanliness' },
     { title: 'Pet policy', description: 'Pets must be leashed in common areas. Maximum 2 pets per unit. No aggressive breeds.', category: 'Pets' },
     { title: 'Parking regulations', description: 'Assigned parking only. No commercial vehicles. Guest parking limited to 48 hours.', category: 'Parking' },
@@ -355,9 +374,9 @@ async function seed() {
       rulesCreated++;
     }
   }
-  console.log(`  ✓ ${rulesCreated} house rules`);
+  console.log(`  âœ“ ${rulesCreated} house rules`);
 
-  // ── Inspections ──────────────────────────────────────────────────
+  // â”€â”€ Inspections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let inspectionsCreated = 0;
   const inspectionTypes = ['Move-In','Move-Out','Routine','Drive-By'];
   for (const assoc of associations) {
@@ -386,9 +405,9 @@ async function seed() {
       inspectionsCreated++;
     }
   }
-  console.log(`  ✓ ${inspectionsCreated} inspections with items`);
+  console.log(`  âœ“ ${inspectionsCreated} inspections with items`);
 
-  // ── Fixed Assets ─────────────────────────────────────────────────
+  // â”€â”€ Fixed Assets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let assetsCreated = 0;
   const assetCategories = ['HVAC','Elevator','Plumbing','Electrical','Roofing','Flooring','Common Area','Safety'];
   for (const assoc of associations) {
@@ -408,9 +427,9 @@ async function seed() {
       assetsCreated++;
     }
   }
-  console.log(`  ✓ ${assetsCreated} fixed assets`);
+  console.log(`  âœ“ ${assetsCreated} fixed assets`);
 
-  // ── Bank Transfers ───────────────────────────────────────────────
+  // â”€â”€ Bank Transfers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let transfersCreated = 0;
   for (const assoc of associations) {
     for (let i = 0; i < between(1, 3); i++) {
@@ -426,9 +445,9 @@ async function seed() {
       transfersCreated++;
     }
   }
-  console.log(`  ✓ ${transfersCreated} bank transfers`);
+  console.log(`  âœ“ ${transfersCreated} bank transfers`);
 
-  // ── Calendar Events ───────────────────────────────────────────────
+  // â”€â”€ Calendar Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let eventsCreated = 0;
   const eventTypes = ['board_meeting','annual_meeting','vendor_service','inspection','social_event','water_shutoff'];
   for (const assoc of associations) {
@@ -437,7 +456,7 @@ async function seed() {
       const startDate = futureDays(between(3, 60));
       await db.from('calendar_events').insert({
         id: uid(), portfolio_id: portfolioId, association_id: assoc.id,
-        title: type === 'board_meeting' ? `${assoc.name} Board Meeting` : `${type.replace(/_/g,' ')} — ${assoc.name}`,
+        title: type === 'board_meeting' ? `${assoc.name} Board Meeting` : `${type.replace(/_/g,' ')} â€” ${assoc.name}`,
         event_type: type,
         calendar_scope: 'daily',
         start_datetime: `${startDate}T${String(between(9,18)).padStart(2,'0')}:00:00`,
@@ -451,9 +470,9 @@ async function seed() {
       eventsCreated++;
     }
   }
-  console.log(`  ✓ ${eventsCreated} calendar events`);
+  console.log(`  âœ“ ${eventsCreated} calendar events`);
 
-  // ── Maintenance Tasks + History ──────────────────────────────────
+  // â”€â”€ Maintenance Tasks + History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let mtCreated = 0, mtHistory = 0;
   const maintenanceCats = ['Safety','Plumbing','Exterior','HVAC','Electrical','Mechanical'];
   const maintTaskNames: Record<string, string[]> = {
@@ -495,9 +514,9 @@ async function seed() {
       }
     }
   }
-  console.log(`  ✓ ${mtCreated} maintenance tasks, ${mtHistory} history entries`);
+  console.log(`  âœ“ ${mtCreated} maintenance tasks, ${mtHistory} history entries`);
 
-  // ── Activity ─────────────────────────────────────────────────────
+  // â”€â”€ Activity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const actions = ['violation.created','bill.approved','work_order.created','payment.received','owner.activated','vendor.added','inspection.scheduled','notice.sent','maintenance.completed','calendar.event.created'];
   let activityCreated = 0;
   for (let i = 0; i < 40; i++) {
@@ -509,9 +528,9 @@ async function seed() {
     });
     activityCreated++;
   }
-  console.log(`  ✓ ${activityCreated} activity entries`);
+  console.log(`  âœ“ ${activityCreated} activity entries`);
 
-  console.log('\n✅ Comprehensive seed complete! Dashboard and all modules have real data.');
+  console.log('\nâœ… Comprehensive seed complete! Dashboard and all modules have real data.');
 }
 
 seed().catch(e => { console.error('SEED FAILED:', e); process.exit(1); });

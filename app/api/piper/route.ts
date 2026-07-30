@@ -10,6 +10,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
+import {
+  consumePublicRateLimit,
+  consumeScopedRateLimit,
+  rateLimitHeaders,
+  type RateLimitResult,
+} from '@/lib/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +23,22 @@ const DEEPSEEK_BASE = 'https://api.deepseek.com/v1';
 const MODEL = 'deepseek-chat';
 const MAX_TURNS = 24; // messages per conversation
 const MAX_CHARS = 600; // per visitor message
+const MAX_REQUEST_BYTES = 32 * 1024;
+const IP_POLICY = { scope: 'public:piper:ip', windowSeconds: 3600, maxRequests: 30 };
+const SESSION_POLICY = { scope: 'public:piper:session', windowSeconds: 3600, maxRequests: 20 };
+
+function blocked(result: RateLimitResult) {
+  const unavailable = result.unavailable === true;
+  return NextResponse.json(
+    {
+      error: unavailable ? 'Chat is temporarily unavailable.' : 'Too many chat messages.',
+      reply: unavailable
+        ? 'Chat is temporarily unavailable. Please try again shortly.'
+        : 'You have reached the chat limit for now. Please try again later or email hello@portier369.com.',
+    },
+    { status: unavailable ? 503 : 429, headers: rateLimitHeaders(result) },
+  );
+}
 
 const BASE_PROMPT = `You are Piper, the assistant on portier369.com — the website of Portier369, \
 the operating system for condominium and HOA management companies (Chicago, Illinois).
@@ -121,6 +143,21 @@ export async function POST(request: NextRequest) {
   const apiKey = (process.env.DEEPSEEK_API_KEY ?? '').replace(/^﻿/, '').trim();
   if (!apiKey) return NextResponse.json({ error: 'Chat is temporarily unavailable.' }, { status: 503 });
 
+  const contentLength = Number(request.headers.get('content-length') ?? 0);
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+    return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+  }
+
+  let svc: any;
+  try {
+    svc = createServiceClient() as any;
+    const ipLimit = await consumePublicRateLimit(svc, request, IP_POLICY);
+    if (!ipLimit.allowed) return blocked(ipLimit);
+  } catch (error) {
+    console.error('piper rate-limit setup failed:', error instanceof Error ? error.message : 'unknown error');
+    return blocked({ allowed: false, remaining: 0, retryAfterSeconds: 60, unavailable: true });
+  }
+
   let body: any;
   try {
     body = await request.json();
@@ -128,7 +165,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 64) : 'web';
+  const sessionId = typeof body.sessionId === 'string' ? body.sessionId.slice(0, 64) : '';
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(sessionId)) {
+    return NextResponse.json({ error: 'Invalid chat session.' }, { status: 400 });
+  }
   const incoming = Array.isArray(body.messages) ? body.messages.slice(-MAX_TURNS) : [];
   const messages = incoming
     .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
@@ -137,7 +177,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const svc = createServiceClient() as any;
+  const sessionLimit = await consumeScopedRateLimit(svc, sessionId, SESSION_POLICY);
+  if (!sessionLimit.allowed) return blocked(sessionLimit);
+
   const knowledge = await loadKnowledge(svc);
   const chat: any[] = [{ role: 'system', content: BASE_PROMPT + knowledge }, ...messages];
 

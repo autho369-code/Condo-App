@@ -5,6 +5,8 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/
 import { Button } from '@/components/ui/button';
 import { queueReport } from '@/lib/rpcs/reports';
 import { money, date } from '@/lib/utils';
+import { supportedReportOutputFormats } from '@/lib/reports/output';
+import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,13 +52,16 @@ export default async function ReportView({
   searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string }>;
 }) {
   const { slug } = await params;
+  // Preserve the legacy public alias while resolving the canonical catalog row.
+  // Without this mapping the route was listed as live in code but returned 404.
+  const catalogSlug = slug === 'homeowner_vehicle_info' ? 'owner_vehicle_info' : slug;
   const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: def } = await (supabase as any)
     .from('report_definitions')
     .select('id, slug, name, category, description, output_formats')
-    .eq('slug', slug)
+    .eq('slug', catalogSlug)
     .eq('active', true)
     .maybeSingle();
 
@@ -144,11 +149,13 @@ async function TrialBalanceView({
     .select('id, number, name, account_type, active')
     .eq('active', true)
     .order('number');
+  if (selectedAssociation) q = q.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
 
   const { data: glAccounts } = await q;
   const accounts = (glAccounts ?? []) as any[];
 
-  // Fetch journal_lines joined with journal_entries for the period
+  // A trial balance is an as-of report. Limiting it to period activity makes a
+  // new month look empty even when every account has a real opening balance.
   let lineQuery = db
     .from('journal_lines')
     .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
@@ -157,9 +164,7 @@ async function TrialBalanceView({
   if (selectedAssociation) {
     lineQuery = lineQuery.eq('association_id', selectedAssociation);
   }
-  lineQuery = lineQuery
-    .gte('journal_entries.entry_date', period.from)
-    .lte('journal_entries.entry_date', period.to);
+  lineQuery = lineQuery.lte('journal_entries.entry_date', period.to);
 
   const { data: lines } = await lineQuery;
   const journalLines = (lines ?? []) as any[];
@@ -169,12 +174,7 @@ async function TrialBalanceView({
   for (const acc of accounts) {
     totals[acc.id] = { debit: 0, credit: 0 };
   }
-  for (const line of journalLines) {
-    const accId = line.gl_account_id;
-    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
-    totals[accId].debit  += Number(line.debit_amount ?? 0);
-    totals[accId].credit += Number(line.credit_amount ?? 0);
-  }
+  for (const line of journalLines) addLedgerLine(totals, line.gl_account_id, line.debit_amount, line.credit_amount);
 
   // Compute balance: Assets/Expenses = debit-positive; Liabilities/Equity/Income = credit-positive
   const getBalance = (acc: any) => {
@@ -203,7 +203,7 @@ async function TrialBalanceView({
         />
       }
       rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
-        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+        selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive supportsLiveExport />}
     >
       <div className="space-y-4">
         {/* Summary tiles */}
@@ -211,11 +211,11 @@ async function TrialBalanceView({
           <Tile label="Total Debits"  value={money(totalDebit)}  tone="neutral" sub="Sum of all debit entries" />
           <Tile label="Total Credits" value={money(totalCredit)} tone="neutral" sub="Sum of all credit entries" />
           <Tile label="GL Accounts"   value={accounts.length}     tone="neutral" sub="Active accounts" />
-          <Tile label="Period"        value={period.label}        tone="neutral" sub={`${period.from} \u2192 ${period.to}`} />
+          <Tile label="As of"         value={date(period.to)}     tone="neutral" sub={period.label} />
         </div>
 
         {/* Account balance table */}
-        <Section title="Trial Balance" subtitle={`${accounts.length} accounts with journal activity in period`}>
+        <Section title="Trial Balance" subtitle={`${accounts.length} accounts as of ${date(period.to)}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
@@ -273,11 +273,13 @@ async function BalanceSheetView({
   const db = supabase as any;
 
   // Fetch active GL accounts
-  const { data: glAccounts } = await db
+  let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type, active')
     .eq('active', true)
     .order('number');
+  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
+  const { data: glAccounts } = await glAccountQuery;
 
   const accounts = (glAccounts ?? []) as any[];
 
@@ -295,46 +297,34 @@ async function BalanceSheetView({
   const { data: lines } = await lineQuery;
   const journalLines = (lines ?? []) as any[];
 
-  // Aggregate
+  // Aggregate posted entries through the as-of date.
   const totals: Record<string, { debit: number; credit: number }> = {};
-  for (const line of journalLines) {
-    const accId = line.gl_account_id;
-    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
-    totals[accId].debit  += Number(line.debit_amount ?? 0);
-    totals[accId].credit += Number(line.credit_amount ?? 0);
-  }
+  for (const line of journalLines) addLedgerLine(totals, line.gl_account_id, line.debit_amount, line.credit_amount);
 
-  const getNetBalance = (accId: string, accountType: string) => {
-    const t = totals[accId] ?? { debit: 0, credit: 0 };
-    // Asset/Expense: debit positive; Liability/Equity/Income: credit positive
-    const assetLike = ['asset', 'cash', 'expense', 'cost_of_goods_sold', 'accounts_receivable', 'fixed_asset'];
-    if (assetLike.includes(accountType ?? '')) {
-      return t.debit - t.credit;
-    }
-    return t.credit - t.debit;
-  };
+  // Chart-of-accounts type is authoritative. Account-number bands vary by
+  // association and must never decide whether a balance is an asset or debt.
+  const getNetBalance = (account: any) => normalBalance(account, totals);
+  const assets      = accounts.filter((a) => financialSection(a) === 'asset');
+  const liabilities = accounts.filter((a) => financialSection(a) === 'liability');
+  const equity      = accounts.filter((a) => financialSection(a) === 'equity');
 
-  const classify = (acc: any) => {
-    const n = acc.number;
-    if (n < 2000) return 'Assets';
-    if (n < 3000) return 'Liabilities';
-    if (n < 4000) return 'Equity';
-    return null; // non-balance-sheet
-  };
-
-  const assets      = accounts.filter((a) => classify(a) === 'Assets');
-  const liabilities = accounts.filter((a) => classify(a) === 'Liabilities');
-  const equity      = accounts.filter((a) => classify(a) === 'Equity');
-
-  const sumBalance = (list: any[]) => list.reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0);
+  const sumBalance = (list: any[]) => list.reduce((s, a) => s + getNetBalance(a), 0);
 
   // Roll current-year net income (revenue − expenses, cumulative through the as-of
   // date) into equity as retained earnings — otherwise the sheet doesn't balance.
-  const isIncome  = (t: string) => ['income', 'other_income'].includes(t ?? '');
-  const isExpense = (t: string) => ['expense', 'other_expense', 'cost_of_goods_sold'].includes(t ?? '');
-  const netIncome =
-    accounts.filter((a) => isIncome(a.account_type)).reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0) -
-    accounts.filter((a) => isExpense(a.account_type)).reduce((s, a) => s + getNetBalance(a.id, a.account_type), 0);
+  const currentYearStart = `${period.to.slice(0, 4)}-01-01`;
+  const currentYearTotals: Record<string, { debit: number; credit: number }> = {};
+  for (const line of journalLines) {
+    if (line.journal_entries?.entry_date >= currentYearStart) {
+      addLedgerLine(
+        currentYearTotals,
+        line.gl_account_id,
+        line.debit_amount,
+        line.credit_amount,
+      );
+    }
+  }
+  const netIncome = calculateNetIncome(accounts, currentYearTotals);
   totals['__ni__'] = { debit: netIncome < 0 ? -netIncome : 0, credit: netIncome > 0 ? netIncome : 0 };
   const equityDisplay = [...equity, { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' }];
 
@@ -355,7 +345,7 @@ async function BalanceSheetView({
           </thead>
           <tbody>
             {items.map((a: any) => {
-              const bal = getNetBalance(a.id, a.account_type);
+              const bal = getNetBalance(a);
               return (
                 <tr key={a.id} className="border-t border-gray-100">
                   <td className="px-5 py-2">
@@ -439,11 +429,13 @@ async function IncomeStatementView({
   const db = supabase as any;
 
   // Fetch income (4000-4999, 7000-7999) and expense (5000-6999, 8000-9999) accounts
-  const { data: glAccounts } = await db
+  let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type, active')
     .eq('active', true)
     .order('number');
+  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
+  const { data: glAccounts } = await glAccountQuery;
 
   const allAccounts = (glAccounts ?? []) as any[];
 
@@ -481,35 +473,31 @@ async function IncomeStatementView({
     return t.debit - t.credit; // expense: debit positive
   };
 
-  const classifyIS = (acc: any) => {
-    const n = acc.number;
-    if (n >= 4000 && n < 5000) return 'Operating Revenue';
-    if (n >= 7000 && n < 8000) return 'Other Revenue';
-    if (n >= 5000 && n < 6000) return 'Cost of Goods Sold';
-    if (n >= 6000 && n < 7000) return 'Operating Expenses';
-    if (n >= 8000 && n < 9000) return 'Other Expenses';
-    if (n >= 9000 && n < 10000) return 'Non-Operating';
-    return null;
-  };
+  // Account type is authoritative. Associations may use custom account
+  // numbers, so number bands must never decide whether activity is revenue
+  // or expense.
+  const incomeAccounts = allAccounts.filter(
+    (account) => financialSection(account) === 'income',
+  );
+  const expenseAccounts = allAccounts.filter(
+    (account) => financialSection(account) === 'expense',
+  );
 
-  const incomeAccounts = allAccounts.filter((a) => classifyIS(a) && a.number < 5000 || (a.number >= 7000 && a.number < 8000));
-  const expenseAccounts = allAccounts.filter((a) => classifyIS(a) && a.number >= 5000 && a.number < 7000 || (a.number >= 8000));
-
-  // Detailed classification
   const revenueSections = [
-    { label: 'Operating Revenue', items: allAccounts.filter((a) => a.number >= 4000 && a.number < 5000) },
-    { label: 'Other Revenue',     items: allAccounts.filter((a) => a.number >= 7000 && a.number < 8000) },
+    { label: 'Revenue', items: incomeAccounts },
   ];
-
   const expenseSections = [
-    { label: 'Cost of Goods Sold',  items: allAccounts.filter((a) => a.number >= 5000 && a.number < 6000) },
-    { label: 'Operating Expenses',  items: allAccounts.filter((a) => a.number >= 6000 && a.number < 7000) },
-    { label: 'Other Expenses',      items: allAccounts.filter((a) => a.number >= 8000 && a.number < 9000) },
-    { label: 'Non-Operating',       items: allAccounts.filter((a) => a.number >= 9000 && a.number < 10000) },
+    { label: 'Expenses', items: expenseAccounts },
   ];
 
-  const totalRevenue  = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number < 5000 || (a.number >= 7000 && a.number < 8000)) ? getISBalance(a) : 0), 0);
-  const totalExpenses = allAccounts.reduce((s, a) => s + (classifyIS(a) && (a.number >= 5000 && a.number < 7000 || a.number >= 8000) ? Math.abs(getISBalance(a)) : 0), 0);
+  const totalRevenue = incomeAccounts.reduce(
+    (sum, account) => sum + getISBalance(account),
+    0,
+  );
+  const totalExpenses = expenseAccounts.reduce(
+    (sum, account) => sum + getISBalance(account),
+    0,
+  );
   const netIncome = totalRevenue - totalExpenses;
 
   const renderISSection = (label: string, items: any[], showValues = true) => {
@@ -819,11 +807,13 @@ async function GeneralLedgerView({
   const db = supabase as any;
 
   // Fetch all journal lines with entries for the period, grouped by GL account
-  const { data: glAccounts } = await db
+  let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type')
     .eq('active', true)
     .order('number');
+  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
+  const { data: glAccounts } = await glAccountQuery;
 
   const accounts = (glAccounts ?? []) as any[];
 
@@ -844,12 +834,45 @@ async function GeneralLedgerView({
   const { data: lines } = await lineQuery;
   const journalLines = (lines ?? []) as any[];
 
+  // A general ledger needs the balance brought forward before the selected
+  // period. Without it, the report cannot provide an accurate running balance.
+  const openingTotals: Record<string, { debit: number; credit: number }> = {};
+  if (accounts.length > 0) {
+    let openingQuery = db
+      .from('journal_lines')
+      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
+      .in('gl_account_id', accounts.map((account: any) => account.id))
+      .eq('journal_entries.posted', true)
+      .lt('journal_entries.entry_date', period.from);
+    if (selectedAssociation) {
+      openingQuery = openingQuery.eq('association_id', selectedAssociation);
+    }
+    const { data: openingLines } = await openingQuery;
+    for (const line of openingLines ?? []) {
+      addLedgerLine(
+        openingTotals,
+        line.gl_account_id,
+        line.debit_amount,
+        line.credit_amount,
+      );
+    }
+  }
+
   // Group lines by gl_account_id
   const grouped = new Map<string, any[]>();
   for (const line of journalLines) {
     const accId = line.gl_account_id;
     if (!grouped.has(accId)) grouped.set(accId, []);
     grouped.get(accId)!.push(line);
+  }
+  for (const accountLines of grouped.values()) {
+    accountLines.sort((left, right) => {
+      const leftDate = left.journal_entries?.entry_date ?? '';
+      const rightDate = right.journal_entries?.entry_date ?? '';
+      return leftDate.localeCompare(rightDate)
+        || Number(left.sort_order ?? 0) - Number(right.sort_order ?? 0)
+        || String(left.id).localeCompare(String(right.id));
+    });
   }
 
   // Build account map
@@ -903,6 +926,7 @@ async function GeneralLedgerView({
             const lines = grouped.get(acc.id) ?? [];
             const sumDebit  = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
             const sumCredit = lines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);
+            let runningBalance = normalBalance(acc, openingTotals);
             return (
               <Section
                 key={acc.id}
@@ -918,11 +942,18 @@ async function GeneralLedgerView({
                         <th className="px-4 py-2 text-left font-semibold">Reference</th>
                         <th className="px-4 py-2 text-right font-semibold">Debit</th>
                         <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                        <th className="px-4 py-2 text-right font-semibold">Running Balance</th>
                       </tr>
                     </thead>
                     <tbody>
                       {lines.map((l: any) => {
                         const entry = l.journal_entries;
+                        runningBalance += normalBalance(acc, {
+                          [acc.id]: {
+                            debit: Number(l.debit_amount ?? 0),
+                            credit: Number(l.credit_amount ?? 0),
+                          },
+                        });
                         return (
                           <tr key={l.id} className="border-t border-gray-100 hover:bg-gray-50">
                             <td className="whitespace-nowrap px-5 py-2 text-xs text-gray-600">{date(entry?.entry_date)}</td>
@@ -933,6 +964,7 @@ async function GeneralLedgerView({
                             <td className="px-4 py-2 font-mono text-xs text-gray-500">{entry?.reference_number ?? '\u2014'}</td>
                             <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.debit_amount > 0 ? money(l.debit_amount) : ''}</td>
                             <td className="px-4 py-2 text-right tabular-nums text-gray-700">{l.credit_amount > 0 ? money(l.credit_amount) : ''}</td>
+                            <td className="px-4 py-2 text-right tabular-nums font-medium text-gray-900">{money(runningBalance)}</td>
                           </tr>
                         );
                       })}
@@ -940,6 +972,7 @@ async function GeneralLedgerView({
                         <td className="px-5 py-2" colSpan={3}>Account Total</td>
                         <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumDebit)}</td>
                         <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(sumCredit)}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-gray-900">{money(runningBalance)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -999,7 +1032,7 @@ async function ARAgingView({
           subtitle={def.description}
         />
       }
-      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive isAsOfToday />}
     >
       <div className="grid grid-cols-5 gap-3">
         {BUCKETS.map((b) => (
@@ -1802,7 +1835,7 @@ function QueuedReportView(ctx: ReportContext) {
           <p className="mt-3 text-xs text-gray-500">
             Available formats:
             <span className="ml-2 inline-flex gap-1">
-              {(def.output_formats ?? []).map((f: string) => (
+              {supportedReportOutputFormats(def.output_formats).map((f) => (
                 <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] uppercase text-gray-700">{f}</span>
               ))}
             </span>
@@ -1852,13 +1885,15 @@ function QueuedReportView(ctx: ReportContext) {
 // RIGHT RAIL — Run form + quick stats
 // ═══════════════════════════════════════════════════════════════
 function ReportRightRail({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive, supportsLiveExport, isAsOfToday,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean; supportsLiveExport?: boolean; isAsOfToday?: boolean;
 }) {
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
+  const exportEnabled = supportsLiveExport
+    || ['trial_balance', 'balance_sheet', 'income_statement', 'general_ledger', 'ar_aging'].includes(def.slug);
 
   const presets: Array<{ k: string; label: string }> = [
     { k: 'this_month',   label: 'This month' },
@@ -1881,9 +1916,14 @@ function ReportRightRail({
   return (
     <>
       <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        {isLive ? 'Export snapshot' : 'Run this report'}
+        {isLive ? 'Live report' : 'Run this report'}
       </div>
 
+      {isLive && !exportEnabled ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900">
+          This report is calculated live from posted accounting entries. File export is temporarily unavailable because the queued export service does not yet have an audited data source for this report. Use the displayed totals for review; do not rely on a generated file until export verification is complete.
+        </div>
+      ) : (
       <form action={queueReport as any} className="space-y-3">
         <input type="hidden" name="definition_id" value={def.id} />
 
@@ -1896,8 +1936,8 @@ function ReportRightRail({
           >
             <option value="portfolio">Portfolio</option>
             <option value="association">Association</option>
-            <option value="owner">Owner</option>
-            <option value="unit">Unit</option>
+            {!isLive && <option value="owner">Owner</option>}
+            {!isLive && <option value="unit">Unit</option>}
           </select>
         </div>
 
@@ -1934,7 +1974,11 @@ function ReportRightRail({
           </div>
         </div>
 
-        {/* Period presets */}
+        {isAsOfToday ? (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            A/R aging is calculated as of today. It does not use an arbitrary reporting period.
+          </div>
+        ) : (
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Period</label>
           <div className="mb-2 flex flex-wrap gap-1">
@@ -1977,6 +2021,7 @@ function ReportRightRail({
             {period.label}: {period.from} &rarr; {period.to}
           </p>
         </div>
+        )}
 
         {/* Format */}
         <div>
@@ -1986,7 +2031,7 @@ function ReportRightRail({
             defaultValue={def.output_formats?.[0] ?? 'csv'}
             className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
-            {(def.output_formats ?? ['csv']).map((f: string) => (
+            {supportedReportOutputFormats(def.output_formats).map((f) => (
               <option key={f} value={f}>{f.toUpperCase()}</option>
             ))}
           </select>
@@ -1996,6 +2041,7 @@ function ReportRightRail({
           {isLive ? 'Export to file' : 'Run now'}
         </Button>
       </form>
+      )}
 
       {inFlight && (
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">

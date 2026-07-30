@@ -15,7 +15,7 @@ const styles: Record<Variant, string> = {
   danger:    'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-600',
   link:      'bg-transparent text-blue-600 hover:text-blue-800 underline-offset-4 hover:underline focus-visible:ring-blue-500 px-0',
 };
-const sizes = { sm: 'h-8 px-3 text-[13px] rounded-lg', md: 'h-10 px-4 text-sm rounded-lg', lg: 'h-11 px-5 text-sm rounded-xl' };
+const sizes = { sm: 'h-10 px-3 text-[13px] rounded-lg', md: 'h-10 px-4 text-sm rounded-lg', lg: 'h-11 px-5 text-sm rounded-xl' };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', className, ...p }, ref) => (

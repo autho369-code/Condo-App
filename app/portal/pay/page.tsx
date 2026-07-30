@@ -6,6 +6,7 @@ import { money } from '@/lib/utils';
 import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { isStripeConfigured } from '@/lib/payments/stripe';
+import { associationCanAcceptStripePayments } from '@/lib/payments/guards';
 import { startOnlinePayment } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,8 @@ type AssociationRemit = {
   payment_instructions: string | null;
   stripe_account_id: string | null;
   stripe_charges_enabled: boolean | null;
+  stripe_payouts_enabled: boolean | null;
+  stripe_deauthorized_at: string | null;
 };
 
 export default async function PayPage({
@@ -52,7 +55,7 @@ export default async function PayPage({
   const { data: associations } = associationIds.length
     ? await (supabase as any)
         .from('associations')
-        .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled')
+        .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
         .in('id', associationIds)
     : { data: [] };
   const assocById = new Map<string, AssociationRemit>(
@@ -99,7 +102,7 @@ export default async function PayPage({
               </p>
             </CardHeader>
             <CardBody>
-              {onlinePayments && unit.unit_id && assoc?.stripe_account_id && assoc?.stripe_charges_enabled && (
+              {onlinePayments && unit.unit_id && associationCanAcceptStripePayments(assoc) && (
                 <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-gray-500" />

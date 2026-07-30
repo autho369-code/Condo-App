@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-26",
+  "source": "read-only query of supabase_migrations.schema_migrations in the linked production SQL editor",
+  "project_ref": "termxngysvotnfbzbgrv",
+  "total_versions": 159,
+  "versions_with_statements": 159,
+  "versions_without_statements": 0,
+  "first_version": "0001",
+  "last_version": "20260715032953",
+  "overlapping_current_local_versions": [
+    "20260430180429",
+    "20260430180445",
+    "20260430180458",
+    "20260430180510",
+    "20260430180523",
+    "20260430182412",
+    "20260501055733",
+    "20260606000000",
+    "20260607000000",
+    "20260607010000",
+    "20260607020000"
+  ],
+  "notes": [
+    "This aggregate snapshot is release evidence, not a substitute for migration fetch.",
+    "The local version 20260607020000 is ambiguous because three local files share that prefix.",
+    "No production migration history was mutated while collecting this evidence."
+  ]
+}

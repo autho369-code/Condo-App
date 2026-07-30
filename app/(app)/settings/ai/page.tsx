@@ -1,5 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
+import { encryptAICredential } from '@/lib/ai/credentials';
+import { isSupportedAIProvider } from '@/lib/ai/service';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select } from '@/components/ui/input';
 import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
@@ -7,6 +9,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Section } from '@/components/workspace/shell';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,37 +17,64 @@ const PROVIDERS = [
   { value: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
   { value: 'deepseek', label: 'DeepSeek', models: ['deepseek-chat', 'deepseek-reasoner'] },
   { value: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-3-5-haiku'] },
-  { value: 'custom', label: 'Custom (OpenAI-compatible)', models: [] },
-];
+] as const;
 
 async function saveAIProvider(formData: FormData) {
   'use server';
-  const supabase = await createClient();
   const me = await requirePortfolioAdmin();
+  const svc = createServiceClient() as any;
 
-  const provider = formData.get('ai_provider') as string;
-  const model = provider === 'custom' ? (formData.get('ai_model_custom') as string) : (formData.get('ai_model') as string);
-  const endpoint = provider === 'custom' ? (formData.get('ai_endpoint') as string) : null;
-  const apiKey = formData.get('ai_api_key') as string;
+  const provider = String(formData.get('ai_provider') ?? '').trim();
+  const model = String(formData.get('ai_model') ?? '').trim();
+  const apiKey = String(formData.get('ai_api_key') ?? '').trim();
+  const removeKey = formData.get('remove_ai_key') === 'on';
 
-  // Update portfolio settings
-  await (supabase as any).from('portfolios').update({
+  if (!isSupportedAIProvider(provider)) {
+    redirect('/settings/ai?error=' + encodeURIComponent('Choose a supported AI provider.'));
+  }
+  const allowedProvider = PROVIDERS.find((candidate) => candidate.value === provider);
+  if (!allowedProvider || !(allowedProvider.models as readonly string[]).includes(model)) {
+    redirect('/settings/ai?error=' + encodeURIComponent('Choose a supported model for this provider.'));
+  }
+
+  const patch: Record<string, unknown> = {
     ai_provider: provider,
     ai_model: model,
-    ai_endpoint: endpoint || null,
-    ai_api_key: apiKey || null,
-  }).eq('id', me.portfolio.id);
+    ai_endpoint: null,
+    ai_api_key: null,
+  };
+  if (removeKey) patch.ai_api_key_ciphertext = null;
+  else if (apiKey) {
+    try {
+      patch.ai_api_key_ciphertext = encryptAICredential(apiKey);
+    } catch (error) {
+      redirect('/settings/ai?error=' + encodeURIComponent(
+        error instanceof Error ? error.message : 'Could not encrypt the AI credential.',
+      ));
+    }
+  }
+
+  const { error } = await svc.from('portfolios').update(patch).eq('id', me.portfolio.id);
+  if (error) {
+    redirect('/settings/ai?error=' + encodeURIComponent('AI settings could not be saved.'));
+  }
 
   revalidatePath('/settings/ai');
+  redirect('/settings/ai?saved=1');
 }
 
-export default async function AISettingsPage() {
+export default async function AISettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
   const me = await requirePortfolioAdmin();
-  const supabase = await createClient();
+  const svc = createServiceClient() as any;
+  const params = await searchParams;
 
-  const { data: portfolio } = await (supabase as any)
+  const { data: portfolio } = await svc
     .from('portfolios')
-    .select('ai_provider, ai_model, ai_endpoint')
+    .select('ai_provider, ai_model, ai_api_key_ciphertext')
     .eq('id', me.portfolio.id)
     .single();
 
@@ -61,6 +91,16 @@ export default async function AISettingsPage() {
       />
 
       <form action={saveAIProvider as any} className="space-y-6">
+        {params.saved === '1' && (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            AI settings saved securely.
+          </p>
+        )}
+        {params.error && (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {params.error}
+          </p>
+        )}
         <Section title="Provider" padded>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -73,37 +113,36 @@ export default async function AISettingsPage() {
               <p className="mt-1 text-xs text-gray-400">Choose your AI provider. Each supports different models and pricing.</p>
             </div>
 
-            {provider !== 'custom' ? (
-              <div className="sm:col-span-2">
-                <Label htmlFor="ai_model">Model</Label>
-                <Select id="ai_model" name="ai_model" defaultValue={p.ai_model ?? currentProvider.models[0]}>
-                  {currentProvider.models.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </Select>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label htmlFor="ai_model_custom">Model name</Label>
-                  <Input id="ai_model_custom" name="ai_model_custom" defaultValue={p.ai_model ?? ''} placeholder="gpt-4o, claude-3-opus, etc." />
-                </div>
-                <div>
-                  <Label htmlFor="ai_endpoint">API endpoint URL</Label>
-                  <Input id="ai_endpoint" name="ai_endpoint" defaultValue={p.ai_endpoint ?? ''} placeholder="https://api.openai.com/v1" />
-                </div>
-              </>
-            )}
+            <div className="sm:col-span-2">
+              <Label htmlFor="ai_model">Model</Label>
+              <Select id="ai_model" name="ai_model" defaultValue={p.ai_model ?? currentProvider.models[0]}>
+                {currentProvider.models.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </Select>
+            </div>
           </div>
         </Section>
 
         <Section title="API key" padded>
           <div>
             <Label htmlFor="ai_api_key">API key</Label>
-            <Input id="ai_api_key" name="ai_api_key" type="password" placeholder="sk-... or ••••••••" />
+            <Input
+              id="ai_api_key"
+              name="ai_api_key"
+              type="password"
+              autoComplete="new-password"
+              placeholder={p.ai_api_key_ciphertext ? 'Configured — leave blank to keep it' : 'Enter provider API key'}
+            />
             <p className="mt-1 text-xs text-gray-400">
-              Stored encrypted. Used only for AI features you enable — certificate extraction, Copilot, violation drafting, maintenance scheduling. You are billed directly by your provider.
+              Encrypted with AES-256-GCM before database storage. The key is used only by server-side AI features, and provider URLs are fixed by Portier369.
             </p>
+            {p.ai_api_key_ciphertext && (
+              <label className="mt-3 flex items-center gap-2 text-xs text-gray-600">
+                <input type="checkbox" name="remove_ai_key" />
+                Remove the configured API key
+              </label>
+            )}
           </div>
         </Section>
 

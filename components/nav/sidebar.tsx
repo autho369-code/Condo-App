@@ -18,7 +18,7 @@ function ChevronDown({ open }: { open: boolean }) {
 
 function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="lg:hidden print:hidden fixed top-3 left-3 z-50 p-2 rounded-md bg-white border border-gray-200 shadow-sm" aria-label="Toggle menu">
+    <button onClick={onClick} className="lg:hidden print:hidden fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-md bg-white border border-gray-200 shadow-sm" aria-label="Toggle menu">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         {open ? (
           <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>

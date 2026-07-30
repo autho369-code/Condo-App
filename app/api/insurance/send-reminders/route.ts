@@ -11,8 +11,9 @@ import { requireCronSecret } from '@/lib/server/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
-const PORTAL_URL = 'https://portier369.com/portal/insurance';
-const MANAGER_URL = 'https://portier369.com/insurance';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com').replace(/\/$/, '');
+const PORTAL_URL = `${SITE_URL}/portal/insurance`;
+const MANAGER_URL = `${SITE_URL}/insurance`;
 
 function isoDaysFromNow(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);

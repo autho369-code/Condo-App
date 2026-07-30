@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 // Magic-link / OAuth callback. Exchange code for session, then redirect.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = safeInternalNext(searchParams.get('next')) ?? '/dashboard';
 
   if (code) {
     const supabase = await createClient();

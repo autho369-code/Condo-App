@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { findMyBoardSeats } from '@/lib/board/signature';
+import { isSignatureStoragePath } from '@/lib/security/storage-paths';
 
 const BUCKET = 'association-documents';
 const MAX_SIGNATURE_BYTES = 1024 * 1024; // a signature PNG should never exceed 1 MB
@@ -21,6 +22,11 @@ export async function createSignatureUpload(
   if (!me.auth_user_id || !me.is_board) return { error: 'Not signed in as a board member' };
   if (!fileSize || fileSize <= 0) return { error: 'Empty signature image' };
   if (fileSize > MAX_SIGNATURE_BYTES) return { error: 'Signature image must be under 1 MB' };
+
+  // Confirm an active identity-bound seat before issuing a service-role
+  // storage capability; the coarse role flag alone is not sufficient.
+  const seats = await findMyBoardSeats(me);
+  if (seats.length === 0) return { error: 'No active board membership found for your login.' };
 
   const path = `signatures/${me.auth_user_id}/${Date.now()}.png`;
   const svc = createServiceClient() as any;
@@ -35,7 +41,7 @@ export async function saveSignature(path: string): Promise<{ error?: string; ok?
 
   // The path must be one this caller was issued: scoped to their own auth uid.
   const cleaned = (path ?? '').trim();
-  if (!cleaned.startsWith(`signatures/${me.auth_user_id}/`) || !cleaned.endsWith('.png') || cleaned.includes('..')) {
+  if (!isSignatureStoragePath(cleaned, me.auth_user_id)) {
     return { error: 'Invalid signature reference.' };
   }
 

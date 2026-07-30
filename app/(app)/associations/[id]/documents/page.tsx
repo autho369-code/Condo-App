@@ -11,6 +11,7 @@ import { OPERATING_DOCS, OPERATING_TYPES } from '@/lib/associations/operating-do
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export default async function AssociationDocumentsTab({
     const url = (d.file_url ?? '').trim();
     if (!url) continue;
     if (/^https?:\/\//i.test(url)) linkByDocId.set(d.id, url);
-    else pathsToSign.push({ id: d.id, path: url });
+    else if (isScopedStoragePath(url, 'associations', id)) pathsToSign.push({ id: d.id, path: url });
   }
   if (pathsToSign.length > 0) {
     try {

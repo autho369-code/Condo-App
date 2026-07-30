@@ -1,6 +1,15 @@
 'use server';
-import { createClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { randomUUID } from 'node:crypto';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { getMe, requireBoard, requireOwner, requireStaff } from '@/lib/auth/me';
+import {
+  MAX_ARCHITECTURAL_ATTACHMENT_BYTES,
+  architecturalAttachmentBasePath,
+  architecturalSurfaceAccessRole,
+  isArchitecturalAttachmentPath,
+  isCanonicalUuid,
+  validateArchitecturalAttachmentFile,
+} from '@/lib/security/tenant-boundaries';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -27,9 +36,7 @@ export async function submitArchitecturalRequest(formData: FormData) {
   const failTo = (msg: string) =>
     redirect(`/portal/architectural/new?error=${encodeURIComponent(msg)}`);
 
-  const me = await getMe();
-  if (!me.auth_user_id) { failTo('Not authenticated'); return; }
-  if (!me.owner_id)     { failTo('Only owners can submit architectural requests'); return; }
+  const me = await requireOwner();
 
   const unitId      = formData.get('unit_id') as string;
   const title       = (formData.get('title') as string)?.trim();
@@ -82,9 +89,7 @@ export async function createArchitecturalRequest(input: {
   description: string;
   category: string;
 }): Promise<{ error?: string; id?: string }> {
-  const me = await getMe();
-  if (!me.auth_user_id) return { error: 'Not authenticated' };
-  if (!me.owner_id) return { error: 'Only owners can submit architectural requests' };
+  const me = await requireOwner();
 
   const unitId = input.unitId;
   const title = (input.title ?? '').trim();
@@ -134,8 +139,7 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
   const failTo = (msg: string) =>
     redirect(`/architectural-reviews/new?error=${encodeURIComponent(msg)}`);
 
-  const me = await getMe();
-  if (!me.auth_user_id) { redirect('/login'); return; }
+  const me = await requireStaff();
   // In-action guard: submitting for another owner is a staff-only power.
   if (!me.is_staff && !me.is_platform_operator) { failTo('Only staff can submit a request on an owner’s behalf'); return; }
 
@@ -179,15 +183,97 @@ export async function submitArchitecturalRequestOnBehalf(formData: FormData) {
 }
 
 // Documents live in the association records bucket. Each document uploads in
-// its own request (one file per submit, 10 MB cap) so large plan sets don't
+// its own request (one file per submit, 25 MB cap) so large plan sets don't
 // overload a single multipart POST. Cap of 10 documents per request.
 const ATTACH_BUCKET = 'association-documents';
 const MAX_ARCH_ATTACHMENTS = 10;
 // Files go browser→storage via signed URLs (Vercel caps server-action bodies
 // at ~4.5 MB), so large plan sets are fine.
-const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
-
 const OPEN_STATUSES = ['submitted', 'under_review', 'more_info'];
+
+type ArchAttachmentRequest = {
+  id: string;
+  association_id: string;
+  owner_id: string | null;
+  status: string;
+  attachments: unknown;
+};
+
+function requestBackPath(basePath: string, requestId: string): string | null {
+  const allowedBase = architecturalAttachmentBasePath(basePath);
+  return allowedBase && isCanonicalUuid(requestId) ? `${allowedBase}/${requestId}` : null;
+}
+
+async function removeStoredAttachment(svc: any, path: string) {
+  try { await svc.storage.from(ATTACH_BUCKET).remove([path]); } catch {}
+}
+
+/**
+ * Prove access with the caller's RLS client first. A global staff/board flag is
+ * never sufficient: staff must also pass can_access_association for this row,
+ * and board users must hold a seat for this exact association.
+ */
+async function verifyArchAttachmentAccess(requestId: string, basePath: string) {
+  const me = await getMe();
+  if (!me.auth_user_id) {
+    return { error: 'Not signed in', req: null as ArchAttachmentRequest | null, svc: null as any, me, role: null };
+  }
+  if (!isCanonicalUuid(requestId)) {
+    return { error: 'Invalid request reference', req: null as ArchAttachmentRequest | null, svc: null as any, me, role: null };
+  }
+
+  const session = await createClient();
+  const { data, error: requestError } = await (session as any)
+    .from('architectural_requests')
+    .select('id, association_id, owner_id, status, attachments')
+    .eq('id', requestId)
+    .maybeSingle();
+  const req = data as ArchAttachmentRequest | null;
+  if (requestError || !req) {
+    return { error: 'Request not found or you do not have access', req: null, svc: null as any, me, role: null };
+  }
+
+  const safeBasePath = architecturalAttachmentBasePath(basePath);
+  if (!safeBasePath) {
+    return { error: 'Invalid action surface', req: null as ArchAttachmentRequest | null, svc: null as any, me, role: null };
+  }
+
+  let ownerPortalActive = false;
+  if (safeBasePath === '/portal/architectural' && me.owner_id) {
+    const { data: owner, error: ownerError } = await (session as any)
+      .from('owners')
+      .select('id, portal_activated')
+      .eq('id', me.owner_id)
+      .maybeSingle();
+    ownerPortalActive = !ownerError && owner?.portal_activated === true;
+  }
+
+  let staffCanAccessAssociation = false;
+  if (safeBasePath === '/architectural-reviews' && !me.is_platform_operator && (me.is_staff || me.is_company_admin)) {
+    const { data: canAccess, error: accessError } = await (session as any)
+      .rpc('can_access_association', { a_id: req.association_id });
+    staffCanAccessAssociation = !accessError && canAccess === true;
+  }
+  const role = architecturalSurfaceAccessRole({
+    basePath: safeBasePath,
+    me,
+    request: req,
+    ownerPortalActive,
+    staffCanAccessAssociation,
+  });
+  if (!role) {
+    return { error: 'Request not found or you do not have access', req: null, svc: null as any, me, role: null };
+  }
+
+  // Construct the bypass client only after tenant access has been proven.
+  const svc = createServiceClient() as any;
+  return { error: null as string | null, req, svc, me, role };
+}
+
+function bindRequestMutation(query: any, req: ArchAttachmentRequest) {
+  const scoped = query.eq('id', req.id).eq('association_id', req.association_id);
+  return req.owner_id ? scoped.eq('owner_id', req.owner_id) : scoped.is('owner_id', null);
+}
 
 /**
  * Attach one document (plans, drawings, quotes, photos) to a request.
@@ -200,37 +286,29 @@ export async function addArchitecturalAttachment(
   formData: FormData,
 ) {
   const me = await getMe();
-  const back = `${basePath}/${requestId}`;
-  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
   if (!me.auth_user_id) { redirect('/login'); return; }
+  const back = requestBackPath(basePath, requestId);
+  if (!back) { redirect('/?error=' + encodeURIComponent('Invalid return path')); return; }
+  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
 
-  const { createServiceClient } = await import('@/lib/supabase/server');
-  const svc = createServiceClient() as any;
-  const { data: req } = await svc
-    .from('architectural_requests')
-    .select('id, owner_id, status, attachments')
-    .eq('id', requestId)
-    .maybeSingle();
-  if (!req) { failTo('Request not found'); return; }
-
-  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
-  const isStaff = me.is_staff || me.is_platform_operator;
-  if (!isOwner && !isStaff) { failTo('Only the requesting owner or staff can add documents'); return; }
+  const access = await verifyArchAttachmentAccess(requestId, basePath);
+  if (access.error || !access.req) { failTo(access.error ?? 'Request not found'); return; }
+  const { req, svc } = access;
   if (!OPEN_STATUSES.includes(req.status)) { failTo('Documents can only be added while the request is open'); return; }
 
   const file = formData.get('document') as File | null;
-  if (!file || file.size === 0) { failTo('Choose a document to upload'); return; }
-  if (file.size > MAX_ATTACHMENT_BYTES) { failTo('Each document must be under 10 MB. Upload files one at a time.'); return; }
+  if (!file) { failTo('Choose a document to upload'); return; }
+  const validatedFile = validateArchitecturalAttachmentFile(file.name, file.size);
+  if (validatedFile.error || !validatedFile.safeName) { failTo(validatedFile.error ?? 'Invalid document'); return; }
 
   const existing = Array.isArray(req.attachments) ? req.attachments : [];
   if (existing.length >= MAX_ARCH_ATTACHMENTS) { failTo(`This request already has ${MAX_ARCH_ATTACHMENTS} documents — remove one first.`); return; }
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `architectural/${requestId}/${Date.now()}-${safeName}`;
+  const path = `architectural/${requestId}/${randomUUID()}-${validatedFile.safeName}`;
   const { error: upErr } = await svc.storage.from(ATTACH_BUCKET).upload(path, file, { contentType: file.type || undefined });
   if (upErr) { failTo(`Upload failed: ${upErr.message}`); return; }
 
-  const { error } = await svc
+  const mutation = bindRequestMutation(svc
     .from('architectural_requests')
     .update({
       attachments: [
@@ -244,9 +322,13 @@ export async function addArchitecturalAttachment(
           uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
         },
       ],
-    })
-    .eq('id', requestId);
-  if (error) { failTo(error.message); return; }
+    }), req).in('status', OPEN_STATUSES);
+  const { data: updated, error } = await mutation.select('id').maybeSingle();
+  if (error || !updated) {
+    await removeStoredAttachment(svc, path);
+    failTo(error?.message ?? 'Request changed before the document could be recorded');
+    return;
+  }
   revalidatePath(back);
 }
 
@@ -256,39 +338,21 @@ export async function addArchitecturalAttachment(
  * upload URL (small JSON), sends the file browser→Supabase Storage, then
  * records the attachment. Both steps re-verify ownership and open status.
  */
-async function verifyArchAttachmentAccess(requestId: string) {
-  const me = await getMe();
-  if (!me.auth_user_id) return { error: 'Not signed in', req: null as any, svc: null as any };
-  const { createServiceClient } = await import('@/lib/supabase/server');
-  const svc = createServiceClient() as any;
-  const { data: req } = await svc
-    .from('architectural_requests')
-    .select('id, owner_id, status, attachments')
-    .eq('id', requestId)
-    .maybeSingle();
-  if (!req) return { error: 'Request not found', req: null, svc };
-  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
-  const isStaff = me.is_staff || me.is_platform_operator;
-  if (!isOwner && !isStaff) return { error: 'Only the requesting owner or staff can add documents', req: null, svc };
-  if (!OPEN_STATUSES.includes(req.status)) return { error: 'Documents can only be added while the request is open', req: null, svc };
-  return { error: null as string | null, req, svc, me };
-}
-
 export async function createArchAttachmentUpload(
   requestId: string,
+  basePath: string,
   fileName: string,
   fileSize: number,
 ): Promise<{ error?: string; path?: string; token?: string }> {
-  const { error, req, svc } = await verifyArchAttachmentAccess(requestId);
-  if (error) return { error };
-  if (!fileName) return { error: 'Missing file name' };
-  if (!fileSize || fileSize <= 0) return { error: 'Empty file' };
-  if (fileSize > MAX_ATTACHMENT_BYTES) return { error: `"${fileName}" is over ${Math.round(MAX_ATTACHMENT_BYTES / 1048576)} MB` };
+  const { error, req, svc } = await verifyArchAttachmentAccess(requestId, basePath);
+  if (error || !req) return { error: error ?? 'Request not found' };
+  if (!OPEN_STATUSES.includes(req.status)) return { error: 'Documents can only be added while the request is open' };
+  const validatedFile = validateArchitecturalAttachmentFile(fileName, fileSize);
+  if (validatedFile.error || !validatedFile.safeName) return { error: validatedFile.error ?? 'Invalid document' };
   const existing = Array.isArray(req.attachments) ? req.attachments : [];
   if (existing.length >= MAX_ARCH_ATTACHMENTS) return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
 
-  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `architectural/${requestId}/${Date.now()}-${safeName}`;
+  const path = `architectural/${requestId}/${randomUUID()}-${validatedFile.safeName}`;
   const { data, error: signErr } = await svc.storage.from(ATTACH_BUCKET).createSignedUploadUrl(path);
   if (signErr || !data?.token) return { error: signErr?.message ?? 'Could not authorize the upload' };
   return { path, token: data.token };
@@ -299,17 +363,42 @@ export async function recordArchAttachment(
   basePath: string,
   file: { path: string; name: string; size: number },
 ): Promise<{ error?: string; ok?: boolean }> {
-  const access = await verifyArchAttachmentAccess(requestId);
-  if (access.error) return { error: access.error };
+  const access = await verifyArchAttachmentAccess(requestId, basePath);
+  if (access.error || !access.req) return { error: access.error ?? 'Request not found' };
   const { req, svc, me } = access as any;
-  // Only accept paths this flow issued for this request
-  if (!file.path?.startsWith(`architectural/${requestId}/`)) return { error: 'Invalid document reference' };
+  const safeBasePath = architecturalAttachmentBasePath(basePath);
+  if (!safeBasePath) return { error: 'Invalid return path' };
+  if (!OPEN_STATUSES.includes(req.status)) return { error: 'Documents can only be added while the request is open' };
+
+  const validatedFile = validateArchitecturalAttachmentFile(file.name, file.size);
+  if (validatedFile.error || !validatedFile.safeName) {
+    if (isArchitecturalAttachmentPath(requestId, file.path)) await removeStoredAttachment(svc, file.path);
+    return { error: validatedFile.error ?? 'Invalid document' };
+  }
+  // Only accept a single object in this request's directory whose server-issued
+  // name matches the recorded display name.
+  if (!isArchitecturalAttachmentPath(requestId, file.path, validatedFile.safeName)) {
+    return { error: 'Invalid document reference' };
+  }
+
+  const { data: stored, error: infoError } = await svc.storage.from(ATTACH_BUCKET).info(file.path);
+  const storedSize = Number(stored?.size);
+  if (infoError || !Number.isSafeInteger(storedSize) || storedSize <= 0) {
+    return { error: 'Uploaded document could not be verified' };
+  }
+  if (storedSize !== file.size || storedSize > MAX_ARCHITECTURAL_ATTACHMENT_BYTES) {
+    await removeStoredAttachment(svc, file.path);
+    return { error: 'Uploaded document size does not match the authorized file' };
+  }
 
   const existing = Array.isArray(req.attachments) ? req.attachments : [];
   if (existing.some((a: any) => a?.path === file.path)) return { ok: true };
-  if (existing.length >= MAX_ARCH_ATTACHMENTS) return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
+  if (existing.length >= MAX_ARCH_ATTACHMENTS) {
+    await removeStoredAttachment(svc, file.path);
+    return { error: `Limit of ${MAX_ARCH_ATTACHMENTS} documents reached` };
+  }
 
-  const { error } = await svc
+  const mutation = bindRequestMutation(svc
     .from('architectural_requests')
     .update({
       attachments: [
@@ -323,10 +412,13 @@ export async function recordArchAttachment(
           uploaded_by_name: me.profile?.full_name ?? me.email ?? null,
         },
       ],
-    })
-    .eq('id', requestId);
-  if (error) return { error: error.message };
-  revalidatePath(`${basePath}/${requestId}`);
+    }), req).in('status', OPEN_STATUSES);
+  const { data: updated, error } = await mutation.select('id').maybeSingle();
+  if (error || !updated) {
+    await removeStoredAttachment(svc, file.path);
+    return { error: error?.message ?? 'Request changed before the document could be recorded' };
+  }
+  revalidatePath(`${safeBasePath}/${requestId}`);
   return { ok: true };
 }
 
@@ -337,48 +429,52 @@ export async function removeArchitecturalAttachment(
   formData: FormData,
 ) {
   const me = await getMe();
-  const back = `${basePath}/${requestId}`;
-  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
   if (!me.auth_user_id) { redirect('/login'); return; }
+  const back = requestBackPath(basePath, requestId);
+  if (!back) { redirect('/?error=' + encodeURIComponent('Invalid return path')); return; }
+  const failTo = (msg: string) => redirect(`${back}?error=${encodeURIComponent(msg)}`);
 
   const path = formData.get('path') as string;
   if (!path) { failTo('Missing document reference'); return; }
 
-  const { createServiceClient } = await import('@/lib/supabase/server');
-  const svc = createServiceClient() as any;
-  const { data: req } = await svc
-    .from('architectural_requests')
-    .select('id, owner_id, status, attachments')
-    .eq('id', requestId)
-    .maybeSingle();
-  if (!req) { failTo('Request not found'); return; }
-
-  const isOwner = !!me.owner_id && me.owner_id === req.owner_id;
-  const isStaff = me.is_staff || me.is_platform_operator;
-  if (!isOwner && !isStaff) { failTo('Only the requesting owner or staff can remove documents'); return; }
-  if (isOwner && !isStaff && !OPEN_STATUSES.includes(req.status)) { failTo('Documents can no longer be changed on a decided request'); return; }
+  const access = await verifyArchAttachmentAccess(requestId, basePath);
+  if (access.error || !access.req || !access.role) { failTo(access.error ?? 'Request not found'); return; }
+  const { req, svc, role } = access;
+  if ((role === 'owner' || role === 'board') && !OPEN_STATUSES.includes(req.status)) {
+    failTo('Documents can no longer be changed on a decided request');
+    return;
+  }
+  if (!isArchitecturalAttachmentPath(requestId, path)) { failTo('Invalid document reference'); return; }
 
   const existing = Array.isArray(req.attachments) ? req.attachments : [];
   if (!existing.some((a: any) => a?.path === path)) { failTo('Document not found on this request'); return; }
 
-  const { error } = await svc
+  let mutation = bindRequestMutation(svc
     .from('architectural_requests')
-    .update({ attachments: existing.filter((a: any) => a?.path !== path) })
-    .eq('id', requestId);
-  if (error) { failTo(error.message); return; }
-  try { await svc.storage.from(ATTACH_BUCKET).remove([path]); } catch {}
+    .update({ attachments: existing.filter((a: any) => a?.path !== path) }), req);
+  if (role === 'owner' || role === 'board') mutation = mutation.in('status', OPEN_STATUSES);
+  const { data: updated, error } = await mutation.select('id').maybeSingle();
+  if (error || !updated) { failTo(error?.message ?? 'Request changed before the document could be removed'); return; }
+  await removeStoredAttachment(svc, path);
   revalidatePath(back);
 }
 
 /** Owner withdraws their own open request. RLS enforces ownership + status. */
 export async function withdrawArchitecturalRequest(requestId: string) {
-  await (await import('@/lib/auth/me')).requireAuth();  // in-action guard; RLS enforces ownership
+  const me = await requireOwner();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('architectural_requests')
     .update({ status: 'withdrawn' })
-    .eq('id', requestId);
-  if (error) { redirect(`/portal/architectural/${requestId}?error=${encodeURIComponent(error.message)}`); return; }
+    .eq('id', requestId)
+    .eq('owner_id', me.owner_id)
+    .in('status', OPEN_STATUSES)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) {
+    redirect(`/portal/architectural/${requestId}?error=${encodeURIComponent(error?.message ?? 'Request not found, not accessible, or no longer open')}`);
+    return;
+  }
   revalidatePath(`/portal/architectural/${requestId}`);
   revalidatePath('/portal/architectural');
 }
@@ -390,17 +486,23 @@ export async function withdrawArchitecturalRequest(requestId: string) {
  */
 export async function postArchitecturalMessage(
   requestId: string,
-  authorRole: 'owner' | 'staff' | 'board',
+  _claimedAuthorRole: 'owner' | 'staff' | 'board',
   basePath: string,
   formData: FormData,
 ) {
-  const me = await getMe();
+  const context = basePath === '/portal/architectural'
+    ? { me: await requireOwner(), authorRole: 'owner' as const }
+    : basePath === '/architectural-reviews'
+      ? { me: await requireStaff(), authorRole: 'staff' as const }
+      : basePath === '/board/architectural-reviews'
+        ? { me: await requireBoard(), authorRole: 'board' as const }
+        : null;
+  if (!context) { redirect('/?error=' + encodeURIComponent('Invalid architectural return path')); return; }
+  const { me, authorRole } = context;
   const body = (formData.get('body') as string)?.trim();
   const back = `${basePath}/${requestId}`;
-  if (!me.auth_user_id) { redirect('/login'); return; }
   // Never trust the caller-supplied role label — derive it from the session
   // so a resident cannot post as "staff"/"board".
-  authorRole = (me.is_staff || me.is_platform_operator) ? 'staff' : me.is_board ? 'board' : 'owner';
   if (!body) { redirect(`${back}?error=${encodeURIComponent('Message cannot be empty')}`); return; }
 
   const supabase = await createClient();
@@ -421,7 +523,12 @@ export async function decideArchitecturalRequest(
   basePath: string,
   formData: FormData,
 ) {
-  const me = await getMe();
+  const me = basePath === '/architectural-reviews'
+    ? await requireStaff()
+    : basePath === '/board/architectural-reviews'
+      ? await requireBoard()
+      : null;
+  if (!me) { redirect('/?error=' + encodeURIComponent('Invalid architectural decision path')); return; }
   if (!me.auth_user_id) { redirect('/login'); return; }
   // Decisions are a staff/board power — an owner must never decide their own request.
   if (!me.is_staff && !me.is_board && !me.is_platform_operator) {

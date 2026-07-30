@@ -1,5 +1,5 @@
 'use server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 
@@ -155,14 +155,17 @@ export async function sendOwnerStatements(formData: FormData) {
    BULK STATEMENT SETTINGS — update statement config for associations
    ================================================================ */
 export async function bulkUpdateStatementSettings(formData: FormData) {
-  const me = await requireStaff();
+  await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
 
-  const associationIds = formData.getAll('association_ids').filter((v): v is string => typeof v === 'string');
+  const associationIds = [...new Set(
+    formData.getAll('association_ids').filter((v): v is string => typeof v === 'string' && v.length > 0),
+  )];
   if (associationIds.length === 0) return { error: 'No associations selected' };
+  if (associationIds.length > 500) return { error: 'At most 500 associations may be updated at once' };
 
-  const settings: Record<string, any> = {};
+  const settings: Record<string, boolean | string> = {};
   const booleanFields = [
     'use_enhanced_statement', 'include_current_and_upcoming_charges',
     'include_upcoming_in_amount_due', 'include_current_message_on_statement',
@@ -179,18 +182,43 @@ export async function bulkUpdateStatementSettings(formData: FormData) {
   const textFields = ['upcoming_charges_timeframe', 'charge_history_includes'];
   for (const field of textFields) {
     const val = str(formData, field);
-    if (val !== null) settings[field] = val;
+    if (val === null) continue;
+    const allowed = field === 'upcoming_charges_timeframe'
+      ? ['next_month', 'next_quarter', 'next_year']
+      : [
+          'all_past_due_charges', 'current_and_past_due', 'all_charges',
+          'current_month_only', 'past_three_months',
+        ];
+    if (!allowed.includes(val)) return { error: `Invalid ${field} value` };
+    settings[field] = val;
   }
 
   if (Object.keys(settings).length === 0) return { error: 'No settings to update' };
 
-  const { data, error } = await db.rpc('bulk_update_statement_settings', {
-    p_association_ids: associationIds,
-    p_settings: settings,
-  });
+  // Prove every requested row is visible under the caller's RLS session before
+  // crossing the service-role boundary. The elevated update remains constrained
+  // to that exact, deduplicated ID set and an allowlist of statement columns.
+  const { data: visibleAssociations, error: scopeError } = await db
+    .from('associations')
+    .select('id')
+    .in('id', associationIds);
+  if (scopeError) return { error: scopeError.message };
+  if ((visibleAssociations ?? []).length !== associationIds.length) {
+    return { error: 'One or more associations are outside your authorized scope' };
+  }
+
+  const serviceDb = createServiceClient() as any;
+  const { data, error } = await serviceDb
+    .from('associations')
+    .update(settings)
+    .in('id', associationIds)
+    .select('id');
 
   if (error) return { error: error.message };
+  if ((data ?? []).length !== associationIds.length) {
+    return { error: 'One or more associations were not updated' };
+  }
 
   revalidatePath('/statements/bulk-settings');
-  return { success: true, updated_count: data };
+  return { success: true, updated_count: data.length };
 }

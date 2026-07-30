@@ -43,11 +43,15 @@ export interface BoardSnapshot {
   statutoryMaintenance: Array<{ task: string | null; nextDue: string | null; overdue: boolean }>;
 }
 
-export async function buildBoardSnapshot(): Promise<BoardSnapshot> {
+export async function buildBoardSnapshot(associationId: string): Promise<BoardSnapshot> {
   const me = await requireBoard();
   const supabase = await createClient();
   const db = supabase as any;
-  const ids: string[] = me.board_association_ids ?? [];
+  const allowedIds: string[] = me.board_association_ids ?? [];
+  if (!associationId || !allowedIds.includes(associationId)) {
+    throw new Error('Association is not linked to this board account.');
+  }
+  const ids = [associationId];
   const today = new Date();
   const todayDate = today.toISOString().slice(0, 10);
   const yearStart = `${today.getFullYear()}-01-01`;

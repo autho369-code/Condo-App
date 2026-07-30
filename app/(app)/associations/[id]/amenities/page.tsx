@@ -9,6 +9,8 @@ import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
+import { SafeRichText } from '@/components/security/safe-rich-text';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +57,7 @@ export default async function AmenitiesTab({
     const url = a.image_url?.trim();
     if (!url) continue;
     if (/^https?:\/\//i.test(url)) imageSrcByAmenity.set(a.id, url);
-    else pathsToSign.push(url);
+    else if (isScopedStoragePath(url, 'amenities', id)) pathsToSign.push(url);
   }
   if (pathsToSign.length > 0) {
     const svc = createServiceClient() as any;
@@ -176,7 +178,7 @@ export default async function AmenitiesTab({
             <div className="flex-1">
               <h3 className="mb-1 text-base font-semibold text-gray-900">{a.name}</h3>
               {a.description_html && (
-                <div className="mb-2 text-sm text-gray-700 [&_p]:m-0" dangerouslySetInnerHTML={{ __html: sanitizeBasicHtml(a.description_html) }} />
+                <SafeRichText html={a.description_html} className="mb-2 text-sm text-gray-700 [&_p]:m-0" />
               )}
               <dl className="grid grid-cols-[140px_1fr] gap-y-1 text-sm">
                 {(a.opens_at || a.closes_at) && (
@@ -343,12 +345,4 @@ function parsePricingMode(value: FormDataEntryValue | null): 'flat' | 'hourly' |
 
 function parseReserveMethod(value: FormDataEntryValue | null): 'email' | 'platform_link' | null {
   return value === 'email' || value === 'platform_link' ? value : null;
-}
-
-function sanitizeBasicHtml(html: string): string {
-  return html
-    .replace(/<\/?(?:script|style|iframe|object|embed)[^>]*>/gi, '')
-    .replace(/\son\w+="[^"]*"/gi, '')
-    .replace(/\son\w+='[^']*'/gi, '')
-    .replace(/javascript:/gi, '');
 }

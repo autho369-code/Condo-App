@@ -1,3 +1,4 @@
+
 /**
  * Seed sample association documents for Granville Courts.
  *
@@ -24,6 +25,18 @@ const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
+  process.exit(1)
+}
+
+const targetProjectRef = new URL(SUPABASE_URL).hostname.split('.')[0]
+if (
+  targetProjectRef === 'termxngysvotnfbzbgrv' ||
+  env.SUPABASE_ENVIRONMENT !== 'staging' ||
+  env.PORTIER369_ALLOW_LEGACY_SEED !== 'PORTIER369_AUDIT_2026'
+) {
+  console.error(
+    'Refusing legacy seed: target must be staging and PORTIER369_ALLOW_LEGACY_SEED must equal PORTIER369_AUDIT_2026.'
+  )
   process.exit(1)
 }
 

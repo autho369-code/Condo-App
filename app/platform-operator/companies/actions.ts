@@ -10,12 +10,17 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const COMPANIES = '/platform-operator/companies';
 // Verified Resend sender for platform-level email
 const FROM_ADDRESS = 'hello@portier369.com';
 const FROM_NAME = 'Portier369';
+
+function returnPath(formData: FormData, fallback: string): string {
+  return safeInternalNext(formData.get('return_to')) ?? fallback;
+}
 
 function fail(returnTo: string, message: string): never {
   const sep = returnTo.includes('?') ? '&' : '?';
@@ -140,7 +145,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
 export async function inviteAdmin(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
   const firstName = (formData.get('first_name') as string)?.trim();
   const lastName = (formData.get('last_name') as string)?.trim();
   const email = (formData.get('admin_email') as string)?.trim().toLowerCase();
@@ -187,7 +192,7 @@ export async function inviteAdmin(formData: FormData) {
 export async function resendInvitation(formData: FormData) {
   const me = await requirePlatformOperator();
   const invitationId = formData.get('invitation_id') as string;
-  const returnTo = (formData.get('return_to') as string) || '/platform-operator/invitations';
+  const returnTo = returnPath(formData, '/platform-operator/invitations');
 
   const svc = createServiceClient() as any;
   const { data: inv } = await svc
@@ -225,7 +230,7 @@ export async function resendInvitation(formData: FormData) {
 export async function cancelInvitation(formData: FormData) {
   const me = await requirePlatformOperator();
   const invitationId = formData.get('invitation_id') as string;
-  const returnTo = (formData.get('return_to') as string) || '/platform-operator/invitations';
+  const returnTo = returnPath(formData, '/platform-operator/invitations');
 
   const svc = createServiceClient() as any;
   const { data: inv, error } = await svc
@@ -244,7 +249,7 @@ export async function cancelInvitation(formData: FormData) {
 export async function regenerateInvitation(formData: FormData) {
   const me = await requirePlatformOperator();
   const invitationId = formData.get('invitation_id') as string;
-  const returnTo = (formData.get('return_to') as string) || '/platform-operator/invitations';
+  const returnTo = returnPath(formData, '/platform-operator/invitations');
 
   const svc = createServiceClient() as any;
   const { data: old } = await svc
@@ -297,7 +302,7 @@ export async function regenerateInvitation(formData: FormData) {
 export async function sendPasswordReset(formData: FormData) {
   const me = await requirePlatformOperator();
   const profileId = formData.get('profile_id') as string;
-  const returnTo = (formData.get('return_to') as string) || COMPANIES;
+  const returnTo = returnPath(formData, COMPANIES);
 
   const svc = createServiceClient() as any;
   const { data: profile } = await svc.from('profiles').select('id, email, full_name, portfolio_id').eq('id', profileId).maybeSingle();
@@ -329,7 +334,7 @@ export async function sendPasswordReset(formData: FormData) {
 export async function forcePasswordReset(formData: FormData) {
   const me = await requirePlatformOperator();
   const profileId = formData.get('profile_id') as string;
-  const returnTo = (formData.get('return_to') as string) || COMPANIES;
+  const returnTo = returnPath(formData, COMPANIES);
 
   const svc = createServiceClient() as any;
   const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
@@ -345,27 +350,6 @@ export async function forcePasswordReset(formData: FormData) {
   ok(returnTo, 'reset_forced');
 }
 
-// Directly set a temporary password (more reliable than emailed reset when
-// email deliverability is uncertain). The operator shares it with the admin.
-export async function setTemporaryPassword(formData: FormData) {
-  const me = await requirePlatformOperator();
-  const profileId = formData.get('profile_id') as string;
-  const newPassword = (formData.get('new_password') as string) || '';
-  const returnTo = (formData.get('return_to') as string) || COMPANIES;
-  if (newPassword.trim().length < 8) fail(returnTo, 'Temporary password must be at least 8 characters.');
-
-  const svc = createServiceClient() as any;
-  const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
-  if (!profile) fail(returnTo, 'User not found.');
-
-  const { error } = await svc.auth.admin.updateUserById(profileId, { password: newPassword.trim() });
-  if (error) fail(returnTo, `Could not set password: ${error.message}`);
-
-  await audit(svc, me, 'password_set', profile.portfolio_id, { email: profile.email, user_id: profileId });
-  revalidatePath(returnTo);
-  ok(returnTo, 'password_set');
-}
-
 // ── Invoicing ─────────────────────────────────────────────────────────────
 function invoiceNumber(): string {
   const d = new Date();
@@ -379,7 +363,7 @@ function invoiceNumber(): string {
 export async function generateInvoice(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
   const periodStart = (formData.get('period_start') as string) || '';
   const periodEnd = (formData.get('period_end') as string) || '';
   const amountInput = (formData.get('amount') as string) || '';
@@ -416,7 +400,7 @@ export async function sendInvoice(formData: FormData) {
   const me = await requirePlatformOperator();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
   const { data: inv } = await svc.from('invoices')
@@ -471,7 +455,7 @@ export async function markInvoicePaid(formData: FormData) {
   const me = await requirePlatformOperator();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
   const { error } = await svc.from('invoices')
@@ -487,7 +471,7 @@ export async function voidInvoice(formData: FormData) {
   const me = await requirePlatformOperator();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
   const { error } = await svc.from('invoices').update({ status: 'void' }).eq('id', invoiceId);
@@ -501,7 +485,7 @@ export async function voidInvoice(formData: FormData) {
 export async function unlockAccount(formData: FormData) {
   const me = await requirePlatformOperator();
   const profileId = formData.get('profile_id') as string;
-  const returnTo = (formData.get('return_to') as string) || COMPANIES;
+  const returnTo = returnPath(formData, COMPANIES);
 
   const svc = createServiceClient() as any;
   const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
@@ -518,7 +502,7 @@ export async function unlockAccount(formData: FormData) {
 export async function disableLogin(formData: FormData) {
   const me = await requirePlatformOperator();
   const profileId = formData.get('profile_id') as string;
-  const returnTo = (formData.get('return_to') as string) || COMPANIES;
+  const returnTo = returnPath(formData, COMPANIES);
 
   const svc = createServiceClient() as any;
   const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
@@ -537,7 +521,7 @@ export async function disableLogin(formData: FormData) {
 export async function updateCompanyDetails(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const companyName = (formData.get('company_name') as string)?.trim();
   const phone = (formData.get('phone_number') as string)?.trim();
@@ -564,7 +548,7 @@ export async function suspendCompany(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
   const reason = (formData.get('reason') as string)?.trim() || null;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
   const { error } = await svc
@@ -581,7 +565,7 @@ export async function suspendCompany(formData: FormData) {
 export async function reactivateCompany(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
   const { error } = await svc
@@ -635,7 +619,7 @@ export async function changePlan(formData: FormData) {
   const portfolioId = formData.get('portfolio_id') as string;
   const tier = formData.get('tier') as string;
   const priceMonthly = formData.get('price_monthly') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const plan = PLAN_BY_ID[tier as PlanId];
   const update: Record<string, unknown> = { tier };
@@ -659,7 +643,7 @@ export async function changePlan(formData: FormData) {
 export async function adjustLimits(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const update: Record<string, unknown> = {};
   const unitsLimit = formData.get('units_limit') as string;
@@ -684,7 +668,7 @@ export async function transferOwnership(formData: FormData) {
   const me = await requirePlatformOperator();
   const portfolioId = formData.get('portfolio_id') as string;
   const newOwnerId = formData.get('new_owner_id') as string;
-  const returnTo = (formData.get('return_to') as string) || `${COMPANIES}/${portfolioId}`;
+  const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
   if (!newOwnerId) fail(returnTo, 'Select the staff member to become the company admin.');
 
   const svc = createServiceClient() as any;

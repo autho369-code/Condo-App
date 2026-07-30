@@ -8,45 +8,76 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/operations/status-chip';
 import { date } from '@/lib/utils';
 import { CreditCard, ExternalLink, RefreshCcw } from 'lucide-react';
+import { isStripeAccountId } from '@/lib/payments/guards';
 
 export const dynamic = 'force-dynamic';
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
 const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 
+function canManageAssociationStripe(me: {
+  is_platform_operator: boolean;
+  is_company_admin: boolean;
+  is_finance_staff: boolean;
+}) {
+  return me.is_platform_operator || me.is_company_admin || me.is_finance_staff;
+}
+
 async function connectStripe(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
   const me = await req();
-  const associationId = formData.get('association_id') as string;
-  const slug = (formData.get('slug') as string) || associationId;
-  const back = `/associations/${slug}/payments`;
+  const associationId = String(formData.get('association_id') ?? '');
+  let back = `/associations/${encodeURIComponent(associationId)}/payments`;
+  if (!canManageAssociationStripe(me)) {
+    redirect(`${back}?error=${encodeURIComponent('Only finance staff or company administrators can manage Stripe onboarding.')}`);
+  }
 
   const { isStripeConfigured, createConnectedAccount, createAccountLink } = await import('@/lib/payments/stripe');
   if (!isStripeConfigured()) {
     redirect(`${back}?error=${encodeURIComponent('Platform Stripe keys are not set yet (STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET in Vercel).')}`);
   }
 
-  const { createServiceClient } = await import('@/lib/supabase/server');
-  const svc = createServiceClient() as any;
-  const { data: assoc } = await svc.from('associations').select('id, name, portfolio_id, stripe_account_id').eq('id', associationId).maybeSingle();
+  const { createClient: createSessionClient, createServiceClient } = await import('@/lib/supabase/server');
+  const sessionClient = await createSessionClient();
+  const { data: assoc } = await (sessionClient as any)
+    .from('associations')
+    .select('id, name, slug, portfolio_id, stripe_account_id')
+    .eq('id', associationId)
+    .maybeSingle();
   if (!assoc) redirect(`${back}?error=${encodeURIComponent('Association not found.')}`);
+  back = `/associations/${encodeURIComponent(assoc.slug ?? assoc.id)}/payments`;
   // Scope: never let staff of one company touch another company's Stripe account.
-  if (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id) {
+  if (!me.is_platform_operator && (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id)) {
     redirect(`${back}?error=${encodeURIComponent('That association is not in your portfolio.')}`);
   }
+  const svc = createServiceClient() as any;
 
   let accountId = assoc.stripe_account_id as string | null;
   try {
-    if (!accountId) {
-      const account = await createConnectedAccount({ associationName: assoc.name });
-      accountId = account.id;
-      await svc.from('associations').update({ stripe_account_id: accountId }).eq('id', associationId);
+    if (accountId && !isStripeAccountId(accountId)) {
+      throw new Error('The stored Stripe account identifier is invalid. Contact platform support.');
     }
+    if (!accountId) {
+      const account = await createConnectedAccount({
+        associationId: assoc.id,
+        portfolioId: assoc.portfolio_id,
+        associationName: assoc.name,
+      });
+      accountId = account.id;
+      if (!isStripeAccountId(accountId)) throw new Error('Stripe returned an invalid connected account identifier.');
+      const { error: saveError } = await svc
+        .from('associations')
+        .update({ stripe_account_id: accountId })
+        .eq('id', associationId)
+        .is('stripe_account_id', null);
+      if (saveError) throw saveError;
+    }
+    const associationPath = encodeURIComponent(assoc.slug ?? assoc.id);
     const link = await createAccountLink(
       accountId!,
-      `${SITE_URL}/associations/${slug}/payments?refresh=1`,
-      `${SITE_URL}/associations/${slug}/payments?returned=1`,
+      `${SITE_URL}/associations/${associationPath}/payments?refresh=1`,
+      `${SITE_URL}/associations/${associationPath}/payments?returned=1`,
     );
     redirect(link.url);
   } catch (err: any) {
@@ -99,26 +130,50 @@ async function refreshStripeStatus(formData: FormData) {
   'use server';
   const { requireStaff: req } = await import('@/lib/auth/me');
   const me = await req();
-  const associationId = formData.get('association_id') as string;
-  const slug = (formData.get('slug') as string) || associationId;
-  const back = `/associations/${slug}/payments`;
+  const associationId = String(formData.get('association_id') ?? '');
+  let back = `/associations/${encodeURIComponent(associationId)}/payments`;
+  if (!canManageAssociationStripe(me)) {
+    redirect(`${back}?error=${encodeURIComponent('Only finance staff or company administrators can manage Stripe onboarding.')}`);
+  }
 
   const { isStripeConfigured, getConnectedAccount } = await import('@/lib/payments/stripe');
-  const { createServiceClient } = await import('@/lib/supabase/server');
-  const svc = createServiceClient() as any;
-  const { data: assoc } = await svc.from('associations').select('id, portfolio_id, stripe_account_id').eq('id', associationId).maybeSingle();
+  const { createClient: createSessionClient, createServiceClient } = await import('@/lib/supabase/server');
+  const sessionClient = await createSessionClient();
+  const { data: assoc } = await (sessionClient as any)
+    .from('associations')
+    .select('id, slug, portfolio_id, stripe_account_id')
+    .eq('id', associationId)
+    .maybeSingle();
+  if (!assoc) redirect(`${back}?error=${encodeURIComponent('Association not found.')}`);
+  back = `/associations/${encodeURIComponent(assoc.slug ?? assoc.id)}/payments`;
   if (!assoc?.stripe_account_id || !isStripeConfigured()) redirect(back);
-  if (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id) {
+  if (!me.is_platform_operator && (!me.portfolio?.id || assoc.portfolio_id !== me.portfolio.id)) {
     redirect(`${back}?error=${encodeURIComponent('That association is not in your portfolio.')}`);
   }
+  if (!isStripeAccountId(assoc.stripe_account_id)) {
+    redirect(`${back}?error=${encodeURIComponent('The stored Stripe account identifier is invalid. Contact platform support.')}`);
+  }
+  const svc = createServiceClient() as any;
 
   try {
     const account = await getConnectedAccount(assoc.stripe_account_id);
-    await svc.from('associations').update({
+    const disabledReason = !account.details_submitted
+      ? 'Stripe onboarding details are incomplete.'
+      : !account.charges_enabled
+        ? 'Stripe has not enabled charges for this account.'
+        : !account.payouts_enabled
+          ? 'Stripe payouts are not enabled for this account.'
+          : null;
+    const { error: updateError } = await svc.from('associations').update({
       stripe_charges_enabled: !!account.charges_enabled,
+      stripe_payouts_enabled: !!account.payouts_enabled,
       stripe_details_submitted: !!account.details_submitted,
-      ...(account.charges_enabled ? { stripe_onboarded_at: new Date().toISOString() } : {}),
-    }).eq('id', associationId);
+      stripe_disabled_reason: disabledReason,
+      stripe_last_status_at: new Date().toISOString(),
+      stripe_deauthorized_at: null,
+      ...(account.charges_enabled && account.payouts_enabled ? { stripe_onboarded_at: new Date().toISOString() } : {}),
+    }).eq('id', associationId).eq('stripe_account_id', assoc.stripe_account_id);
+    if (updateError) throw updateError;
   } catch (err: any) {
     if (err?.digest?.startsWith?.('NEXT_REDIRECT')) throw err;
     redirect(`${back}?error=${encodeURIComponent(err?.message ?? 'Could not refresh Stripe status.')}`);
@@ -133,7 +188,7 @@ export default async function AssociationPaymentsTab({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; returned?: string; refreshed?: string; refresh?: string; allocation_saved?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
@@ -144,7 +199,7 @@ export default async function AssociationPaymentsTab({
 
   const { data: assoc } = await db
     .from('associations')
-    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_details_submitted, stripe_onboarded_at, remit_payee, remit_address, payment_instructions, payment_allocation_order')
+    .select('id, name, slug, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted, stripe_disabled_reason, stripe_last_status_at, stripe_deauthorized_at, stripe_onboarded_at, remit_payee, remit_address, payment_instructions, payment_allocation_order')
     .eq('id', id)
     .maybeSingle();
   if (!assoc) notFound();
@@ -152,10 +207,11 @@ export default async function AssociationPaymentsTab({
   const { isStripeConfigured } = await import('@/lib/payments/stripe');
   const platformReady = isStripeConfigured();
   const slug = assoc.slug ?? assoc.id;
+  const canManageStripe = canManageAssociationStripe(me);
 
   const state = !assoc.stripe_account_id
     ? 'not_connected'
-    : assoc.stripe_charges_enabled
+    : assoc.stripe_charges_enabled && assoc.stripe_payouts_enabled && !assoc.stripe_deauthorized_at
       ? 'active'
       : 'onboarding';
 
@@ -209,6 +265,10 @@ export default async function AssociationPaymentsTab({
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_charges_enabled ? 'Yes' : 'No'}</dd>
             </div>
             <div>
+              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Payouts Enabled</dt>
+              <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_payouts_enabled ? 'Yes' : 'No'}</dd>
+            </div>
+            <div>
               <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Details Submitted</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_details_submitted ? 'Yes' : 'No'}</dd>
             </div>
@@ -216,8 +276,19 @@ export default async function AssociationPaymentsTab({
               <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Onboarded</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_onboarded_at ? date(assoc.stripe_onboarded_at) : '—'}</dd>
             </div>
+            <div>
+              <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Last Stripe Check</dt>
+              <dd className="mt-0.5 text-sm text-gray-900">{assoc.stripe_last_status_at ? date(assoc.stripe_last_status_at) : 'Never'}</dd>
+            </div>
           </dl>
 
+          {assoc.stripe_disabled_reason && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+              {assoc.stripe_disabled_reason}
+            </div>
+          )}
+
+          {canManageStripe ? (
           <div className="mt-5 flex flex-wrap gap-2">
             <form action={connectStripe as any}>
               <input type="hidden" name="association_id" value={assoc.id} />
@@ -237,10 +308,13 @@ export default async function AssociationPaymentsTab({
               </form>
             )}
           </div>
+          ) : (
+            <p className="mt-5 text-sm text-gray-500">Finance staff or a company administrator can manage this Stripe account.</p>
+          )}
 
           <p className="mt-4 text-[12px] leading-5 text-gray-400">
-            Onboarding is completed on Stripe by the association (EIN, bank account for deposits). When Charges Enabled
-            turns on, owners see &quot;Pay online&quot; automatically on their How to Pay page.
+            Onboarding is completed on Stripe by the association (EIN and its own settlement bank account). Owners see
+            &quot;Pay online&quot; only after both charges and payouts are enabled for this association.
           </p>
         </div>
 

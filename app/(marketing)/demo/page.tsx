@@ -17,9 +17,14 @@ const lookingFor = ['Software Demonstration','Pricing Proposal','Portfolio Migra
 const markets = ['Condominiums','HOAs','Townhomes','Mixed Portfolio']
 const contactTimes = ['Morning','Afternoon','Evening']
 
-export default async function AssessmentPage({ searchParams }: { searchParams: Promise<{ submitted?: string }> }) {
+export default async function AssessmentPage({ searchParams }: { searchParams: Promise<{ submitted?: string; error?: string }> }) {
   const sp = await searchParams
   const submitted = sp.submitted === '1'
+  const errorMessage =
+    sp.error === 'rate-limit' ? 'Too many requests were received. Please wait and try again.' :
+    sp.error === 'invalid' ? 'Please check the required fields and submit the form again.' :
+    sp.error === 'unavailable' ? 'We could not deliver your request right now. Please email hello@portier369.com.' :
+    null
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased">
@@ -35,13 +40,18 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
               <p className="mt-4 text-lg text-gray-500">
                 See how Portier369 can streamline operations, reduce administrative workload, and support your growing portfolio.
               </p>
-              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                <p className="text-sm font-semibold text-amber-800">We onboard 2 property management companies a week.</p>
-                <p className="text-sm text-amber-700 mt-1">Submit your proposal now to secure current pricing and your onboarding slot.</p>
+              <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
+                <p className="text-sm font-semibold text-blue-900">Standard onboarding follows a guided four-week plan.</p>
+                <p className="mt-1 text-sm text-blue-800">Request a proposal to discuss your data, migration scope, timeline, and current pricing.</p>
               </div>
               {submitted && (
                 <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700 font-medium">
                   Thank you. Your portfolio assessment request has been sent to hello@portier369.com. We&apos;ll prepare a customized plan and reach out within one business day.
+                </div>
+              )}
+              {errorMessage && (
+                <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-red-700 font-medium" role="alert">
+                  {errorMessage}
                 </div>
               )}
             </div>
@@ -77,6 +87,10 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
             </div>
           ) : (
           <form action="/api/demo-request" method="POST" className="space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+            <div className="hidden" aria-hidden="true">
+              <label htmlFor="office_fax">Office fax</label>
+              <input id="office_fax" name="office_fax" tabIndex={-1} autoComplete="off" />
+            </div>
             {/* Company */}
             <fieldset className="space-y-4">
               <legend className="text-base font-semibold text-gray-900">Tell Us About Your Company</legend>

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
-import { roleHome, type MeResult } from '@/lib/auth/me';
+import { getMe, roleHome } from '@/lib/auth/me';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
@@ -17,14 +17,14 @@ export async function loginWithPassword(formData: FormData) {
   // The system determines the destination from the account's ACTUAL role,
   // not the login tab that was clicked. An explicit ?next= (deep link) wins.
   const explicitNext = safeInternalNext(formData.get('next'));
-  const { data: me } = await (supabase as any).rpc('me');
+  const me = await getMe();
   revalidatePath('/', 'layout');
 
   if (explicitNext) redirect(explicitNext);
 
-  // Single source of truth for role precedence — the same roleHome() every
+  // Single source of truth for role precedence â€” the same roleHome() every
   // guard uses, so login never lands somewhere a guard would bounce from.
-  const home = me ? roleHome(me as MeResult) : '/login';
+  const home = me ? roleHome(me) : '/login';
   if (home !== '/login') redirect(home);
 
   // Fallback to the tab's default if role couldn't be resolved
@@ -59,3 +59,4 @@ export async function acceptInvitation(token: string) {
   revalidatePath('/', 'layout');
   return { success: true, result: data };
 }
+

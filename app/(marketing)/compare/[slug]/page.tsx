@@ -78,7 +78,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
           </div>
 
           <h2 className="mt-14 text-2xl font-semibold tracking-[-0.02em] text-gray-950">
-            Why association managers switch from {c.name}
+            What association managers evaluate when comparing {c.name}
           </h2>
           <div className="mt-6 space-y-6">
             {c.whySwitch.map((w) => (
@@ -138,15 +138,15 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
 
           <div className="mt-14 rounded-2xl border border-[#1E3A5F]/15 bg-[#1E3A5F]/[0.03] p-6">
             <h2 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">
-              Switching from {c.name}? We assist with migration.
+              Planning a migration from {c.name}? We can help define the scope.
             </h2>
             <p className="mt-2 text-[15px] leading-7 text-gray-600">
               Standard onboarding is included: spreadsheet-based import of your units, owners, and vendors, admin
               training, and launch assistance. Retrieval of data from {c.name}, historical document migration, and
               financial history conversion are available as quoted professional services — scoped up front, before
               you commit.{' '}
-              <Link href="/customers/stellar-property-management" className="font-semibold text-[#1E3A5F] hover:underline">
-                Read how a 42-association Chicago company made the switch →
+              <Link href="/onboarding" className="font-semibold text-[#1E3A5F] hover:underline">
+                Review the published onboarding scope →
               </Link>
             </p>
             <Link

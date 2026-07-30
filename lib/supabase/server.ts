@@ -3,12 +3,13 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/types/database';
+import { getSupabaseBrowserKey, getSupabaseUrl } from '@/lib/supabase/env';
 
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabaseBrowserKey(),
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },
@@ -25,9 +26,14 @@ export async function createClient() {
 // NEVER import this from a Client Component or Route Handler exposed to the browser.
 import { createClient as createPlainClient } from '@supabase/supabase-js';
 export function createServiceClient() {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.SUPABASE_SECRET_KEY;
+  if (!serviceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is not configured');
+  }
   return createPlainClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getSupabaseUrl(),
+    serviceKey,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }

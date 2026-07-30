@@ -7,10 +7,12 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { updatePortfolioPolicy } from '@/lib/rpcs/portfolio';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { randomBytes } from 'crypto';
 import { date } from '@/lib/utils';
+import { queueEmails } from '@/lib/email/queue';
 
 export const dynamic = 'force-dynamic';
+
+const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 
 // Server Actions are callable endpoints in their own right — every mutation
 // below re-checks authorization INSIDE the action (defense-in-depth on top of
@@ -54,45 +56,76 @@ async function resetStaffPassword(formData: FormData) {
   // admin must never be able to reset an account outside their company.
   const { data: target } = await (adminClient as any)
     .from('profiles')
-    .select('id, portfolio_id, email')
+    .select('id, portfolio_id, email, full_name')
     .eq('id', authUserId)
     .maybeSingle();
   if (!target || !me.portfolio?.id || target.portfolio_id !== me.portfolio.id) {
     redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=' + encodeURIComponent('That account is not in your portfolio.'));
   }
 
-  // Generate a secure random temporary password: 12 chars, alphanumeric
-  const tempPassword = randomBytes(9).toString('base64url').slice(0, 12);
-
-  const { error } = await (adminClient.auth as any).admin.updateUserById(authUserId, {
-    password: tempPassword,
-    email_confirm: true,
-  });
-
-  if (error) {
-    redirect('/settings?reset_error=' + encodeURIComponent(email) + '&reason=' + encodeURIComponent(error.message));
+  // Do not trust the hidden email field and never let an administrator know
+  // or choose another user's password. The profile email must match the
+  // confirmed auth email before a provider-generated recovery link is queued.
+  const profileEmail = String(target.email ?? '').trim().toLowerCase();
+  const { data: authData, error: authLookupError } = await (adminClient.auth as any).admin.getUserById(authUserId);
+  const authUser = authData?.user;
+  const authEmail = String(authUser?.email ?? '').trim().toLowerCase();
+  if (
+    authLookupError
+    || !profileEmail
+    || !authUser
+    || authUser.id !== authUserId
+    || authEmail !== profileEmail
+    || !authUser.email_confirmed_at
+  ) {
+    redirect('/settings?reset_error=' + encodeURIComponent(profileEmail || email) + '&reason=' + encodeURIComponent('The staff profile must have a matching verified sign-in email before a reset link can be sent.'));
   }
 
-  await (adminClient as any).from('audit_logs').insert({
+  const { data: linkData, error: linkError } = await (adminClient.auth as any).admin.generateLink({
+    type: 'recovery',
+    email: profileEmail,
+    options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+  });
+  if (
+    linkError
+    || !linkData?.properties?.action_link
+    || linkData.user?.id !== authUserId
+    || String(linkData.user?.email ?? '').trim().toLowerCase() !== profileEmail
+  ) {
+    redirect('/settings?reset_error=' + encodeURIComponent(profileEmail) + '&reason=' + encodeURIComponent(linkError?.message ?? 'Could not create a recovery link for that verified account.'));
+  }
+
+  const queued = await queueEmails(adminClient as any, [{
+    to: profileEmail,
+    toName: target.full_name ?? null,
+    subject: 'Reset your Portier369 password',
+    text: [
+      'A portfolio administrator requested a password reset for your Portier369 staff account.',
+      '',
+      `Choose a new password: ${linkData.properties.action_link}`,
+      '',
+      'This recovery link expires after a short time. If you did not expect it, contact your portfolio administrator.',
+    ].join('\n'),
+    portfolioId: target.portfolio_id,
+    sentBy: me.auth_user_id,
+  }]);
+  if (queued.error || queued.count !== 1) {
+    redirect('/settings?reset_error=' + encodeURIComponent(profileEmail) + '&reason=' + encodeURIComponent(queued.error ?? 'The recovery email could not be queued.'));
+  }
+
+  const { error: auditError } = await (adminClient as any).from('audit_logs').insert({
     entity_type: 'profile',
     entity_id: authUserId,
-    action: 'password_set',
+    action: 'password_reset_sent',
     actor_id: me.auth_user_id,
     actor_email: me.profile?.email ?? me.email ?? null,
-    changes: { target_email: target.email, method: 'temporary_password' },
+    changes: { target_email: profileEmail, method: 'verified_email_recovery_link', delivery: 'email_queue' },
   });
+  if (auditError) {
+    redirect('/settings?reset_error=' + encodeURIComponent(profileEmail) + '&reason=' + encodeURIComponent('The recovery email was queued, but the required audit event could not be recorded.'));
+  }
 
-  // Never place the secret in the URL (history, logs, analytics, referrers).
-  // A short-lived HttpOnly cookie carries it for exactly one page render.
-  const { cookies } = await import('next/headers');
-  (await cookies()).set('temp_pw_once', JSON.stringify({ email, pw: tempPassword }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/settings',
-    maxAge: 90,
-  });
-  redirect('/settings?reset_success=' + encodeURIComponent(email));
+  redirect('/settings?reset_success=' + encodeURIComponent(profileEmail));
 }
 
 async function removeStaffMember(formData: FormData) {
@@ -134,20 +167,11 @@ export default async function SettingsPage({
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id as string;
 
-  // One-time temporary password from the reset action (HttpOnly cookie, never
-  // the URL). It expires on its own after 90 seconds.
-  let tempPw: { email: string; pw: string } | null = null;
-  if (sp.reset_success) {
-    try {
-      const { cookies } = await import('next/headers');
-      const raw = (await cookies()).get('temp_pw_once')?.value;
-      if (raw) tempPw = JSON.parse(raw);
-    } catch { /* expired or malformed — the alert simply omits the password */ }
-  }
-
   const [{ data: portfolio }, { data: team }, { data: invites }] = await Promise.all([
     (supabase as any).from('portfolios').select('*').eq('id', portfolioId).single(),
-    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at, auth_user_id').eq('portfolio_id', portfolioId).order('full_name'),
+    // profiles.id is the auth user id; there is no separate auth_user_id
+    // column on this table.
+    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
     (supabase as any).from('v_pending_invitations').select('*'),
   ]);
 
@@ -160,15 +184,8 @@ export default async function SettingsPage({
       <div className="space-y-6">
         {/* ======== FEEDBACK ======== */}
         {sp.reset_success && (
-          <Alert tone="success" title={`Password reset for ${sp.reset_success}.`}>
-            {tempPw?.pw ? (
-              <>
-                Temporary password: <code className="rounded bg-emerald-100 px-2 py-0.5 font-mono font-bold">{tempPw.pw}</code>{' '}
-                Copy it now — it is shown only once. Share it with the team member securely; they should change it after signing in.
-              </>
-            ) : (
-              <>The one-time display window has passed. Run the reset again if you still need a temporary password.</>
-            )}
+          <Alert tone="success" title={`Password recovery queued for ${sp.reset_success}.`}>
+            A time-limited recovery link was queued only to the staff member&apos;s verified sign-in email. Administrators never see or set the new password.
           </Alert>
         )}
         {sp.reset_error && (
@@ -322,9 +339,9 @@ export default async function SettingsPage({
                         <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Apply</button>
                       </form>
                       <form action={resetStaffPassword}>
-                        <input type="hidden" name="auth_user_id" value={m.auth_user_id ?? ''} />
+                        <input type="hidden" name="auth_user_id" value={m.id} />
                         <input type="hidden" name="email" value={m.email} />
-                        <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Reset PW</button>
+                        <button type="submit" className="h-8 rounded-lg border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">Send reset link</button>
                       </form>
                       <form action={removeStaffMember}>
                         <input type="hidden" name="profile_id" value={m.id} />

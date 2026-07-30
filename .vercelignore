@@ -1,0 +1,10 @@
+# Repository evidence and developer-only assets are verified in GitHub CI but
+# are not runtime inputs to the Next.js application.
+/supabase/
+/backups/
+/docs/
+/tests/
+/scripts/
+/coverage/
+/.next/
+/node_modules/

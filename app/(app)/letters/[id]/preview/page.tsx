@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import MergeFieldEditor, { MERGE_FIELDS } from '@/components/letters/merge-field-editor';
+import { escapeHtmlText, sanitizeRichTextHtml } from '@/lib/security/rich-text';
 
 export default function PreviewLetterPage() {
   const router = useRouter();
@@ -119,22 +119,32 @@ export default function PreviewLetterPage() {
   const mergeValues = getMergeValues();
 
   // Merge the body
-  const mergedBody = (template?.body || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
+  const mergedBodyUnsafe = (template?.body || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
     return mergeValues[key] || `{{${key}}}`;
   });
 
   const mergedSubject = (template?.subject || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
     return mergeValues[key] || `{{${key}}}`;
-  });
+  }).replace(/[\r\n]+/g, ' ').trim();
+
+  // DOMPurify is intentionally browser-only. Start empty for SSR/hydration,
+  // then populate the allowlisted HTML before preview, print, or email use.
+  const [mergedBody, setMergedBody] = useState('');
+  useEffect(() => {
+    setMergedBody(sanitizeRichTextHtml(mergedBodyUnsafe));
+  }, [mergedBodyUnsafe]);
 
   function handlePrint() {
-    const printWin = window.open('', '_blank');
-    if (!printWin) return;
-    printWin.document.write(`
+    const safeBody = sanitizeRichTextHtml(mergedBodyUnsafe);
+    const safeTitle = escapeHtmlText(mergedSubject || 'Letter');
+    const printDocument = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${mergedSubject || 'Letter'}</title>
+        <meta charset="utf-8">
+        <meta name="referrer" content="no-referrer">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+        <title>${safeTitle}</title>
         <style>
           body { font-family: Georgia, serif; font-size: 13pt; line-height: 1.7; color: #1a1a1a; max-width: 650px; margin: 2rem auto; padding: 0 2rem; }
           h2 { font-size: 1.1rem; margin-top: 1.5rem; }
@@ -144,13 +154,18 @@ export default function PreviewLetterPage() {
       </head>
       <body>
         <p style="font-size: 10pt; color: #888; margin-bottom: 2rem;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        ${mergedBody}
+        ${safeBody}
+        <script>window.addEventListener('load', function () { window.print(); });<\/script>
       </body>
       </html>
-    `);
-    printWin.document.close();
-    printWin.focus();
-    setTimeout(() => printWin.print(), 500);
+    `;
+
+    // A Blob document plus noopener/noreferrer avoids document.write() into a
+    // same-origin popup. Only our fixed print script remains; all stored and
+    // merged content has already passed the explicit DOMPurify allowlist.
+    const printUrl = URL.createObjectURL(new Blob([printDocument], { type: 'text/html' }));
+    window.open(printUrl, '_blank', 'noopener,noreferrer');
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
   }
 
   async function handleSendEmail() {
@@ -163,7 +178,9 @@ export default function PreviewLetterPage() {
         templateId: id,
         to: emailTo.trim(),
         subject: mergedSubject,
-        body: mergedBody,
+        // Re-sanitize at the moment of use so a same-tick click cannot race
+        // the effect that updates the preview after merge values change.
+        body: sanitizeRichTextHtml(mergedBodyUnsafe),
       }),
     });
     if (!res.ok) {

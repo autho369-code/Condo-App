@@ -6,7 +6,8 @@
 // { error } for the client form to render — they are not <form action> posts.
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
+import { isScopedStoragePath } from '@/lib/security/storage-paths';
 
 const BUCKET = 'association-documents';
 const MAX_CERT_BYTES = 25 * 1024 * 1024;
@@ -15,7 +16,7 @@ export async function createInsuranceCertUpload(
   fileName: string,
   fileSize: number,
 ): Promise<{ error?: string; path?: string; token?: string }> {
-  const me = await getMe();
+  const me = await requireOwner();
   if (!me.auth_user_id || !me.owner_id) return { error: 'Not signed in as an owner' };
   if (!fileName) return { error: 'Missing file name' };
   if (!fileSize || fileSize <= 0) return { error: 'Empty file' };
@@ -39,7 +40,7 @@ export async function saveInsurancePolicy(input: {
   remindManager: boolean;
   cert?: { path: string; name: string } | null;
 }): Promise<{ error?: string; ok?: boolean }> {
-  const me = await getMe();
+  const me = await requireOwner();
   if (!me.auth_user_id || !me.owner_id) return { error: 'Not signed in as an owner' };
 
   const carrier = (input.carrier ?? '').trim();
@@ -55,7 +56,7 @@ export async function saveInsurancePolicy(input: {
   if (!expiration) return { error: 'Policy end date is required.' };
   if (expiration <= effective) return { error: 'Policy end date must be after the start date.' };
   if (coverage !== null && !Number.isFinite(coverage)) return { error: 'Coverage amount must be a number.' };
-  if (input.cert && !input.cert.path.startsWith(`insurance/${me.owner_id}/`)) return { error: 'Invalid document reference.' };
+  if (input.cert && !isScopedStoragePath(input.cert.path, 'insurance', me.owner_id)) return { error: 'Invalid document reference.' };
 
   const supabase = await createClient();
   const db = supabase as any;

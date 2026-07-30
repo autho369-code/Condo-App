@@ -7,6 +7,7 @@ import { date, money } from '@/lib/utils'
 import { Calendar, MapPin, Clock, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
 
 interface Meeting {
   id: string
@@ -218,7 +219,8 @@ export default function MeetingDetailClient() {
     setUploading(true)
     const db = supabase as any
 
-    const path = `meetings/${meetingId}/${Date.now()}_${file.name}`
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `meetings/${meetingId}/${Date.now()}_${safeName}`
     const { error: uploadErr } = await supabase.storage
       .from('association-documents')
       .upload(path, file)
@@ -618,6 +620,10 @@ export default function MeetingDetailClient() {
                     <button
                       type="button"
                       onClick={async () => {
+                        if (!isScopedStoragePath(d.storage_path, 'meetings', meetingId)) {
+                          alert('Could not open the file: invalid document reference')
+                          return
+                        }
                         const { data, error } = await supabase.storage
                           .from('association-documents')
                           .createSignedUrl(d.storage_path, 60 * 10)

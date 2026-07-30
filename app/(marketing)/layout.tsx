@@ -11,7 +11,7 @@ const jsonLd = {
       url: 'https://portier369.com',
       logo: 'https://portier369.com/opengraph-image',
       description:
-        'The operating system for condominium and HOA management — serving community association management companies across all 50 US states.',
+        'The operating system for condominium and HOA management — available to community association management companies across the United States.',
       email: 'hello@portier369.com',
       telephone: '+1-872-269-8818',
       address: {
@@ -36,7 +36,7 @@ const jsonLd = {
       name: 'Portier369',
       applicationCategory: 'BusinessApplication',
       applicationSubCategory: 'Property Management Software',
-      operatingSystem: 'Web, iOS, Android',
+      operatingSystem: 'Web',
       description:
         'All-in-one property management software for condominium and HOA management companies — work orders, violations, maintenance, accounting, board and owner portals, and vendor management.',
       offers: {
@@ -126,7 +126,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <div className="text-xs font-semibold uppercase text-gray-400 mb-3">Company</div>
                 <div className="space-y-2 text-sm">
                   <Link href="/company" className="block text-gray-600 hover:text-gray-900">About</Link>
-                  <Link href="/customers/stellar-property-management" className="block text-gray-600 hover:text-gray-900">Customer Story</Link>
                   <Link href="/contact" className="block text-gray-600 hover:text-gray-900">Contact</Link>
                   <Link href="/login" className="block text-gray-600 hover:text-gray-900">Sign in</Link>
                   <Link href="/login?mode=company_admin" className="block text-gray-600 hover:text-gray-900">Company admin</Link>

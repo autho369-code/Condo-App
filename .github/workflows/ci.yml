@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify application
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_APEX_DOMAIN: example.test
+      CRON_SECRET: ci-cron-secret-000000000000000000000000
+      RATE_LIMIT_SECRET: ci-rate-limit-secret-000000000000000000
+      LOCAL_PREVIEW_MODE: 'false'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Self-test and scan current source for secrets
+        run: npm run security:secrets:self-test && npm run security:secrets
+
+      - name: Use pinned npm version
+        run: npm install --global npm@11.7.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Check Supabase migrations
+        run: npm run db:migrations:check
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check dashboard text
+        run: npm run check:dashboard-text
+
+      - name: Audit local routes
+        run: npm run check:routes
+
+      - name: Verify generated route inventory is current
+        run: git diff --exit-code -- docs/placeholder-inventory.md
+
+      - name: Build production application
+        run: npm run build

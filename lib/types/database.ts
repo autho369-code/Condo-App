@@ -21777,7 +21777,7 @@ export type Database = {
         Returns: Json
       }
       reorder_agenda_items: {
-        Args: { p_item_ids: number[]; p_meeting_id: number }
+        Args: { p_item_ids: string[]; p_meeting_id: string }
         Returns: undefined
       }
       report_data_delinquency: {

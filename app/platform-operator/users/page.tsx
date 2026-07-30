@@ -60,7 +60,14 @@ async function toggleUserDisable(formData: FormData) {
   const userId = formData.get('user_id') as string;
   const action = formData.get('action') as string;
 
+  if (!userId || !['disable', 'enable'].includes(action)) fail('Invalid user status request.');
+  if (userId === me.auth_user_id && action === 'disable') fail('You cannot disable your own active account.');
+
   const disabledAt = action === 'disable' ? new Date().toISOString() : null;
+  const { error: authError } = await svc.auth.admin.updateUserById(userId, {
+    ban_duration: action === 'disable' ? '876000h' : 'none',
+  });
+  if (authError) fail(`Could not ${action === 'disable' ? 'disable' : 'enable'} the login: ${authError.message}`);
   const { error } = await svc.from('profiles').update({ disabled_at: disabledAt }).eq('id', userId);
   if (error) fail(`Could not ${action === 'disable' ? 'disable' : 'enable'} the user: ${error.message}`);
 
@@ -91,6 +98,12 @@ async function deleteUser(formData: FormData) {
   const me = await requirePlatformOperator();
   const svc = createServiceClient() as any;
   const userId = formData.get('user_id') as string;
+
+  if (!userId) fail('Missing user id.');
+  if (userId === me.auth_user_id) fail('You cannot delete your own active account.');
+
+  const { error: authError } = await svc.auth.admin.updateUserById(userId, { ban_duration: '876000h' });
+  if (authError) fail(`Could not disable the user login: ${authError.message}`);
 
   const { error } = await svc.from('profiles').update({ disabled_at: new Date().toISOString() }).eq('id', userId);
   if (error) fail(`Could not delete the user: ${error.message}`);
@@ -243,12 +256,12 @@ export default async function UsersPage({
               (users ?? []).map((user: any) => (
                 <TR key={user.id} className="hover:bg-gray-50">
                   <TD className="font-medium text-gray-950">
-                    {user.full_name ?? user.display_name ?? '—'}
+                    {user.full_name ?? user.display_name ?? 'â€”'}
                   </TD>
                   <TD className="text-gray-900">{user.email}</TD>
                   <TD className="text-xs text-gray-600">{roleLabel(user.hoa_role)}</TD>
                   <TD className="text-gray-700">
-                    {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || '—' : '—'}
+                    {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || 'â€”' : 'â€”'}
                   </TD>
                   <TD>{userStatusBadge(user)}</TD>
                   <TD className="text-xs text-gray-500">{date(user.last_login_at)}</TD>
@@ -296,3 +309,4 @@ export default async function UsersPage({
     </div>
   );
 }
+

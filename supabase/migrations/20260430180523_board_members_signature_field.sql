@@ -1,4 +1,3 @@
-
-ALTER TABLE board_members
-  ADD COLUMN IF NOT EXISTS signature_on_file boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS signature_url     text;
+-- Ledger marker for production migration 20260430180523.
+-- Original SQL is preserved in supabase/fetched-production-migrations/.
+select 1;

@@ -1,5 +1,6 @@
 import { requireBoard } from '@/lib/auth/me'
 import { PortfolioAssistant } from '@/components/ai/portfolio-assistant'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +13,20 @@ const BOARD_STARTERS = [
 ]
 
 export default async function BoardAssistantPage() {
-  await requireBoard()
+  const me = await requireBoard()
+  const associationIds = me.board_association_ids ?? []
+  const supabase = await createClient()
+  const { data: associations } = associationIds.length > 0
+    ? await (supabase as any)
+        .from('associations')
+        .select('id, name')
+        .in('id', associationIds)
+        .order('name')
+    : { data: [] }
+  const scopeOptions = (associations ?? []).map((association: any) => ({
+    value: String(association.id),
+    label: String(association.name ?? 'Association'),
+  }))
 
   return (
     <div className="space-y-6">
@@ -23,13 +37,22 @@ export default async function BoardAssistantPage() {
         </p>
       </div>
       <div className="max-w-3xl">
-        <PortfolioAssistant
-          endpoint="/api/ai/board-assistant"
-          title="AI Board Assistant"
-          subtitle="Ask about financials, delinquencies, work orders, vendors, and votes."
-          starters={BOARD_STARTERS}
-          configureHint={<>AI isn&apos;t set up yet — ask your management company to configure an AI key for the portfolio.</>}
-        />
+        {scopeOptions.length > 0 ? (
+          <PortfolioAssistant
+            endpoint="/api/ai/board-assistant"
+            title="AI Board Assistant"
+            subtitle="Ask about financials, delinquencies, work orders, vendors, and votes."
+            starters={BOARD_STARTERS}
+            configureHint={<>AI isn&apos;t set up yet — ask your management company to configure an AI key for the portfolio.</>}
+            scopeOptions={scopeOptions}
+            scopeField="associationId"
+            scopeLabel="Association"
+          />
+        ) : (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            No active association is linked to this board account.
+          </p>
+        )}
       </div>
     </div>
   )
