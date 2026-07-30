@@ -144,3 +144,12 @@ Portier369 remains **NO-GO** until all of the following have evidence:
 - **Decisions:** production remains frozen; no merge to `main`; no feature expansion; presence is not treated as proof.
 
 This document will be updated after each major verification and repair phase with exact tests, artifacts, commits, defects, and release decisions.
+
+### Phase 2 — Isolated fixture harness (in progress)
+
+- **Inspected:** inherited staging seed, report verifier, local environment-variable availability, and cleanup requirements.
+- **Working:** the seed already refuses every project except staging ref `zalfkrtjeswvfmucicea` and requires an explicit staging confirmation; its accounting fixtures are deterministic and idempotently upserted.
+- **Repaired:** fixture names/emails now carry a visible `CODEX_TEST` marker; an exact-ID, child-first cleanup command was added with independent staging-ref, marker-ownership, and cleanup-confirmation gates; staging variable names were documented without secrets.
+- **Tests:** both scripts pass Node syntax checks; the repository secret scan passes; the strict 173-file migration check passes.
+- **Blocked:** the local workspace currently lacks `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, `STAGING_TEST_PASSWORD`, and `PORTIER369_STAGING_CONFIRM`, so no staging write or remote migration comparison has been executed.
+- **Remaining:** expand fixtures to the full role and workflow matrix (including the required second association per tenant), execute seed/cleanup against staging, verify cleanup leaves non-fixture data unchanged, then run real tenant-isolation and report tests.

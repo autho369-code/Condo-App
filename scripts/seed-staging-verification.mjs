@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const STAGING_REF = 'zalfkrtjeswvfmucicea'
 const PRODUCTION_REF = 'termxngysvotnfbzbgrv'
+const FIXTURE = 'CODEX_TEST_PORTIER369_V1'
 const url = process.env.STAGING_SUPABASE_URL
 const key = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY
 const password = process.env.STAGING_TEST_PASSWORD
@@ -43,13 +44,13 @@ async function ensureUser(email, displayName, portfolioId, role) {
 
 async function main() {
   await upsert('portfolios', [
-    { id: ids.portfolioA, company_name: 'Portier Staging Alpha', slug: 'portier-staging-alpha', tier: 'growth' },
-    { id: ids.portfolioB, company_name: 'Portier Staging Beta', slug: 'portier-staging-beta', tier: 'growth' },
+    { id: ids.portfolioA, company_name: `${FIXTURE} Alpha`, slug: 'codex-test-portier-alpha', tier: 'growth' },
+    { id: ids.portfolioB, company_name: `${FIXTURE} Beta`, slug: 'codex-test-portier-beta', tier: 'growth' },
   ])
   const [adminA, managerA, adminB] = await Promise.all([
-    ensureUser('staging.admin.a@portier369.invalid', 'Staging Admin A', ids.portfolioA, 'company_admin'),
-    ensureUser('staging.manager.a@portier369.invalid', 'Staging Manager A', ids.portfolioA, 'manager'),
-    ensureUser('staging.admin.b@portier369.invalid', 'Staging Admin B', ids.portfolioB, 'company_admin'),
+    ensureUser('codex_test.admin.a@portier369.invalid', 'CODEX_TEST Admin A', ids.portfolioA, 'company_admin'),
+    ensureUser('codex_test.manager.a@portier369.invalid', 'CODEX_TEST Manager A', ids.portfolioA, 'manager'),
+    ensureUser('codex_test.admin.b@portier369.invalid', 'CODEX_TEST Admin B', ids.portfolioB, 'company_admin'),
   ])
   await upsert('report_definitions', [
     ['trial_balance', 'Trial Balance', 'Debit and credit summary for every general-ledger account'],
@@ -88,8 +89,8 @@ async function main() {
     { id: ids.unitB, building_id: ids.buildingB, unit_number: 'B-201', name: 'B-201', ownership_pct: 100 },
   ])
   await upsert('owners', [
-    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'staging.owner.a@portier369.invalid' },
-    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'staging.owner.b@portier369.invalid' },
+    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid' },
+    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid' },
   ])
   await upsert('unit_owners', [
     { id: account(1, 91), unit_id: ids.unitA, owner_id: ids.ownerA, is_primary: true, share_pct: 100 },
@@ -107,8 +108,8 @@ async function main() {
   }
   await upsert('gl_accounts', gl)
   await upsert('vendors', [
-    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
-    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
+    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
+    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
   ])
   await upsert('bank_accounts', [
     { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
@@ -152,7 +153,7 @@ async function main() {
     { id: account(1, 87), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, statement_date: '2026-06-30', statement_balance: 10400, ending_book_balance: 10400, reconciled_balance: 10400, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
     { id: account(2, 88), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, statement_date: '2026-06-30', statement_balance: 7100, ending_book_balance: 7100, reconciled_balance: 7100, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
   ])
-  console.log(JSON.stringify({ project: ref, fixture: 'portier369-staging-v1', portfolios: 2, associations: 2, balancedEntries: entries.length, journalLines: lines.length }, null, 2))
+  console.log(JSON.stringify({ project: ref, fixture: FIXTURE, portfolios: 2, associations: 2, balancedEntries: entries.length, journalLines: lines.length }, null, 2))
 }
 
 main().catch((error) => { console.error(error.message); process.exit(1) })
