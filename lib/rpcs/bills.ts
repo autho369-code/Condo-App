@@ -100,7 +100,7 @@ export async function writeChecks(formData: FormData) {
     return;
   }
 
-  const { data, error } = await (supabase as any).rpc('record_check_run', {
+  const { error } = await (supabase as any).rpc('record_check_run', {
     p_bank_account_id: bank_account_id,
     p_bill_ids: bill_ids,
     p_starting_check_number: starting_check_number,
@@ -109,8 +109,20 @@ export async function writeChecks(formData: FormData) {
 
   if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
-  const count = (data as any)?.checks_written ?? bill_ids.length;
-  redirect(`/bills/check-run/print/${bill_ids[0]}?count=${count}&start=${starting_check_number}`);
+  const { data: firstCheck, error: firstCheckError } = await (supabase as any)
+    .from('payable_checks')
+    .select('id')
+    .eq('bill_id', bill_ids[0])
+    .eq('check_number', starting_check_number)
+    .eq('status', 'issued')
+    .order('issued_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (firstCheckError || !firstCheck) {
+    failTo(firstCheckError?.message ?? 'The check run was recorded, but its printable history could not be loaded.');
+    return;
+  }
+  redirect(`/bills/check-run/print/${firstCheck.id}`);
 }
 
 export async function voidPaidCheck(formData: FormData) {

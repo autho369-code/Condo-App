@@ -23,11 +23,13 @@ describe('check-run accounting boundary', () => {
     expect(migration).toContain('revoke all on function public.record_check_run(uuid, uuid[], integer, date) from public, anon');
   });
 
-  it('scopes print output to the returned run start and bounded count', () => {
-    expect(action).toContain('&start=${starting_check_number}');
-    expect(printPage).toContain(".gte('check_number', firstCheckNumber)");
-    expect(printPage).toContain('.limit(requestedCount)');
-    expect(printPage).toContain('Math.min(100');
+  it('scopes printable and historical copies to immutable check-run history', () => {
+    expect(action).toContain(".from('payable_checks')");
+    expect(action).toContain('redirect(`/bills/check-run/print/${firstCheck.id}`)');
+    expect(printPage).toContain(".select('run_transaction_id')");
+    expect(printPage).toContain(".eq('run_transaction_id', seed?.run_transaction_id");
+    expect(printPage).toContain("c.status === 'stop_payment' ? 'STOP PAYMENT' : 'VOID'");
+    expect(printPage).toContain('.limit(100)');
   });
 
   it('posts idempotent balanced accrual, payment, and void journal entries', () => {

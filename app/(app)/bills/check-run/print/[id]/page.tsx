@@ -53,43 +53,37 @@ function numberToWords(amount: number): string {
 }
 
 export default async function PrintChecksPage({
-  params, searchParams,
-}: { params: Promise<{ id: string }>; searchParams: Promise<{ count?: string; start?: string }> }) {
+  params,
+}: { params: Promise<{ id: string }> }) {
   await requireStaff();
-  const { id: seedBillId } = await params;
-  const { count, start } = await searchParams;
-  const requestedCount = Math.min(100, Math.max(1, Number.parseInt(count ?? '1', 10) || 1));
+  const { id: seedCheckId } = await params;
 
   const supabase = await createClient();
 
   const { data: seed } = await (supabase as any)
-    .from('payable_bills')
-    .select('paid_at, bank_account_id, check_number')
-    .eq('id', seedBillId)
+    .from('payable_checks')
+    .select('run_transaction_id')
+    .eq('id', seedCheckId)
     .maybeSingle();
 
-  let checksQuery = (supabase as any)
-    .from('payable_bills')
+  const { data: checks } = await (supabase as any)
+    .from('payable_checks')
     .select(`
-      id, bill_number, check_number, amount, memo, paid_at, bill_date, due_date,
+      id, bill_id, check_number, amount, payment_date, status, void_reason,
       vendors(name, address_street, address_city, address_state, address_zip, taxpayer_id),
       associations(name),
-      gl_accounts(number, name),
-      bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature)
+      bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature),
+      payable_bills(bill_number, memo, bill_date, due_date, gl_accounts(number, name))
     `)
-    .eq('paid_at', seed?.paid_at ?? '1970-01-01')
-    .eq('bank_account_id', seed?.bank_account_id ?? '00000000-0000-0000-0000-000000000000')
+    .eq('run_transaction_id', seed?.run_transaction_id ?? '-1')
     .order('check_number')
-    .limit(requestedCount);
-  const firstCheckNumber = Number.parseInt(start ?? String(seed?.check_number ?? ''), 10);
-  if (Number.isFinite(firstCheckNumber)) checksQuery = checksQuery.gte('check_number', firstCheckNumber);
-  const { data: checks } = await checksQuery;
+    .limit(100);
 
   return (
     <div className="space-y-4">
       <div className="no-print flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">Check preview — {count ?? checks?.length ?? 0} check(s)</h1>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">Check preview — {checks?.length ?? 0} check(s)</h1>
           <p className="text-sm text-gray-500">Sized for #10 double-window envelopes. Tri-fold along the perforation lines.</p>
         </div>
         <div className="flex gap-2">
@@ -102,6 +96,7 @@ export default async function PrintChecksPage({
         {(checks ?? []).map((c: any) => {
           const bank = c.bank_accounts;
           const v = c.vendors;
+          const bill = c.payable_bills;
           const amt = Number(c.amount);
           const addressLines = [
             v?.name,
@@ -113,6 +108,9 @@ export default async function PrintChecksPage({
             <section key={c.id} className="check-sheet">
               {/* ========== PANEL 1: THE CHECK ========== */}
               <div className="panel check-panel">
+                {c.status !== 'issued' && (
+                  <div className="check-watermark">{c.status === 'stop_payment' ? 'STOP PAYMENT' : 'VOID'}</div>
+                )}
                 {/* Return address (aligns with TOP window of #10 envelope) */}
                 <div className="return-addr">
                   <div className="font-semibold">{bank?.company_name ?? 'Your Management Co.'}</div>
@@ -121,8 +119,8 @@ export default async function PrintChecksPage({
 
                 {/* Check number + date, top-right */}
                 <div className="check-meta">
-                  <div className="check-num">#{c.check_number ?? c.bill_number ?? '—'}</div>
-                  <div>Date: <span className="mono">{date(c.paid_at)}</span></div>
+                  <div className="check-num">#{c.check_number ?? bill?.bill_number ?? '—'}</div>
+                  <div>Date: <span className="mono">{date(c.payment_date)}</span></div>
                 </div>
 
                 {/* Payee address block (aligns with BOTTOM window of #10 envelope) */}
@@ -153,7 +151,7 @@ export default async function PrintChecksPage({
                 <div className="memo-sig">
                   <div className="memo">
                     <span className="label">Memo</span>
-                    <span className="memo-text">{c.memo ?? c.associations?.name ?? ''}</span>
+                    <span className="memo-text">{bill?.memo ?? c.associations?.name ?? ''}</span>
                   </div>
                   <div className="sig">
                     <div className="sig-line"></div>
@@ -174,17 +172,18 @@ export default async function PrintChecksPage({
               <div className="panel stub-panel">
                 <div className="stub-head">
                   <div className="stub-title">Payment advice — for your records</div>
-                  <div className="stub-sub">{bank?.company_name ?? ''} · Check #{c.check_number ?? c.bill_number ?? '—'}</div>
+                  <div className="stub-sub">{bank?.company_name ?? ''} · Check #{c.check_number ?? bill?.bill_number ?? '—'}</div>
                 </div>
                 <div className="stub-grid">
                   <div><div className="stub-label">Vendor</div><div>{v?.name}</div></div>
-                  <div><div className="stub-label">Date</div><div>{date(c.paid_at)}</div></div>
+                  <div><div className="stub-label">Date</div><div>{date(c.payment_date)}</div></div>
                   <div><div className="stub-label">Association</div><div>{c.associations?.name ?? '—'}</div></div>
-                  <div><div className="stub-label">Invoice / ref</div><div>{c.bill_number ?? '—'}</div></div>
-                  <div><div className="stub-label">Bill date</div><div>{date(c.bill_date)}</div></div>
-                  <div><div className="stub-label">Due date</div><div>{date(c.due_date)}</div></div>
-                  <div className="col-span-2"><div className="stub-label">GL account</div><div>{c.gl_accounts ? `${c.gl_accounts.number} — ${c.gl_accounts.name}` : '—'}</div></div>
-                  <div className="col-span-2"><div className="stub-label">Memo</div><div>{c.memo ?? '—'}</div></div>
+                  <div><div className="stub-label">Invoice / ref</div><div>{bill?.bill_number ?? '—'}</div></div>
+                  <div><div className="stub-label">Bill date</div><div>{date(bill?.bill_date)}</div></div>
+                  <div><div className="stub-label">Due date</div><div>{date(bill?.due_date)}</div></div>
+                  <div className="col-span-2"><div className="stub-label">GL account</div><div>{bill?.gl_accounts ? `${bill.gl_accounts.number} — ${bill.gl_accounts.name}` : '—'}</div></div>
+                  <div className="col-span-2"><div className="stub-label">Memo</div><div>{bill?.memo ?? '—'}</div></div>
+                  {c.void_reason && <div className="col-span-2"><div className="stub-label">Status reason</div><div>{c.void_reason}</div></div>}
                 </div>
                 <div className="stub-total">Total paid: <strong>{money(amt)}</strong></div>
               </div>
@@ -195,14 +194,14 @@ export default async function PrintChecksPage({
               <div className="panel stub-panel">
                 <div className="stub-head">
                   <div className="stub-title">AP file copy</div>
-                  <div className="stub-sub">Check #{c.check_number ?? c.bill_number ?? '—'} · {date(c.paid_at)} · {money(amt)}</div>
+                  <div className="stub-sub">Check #{c.check_number ?? bill?.bill_number ?? '—'} · {date(c.payment_date)} · {money(amt)}</div>
                 </div>
                 <div className="stub-grid">
                   <div><div className="stub-label">Paid to</div><div className="font-medium">{v?.name}</div></div>
                   <div><div className="stub-label">Bank</div><div>{bank?.name ?? '—'} {bank?.bank_name ? `(${bank.bank_name})` : ''}</div></div>
                   <div><div className="stub-label">Association</div><div>{c.associations?.name ?? '—'}</div></div>
-                  <div><div className="stub-label">GL</div><div>{c.gl_accounts ? `${c.gl_accounts.number}` : '—'}</div></div>
-                  <div className="col-span-2"><div className="stub-label">Memo</div><div>{c.memo ?? '—'}</div></div>
+                  <div><div className="stub-label">GL</div><div>{bill?.gl_accounts ? `${bill.gl_accounts.number}` : '—'}</div></div>
+                  <div className="col-span-2"><div className="stub-label">Memo</div><div>{bill?.memo ?? '—'}</div></div>
                   {v?.taxpayer_id && <div className="col-span-2"><div className="stub-label">1099 (TIN on file)</div><div className="mono text-xs">ends in {String(v.taxpayer_id).slice(-4)}</div></div>}
                 </div>
               </div>
@@ -225,6 +224,7 @@ export default async function PrintChecksPage({
 
         /* ============ CHECK PANEL ============ */
         .check-panel { border-bottom: 1px dashed #999; }
+        .check-watermark { position: absolute; inset: 1.15in 0 auto; z-index: 5; transform: rotate(-18deg); text-align: center; font-family: Arial, sans-serif; font-size: 48px; font-weight: 800; letter-spacing: 0.12em; color: rgba(185, 28, 28, 0.28); }
         .return-addr { position: absolute; top: 0.4in; left: 0.5in; font-size: 10px; line-height: 1.2; }
         .return-addr .font-semibold { font-size: 12px; font-weight: 700; }
         .check-meta { position: absolute; top: 0.35in; right: 0.5in; text-align: right; font-size: 11px; }

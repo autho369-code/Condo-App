@@ -25,7 +25,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
   if (!b) notFound();
   const { data: checks } = await (supabase as any)
     .from('payable_checks')
-    .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, bank_accounts(name, bank_name)')
+    .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, run_transaction_id, bank_accounts(name, bank_name)')
     .eq('bill_id', id)
     .order('issued_at', { ascending: false });
   const issuedCheck = (checks ?? []).find((check: any) => check.status === 'issued');
@@ -85,6 +85,9 @@ export default async function BillDetailPage({ params, searchParams }: { params:
                 </div>
                 <div className="mt-1 text-gray-500">{check.bank_accounts?.name ?? 'Bank'} · {date(check.payment_date)}</div>
                 {check.void_reason && <div className="mt-1 text-red-700">{check.void_reason}</div>}
+                <Link href={`/bills/check-run/print/${check.id}`} className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+                  {check.status === 'issued' ? 'Preview / reprint run' : 'View watermarked historical copy'}
+                </Link>
               </div>
             ))}
           </div>

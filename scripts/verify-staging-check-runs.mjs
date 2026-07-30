@@ -32,6 +32,15 @@ async function main() {
   const { data: issuedChecks, error: checksError } = await db.from('payable_checks').select('id, status, check_number, payment_entry_id, run_transaction_id').eq('bill_id', billA).order('issued_at')
   if (checksError) throw checksError
   assert(issuedChecks?.length === 1 && issuedChecks[0].status === 'issued' && issuedChecks[0].check_number === 5001, 'Issued check history was not captured')
+  const { data: printableRun, error: printableError } = await db.from('payable_checks').select(`
+    id, bill_id, check_number, amount, payment_date, status, void_reason,
+    vendors(name, address_street, address_city, address_state, address_zip, taxpayer_id),
+    associations(name),
+    bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature),
+    payable_bills(bill_number, memo, bill_date, due_date, gl_accounts(number, name))
+  `).eq('run_transaction_id', issuedChecks[0].run_transaction_id).order('check_number').limit(100)
+  if (printableError) throw printableError
+  assert(printableRun?.length === 1 && printableRun[0].payable_bills?.bill_number && printableRun[0].vendors?.name && printableRun[0].bank_accounts?.name, 'Immutable printable check run could not load its bill, vendor, and bank details')
   const { data: entries, error: entriesError } = await db.from('journal_entries').select('id, source_type, posted').or(`and(source_type.eq.payable_bill,source_id.eq.${billA}),id.eq.${issuedChecks[0].payment_entry_id}`)
   if (entriesError) throw entriesError
   assert(entries?.length === 2 && entries.every((entry) => entry.posted), 'Bill accrual and check payment were not both posted')
@@ -80,7 +89,7 @@ async function main() {
   const { data: voidLines } = await db.from('journal_lines').select('entry_id, debit_amount, credit_amount').in('entry_id', voidEntries.map((entry) => entry.id))
   const net = voidLines.reduce((sum, line) => sum + Number(line.debit_amount) - Number(line.credit_amount), 0)
   assert(net === 0 && voidLines.length === 4, 'Accrual and void reversal do not net to zero')
-  console.log('Check issue, ledger, void, stop-payment, reissue, approval, and reversal lifecycle: PASS')
+  console.log('Check issue, printable history, ledger, void, stop-payment, reissue, approval, and reversal lifecycle: PASS')
 }
 
 main().catch((error) => { console.error(error.message); process.exit(1) })
