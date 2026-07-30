@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { generateLiveExportRows } from '@/lib/reports/live-export';
-import { generateMonthlyFinancialPackagePdf } from '@/lib/reports/monthly-package';
+import { generateMonthlyFinancialPackagePdf, prepareMonthlyPackageRows } from '@/lib/reports/monthly-package';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +49,10 @@ export async function GET(request: Request) {
       associationName: association.name,
       dateFrom,
       dateTo,
-      sections: SECTIONS.map(([, title], index) => ({ title, rows: sectionRows[index] })),
+      sections: SECTIONS.map(([slug, title], index) => ({
+        title,
+        rows: prepareMonthlyPackageRows(slug, sectionRows[index], dateTo),
+      })),
     });
     const safeName = String(association.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'association';
     return new NextResponse(Buffer.from(pdf), {
