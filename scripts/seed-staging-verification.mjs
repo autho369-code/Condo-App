@@ -146,6 +146,17 @@ async function main() {
     { id: account(1, 82), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 7), bill_number: 'ALPHA-CURRENT', bill_date: '2026-07-15', due_date: '2026-08-15', amount: 425, status: 'approved', memo: 'Current aging fixture' },
     { id: account(2, 83), portfolio_id: ids.portfolioB, association_id: ids.associationB, vendor_id: ids.vendorB, gl_account_id: account(2, 6), bill_number: 'BETA-ONLY', bill_date: '2026-07-01', due_date: '2026-08-01', amount: 333, status: 'approved', memo: 'Tenant isolation sentinel' },
   ])
+  const chargeIds = [1, 2, 3, 4, 5, 6].map((suffix) => account(suffix === 6 ? 2 : 1, 200 + suffix))
+  await upsert('charges', [
+    { id: chargeIds[0], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST current assessment', due_date: '2026-08-15', amount: 100, gl_account_id: account(1, 5) },
+    { id: chargeIds[1], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 1-30 assessment', due_date: '2026-07-15', amount: 200, gl_account_id: account(1, 5) },
+    { id: chargeIds[2], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 31-60 assessment', due_date: '2026-06-15', amount: 300, gl_account_id: account(1, 5) },
+    { id: chargeIds[3], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 61-90 assessment', due_date: '2026-05-15', amount: 400, gl_account_id: account(1, 5) },
+    { id: chargeIds[4], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 90+ partially paid assessment', due_date: '2026-03-15', amount: 500, gl_account_id: account(1, 5) },
+    { id: chargeIds[5], unit_id: ids.unitB, charge_type: 'assessment', description: 'CODEX_TEST cross-tenant receivable sentinel', due_date: '2026-03-15', amount: 999, gl_account_id: account(2, 5) },
+  ])
+  const paymentId = account(1, 220)
+  await upsert('payments', [{ id: paymentId, unit_id: ids.unitA, charge_id: chargeIds[4], payment_date: '2026-07-01', amount: 100, method: 'check', reference: 'CODEX_TEST-PARTIAL', gl_account_id: account(1, 1), bank_account_id: ids.bankA }])
   await upsert('bank_transactions', [
     { id: account(1, 85), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, gl_account_id: account(1, 1), plaid_transaction_id: 'staging-alpha-deposit', date: '2026-06-01', name: 'Assessment deposit', amount: 7200, reviewed: true },
     { id: account(2, 86), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, gl_account_id: account(2, 1), plaid_transaction_id: 'staging-beta-deposit', date: '2026-06-01', name: 'Assessment deposit', amount: 4100, reviewed: true },

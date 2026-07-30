@@ -41,6 +41,13 @@ async function main() {
   assert(ap.length === 2, `Expected two Alpha payables, got ${ap.length}`)
   assert(ap.some((row) => row['Aging bucket'] === '90+'), 'Missing 90+ payable bucket')
   assert(ap.every((row) => row['Bill #'] !== 'BETA-ONLY'), 'Cross-tenant payable leaked into Alpha')
+  const ar = output.get('ar_aging') ?? []
+  assert(ar.length === 5, `Expected five Alpha receivables, got ${ar.length}`)
+  assert(new Set(ar.map((row) => row['Aging bucket'])).size === 5, 'Expected all five receivable aging buckets')
+  assert(ar.every((row) => row.Description !== 'CODEX_TEST cross-tenant receivable sentinel'), 'Cross-tenant receivable leaked into Alpha')
+  assert(ar.reduce((sum, row) => sum + Number(row['Balance due']), 0) === 1400, 'Unexpected Alpha receivable balance')
+  const delinquency = output.get('delinquency_summary') ?? []
+  assert(delinquency.length === 1 && Number(delinquency[0]['Total delinquent']) === 1400, 'Delinquency summary does not reconcile to A/R aging')
   const budget = output.get('budget_vs_actual') ?? []
   assert(budget.length >= 2, 'Budget vs actual produced no useful Alpha rows')
   const bank = output.get('bank_reconciliation') ?? []
