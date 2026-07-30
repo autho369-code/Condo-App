@@ -12,6 +12,7 @@ describe('audited live report exports', () => {
       'income_statement',
       'general_ledger',
       'ar_aging',
+      'delinquency_summary',
       'ap_aging',
       'aged_payables',
       'aged_payables_summary',
