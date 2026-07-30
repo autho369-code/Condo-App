@@ -134,8 +134,8 @@ async function main() {
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
   await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
-    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
-    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
+    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001 },
+    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001 },
   ])
   const entries = []
   const lines = []
@@ -163,9 +163,9 @@ async function main() {
     { id: account(2, 73), association_id: ids.associationB, gl_account_id: account(2, 5), fiscal_year: 2026, category: 'income', monthly_amounts: Array(12).fill(800) },
   ])
   await upsert('payable_bills', [
-    { id: account(1, 81), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 6), bill_number: 'ALPHA-90', bill_date: '2026-03-01', due_date: '2026-03-31', amount: 750, status: 'approved', memo: '90+ day aging fixture' },
-    { id: account(1, 82), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 7), bill_number: 'ALPHA-CURRENT', bill_date: '2026-07-15', due_date: '2026-08-15', amount: 425, status: 'approved', memo: 'Current aging fixture' },
-    { id: account(2, 83), portfolio_id: ids.portfolioB, association_id: ids.associationB, vendor_id: ids.vendorB, gl_account_id: account(2, 6), bill_number: 'BETA-ONLY', bill_date: '2026-07-01', due_date: '2026-08-01', amount: 333, status: 'approved', memo: 'Tenant isolation sentinel' },
+    { id: account(1, 81), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 6), bill_number: 'ALPHA-90', bill_date: '2026-03-01', due_date: '2026-03-31', amount: 750, status: 'approved', memo: '90+ day aging fixture', paid_at: null, bank_account_id: null, check_number: null },
+    { id: account(1, 82), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 7), bill_number: 'ALPHA-CURRENT', bill_date: '2026-07-15', due_date: '2026-08-15', amount: 425, status: 'approved', memo: 'Current aging fixture', paid_at: null, bank_account_id: null, check_number: null },
+    { id: account(2, 83), portfolio_id: ids.portfolioB, association_id: ids.associationB, vendor_id: ids.vendorB, gl_account_id: account(2, 6), bill_number: 'BETA-ONLY', bill_date: '2026-07-01', due_date: '2026-08-01', amount: 333, status: 'approved', memo: 'Tenant isolation sentinel', paid_at: null, bank_account_id: null, check_number: null },
   ])
   const chargeIds = [1, 2, 3, 4, 5, 6].map((suffix) => account(suffix === 6 ? 2 : 1, 200 + suffix))
   await upsert('charges', [

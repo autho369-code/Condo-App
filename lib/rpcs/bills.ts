@@ -115,5 +115,6 @@ export async function writeChecks(formData: FormData) {
 
   if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
-  redirect(`/bills/check-run/print/${bill_ids[0]}?count=${(data as any)?.checks_written ?? bill_ids.length}`);
+  const count = (data as any)?.checks_written ?? bill_ids.length;
+  redirect(`/bills/check-run/print/${bill_ids[0]}?count=${count}&start=${starting_check_number}`);
 }

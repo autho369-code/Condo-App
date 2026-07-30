@@ -54,20 +54,21 @@ function numberToWords(amount: number): string {
 
 export default async function PrintChecksPage({
   params, searchParams,
-}: { params: Promise<{ id: string }>; searchParams: Promise<{ count?: string }> }) {
+}: { params: Promise<{ id: string }>; searchParams: Promise<{ count?: string; start?: string }> }) {
   await requireStaff();
   const { id: seedBillId } = await params;
-  const { count } = await searchParams;
+  const { count, start } = await searchParams;
+  const requestedCount = Math.min(100, Math.max(1, Number.parseInt(count ?? '1', 10) || 1));
 
   const supabase = await createClient();
 
   const { data: seed } = await (supabase as any)
     .from('payable_bills')
-    .select('paid_at, bank_account_id')
+    .select('paid_at, bank_account_id, check_number')
     .eq('id', seedBillId)
     .maybeSingle();
 
-  const { data: checks } = await (supabase as any)
+  let checksQuery = (supabase as any)
     .from('payable_bills')
     .select(`
       id, bill_number, check_number, amount, memo, paid_at, bill_date, due_date,
@@ -78,7 +79,11 @@ export default async function PrintChecksPage({
     `)
     .eq('paid_at', seed?.paid_at ?? '1970-01-01')
     .eq('bank_account_id', seed?.bank_account_id ?? '00000000-0000-0000-0000-000000000000')
-    .order('check_number');
+    .order('check_number')
+    .limit(requestedCount);
+  const firstCheckNumber = Number.parseInt(start ?? String(seed?.check_number ?? ''), 10);
+  if (Number.isFinite(firstCheckNumber)) checksQuery = checksQuery.gte('check_number', firstCheckNumber);
+  const { data: checks } = await checksQuery;
 
   return (
     <div className="space-y-4">
