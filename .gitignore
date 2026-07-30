@@ -18,6 +18,8 @@ backups/
 .understand-anything/
 .env*
 graphify-out/
+/tmp/
+/output/
 
 # Mobile signing/local configuration and generated Android release artifacts.
 /mobile/android/keystore.properties

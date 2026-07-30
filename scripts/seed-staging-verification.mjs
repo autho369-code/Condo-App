@@ -118,8 +118,8 @@ async function main() {
   }
   await upsert('gl_accounts', gl)
   await upsert('vendors', [
-    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true },
-    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true },
+    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
+    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
   ])
   const [boardA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
     ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),
@@ -134,8 +134,8 @@ async function main() {
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
   await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
-    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer' },
-    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer' },
+    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer', company_name: 'CODEX_TEST Alpha Management', company_address: '100 Verification Way\nSeattle, WA 98101' },
+    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer', company_name: 'CODEX_TEST Beta Management', company_address: '200 Isolation Avenue\nPortland, OR 97205' },
   ])
   const entries = []
   const lines = []
