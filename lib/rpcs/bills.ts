@@ -66,10 +66,7 @@ export async function approveBill(billId: string) {
     redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
   };
   const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('payable_bills')
-    .update({ status: 'approved', approved_at: new Date().toISOString() })
-    .eq('id', billId);
+  const { error } = await (supabase as any).rpc('approve_payable_bill', { p_bill_id: billId });
   if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   revalidatePath(`/bills/${billId}`);
@@ -81,10 +78,7 @@ export async function voidBill(billId: string) {
     redirect(`/bills/${billId}?error=${encodeURIComponent(msg)}`);
   };
   const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('payable_bills')
-    .update({ status: 'void' })
-    .eq('id', billId);
+  const { error } = await (supabase as any).rpc('void_payable_bill', { p_bill_id: billId });
   if (error) { failTo(error.message); return; }
   revalidatePath('/bills');
   revalidatePath(`/bills/${billId}`);

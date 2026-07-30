@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 const migration = readFileSync('supabase/migrations/20260729010000_harden_check_runs.sql', 'utf8');
 const printPage = readFileSync('app/(app)/bills/check-run/print/[id]/page.tsx', 'utf8');
 const action = readFileSync('lib/rpcs/bills.ts', 'utf8');
+const ledgerMigration = readFileSync('supabase/migrations/20260729020000_post_payable_bill_ledger.sql', 'utf8');
 
 describe('check-run accounting boundary', () => {
   it('validates tenant, association, state, amount, and check-number ownership before updates', () => {
@@ -25,5 +26,16 @@ describe('check-run accounting boundary', () => {
     expect(printPage).toContain(".gte('check_number', firstCheckNumber)");
     expect(printPage).toContain('.limit(requestedCount)');
     expect(printPage).toContain('Math.min(100');
+  });
+
+  it('posts idempotent balanced accrual, payment, and void journal entries', () => {
+    expect(ledgerMigration).toContain("source_type in ('payable_bill', 'check_payment', 'payable_bill_void')");
+    expect(ledgerMigration).toContain("'payable_bill', p_bill_id");
+    expect(ledgerMigration).toContain("'check_payment', bill_id");
+    expect(ledgerMigration).toContain("'payable_bill_void', p_bill_id");
+    expect(ledgerMigration).toContain("(payment_entry_id, bill_row.association_id, ap_account_id, bill_row.amount, 0");
+    expect(ledgerMigration).toContain("(payment_entry_id, bill_row.association_id, bank_row.gl_account_id, 0, bill_row.amount");
+    expect(action).toContain("rpc('approve_payable_bill'");
+    expect(action).toContain("rpc('void_payable_bill'");
   });
 });
