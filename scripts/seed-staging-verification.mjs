@@ -134,8 +134,8 @@ async function main() {
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
   await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
-    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001 },
-    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001 },
+    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer' },
+    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer' },
   ])
   const entries = []
   const lines = []

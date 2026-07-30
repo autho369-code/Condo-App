@@ -221,6 +221,31 @@ export async function createBankAccount(formData: FormData) {
   redirect(`/bank-accounts`);
 }
 
+export async function updateBankCheckSettings(formData: FormData) {
+  await requireStaff();
+  const id = req(formData, 'bank_account_id');
+  const signer = req(formData, 'check_signature');
+  if (signer.length > 120) {
+    redirect(`/bank-accounts/${id}?error=${encodeURIComponent('Authorized signer label must be 120 characters or fewer.')}`);
+  }
+  const supabase = await createClient();
+  const { error } = await (supabase as any)
+    .from('bank_accounts')
+    .update({
+      check_signature: signer,
+      company_name: str(formData, 'company_name'),
+      company_address: str(formData, 'company_address'),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) {
+    redirect(`/bank-accounts/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath(`/bank-accounts/${id}`);
+  revalidatePath('/bills/check-run');
+  redirect(`/bank-accounts/${id}?check_settings_saved=1`);
+}
+
 // ============================================================================
 // BUILDINGS
 // ============================================================================

@@ -7,6 +7,7 @@ const action = readFileSync('lib/rpcs/bills.ts', 'utf8');
 const ledgerMigration = readFileSync('supabase/migrations/20260729020000_post_payable_bill_ledger.sql', 'utf8');
 const historyMigration = readFileSync('supabase/migrations/20260729030000_immutable_payable_checks.sql', 'utf8');
 const voidBoundaryMigration = readFileSync('supabase/migrations/20260729031000_secure_payable_check_void.sql', 'utf8');
+const signingMigration = readFileSync('supabase/migrations/20260729032000_authorize_check_signing.sql', 'utf8');
 
 describe('check-run accounting boundary', () => {
   it('validates tenant, association, state, amount, and check-number ownership before updates', () => {
@@ -53,5 +54,14 @@ describe('check-run accounting boundary', () => {
     expect(action).toContain("rpc('void_payable_check'");
     expect(voidBoundaryMigration).toContain('security definer');
     expect(voidBoundaryMigration).toContain('grant execute on function public.void_payable_check');
+  });
+
+  it('requires issuer acknowledgement and snapshots the configured signer', () => {
+    expect(signingMigration).toContain('p_authorization_confirmed boolean');
+    expect(signingMigration).toContain('Check signing authorization must be acknowledged');
+    expect(signingMigration).toContain('authorized_signer_label = signer_label');
+    expect(signingMigration).toContain('revoke all on function public.record_check_run_legacy');
+    expect(action).toContain("formData.get('authorization_confirmed') === 'on'");
+    expect(printPage).toContain("c.authorized_signer_label ?? 'signer configuration required'");
   });
 });

@@ -94,9 +94,10 @@ export async function writeChecks(formData: FormData) {
   const starting_check_number = parseInt(formData.get('starting_check_number') as string);
   const payment_date          = (formData.get('payment_date') as string) || new Date().toISOString().slice(0, 10);
   const bill_ids              = formData.getAll('bill_ids') as string[];
+  const authorization_confirmed = formData.get('authorization_confirmed') === 'on';
 
-  if (!bank_account_id || !bill_ids.length || !starting_check_number) {
-    failTo('Select a bank account, starting check number, and at least one bill.');
+  if (!bank_account_id || !bill_ids.length || !starting_check_number || !authorization_confirmed) {
+    failTo('Select a bank account and bills, enter the check number, and confirm signing authorization.');
     return;
   }
 
@@ -105,6 +106,7 @@ export async function writeChecks(formData: FormData) {
     p_bill_ids: bill_ids,
     p_starting_check_number: starting_check_number,
     p_payment_date: payment_date,
+    p_authorization_confirmed: authorization_confirmed,
   });
 
   if (error) { failTo(error.message); return; }

@@ -95,8 +95,8 @@ export default async function NewBankAccountPage({
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="use_printable_deposit_slip" /> Use printable deposit slips</label>
         </FormSection>
 
-        <FormSection title="Check printing" description="Optional check signature and company address guidance.">
-          <Field label="Check signature"><Input name="check_signature" placeholder="Signature label or signer name" /></Field>
+        <FormSection title="Check printing" description="A signer label is required before this account can issue checks. It identifies the authorized signer but does not apply a physical or electronic signature.">
+          <Field label="Authorized signer label"><Input name="check_signature" placeholder="Authorized signer name or title" /></Field>
           <Field label="Company address"><Input name="company_address" placeholder="Address printed on checks" /></Field>
         </FormSection>
 

@@ -69,7 +69,7 @@ export default async function PrintChecksPage({
   const { data: checks } = await (supabase as any)
     .from('payable_checks')
     .select(`
-      id, bill_id, check_number, amount, payment_date, status, void_reason,
+      id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
       vendors(name, address_street, address_city, address_state, address_zip, taxpayer_id),
       associations(name),
       bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature),
@@ -155,7 +155,7 @@ export default async function PrintChecksPage({
                   </div>
                   <div className="sig">
                     <div className="sig-line"></div>
-                    <div className="sig-label">Authorized signature</div>
+                    <div className="sig-label">Authorized signature · {c.authorized_signer_label ?? 'signer configuration required'}</div>
                   </div>
                 </div>
 
