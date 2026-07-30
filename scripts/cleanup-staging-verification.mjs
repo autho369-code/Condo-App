@@ -27,6 +27,11 @@ const fixtureEmails = [
   'codex_test.admin.a@portier369.invalid',
   'codex_test.manager.a@portier369.invalid',
   'codex_test.admin.b@portier369.invalid',
+  'codex_test.board.a@portier369.invalid',
+  'codex_test.owner.a@portier369.invalid',
+  'codex_test.vendor.a@portier369.invalid',
+  'codex_test.owner.b@portier369.invalid',
+  'codex_test.vendor.b@portier369.invalid',
 ]
 const entry = (tenant, suffix) => `36900000-0000-4000-9${tenant}00-${String(suffix).padStart(12, '0')}`
 const journalEntryIds = [1, 2].flatMap((tenant) => [1, 2, 3].map((suffix) => entry(tenant, suffix)))
@@ -64,6 +69,7 @@ async function main() {
   await removeByIds('journal_entries', journalEntryIds)
   await removeByIds('bank_accounts', bankIds)
   await removeByIds('association_assignments', ['36900000-0000-4000-8100-000000000093'])
+  await removeByIds('board_members', ['36900000-0000-4000-8100-000000000094'])
   await removeByIds('unit_owners', ['36900000-0000-4000-8100-000000000091', '36900000-0000-4000-8200-000000000092'])
   await removeByIds('vendors', vendorIds)
   await removeByIds('owners', ownerIds)

@@ -38,7 +38,14 @@ async function ensureUser(email, displayName, portfolioId, role) {
   const listed = await must('list users', db.auth.admin.listUsers({ perPage: 1000 }))
   let user = listed.users.find((candidate) => candidate.email === email)
   if (!user) user = await must(`create ${email}`, db.auth.admin.createUser({ email, password, email_confirm: true })).then((r) => r.user)
-  await upsert('profiles', [{ id: user.id, email, full_name: displayName, display_name: displayName, portfolio_id: portfolioId, role, hoa_role: role === 'company_admin' ? 'company_admin' : 'manager', mvp_role: role }])
+  else await must(`refresh password ${email}`, db.auth.admin.updateUserById(user.id, { password, email_confirm: true }))
+  const isStaff = role === 'company_admin' || role === 'manager'
+  await upsert('profiles', [{
+    id: user.id, email, full_name: displayName, display_name: displayName,
+    portfolio_id: portfolioId, role,
+    hoa_role: isStaff ? role : role === 'board' || role === 'owner' ? role : null,
+    mvp_role: isStaff ? role : null,
+  }])
   return user
 }
 
@@ -90,8 +97,8 @@ async function main() {
     { id: ids.unitB, building_id: ids.buildingB, unit_number: 'B-201', name: 'B-201', ownership_pct: 100 },
   ])
   await upsert('owners', [
-    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid' },
-    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid' },
+    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid', portal_activated: true },
+    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid', portal_activated: true },
   ])
   await upsert('unit_owners', [
     { id: account(1, 91), unit_id: ids.unitA, owner_id: ids.ownerA, is_primary: true, share_pct: 100 },
@@ -109,9 +116,21 @@ async function main() {
   }
   await upsert('gl_accounts', gl)
   await upsert('vendors', [
-    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
-    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
+    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true },
+    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true },
   ])
+  const [boardA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
+    ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),
+    ensureUser('codex_test.owner.a@portier369.invalid', 'CODEX_TEST Owner A', ids.portfolioA, 'owner'),
+    ensureUser('codex_test.vendor.a@portier369.invalid', 'CODEX_TEST Vendor A', ids.portfolioA, 'vendor'),
+    ensureUser('codex_test.owner.b@portier369.invalid', 'CODEX_TEST Owner B', ids.portfolioB, 'owner'),
+    ensureUser('codex_test.vendor.b@portier369.invalid', 'CODEX_TEST Vendor B', ids.portfolioB, 'vendor'),
+  ])
+  await upsert('board_members', [{ id: account(1, 94), association_id: ids.associationA, full_name: 'CODEX_TEST Board A', email: 'codex_test.board.a@portier369.invalid', role: 'treasurer', active: true, auth_user_id: boardA.id }])
+  await must('link owner A auth', db.from('owners').update({ auth_user_id: ownerAUser.id }).eq('id', ids.ownerA))
+  await must('link owner B auth', db.from('owners').update({ auth_user_id: ownerBUser.id }).eq('id', ids.ownerB))
+  await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
+  await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
     { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
     { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
