@@ -63,7 +63,24 @@ export async function processReportRun(runId: string): Promise<void> {
     }
 
     const rows: Record<string, unknown>[] = Array.isArray(result) ? result : (result?.rows ?? []);
-    const output = serializeReportOutput(run.output_format, rows);
+    const parameters = (run.parameters ?? {}) as Record<string, unknown>;
+    const associationId = typeof parameters.association_id === 'string' ? parameters.association_id : null;
+    let scope = 'Portfolio';
+    if (associationId) {
+      const { data: association } = await svc
+        .from('associations')
+        .select('name')
+        .eq('id', associationId)
+        .eq('portfolio_id', run.portfolio_id)
+        .maybeSingle();
+      scope = association?.name ?? 'Selected association';
+    }
+    const output = serializeReportOutput(run.output_format, rows, {
+      title: run.report_definitions?.name ?? slug ?? 'Portier369 report',
+      scope,
+      dateFrom: typeof parameters.date_from === 'string' ? parameters.date_from : null,
+      dateTo: typeof parameters.date_to === 'string' ? parameters.date_to : null,
+    });
     const path = `${run.portfolio_id}/${runId}.${output.extension}`;
 
     const { error: upErr } = await svc.storage.from('reports').upload(path, output.body, {
