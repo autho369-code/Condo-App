@@ -59,6 +59,8 @@ async function main() {
     ensureUser('codex_test.manager.a@portier369.invalid', 'CODEX_TEST Manager A', ids.portfolioA, 'manager'),
     ensureUser('codex_test.admin.b@portier369.invalid', 'CODEX_TEST Admin B', ids.portfolioB, 'company_admin'),
   ])
+  const operator = await ensureUser('codex_test.operator@portier369.invalid', 'CODEX_TEST Platform Operator', null, 'platform_operator')
+  await upsert('platform_operators', [{ id: account(1, 95), auth_user_id: operator.id, email: 'codex_test.operator@portier369.invalid', full_name: 'CODEX_TEST Platform Operator', role: 'admin', active: true }])
   await upsert('report_definitions', [
     ['trial_balance', 'Trial Balance', 'Debit and credit summary for every general-ledger account'],
     ['balance_sheet', 'Balance Sheet', 'Assets, liabilities, and equity as of a selected date'],

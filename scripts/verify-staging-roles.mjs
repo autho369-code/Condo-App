@@ -9,6 +9,7 @@ if (!url || !anonKey || !password || new URL(url).hostname.split('.')[0] !== STA
 }
 
 const cases = [
+  ['codex_test.operator@portier369.invalid', 'is_platform_operator'],
   ['codex_test.admin.a@portier369.invalid', 'is_company_admin', true],
   ['codex_test.manager.a@portier369.invalid', 'is_staff', true],
   ['codex_test.admin.b@portier369.invalid', 'is_company_admin', true],
@@ -32,6 +33,15 @@ async function main() {
     if (meError) throw new Error(`${email} me(): ${meError.message}`)
     assert(me?.auth_user_id, `${email} did not resolve an authenticated identity`)
     assert(Boolean(me?.[field]), `${email} did not resolve ${field}`)
+
+    if (field === 'is_platform_operator') {
+      const { data: visible, error: visibilityError } = await client.from('portfolios').select('id').in('id', ['36900000-0000-4000-8000-000000000001', '36900000-0000-4000-8000-000000000002'])
+      if (visibilityError) throw new Error(`${email} portfolio visibility: ${visibilityError.message}`)
+      assert((visible ?? []).length === 2, `${email} cannot read both CODEX_TEST portfolios`)
+      await client.auth.signOut()
+      console.log(`${email}: ${field}=PASS, cross-portfolio operator visibility=PASS`)
+      continue
+    }
 
     const expectedPortfolio = email.includes('.b@') ? '36900000-0000-4000-8000-000000000002' : '36900000-0000-4000-8000-000000000001'
     assert(me?.portfolio?.id === expectedPortfolio, `${email} resolved the wrong portfolio`)
