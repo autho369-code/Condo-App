@@ -58,6 +58,7 @@ async function main() {
     ['income_statement', 'Income Statement', 'Revenue and expenses for a selected period'],
     ['general_ledger', 'General Ledger', 'Posted journal activity with account balances'],
     ['ar_aging', 'A/R Aging', 'Outstanding owner receivables by aging bucket'],
+    ['delinquency_summary', 'Delinquency Summary', 'Outstanding owner receivables summarized by aging bucket'],
     ['ap_aging', 'A/P Aging', 'Outstanding vendor payables by aging bucket'],
     ['aged_payables', 'Aged Payables', 'Detailed outstanding vendor payables'],
     ['aged_payables_summary', 'Aged Payables Summary', 'Outstanding payables summarized by aging bucket'],
