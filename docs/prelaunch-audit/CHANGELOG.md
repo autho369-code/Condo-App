@@ -1,5 +1,11 @@
 # Audit branch changelog
 
+## 2026-07-30 — replay-safe reminder producers checkpoint
+
+- Made the shared queue helper replay-safe for producers that provide deterministic idempotency keys while preserving normal inserts for unkeyed messages.
+- Added per-task/window/recipient keys to maintenance and insurance reminders and converted maintenance content back to escaped text-generated HTML.
+- Moved insurance reminder timestamps after successful durable queue insertion, so a queue failure no longer records a notice as sent; retries deduplicate already-queued recipients before safely stamping the policy window.
+
 ## 2026-07-30 — durable email worker checkpoint
 
 - Added the missing Vercel email-queue worker and one-minute Pro cron schedule; the old repository only referenced a Supabase Edge Function that was not present, so queued mail had no verifiable delivery path.

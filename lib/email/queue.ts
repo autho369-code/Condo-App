@@ -93,6 +93,12 @@ export function emailQueueRow(e: QueuedEmail) {
 export async function queueEmails(db: any, emails: QueuedEmail[]): Promise<{ error: string | null; count: number }> {
   if (!emails.length) return { error: null, count: 0 };
   const rows = emails.map(emailQueueRow);
-  const { error } = await db.from('email_queue').insert(rows);
-  return { error: error?.message ?? null, count: error ? 0 : rows.length };
+  // PostgreSQL unique indexes permit multiple NULL values, so ordinary queue
+  // rows still insert normally while producers that provide an idempotency key
+  // become safe to replay after a timeout or cron retry.
+  const { data, error } = await db
+    .from('email_queue')
+    .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })
+    .select('id');
+  return { error: error?.message ?? null, count: error ? 0 : (data?.length ?? 0) };
 }
