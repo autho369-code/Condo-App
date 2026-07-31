@@ -1,5 +1,11 @@
 # Audit branch changelog
 
+## 2026-07-31 — scheduled delivery and automation recovery checkpoint
+
+- Reworked scheduled-report email delivery to recover every successful run whose 30-day signed link remains valid, independently of the generation invocation; normalized/deduplicated up to 100 recipients and added deterministic run/recipient queue keys with portfolio branding and scope.
+- Replaced automation's “failed means fired forever” behavior with service-role-only atomic claims, a ten-minute concurrency/crash cooldown, preservation of already-successful action outcomes, deterministic action/recipient email keys, and a five-attempt ceiling.
+- Applied migrations `20260731000000` through `20260731002000` only to staging. Live verification passed for non-service rejection, overlapping-claim denial, partial retry/outcome preservation, successful-run immutability, fifth/sixth-attempt behavior, scheduled-report recovery, duplicate-cased recipient normalization, exact replay deduplication, and queue portfolio scope; fixtures were removed.
+
 ## 2026-07-30 — replay-safe reminder producers checkpoint
 
 - Made the shared queue helper replay-safe for producers that provide deterministic idempotency keys while preserving normal inserts for unkeyed messages.

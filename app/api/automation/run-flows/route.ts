@@ -4,12 +4,10 @@
  * managers define at /automation-center/flows):
  *   1. Evaluate the flow's trigger, scoped to its portfolio (and association
  *      when one is set). Max 200 subjects per flow per run.
- *   2. Skip subjects the flow has already fired for — the UNIQUE
- *      (flow_id, subject_type, subject_id) constraint on automation_flow_runs
- *      is the hard backstop: the run row is inserted FIRST and a conflict
- *      means "already fired, ever".
- *   3. Execute the flow's actions in order, recording each outcome into the
- *      run's detail, then finalize the run status (success/partial/failed).
+ *   2. Atomically claim new subjects. Successful subjects never replay;
+ *      failed/partial subjects retry up to five times after a cooldown.
+ *   3. Execute only actions without a recorded success, then finalize the run
+ *      status. Email actions carry deterministic queue idempotency keys.
  * Emails are white-labeled as the management company (fromName =
  * portfolios.company_name, replyTo = support_email) via queueEmails, the same
  * pattern as app/api/insurance/send-reminders/route.ts.
@@ -64,6 +62,7 @@ interface Subject {
 }
 
 interface ActionOutcome {
+  index: number;
   type: ActionType;
   ok: boolean;
   info: string;
@@ -147,13 +146,6 @@ async function runFlow(svc: any, flow: any) {
   }
 
   // ── Skip subjects that already fired (pre-filter; unique index is backstop)
-  const { data: existing } = await svc
-    .from('automation_flow_runs')
-    .select('subject_id')
-    .eq('flow_id', flow.id)
-    .in('subject_id', subjects.map((s) => s.subjectId));
-  const alreadyFired = new Set<string>((existing ?? []).map((r: any) => r.subject_id));
-
   // ── White-label branding + assigned managers, loaded once per flow ────────
   const { data: pf } = await svc
     .from('portfolios')
@@ -185,34 +177,33 @@ async function runFlow(svc: any, flow: any) {
     }
   }
 
-  // ── Fire per subject: insert run row FIRST, then execute actions ──────────
+  // Atomically claim new subjects or retryable failed/partial subjects.
   for (const subject of subjects) {
-    if (alreadyFired.has(subject.subjectId)) {
-      result.skippedExisting++;
-      continue;
-    }
-
-    const { data: runRow, error: insertErr } = await svc
-      .from('automation_flow_runs')
-      .insert({ flow_id: flow.id, subject_type: subject.subjectType, subject_id: subject.subjectId, status: 'success' })
-      .select('id')
-      .single();
-    if (insertErr || !runRow) {
-      if (insertErr?.code === '23505') {
-        result.skippedExisting++; // fired by a concurrent/previous run — the unique constraint held
-      } else {
-        result.failures.push(`${subject.subjectType} ${subject.subjectId}: run insert failed — ${insertErr?.message}`);
-      }
+    const { data: claimedRows, error: claimError } = await svc.rpc('claim_automation_flow_run', {
+      p_flow_id: flow.id,
+      p_subject_type: subject.subjectType,
+      p_subject_id: subject.subjectId,
+    });
+    const runRow = claimedRows?.[0];
+    if (claimError || !runRow) {
+      if (claimError) result.failures.push(`${subject.subjectType} ${subject.subjectId}: claim failed — ${claimError.message}`);
+      else result.skippedExisting++;
       continue;
     }
 
     const assocName = subject.associationId ? (assocNameById.get(subject.associationId) ?? '') : '';
+    const priorActions: any[] = Array.isArray(runRow.detail?.actions) ? runRow.detail.actions : [];
     const outcomes: ActionOutcome[] = [];
-    for (const action of actions) {
+    for (const [index, action] of actions.entries()) {
+      const prior = priorActions.find((outcome: any, priorIndex: number) => (outcome.index ?? priorIndex) === index);
+      if (prior?.ok) {
+        outcomes.push({ ...prior, index, type: action.type });
+        continue;
+      }
       try {
-        outcomes.push(await executeAction(svc, flow, trigger, action, subject, assocName, brand, managersByAssoc));
+        outcomes.push(await executeAction(svc, flow, trigger, action, subject, assocName, brand, managersByAssoc, `${runRow.id}:${index}`));
       } catch (e: any) {
-        outcomes.push({ type: action.type, ok: false, info: e.message ?? 'action threw' });
+        outcomes.push({ index, type: action.type, ok: false, info: e.message ?? 'action threw' });
       }
     }
 
@@ -375,10 +366,12 @@ async function executeAction(
   assocName: string,
   brand: { companyName: string | null; supportEmail: string | null; supportPhone: string | null },
   managersByAssoc: Map<string, { email: string; name: string | null }[]>,
+  deliveryKey: string,
 ): Promise<ActionOutcome> {
   const type = action.type;
+  const index = Number(deliveryKey.split(':').at(-1));
   if (!actionAllowedForTrigger(type, trigger)) {
-    return { type, ok: false, info: `action not valid for trigger ${trigger}` };
+    return { index, type, ok: false, info: `action not valid for trigger ${trigger}` };
   }
   const companyName = brand.companyName ?? (assocName || 'Your management team');
   const contactLine = [brand.supportEmail, brand.supportPhone].filter(Boolean).join(' · ');
@@ -390,10 +383,10 @@ async function executeAction(
     // insurance, and ARC rows carry owner_id directly.
     let ownerId = subject.ownerId;
     if (!ownerId && subject.unitId) ownerId = await resolveUnitOwnerId(svc, subject.unitId);
-    if (!ownerId) return { type, ok: false, info: 'no owner resolved for subject' };
+    if (!ownerId) return { index, type, ok: false, info: 'no owner resolved for subject' };
 
     const { data: owner } = await svc.from('owners').select('email, full_name').eq('id', ownerId).maybeSingle();
-    if (!owner?.email) return { type, ok: false, info: 'owner has no email on file' };
+    if (!owner?.email) return { index, type, ok: false, info: 'owner has no email on file' };
 
     const vars = {
       owner_name: owner.full_name ?? 'Owner',
@@ -404,7 +397,7 @@ async function executeAction(
     };
     const emailSubject = renderTemplate(String(action.config?.subject ?? ''), vars).trim();
     const emailBody = renderTemplate(String(action.config?.body ?? ''), vars).trim();
-    if (!emailSubject || !emailBody) return { type, ok: false, info: 'email subject/body missing' };
+    if (!emailSubject || !emailBody) return { index, type, ok: false, info: 'email subject/body missing' };
 
     const { error } = await queueEmails(svc, [
       {
@@ -416,10 +409,11 @@ async function executeAction(
         text: `${emailBody}\n\n${signature}`,
         associationId: subject.associationId,
         portfolioId: flow.portfolio_id,
+        idempotencyKey: `automation:${deliveryKey}:${String(owner.email).toLowerCase()}`,
       },
     ]);
-    if (error) return { type, ok: false, info: `queue failed — ${error}` };
-    return { type, ok: true, info: `queued email to ${owner.email}` };
+    if (error) return { index, type, ok: false, info: `queue failed — ${error}` };
+    return { index, type, ok: true, info: `queued email to ${owner.email}` };
   }
 
   if (type === 'notify_manager') {
@@ -427,7 +421,7 @@ async function executeAction(
     if (recipients.length === 0 && brand.supportEmail) {
       recipients = [{ email: brand.supportEmail, name: null }];
     }
-    if (recipients.length === 0) return { type, ok: false, info: 'no assigned manager and no support email' };
+    if (recipients.length === 0) return { index, type, ok: false, info: 'no assigned manager and no support email' };
 
     const vars = {
       owner_name: '',
@@ -452,10 +446,11 @@ async function executeAction(
         text: `${note ? `${note}\n\n` : ''}${context}\n\n${signature}`,
         associationId: subject.associationId,
         portfolioId: flow.portfolio_id,
+        idempotencyKey: `automation:${deliveryKey}:${String(r.email).toLowerCase()}`,
       })),
     );
-    if (error) return { type, ok: false, info: `queue failed — ${error}` };
-    return { type, ok: true, info: `notified ${recipients.length} manager(s)` };
+    if (error) return { index, type, ok: false, info: `queue failed — ${error}` };
+    return { index, type, ok: true, info: `notified ${recipients.length} manager(s)` };
   }
 
   if (type === 'apply_late_fee') {
@@ -463,8 +458,8 @@ async function executeAction(
     // idempotent and re-validates the per-association late-fee rules; null
     // return = the rules said no fee is due.
     const { data: feeChargeId, error } = await svc.rpc('assess_late_fee', { p_charge_id: subject.subjectId });
-    if (error) return { type, ok: false, info: `assess_late_fee failed — ${error.message}` };
-    return { type, ok: true, info: feeChargeId ? `late fee posted (charge ${feeChargeId})` : 'no fee due per association rules' };
+    if (error) return { index, type, ok: false, info: `assess_late_fee failed — ${error.message}` };
+    return { index, type, ok: true, info: feeChargeId ? `late fee posted (charge ${feeChargeId})` : 'no fee due per association rules' };
   }
 
   // raise_work_order_priority — valid only for work_order_stale (enforced above)
@@ -474,6 +469,6 @@ async function executeAction(
     .eq('id', subject.subjectId)
     .not('priority', 'in', '(high,emergency)')
     .select('id');
-  if (error) return { type, ok: false, info: `priority update failed — ${error.message}` };
-  return { type, ok: true, info: updated?.length ? 'priority raised to high' : 'already high or emergency' };
+  if (error) return { index, type, ok: false, info: `priority update failed — ${error.message}` };
+  return { index, type, ok: true, info: updated?.length ? 'priority raised to high' : 'already high or emergency' };
 }

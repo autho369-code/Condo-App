@@ -34,6 +34,8 @@
     "verify:staging:owner-communications": "node scripts/verify-staging-owner-communications.mjs",
     "verify:staging:staff-communications": "node scripts/verify-staging-staff-communications.mjs",
     "verify:staging:email-worker": "node scripts/verify-staging-email-worker.mjs",
+    "verify:staging:automation-retries": "node scripts/verify-staging-automation-retries.mjs",
+    "verify:staging:scheduled-delivery": "npx --yes tsx scripts/verify-staging-scheduled-delivery.ts",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
