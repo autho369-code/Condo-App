@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Badge } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
-import { approveBill, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
+import { approveBill, submitBillForApproval, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -11,7 +11,7 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function BillDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -23,6 +23,13 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     .maybeSingle();
 
   if (!b) notFound();
+  const { data: approvalRequest } = b.approval_request_id
+    ? await (supabase as any)
+      .from('approval_requests')
+      .select('id, status, votes_for, votes_against, required_votes, decision_at')
+      .eq('id', b.approval_request_id)
+      .maybeSingle()
+    : { data: null };
   const { data: checks } = await (supabase as any)
     .from('payable_checks')
     .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, run_transaction_id, bank_accounts(name, bank_name)')
@@ -74,6 +81,24 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         </dl>
       </Section>
 
+      {b.approval_required && (
+        <Section title="Board approval" padded>
+          {approvalRequest ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <div className="font-medium text-gray-950"><Badge status={approvalRequest.status} /></div>
+                <div className="mt-1 text-gray-500">
+                  {approvalRequest.votes_for} approved · {approvalRequest.votes_against} rejected · {approvalRequest.required_votes} required
+                </div>
+              </div>
+              <Link href={`/associations/${b.association_id}/approvals`} className="text-blue-700 hover:underline">Open board approvals</Link>
+            </div>
+          ) : (
+            <p className="text-sm text-amber-800">This bill requires board approval but has not been routed yet.</p>
+          )}
+        </Section>
+      )}
+
       {(checks ?? []).length > 0 && (
         <Section title="Check history" padded>
           <div className="space-y-3">
@@ -95,9 +120,14 @@ export default async function BillDetailPage({ params, searchParams }: { params:
       )}
 
       <div className="flex flex-wrap gap-2">
-        {b.status === 'pending_approval' && (
+        {b.status === 'draft' && (
+          <form action={async () => { 'use server'; await submitBillForApproval(id); }}>
+            <Button type="submit">Submit for approval</Button>
+          </form>
+        )}
+        {b.status === 'pending_approval' && (!b.approval_required || approvalRequest?.status === 'approved') && (
           <form action={async () => { 'use server'; await approveBill(id); }}>
-            <Button type="submit">Approve</Button>
+            <Button type="submit">{b.approval_required ? 'Post approved bill' : 'Approve'}</Button>
           </form>
         )}
         {['draft', 'pending_approval', 'approved'].includes(b.status) && b.paid_at === null && (

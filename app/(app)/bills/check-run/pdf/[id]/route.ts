@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { generateCheckRunPdf, type PrintableCheck } from '@/lib/payments/check-pdf';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const { id } = await params;
   const supabase = await createClient();
   const { data: seed } = await (supabase as any)

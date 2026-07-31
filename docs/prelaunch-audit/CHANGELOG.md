@@ -1,5 +1,15 @@
 # Audit branch changelog
 
+## 2026-07-30 — payable approval checkpoint
+
+- Removed direct authenticated bill mutations and introduced finance-guarded creation, submission, approval, and void RPC boundaries.
+- Derived board-routing requirements from each association's approval settings and bill threshold; linked payable bills to immutable board approval requests.
+- Restricted board decisions to configured active voters, required signatures when configured, rejected changes after finalization, and revoked direct decision-table writes.
+- Added finance-role guards to bill, owner-payable, check-run, print, and PDF routes.
+- Applied migrations `20260730000000` and `20260730001000` only to staging `zalfkrtjeswvfmucicea`; production was not mutated.
+- Seeded two active board members with one selected approver and ran the staging manager → board → manager lifecycle. Direct writes, cross-tenant vendor use, draft approval before submission, unselected voting, unsigned voting, premature posting, and finalized-decision replay were rejected. The approved $650 bill posted a balanced two-line accrual.
+- Full checkpoint gate: 136/136 tests, TypeScript, lint, production build, secret scans, route audit, dashboard-text audit, migration validation, and diff checks passed.
+
 ## 2026-07-27
 
 - Created `audit/portier369-prelaunch-verification` from the release-readiness branch without pushing to `main`.

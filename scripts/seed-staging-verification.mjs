@@ -121,14 +121,27 @@ async function main() {
     { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
     { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
   ])
-  const [boardA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
+  const [boardA, boardObserverA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
     ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),
+    ensureUser('codex_test.board.observer.a@portier369.invalid', 'CODEX_TEST Board Observer A', ids.portfolioA, 'board'),
     ensureUser('codex_test.owner.a@portier369.invalid', 'CODEX_TEST Owner A', ids.portfolioA, 'owner'),
     ensureUser('codex_test.vendor.a@portier369.invalid', 'CODEX_TEST Vendor A', ids.portfolioA, 'vendor'),
     ensureUser('codex_test.owner.b@portier369.invalid', 'CODEX_TEST Owner B', ids.portfolioB, 'owner'),
     ensureUser('codex_test.vendor.b@portier369.invalid', 'CODEX_TEST Vendor B', ids.portfolioB, 'vendor'),
   ])
-  await upsert('board_members', [{ id: account(1, 94), association_id: ids.associationA, full_name: 'CODEX_TEST Board A', email: 'codex_test.board.a@portier369.invalid', role: 'treasurer', active: true, auth_user_id: boardA.id }])
+  await upsert('board_members', [
+    { id: account(1, 94), association_id: ids.associationA, full_name: 'CODEX_TEST Board A', email: 'codex_test.board.a@portier369.invalid', role: 'treasurer', active: true, auth_user_id: boardA.id },
+    { id: account(1, 96), association_id: ids.associationA, full_name: 'CODEX_TEST Board Observer A', email: 'codex_test.board.observer.a@portier369.invalid', role: 'director', active: true, auth_user_id: boardObserverA.id },
+  ])
+  await upsert('board_approval_settings', [{
+    association_id: ids.associationA,
+    signatures_required: true,
+    default_board_member_ids: [account(1, 94)],
+    default_voting_scheme: 'any_one_approver',
+    default_percentage_required: null,
+    sends_bills_to_board: 'over_threshold',
+    bills_threshold: 500,
+  }], 'association_id')
   await must('link owner A auth', db.from('owners').update({ auth_user_id: ownerAUser.id }).eq('id', ids.ownerA))
   await must('link owner B auth', db.from('owners').update({ auth_user_id: ownerBUser.id }).eq('id', ids.ownerB))
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))

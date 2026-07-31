@@ -30,6 +30,7 @@
     "verify:staging:reports": "npx --yes tsx scripts/verify-staging-reports.ts",
     "verify:staging:roles": "node scripts/verify-staging-roles.mjs",
     "verify:staging:checks": "node scripts/verify-staging-check-runs.mjs",
+    "verify:staging:payable-approvals": "node scripts/verify-staging-payable-approvals.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

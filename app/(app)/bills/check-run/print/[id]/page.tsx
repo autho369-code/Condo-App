@@ -24,7 +24,7 @@
 // style #10 double-window envelopes. Most check-stock vendors use similar dims.
 
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { PrintButton } from '@/components/ui/print-button';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
@@ -55,7 +55,7 @@ function numberToWords(amount: number): string {
 export default async function PrintChecksPage({
   params,
 }: { params: Promise<{ id: string }> }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const { id: seedCheckId } = await params;
 
   const supabase = await createClient();

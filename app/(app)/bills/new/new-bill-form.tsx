@@ -307,18 +307,17 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
             <p className="mt-1 text-xs text-gray-500">This shows on the printed check&apos;s memo line and on the check stub.</p>
           </div>
 
-          {/* STATUS + APPROVAL */}
+          {/* SUBMISSION + APPROVAL */}
           <div>
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Save option</Label>
             <Select id="status" name="status" defaultValue="pending_approval">
-              <option value="draft">Draft</option>
-              <option value="pending_approval">Pending approval</option>
-              <option value="approved">Approved</option>
+              <option value="draft">Save as draft</option>
+              <option value="pending_approval">Submit for approval</option>
             </Select>
           </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="approval_required" defaultChecked /> Requires board approval
+              <input type="checkbox" name="approval_required" /> Route to board for approval
             </label>
           </div>
 

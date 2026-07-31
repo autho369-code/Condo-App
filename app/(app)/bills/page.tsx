@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Plus, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
@@ -62,7 +62,7 @@ export default async function BillsPage({
 }: {
   searchParams: Promise<{ tab?: string; status?: string; q?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const { tab: tabParam, status: statusParam, q = '' } = await searchParams;
   const tab = parseTab(tabParam);
   const statusFilter = parseStatus(statusParam);
