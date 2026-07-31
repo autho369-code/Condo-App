@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -21,7 +21,7 @@ export default function PreviewLetterPage() {
   const [associations, setAssociations] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
-  const [selectedEntity, setSelectedEntity] = useState<any>(null);
+  const [boardMembers, setBoardMembers] = useState<any[]>([]);
   const [selectedAssocId, setSelectedAssocId] = useState<string>('');
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>('');
   const [selectedVendorId, setSelectedVendorId] = useState<string>('');
@@ -50,17 +50,34 @@ export default function PreviewLetterPage() {
       if (err) { setError('Template not found.'); setLoading(false); return; }
       setTemplate(data);
 
-      // Load associations
-      const { data: assocs } = await supabase.from('associations').select('id, name').order('name');
+      const [
+        { data: assocs },
+        { data: ownersData },
+        { data: vendorsData },
+        { data: boardData },
+      ] = await Promise.all([
+        supabase
+          .from('associations')
+          .select('id, name, address, address_line_2, city, state, zip, maintenance_phone, payment_instructions, late_fee_amount_override, site_manager')
+          .order('name'),
+        supabase
+          .from('owners')
+          .select('id, full_name, email, mailing_address, address_street, address_city, address_state, address_zip, phone, unit_owners(is_primary, end_date, units(unit_number, association_id))')
+          .order('full_name'),
+        supabase
+          .from('vendors')
+          .select('id, name, emails, phone_numbers, address_street, address_city, address_state, address_zip')
+          .order('name'),
+        supabase
+          .from('board_members')
+          .select('association_id, full_name, role, active')
+          .eq('active', true),
+      ]);
+
       setAssociations(assocs || []);
-
-      // Load owners
-      const { data: ownersData } = await supabase.from('owners').select('id, full_name, email, mailing_address, phone').order('full_name');
       setOwners(ownersData || []);
-
-      // Load vendors
-      const { data: vendorsData } = await supabase.from('vendors').select('id, company_name, contact_name, emails, phone_numbers, address').order('company_name');
       setVendors(vendorsData || []);
+      setBoardMembers(boardData || []);
 
       setLoading(false);
     }
@@ -68,60 +85,57 @@ export default function PreviewLetterPage() {
   }, [id]);
 
   // Merge values based on selection
-  const getMergeValues = useCallback((): Record<string, string> => {
+  const mergeValues = useMemo((): Record<string, string> => {
     const vals: Record<string, string> = {};
     const now = new Date();
-    const dueDate = new Date(now);
-    dueDate.setDate(dueDate.getDate() + 14);
 
     vals['current_date'] = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     vals['current_date_short'] = now.toLocaleDateString('en-US');
-    vals['due_date'] = dueDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    vals['amount_due'] = '$350.00';
-    vals['late_fee_amount'] = '$25.00';
-    vals['payment_instructions'] = 'Pay online at portal.portier369.com or mail check to PO Box 1234, Springfield, IL 62701.';
-    vals['violation_description'] = 'Unauthorized exterior modification — satellite dish on balcony';
-    vals['violation_rule'] = 'CC&R Section 4.2 — Exterior Modifications';
-    vals['hearing_date'] = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' at 6:30 PM';
-    vals['manager_name'] = 'Sarah Williams, CAM';
-    vals['board_president_name'] = 'Robert Johnson';
+
+    const owner = owners.find((o: any) => o.id === selectedOwnerId);
+    const activeOwnerships = owner?.unit_owners?.filter((row: any) => !row.end_date) ?? [];
+    const primaryOwnership = activeOwnerships.find((row: any) => row.is_primary) ?? activeOwnerships[0];
+    const effectiveAssocId = selectedAssocId || primaryOwnership?.units?.association_id || '';
 
     // Association values
-    const assoc = associations.find((a: any) => a.id === selectedAssocId);
+    const assoc = associations.find((a: any) => a.id === effectiveAssocId);
     if (assoc) {
       vals['association_name'] = assoc.name || '';
-      vals['association_address'] = assoc.address || '123 Community Way';
-      vals['association_city'] = assoc.city || 'Springfield';
-      vals['association_state'] = assoc.state || 'IL';
-      vals['association_zip'] = assoc.zip || '62701';
-      vals['association_phone'] = assoc.phone || '(555) 123-4567';
+      vals['association_address'] = [assoc.address, assoc.address_line_2, assoc.city, assoc.state, assoc.zip].filter(Boolean).join(', ');
+      vals['association_city'] = assoc.city || '';
+      vals['association_state'] = assoc.state || '';
+      vals['association_zip'] = assoc.zip || '';
+      vals['association_phone'] = assoc.maintenance_phone || '';
+      vals['payment_instructions'] = assoc.payment_instructions || '';
+      vals['manager_name'] = assoc.site_manager || '';
+      if (assoc.late_fee_amount_override != null) {
+        vals['late_fee_amount'] = Number(assoc.late_fee_amount_override).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+      }
+      vals['board_president_name'] = boardMembers.find(
+        (member: any) => member.association_id === effectiveAssocId && member.role === 'president',
+      )?.full_name || '';
     }
 
     // Owner values
-    const owner = owners.find((o: any) => o.id === selectedOwnerId);
     if (owner) {
       vals['owner_name'] = owner.full_name || '';
-      vals['owner_address'] = owner.mailing_address || '456 Oak Lane, Springfield, IL 62702';
+      vals['owner_address'] = owner.mailing_address || [owner.address_street, owner.address_city, owner.address_state, owner.address_zip].filter(Boolean).join(', ');
       vals['owner_email'] = owner.email || '';
-      vals['owner_phone'] = owner.phone || '(555) 987-6543';
-      vals['owner_unit'] = owner.unit_label || 'Unit 4B';
-      vals['owner_account_number'] = owner.account_number || `OA-${String(owners.indexOf(owner) + 1).padStart(4, '0')}`;
-      vals['owner_balance'] = '$1,250.00';
+      vals['owner_phone'] = owner.phone || '';
+      vals['owner_unit'] = primaryOwnership?.units?.unit_number || '';
     }
 
     // Vendor values
     const vendor = vendors.find((v: any) => v.id === selectedVendorId);
     if (vendor) {
-      vals['vendor_name'] = vendor.company_name || '';
-      vals['vendor_address'] = vendor.address || '789 Commerce Dr, Springfield, IL 62703';
+      vals['vendor_name'] = vendor.name || '';
+      vals['vendor_address'] = [vendor.address_street, vendor.address_city, vendor.address_state, vendor.address_zip].filter(Boolean).join(', ');
       vals['vendor_email'] = vendor.emails?.[0] || '';
-      vals['vendor_phone'] = vendor.phone_numbers?.[0] || '(555) 456-7890';
+      vals['vendor_phone'] = vendor.phone_numbers?.[0] || '';
     }
 
     return vals;
-  }, [associations, owners, vendors, selectedAssocId, selectedOwnerId, selectedVendorId]);
-
-  const mergeValues = getMergeValues();
+  }, [associations, boardMembers, owners, vendors, selectedAssocId, selectedOwnerId, selectedVendorId]);
 
   // Merge the body
   const mergedBodyUnsafe = (template?.body || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
@@ -311,7 +325,7 @@ export default function PreviewLetterPage() {
               >
                 <option value="">Select vendor...</option>
                 {vendors.map((v: any) => (
-                  <option key={v.id} value={v.id}>{v.company_name}</option>
+                  <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
             )}

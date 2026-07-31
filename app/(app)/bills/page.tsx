@@ -14,15 +14,12 @@ import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type PayableTab = 'bills' | 'payments' | 'recurring' | 'loans' | 'online-payables';
+type PayableTab = 'bills' | 'payments';
 type BillStatusFilter = 'all' | 'pending_approval' | 'on_hold' | 'approved';
 
 const PAYABLE_TABS: Array<{ key: PayableTab; label: string }> = [
   { key: 'bills', label: 'Bills' },
   { key: 'payments', label: 'Payments' },
-  { key: 'recurring', label: 'Recurring' },
-  { key: 'loans', label: 'Loans' },
-  { key: 'online-payables', label: 'Online Payables' },
 ];
 
 const STATUS_FILTERS: Array<{ key: BillStatusFilter; label: string }> = [
@@ -36,9 +33,6 @@ function parseTab(value: string | undefined): PayableTab {
   switch (value) {
     case 'bills':
     case 'payments':
-    case 'recurring':
-    case 'loans':
-    case 'online-payables':
       return value;
     default:
       return 'bills';
@@ -462,38 +456,6 @@ export default async function BillsPage({
           </>
         )}
 
-        {/* ── TAB: RECURRING ── */}
-        {tab === 'recurring' && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <EmptyState
-              icon={Receipt}
-              title="Recurring bills coming soon"
-              description="Use this section to manage automatically recurring vendor bills."
-            />
-          </div>
-        )}
-
-        {/* ── TAB: LOANS ── */}
-        {tab === 'loans' && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <EmptyState
-              icon={Receipt}
-              title="Loans coming soon"
-              description="This section will track association loan balances, payment schedules, and amortization."
-            />
-          </div>
-        )}
-
-        {/* ── TAB: ONLINE PAYABLES ── */}
-        {tab === 'online-payables' && (
-          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <EmptyState
-              icon={Receipt}
-              title="Online payables coming soon"
-              description="This section will manage eCheck, ACH, and online vendor payments."
-            />
-          </div>
-        )}
       </div>
     </DataWorkspace>
   );

@@ -1,5 +1,12 @@
 # Audit branch changelog
 
+## 2026-07-31 — placeholder removal checkpoint
+
+- Replaced the generic “Help center coming soon” fallback with authenticated, workflow-specific guidance for every linked staff help topic; unsupported help slugs now return a real 404.
+- Removed stale route-audit classifications that labeled implemented create/update screens as placeholders, and extended the audit to reject fragment links without a matching local anchor.
+- Reconnected association task-panel links to real email, approval, meeting, violation, amenity, architectural-review, and report workflows; removed three advertised Bills tabs that had no implementation.
+- Removed fabricated letter-preview identities, addresses, balances, dates, payment instructions, and policy values. Merge data now comes from selected association, owner/unit, vendor, manager, and active board records; unavailable fields remain visibly unresolved for review.
+
 ## 2026-07-31 — scheduled delivery and automation recovery checkpoint
 
 - Reworked scheduled-report email delivery to recover every successful run whose 30-day signed link remains valid, independently of the generation invocation; normalized/deduplicated up to 100 recipients and added deterministic run/recipient queue keys with portfolio branding and scope.

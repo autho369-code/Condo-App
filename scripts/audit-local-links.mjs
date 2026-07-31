@@ -5,25 +5,6 @@ const root = process.cwd();
 const appDir = join(root, 'app');
 const sourceDirs = ['app', 'components', 'lib'].map((dir) => join(root, dir)).filter(existsSync);
 const ignoredPrefixes = ['/api/', '/portal/pay/success', '/portal/pay/cancel'];
-const placeholderHrefs = new Set([
-  '/assessments/update',
-  '/unit-types/new',
-  '/bank-transfers/new',
-  '/journal-entries/new',
-  '/charges/new',
-  '/fixed-assets/new',
-  '/forms/new',
-  '/gl-accounts/new',
-  '/inspections/new',
-  '/inventory/new',
-  '/letters/new',
-  '/projects/new',
-  '/purchase-orders/new',
-  '/recurring-work-orders/new',
-  '/scheduled-reports/new',
-  '/surveys/new',
-  '/unit-turns/new',
-]);
 
 function walk(dir, predicate = () => true) {
   const files = [];
@@ -83,12 +64,16 @@ for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/
   let match;
   while ((match = hrefRegex.exec(text))) {
     const raw = match[1] ?? match[2] ?? match[3];
-    if (!raw.startsWith('/')) continue;
-    if (raw.includes('${')) continue;
-    if (raw.startsWith('/help/') || raw === '#' || placeholderHrefs.has(raw)) {
-      placeholders.push({ file, href: raw });
+    if (raw.startsWith('#')) {
+      const anchor = raw.slice(1);
+      const escapedAnchor = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (!anchor || !new RegExp(`id=["']${escapedAnchor}["']`).test(text)) {
+        placeholders.push({ file, href: raw });
+      }
       continue;
     }
+    if (!raw.startsWith('/')) continue;
+    if (raw.includes('${')) continue;
     if (!matchesRoute(raw)) missing.push({ file, href: raw });
   }
 }
