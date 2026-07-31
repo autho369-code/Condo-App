@@ -16,6 +16,9 @@ describe('platform operator user lifecycle', () => {
       expect(roles).not.toContain(`value: '${invalidRole}'`);
     }
     expect(actions).toContain('isProfileRole(newRole)');
+    expect(page).toContain("db.from('vendors').select('auth_user_id')");
+    expect(page).toContain('Role managed in Vendors');
+    expect(page).toContain('<option value="" disabled>Select role</option>');
   });
 
   it('requires an active administrator and protects platform operator identities', () => {

@@ -58,13 +58,15 @@ export default async function UsersPage({
   if (sp.status === 'disabled') query = query.not('disabled_at', 'is', null);
   else if (sp.status === 'active') query = query.is('disabled_at', null);
 
-  const [{ data: users }, { data: portfolios }, { data: platformOperators }] = await Promise.all([
+  const [{ data: users }, { data: portfolios }, { data: platformOperators }, { data: vendorUsers }] = await Promise.all([
     query,
     db.from('portfolios').select('id, company_name').order('company_name'),
     db.from('platform_operators').select('auth_user_id, role, active'),
+    db.from('vendors').select('auth_user_id').not('auth_user_id', 'is', null),
   ]);
 
   const platformOperatorIds = new Set((platformOperators ?? []).map((operator: any) => operator.auth_user_id));
+  const vendorUserIds = new Set((vendorUsers ?? []).map((vendor: any) => vendor.auth_user_id));
   const currentOperator = (platformOperators ?? []).find((operator: any) => operator.auth_user_id === me.auth_user_id);
   const canManageUsers = currentOperator?.active === true && currentOperator.role === 'admin';
 
@@ -177,7 +179,9 @@ export default async function UsersPage({
                     {user.full_name ?? user.display_name ?? '—'}
                   </TD>
                   <TD className="text-gray-900">{user.email}</TD>
-                  <TD className="text-xs text-gray-600">{roleLabel(user.hoa_role)}</TD>
+                  <TD className="text-xs text-gray-600">
+                    {vendorUserIds.has(user.id) ? 'Vendor' : roleLabel(user.hoa_role)}
+                  </TD>
                   <TD className="text-gray-700">
                     {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || '—' : '—'}
                   </TD>
@@ -200,19 +204,24 @@ export default async function UsersPage({
                             {user.disabled_at ? 'Enable' : 'Disable'}
                           </Button>
                         </form>
-                        <form action={changeUserRole as any} className="inline-flex items-center gap-1">
-                          <input type="hidden" name="user_id" value={user.id} />
-                          <select
-                            name="hoa_role"
-                            defaultValue={user.hoa_role || ''}
-                            className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
-                          >
-                            {PROFILE_ROLE_OPTIONS.map((r) => (
-                              <option key={r.value} value={r.value}>{r.label}</option>
-                            ))}
-                          </select>
-                          <Button type="submit" variant="ghost" size="sm">Set</Button>
-                        </form>
+                        {vendorUserIds.has(user.id) ? (
+                          <span className="text-xs text-gray-400">Role managed in Vendors</span>
+                        ) : (
+                          <form action={changeUserRole as any} className="inline-flex items-center gap-1">
+                            <input type="hidden" name="user_id" value={user.id} />
+                            <select
+                              name="hoa_role"
+                              defaultValue={user.hoa_role || ''}
+                              className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
+                            >
+                              <option value="" disabled>Select role</option>
+                              {PROFILE_ROLE_OPTIONS.map((r) => (
+                                <option key={r.value} value={r.value}>{r.label}</option>
+                              ))}
+                            </select>
+                            <Button type="submit" variant="ghost" size="sm">Set</Button>
+                          </form>
+                        )}
                       </div>
                     ) : (
                       <span className="text-xs text-gray-400">
