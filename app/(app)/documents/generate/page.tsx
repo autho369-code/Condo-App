@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, PageHeader, SectionTitle, Surface } from '@/components/ui/shell';
 import { createClient } from '@/lib/supabase/client';
+import { generateAndStoreDocument } from '@/lib/rpcs/documents';
 
 const LETTER_TYPES = [
   { value: 'violation_notice', label: 'Violation Notice' },
@@ -19,7 +20,7 @@ const LETTER_TYPES = [
 
 export default function GenerateDocumentPage() {
   const searchParams = useSearchParams();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [step, setStep] = useState<'select' | 'fill' | 'preview' | 'sent'>('select');
   const [letterType, setLetterType] = useState(searchParams.get('type') ?? '');
@@ -40,27 +41,24 @@ export default function GenerateDocumentPage() {
   const [selectedAssociation, setSelectedAssociation] = useState('');
   const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  const [generationError, setGenerationError] = useState('');
 
-  // Load templates when type changes
-  useEffect(() => {
-    if (!letterType) return;
-    loadTemplates(letterType);
-    loadAssociations();
-  }, [letterType]);
-
-  // Load owners
-  useEffect(() => {
-    loadAllOwners();
+  const selectTemplate = useCallback((template: any) => {
+    setSelectedTemplate(template);
+    setSubject(template.subject ?? '');
+    setBody(template.body ?? '');
+    const mergeVars = template.merge_variables ?? {};
+    const initial: Record<string, string> = {};
+    if (Array.isArray(mergeVars)) {
+      mergeVars.forEach((value: any) => { initial[value.key ?? value.name ?? value] = ''; });
+    } else if (typeof mergeVars === 'object') {
+      Object.keys(mergeVars).forEach((key) => { initial[key] = ''; });
+    }
+    setVariables(initial);
+    setStep('fill');
   }, []);
 
-  // Load violation data if violation notice type
-  useEffect(() => {
-    if (letterType === 'violation_notice' && selectedAssociation) {
-      loadViolations(selectedAssociation);
-    }
-  }, [letterType, selectedAssociation]);
-
-  async function loadTemplates(type: string) {
+  const loadTemplates = useCallback(async (type: string) => {
     setLoadingTemplates(true);
     const { data } = await supabase
       .from('document_templates')
@@ -77,28 +75,33 @@ export default function GenerateDocumentPage() {
       const t = data.find((t: any) => t.id === templateId);
       if (t) selectTemplate(t);
     }
-  }
+  }, [searchParams, selectTemplate, supabase]);
 
-  async function loadAssociations() {
+  const loadAssociations = useCallback(async () => {
     const { data } = await supabase
       .from('associations')
       .select('id, name')
       .is('archived_at', null)
       .order('name');
     setAssociations((data ?? []) as any[]);
-  }
+  }, [supabase]);
 
-  async function loadAllOwners() {
+  const loadAssociationOwners = useCallback(async (associationId: string) => {
     const { data } = await supabase
-      .from('owners')
-      .select('id, first_name, last_name, email')
-      .is('archived_at', null)
-      .order('last_name')
+      .from('occupancies')
+      .select('owners!owner_id(id, first_name, last_name, email)')
+      .eq('association_id', associationId)
+      .eq('occupancy_type', 'owner')
+      .eq('status', 'current')
       .limit(500);
-    setOwners((data ?? []) as any[]);
-  }
+    const unique = new Map<string, any>();
+    (data ?? []).forEach((row: any) => {
+      if (row.owners?.id) unique.set(row.owners.id, row.owners);
+    });
+    setOwners([...unique.values()].sort((a, b) => String(a.last_name ?? '').localeCompare(String(b.last_name ?? ''))));
+  }, [supabase]);
 
-  async function loadViolations(associationId: string) {
+  const loadViolations = useCallback(async (associationId: string) => {
     const { data } = await supabase
       .from('violations')
       .select('id, title, violation_type, reported_date, cure_deadline, fine_amount, status')
@@ -108,28 +111,27 @@ export default function GenerateDocumentPage() {
       .order('reported_date', { ascending: false })
       .limit(50);
     setViolations((data ?? []) as any[]);
-  }
+  }, [supabase]);
 
-  function selectTemplate(template: any) {
-    setSelectedTemplate(template);
-    setSubject(template.subject ?? '');
-    setBody(template.body ?? '');
+  useEffect(() => {
+    if (!letterType) return;
+    void loadTemplates(letterType);
+    void loadAssociations();
+  }, [letterType, loadAssociations, loadTemplates]);
 
-    // Initialize variables from merge_variables
-    const mergeVars = template.merge_variables ?? {};
-    const initial: Record<string, string> = {};
-    if (Array.isArray(mergeVars)) {
-      mergeVars.forEach((v: any) => {
-        initial[v.key ?? v.name ?? v] = '';
-      });
-    } else if (typeof mergeVars === 'object') {
-      Object.keys(mergeVars).forEach((k) => {
-        initial[k] = '';
-      });
+  useEffect(() => {
+    setSelectedOwners([]);
+    if (selectedAssociation) void loadAssociationOwners(selectedAssociation);
+    else setOwners([]);
+  }, [loadAssociationOwners, selectedAssociation]);
+
+  useEffect(() => {
+    if (letterType === 'violation_notice' && selectedAssociation) {
+      void loadViolations(selectedAssociation);
+    } else {
+      setViolations([]);
     }
-    setVariables(initial);
-    setStep('fill');
-  }
+  }, [letterType, loadViolations, selectedAssociation]);
 
   function updateVariable(key: string, value: string) {
     setVariables((prev) => ({ ...prev, [key]: value }));
@@ -151,45 +153,22 @@ export default function GenerateDocumentPage() {
 
   async function handleGenerate() {
     setSending(true);
+    setGenerationError('');
     const finalBody = applyMergeVariables();
 
     try {
-      // Save to documents table
-      const fileName = `${(letterType ?? 'document').replace(/_/g, '-')}-${new Date().toISOString().slice(0, 10)}.txt`;
-      const { error: docErr } = await supabase.from('documents').insert({
-        entity_type: selectedAssociation ? 'association' : 'general',
-        entity_id: selectedAssociation || '00000000-0000-0000-0000-000000000000',
-        doc_type: letterType,
-        file_name: fileName,
-        file_url: '',
-        uploaded_at: new Date().toISOString(),
+      await generateAndStoreDocument({
+        templateId: selectedTemplate?.id ?? null,
+        associationId: selectedAssociation,
+        ownerIds: selectedOwners,
+        letterType,
+        subject,
+        body: finalBody,
+        createDraftNotice: sendAsNotice,
       });
-      if (docErr) console.error('Failed to save document:', docErr);
-
-      // If sending as notice
-      if (sendAsNotice && selectedAssociation) {
-        const { error: noticeErr } = await supabase.from('notices').insert({
-          association_id: selectedAssociation,
-          notice_type: letterType as any,
-          status: 'draft',
-          subject,
-          body: finalBody,
-          send_to: selectedOwners.length > 0 ? 'selected_owners' : 'all_owners',
-          channel: 'email',
-          template_id: selectedTemplate?.id ?? null,
-        });
-
-        if (noticeErr) {
-          console.error('Failed to create notice:', noticeErr);
-        } else {
-          setStep('sent');
-          return;
-        }
-      }
-
       setStep('sent');
     } catch (err) {
-      console.error('Generation error:', err);
+      setGenerationError(err instanceof Error ? err.message : 'Document generation failed.');
     } finally {
       setSending(false);
     }
@@ -315,7 +294,7 @@ export default function GenerateDocumentPage() {
         <div className="space-y-6">
           {/* Association / Owner context */}
           <Surface>
-            <SectionTitle title="Context (optional)" />
+            <SectionTitle title="Association and recipients" />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Association">
                 <Select
@@ -329,7 +308,7 @@ export default function GenerateDocumentPage() {
                 </Select>
               </Field>
 
-              {owners.length > 0 && (
+              {selectedAssociation && owners.length > 0 && (
                 <Field label="Owners" hint="Ctrl+click for multi-select">
                   <select
                     multiple
@@ -402,7 +381,7 @@ export default function GenerateDocumentPage() {
             </Field>
           </Surface>
 
-          {/* Send as notice toggle */}
+          {/* Draft notice toggle */}
           <Surface>
             <label className="flex items-center gap-3 text-sm">
               <input
@@ -412,14 +391,14 @@ export default function GenerateDocumentPage() {
                 className="h-4 w-4 rounded border-gray-300"
               />
               <span>
-                <span className="font-medium text-gray-900">Send as notice</span>
-                <span className="block text-xs text-gray-500">Creates a notice record and optionally emails to selected owners.</span>
+                <span className="font-medium text-gray-900">Create a draft notice</span>
+                <span className="block text-xs text-gray-500">Creates a reviewable notice draft. No email is sent until the notice is approved and sent.</span>
               </span>
             </label>
           </Surface>
 
           <div className="flex gap-2">
-            <Button onClick={handlePreview}>Preview document</Button>
+            <Button onClick={handlePreview} disabled={!selectedAssociation || !subject.trim()}>Preview document</Button>
             <Button variant="secondary" onClick={() => setStep('select')}>Back</Button>
           </div>
         </div>
@@ -428,6 +407,9 @@ export default function GenerateDocumentPage() {
       {/* ── STEP 3: PREVIEW ── */}
       {step === 'preview' && (
         <div className="space-y-6">
+          {generationError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{generationError}</div>
+          )}
           <Surface>
             <SectionTitle title={`Subject: ${subject}`} className="mb-2" />
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-6">
@@ -437,7 +419,7 @@ export default function GenerateDocumentPage() {
 
           <div className="flex gap-2">
             <Button onClick={handleGenerate} disabled={sending}>
-              {sending ? 'Generating…' : sendAsNotice ? 'Generate & create notice' : 'Generate document'}
+              {sending ? 'Generating…' : sendAsNotice ? 'Generate PDF & draft notice' : 'Generate PDF'}
             </Button>
             <Button variant="secondary" onClick={() => setStep('fill')}>Back to edit</Button>
           </div>
@@ -452,11 +434,11 @@ export default function GenerateDocumentPage() {
           </div>
           <h2 className="text-[15px] font-semibold text-gray-950">Document generated successfully</h2>
           <p className="mt-1 text-sm text-gray-500">
-            {sendAsNotice ? 'The notice has been created and is ready to send.' : 'The document has been saved.'}
+            {sendAsNotice ? 'The PDF is saved and the notice draft is ready for review.' : 'The PDF has been saved securely.'}
           </p>
           <div className="mt-6 flex justify-center gap-2">
-            <Link href="/documents?tab=notices">
-              <Button>View notices</Button>
+            <Link href={sendAsNotice ? '/documents?tab=notices' : '/documents?tab=generated'}>
+              <Button>{sendAsNotice ? 'View notices' : 'View generated documents'}</Button>
             </Link>
             <Button variant="secondary" onClick={() => {
               setStep('select');
