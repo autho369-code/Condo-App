@@ -33,6 +33,7 @@
     "verify:staging:storage": "node scripts/verify-staging-storage.mjs",
     "verify:staging:api-boundaries": "node scripts/verify-staging-api-boundaries.mjs",
     "verify:staging:invitations": "node scripts/verify-staging-invitations.mjs",
+    "verify:staging:manager-admin": "node scripts/verify-staging-manager-admin-lifecycle.mjs",
     "verify:staging:checks": "node scripts/verify-staging-check-runs.mjs",
     "verify:staging:payable-approvals": "node scripts/verify-staging-payable-approvals.mjs",
     "verify:staging:owner-communications": "node scripts/verify-staging-owner-communications.mjs",

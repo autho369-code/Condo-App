@@ -6,7 +6,7 @@ import { date } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Activity } from 'lucide-react'
-import { updateManagerAssociations } from '../actions'
+import { setManagerLoginStatus, updateManagerAssociations } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +21,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-export default async function ManagerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
+export default async function ManagerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; disabled?: string; enabled?: string; error?: string }> }) {
   const me = await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
@@ -32,12 +32,12 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   const { data: manager } = await db
     .from('profiles')
-    .select('id, full_name, email, hoa_role, last_login_at, created_at')
+    .select('id, full_name, email, hoa_role, last_login_at, created_at, disabled_at')
     .eq('id', id)
     .eq('portfolio_id', portfolioId)
     .maybeSingle()
 
-  if (!manager) notFound()
+  if (!manager || manager.hoa_role !== 'manager') notFound()
 
   const { data: assocManagers } = await db
     .from('association_managers')
@@ -103,18 +103,30 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
       </Link>
 
       {sp.saved && <Alert tone="success" title="Saved">Association access updated for this manager.</Alert>}
+      {sp.disabled && <Alert tone="success" title="Manager disabled">The manager&apos;s active sessions and login access have been revoked.</Alert>}
+      {sp.enabled && <Alert tone="success" title="Manager enabled">The manager can sign in again.</Alert>}
       {sp.error && <Alert tone="danger" title="Could not update access">{sp.error}</Alert>}
 
       <div className={card}>
         <div className="border-b border-gray-100 px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-100 text-xl font-semibold text-gray-700 ring-1 ring-inset ring-gray-200/70">
-              {(manager.full_name ?? manager.email ?? '?')[0].toUpperCase()}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-100 text-xl font-semibold text-gray-700 ring-1 ring-inset ring-gray-200/70">
+                {(manager.full_name ?? manager.email ?? '?')[0].toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{manager.full_name ?? manager.email}</h1>
+                <div className="mt-1 text-sm capitalize text-gray-500">{(manager.hoa_role ?? 'manager').replace('_', ' ')}</div>
+                {manager.disabled_at && <div className="mt-1 text-xs font-medium text-red-700">Login disabled</div>}
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{manager.full_name ?? manager.email}</h1>
-              <div className="mt-1 text-sm capitalize text-gray-500">{(manager.hoa_role ?? 'manager').replace('_', ' ')}</div>
-            </div>
+            <form action={setManagerLoginStatus}>
+              <input type="hidden" name="manager_id" value={manager.id} />
+              <input type="hidden" name="action" value={manager.disabled_at ? 'enable' : 'disable'} />
+              <Button type="submit" variant={manager.disabled_at ? 'secondary' : 'danger'}>
+                {manager.disabled_at ? 'Enable login' : 'Disable login'}
+              </Button>
+            </form>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-0 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">

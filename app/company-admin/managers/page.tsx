@@ -24,9 +24,9 @@ export default async function CompanyAdminManagersPage({
 
   const { data: managers } = await db
     .from('profiles')
-    .select('id, full_name, email, hoa_role, last_login_at')
+    .select('id, full_name, email, hoa_role, last_login_at, disabled_at')
     .eq('portfolio_id', portfolioId)
-    .in('hoa_role', ['manager', 'company_admin'])
+    .eq('hoa_role', 'manager')
     .order('full_name', { ascending: true, nullsFirst: false })
 
   const managerIds = (managers ?? []).map((m: any) => m.id)
@@ -98,6 +98,7 @@ export default async function CompanyAdminManagersPage({
       overdueWorkOrders: wo.overdue,
       openViolations: totalViols,
       lastLogin: mgr.last_login_at,
+      disabledAt: mgr.disabled_at,
     }
   })
 
@@ -172,6 +173,7 @@ export default async function CompanyAdminManagersPage({
                   <td className="px-4 py-3">
                     <Link href={`/company-admin/managers/${row.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">{row.name}</Link>
                     <div className="mt-0.5 text-xs capitalize text-gray-500">{row.role.replace('_', ' ')}</div>
+                    {row.disabledAt && <div className="mt-0.5 text-xs font-medium text-red-700">Login disabled</div>}
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-700">{row.email}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}</td>
