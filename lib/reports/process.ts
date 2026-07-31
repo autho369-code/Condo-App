@@ -92,10 +92,14 @@ export async function processReportRun(runId: string): Promise<void> {
       return;
     }
 
-    const { data: signed } = await svc.storage.from('reports').createSignedUrl(path, 60 * 60 * 24 * 30);
+    const { data: signed, error: signErr } = await svc.storage.from('reports').createSignedUrl(path, 60 * 60 * 24 * 30);
+    if (signErr || !signed?.signedUrl) {
+      await finish({ status: 'failed', error_message: `Output signing failed: ${signErr?.message ?? 'No signed URL was returned'}` });
+      return;
+    }
     await finish({
       status: 'succeeded',
-      output_url: signed?.signedUrl ?? null,
+      output_url: signed.signedUrl,
       output_size_bytes: output.body.byteLength,
       row_count: rows.length,
     });

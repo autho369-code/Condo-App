@@ -1,5 +1,11 @@
 # Audit branch changelog
 
+## 2026-07-31 — role-browser report storage checkpoint
+
+- Restored the staging browser-test boundary by replacing empty branch-specific Vercel Preview Supabase variables with staging-only values; production configuration and data were not changed.
+- Verified manager, platform-operator, company-admin, board, owner, and vendor login routing in isolated browser sessions with tenant-scoped staging data and no page errors.
+- Browser execution found that PDF report runs failed after generation because the private `reports` storage bucket existed only as manual environment state. Added an idempotent migration for a private, 20 MB, MIME-restricted report bucket and made signed-URL failures explicit instead of recording a false success.
+
 ## 2026-07-31 — placeholder removal checkpoint
 
 - Replaced the generic “Help center coming soon” fallback with authenticated, workflow-specific guidance for every linked staff help topic; unsupported help slugs now return a real 404.
