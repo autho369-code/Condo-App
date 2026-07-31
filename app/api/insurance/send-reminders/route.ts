@@ -8,12 +8,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com').replace(/\/$/, '');
-const PORTAL_URL = `${SITE_URL}/portal/insurance`;
-const MANAGER_URL = `${SITE_URL}/insurance`;
+const PORTAL_URL = `${siteUrl()}/portal/insurance`;
+const MANAGER_URL = `${siteUrl()}/insurance`;
 
 function isoDaysFromNow(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);

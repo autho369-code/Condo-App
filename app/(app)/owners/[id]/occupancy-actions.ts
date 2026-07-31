@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { queueEmails } from '@/lib/email/queue';
+import { siteUrl } from '@/lib/url/site-url';
 
 const BUCKET = 'association-documents';
 
@@ -181,8 +182,6 @@ export async function removeVehicle(vehicleId: string, ownerId: string) {
 }
 
 // ── Owner portal access controls (audit: reset password / enable-disable) ──
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
-
 export async function sendOwnerPasswordReset(ownerId: string) {
   const me = await requireStaff();
   const supabase = await createClient();
@@ -210,7 +209,7 @@ export async function sendOwnerPasswordReset(ownerId: string) {
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email: verifiedEmail,
-    options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
   });
   if (
     error

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,13 +53,12 @@ async function acceptInvite(formData: FormData) {
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) failTo('Invitation has expired.');
 
   // Create the auth user (service role — admin API)
-  const siteUrl = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
   const { data: linkData, error: createErr } = await svc.auth.admin.generateLink({
     type: 'signup',
     email: invite.email,
     password,
     options: {
-      redirectTo: `${siteUrl}/api/auth/callback`,
+      redirectTo: `${siteUrl()}/api/auth/callback`,
       data: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
     },
   });

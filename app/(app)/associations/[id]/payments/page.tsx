@@ -9,11 +9,11 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { date } from '@/lib/utils';
 import { CreditCard, ExternalLink, RefreshCcw } from 'lucide-react';
 import { isStripeAccountId } from '@/lib/payments/guards';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 
 function canManageAssociationStripe(me: {
   is_platform_operator: boolean;
@@ -76,8 +76,8 @@ async function connectStripe(formData: FormData) {
     const associationPath = encodeURIComponent(assoc.slug ?? assoc.id);
     const link = await createAccountLink(
       accountId!,
-      `${SITE_URL}/associations/${associationPath}/payments?refresh=1`,
-      `${SITE_URL}/associations/${associationPath}/payments?returned=1`,
+      `${siteUrl()}/associations/${associationPath}/payments?refresh=1`,
+      `${siteUrl()}/associations/${associationPath}/payments?returned=1`,
     );
     redirect(link.url);
   } catch (err: any) {

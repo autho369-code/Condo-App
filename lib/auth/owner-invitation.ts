@@ -1,6 +1,5 @@
 import { queueEmails } from '@/lib/email/queue';
-
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
+import { siteUrl } from '@/lib/url/site-url';
 
 /** Queue an owner-controlled activation flow; staff never create a password. */
 export async function queueOwnerPortalInvitation(db: any, input: {
@@ -25,7 +24,7 @@ export async function queueOwnerPortalInvitation(db: any, input: {
     .single();
   if (inviteError || !invitation?.token) return { error: inviteError?.message ?? 'Could not create portal invitation' };
 
-  const inviteUrl = `${SITE_URL}/invite?token=${encodeURIComponent(invitation.token)}`;
+  const inviteUrl = `${siteUrl()}/invite?token=${encodeURIComponent(invitation.token)}`;
   const queued = await queueEmails(db, [{
     to: input.email,
     toName: input.fullName,

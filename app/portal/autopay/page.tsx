@@ -12,11 +12,11 @@ import {
   parseAutopayConfiguration,
 } from '@/lib/payments/guards';
 import { RefreshCcw, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const RETURN = '/portal/autopay';
 
 const MODES = [
@@ -100,8 +100,8 @@ async function startAutopaySetup(formData: FormData) {
   try {
     const session = await createSetupCheckoutSession({
       customerEmail: me.profile?.email ?? null,
-      successUrl: `${SITE_URL}/portal/autopay?setup=${attempt.id}`,
-      cancelUrl: `${SITE_URL}/portal/autopay?canceled=1&setup=${attempt.id}`,
+      successUrl: `${siteUrl()}/portal/autopay?setup=${attempt.id}`,
+      cancelUrl: `${siteUrl()}/portal/autopay?canceled=1&setup=${attempt.id}`,
       stripeAccount: occ.associations.stripe_account_id,
       idempotencyKey: `autopay-setup-${attempt.id}`,
       metadata: {

@@ -4,10 +4,10 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { headers } from 'next/headers';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const FROM_ADDRESS = 'hello@portier369.com';
 const FROM_NAME = 'Portier369';
 
@@ -36,7 +36,7 @@ async function requestPasswordReset(formData: FormData) {
     const { data: linkData, error } = await svc.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+      options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
     });
     if (error || !linkData?.properties?.action_link) done();
 
