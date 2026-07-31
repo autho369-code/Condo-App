@@ -74,6 +74,7 @@ async function main() {
   await removeByIds('board_approval_settings', associationIds)
   await removeByIds('board_members', ['36900000-0000-4000-8100-000000000094', '36900000-0000-4000-8100-000000000096'])
   await removeByIds('platform_operators', ['36900000-0000-4000-8100-000000000095'])
+  await removeByIds('occupancies', ['36900000-0000-4000-8100-000000000097', '36900000-0000-4000-8200-000000000098'])
   await removeByIds('unit_owners', ['36900000-0000-4000-8100-000000000091', '36900000-0000-4000-8200-000000000092'])
   await removeByIds('vendors', vendorIds)
   await removeByIds('owners', ownerIds)

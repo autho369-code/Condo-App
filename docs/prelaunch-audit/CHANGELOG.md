@@ -17,6 +17,13 @@
 - Added one-hour signed links for generated documents while failing closed for invalid or legacy-unscoped storage paths.
 - Rendered and inspected a four-page representative PDF: association branding repeats on continuation pages, normal paragraphs stay together, footers show page X of Y, and text extraction preserved the title, association, and final section.
 
+## 2026-07-30 — owner communications checkpoint
+
+- Replaced the owner portal's service-role insert/queue path with one authenticated, security-definer transaction that derives portfolio and association from the active owner occupancy.
+- Added bounded subject/body validation, double-submit idempotency, a durable 10-messages-per-hour owner limit, management-recipient priority/fallback, escaped email content, full owner-readable message history, and a queue-to-log audit link.
+- Corrected the resident history policy to compare `communications_log.sender_id` with `auth.uid()` rather than the unrelated owner-row UUID.
+- Applied migration `20260730002000` only to staging. Owner A/Owner B tenant isolation, Vendor A rejection, exact queue traceability, replay idempotency, body history, and rejection of message 11 within an hour all passed; the verifier removed its messages and queue rows afterward.
+
 ## 2026-07-27
 
 - Created `audit/portier369-prelaunch-verification` from the release-readiness branch without pushing to `main`.

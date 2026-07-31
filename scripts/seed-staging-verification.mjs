@@ -106,6 +106,10 @@ async function main() {
     { id: account(1, 91), unit_id: ids.unitA, owner_id: ids.ownerA, is_primary: true, share_pct: 100 },
     { id: account(2, 92), unit_id: ids.unitB, owner_id: ids.ownerB, is_primary: true, share_pct: 100 },
   ])
+  await upsert('occupancies', [
+    { id: account(1, 97), association_id: ids.associationA, unit_id: ids.unitA, owner_id: ids.ownerA, occupancy_type: 'owner', status: 'current', is_primary: true, share_pct: 100 },
+    { id: account(2, 98), association_id: ids.associationB, unit_id: ids.unitB, owner_id: ids.ownerB, occupancy_type: 'owner', status: 'current', is_primary: true, share_pct: 100 },
+  ])
   await upsert('association_assignments', [{ id: account(1, 93), association_id: ids.associationA, portfolio_id: ids.portfolioA, manager_id: managerA.id, assigned_by: adminA.id, role: 'manager' }])
 
   const templates = [
