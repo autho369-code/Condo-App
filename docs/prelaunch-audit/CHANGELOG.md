@@ -1,5 +1,13 @@
 # Audit branch changelog
 
+## 2026-07-31 — live identity and document-storage checkpoint
+
+- Added a reversible live stale-session verifier and proved immediate database authorization revocation for Platform Operator, Company Admin, Manager, Board, Owner, and Vendor while each already-issued access token remained active; every profile was restored and re-authenticated.
+- Added a live API-boundary verifier: anonymous and manager clients cannot execute service-only report functions; Manager A and Company Admin A cannot mutate tenant B; Board cannot mutate its association; Owner cannot alter charges; Vendor cannot alter payables.
+- Found that every document workflow depended on an `association-documents` bucket that was absent from all migrations and staging. Added an idempotent private 25 MB MIME-restricted bucket migration and applied it only to staging.
+- Proved a signed PDF upload/download succeeds while public reads, unsigned uploads, and executable MIME uploads are denied; temporary verification objects are removed in `finally`.
+- Replayed all 188 migrations from an empty local database and passed 166 tests across 50 files, TypeScript, lint without errors, route/dashboard checks, migration validation, secret scanning, and the production build.
+
 ## 2026-07-31 — role-browser report storage checkpoint
 
 - Restored the staging browser-test boundary by replacing empty branch-specific Vercel Preview Supabase variables with staging-only values; production configuration and data were not changed.
@@ -7,7 +15,7 @@
 - Browser execution found that PDF report runs failed after generation because the private `reports` storage bucket existed only as manual environment state. Added an idempotent migration for a private, 20 MB, MIME-restricted report bucket and made signed-URL failures explicit instead of recording a false success.
 - Replayed the manager Balance Sheet export after the migration, downloaded a 12,113-byte `%PDF-` output through its private signed URL, verified board financials/delinquencies, owner ledger/communications, vendor payments/work orders, and confirmed five higher-privilege direct-URL attempts redirect to the correct role home.
 - Rebased the release audit documents on current staging evidence while retaining a production `NO-GO` for recovery, provider, report-reconciliation, and adversarial authorization/storage gates.
-- Reset the local Supabase database with seeding disabled and replayed all 187 migrations successfully from an empty database.
+- Reset the local Supabase database with seeding disabled and replayed all then-current migrations successfully from an empty database.
 - Confirmed Owner, Vendor, and Board cannot open a manager report-run ID; Manager A receives 404 for Association/Owner/Vendor B IDs; Company Admin A is redirected to its own role home for those manager routes; and a direct public-bucket URL cannot retrieve the private report object.
 
 ## 2026-07-31 — placeholder removal checkpoint

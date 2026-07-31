@@ -43,7 +43,7 @@ Production was inspected read-only. “Fixed in branch” means source and regre
 - Impact: a disabled user could retain access until normal session expiry.
 - Fix: Auth admin ban/unban, application sign-out guard, and database role helpers that fail closed for disabled identities.
 - Fix status: fixed in app code and migration `20260728092000_disabled_identity_enforcement.sql`.
-- Test status: unit/static tests pass in CI; live stale-session test pending staging users.
+- Test status: unit/static tests pass; live already-issued-token revocation passes for Operator, Company Admin, Manager, Board, Owner, and Vendor, with profile restoration and re-authentication verified.
 
 ## SEC-005 — High — Queued report association IDOR
 
@@ -63,7 +63,7 @@ Production was inspected read-only. “Fixed in branch” means source and regre
 - Impact: skipped controls, out-of-order destructive SQL, schema drift, or failed recovery.
 - Fix: recover exact applied history, preserve checksums/order, produce a reviewed forward-only baseline, and replay from empty staging.
 - Fix status: fixed in the stabilization branch; no production mutation performed.
-- Test status: strict validation passes for 187 unique valid versions, linked staging is current, and an empty local database replay applies the entire chain successfully.
+- Test status: strict validation passes for 188 unique valid versions, linked staging is current, and an empty local database replay applies the entire chain successfully.
 
 ## SEC-007 — Medium — Broad permissive production policies remain until hardening is deployed
 

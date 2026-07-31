@@ -8,21 +8,23 @@ Audit status: active as of 2026-07-31. Branch: `codex/portier369-stabilization`.
 
 ## Verified strengths
 
-- The local release gate passes 164 tests across 49 files, TypeScript, route/dashboard audits, migration validation, secret scanning, and the production build. Lint has six existing non-blocking warnings and no errors.
-- All 187 repository migrations have valid unique versions, replay successfully from an empty local database, linked staging is current, and reversible two-association fixtures are available.
+- The local release gate passes 166 tests across 50 files, TypeScript, route/dashboard audits, migration validation, secret scanning, and the production build. Lint has six existing non-blocking warnings and no errors.
+- All 188 repository migrations have valid unique versions, replay successfully from an empty local database, linked staging is current, and reversible two-association fixtures are available.
 - Staging role/RLS checks pass for Platform Operator, Company Admin A/B, Manager, Board, Owner A/B, and Vendor A/B.
 - Six isolated authenticated browser personas reach the correct role homes. Five higher-privilege direct-URL attempts redirect to the correct lower-privilege home.
 - Cross-tenant Manager A IDs return 404, Company Admin A cannot enter manager routes for tenant B, lower-privilege personas cannot open a manager report run, and the private report object is unavailable through a public-bucket URL.
+- Live stale-token tests revoke every capability and protected portfolio read immediately for all six personas. Live API tests deny anonymous/authenticated service-only report calls and forbidden Manager, Company Admin, Board, Owner, and Vendor mutations.
 - Board financials/delinquencies, owner ledger/communications, vendor payments/work orders, manager bills, and Company Admin manager assignment render real scoped staging data.
 - A manager Balance Sheet reconciled at $17,400 assets and $17,400 liabilities/equity. Its queued PDF completed, downloaded through a private signed URL, and was validated as a real PDF.
 - Payable approvals/check printing, durable communications, queued email processing, scheduled deliveries, retry/recovery behavior, and placeholder removal have passing automated/staging evidence.
+- The private `association-documents` bucket is now migration-managed; signed PDF upload/download passes while public read, unsigned upload, and executable MIME attacks fail closed.
 
 ## Remaining production blockers
 
 - Prove production backup restore/rollback against a disposable environment.
 - Complete Stripe Connect and Plaid test-mode execution with accounting and idempotency tie-outs.
 - Reconcile every supported report/export to controlled journal fixtures; keep catalog-only reports visibly unavailable until audited.
-- Complete direct-ID/API/storage/stale-session attack tests and signed-output retention/expiry verification.
+- Complete invitation/reset abuse, signed-output retention/expiry, and per-workflow signed-upload cross-entity verification.
 - Validate production cron, monitoring, rate limits, notification suppression, and environment configuration without exposing secrets.
 
 ## Controlled release sequence
