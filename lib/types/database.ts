@@ -6001,6 +6001,7 @@ export type Database = {
       }
       email_queue: {
         Row: {
+          attempt_count: number
           communication_message_id: string | null
           association_id: string | null
           body: string
@@ -6010,8 +6011,11 @@ export type Database = {
           from_name: string | null
           id: string
           idempotency_key: string | null
+          next_attempt_at: string
           notice_id: string | null
           portfolio_id: string | null
+          processing_at: string | null
+          provider_message_id: string | null
           reply_to: string | null
           sent_at: string | null
           sent_by: string | null
@@ -6022,6 +6026,7 @@ export type Database = {
           to_name: string | null
         }
         Insert: {
+          attempt_count?: number
           communication_message_id?: string | null
           association_id?: string | null
           body: string
@@ -6031,8 +6036,11 @@ export type Database = {
           from_name?: string | null
           id?: string
           idempotency_key?: string | null
+          next_attempt_at?: string
           notice_id?: string | null
           portfolio_id?: string | null
+          processing_at?: string | null
+          provider_message_id?: string | null
           reply_to?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -6043,6 +6051,7 @@ export type Database = {
           to_name?: string | null
         }
         Update: {
+          attempt_count?: number
           communication_message_id?: string | null
           association_id?: string | null
           body?: string
@@ -6052,8 +6061,11 @@ export type Database = {
           from_name?: string | null
           id?: string
           idempotency_key?: string | null
+          next_attempt_at?: string
           notice_id?: string | null
           portfolio_id?: string | null
+          processing_at?: string | null
+          provider_message_id?: string | null
           reply_to?: string | null
           sent_at?: string | null
           sent_by?: string | null

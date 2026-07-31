@@ -4,6 +4,10 @@
   "buildCommand": "npm run build",
   "crons": [
     {
+      "path": "/api/email/process-queue",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/maintenance/send-reminders",
       "schedule": "0 13 * * *"
     },

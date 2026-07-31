@@ -33,6 +33,7 @@
     "verify:staging:payable-approvals": "node scripts/verify-staging-payable-approvals.mjs",
     "verify:staging:owner-communications": "node scripts/verify-staging-owner-communications.mjs",
     "verify:staging:staff-communications": "node scripts/verify-staging-staff-communications.mjs",
+    "verify:staging:email-worker": "node scripts/verify-staging-email-worker.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

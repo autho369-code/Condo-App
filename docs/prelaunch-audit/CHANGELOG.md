@@ -1,5 +1,11 @@
 # Audit branch changelog
 
+## 2026-07-30 — durable email worker checkpoint
+
+- Added the missing Vercel email-queue worker and one-minute Pro cron schedule; the old repository only referenced a Supabase Edge Function that was not present, so queued mail had no verifiable delivery path.
+- Added service-role-only atomic claims with stale-claim recovery, four-way bounded processing, deterministic Resend idempotency keys, exponential retry delays, a five-attempt ceiling, provider IDs, and communication-message completion/failure reconciliation.
+- Applied migration `20260730004000` only to staging. Non-service access, double claims, retry timing, two-recipient completion, terminal failure, and sixth-attempt rejection all passed without sending external email; temporary verification rows were removed.
+
 ## 2026-07-30 — staff communication delivery checkpoint
 
 - Replaced direct staff-letter Resend calls with the shared durable email queue, server-side recipient/template/tenant validation, conservative HTML-to-text normalization, and per-request idempotency.
