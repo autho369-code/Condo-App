@@ -5,6 +5,8 @@
 - Restored the staging browser-test boundary by replacing empty branch-specific Vercel Preview Supabase variables with staging-only values; production configuration and data were not changed.
 - Verified manager, platform-operator, company-admin, board, owner, and vendor login routing in isolated browser sessions with tenant-scoped staging data and no page errors.
 - Browser execution found that PDF report runs failed after generation because the private `reports` storage bucket existed only as manual environment state. Added an idempotent migration for a private, 20 MB, MIME-restricted report bucket and made signed-URL failures explicit instead of recording a false success.
+- Replayed the manager Balance Sheet export after the migration, downloaded a 12,113-byte `%PDF-` output through its private signed URL, verified board financials/delinquencies, owner ledger/communications, vendor payments/work orders, and confirmed five higher-privilege direct-URL attempts redirect to the correct role home.
+- Rebased the release audit documents on current staging evidence while retaining a production `NO-GO` for recovery, provider, report-reconciliation, and adversarial authorization/storage gates.
 
 ## 2026-07-31 — placeholder removal checkpoint
 
