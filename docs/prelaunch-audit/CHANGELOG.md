@@ -7,6 +7,8 @@
 - Browser execution found that PDF report runs failed after generation because the private `reports` storage bucket existed only as manual environment state. Added an idempotent migration for a private, 20 MB, MIME-restricted report bucket and made signed-URL failures explicit instead of recording a false success.
 - Replayed the manager Balance Sheet export after the migration, downloaded a 12,113-byte `%PDF-` output through its private signed URL, verified board financials/delinquencies, owner ledger/communications, vendor payments/work orders, and confirmed five higher-privilege direct-URL attempts redirect to the correct role home.
 - Rebased the release audit documents on current staging evidence while retaining a production `NO-GO` for recovery, provider, report-reconciliation, and adversarial authorization/storage gates.
+- Reset the local Supabase database with seeding disabled and replayed all 187 migrations successfully from an empty database.
+- Confirmed Owner, Vendor, and Board cannot open a manager report-run ID; Manager A receives 404 for Association/Owner/Vendor B IDs; Company Admin A is redirected to its own role home for those manager routes; and a direct public-bucket URL cannot retrieve the private report object.
 
 ## 2026-07-31 — placeholder removal checkpoint
 
