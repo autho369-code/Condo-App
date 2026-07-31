@@ -5,12 +5,18 @@ import { describe, expect, it } from 'vitest';
 describe('company administrator manager lifecycle', () => {
   const actions = readFileSync(resolve(process.cwd(), 'app/company-admin/managers/actions.ts'), 'utf8');
   const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731005000_atomic_manager_access_scope.sql'), 'utf8');
+  const invitationMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731010000_secure_manager_invitations.sql'), 'utf8');
 
   it('queues activation email and rolls back an unusable invitation', () => {
     expect(actions).toContain('manager-invitation:');
     expect(actions).toContain('queueEmails(svc');
     expect(actions).toContain("from('user_invitations').delete().eq('id', invitationId)");
-    expect(actions).toContain('scopeError');
+    expect(actions).toContain("rpc('create_manager_invitation'");
+    expect(actions).toContain('p_association_ids: associationIds');
+    expect(invitationMigration).toContain("jsonb_build_object('email_delivery', 'application')");
+    expect(invitationMigration).toContain("new.metadata ->> 'email_delivery' = 'application'");
+    expect(invitationMigration).toContain("role.name = 'Property Manager'");
+    expect(invitationMigration).toContain("raise exception 'One or more associations are outside your portfolio'");
   });
 
   it('keeps reassignment atomic and tenant-scoped', () => {

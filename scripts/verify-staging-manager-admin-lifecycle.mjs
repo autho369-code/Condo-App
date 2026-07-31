@@ -32,6 +32,8 @@ async function assignments(userId) {
 
 async function main() {
   const startedAt = new Date().toISOString()
+  const inviteEmail = `codex_test.manager.invite.${Date.now()}@portier369.invalid`
+  let invitationId = null
   const [{ data: managerA }, { data: foreignProfile }] = await Promise.all([
     service.from('profiles').select('id').eq('email', 'codex_test.manager.a@portier369.invalid').single(),
     service.from('profiles').select('id').eq('email', 'codex_test.admin.b@portier369.invalid').single(),
@@ -42,6 +44,53 @@ async function main() {
   const ordinaryManager = await signIn('codex_test.manager.a@portier369.invalid')
 
   try {
+    const invited = await adminA.rpc('create_manager_invitation', {
+      p_email: inviteEmail,
+      p_association_ids: [ids.associationA, ids.associationA],
+      p_message: 'Automated staging lifecycle verification',
+    })
+    if (invited.error) throw invited.error
+    invitationId = invited.data?.invitation_id
+    assert(typeof invitationId === 'string', 'Manager invitation did not return an invitation ID')
+    assert(JSON.stringify(invited.data.association_ids) === JSON.stringify([ids.associationA]), 'Invitation association IDs were not normalized')
+
+    const { data: invitation, error: invitationError } = await service.from('user_invitations')
+      .select('id, email, hoa_role, role_id, association_ids, metadata')
+      .eq('id', invitationId).single()
+    if (invitationError) throw invitationError
+    assert(invitation.email === inviteEmail, 'Manager invitation email was not normalized')
+    assert(invitation.hoa_role === 'manager', 'Manager invitation has the wrong portal role')
+    assert(JSON.stringify(invitation.association_ids) === JSON.stringify([ids.associationA]), 'Manager invitation scope was not persisted')
+    assert(invitation.metadata?.email_delivery === 'application', 'Manager invitation did not select application email delivery')
+
+    const { data: invitationRole, error: roleError } = await service.from('user_roles')
+      .select('name, is_system').eq('id', invitation.role_id).single()
+    if (roleError) throw roleError
+    assert(invitationRole.name === 'Property Manager' && invitationRole.is_system, 'Manager invitation did not resolve the canonical system role')
+
+    const { count: automaticEmailCount, error: automaticEmailError } = await service.from('email_queue')
+      .select('id', { count: 'exact', head: true }).eq('to_email', inviteEmail)
+    if (automaticEmailError) throw automaticEmailError
+    assert(automaticEmailCount === 0, 'Database trigger queued a duplicate manager invitation email')
+
+    const duplicateInvite = await adminA.rpc('create_manager_invitation', {
+      p_email: inviteEmail,
+      p_association_ids: [ids.associationA],
+    })
+    assert(duplicateInvite.error?.message?.includes('pending manager invitation'), 'Duplicate pending manager invitation was allowed')
+
+    const foreignInvite = await adminA.rpc('create_manager_invitation', {
+      p_email: `codex_test.manager.foreign.${Date.now()}@portier369.invalid`,
+      p_association_ids: [ids.associationB],
+    })
+    assert(foreignInvite.error?.message?.includes('outside your portfolio'), 'Company Admin could invite a manager into a foreign association')
+
+    const managerInviteAttempt = await ordinaryManager.rpc('create_manager_invitation', {
+      p_email: `codex_test.manager.denied.${Date.now()}@portier369.invalid`,
+      p_association_ids: [ids.associationA],
+    })
+    assert(managerInviteAttempt.error?.message?.includes('company administrator'), 'Ordinary manager could create a manager invitation')
+
     const scoped = await adminA.rpc('set_manager_association_scope', {
       p_manager_id: managerA.id,
       p_association_ids: [ids.associationA, ids.associationA],
@@ -77,9 +126,11 @@ async function main() {
     if (restored.error) throw restored.error
     assert(JSON.stringify(await assignments(managerA.id)) === JSON.stringify(originalA), 'Manager A assignments were not restored')
 
-    console.log('Company Admin atomic manager scope, duplicate normalization, tenant denial, role denial, and restoration: PASS')
+    console.log('Company Admin invite, email ownership, atomic scope, duplicate normalization, tenant denial, role denial, and restoration: PASS')
   } finally {
     await Promise.all([adminA.auth.signOut(), ordinaryManager.auth.signOut()])
+    await service.from('email_queue').delete().eq('to_email', inviteEmail)
+    await service.from('user_invitations').delete().eq('email', inviteEmail)
     await service.from('audit_logs').delete()
       .eq('action', 'manager_association_scope_updated')
       .eq('entity_id', managerA.id)

@@ -112,7 +112,6 @@ export default async function CompanyAdminManagersPage({
         <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-2">
             <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 flex-1" aria-label="Manager email" />
-            <input type="hidden" name="role_name" value="Property Manager" />
             <Button type="submit" className="gap-2"><UserPlus className="h-4 w-4" /> Invite</Button>
           </div>
           {(portfolioAssocs ?? []).length > 0 && (

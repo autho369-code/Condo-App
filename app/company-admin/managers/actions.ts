@@ -14,7 +14,6 @@ import { siteUrl } from '@/lib/url/site-url'
 export async function inviteManager(formData: FormData) {
   const me = await requirePortfolioAdmin()
   const email = (formData.get('email') as string)?.trim().toLowerCase()
-  const roleName = (formData.get('role_name') as string) || 'Property Manager'
   const associationIds = (formData.getAll('association_ids') as string[]).filter(Boolean)
 
   const fail = (msg: string): never => redirect('/company-admin/managers?error=' + encodeURIComponent(msg))
@@ -22,10 +21,9 @@ export async function inviteManager(formData: FormData) {
   if (!me.portfolio?.id) fail('Your account is not linked to a portfolio.')
 
   const supabase = await createClient()
-  const { data: result, error } = await (supabase as any).rpc('invite_staff', {
-    p_portfolio_id: me.portfolio!.id,
+  const { data: result, error } = await (supabase as any).rpc('create_manager_invitation', {
     p_email: email,
-    p_role_name: roleName,
+    p_association_ids: associationIds,
     p_message: `You have been invited to manage associations for ${me.portfolio?.company_name ?? 'your company'}. Your operating document (Manager Runbook): https://portier369.com/manuals/Portier369-Manager-Runbook.pdf`,
   })
   if (error) fail(error.message)
@@ -37,19 +35,6 @@ export async function inviteManager(formData: FormData) {
   }
 
   const svc = createServiceClient() as any
-
-  // invite_staff returns the new invitation id; stamp the chosen associations on
-  // it so the acceptance trigger scopes the manager to them.
-  if (associationIds.length > 0) {
-    const { error: scopeError } = await svc
-      .from('user_invitations')
-      .update({ association_ids: associationIds })
-      .eq('id', invitationId)
-    if (scopeError) {
-      await svc.from('user_invitations').delete().eq('id', invitationId)
-      fail(`Could not save the manager's property access: ${scopeError.message}`)
-    }
-  }
 
   const companyName = me.portfolio.company_name ?? 'your management company'
   const inviteUrl = `${siteUrl()}/invite?token=${encodeURIComponent(token as string)}`
