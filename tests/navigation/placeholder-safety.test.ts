@@ -20,10 +20,14 @@ describe('placeholder safety', () => {
 
   it('does not expose dead association task anchors', () => {
     const associationPanel = source('app/(app)/associations/_panel.tsx');
+    const contextPanel = source('components/workspace/context-panel.tsx');
 
     expect(associationPanel).not.toMatch(/href="#/);
     expect(associationPanel).toContain('href="/reports/monthly-package"');
     expect(associationPanel).toContain('href="/reports/bulk-association"');
+    expect(contextPanel).not.toContain('PLACEHOLDER_HREFS');
+    expect(contextPanel).not.toContain("href.startsWith('/help/')");
+    expect(contextPanel).not.toContain('Decorative close');
   });
 
   it('does not fabricate letter merge values', () => {
