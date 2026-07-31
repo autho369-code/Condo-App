@@ -43,6 +43,9 @@ async function createQueue(messageId, suffix, attemptCount = 0) {
     subject: 'CODEX_TEST worker', body: '<p>Worker verification</p>', status: 'pending',
     from_address: 'hello@portier369.com', from_name: 'CODEX_TEST Alpha',
     idempotency_key: `codex-test-worker-${id}`, attempt_count: attemptCount,
+    // Put verification rows ahead of any legitimate staging delivery without
+    // changing or claiming that legitimate work.
+    next_attempt_at: '2000-01-01T00:00:00.000Z',
   })
   if (error) throw error
   queueIds.push(id)
@@ -53,16 +56,29 @@ async function main() {
   const denied = await anon.rpc('claim_email_queue', { p_limit: 1 })
   assert(denied.error, 'Anonymous caller could claim email work')
 
+  const { count: preexistingDue, error: dueCountError } = await service
+    .from('email_queue')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['pending', 'failed'])
+    .lt('attempt_count', 5)
+    .lte('next_attempt_at', new Date().toISOString())
+    .is('processing_at', null)
+  if (dueCountError) throw dueCountError
+
   const message = await createMessage('CODEX_TEST successful multi-recipient delivery')
   const firstId = await createQueue(message, 'first')
   const secondId = await createQueue(message, 'second')
   const { data: claimed, error: claimError } = await service.rpc('claim_email_queue', { p_limit: 2 })
   if (claimError) throw claimError
-  assert(claimed.length === 2 && claimed.every((row) => row.attempt_count === 1 && row.processing_at), 'Due rows were not atomically claimed')
+  const claimedIds = new Set(claimed.map((row) => row.id))
+  assert(claimed.length === 2 && claimedIds.has(firstId) && claimedIds.has(secondId)
+    && claimed.every((row) => row.attempt_count === 1 && row.processing_at), 'Verification rows were not atomically claimed')
 
-  const secondClaim = await service.rpc('claim_email_queue', { p_limit: 2 })
-  if (secondClaim.error) throw secondClaim.error
-  assert(secondClaim.data.length === 0, 'Already-processing rows were claimed twice')
+  if (preexistingDue === 0) {
+    const secondClaim = await service.rpc('claim_email_queue', { p_limit: 2 })
+    if (secondClaim.error) throw secondClaim.error
+    assert(secondClaim.data.length === 0, 'Already-processing rows were claimed twice')
+  }
 
   const failed = await service.rpc('fail_email_delivery', { p_email_id: firstId, p_error: 'CODEX_TEST transient failure' })
   if (failed.error) throw failed.error
