@@ -1,5 +1,12 @@
 # Audit branch changelog
 
+## 2026-07-30 — staff communication delivery checkpoint
+
+- Replaced direct staff-letter Resend calls with the shared durable email queue, server-side recipient/template/tenant validation, conservative HTML-to-text normalization, and per-request idempotency.
+- Added an authenticated atomic communication-center queue RPC with a 500-recipient bound, deterministic per-message/per-recipient keys, queue-to-message traceability, and honest `queued` status until delivery is confirmed.
+- Applied migration `20260730003000` only to staging. Vendor access, invalid recipients, cross-tenant dispatch, duplicate recipients, and replay attempts were rejected or deduplicated as intended; queue attribution and pending delivery state were verified and temporary rows were removed.
+- Confirmed the preceding owner-communications checkpoint passed GitHub CI and Vercel preview deployment.
+
 ## 2026-07-30 — payable approval checkpoint
 
 - Removed direct authenticated bill mutations and introduced finance-guarded creation, submission, approval, and void RPC boundaries.

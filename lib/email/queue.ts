@@ -28,6 +28,8 @@ export interface QueuedEmail {
   noticeId?: string | null;
   templateId?: string | null;
   sentBy?: string | null;
+  communicationMessageId?: string | null;
+  idempotencyKey?: string | null;
 }
 
 function escapeHtml(s: string): string {
@@ -36,6 +38,31 @@ function escapeHtml(s: string): string {
 
 export function textToHtml(text: string): string {
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;white-space:pre-wrap;line-height:1.6;color:#111827">${escapeHtml(text)}</div>`;
+}
+
+/**
+ * Convert browser-authored rich text to plain text before rebuilding safe email
+ * HTML. The API must not trust client-side DOMPurify output because callers can
+ * invoke route handlers directly.
+ */
+export function richTextToPlainText(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n\n')
+    .replace(/<\/div\s*>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<\/li\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 /** Build a single email_queue row with the correct columns + verified sender. */
@@ -54,6 +81,8 @@ export function emailQueueRow(e: QueuedEmail) {
     notice_id: e.noticeId ?? null,
     template_id: e.templateId ?? null,
     sent_by: e.sentBy ?? null,
+    communication_message_id: e.communicationMessageId ?? null,
+    idempotency_key: e.idempotencyKey ?? null,
   };
 }
 

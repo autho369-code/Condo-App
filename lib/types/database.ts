@@ -6001,6 +6001,7 @@ export type Database = {
       }
       email_queue: {
         Row: {
+          communication_message_id: string | null
           association_id: string | null
           body: string
           created_at: string
@@ -6008,6 +6009,7 @@ export type Database = {
           from_address: string | null
           from_name: string | null
           id: string
+          idempotency_key: string | null
           notice_id: string | null
           portfolio_id: string | null
           reply_to: string | null
@@ -6020,6 +6022,7 @@ export type Database = {
           to_name: string | null
         }
         Insert: {
+          communication_message_id?: string | null
           association_id?: string | null
           body: string
           created_at?: string
@@ -6027,6 +6030,7 @@ export type Database = {
           from_address?: string | null
           from_name?: string | null
           id?: string
+          idempotency_key?: string | null
           notice_id?: string | null
           portfolio_id?: string | null
           reply_to?: string | null
@@ -6039,6 +6043,7 @@ export type Database = {
           to_name?: string | null
         }
         Update: {
+          communication_message_id?: string | null
           association_id?: string | null
           body?: string
           created_at?: string
@@ -6046,6 +6051,7 @@ export type Database = {
           from_address?: string | null
           from_name?: string | null
           id?: string
+          idempotency_key?: string | null
           notice_id?: string | null
           portfolio_id?: string | null
           reply_to?: string | null

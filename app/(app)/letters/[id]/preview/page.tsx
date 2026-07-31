@@ -31,6 +31,11 @@ export default function PreviewLetterPage() {
   const [emailTo, setEmailTo] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailRequestKey, setEmailRequestKey] = useState('');
+
+  useEffect(() => {
+    setEmailRequestKey(crypto.randomUUID());
+  }, []);
 
   // Load template
   useEffect(() => {
@@ -169,13 +174,15 @@ export default function PreviewLetterPage() {
   }
 
   async function handleSendEmail() {
-    if (!emailTo.trim()) return;
+    if (!emailTo.trim() || !emailRequestKey) return;
     setSending(true);
     const res = await fetch('/api/letters/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         templateId: id,
+        associationId: selectedAssocId || null,
+        requestKey: emailRequestKey,
         to: emailTo.trim(),
         subject: mergedSubject,
         // Re-sanitize at the moment of use so a same-tick click cannot race
@@ -189,6 +196,7 @@ export default function PreviewLetterPage() {
     } else {
       setSent(true);
       setShowEmail(false);
+      setEmailRequestKey(crypto.randomUUID());
     }
     setSending(false);
   }
