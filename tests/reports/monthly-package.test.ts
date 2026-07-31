@@ -5,6 +5,7 @@ describe('monthly financial package PDF', () => {
   it('creates a cover plus one section per financial statement', () => {
     const pdf = generateMonthlyFinancialPackagePdf({
       associationName: 'Harbor View HOA',
+      companyName: 'Harbor Management',
       dateFrom: '2026-06-01',
       dateTo: '2026-06-30',
       sections: [
@@ -15,6 +16,19 @@ describe('monthly financial package PDF', () => {
     expect(Buffer.from(pdf.subarray(0, 4)).toString()).toBe('%PDF');
     expect(pdf.byteLength).toBeGreaterThan(4_000);
     expect(Buffer.from(pdf).toString('latin1')).toContain('/Count 3');
+  });
+
+  it('formats financial values and uses management-company branding', () => {
+    const pdf = generateMonthlyFinancialPackagePdf({
+      associationName: 'Harbor View HOA',
+      companyName: 'Harbor Management',
+      dateFrom: '2026-06-01',
+      dateTo: '2026-06-30',
+      sections: [{ title: 'Balance Sheet', rows: [{ Account: 'Cash', Amount: 1234.5 }] }],
+    });
+    const source = Buffer.from(pdf).toString('latin1');
+    expect(source).not.toContain('Portier369');
+    expect(pdf.byteLength).toBeGreaterThan(4_000);
   });
 
   it('compacts a wide annual budget export to the selected month and YTD values', () => {

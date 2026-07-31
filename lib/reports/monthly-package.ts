@@ -58,18 +58,39 @@ function humanize(value: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
-function cell(value: unknown): string {
+function categorical(value: string): string {
+  const labels: Record<string, string> = {
+    current: 'Current',
+    '1_30': '1-30 days',
+    '31_60': '31-60 days',
+    '61_90': '61-90 days',
+    '90_plus': '90+ days',
+  };
+  return labels[value] ?? humanize(value);
+}
+
+const MONEY_COLUMN = /(?:debit|credit|balance|amount|paid|variance|current|\d+-\d+ days|90\+ days|delinquent|budget|actual|charged|difference)/i;
+
+function cell(key: string, value: unknown): string {
   if (value == null) return '';
+  if (typeof value === 'number' && MONEY_COLUMN.test(key)) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  }
+  if (typeof value === 'string' && /^(?:section|category|type|status|aging bucket)$/i.test(key)) {
+    return categorical(value);
+  }
+  if (typeof value === 'string' && /^completed at$/i.test(key)) return value.slice(0, 10);
   return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
 export function generateMonthlyFinancialPackagePdf(options: {
   associationName: string;
+  companyName?: string | null;
   dateFrom: string;
   dateTo: string;
   sections: MonthlyPackageSection[];
 }): Uint8Array {
-  const { associationName, dateFrom, dateTo, sections } = options;
+  const { associationName, companyName, dateFrom, dateTo, sections } = options;
   const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
 
   doc.setFont('helvetica', 'bold');
@@ -82,7 +103,7 @@ export function generateMonthlyFinancialPackagePdf(options: {
   doc.text(`${dateFrom} through ${dateTo}`, 396, 246, { align: 'center' });
   doc.setFontSize(9);
   doc.text('Balance sheet, income statement, budget variance, receivables, delinquencies, payables, and bank reconciliation', 396, 282, { align: 'center' });
-  doc.text('Generated from posted Portier369 accounting data', 396, 300, { align: 'center' });
+  doc.text(`Prepared by ${companyName?.trim() || 'Management Company'}`, 396, 300, { align: 'center' });
   doc.setDrawColor(40, 55, 75);
   doc.line(150, 320, 642, 320);
   doc.setFont('helvetica', 'bold');
@@ -96,8 +117,11 @@ export function generateMonthlyFinancialPackagePdf(options: {
     const sectionStartPage = doc.getNumberOfPages();
     const keys = section.rows.length ? [...new Set(section.rows.flatMap((row) => Object.keys(row)))] : ['result'];
     const body = section.rows.length
-      ? section.rows.map((row) => keys.map((key) => cell(row[key])))
+      ? section.rows.map((row) => keys.map((key) => cell(key, row[key])))
       : [['No data for this period']];
+    const columnStyles = Object.fromEntries(keys.flatMap((key, index) =>
+      MONEY_COLUMN.test(key) ? [[index, { halign: 'right' as const }]] : [],
+    ));
     autoTable(doc, {
       head: [keys.map(humanize)],
       body,
@@ -106,6 +130,7 @@ export function generateMonthlyFinancialPackagePdf(options: {
       styles: { fontSize: 6.5, cellPadding: 3, overflow: 'linebreak' },
       headStyles: { fillColor: [31, 41, 55], fontSize: 6.5 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles,
     });
     const sectionEndPage = doc.getNumberOfPages();
     for (let pageNumber = sectionStartPage; pageNumber <= sectionEndPage; pageNumber += 1) {

@@ -1,7 +1,7 @@
 'use client';
 
 // Platform-wide export system: Print / CSV / branded PDF for any tabular
-// surface. White-glove: exports carry the management company + context —
+// surface. White-glove: exports carry the management company + context -
 // never Portier369. Used across manager lists, board financials, and owner
 // pages; pass pre-rendered cell strings from the server component so the
 // export matches exactly what is on screen.
@@ -47,7 +47,7 @@ export function ExportActions({
     const lines: string[] = [];
     lines.push(documentTitle);
     if (subtitle) lines.push(subtitle);
-    lines.push(`${companyName} — generated ${stamp}`);
+    lines.push(`${companyName} - generated ${stamp}`);
     for (const t of tables) {
       lines.push('');
       if (t.title) lines.push(t.title.toUpperCase());
@@ -75,7 +75,7 @@ export function ExportActions({
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(90);
     if (subtitle) doc.text(subtitle, 14, 25);
-    doc.text(`${companyName} · Generated ${stamp}`, 14, subtitle ? 30 : 25);
+    doc.text(`${companyName} - Generated ${stamp}`, 14, subtitle ? 30 : 25);
     doc.setTextColor(0);
 
     let y = subtitle ? 36 : 31;

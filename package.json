@@ -28,6 +28,7 @@
     "db:seed:staging": "node scripts/seed-staging-verification.mjs",
     "db:cleanup:staging": "node scripts/cleanup-staging-verification.mjs",
     "verify:staging:reports": "npx --yes tsx scripts/verify-staging-reports.ts",
+    "verify:staging:monthly-pdf": "npx --yes tsx scripts/verify-staging-monthly-financial-pdf.ts",
     "verify:staging:roles": "node scripts/verify-staging-roles.mjs",
     "verify:staging:disabled-sessions": "node scripts/verify-staging-disabled-sessions.mjs",
     "verify:staging:storage": "node scripts/verify-staging-storage.mjs",

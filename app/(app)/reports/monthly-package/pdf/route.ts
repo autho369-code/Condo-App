@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: association, error: associationError } = await (supabase as any)
     .from('associations')
-    .select('id, name, portfolio_id')
+    .select('id, name, portfolio_id, portfolios(company_name)')
     .eq('id', associationId)
     .is('archived_at', null)
     .maybeSingle();
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
     ));
     const pdf = generateMonthlyFinancialPackagePdf({
       associationName: association.name,
+      companyName: association.portfolios?.company_name,
       dateFrom,
       dateTo,
       sections: SECTIONS.map(([slug, title], index) => ({
