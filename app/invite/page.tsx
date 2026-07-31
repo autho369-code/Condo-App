@@ -1,8 +1,10 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { queueEmails } from '@/lib/email/queue';
+import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,14 +13,6 @@ export const dynamic = 'force-dynamic';
 // service client after validating the token.
 
 const MIN_PASSWORD = 12;
-
-const ROLE_HOME: Record<string, string> = {
-  company_admin: '/company-admin',
-  manager: '/dashboard',
-  board: '/board',
-  owner: '/portal',
-  tenant: '/portal',
-};
 
 const ROLE_LABELS: Record<string, string> = {
   company_admin: 'Company Admin',
@@ -39,6 +33,12 @@ async function acceptInvite(formData: FormData) {
   if (password.length < MIN_PASSWORD) failTo(`Password must be at least ${MIN_PASSWORD} characters.`);
 
   const svc = createServiceClient() as any;
+  const requestHeaders = await headers();
+  const [sourceLimit, tokenLimit] = await Promise.all([
+    consumePublicRateLimit(svc, requestHeaders, { scope: 'invitation_accept_ip', windowSeconds: 3600, maxRequests: 20 }),
+    consumeScopedRateLimit(svc, token, { scope: 'invitation_accept_token', windowSeconds: 3600, maxRequests: 10 }),
+  ]);
+  if (!sourceLimit.allowed || !tokenLimit.allowed) failTo('Too many invitation attempts. Please try again later.');
 
   // Validate the invitation
   const { data: invite } = await svc
@@ -62,7 +62,7 @@ async function acceptInvite(formData: FormData) {
       data: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
     },
   });
-  if (createErr || !linkData?.properties?.action_link) failTo(createErr?.message ?? 'Could not create the verification link.');
+  if (createErr || !linkData?.properties?.action_link || !linkData.user?.id) failTo(createErr?.message ?? 'Could not create the verification link.');
 
   const queued = await queueEmails(svc, [{
     to: invite.email,
@@ -76,37 +76,25 @@ async function acceptInvite(formData: FormData) {
       'If you did not request this account, contact your management office.',
     ].join('\n'),
     portfolioId: invite.portfolio_id,
+    idempotencyKey: `invitation-verification:${invite.id}`,
   }]);
-  if (queued.error || queued.count !== 1) failTo(queued.error ?? 'Could not queue the verification email.');
+  if (queued.error || queued.count !== 1) {
+    // generateLink(type=signup) creates the Auth user, and the database trigger
+    // accepts the invitation immediately. If queueing fails, remove that new
+    // unverified identity first, then restore this invitation for a clean retry.
+    const { error: deleteError } = await svc.auth.admin.deleteUser(linkData.user.id);
+    if (deleteError) failTo('Account setup could not be completed safely. Contact support before trying again.');
+    const { data: restoredInvite, error: restoreError } = await svc.from('user_invitations').update({
+      status: 'pending',
+      used_at: null,
+      used_by: null,
+      accepted_at: null,
+    }).eq('id', invite.id).select('id').single();
+    if (restoreError || !restoredInvite) failTo('Account setup was rolled back, but the invitation could not be restored. Contact support.');
+    failTo(queued.error ?? 'Could not queue the verification email. Please try again.');
+  }
   redirect('/login?message=' + encodeURIComponent('Check your email to verify and activate your account.'));
 
-  // Sign them in with their new credentials (session client sets cookies)
-  const supabase = await createClient();
-  const { error: signInErr } = await supabase.auth.signInWithPassword({
-    email: invite.email,
-    password,
-  });
-  if (signInErr) failTo(signInErr?.message ?? 'Sign-in failed');
-
-  // Link the profile to the portfolio/role (the auth.users triggers normally do
-  // this already; this is a harmless retry).
-  const { error: acceptErr } = await (supabase as any).rpc('accept_invitation', { p_token: token });
-  if (acceptErr) {
-    console.error('accept_invitation error:', acceptErr);
-    // User is created and signed in — continue; profile linking can be retried by support
-  }
-
-  // Route by the account's ACTUAL resolved role, not the invitation's hoa_role.
-  // A vendor invite uses hoa_role 'owner' (no 'vendor' enum) but resolves a
-  // vendor_id, so it must land on /vendor, not /portal.
-  const { data: me } = await (supabase as any).rpc('me');
-  if (me?.is_platform_operator) redirect('/platform-operator');
-  if (me?.is_company_admin) redirect('/company-admin/overview');
-  if (me?.is_board) redirect('/board');
-  if (me?.is_staff || me?.is_full_access_staff) redirect('/dashboard');
-  if (me?.vendor_id) redirect('/vendor');
-  if (me?.owner_id) redirect('/portal');
-  redirect(ROLE_HOME[invite.hoa_role] ?? '/dashboard');
 }
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {

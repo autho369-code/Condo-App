@@ -6,7 +6,10 @@
 - Added a live API-boundary verifier: anonymous and manager clients cannot execute service-only report functions; Manager A and Company Admin A cannot mutate tenant B; Board cannot mutate its association; Owner cannot alter charges; Vendor cannot alter payables.
 - Found that every document workflow depended on an `association-documents` bucket that was absent from all migrations and staging. Added an idempotent private 25 MB MIME-restricted bucket migration and applied it only to staging.
 - Proved a signed PDF upload/download succeeds while public reads, unsigned uploads, and executable MIME uploads are denied; temporary verification objects are removed in `finally`.
-- Replayed all 188 migrations from an empty local database and passed 166 tests across 50 files, TypeScript, lint without errors, route/dashboard checks, migration validation, secret scanning, and the production build.
+- Proved signed upload capabilities are bound to their exact association path and short-lived signed download URLs expire.
+- Added durable IP/email reset limits and IP/token invitation-acceptance limits; removed unreachable post-redirect invitation code and made partial account creation roll back safely if verification-email queueing fails.
+- Added a live disposable manager-invitation verifier: profile and exact association assignment applied once, token replay and email mismatch were denied, and Auth/database cleanup was audited.
+- Replayed all 188 migrations from an empty local database and passed 168 tests across 51 files, TypeScript, lint without errors, route/dashboard checks, migration validation, secret scanning, and the production build.
 
 ## 2026-07-31 — role-browser report storage checkpoint
 

@@ -32,6 +32,7 @@
     "verify:staging:disabled-sessions": "node scripts/verify-staging-disabled-sessions.mjs",
     "verify:staging:storage": "node scripts/verify-staging-storage.mjs",
     "verify:staging:api-boundaries": "node scripts/verify-staging-api-boundaries.mjs",
+    "verify:staging:invitations": "node scripts/verify-staging-invitations.mjs",
     "verify:staging:checks": "node scripts/verify-staging-check-runs.mjs",
     "verify:staging:payable-approvals": "node scripts/verify-staging-payable-approvals.mjs",
     "verify:staging:owner-communications": "node scripts/verify-staging-owner-communications.mjs",

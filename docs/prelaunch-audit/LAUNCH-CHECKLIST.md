@@ -5,13 +5,16 @@
 - [x] Verify staging RLS/scope for Operator, Company Admin, Manager, Board, Owner, and Vendor.
 - [x] Verify role-home routing and representative role workflows in isolated browser sessions.
 - [x] Generate and download a real private Balance Sheet PDF from staging.
-- [x] Pass the local code gate: 166 tests, TypeScript, lint, route/dashboard audits, migration validation, secret scan, and production build.
+- [x] Pass the local code gate: 168 tests, TypeScript, lint, route/dashboard audits, migration validation, secret scan, and production build.
 - [x] Replay all 188 migrations into an empty local database with seeding disabled.
 - [ ] Restore a production backup to staging and rehearse rollback.
 - [x] Verify stale-token revocation for Operator, Company Admin, Manager, Board, Owner, and Vendor.
 - [x] Deny anonymous/authenticated service-only report calls and forbidden Manager/Admin/Board/Owner/Vendor mutations.
 - [x] Verify private document signed upload/download, public-read denial, unsigned-upload denial, executable-MIME denial, and cleanup.
-- [ ] Complete invitation/reset abuse, signed-output retention/expiry, and per-workflow signed-upload cross-entity verification.
+- [x] Verify signed-upload path binding and signed-download expiry.
+- [x] Verify manager invitation assignment, single-use token enforcement, recipient matching, and cleanup.
+- [x] Add durable invitation/reset rate limits and failed-verification-email rollback.
+- [ ] Verify invitation rollback/rate limits and password recovery through the deployed browser/email provider; complete report retention and remaining workflow-specific signed-upload issuance.
 - [ ] Reconcile every supported financial report/export to fixture journals and control accounts.
 - [ ] Keep catalog-only reports visibly unavailable until their data source and export are audited.
 - [ ] Run Stripe webhook ordering/duplicate/refund/dispute/payout/autopay isolation tests in test mode.

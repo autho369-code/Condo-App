@@ -11,6 +11,7 @@ if (!url || !anonKey || !serviceKey || new URL(url).hostname.split('.')[0] !== S
 
 const BUCKET = 'association-documents'
 const ASSOCIATION_A = '36900000-0000-4000-8000-000000000011'
+const ASSOCIATION_B = '36900000-0000-4000-8000-000000000012'
 const service = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
 const anonymous = createClient(url, anonKey, { auth: { autoRefreshToken: false, persistSession: false } })
 
@@ -32,12 +33,19 @@ async function main() {
   const allowedPath = `associations/${ASSOCIATION_A}/verification/${nonce}.pdf`
   const blockedPath = `associations/${ASSOCIATION_A}/verification/${nonce}.exe`
   const unsignedPath = `associations/${ASSOCIATION_A}/verification/${nonce}-unsigned.pdf`
-  const cleanupPaths = [allowedPath, blockedPath, unsignedPath]
+  const forgedPath = `associations/${ASSOCIATION_B}/verification/${nonce}-forged.pdf`
+  const cleanupPaths = [allowedPath, blockedPath, unsignedPath, forgedPath]
 
   try {
+    const pdf = new TextEncoder().encode('%PDF-1.4\n% staging storage verification\n%%EOF\n')
+    const { data: pathCapability, error: pathCapabilityError } = await service.storage.from(BUCKET).createSignedUploadUrl(allowedPath)
+    if (pathCapabilityError || !pathCapability?.token) throw new Error(`path-bound capability failed: ${pathCapabilityError?.message ?? 'missing token'}`)
+    const { error: forgedPathError } = await anonymous.storage.from(BUCKET)
+      .uploadToSignedUrl(forgedPath, pathCapability.token, pdf, { contentType: 'application/pdf' })
+    assert(forgedPathError, 'association-A upload capability was accepted for association B')
+
     const { data: capability, error: capabilityError } = await service.storage.from(BUCKET).createSignedUploadUrl(allowedPath)
     if (capabilityError || !capability?.token) throw new Error(`signed PDF capability failed: ${capabilityError?.message ?? 'missing token'}`)
-    const pdf = new TextEncoder().encode('%PDF-1.4\n% staging storage verification\n%%EOF\n')
     const { error: uploadError } = await anonymous.storage.from(BUCKET)
       .uploadToSignedUrl(allowedPath, capability.token, pdf, { contentType: 'application/pdf' })
     if (uploadError) throw new Error(`authorized PDF upload failed: ${uploadError.message}`)
@@ -47,6 +55,12 @@ async function main() {
     const signedResponse = await fetch(signed.signedUrl)
     assert(signedResponse.ok, `signed PDF read returned ${signedResponse.status}`)
     assert(new TextDecoder().decode(await signedResponse.arrayBuffer()).startsWith('%PDF-'), 'signed PDF contents are invalid')
+
+    const { data: expiring, error: expiringError } = await service.storage.from(BUCKET).createSignedUrl(allowedPath, 1)
+    if (expiringError || !expiring?.signedUrl) throw new Error(`expiring PDF read failed: ${expiringError?.message ?? 'missing URL'}`)
+    await new Promise((resolve) => setTimeout(resolve, 2_100))
+    const expiredResponse = await fetch(expiring.signedUrl)
+    assert(!expiredResponse.ok, 'expired signed document URL remained usable')
 
     const publicResponse = await fetch(`${url}/storage/v1/object/public/${BUCKET}/${allowedPath}`)
     assert(!publicResponse.ok, 'private document was readable through a public bucket URL')
@@ -62,14 +76,16 @@ async function main() {
     assert(blockedError, 'executable MIME upload was accepted')
 
     console.log('association-documents: private signed PDF upload/download=PASS')
-    console.log('association-documents: public read, unsigned upload, executable MIME=DENIED')
+    console.log('association-documents: cross-association capability, expired URL, public read, unsigned upload, executable MIME=DENIED')
   } finally {
     const { error: cleanupError } = await service.storage.from(BUCKET).remove(cleanupPaths)
     if (cleanupError) throw new Error(`verification object cleanup failed: ${cleanupError.message}`)
-    const { data: leftovers, error: listError } = await service.storage.from(BUCKET)
-      .list(`associations/${ASSOCIATION_A}/verification`, { search: nonce })
-    if (listError) throw new Error(`verification cleanup audit failed: ${listError.message}`)
-    assert((leftovers ?? []).length === 0, 'verification objects remained after cleanup')
+    for (const associationId of [ASSOCIATION_A, ASSOCIATION_B]) {
+      const { data: leftovers, error: listError } = await service.storage.from(BUCKET)
+        .list(`associations/${associationId}/verification`, { search: nonce })
+      if (listError) throw new Error(`verification cleanup audit failed: ${listError.message}`)
+      assert((leftovers ?? []).length === 0, 'verification objects remained after cleanup')
+    }
   }
 }
 

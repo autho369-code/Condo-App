@@ -10,7 +10,7 @@ Databases: staging `zalfkrtjeswvfmucicea` was mutated only with reversible `CODE
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Local release gate | Pass | 50 Vitest files / 166 tests, TypeScript, route/dashboard audits, migration validation, secret scan, and production build passed. |
+| Local release gate | Pass | 51 Vitest files / 168 tests, TypeScript, route/dashboard audits, migration validation, secret scan, and production build passed. |
 | Lint | Pass with 6 warnings | Existing image/accessibility/hook warnings; no lint errors. |
 | Migration inventory | Pass | 188 SQL files, 188 valid unique versions; linked staging reports up to date. |
 | Empty-database migration replay | Pass | `supabase db reset --local --no-seed` recreated the local database and applied all 188 migrations through `20260731004000`. |
@@ -21,6 +21,9 @@ Databases: staging `zalfkrtjeswvfmucicea` was mutated only with reversible `CODE
 | Live stale sessions | Pass | Already-issued tokens lost all capabilities, tenant identifiers, and protected portfolio reads immediately for Operator, Company Admin, Manager, Board, Owner, and Vendor; all profiles were restored and re-authenticated. |
 | Live API mutation boundary | Pass | Service-only report RPCs were denied to anonymous/manager clients; cross-tenant Manager/Admin updates and same-tenant Board/Owner/Vendor financial mutations were denied. |
 | Private document storage | Pass | Signed PDF upload/download succeeded; public read, unsigned upload, and executable MIME upload were denied; cleanup succeeded. |
+| Signed capability binding/expiry | Pass | An Association A upload token was denied for Association B; a one-second signed URL expired; both association paths were audited clean after cleanup. |
+| Manager invitation lifecycle | Pass (database/Auth) | Disposable invite created the correct manager profile and exact association assignment; token replay and email mismatch were denied; Auth/database cleanup passed. |
+| Invitation/reset abuse controls | Pass (code gate) | IP/token invitation limits, IP/email reset limits, deterministic verification email, failed-queue rollback, and 12-character password UI are covered; deployed browser/email-provider replay remains. |
 | Manager Balance Sheet | Pass | Staging rendered Assets $17,400, Liabilities $0, Equity $17,400. |
 | Balance Sheet PDF | Pass | A queued run completed after provisioning private report storage; downloaded output was 12,113 bytes and began with `%PDF-`. |
 | Board financials | Pass | YTD income $7,200, expenses $1,800, and net operating income rendered with Print/CSV/PDF controls and no browser errors. |
@@ -47,6 +50,6 @@ Databases: staging `zalfkrtjeswvfmucicea` was mutated only with reversible `CODE
 
 - Production backup/restore and rollback rehearsal in a disposable environment.
 - Provider test-mode execution for Stripe/Plaid, including signed webhooks, refunds/disputes, payouts, duplicate ordering, reconciliation, and GL tie-outs.
-- Invitation/reset abuse, signed-output retention/expiry, and per-workflow signed-upload cross-entity verification.
+- Deployed-browser invitation rollback/rate-limit checks, password-recovery delivery, report-output retention, and remaining workflow-specific signed-upload issuance.
 - Every catalog-only report must be implemented and reconciled or remain visibly unavailable; every supported export requires fixture-based accounting tie-out.
 - Production environment/cron/monitoring validation without exposing secrets, followed by owner approval and read-only post-deploy smoke tests.
