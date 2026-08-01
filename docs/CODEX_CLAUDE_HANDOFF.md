@@ -1,6 +1,6 @@
 # Codex + Claude release handoff
 
-Last updated: 2026-07-31 19:16 Pacific
+Last updated: 2026-08-01 04:02 Pacific
 
 This file is the shared operational checkpoint for the Portier369 release. Do
 not rely on older chat summaries or the historical section of
@@ -52,8 +52,14 @@ not rely on older chat summaries or the historical section of
 - Final role invariant is verified in staging and production: President,
   Accountant, Property Manager, and On-Site Manager are active system roles;
   Leasing Agent and Accounts Payable remain inactive.
-- Both databases report no pending migrations. Production database lint passes
-  at error level, and the CLI is relinked to staging.
+- Both databases report no pending migrations through `20260801020000`. On
+  2026-08-01, production ledger entries `20260731015000`, `20260731030000`,
+  `20260801010000`, `20260801011000`, and `20260801020000` moved from pending
+  to applied in order. The post-application production dry run reports the
+  remote database is up to date, production database lint passes at error
+  level, the expected policy/view/RPC/constraint schema invariants are present,
+  and the CLI is verified relinked to staging (`zalfkrtjeswvfmucicea`), whose
+  dry run also reports the remote database is up to date.
 - `AI_CREDENTIALS_ENCRYPTION_KEY` exists in the Vercel Production environment.
   Its value was not copied into this repository or logged.
 
@@ -76,4 +82,3 @@ not rely on older chat summaries or the historical section of
   / 2-inactive invariant in staging and production.
 - Six-role browser regression against the next exact preview remains the final
   application release gate.
-
