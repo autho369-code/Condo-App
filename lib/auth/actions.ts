@@ -2,9 +2,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
 import { getMe, roleHome } from '@/lib/auth/me';
 import { siteUrl } from '@/lib/url/site-url';
+import { tenantAccessDecision } from '@/lib/tenant/host';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
@@ -20,6 +23,21 @@ export async function loginWithPassword(formData: FormData) {
   const explicitNext = safeInternalNext(formData.get('next'));
   const me = await getMe();
   revalidatePath('/', 'layout');
+
+  // Tenant identity comes from trusted headers injected by middleware, never
+  // from a form field. A credential for Company A cannot establish a usable
+  // session on Company B's branded hostname.
+  const tenant = tenantFromHeaders(await headers());
+  if (tenant && me?.auth_user_id) {
+    const decision = tenantAccessDecision(tenant.portfolioId, me);
+    if (!decision.allowed) {
+      await supabase.auth.signOut();
+      const code = decision.reason === 'platform_operator_on_tenant'
+        ? 'platform_workspace_only'
+        : 'workspace_access_denied';
+      redirect(`/login?mode=${mode}&error=${code}`);
+    }
+  }
 
   if (explicitNext) redirect(explicitNext);
 

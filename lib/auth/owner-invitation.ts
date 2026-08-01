@@ -1,5 +1,5 @@
 import { queueEmails } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 /** Queue an owner-controlled activation flow; staff never create a password. */
 export async function queueOwnerPortalInvitation(db: any, input: {
@@ -24,7 +24,14 @@ export async function queueOwnerPortalInvitation(db: any, input: {
     .single();
   if (inviteError || !invitation?.token) return { error: inviteError?.message ?? 'Could not create portal invitation' };
 
-  const inviteUrl = `${siteUrl()}/invite?token=${encodeURIComponent(invitation.token)}`;
+  const { data: portfolio } = await db.from('portfolios')
+    .select('slug')
+    .eq('id', input.portfolioId)
+    .maybeSingle();
+  const inviteUrl = tenantWorkspaceUrl(
+    portfolio?.slug,
+    `/invite?token=${encodeURIComponent(invitation.token)}`,
+  );
   const queued = await queueEmails(db, [{
     to: input.email,
     toName: input.fullName,

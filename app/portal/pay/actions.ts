@@ -7,7 +7,7 @@ import { requireOwner } from '@/lib/auth/me';
 import { createServiceClient } from '@/lib/supabase/server';
 import { createCheckoutSession, expectedStripeLivemode, isStripeConfigured } from '@/lib/payments/stripe';
 import { associationCanAcceptStripePayments, parseUsdCents } from '@/lib/payments/guards';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 const RETURN = '/portal/pay';
 
@@ -83,8 +83,8 @@ export async function startOnlinePayment(formData: FormData) {
       amountCents,
       description: `${occ.associations?.name ?? 'Association'} — Unit ${occ.units?.unit_number ?? ''} assessment payment`,
       customerEmail: me.profile?.email ?? null,
-      successUrl: `${siteUrl()}/portal/pay/success?intent=${intent.id}`,
-      cancelUrl: `${siteUrl()}/portal/pay?canceled=1`,
+      successUrl: tenantWorkspaceUrl(me.portfolio?.slug, `/portal/pay/success?intent=${intent.id}`),
+      cancelUrl: tenantWorkspaceUrl(me.portfolio?.slug, '/portal/pay?canceled=1'),
       metadata: { intent_id: intent.id, unit_id: unitId, association_id: occ.association_id },
       stripeAccount: occ.associations.stripe_account_id,
     });

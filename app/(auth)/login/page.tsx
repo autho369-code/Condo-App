@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
 import { getLoginModeConfig, getVisibleLoginModes, safeInternalNext, type LoginModeId } from '@/lib/auth/login-modes';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { loginErrorMessage } from '@/lib/auth/login-errors';
+import { platformLoginUrl } from '@/lib/tenant/host';
 
 export default async function LoginPage({
   searchParams,
@@ -25,6 +28,31 @@ export default async function LoginPage({
   // Tenant branding from subdomain
   const h = await headers();
   const tenant = tenantFromHeaders(h);
+  const errorMessage = loginErrorMessage(params.error);
+  const platformLoginHref = platformLoginUrl(h.get('host'));
+  if (h.get('x-tenant-state') === 'not-found') {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-gray-950">
+            Workspace not found
+          </h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+            Check the company web address in your invitation or contact your management office.
+          </p>
+        </header>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
+          {errorMessage}
+        </div>
+        <Link href={platformLoginHref} className="block text-center text-sm font-medium text-gray-700 underline-offset-4 hover:underline">
+          Go to Portier369 sign in
+        </Link>
+      </div>
+    );
+  }
+  if (tenant && isAdminMode) {
+    redirect(platformLoginUrl(h.get('host'), '/login?mode=admin'));
+  }
 
   return (
     <div className="space-y-6">
@@ -117,12 +145,12 @@ export default async function LoginPage({
             />
           </div>
 
-          {params.error && (
+          {errorMessage && (
             <p
               role="alert"
               className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] leading-5 text-red-700"
             >
-              {params.error}
+              {errorMessage}
             </p>
           )}
 
@@ -136,7 +164,7 @@ export default async function LoginPage({
 
       {/* Below-card actions */}
       <div className="space-y-3 text-center">
-        {!isScoped && (
+        {!tenant && !isScoped && (
           <p className="text-sm text-gray-500">
             Need a new account?{' '}
             <Link href="/signup" className="font-medium text-gray-900 underline-offset-4 hover:underline">

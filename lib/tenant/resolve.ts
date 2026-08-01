@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/server';
 
 export type TenantBranding = {
   portfolioId: string;
+  slug: string | null;
+  hostname: string | null;
   companyName: string;
   logoUrl: string | null;
   brandColor: string;
@@ -40,13 +42,15 @@ export async function resolveTenant(hostname: string): Promise<TenantBranding | 
   const { data: rows } = await (supabase as any)
     .rpc('tenant_branding', { p_host: clean, p_slug: slug });
   const row = rows?.[0];
-  if (row) return mapBranding(row);
+  if (row) return mapBranding(row, clean);
   return null;
 }
 
-function mapBranding(row: any): TenantBranding {
+function mapBranding(row: any, hostname: string): TenantBranding {
   return {
     portfolioId: row.id,
+    slug: row.slug ?? null,
+    hostname,
     companyName: row.company_name ?? 'Portier369',
     logoUrl: row.logo_url ?? null,
     brandColor: row.brand_color ?? '#10B981',
@@ -65,11 +69,20 @@ export function tenantFromHeaders(headers: Headers): TenantBranding | null {
   if (!id) return null;
   return {
     portfolioId: id,
-    companyName: headers.get('x-portfolio-name') ?? 'Portier369',
-    logoUrl: headers.get('x-portfolio-logo') || null,
+    slug: headers.get('x-portfolio-slug') || null,
+    hostname: headers.get('x-tenant-host') || null,
+    companyName: readHeader(headers, 'x-portfolio-name') ?? 'Portier369',
+    logoUrl: readHeader(headers, 'x-portfolio-logo'),
     brandColor: headers.get('x-portfolio-color') ?? '#10B981',
-    supportEmail: headers.get('x-portfolio-support-email') || null,
-    supportPhone: headers.get('x-portfolio-support-phone') || null,
-    publicWebsite: headers.get('x-portfolio-website') || null,
+    supportEmail: readHeader(headers, 'x-portfolio-support-email'),
+    supportPhone: readHeader(headers, 'x-portfolio-support-phone'),
+    publicWebsite: readHeader(headers, 'x-portfolio-website'),
   };
+}
+
+function readHeader(headers: Headers, name: string) {
+  const value = headers.get(name);
+  if (!value) return null;
+  try { return decodeURIComponent(value); }
+  catch { return null; }
 }

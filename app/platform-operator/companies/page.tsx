@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { date, money } from '@/lib/utils';
 import { PLANS, planOptionLabel } from '@/lib/billing/plans';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { archiveCompany, createCompanyWithAdmin, reactivateCompany, suspendCompany } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -209,6 +210,7 @@ export default async function CompaniesPage({
                 const status = companyStatus(p, sub);
                 const isArchived = !!p.archived_at;
                 const isSuspended = !!p.suspended_at;
+                const workspaceUrl = tenantWorkspaceUrl(p.slug);
 
                 return (
                   <TR key={p.id} className="hover:bg-gray-50">
@@ -220,6 +222,16 @@ export default async function CompaniesPage({
                         {p.company_name ?? 'Unnamed'}
                       </Link>
                       <div className="mt-0.5 text-xs text-gray-400">{date(p.created_at)}</div>
+                      {p.slug && (
+                        <a
+                          href={workspaceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block text-xs font-medium text-blue-700 hover:underline"
+                        >
+                          {new URL(workspaceUrl).hostname}
+                        </a>
+                      )}
                     </TD>
                     <TD>
                       {admin ? (

@@ -1,6 +1,13 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const requestHeaders = await headers();
+  const tenant = tenantFromHeaders(requestHeaders);
+  const unknownWorkspace = requestHeaders.get('x-tenant-state') === 'not-found';
+  const brandName = tenant?.companyName ?? 'Portier369';
+  const brandInitial = brandName.slice(0, 1).toUpperCase();
   return (
     <div className="flex min-h-screen bg-[#060709]">
       {/* Brand panel — hidden on mobile */}
@@ -30,21 +37,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Brand mark */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-white/[0.06] text-[15px] font-semibold tracking-tight text-white">
-            P
+            {brandInitial}
           </div>
           <span className="text-[15px] font-semibold tracking-[-0.01em] text-white">
-            Portier369
+            {brandName}
           </span>
         </div>
 
         {/* Statement */}
         <div className="relative z-10 max-w-md">
           <h2 className="text-[34px] font-semibold leading-[1.15] tracking-[-0.025em] text-white">
-            White-glove operations for every association.
+            {tenant ? `Welcome to ${brandName}.` : 'White-glove operations for every association.'}
           </h2>
           <p className="mt-4 text-[15px] leading-7 text-zinc-400">
-            Accounting, maintenance, violations, and reporting — handled with the
-            precision your owners and boards expect.
+            {tenant
+              ? 'Your secure workspace for association operations, accounting, communications, and reporting.'
+              : 'Accounting, maintenance, violations, and reporting — handled with the precision your owners and boards expect.'}
           </p>
 
           <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-white/[0.08] pt-8">
@@ -78,21 +86,25 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Staff entry points + footer line */}
         <div className="relative z-10 space-y-5">
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/login?mode=admin"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
-            >
-              Operator
-            </Link>
-            <Link
-              href="/login?mode=company_admin"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
-            >
-              Company Admin
-            </Link>
+            {!tenant && !unknownWorkspace && (
+              <Link
+                href="/login?mode=admin"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+              >
+                Operator
+              </Link>
+            )}
+            {!unknownWorkspace && (
+              <Link
+                href="/login?mode=company_admin"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+              >
+                Company Admin
+              </Link>
+            )}
           </div>
           <p className="text-[12px] text-zinc-600">
-            The operating system for community management.
+            {tenant ? 'Securely powered by Portier369.' : 'The operating system for community management.'}
           </p>
         </div>
       </aside>
@@ -103,25 +115,31 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Mobile brand mark */}
           <div className="mb-8 flex items-center justify-center gap-2.5 lg:hidden">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-sm font-semibold text-white">
-              P
+              {brandInitial}
             </div>
-            <span className="text-[15px] font-semibold tracking-tight text-gray-950">Portier369</span>
+            <span className="text-[15px] font-semibold tracking-tight text-gray-950">{brandName}</span>
           </div>
           {children}
 
           {/* Staff entry points — visible on every screen size */}
-          <footer className="mt-8 border-t border-gray-200/80 pt-5 text-center">
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-400">Staff access</p>
-            <div className="mt-2 flex items-center justify-center gap-4 text-[13px]">
-              <Link href="/login?mode=company_admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
-                Company admin sign in
-              </Link>
-              <span aria-hidden className="text-gray-300">·</span>
-              <Link href="/login?mode=admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
-                Platform operator sign in
-              </Link>
-            </div>
-          </footer>
+          {!unknownWorkspace && (
+            <footer className="mt-8 border-t border-gray-200/80 pt-5 text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-400">Staff access</p>
+              <div className="mt-2 flex items-center justify-center gap-4 text-[13px]">
+                <Link href="/login?mode=company_admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
+                  Company admin sign in
+                </Link>
+                {!tenant && (
+                  <>
+                    <span aria-hidden className="text-gray-300">·</span>
+                    <Link href="/login?mode=admin" className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">
+                      Platform operator sign in
+                    </Link>
+                  </>
+                )}
+              </div>
+            </footer>
+          )}
         </div>
       </main>
     </div>

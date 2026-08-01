@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
-import { siteUrl } from '@/lib/url/site-url';
+import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,13 +45,21 @@ async function acceptInvite(formData: FormData) {
   // Validate the invitation
   const { data: invite } = await svc
     .from('user_invitations')
-    .select('id, email, portfolio_id, hoa_role, expires_at, accepted_at, status')
+    .select('id, email, portfolio_id, hoa_role, expires_at, accepted_at, status, portfolios(slug)')
     .eq('token', token)
     .eq('status', 'pending')
     .maybeSingle();
 
   if (!invite) failTo('Invitation not found or already used.');
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) failTo('Invitation has expired.');
+  const tenant = tenantFromHeaders(requestHeaders);
+  if (tenant && tenant.portfolioId !== invite.portfolio_id) {
+    failTo('This invitation belongs to a different company workspace.');
+  }
+
+  const callbackUrl = tenant
+    ? resolvedTenantUrl(tenant, '/api/auth/callback')
+    : tenantWorkspaceUrl(invite.portfolios?.slug, '/api/auth/callback');
 
   // Create the auth user (service role — admin API)
   const { data: linkData, error: createErr } = await svc.auth.admin.generateLink({
@@ -58,7 +67,7 @@ async function acceptInvite(formData: FormData) {
     email: invite.email,
     password,
     options: {
-      redirectTo: `${siteUrl()}/api/auth/callback`,
+      redirectTo: callbackUrl,
       data: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
     },
   });

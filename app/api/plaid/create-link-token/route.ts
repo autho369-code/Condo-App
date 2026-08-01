@@ -6,7 +6,7 @@ import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Products, CountryCode } from 'plaid';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',
-      redirect_uri: `${siteUrl()}/bank-accounts/link-bank`,
+      redirect_uri: tenantWorkspaceUrl(
+        user.is_platform_operator ? null : user.portfolio?.slug,
+        '/bank-accounts/link-bank',
+      ),
     };
 
     const response = await client.linkTokenCreate(config);

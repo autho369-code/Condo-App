@@ -5,7 +5,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { queueEmails } from '@/lib/email/queue'
-import { siteUrl } from '@/lib/url/site-url'
+import { tenantWorkspaceUrl } from '@/lib/tenant/host'
 
 // Company admin invites a manager into their own portfolio. If specific
 // associations are selected, the invitation carries them so the manager is
@@ -37,7 +37,10 @@ export async function inviteManager(formData: FormData) {
   const svc = createServiceClient() as any
 
   const companyName = me.portfolio.company_name ?? 'your management company'
-  const inviteUrl = `${siteUrl()}/invite?token=${encodeURIComponent(token as string)}`
+  const inviteUrl = tenantWorkspaceUrl(
+    me.portfolio.slug,
+    `/invite?token=${encodeURIComponent(token as string)}`,
+  )
   const queued = await queueEmails(svc, [{
     to: email,
     subject: `You're invited to manage properties for ${companyName} on Portier369`,

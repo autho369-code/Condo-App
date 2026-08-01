@@ -10,6 +10,7 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { date, money } from '@/lib/utils';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { PLANS, planOptionLabel } from '@/lib/billing/plans';
 import {
   adjustLimits,
@@ -142,6 +143,7 @@ export default async function CompanyDetailPage({
   const isArchived = !!portfolio.archived_at;
   const admins = (staff ?? []).filter((s: any) => s.hoa_role === 'company_admin');
   const banner = Object.keys(BANNERS).find((k) => sp[k] === '1');
+  const workspaceUrl = tenantWorkspaceUrl(portfolio.slug);
 
   return (
     <div className="space-y-7">
@@ -162,6 +164,11 @@ export default async function CompanyDetailPage({
             <p className="mt-1 text-sm text-gray-500">
               Account management, subscription, invitations, and billing. Property operations stay with the company.
             </p>
+            {portfolio.slug && (
+              <a href={workspaceUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-block text-sm font-medium text-blue-700 hover:underline">
+                {new URL(workspaceUrl).hostname}
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {isArchived ? (
