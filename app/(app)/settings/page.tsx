@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { date } from '@/lib/utils';
 import { queueEmails } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +83,7 @@ async function resetStaffPassword(formData: FormData) {
   const { data: linkData, error: linkError } = await (adminClient.auth as any).admin.generateLink({
     type: 'recovery',
     email: profileEmail,
-    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
+    options: { redirectTo: tenantWorkspaceUrl(me.portfolio.slug, '/api/auth/callback?next=/reset-password') },
   });
   if (
     linkError

@@ -164,6 +164,7 @@ additional_redirect_urls = [
   "https://*-aios2.vercel.app/**",
   "https://portier369.com/**",
   "https://www.portier369.com/**",
+  "https://*.portier369.com/**",
   "http://127.0.0.1:3000/**",
   "http://localhost:3000/**",
 ]

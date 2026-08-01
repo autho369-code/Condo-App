@@ -12,6 +12,7 @@ import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 const COMPANIES = '/platform-operator/companies';
 // Verified Resend sender for platform-level email
@@ -49,9 +50,10 @@ async function audit(
   });
 }
 
-function inviteEmailBody(companyName: string, token: string, expiresAt: string | null) {
+function inviteEmailBody(companyName: string, token: string, expiresAt: string | null, slug?: string | null) {
   const publicUrl = siteUrl();
-  const url = `${publicUrl}/invite?token=${encodeURIComponent(token)}`;
+  const workspaceUrl = tenantWorkspaceUrl(slug);
+  const url = tenantWorkspaceUrl(slug, `/invite?token=${encodeURIComponent(token)}`);
   const expiry = expiresAt
     ? new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'in 30 days';
@@ -59,6 +61,7 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 <p>Hello,</p>
 <p>You have been invited to administer <strong>${companyName}</strong> on Portier369.</p>
 <p><a href="${url}">Set up your account</a></p>
+<p>Your company workspace: <a href="${workspaceUrl}">${workspaceUrl}</a></p>
 <p>This invitation expires ${expiry}.</p>
 <p>Your operating documents — keep these handy while you get set up:</p>
 <ul>
@@ -105,6 +108,10 @@ export async function createCompanyWithAdmin(formData: FormData) {
   const expiresAt = result?.invitation_expires_at as string | null;
 
   const svc = createServiceClient() as any;
+  const { data: provisionedPortfolio } = await svc.from('portfolios')
+    .select('slug')
+    .eq('id', portfolioId)
+    .maybeSingle();
 
   // Post-provision details the RPC doesn't cover.
   // No trials: companies start as active subscriptions immediately.
@@ -126,7 +133,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
     to_email: email,
     to_name: fullName,
     subject: `Welcome to Portier369 — set up ${companyName}`,
-    body: inviteEmailBody(companyName, token, expiresAt),
+    body: inviteEmailBody(companyName, token, expiresAt, provisionedPortfolio?.slug),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -155,7 +162,7 @@ export async function inviteAdmin(formData: FormData) {
   const fullName = `${firstName} ${lastName}`;
   const svc = createServiceClient() as any;
 
-  const { data: portfolio } = await svc.from('portfolios').select('company_name').eq('id', portfolioId).maybeSingle();
+  const { data: portfolio } = await svc.from('portfolios').select('company_name, slug').eq('id', portfolioId).maybeSingle();
   if (!portfolio) fail(returnTo, 'Company not found.');
 
   const { data: invite, error } = await svc
@@ -177,7 +184,7 @@ export async function inviteAdmin(formData: FormData) {
     to_email: email,
     to_name: fullName,
     subject: `You're invited to administer ${portfolio.company_name} on Portier369`,
-    body: inviteEmailBody(portfolio.company_name, invite.token, invite.expires_at),
+    body: inviteEmailBody(portfolio.company_name, invite.token, invite.expires_at, portfolio.slug),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -205,7 +212,7 @@ export async function resendInvitation(formData: FormData) {
   if (inv.status !== 'pending') fail(returnTo, `Only pending invitations can be resent (this one is ${inv.status}).`);
 
   const { data: portfolio } = inv.portfolio_id
-    ? await svc.from('portfolios').select('company_name').eq('id', inv.portfolio_id).maybeSingle()
+    ? await svc.from('portfolios').select('company_name, slug').eq('id', inv.portfolio_id).maybeSingle()
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
@@ -213,7 +220,7 @@ export async function resendInvitation(formData: FormData) {
     to_email: inv.email,
     to_name: inv.full_name,
     subject: `Reminder: set up your ${companyName} Portier369 account`,
-    body: inviteEmailBody(companyName, inv.token, inv.expires_at),
+    body: inviteEmailBody(companyName, inv.token, inv.expires_at, portfolio?.slug),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -279,7 +286,7 @@ export async function regenerateInvitation(formData: FormData) {
   if (error) fail(returnTo, `Could not generate a new invitation: ${error.message}`);
 
   const { data: portfolio } = old.portfolio_id
-    ? await svc.from('portfolios').select('company_name').eq('id', old.portfolio_id).maybeSingle()
+    ? await svc.from('portfolios').select('company_name, slug').eq('id', old.portfolio_id).maybeSingle()
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
@@ -287,7 +294,7 @@ export async function regenerateInvitation(formData: FormData) {
     to_email: old.email,
     to_name: old.full_name,
     subject: `Your new ${companyName} invitation link`,
-    body: inviteEmailBody(companyName, fresh.token, fresh.expires_at),
+    body: inviteEmailBody(companyName, fresh.token, fresh.expires_at, portfolio?.slug),
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -308,11 +315,14 @@ export async function sendPasswordReset(formData: FormData) {
   const svc = createServiceClient() as any;
   const { data: profile } = await svc.from('profiles').select('id, email, full_name, portfolio_id').eq('id', profileId).maybeSingle();
   if (!profile?.email) fail(returnTo, 'User not found.');
+  const { data: portfolio } = profile.portfolio_id
+    ? await svc.from('portfolios').select('slug').eq('id', profile.portfolio_id).maybeSingle()
+    : { data: null };
 
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email: profile.email,
-    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/login` },
+    options: { redirectTo: tenantWorkspaceUrl(portfolio?.slug, '/api/auth/callback?next=/reset-password') },
   });
   if (error) fail(returnTo, `Could not generate reset link: ${error.message}`);
 

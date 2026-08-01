@@ -2,7 +2,10 @@
 // decide what to show in the sidebar and which pages to allow.
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { isActivePortalRecord, isActiveProfile } from '@/lib/security/portal-access';
+import { tenantAccessDecision } from '@/lib/tenant/host';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export interface MeResult {
   auth_user_id: string | null;
@@ -81,7 +84,26 @@ export async function getMe(): Promise<MeResult> {
 export async function requireAuth(): Promise<MeResult> {
   const me = await getMe();
   if (!me.auth_user_id) redirect('/login');
+  await requireMatchingTenantWorkspace(me);
   return me;
+}
+
+/**
+ * Enforce the request hostname as an authorization boundary in server code.
+ * Middleware performs the same check for early rejection, but layouts and
+ * route handlers must not rely on middleware as their only protection.
+ */
+export async function requireMatchingTenantWorkspace(me: MeResult) {
+  const tenant = tenantFromHeaders(await headers());
+  if (!tenant) return null;
+
+  const decision = tenantAccessDecision(tenant.portfolioId, me);
+  if (!decision.allowed) {
+    redirect(`/login?error=${decision.reason === 'platform_operator_on_tenant'
+      ? 'platform_workspace_only'
+      : 'workspace_access_denied'}`);
+  }
+  return tenant;
 }
 
 export async function requirePlatformOperator(): Promise<MeResult> {
@@ -128,6 +150,7 @@ export async function requireBoard(): Promise<MeResult> {
 export async function requireVendor() {
   const me = await getMe();
   if (!me.auth_user_id) redirect('/login?mode=vendor');
+  await requireMatchingTenantWorkspace(me);
   if (!me.vendor_id) redirect('/login?mode=vendor');
 
   // Vendor access is tenant-local just like owner access. Never disable the

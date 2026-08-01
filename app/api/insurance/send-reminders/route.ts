@@ -8,12 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { requireCronSecret } from '@/lib/server/cron-auth';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 export const dynamic = 'force-dynamic';
-
-const PORTAL_URL = `${siteUrl()}/portal/insurance`;
-const MANAGER_URL = `${siteUrl()}/insurance`;
 
 function isoDaysFromNow(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -57,7 +54,7 @@ export async function GET(request: NextRequest) {
     // White-label branding: every email presents as the management company —
     // sender name, reply-to, and signature. Only the sending address stays on
     // the verified portier369.com domain (Resend requirement).
-    const brandByPortfolio = new Map<string, { companyName: string | null; supportEmail: string | null; supportPhone: string | null }>();
+    const brandByPortfolio = new Map<string, { companyName: string | null; supportEmail: string | null; supportPhone: string | null; slug: string | null }>();
     if (assocIds.length > 0) {
       const { data: assignments } = await svc
         .from('association_managers')
@@ -79,12 +76,13 @@ export async function GET(request: NextRequest) {
       }
       const portfolioIds = Array.from(new Set(due.map((p) => p.associations?.portfolio_id).filter(Boolean)));
       if (portfolioIds.length > 0) {
-        const { data: pfs } = await svc.from('portfolios').select('id, company_name, support_email, support_phone').in('id', portfolioIds);
+        const { data: pfs } = await svc.from('portfolios').select('id, company_name, support_email, support_phone, slug').in('id', portfolioIds);
         for (const pf of pfs ?? []) {
           brandByPortfolio.set(pf.id, {
             companyName: pf.company_name ?? null,
             supportEmail: pf.support_email ?? null,
             supportPhone: pf.support_phone ?? null,
+            slug: pf.slug ?? null,
           });
         }
       }
@@ -104,6 +102,8 @@ export async function GET(request: NextRequest) {
       const replyTo = managers[0]?.email ?? brand?.supportEmail ?? null;
       const contactLine = [brand?.supportEmail, brand?.supportPhone].filter(Boolean).join(' · ');
       const signature = `— ${companyName}${contactLine ? `\n${contactLine}` : ''}`;
+      const portalUrl = tenantWorkspaceUrl(brand?.slug, '/portal/insurance');
+      const managerUrl = tenantWorkspaceUrl(brand?.slug, '/insurance');
       const details =
         `Carrier: ${p.insurance_company}\n` +
         `Policy #: ${p.policy_number}\n` +
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           subject: `Your insurance policy expires in ${p.daysLeft} days`,
           text:
             `Hi ${ownerName},\n\nThis is a reminder that your HO6 insurance policy on file with ${assocName} expires on ${p.expiration_date}.\n\n${details}\n\n` +
-            `Please renew your policy and upload the new certificate in your owner portal:\n${PORTAL_URL}\n\n${signature}`,
+            `Please renew your policy and upload the new certificate in your owner portal:\n${portalUrl}\n\n${signature}`,
           associationId: p.association_id ?? null,
           portfolioId: p.associations?.portfolio_id ?? null,
           idempotencyKey: `insurance-reminder:${p.id}:${p.window}:owner:${String(p.owners.email).toLowerCase()}`,
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
             subject: `Owner insurance expiring in ${p.daysLeft} days — ${ownerName} (${assocName})`,
             text:
               `The HO6 insurance policy for ${ownerName} at ${assocName} expires on ${p.expiration_date}.\n\n${details}\n\n` +
-              `Review insurance tracking:\n${MANAGER_URL}\n\n${signature}`,
+              `Review insurance tracking:\n${managerUrl}\n\n${signature}`,
             associationId: p.association_id ?? null,
             portfolioId: p.associations?.portfolio_id ?? null,
             idempotencyKey: `insurance-reminder:${p.id}:${p.window}:manager:${String(r.email).toLowerCase()}`,

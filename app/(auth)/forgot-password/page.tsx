@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { headers } from 'next/headers';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { siteUrl } from '@/lib/url/site-url';
+import { resolvedTenantUrl } from '@/lib/tenant/host';
+import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,7 @@ async function requestPasswordReset(formData: FormData) {
     const { createServiceClient } = await import('@/lib/supabase/server');
     const svc = createServiceClient() as any;
     const requestHeaders = await headers();
+    const tenant = tenantFromHeaders(requestHeaders);
     const [sourceLimit, emailLimit] = await Promise.all([
       consumePublicRateLimit(svc, requestHeaders, { scope: 'password_reset_ip', windowSeconds: 3600, maxRequests: 10 }),
       consumeScopedRateLimit(svc, email, { scope: 'password_reset_email', windowSeconds: 3600, maxRequests: 3 }),
@@ -36,7 +39,11 @@ async function requestPasswordReset(formData: FormData) {
     const { data: linkData, error } = await svc.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
+      options: {
+        redirectTo: tenant
+          ? resolvedTenantUrl(tenant, '/api/auth/callback?next=/reset-password')
+          : `${siteUrl()}/api/auth/callback?next=/reset-password`,
+      },
     });
     if (error || !linkData?.properties?.action_link) done();
 
@@ -63,6 +70,10 @@ async function requestPasswordReset(formData: FormData) {
         }
       }
     }
+
+    // A tenant-branded reset form may only send mail for that tenant. Keep the
+    // outward response identical so this cannot be used for account discovery.
+    if (tenant && portfolioId !== tenant.portfolioId) done();
 
     await svc.from('email_queue').insert({
       to_email: email,

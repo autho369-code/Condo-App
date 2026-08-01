@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { queueEmails } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 const BUCKET = 'association-documents';
 
@@ -209,7 +209,7 @@ export async function sendOwnerPasswordReset(ownerId: string) {
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email: verifiedEmail,
-    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
+    options: { redirectTo: tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password') },
   });
   if (
     error

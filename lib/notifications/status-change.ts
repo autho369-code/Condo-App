@@ -19,7 +19,7 @@
 
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
-import { siteUrl } from '@/lib/url/site-url';
+import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 
 export interface StatusChangeParams {
@@ -79,7 +79,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
     let itemTitle: string;
     let itemNumber: string | null = null;
     let noun: string;
-    let link: string;
+    let linkPath: string;
 
     if (kind === 'work_order') {
       const { data: wo, error } = await svc
@@ -96,7 +96,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
       itemTitle = wo.title ?? 'Work order';
       itemNumber = wo.number ?? null;
       noun = 'work order';
-      link = `${siteUrl()}/portal/work-orders/${wo.id}`;
+      linkPath = `/portal/work-orders/${wo.id}`;
     } else {
       const { data: sr, error } = await svc
         .from('service_requests')
@@ -113,7 +113,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
       itemNumber = sr.number ?? null;
       noun = 'service request';
       // No per-request owner detail page exists — link to the portal list.
-      link = `${siteUrl()}/portal/service-requests`;
+      linkPath = '/portal/service-requests';
     }
 
     if (!ownerId) return;
@@ -125,11 +125,14 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
     // insurance reminders). Only the sending address stays on portier369.com.
     let companyName: string | null = null;
     let supportEmail: string | null = null;
+    let portfolioSlug: string | null = null;
     if (portfolioId) {
-      const { data: pf } = await svc.from('portfolios').select('company_name, support_email').eq('id', portfolioId).maybeSingle();
+      const { data: pf } = await svc.from('portfolios').select('company_name, support_email, slug').eq('id', portfolioId).maybeSingle();
       companyName = pf?.company_name ?? null;
       supportEmail = pf?.support_email ?? null;
+      portfolioSlug = pf?.slug ?? null;
     }
+    const link = tenantWorkspaceUrl(portfolioSlug, linkPath);
     const brandName = companyName ?? associationName ?? 'Your management team';
 
     const label = statusLabel(newStatus);
