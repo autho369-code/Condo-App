@@ -26,6 +26,10 @@ const ids = {
     '36900000-0000-4000-8100-000000000308', '36900000-0000-4000-8100-000000000309',
     '36900000-0000-4000-8200-000000000308', '36900000-0000-4000-8200-000000000309',
   ],
+  reconciliationItems: [
+    '36900000-0000-4000-8100-000000000089', '36900000-0000-4000-8100-000000000090',
+    '36900000-0000-4000-8200-000000000089', '36900000-0000-4000-8200-000000000090',
+  ],
   insurance: ['36900000-0000-4000-8100-000000000306', '36900000-0000-4000-8200-000000000306'],
   documents: ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'],
   tenants: ['36900000-0000-4000-8000-000000000071'],
@@ -55,6 +59,7 @@ await rows('calendar_events', ids.calendarEvents, 'id, portfolio_id, association
 await rows('meetings', ids.meetings, 'id, portfolio_id, association_id, title')
 await rows('communication_messages', ids.communications, 'id, portfolio_id, association_id, subject')
 await rows('communications_log', ids.communicationLogs, 'id, portfolio_id, association_id, channel, subject')
+await rows('bank_reconciliation_items', ids.reconciliationItems, 'id, reconciliation_id, journal_line_id, amount, is_cleared')
 await rows('insurance_policies', ids.insurance, 'id, association_id, owner_id, policy_number')
 await rows('documents', ids.documents, 'id, entity_type, entity_id, file_name, file_url')
 await rows('tenants', ids.tenants, 'id, portfolio_id, association_id, unit_id, owner_id, first_name, lease_start, lease_end')
@@ -90,7 +95,9 @@ console.log(JSON.stringify({
     associations: ids.associations.length,
     authUsers: fixtureEmails.length,
     tenantContacts: ids.tenants.length,
-    operationalRows: Object.values(ids).slice(2, 10).reduce((count, group) => count + group.length, 0),
+    operationalRows: Object.entries(ids)
+      .filter(([key]) => !['portfolios', 'associations', 'documents', 'tenants'].includes(key))
+      .reduce((count, [, group]) => count + group.length, 0),
     privateDocuments: ids.documents.length,
   },
   unsupported: { tenantPortalAuthIdentity: true },

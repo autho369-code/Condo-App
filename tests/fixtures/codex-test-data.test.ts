@@ -30,6 +30,7 @@ describe('CODEX_TEST staging fixture safety', () => {
       'charges', 'payments', 'bank_transactions', 'work_orders', 'maintenance_tasks',
       'violations', 'documents', 'communication_messages', 'communications_log', 'calendar_events', 'meetings',
       'insurance_policies', 'payable_bills', 'journal_entries', 'journal_lines',
+      'bank_reconciliation_items',
     ]) {
       expect(seed).toContain(`upsert('${table}'`);
     }

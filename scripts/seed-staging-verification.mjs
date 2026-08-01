@@ -236,8 +236,14 @@ async function main() {
     { id: account(2, 86), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, gl_account_id: account(2, 1), plaid_transaction_id: 'codex-test-staging-beta-deposit', date: '2026-06-01', name: 'CODEX_TEST Assessment deposit', amount: 4100, reviewed: true },
   ])
   await upsert('bank_reconciliations', [
-    { id: account(1, 87), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, statement_date: '2026-06-30', statement_balance: 10400, ending_book_balance: 10400, reconciled_balance: 10400, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
+    { id: account(1, 87), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, statement_date: '2026-06-30', statement_balance: 10200, ending_book_balance: 10200, reconciled_balance: 10200, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
     { id: account(2, 88), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, statement_date: '2026-06-30', statement_balance: 7100, ending_book_balance: 7100, reconciled_balance: 7100, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
+  ])
+  await upsert('bank_reconciliation_items', [
+    { id: account(1, 89), reconciliation_id: account(1, 87), journal_line_id: entry(1, 100), description: 'CODEX_TEST Opening cash cleared', amount: 12000, type: 'book', is_cleared: true, cleared_at: '2026-07-01T12:00:00Z', sort_order: 1 },
+    { id: account(1, 90), reconciliation_id: account(1, 87), journal_line_id: entry(1, 105), description: 'CODEX_TEST Utilities payment cleared', amount: -1800, type: 'book', is_cleared: true, cleared_at: '2026-07-01T12:00:00Z', sort_order: 2 },
+    { id: account(2, 89), reconciliation_id: account(2, 88), journal_line_id: entry(2, 100), description: 'CODEX_TEST Beta opening cash cleared', amount: 8000, type: 'book', is_cleared: true, cleared_at: '2026-07-01T12:00:00Z', sort_order: 1 },
+    { id: account(2, 90), reconciliation_id: account(2, 88), journal_line_id: entry(2, 105), description: 'CODEX_TEST Beta utilities payment cleared', amount: -900, type: 'book', is_cleared: true, cleared_at: '2026-07-01T12:00:00Z', sort_order: 2 },
   ])
 
   const workOrderIds = [account(1, 300), account(2, 300)]
@@ -301,7 +307,7 @@ async function main() {
     balancedEntries: entries.length,
     journalLines: lines.length,
     operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 2, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 2, insurancePolicies: 2, tenants: 1 },
-    expected: { alphaTrialBalanceDebits: 21000, alphaTrialBalanceCredits: 21000, alphaNetIncome: 5400, alphaBalanceSheetTotal: 17400, alphaReceivables: 1400, alphaPayables: 1175, alphaReconciledBookBalance: 10400 },
+    expected: { alphaTrialBalanceDebits: 21000, alphaTrialBalanceCredits: 21000, alphaNetIncome: 5400, alphaBalanceSheetTotal: 17400, alphaReceivables: 1400, alphaPayables: 1175, alphaReconciledBookBalance: 10200 },
   }, null, 2))
 }
 
