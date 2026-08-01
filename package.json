@@ -47,6 +47,7 @@
     "verify:staging:email-worker": "node scripts/verify-staging-email-worker.mjs",
     "verify:staging:automation-retries": "node scripts/verify-staging-automation-retries.mjs",
     "verify:staging:scheduled-delivery": "npx --yes tsx scripts/verify-staging-scheduled-delivery.ts",
+    "verify:staging:vendor-submissions": "node scripts/verify-staging-vendor-submissions.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

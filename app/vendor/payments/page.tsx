@@ -1,23 +1,33 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
-import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState } from '@/components/ui/shell';
+import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
+import { InvoiceSubmissionForm } from '@/components/vendor/invoice-submission-form';
 import { date, money } from '@/lib/utils';
 import { Receipt } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function VendorPaymentsPage() {
+export default async function VendorPaymentsPage({ searchParams }: { searchParams: Promise<{ submitted?: string }> }) {
   const me = await requireVendor();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: bills } = await db
-    .from('payable_bills')
-    .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, associations(name)')
-    .eq('vendor_id', me.vendor_id)
-    .is('archived_at', null)
-    .order('bill_date', { ascending: false })
-    .limit(100);
+  const [billResult, workOrderResult] = await Promise.all([
+    db.from('payable_bills')
+      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, associations(name)')
+      .eq('vendor_id', me.vendor_id).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
+    db.from('work_orders')
+      .select('id, number, title, associations(name)')
+      .eq('vendor_id', me.vendor_id).is('archived_at', null).order('created_at', { ascending: false }).limit(100),
+  ]);
+  if (billResult.error) throw new Error(`Could not load vendor bills: ${billResult.error.message}`);
+  if (workOrderResult.error) throw new Error(`Could not load assigned work orders: ${workOrderResult.error.message}`);
+  const bills = billResult.data;
+  const workOrders = (workOrderResult.data ?? []).map((workOrder: any) => ({
+    id: workOrder.id,
+    label: `${workOrder.number ? `#${workOrder.number} · ` : ''}${workOrder.title} — ${workOrder.associations?.name ?? 'Association'}`,
+  }));
 
   const rows = bills ?? [];
   const pending = rows.filter((b: any) => b.status === 'pending_approval');
@@ -34,6 +44,8 @@ export default async function VendorPaymentsPage() {
         title="Payments"
         description="Every invoice you've submitted and where it stands — approval, scheduled payment, or paid."
       />
+
+      {sp.submitted === '1' && <Alert tone="success" className="mb-5">Invoice submitted for management approval.</Alert>}
 
       <MetricStrip className="mb-6 lg:grid-cols-3">
         <Metric label="Awaiting approval" value={money(sum(pending))} sub={`${pending.length} bill${pending.length === 1 ? '' : 's'}`} accent="amber" />
@@ -82,6 +94,11 @@ export default async function VendorPaymentsPage() {
             </table>
           </div>
         )}
+      </Surface>
+
+      <Surface className="mt-5">
+        <SectionTitle title="Submit an invoice" description="Invoices enter the management approval queue and cannot mark themselves paid." />
+        <InvoiceSubmissionForm workOrders={workOrders} />
       </Surface>
 
       <p className="mt-4 text-xs leading-5 text-gray-400">
