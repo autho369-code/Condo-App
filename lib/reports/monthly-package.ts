@@ -113,8 +113,7 @@ export function generateMonthlyFinancialPackagePdf(options: {
   sections.forEach((section, index) => doc.text(`${index + 1}. ${section.title}`, 170, 372 + index * 18));
 
   sections.forEach((section) => {
-    doc.addPage('letter', 'landscape');
-    const sectionStartPage = doc.getNumberOfPages();
+    const sectionStartPage = doc.getNumberOfPages() + 1;
     const keys = section.rows.length ? [...new Set(section.rows.flatMap((row) => Object.keys(row)))] : ['result'];
     const body = section.rows.length
       ? section.rows.map((row) => keys.map((key) => cell(key, row[key])))
@@ -125,28 +124,27 @@ export function generateMonthlyFinancialPackagePdf(options: {
     autoTable(doc, {
       head: [keys.map(humanize)],
       body,
+      pageBreak: 'always',
       startY: 80,
       margin: { top: 80, right: 36, bottom: 34, left: 36 },
       styles: { fontSize: 6.5, cellPadding: 3, overflow: 'linebreak' },
       headStyles: { fillColor: [31, 41, 55], fontSize: 6.5 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles,
+      didDrawPage: ({ pageNumber }) => {
+        const absolutePageNumber = sectionStartPage + pageNumber - 1;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        doc.setTextColor(0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text(section.title, 36, 32);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(associationName, 36, 47);
+        doc.text(`${dateFrom} through ${dateTo}`, 36, 59);
+        doc.text(`Page ${absolutePageNumber}`, pageWidth - 36, 32, { align: 'right' });
+      },
     });
-    const sectionEndPage = doc.getNumberOfPages();
-    for (let pageNumber = sectionStartPage; pageNumber <= sectionEndPage; pageNumber += 1) {
-      doc.setPage(pageNumber);
-      const pageWidth = doc.internal.pageSize.getWidth();
-      doc.setTextColor(0);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.text(section.title, 36, 32);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(associationName, 36, 47);
-      doc.text(`${dateFrom} through ${dateTo}`, 36, 59);
-      doc.text(`Page ${pageNumber}`, pageWidth - 36, 32, { align: 'right' });
-    }
-    doc.setPage(sectionEndPage);
   });
   return new Uint8Array(doc.output('arraybuffer'));
 }
