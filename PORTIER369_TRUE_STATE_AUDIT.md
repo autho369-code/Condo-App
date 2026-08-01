@@ -2,6 +2,7 @@
 
 **Audit branch:** `codex/portier369-stabilization`  
 **Revalidated commit:** `a12c8f3e3cd602bc272810f35ac24d80a27c6d49`  
+**Latest completed phase commit:** `f3dbe13`  
 **Revalidation date:** 2026-07-31  
 **Production database:** `termxngysvotnfbzbgrv` (read-only verification only)  
 **Staging database:** `zalfkrtjeswvfmucicea`  
@@ -35,7 +36,7 @@ No major module is currently classified **MOCK OR FAKE**. Current scans found no
 | Supabase migrations | 194 | All names/versions valid and unique on 2026-07-31 |
 | `CREATE POLICY` statements | 550 | Broad RLS intent; not an isolation test |
 | `ENABLE ROW LEVEL SECURITY` statements | 229 | Broad RLS activation; not proof of policy correctness |
-| Automated test files | 56 | 186 tests passed on the revalidated commit |
+| Automated test files | 57 | 190 tests passed after Phase 2 fixture work |
 | Vercel cron declarations | 8 | Hosted schedules exist; each downstream effect still needs evidence |
 
 Role-area page counts: platform operator 20, company admin 23, manager/staff application 162, board 25, owner portal 31, and vendor portal 10. There is no distinct tenant portal route group.
@@ -46,7 +47,7 @@ Commands run from the audit branch on 2026-07-31:
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Unit/integration suite | PASS | 56 files, 186 tests |
+| Unit/integration suite | PASS | 57 files, 190 tests |
 | TypeScript | PASS | `tsc --noEmit --incremental false` |
 | ESLint | PASS WITH WARNINGS | 0 errors, 5 warnings |
 | Route/placeholder audit | PASS | 0 placeholder links, 0 missing local routes |
@@ -133,24 +134,29 @@ Missing credentials must keep these features visibly unavailable and fail closed
 
 ## Temporary fixture true state
 
-Existing `scripts/seed-staging-verification.mjs` and `scripts/cleanup-staging-verification.mjs` are staging-ref gated, deterministic, and use fixed `CODEX_TEST_PORTIER369_V1` identifiers. Cleanup checks ownership and deletes exact IDs child-first.
+Canonical `scripts/seed-codex-test-data.mjs` and `scripts/cleanup-codex-test-data.mjs` delegate to the staging-ref-gated deterministic harness. It uses fixed `CODEX_TEST_PORTIER369_V1` identifiers. Cleanup checks fixture ownership and deletes exact IDs child-first; derivative audit and email rows are removed only when tied to the exact fixture users or portfolios.
 
 What exists now:
 
-- two portfolios and one association per portfolio;
+- two portfolios, with two associations in the primary portfolio and one cross-company isolation association;
 - buildings, units, owners, owner occupancies, vendors, bank accounts, GL accounts, balanced entries, budgets, payable bills, charges/payments, bank transactions, and reconciliations;
 - operator, company-admin, manager, board, owner, and vendor identities;
+- a manager-side tenant/lease/insurance contact without an unsupported tenant auth identity;
+- work orders, maintenance tasks, hearing-pending violations, private documents, announcements, calendar events, meetings/minutes, and insurance policies in both isolation scopes;
 - current, 1–30, 31–60, 61–90, and 90+ receivable fixtures;
-- tenant-isolation sentinels.
+- tenant-isolation sentinels and machine-readable expected accounting totals.
 
-Required gaps before Phase 3 certification:
+Phase 2 live evidence:
 
-- create the required public entrypoints `scripts/seed-codex-test-data.mjs` and `scripts/cleanup-codex-test-data.mjs`;
-- add at least a second association in the primary portfolio so company-admin and association-switching boundaries are testable;
-- decide whether tenant support is in scope; the current auth model has no independent tenant role;
-- seed work orders, maintenance tasks, violations, hearing requests, documents, announcements/messages, calendar events/meetings, insurance records, and lease records;
-- record expected financial totals in machine-readable fixture output;
-- ensure cleanup covers every added row by exact deterministic ID and refuses production.
+- production-ref seed and cleanup guards were executed and refused before any network request;
+- the seed ran twice unchanged against staging and returned identical counts;
+- the fixture verifier confirmed two portfolios, three associations, ten supported-role auth users, one tenant/lease contact, sixteen operational sentinel rows, and two private document rows backed by a real PDF object;
+- cleanup initially exposed and then repaired three root causes: the `board_approval_settings` key is `association_id`, fixture profiles must be removed before auth users, and verification-created audit/email rows must be removed by exact fixture identity/portfolio scope;
+- the repaired cleanup completed, and a separate absence check confirmed zero fixture portfolios, auth users, or document objects;
+- the fixture was reseeded and verified successfully for Phase 3;
+- 57 test files / 190 tests, TypeScript, route audit, secret scan, and migration audit pass; lint has five existing warnings and zero errors.
+
+Remaining fixture limitation: an independent tenant portal identity is intentionally absent because `getMe()` has no `tenant_id`, tenant guard, or tenant home route. Tenant contact and lease management can be tested by staff; tenant portal access cannot be certified.
 
 ## Phase 1 release gates
 
@@ -160,7 +166,7 @@ Required gaps before Phase 3 certification:
 | Placeholder/fake/TODO scan | COMPLETE |
 | Current automated test/type/lint/route/secret/migration gates | COMPLETE |
 | API/auth/RLS design inventory | PARTIAL — policy counts and guarded-route sampling complete; exhaustive endpoint matrix remains |
-| Deterministic full-domain staging fixture | INCOMPLETE |
+| Deterministic full-domain staging fixture | COMPLETE for supported roles; tenant contact seeded, tenant portal auth not implemented |
 | All roles exercised against current fixture | INCOMPLETE |
 | All active reports executed with expected totals | INCOMPLETE |
 | Stripe/Plaid real sandbox verification | BLOCKED BY CREDENTIALS OR EXTERNAL SERVICE |
@@ -171,4 +177,3 @@ Required gaps before Phase 3 certification:
 Portier369 has substantial connected implementation and a healthy automated baseline. It is not a fake shell, and the currently deployed production build has passed build/CI and narrow smoke evidence. It is also not yet honest to certify the entire product as **READY FOR PRODUCTION**: the deterministic fixture does not cover the promised operational modules, tenant support is not implemented as a separate role, several integrations lack credentials, and the complete role/report/financial matrix has not been rerun.
 
 The defensible current state is **READY FOR CONTROLLED PILOT ONLY** while the remaining phases expand the reversible staging fixture, execute role-by-role and report-by-report evidence, repair confirmed failures in P0–P3 order, and publish the remaining delivery records.
-
