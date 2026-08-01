@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Plus, Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
@@ -50,7 +50,7 @@ export default async function OwnerPayablePage({
 }: {
   searchParams: Promise<{ tab?: string; type?: string; q?: string; error?: string }>;
 }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const sp = await searchParams;
   const { tab: tabParam, type: typeParam, q = '' } = sp;
   const tab = parseTab(tabParam);

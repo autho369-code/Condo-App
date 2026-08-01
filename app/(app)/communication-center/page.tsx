@@ -17,7 +17,7 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ sent?: string; error?: string }> }) {
+export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
@@ -45,14 +45,14 @@ export default async function CommunicationCenterPage({ searchParams }: { search
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not send">{sp.error}</Alert>}
-        {sp.sent && <Alert tone="success" title="Message sent">{`Queued for delivery to ${sp.sent} recipient${sp.sent === '1' ? '' : 's'} via email.`}</Alert>}
+        {sp.queued && <Alert tone="success" title="Message queued">{`Queued for delivery to ${sp.queued} recipient${sp.queued === '1' ? '' : 's'} via email.`}</Alert>}
 
         <MetricStrip
           metrics={[
             { label: 'Total messages', value: rows.length },
             { label: 'Drafts awaiting approval', value: drafts },
             { label: 'Failed delivery', value: failed },
-            { label: 'Sent', value: rows.filter((message: any) => message.status === 'sent').length },
+            { label: 'Queued', value: rows.filter((message: any) => message.status === 'queued').length },
           ]}
         />
 
@@ -85,7 +85,7 @@ export default async function CommunicationCenterPage({ searchParams }: { search
                   </TD>
                   <TD><Badge status={message.status} /></TD>
                   <TD className="text-right">
-                    {message.channel === 'email' && message.status !== 'sent' ? (
+                    {message.channel === 'email' && !['queued', 'sent'].includes(message.status) ? (
                       <form action={sendCommunication}>
                         <input type="hidden" name="message_id" value={message.id} />
                         <Button type="submit" variant="secondary" size="sm">

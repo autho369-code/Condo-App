@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDueReminders, buildReminderContent } from '@/lib/maintenance/reminders';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { queueEmails } from '@/lib/email/queue';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
@@ -19,35 +21,38 @@ export async function GET(request: NextRequest) {
 
     const results = [];
     for (const reminder of reminders) {
+      const vendorEmail = reminder.vendorEmail;
+      if (!vendorEmail) {
+        results.push({ task: reminder.taskName, vendor: null, status: 'skipped', error: 'Vendor email is missing' });
+        continue;
+      }
       const { subject, body } = buildReminderContent(reminder);
 
       try {
         // Queue email via the existing email pipeline. Cron has no user
         // session, so use the service client (email_queue is RLS-locked),
         // and the column is `body` — inserting `body_html` fails outright.
-        const { createServiceClient } = await import('@/lib/supabase/server');
         const svc = createServiceClient();
         // White-label: the vendor sees the management company as the sender
         // and replies go to the company office, not the platform.
-        const { error: insertErr } = await (svc as any).from('email_queue').insert({
-          to_email: reminder.vendorEmail,
+        const { error: queueError, count } = await queueEmails(svc as any, [{
+          to: vendorEmail,
           subject,
-          body: body.replace(/\n/g, '<br>'),
-          status: 'pending',
-          from_address: 'hello@portier369.com',
-          from_name: reminder.companyName ?? reminder.associationName ?? 'Portier369',
-          reply_to: reminder.supportEmail ?? null,
-          portfolio_id: reminder.portfolioId ?? null,
-        });
-        if (insertErr) throw new Error(insertErr.message);
+          text: body,
+          fromName: reminder.companyName ?? reminder.associationName ?? 'Portier369',
+          replyTo: reminder.supportEmail ?? null,
+          portfolioId: reminder.portfolioId ?? null,
+          idempotencyKey: `maintenance-reminder:${reminder.taskId}:${reminder.dueDate}:${reminder.daysUntilDue}:${vendorEmail.toLowerCase()}`,
+        }]);
+        if (queueError) throw new Error(queueError);
 
-        results.push({ task: reminder.taskName, vendor: reminder.vendorEmail, status: 'queued' });
+        results.push({ task: reminder.taskName, vendor: vendorEmail, status: count ? 'queued' : 'already_queued' });
       } catch (e: any) {
         results.push({ task: reminder.taskName, vendor: reminder.vendorEmail, status: 'failed', error: e.message });
       }
     }
 
-    return NextResponse.json({ sent: results.filter(r => r.status === 'queued').length, total: results.length, results });
+    return NextResponse.json({ queued: results.filter(r => r.status === 'queued').length, total: results.length, results });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

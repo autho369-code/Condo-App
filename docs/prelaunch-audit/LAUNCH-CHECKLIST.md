@@ -1,12 +1,26 @@
 # Launch checklist
 
-- [ ] Approve migration recovery plan; record all remote/local versions.
-- [ ] Test migrations on a restored staging copy; take and verify a production backup.
-- [ ] Verify tenant/RLS matrix for every role and two associations.
-- [ ] Run payment webhook duplicate, ordering, refund, dispute, and autopay isolation tests in Stripe test mode.
-- [ ] Verify each association has its own enabled Stripe connected account before accepting a charge.
-- [ ] Confirm Plaid, Resend, SMS provider, cron, AI, and rate-limit secrets in Preview and Production.
-- [ ] Run CI commands from `TEST-RESULTS.md`; attach artifacts.
-- [ ] Reconcile all financial reports to source journals and control accounts using disposable staging data.
-- [ ] Verify scheduled-report queue, storage downloads, retention, and authorization.
-- [ ] Obtain owner/legal sign-off for legal pages and pilot one management company before broad launch.
+- [x] Normalize local migration names/versions and bring linked staging current.
+- [x] Seed reversible two-association `CODEX_TEST` staging fixtures.
+- [x] Verify staging RLS/scope for Operator, Company Admin, Manager, Board, Owner, and Vendor.
+- [x] Verify role-home routing and representative role workflows in isolated browser sessions.
+- [x] Generate and download a real private Balance Sheet PDF from staging.
+- [x] Pass the local code gate: 168 tests, TypeScript, lint, route/dashboard audits, migration validation, secret scan, and production build.
+- [x] Replay all 188 migrations into an empty local database with seeding disabled.
+- [ ] Restore a production backup to staging and rehearse rollback.
+- [x] Verify stale-token revocation for Operator, Company Admin, Manager, Board, Owner, and Vendor.
+- [x] Deny anonymous/authenticated service-only report calls and forbidden Manager/Admin/Board/Owner/Vendor mutations.
+- [x] Verify private document signed upload/download, public-read denial, unsigned-upload denial, executable-MIME denial, and cleanup.
+- [x] Verify signed-upload path binding and signed-download expiry.
+- [x] Verify manager invitation assignment, single-use token enforcement, recipient matching, and cleanup.
+- [x] Add durable invitation/reset rate limits and failed-verification-email rollback.
+- [ ] Verify invitation rollback/rate limits and password recovery through the deployed browser/email provider; complete report retention and remaining workflow-specific signed-upload issuance.
+- [ ] Reconcile every supported financial report/export to fixture journals and control accounts.
+- [ ] Keep catalog-only reports visibly unavailable until their data source and export are audited.
+- [ ] Run Stripe webhook ordering/duplicate/refund/dispute/payout/autopay isolation tests in test mode.
+- [ ] Complete per-association Stripe Connect test onboarding before accepting any charge.
+- [ ] Run Plaid sync/match/failure/reconciliation tests and tie results to journals and bank balances.
+- [ ] Verify scheduled-report authorization, retention, signed-download expiry, and failure recovery.
+- [ ] Validate Resend/SMS/cron/monitoring/rate-limit configuration in Preview and Production without exposing secrets.
+- [ ] Obtain owner approval for the exact commit and production migration plan.
+- [ ] Merge, deploy that approved commit, and run read-only production smoke tests.

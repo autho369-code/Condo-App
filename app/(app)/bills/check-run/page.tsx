@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { PageShell, PageHeader, Breadcrumb, Surface, SectionTitle } from '@/components/ui/shell';
 import { Input, Field, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,20 +16,20 @@ export default async function CheckRunPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const sp = await searchParams;
   const supabase = await createClient();
 
   const [{ data: queue }, { data: banks }] = await Promise.all([
     (supabase as any).from('v_check_writing_queue').select('*'),
     (supabase as any).from('bank_accounts')
-      .select('id, name, bank_name, next_check_number')
+      .select('id, name, bank_name, next_check_number, check_signature')
       .is('archived_at', null)
       .order('name'),
   ]);
 
   const total = (queue ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0), 0);
-  const defaultBank = (banks ?? [])[0];
+  const defaultBank = (banks ?? []).find((bank: any) => Boolean(bank.check_signature?.trim()));
 
   return (
     <PageShell>
@@ -53,7 +53,7 @@ export default async function CheckRunPage({
             <Field label="Bank account" htmlFor="bank_account_id">
               <Select id="bank_account_id" name="bank_account_id" required>
                 {(banks ?? []).map((b: any) => (
-                  <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''} (next: {b.next_check_number ?? '—'})</option>
+                  <option key={b.id} value={b.id} disabled={!b.check_signature?.trim()}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''} (next: {b.next_check_number ?? '—'}){!b.check_signature?.trim() ? ' — signer setup required' : ''}</option>
                 ))}
               </Select>
             </Field>
@@ -102,6 +102,16 @@ export default async function CheckRunPage({
             </div>
           )}
         </div>
+
+        <Surface>
+          <label className="flex items-start gap-3 text-sm text-gray-700">
+            <input type="checkbox" name="authorization_confirmed" required className="mt-1" />
+            <span>
+              <span className="block font-medium text-gray-950">I am authorized to issue these checks.</span>
+              The system records my user identity and the bank account&apos;s configured signer label with this immutable check run. A physical or approved electronic signature is still required on the check.
+            </span>
+          </label>
+        </Surface>
 
         <div className="flex justify-end gap-2">
           <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>

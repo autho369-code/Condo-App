@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ export default async function NewOwnerPayablePage({
 }: {
   searchParams: Promise<{ type?: string; error?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const supabase = await createClient();
   const sp = await searchParams;
   const { type: defaultType } = sp;

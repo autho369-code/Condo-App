@@ -19,7 +19,12 @@ describe('report output serialization', () => {
   });
 
   it('creates a real PDF payload when PDF is selected', () => {
-    const output = serializeReportOutput('pdf', [{ account: '1000 Cash', amount: 13500 }]);
+    const output = serializeReportOutput('pdf', [{ account: '1000 Cash', ending_balance: 13500 }], {
+      title: 'Balance Sheet',
+      scope: 'Harbor View HOA',
+      dateFrom: '2026-07-01',
+      dateTo: '2026-07-31',
+    });
     expect(output.contentType).toBe('application/pdf');
     expect(output.extension).toBe('pdf');
     expect(new TextDecoder().decode(output.body.slice(0, 4))).toBe('%PDF');

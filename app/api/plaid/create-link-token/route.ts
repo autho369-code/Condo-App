@@ -6,6 +6,7 @@ import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Products, CountryCode } from 'plaid';
+import { siteUrl } from '@/lib/url/site-url';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (!isPlaidConfigured()) {
       return NextResponse.json(
         { error: 'Plaid is not configured. Set PLAID_CLIENT_ID, PLAID_SECRET, and PLAID_ENV in environment variables.' },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
@@ -50,9 +51,7 @@ export async function POST(request: NextRequest) {
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',
-      redirect_uri: process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/bank-accounts/link-bank`
-        : undefined,
+      redirect_uri: `${siteUrl()}/bank-accounts/link-bank`,
     };
 
     const response = await client.linkTokenCreate(config);

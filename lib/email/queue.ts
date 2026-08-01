@@ -1,8 +1,7 @@
 // Single source of truth for outbound email.
 //
 // Every email in the app is queued into `email_queue` and delivered by the
-// `process-email-queue` cron → `send-email` edge function → Resend (key in
-// Supabase Vault as `resend_api_key`). One Resend account serves every
+// Vercel's `/api/email/process-queue` cron → Resend. One Resend account serves every
 // management company on the platform. Use this helper everywhere instead of
 // hand-writing email_queue rows so columns and the verified sender stay
 // consistent (email_queue has no `created_by` column — it is `sent_by`).
@@ -28,6 +27,8 @@ export interface QueuedEmail {
   noticeId?: string | null;
   templateId?: string | null;
   sentBy?: string | null;
+  communicationMessageId?: string | null;
+  idempotencyKey?: string | null;
 }
 
 function escapeHtml(s: string): string {
@@ -36,6 +37,31 @@ function escapeHtml(s: string): string {
 
 export function textToHtml(text: string): string {
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;white-space:pre-wrap;line-height:1.6;color:#111827">${escapeHtml(text)}</div>`;
+}
+
+/**
+ * Convert browser-authored rich text to plain text before rebuilding safe email
+ * HTML. The API must not trust client-side DOMPurify output because callers can
+ * invoke route handlers directly.
+ */
+export function richTextToPlainText(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n\n')
+    .replace(/<\/div\s*>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<\/li\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 /** Build a single email_queue row with the correct columns + verified sender. */
@@ -54,6 +80,8 @@ export function emailQueueRow(e: QueuedEmail) {
     notice_id: e.noticeId ?? null,
     template_id: e.templateId ?? null,
     sent_by: e.sentBy ?? null,
+    communication_message_id: e.communicationMessageId ?? null,
+    idempotency_key: e.idempotencyKey ?? null,
   };
 }
 
@@ -64,6 +92,12 @@ export function emailQueueRow(e: QueuedEmail) {
 export async function queueEmails(db: any, emails: QueuedEmail[]): Promise<{ error: string | null; count: number }> {
   if (!emails.length) return { error: null, count: 0 };
   const rows = emails.map(emailQueueRow);
-  const { error } = await db.from('email_queue').insert(rows);
-  return { error: error?.message ?? null, count: error ? 0 : rows.length };
+  // PostgreSQL unique indexes permit multiple NULL values, so ordinary queue
+  // rows still insert normally while producers that provide an idempotency key
+  // become safe to replay after a timeout or cron retry.
+  const { data, error } = await db
+    .from('email_queue')
+    .upsert(rows, { onConflict: 'idempotency_key', ignoreDuplicates: true })
+    .select('id');
+  return { error: error?.message ?? null, count: error ? 0 : (data?.length ?? 0) };
 }

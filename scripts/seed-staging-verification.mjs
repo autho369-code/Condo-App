@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const STAGING_REF = 'zalfkrtjeswvfmucicea'
 const PRODUCTION_REF = 'termxngysvotnfbzbgrv'
+const FIXTURE = 'CODEX_TEST_PORTIER369_V1'
 const url = process.env.STAGING_SUPABASE_URL
 const key = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY
 const password = process.env.STAGING_TEST_PASSWORD
@@ -37,26 +38,36 @@ async function ensureUser(email, displayName, portfolioId, role) {
   const listed = await must('list users', db.auth.admin.listUsers({ perPage: 1000 }))
   let user = listed.users.find((candidate) => candidate.email === email)
   if (!user) user = await must(`create ${email}`, db.auth.admin.createUser({ email, password, email_confirm: true })).then((r) => r.user)
-  await upsert('profiles', [{ id: user.id, email, full_name: displayName, display_name: displayName, portfolio_id: portfolioId, role, hoa_role: role === 'company_admin' ? 'company_admin' : 'manager', mvp_role: role }])
+  else await must(`refresh password ${email}`, db.auth.admin.updateUserById(user.id, { password, email_confirm: true }))
+  const isStaff = role === 'company_admin' || role === 'manager'
+  await upsert('profiles', [{
+    id: user.id, email, full_name: displayName, display_name: displayName,
+    portfolio_id: portfolioId, role,
+    hoa_role: isStaff ? role : role === 'board' || role === 'owner' ? role : null,
+    mvp_role: isStaff ? role : null,
+  }])
   return user
 }
 
 async function main() {
   await upsert('portfolios', [
-    { id: ids.portfolioA, company_name: 'Portier Staging Alpha', slug: 'portier-staging-alpha', tier: 'growth' },
-    { id: ids.portfolioB, company_name: 'Portier Staging Beta', slug: 'portier-staging-beta', tier: 'growth' },
+    { id: ids.portfolioA, company_name: `${FIXTURE} Alpha`, slug: 'codex-test-portier-alpha', tier: 'growth' },
+    { id: ids.portfolioB, company_name: `${FIXTURE} Beta`, slug: 'codex-test-portier-beta', tier: 'growth' },
   ])
   const [adminA, managerA, adminB] = await Promise.all([
-    ensureUser('staging.admin.a@portier369.invalid', 'Staging Admin A', ids.portfolioA, 'company_admin'),
-    ensureUser('staging.manager.a@portier369.invalid', 'Staging Manager A', ids.portfolioA, 'manager'),
-    ensureUser('staging.admin.b@portier369.invalid', 'Staging Admin B', ids.portfolioB, 'company_admin'),
+    ensureUser('codex_test.admin.a@portier369.invalid', 'CODEX_TEST Admin A', ids.portfolioA, 'company_admin'),
+    ensureUser('codex_test.manager.a@portier369.invalid', 'CODEX_TEST Manager A', ids.portfolioA, 'manager'),
+    ensureUser('codex_test.admin.b@portier369.invalid', 'CODEX_TEST Admin B', ids.portfolioB, 'company_admin'),
   ])
+  const operator = await ensureUser('codex_test.operator@portier369.invalid', 'CODEX_TEST Platform Operator', null, 'platform_operator')
+  await upsert('platform_operators', [{ id: account(1, 95), auth_user_id: operator.id, email: 'codex_test.operator@portier369.invalid', full_name: 'CODEX_TEST Platform Operator', role: 'admin', active: true }])
   await upsert('report_definitions', [
     ['trial_balance', 'Trial Balance', 'Debit and credit summary for every general-ledger account'],
     ['balance_sheet', 'Balance Sheet', 'Assets, liabilities, and equity as of a selected date'],
     ['income_statement', 'Income Statement', 'Revenue and expenses for a selected period'],
     ['general_ledger', 'General Ledger', 'Posted journal activity with account balances'],
     ['ar_aging', 'A/R Aging', 'Outstanding owner receivables by aging bucket'],
+    ['delinquency_summary', 'Delinquency Summary', 'Outstanding owner receivables summarized by aging bucket'],
     ['ap_aging', 'A/P Aging', 'Outstanding vendor payables by aging bucket'],
     ['aged_payables', 'Aged Payables', 'Detailed outstanding vendor payables'],
     ['aged_payables_summary', 'Aged Payables Summary', 'Outstanding payables summarized by aging bucket'],
@@ -88,12 +99,16 @@ async function main() {
     { id: ids.unitB, building_id: ids.buildingB, unit_number: 'B-201', name: 'B-201', ownership_pct: 100 },
   ])
   await upsert('owners', [
-    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'staging.owner.a@portier369.invalid' },
-    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'staging.owner.b@portier369.invalid' },
+    { id: ids.ownerA, portfolio_id: ids.portfolioA, full_name: 'CODEX_TEST Avery Alpha', first_name: 'Avery', last_name: 'Alpha', email: 'codex_test.owner.a@portier369.invalid', portal_activated: true },
+    { id: ids.ownerB, portfolio_id: ids.portfolioB, full_name: 'CODEX_TEST Bailey Beta', first_name: 'Bailey', last_name: 'Beta', email: 'codex_test.owner.b@portier369.invalid', portal_activated: true },
   ])
   await upsert('unit_owners', [
     { id: account(1, 91), unit_id: ids.unitA, owner_id: ids.ownerA, is_primary: true, share_pct: 100 },
     { id: account(2, 92), unit_id: ids.unitB, owner_id: ids.ownerB, is_primary: true, share_pct: 100 },
+  ])
+  await upsert('occupancies', [
+    { id: account(1, 97), association_id: ids.associationA, unit_id: ids.unitA, owner_id: ids.ownerA, occupancy_type: 'owner', status: 'current', is_primary: true, share_pct: 100 },
+    { id: account(2, 98), association_id: ids.associationB, unit_id: ids.unitB, owner_id: ids.ownerB, occupancy_type: 'owner', status: 'current', is_primary: true, share_pct: 100 },
   ])
   await upsert('association_assignments', [{ id: account(1, 93), association_id: ids.associationA, portfolio_id: ids.portfolioA, manager_id: managerA.id, assigned_by: adminA.id, role: 'manager' }])
 
@@ -107,12 +122,37 @@ async function main() {
   }
   await upsert('gl_accounts', gl)
   await upsert('vendors', [
-    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
-    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30' },
+    { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
+    { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
   ])
+  const [boardA, boardObserverA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
+    ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),
+    ensureUser('codex_test.board.observer.a@portier369.invalid', 'CODEX_TEST Board Observer A', ids.portfolioA, 'board'),
+    ensureUser('codex_test.owner.a@portier369.invalid', 'CODEX_TEST Owner A', ids.portfolioA, 'owner'),
+    ensureUser('codex_test.vendor.a@portier369.invalid', 'CODEX_TEST Vendor A', ids.portfolioA, 'vendor'),
+    ensureUser('codex_test.owner.b@portier369.invalid', 'CODEX_TEST Owner B', ids.portfolioB, 'owner'),
+    ensureUser('codex_test.vendor.b@portier369.invalid', 'CODEX_TEST Vendor B', ids.portfolioB, 'vendor'),
+  ])
+  await upsert('board_members', [
+    { id: account(1, 94), association_id: ids.associationA, full_name: 'CODEX_TEST Board A', email: 'codex_test.board.a@portier369.invalid', role: 'treasurer', active: true, auth_user_id: boardA.id },
+    { id: account(1, 96), association_id: ids.associationA, full_name: 'CODEX_TEST Board Observer A', email: 'codex_test.board.observer.a@portier369.invalid', role: 'director', active: true, auth_user_id: boardObserverA.id },
+  ])
+  await upsert('board_approval_settings', [{
+    association_id: ids.associationA,
+    signatures_required: true,
+    default_board_member_ids: [account(1, 94)],
+    default_voting_scheme: 'any_one_approver',
+    default_percentage_required: null,
+    sends_bills_to_board: 'over_threshold',
+    bills_threshold: 500,
+  }], 'association_id')
+  await must('link owner A auth', db.from('owners').update({ auth_user_id: ownerAUser.id }).eq('id', ids.ownerA))
+  await must('link owner B auth', db.from('owners').update({ auth_user_id: ownerBUser.id }).eq('id', ids.ownerB))
+  await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
+  await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
-    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
-    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating' },
+    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'Alpha Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer', company_name: 'CODEX_TEST Alpha Management', company_address: '100 Verification Way\nSeattle, WA 98101' },
+    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'Beta Operating', bank_name: 'Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer', company_name: 'CODEX_TEST Beta Management', company_address: '200 Isolation Avenue\nPortland, OR 97205' },
   ])
   const entries = []
   const lines = []
@@ -139,11 +179,38 @@ async function main() {
     { id: account(1, 72), association_id: ids.associationA, gl_account_id: account(1, 6), fiscal_year: 2026, category: 'expense', monthly_amounts: Array(12).fill(300) },
     { id: account(2, 73), association_id: ids.associationB, gl_account_id: account(2, 5), fiscal_year: 2026, category: 'income', monthly_amounts: Array(12).fill(800) },
   ])
+  const payableBillIds = [account(1, 81), account(1, 82), account(2, 83)]
+  const oldChecks = await must('find old payable fixture checks', db.from('payable_checks').select('id, payment_entry_id, void_entry_id').in('bill_id', payableBillIds))
+  if (oldChecks.length) {
+    const checkEntryIds = oldChecks.flatMap((row) => [row.payment_entry_id, row.void_entry_id]).filter(Boolean)
+    await must('remove old payable fixture checks', db.from('payable_checks').delete().in('id', oldChecks.map((row) => row.id)))
+    if (checkEntryIds.length) {
+      await must('remove old check fixture lines', db.from('journal_lines').delete().in('entry_id', checkEntryIds))
+      await must('remove old check fixture entries', db.from('journal_entries').delete().in('id', checkEntryIds))
+    }
+  }
+  const oldPayableEntries = await must('find old payable fixture entries', db.from('journal_entries').select('id').in('source_id', payableBillIds).in('source_type', ['payable_bill', 'check_payment', 'payable_bill_void']))
+  if (oldPayableEntries.length) {
+    const oldEntryIds = oldPayableEntries.map((row) => row.id)
+    await must('remove old payable fixture lines', db.from('journal_lines').delete().in('entry_id', oldEntryIds))
+    await must('remove old payable fixture entries', db.from('journal_entries').delete().in('id', oldEntryIds))
+  }
   await upsert('payable_bills', [
-    { id: account(1, 81), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 6), bill_number: 'ALPHA-90', bill_date: '2026-03-01', due_date: '2026-03-31', amount: 750, status: 'approved', memo: '90+ day aging fixture' },
-    { id: account(1, 82), portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 7), bill_number: 'ALPHA-CURRENT', bill_date: '2026-07-15', due_date: '2026-08-15', amount: 425, status: 'approved', memo: 'Current aging fixture' },
-    { id: account(2, 83), portfolio_id: ids.portfolioB, association_id: ids.associationB, vendor_id: ids.vendorB, gl_account_id: account(2, 6), bill_number: 'BETA-ONLY', bill_date: '2026-07-01', due_date: '2026-08-01', amount: 333, status: 'approved', memo: 'Tenant isolation sentinel' },
+    { id: payableBillIds[0], portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 6), bill_number: 'ALPHA-90', bill_date: '2026-03-01', due_date: '2026-03-31', amount: 750, status: 'approved', memo: '90+ day aging fixture', paid_at: null, bank_account_id: null, check_number: null },
+    { id: payableBillIds[1], portfolio_id: ids.portfolioA, association_id: ids.associationA, vendor_id: ids.vendorA, gl_account_id: account(1, 7), bill_number: 'ALPHA-CURRENT', bill_date: '2026-07-15', due_date: '2026-08-15', amount: 425, status: 'approved', memo: 'Current aging fixture', paid_at: null, bank_account_id: null, check_number: null },
+    { id: payableBillIds[2], portfolio_id: ids.portfolioB, association_id: ids.associationB, vendor_id: ids.vendorB, gl_account_id: account(2, 6), bill_number: 'BETA-ONLY', bill_date: '2026-07-01', due_date: '2026-08-01', amount: 333, status: 'approved', memo: 'Tenant isolation sentinel', paid_at: null, bank_account_id: null, check_number: null },
   ])
+  const chargeIds = [1, 2, 3, 4, 5, 6].map((suffix) => account(suffix === 6 ? 2 : 1, 200 + suffix))
+  await upsert('charges', [
+    { id: chargeIds[0], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST current assessment', due_date: '2026-08-15', amount: 100, gl_account_id: account(1, 5) },
+    { id: chargeIds[1], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 1-30 assessment', due_date: '2026-07-15', amount: 200, gl_account_id: account(1, 5) },
+    { id: chargeIds[2], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 31-60 assessment', due_date: '2026-06-15', amount: 300, gl_account_id: account(1, 5) },
+    { id: chargeIds[3], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 61-90 assessment', due_date: '2026-05-15', amount: 400, gl_account_id: account(1, 5) },
+    { id: chargeIds[4], unit_id: ids.unitA, charge_type: 'assessment', description: 'CODEX_TEST 90+ partially paid assessment', due_date: '2026-03-15', amount: 500, gl_account_id: account(1, 5) },
+    { id: chargeIds[5], unit_id: ids.unitB, charge_type: 'assessment', description: 'CODEX_TEST cross-tenant receivable sentinel', due_date: '2026-03-15', amount: 999, gl_account_id: account(2, 5) },
+  ])
+  const paymentId = account(1, 220)
+  await upsert('payments', [{ id: paymentId, unit_id: ids.unitA, charge_id: chargeIds[4], payment_date: '2026-07-01', amount: 100, method: 'check', reference: 'CODEX_TEST-PARTIAL', gl_account_id: account(1, 1), bank_account_id: ids.bankA }])
   await upsert('bank_transactions', [
     { id: account(1, 85), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, gl_account_id: account(1, 1), plaid_transaction_id: 'staging-alpha-deposit', date: '2026-06-01', name: 'Assessment deposit', amount: 7200, reviewed: true },
     { id: account(2, 86), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, gl_account_id: account(2, 1), plaid_transaction_id: 'staging-beta-deposit', date: '2026-06-01', name: 'Assessment deposit', amount: 4100, reviewed: true },
@@ -152,7 +219,7 @@ async function main() {
     { id: account(1, 87), portfolio_id: ids.portfolioA, bank_account_id: ids.bankA, statement_date: '2026-06-30', statement_balance: 10400, ending_book_balance: 10400, reconciled_balance: 10400, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
     { id: account(2, 88), portfolio_id: ids.portfolioB, bank_account_id: ids.bankB, statement_date: '2026-06-30', statement_balance: 7100, ending_book_balance: 7100, reconciled_balance: 7100, difference: 0, status: 'completed', completed_at: '2026-07-01T12:00:00Z' },
   ])
-  console.log(JSON.stringify({ project: ref, fixture: 'portier369-staging-v1', portfolios: 2, associations: 2, balancedEntries: entries.length, journalLines: lines.length }, null, 2))
+  console.log(JSON.stringify({ project: ref, fixture: FIXTURE, portfolios: 2, associations: 2, balancedEntries: entries.length, journalLines: lines.length }, null, 2))
 }
 
 main().catch((error) => { console.error(error.message); process.exit(1) })

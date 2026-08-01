@@ -2,26 +2,6 @@
 import Link from 'next/link';
 import * as React from 'react';
 
-const PLACEHOLDER_HREFS = new Set([
-  '/assessments/update',
-  '/unit-types/new',
-  '/bank-transfers/new',
-  '/journal-entries/new',
-  '/charges/new',
-  '/fixed-assets/new',
-  '/forms/new',
-  '/gl-accounts/new',
-  '/inspections/new',
-  '/inventory/new',
-  '/letters/new',
-  '/projects/new',
-  '/purchase-orders/new',
-  '/recurring-work-orders/new',
-  '/scheduled-reports/new',
-  '/surveys/new',
-  '/unit-turns/new',
-]);
-
 export function ContextPanel({
   title = 'Tasks',
   children,
@@ -31,10 +11,8 @@ export function ContextPanel({
 }) {
   return (
     <aside className="w-72 shrink-0 overflow-y-auto border-l border-gray-200 bg-white">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-3">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-5 py-3">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-        {/* Decorative close — panel remains mounted; stub until client-side toggle exists */}
-        <span className="cursor-pointer text-gray-400 hover:text-gray-600" aria-hidden="true">×</span>
       </div>
       <div className="space-y-5 px-5 py-4">{children}</div>
     </aside>
@@ -71,7 +49,7 @@ export function PanelLink({
   children: React.ReactNode;
   status?: 'ready' | 'placeholder';
 }) {
-  const isPlaceholder = status === 'placeholder' || href === '#' || href.startsWith('/help/') || PLACEHOLDER_HREFS.has(href);
+  const isPlaceholder = status === 'placeholder' || href === '#';
   if (isPlaceholder) {
     return (
       <li>

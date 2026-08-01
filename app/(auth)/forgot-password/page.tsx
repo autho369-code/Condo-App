@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { headers } from 'next/headers';
+import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const FROM_ADDRESS = 'hello@portier369.com';
 const FROM_NAME = 'Portier369';
 
@@ -20,6 +22,12 @@ async function requestPasswordReset(formData: FormData) {
   try {
     const { createServiceClient } = await import('@/lib/supabase/server');
     const svc = createServiceClient() as any;
+    const requestHeaders = await headers();
+    const [sourceLimit, emailLimit] = await Promise.all([
+      consumePublicRateLimit(svc, requestHeaders, { scope: 'password_reset_ip', windowSeconds: 3600, maxRequests: 10 }),
+      consumeScopedRateLimit(svc, email, { scope: 'password_reset_email', windowSeconds: 3600, maxRequests: 3 }),
+    ]);
+    if (!sourceLimit.allowed || !emailLimit.allowed) done();
 
     // Generate the link FIRST — this works for every auth user regardless of
     // role. Vendors have no profiles row, so a profiles-based lookup would
@@ -28,7 +36,7 @@ async function requestPasswordReset(formData: FormData) {
     const { data: linkData, error } = await svc.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+      options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
     });
     if (error || !linkData?.properties?.action_link) done();
 

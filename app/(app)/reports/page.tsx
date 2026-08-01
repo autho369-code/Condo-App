@@ -138,17 +138,20 @@ export default async function ReportsIndex({
       title="Reports"
       description="Run accounting, association, maintenance, tax, and transaction reports from one workspace."
       actions={
-        <form action="/reports" method="get" className="flex min-w-80 items-center gap-2">
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Search reports"
-            aria-label="Search reports"
-            className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
-          <Button type="submit" variant="secondary">Search</Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <Link href="/reports/monthly-package"><Button>Monthly package</Button></Link>
+          <form action="/reports" method="get" className="flex min-w-80 items-center gap-2">
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Search reports"
+              aria-label="Search reports"
+              className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+            <Button type="submit" variant="secondary">Search</Button>
+          </form>
+        </div>
       }
     >
       <div className="space-y-6">

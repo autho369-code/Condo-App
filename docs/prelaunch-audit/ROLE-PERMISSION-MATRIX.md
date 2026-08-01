@@ -1,12 +1,13 @@
 # Role and permission review matrix
 
-| Role | Intended access | Audit evidence | Release status |
+| Role | Intended access | Current staging evidence | Remaining release test |
 | --- | --- | --- | --- |
-| Platform Operator | Cross-tenant platform administration | Explicit operator policies and security migration | Requires live RLS regression test |
-| Company Admin | Portfolio administration | Company-admin portfolio migration and policies | Requires live RLS regression test |
-| Manager/Finance | Assigned associations and accounting | manager scoping migration; sampled association report | Requires all-tenant test matrix |
-| Board | Association governance and permitted read access | board read-expansion migrations | Requires live role test |
-| Owner | Own occupancy, financial and portal data | owner portal policies | Requires live role test |
-| Vendor | Assigned work/orders/bills only | vendor scoped-read policies | Requires live role test |
+| Platform Operator | Cross-tenant platform administration | Correct role home; cross-portfolio role verifier pass. | Create/disable/impersonation lifecycle and audit verification. |
+| Company Admin | Own-portfolio administration | Portfolio-A-only home/data; tenant-B route/API mutations denied; stale token revoked; disposable manager invite applied exact association scope and rejected replay/mismatch. | Deployed invite rollback/rate-limit plus disable/reassign browser lifecycle. |
+| Manager/Finance | Assigned associations and accounting | Association-A dashboard/reports/bills; tenant-B IDs and API mutations denied; service-only report RPC denied; admin/operator homes denied; stale token revoked. | Remaining write workflows and per-workflow signed-upload isolation. |
+| Board | Association governance and permitted read access | Scoped dashboard/financials/delinquencies; manager bills/report run and association mutation denied; stale token revoked. | Approval/signature browser lifecycle and cross-entity signed-upload attack. |
+| Owner | Own occupancy, financial, and portal data | Scoped dashboard/ledger/communications; staff/report-run access and charge mutation denied; two-owner isolation and stale-token revocation pass. | Multi-unit, payment/request/upload lifecycle, signed-capability cross-entity, and reset abuse. |
+| Vendor | Assigned work/orders/bills only | Scoped dashboard/payments/work orders; staff/report-run access and payable mutation denied; two-vendor isolation and stale-token revocation pass. | Assigned-work/upload lifecycle, Vendor B signed-capability denial, and reset abuse. |
+| Tenant | Defined launch behavior required | No distinct end-to-end tenant persona has been proven. | Define, implement, and test the role or remove it from launch scope. |
 
-Security-definer functions are intentionally used for tightly scoped database operations. Production release requires applying the execution-boundary migration and testing each function as `anon`, `authenticated`, intended role, and service role. Never rely only on client-side filtering.
+Security-definer functions are intentionally used for tightly scoped database operations. Staging includes the execution-boundary migrations and the tested role/RLS matrix passes, but production release still requires an approved migration plan plus explicit `anon`, ordinary authenticated, intended-role, and service-role call-path tests for every elevated function used by launch workflows.

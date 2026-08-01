@@ -11,8 +11,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { siteUrl } from '@/lib/url/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 const COMPANIES = '/platform-operator/companies';
 // Verified Resend sender for platform-level email
 const FROM_ADDRESS = 'hello@portier369.com';
@@ -50,7 +50,8 @@ async function audit(
 }
 
 function inviteEmailBody(companyName: string, token: string, expiresAt: string | null) {
-  const url = `${SITE_URL}/invite?token=${encodeURIComponent(token)}`;
+  const publicUrl = siteUrl();
+  const url = `${publicUrl}/invite?token=${encodeURIComponent(token)}`;
   const expiry = expiresAt
     ? new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'in 30 days';
@@ -61,8 +62,8 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 <p>This invitation expires ${expiry}.</p>
 <p>Your operating documents — keep these handy while you get set up:</p>
 <ul>
-<li><a href="${SITE_URL}/manuals/Portier369-Company-Admin-Guide.pdf">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
-<li><a href="${SITE_URL}/manuals/Portier369-Manager-Runbook.pdf">Manager Runbook</a> — daily operations for your property managers</li>
+<li><a href="${publicUrl}/manuals/Portier369-Company-Admin-Guide.pdf">Company Admin Guide</a> — step-by-step setup and day-to-day administration</li>
+<li><a href="${publicUrl}/manuals/Portier369-Manager-Runbook.pdf">Manager Runbook</a> — daily operations for your property managers</li>
 </ul>
 <p>— The Portier369 team</p>`.trim();
 }
@@ -311,7 +312,7 @@ export async function sendPasswordReset(formData: FormData) {
   const { data: linkData, error } = await svc.auth.admin.generateLink({
     type: 'recovery',
     email: profile.email,
-    options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/login` },
+    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/login` },
   });
   if (error) fail(returnTo, `Could not generate reset link: ${error.message}`);
 

@@ -1,21 +1,14 @@
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
+import { isProfileRole, PROFILE_ROLE_OPTIONS } from '@/lib/auth/profile-roles';
 import { date } from '@/lib/utils';
+import { changeUserRole, toggleUserDisable } from './actions';
 
 export const dynamic = 'force-dynamic';
-
-const USERS = '/platform-operator/users';
-
-function fail(message: string): never {
-  redirect(`${USERS}?error=${encodeURIComponent(message)}`);
-}
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
   return (
@@ -36,97 +29,18 @@ function userStatusBadge(user: any) {
   return <Badge className="bg-green-50 text-green-700 ring-green-200">Active</Badge>;
 }
 
-async function audit(
-  svc: any,
-  me: { auth_user_id: string | null; email: string | null },
-  action: string,
-  userId: string,
-  changes: Record<string, unknown> = {},
-) {
-  await svc.from('audit_logs').insert({
-    entity_type: 'user',
-    entity_id: userId,
-    action,
-    actor_id: me.auth_user_id,
-    actor_email: me.email,
-    changes,
-  });
-}
-
-async function toggleUserDisable(formData: FormData) {
-  'use server';
-  const me = await requirePlatformOperator();
-  const svc = createServiceClient() as any;
-  const userId = formData.get('user_id') as string;
-  const action = formData.get('action') as string;
-
-  if (!userId || !['disable', 'enable'].includes(action)) fail('Invalid user status request.');
-  if (userId === me.auth_user_id && action === 'disable') fail('You cannot disable your own active account.');
-
-  const disabledAt = action === 'disable' ? new Date().toISOString() : null;
-  const { error: authError } = await svc.auth.admin.updateUserById(userId, {
-    ban_duration: action === 'disable' ? '876000h' : 'none',
-  });
-  if (authError) fail(`Could not ${action === 'disable' ? 'disable' : 'enable'} the login: ${authError.message}`);
-  const { error } = await svc.from('profiles').update({ disabled_at: disabledAt }).eq('id', userId);
-  if (error) fail(`Could not ${action === 'disable' ? 'disable' : 'enable'} the user: ${error.message}`);
-
-  await audit(svc, me, action === 'disable' ? 'user_disabled' : 'user_enabled', userId, { disabled_at: disabledAt });
-  revalidatePath(USERS);
-  redirect(`${USERS}?${action === 'disable' ? 'disabled' : 'enabled'}=1`);
-}
-
-async function changeUserRole(formData: FormData) {
-  'use server';
-  const me = await requirePlatformOperator();
-  const svc = createServiceClient() as any;
-  const userId = formData.get('user_id') as string;
-  const newRole = formData.get('hoa_role') as string;
-
-  const { error } = await svc.from('profiles').update({ hoa_role: newRole }).eq('id', userId);
-  if (error) fail(`Could not change the user's role: ${error.message}`);
-
-  await audit(svc, me, 'user_role_changed', userId, { hoa_role: newRole });
-  revalidatePath(USERS);
-  redirect(`${USERS}?role_changed=1`);
-}
-
-// Soft-delete per platform soft-delete policy: disable the account rather than
-// destroying the profile row (preserves history and FK integrity).
-async function deleteUser(formData: FormData) {
-  'use server';
-  const me = await requirePlatformOperator();
-  const svc = createServiceClient() as any;
-  const userId = formData.get('user_id') as string;
-
-  if (!userId) fail('Missing user id.');
-  if (userId === me.auth_user_id) fail('You cannot delete your own active account.');
-
-  const { error: authError } = await svc.auth.admin.updateUserById(userId, { ban_duration: '876000h' });
-  if (authError) fail(`Could not disable the user login: ${authError.message}`);
-
-  const { error } = await svc.from('profiles').update({ disabled_at: new Date().toISOString() }).eq('id', userId);
-  if (error) fail(`Could not delete the user: ${error.message}`);
-
-  await audit(svc, me, 'user_soft_deleted', userId, {});
-  revalidatePath(USERS);
-  redirect(`${USERS}?deleted=1`);
-}
-
-const ROLE_OPTIONS = [
-  { value: 'company_admin', label: 'Company Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'assistant_manager', label: 'Assistant Manager' },
-  { value: 'accounting_staff', label: 'Accounting Staff' },
-  { value: 'board_member', label: 'Board Member' },
-  { value: 'owner', label: 'Owner' },
-  { value: 'vendor', label: 'Vendor' },
-];
-
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; company?: string; status?: string; role_changed?: string; deleted?: string; disabled?: string; enabled?: string; error?: string }>;
+  searchParams: Promise<{
+    role?: string;
+    company?: string;
+    status?: string;
+    role_changed?: string;
+    disabled?: string;
+    enabled?: string;
+    error?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const me = await requirePlatformOperator();
@@ -139,15 +53,22 @@ export default async function UsersPage({
     .order('email')
     .limit(200);
 
-  if (sp.role) query = query.eq('hoa_role', sp.role);
+  if (sp.role && isProfileRole(sp.role)) query = query.eq('hoa_role', sp.role);
   if (sp.company) query = query.eq('portfolio_id', sp.company);
   if (sp.status === 'disabled') query = query.not('disabled_at', 'is', null);
   else if (sp.status === 'active') query = query.is('disabled_at', null);
 
-  const [{ data: users }, { data: portfolios }] = await Promise.all([
+  const [{ data: users }, { data: portfolios }, { data: platformOperators }, { data: vendorUsers }] = await Promise.all([
     query,
     db.from('portfolios').select('id, company_name').order('company_name'),
+    db.from('platform_operators').select('auth_user_id, role, active'),
+    db.from('vendors').select('auth_user_id').not('auth_user_id', 'is', null),
   ]);
+
+  const platformOperatorIds = new Set((platformOperators ?? []).map((operator: any) => operator.auth_user_id));
+  const vendorUserIds = new Set((vendorUsers ?? []).map((vendor: any) => vendor.auth_user_id));
+  const currentOperator = (platformOperators ?? []).find((operator: any) => operator.auth_user_id === me.auth_user_id);
+  const canManageUsers = currentOperator?.active === true && currentOperator.role === 'admin';
 
   const portfolioMap = new Map<string, string>();
   (portfolios ?? []).forEach((p: any) => portfolioMap.set(p.id, p.company_name));
@@ -171,11 +92,10 @@ export default async function UsersPage({
           <p className="text-sm text-green-700 mt-1">The user&apos;s role has been changed.</p>
         </div>
       )}
-      {sp.deleted === '1' && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h3 className="font-semibold text-amber-900">User deleted</h3>
-          <p className="text-sm text-amber-700 mt-1">The account has been disabled. Profile history is preserved.</p>
-        </div>
+      {!canManageUsers && (
+        <Alert title="Read-only user directory">
+          Platform administrator access is required to change roles or login status.
+        </Alert>
       )}
 
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -197,7 +117,7 @@ export default async function UsersPage({
               <label htmlFor="f_role" className="mb-1 block text-xs font-medium text-gray-600">Role</label>
               <select id="f_role" name="role" defaultValue={sp.role || ''} className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm">
                 <option value="">All roles</option>
-                {ROLE_OPTIONS.map((r) => (
+                {PROFILE_ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
@@ -256,12 +176,14 @@ export default async function UsersPage({
               (users ?? []).map((user: any) => (
                 <TR key={user.id} className="hover:bg-gray-50">
                   <TD className="font-medium text-gray-950">
-                    {user.full_name ?? user.display_name ?? 'â€”'}
+                    {user.full_name ?? user.display_name ?? '—'}
                   </TD>
                   <TD className="text-gray-900">{user.email}</TD>
-                  <TD className="text-xs text-gray-600">{roleLabel(user.hoa_role)}</TD>
+                  <TD className="text-xs text-gray-600">
+                    {vendorUserIds.has(user.id) ? 'Vendor' : roleLabel(user.hoa_role)}
+                  </TD>
                   <TD className="text-gray-700">
-                    {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || 'â€”' : 'â€”'}
+                    {user.portfolio_id ? portfolioMap.get(user.portfolio_id) || '—' : '—'}
                   </TD>
                   <TD>{userStatusBadge(user)}</TD>
                   <TD className="text-xs text-gray-500">{date(user.last_login_at)}</TD>
@@ -273,32 +195,39 @@ export default async function UsersPage({
                     )}
                   </TD>
                   <TD>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <form action={toggleUserDisable as any} className="inline">
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <input type="hidden" name="action" value={user.disabled_at ? 'enable' : 'disable'} />
-                        <Button type="submit" variant="ghost" size="sm">
-                          {user.disabled_at ? 'Enable' : 'Disable'}
-                        </Button>
-                      </form>
-                      <form action={changeUserRole as any} className="inline-flex items-center gap-1">
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <select
-                          name="hoa_role"
-                          defaultValue={user.hoa_role || ''}
-                          className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
-                        >
-                          {ROLE_OPTIONS.map((r) => (
-                            <option key={r.value} value={r.value}>{r.label}</option>
-                          ))}
-                        </select>
-                        <Button type="submit" variant="ghost" size="sm">Set</Button>
-                      </form>
-                      <form action={deleteUser as any} className="inline">
-                        <input type="hidden" name="user_id" value={user.id} />
-                        <Button type="submit" variant="ghost" size="sm">Del</Button>
-                      </form>
-                    </div>
+                    {canManageUsers && !platformOperatorIds.has(user.id) ? (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <form action={toggleUserDisable as any} className="inline">
+                          <input type="hidden" name="user_id" value={user.id} />
+                          <input type="hidden" name="action" value={user.disabled_at ? 'enable' : 'disable'} />
+                          <Button type="submit" variant="ghost" size="sm">
+                            {user.disabled_at ? 'Enable' : 'Disable'}
+                          </Button>
+                        </form>
+                        {vendorUserIds.has(user.id) ? (
+                          <span className="text-xs text-gray-400">Role managed in Vendors</span>
+                        ) : (
+                          <form action={changeUserRole as any} className="inline-flex items-center gap-1">
+                            <input type="hidden" name="user_id" value={user.id} />
+                            <select
+                              name="hoa_role"
+                              defaultValue={user.hoa_role || ''}
+                              className="h-7 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 outline-none focus:border-blue-500"
+                            >
+                              <option value="" disabled>Select role</option>
+                              {PROFILE_ROLE_OPTIONS.map((r) => (
+                                <option key={r.value} value={r.value}>{r.label}</option>
+                              ))}
+                            </select>
+                            <Button type="submit" variant="ghost" size="sm">Set</Button>
+                          </form>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        {platformOperatorIds.has(user.id) ? 'Managed in Operators' : 'Read only'}
+                      </span>
+                    )}
                   </TD>
                 </TR>
               ))

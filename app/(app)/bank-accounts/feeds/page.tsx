@@ -14,6 +14,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { RefreshButton } from './sync-button';
+import { isPlaidConfigured } from '@/lib/plaid/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export default async function BankFeedsPage({
   const { filter = '', q = '', bank_account_id = '' } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
+  const plaidConfigured = isPlaidConfigured();
 
   // Load connected Plaid items
   const { data: plaidItems } = await db
@@ -73,11 +75,11 @@ export default async function BankFeedsPage({
     <DataWorkspace
       title="Bank feed"
       description="Imported transactions from linked bank accounts. Review auto-matched GL accounts or reassign as needed."
-      actions={
+      actions={plaidConfigured ? (
         <Link href="/bank-accounts/link-bank">
           <Button variant="secondary">Connect bank</Button>
         </Link>
-      }
+      ) : undefined}
     >
       <div className="space-y-6">
         {activeConnections.length > 0 && (
@@ -195,12 +197,14 @@ export default async function BankFeedsPage({
             <EmptyState
               icon={Landmark}
               title="No bank connections"
-              description="Link a bank account via Plaid to start importing transactions."
-              action={
+              description={plaidConfigured
+                ? 'Link a bank account securely to start importing transactions.'
+                : 'Automatic bank connections are not enabled. Manual bank-account and reconciliation workflows remain available.'}
+              action={plaidConfigured ? (
                 <Link href="/bank-accounts/link-bank">
                   <Button>Connect bank</Button>
                 </Link>
-              }
+              ) : undefined}
             />
           </div>
         ) : (

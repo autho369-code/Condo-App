@@ -8,12 +8,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com').replace(/\/$/, '');
-const PORTAL_URL = `${SITE_URL}/portal/insurance`;
-const MANAGER_URL = `${SITE_URL}/insurance`;
+const PORTAL_URL = `${siteUrl()}/portal/insurance`;
+const MANAGER_URL = `${siteUrl()}/insurance`;
 
 function isoDaysFromNow(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
             `Please renew your policy and upload the new certificate in your owner portal:\n${PORTAL_URL}\n\n${signature}`,
           associationId: p.association_id ?? null,
           portfolioId: p.associations?.portfolio_id ?? null,
+          idempotencyKey: `insurance-reminder:${p.id}:${p.window}:owner:${String(p.owners.email).toLowerCase()}`,
         });
       }
 
@@ -142,21 +143,24 @@ export async function GET(request: NextRequest) {
               `Review insurance tracking:\n${MANAGER_URL}\n\n${signature}`,
             associationId: p.association_id ?? null,
             portfolioId: p.associations?.portfolio_id ?? null,
+            idempotencyKey: `insurance-reminder:${p.id}:${p.window}:manager:${String(r.email).toLowerCase()}`,
           });
         }
       }
+    }
 
-      // Stamp the window as sent even when both parties opted out, so a later
-      // opt-in doesn't fire a stale notice. Sending the 15-day notice also
-      // closes the 30-day window for policies added late.
+    const { error: queueErr, count } = await queueEmails(svc, emails);
+    if (queueErr) throw new Error(queueErr);
+
+    // Only close a reminder window after its emails are durably present in the
+    // queue. Idempotency keys make this safe if queueing succeeded but a stamp
+    // or HTTP response failed and Vercel retries the cron.
+    for (const p of due) {
       const stamp: Record<string, string> = { [`reminder_${p.window}_sent_at`]: new Date().toISOString() };
       if (p.window === 15 && !p.reminder_30_sent_at) stamp.reminder_30_sent_at = new Date().toISOString();
       const { error: stampErr } = await svc.from('insurance_policies').update(stamp).eq('id', p.id);
       results.push({ policy: p.policy_number, window: p.window, daysLeft: p.daysLeft, stamped: !stampErr });
     }
-
-    const { error: queueErr, count } = await queueEmails(svc, emails);
-    if (queueErr) throw new Error(queueErr);
 
     return NextResponse.json({ sent: count, policies: results.length, results });
   } catch (e: any) {

@@ -10,6 +10,13 @@ export type ReportOutput = {
   extension: SupportedReportOutputFormat;
 };
 
+export type ReportOutputContext = {
+  title?: string;
+  scope?: string;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+};
+
 export function isSupportedReportOutputFormat(value: unknown): value is SupportedReportOutputFormat {
   return typeof value === 'string' && (SUPPORTED_REPORT_OUTPUT_FORMATS as readonly string[]).includes(value);
 }
@@ -32,7 +39,12 @@ export function rowsToCsv(rows: Record<string, unknown>[]): string {
   return [headers.join(','), ...rows.map((row) => headers.map((header) => escape(row[header])).join(','))].join('\n') + '\n';
 }
 
-function rowsToPdf(rows: Record<string, unknown>[]): Uint8Array {
+function humanizeHeader(value: string): string {
+  const text = value.replace(/_/g, ' ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+function rowsToPdf(rows: Record<string, unknown>[], context: ReportOutputContext): Uint8Array {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const headers = rows.length === 0 ? ['Result'] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
   const body = rows.length === 0
@@ -42,15 +54,31 @@ function rowsToPdf(rows: Record<string, unknown>[]): Uint8Array {
       return value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
     }));
 
-  doc.setFontSize(12);
-  doc.text('Portier369 report', 40, 36);
+  const title = context.title?.trim() || 'Portier369 report';
+  const scope = context.scope?.trim() || 'Portfolio';
+  const period = context.dateFrom && context.dateTo
+    ? `${context.dateFrom} through ${context.dateTo}`
+    : context.dateTo
+      ? `As of ${context.dateTo}`
+      : 'Current data';
   autoTable(doc, {
-    head: [headers],
+    head: [headers.map(humanizeHeader)],
     body,
-    startY: 52,
-    margin: { left: 40, right: 40 },
+    startY: 75,
+    margin: { top: 75, left: 40, right: 40, bottom: 36 },
     styles: { fontSize: 7, cellPadding: 3, overflow: 'linebreak' },
     headStyles: { fillColor: [31, 41, 55] },
+    didDrawPage: ({ pageNumber }) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text(title, 40, 34);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`Scope: ${scope}`, 40, 49);
+      doc.text(`Reporting period: ${period}`, 40, 61);
+      doc.text(`Page ${pageNumber}`, 572, 34, { align: 'right' });
+    },
   });
   return new Uint8Array(doc.output('arraybuffer'));
 }
@@ -58,6 +86,7 @@ function rowsToPdf(rows: Record<string, unknown>[]): Uint8Array {
 export function serializeReportOutput(
   format: SupportedReportOutputFormat,
   rows: Record<string, unknown>[],
+  context: ReportOutputContext = {},
 ): ReportOutput {
   switch (format) {
     case 'json':
@@ -68,7 +97,7 @@ export function serializeReportOutput(
       };
     case 'pdf':
       return {
-        body: rowsToPdf(rows),
+        body: rowsToPdf(rows, context),
         contentType: 'application/pdf',
         extension: 'pdf',
       };

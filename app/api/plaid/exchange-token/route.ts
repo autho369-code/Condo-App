@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!isPlaidConfigured()) {
       return NextResponse.json(
         { error: 'Plaid is not configured.' },
-        { status: 500 }
+        { status: 503 }
       );
     }
 

@@ -12,24 +12,28 @@ import { requireStaff } from '@/lib/auth/me';
 import { maskBankNumber } from '@/lib/banking/bank-format';
 import { toActivityRows, type BankActivitySourceRow } from '@/lib/banking/activity';
 import { createClient } from '@/lib/supabase/server';
+import { updateBankCheckSettings } from '@/lib/rpcs/entities';
+import { Input } from '@/components/ui/input';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BankAccountDetailPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; check_settings_saved?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
   const { data: account } = await db
     .from('bank_accounts')
     .select(
-      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations(name)',
+      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
     )
     .eq('id', id)
     .is('archived_at', null)
@@ -109,6 +113,8 @@ export default async function BankAccountDetailPage({
       }
     >
       <div className="space-y-6">
+        {sp.error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>}
+        {sp.check_settings_saved && <div role="status" className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">Check authorization settings saved.</div>}
         <MetricStrip
           metrics={[
             {
@@ -164,6 +170,26 @@ export default async function BankAccountDetailPage({
               </div>
             )}
           </dl>
+        </Surface>
+
+        <Surface padded={false}>
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-900">Check authorization</h2>
+            <p className="mt-1 text-xs text-gray-500">Required before checks can be issued. This records the authorized signer reference but does not apply a physical or electronic signature.</p>
+          </div>
+          <form action={updateBankCheckSettings as unknown as (formData: FormData) => Promise<void>} className="space-y-4 px-5 py-4">
+            <input type="hidden" name="bank_account_id" value={account.id} />
+            <label className="block text-sm font-medium text-gray-700">Authorized signer label
+              <Input name="check_signature" required maxLength={120} defaultValue={account.check_signature ?? ''} className="mt-1" />
+            </label>
+            <label className="block text-sm font-medium text-gray-700">Printed company name
+              <Input name="company_name" defaultValue={account.company_name ?? ''} className="mt-1" />
+            </label>
+            <label className="block text-sm font-medium text-gray-700">Printed company address
+              <Input name="company_address" defaultValue={account.company_address ?? ''} className="mt-1" />
+            </label>
+            <Button type="submit">Save check settings</Button>
+          </form>
         </Surface>
 
         {/* Reconciliation status */}

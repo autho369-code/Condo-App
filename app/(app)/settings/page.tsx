@@ -9,10 +9,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { date } from '@/lib/utils';
 import { queueEmails } from '@/lib/email/queue';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
-
-const SITE_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com';
 
 // Server Actions are callable endpoints in their own right — every mutation
 // below re-checks authorization INSIDE the action (defense-in-depth on top of
@@ -84,7 +83,7 @@ async function resetStaffPassword(formData: FormData) {
   const { data: linkData, error: linkError } = await (adminClient.auth as any).admin.generateLink({
     type: 'recovery',
     email: profileEmail,
-    options: { redirectTo: `${SITE_URL}/api/auth/callback?next=/reset-password` },
+    options: { redirectTo: `${siteUrl()}/api/auth/callback?next=/reset-password` },
   });
   if (
     linkError

@@ -60,7 +60,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
     })
     // Close mobile menu on navigation
     setMobileOpen(false)
-  }, [pathname])
+  }, [pathname, modules])
 
   const toggle = (label: string) => setOpen(p => ({ ...p, [label]: !p[label] }))
   const active = (href: string) => {

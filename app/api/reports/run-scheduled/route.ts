@@ -1,20 +1,16 @@
 /**
- * GET /api/reports/run-scheduled
- * Called hourly by cron (vercel.json). Completes the scheduled-reports pipeline:
- *   1. enqueue_scheduled_reports() — turns due schedules into queued report_runs
- *      and advances each schedule's next_run_at/last_run_at (SQL, SECURITY DEFINER).
- *   2. processReportRun() — executes each queued scheduled run (CSV/JSON to the
- *      private reports bucket with a signed output_url).
- *   3. Email delivery — queues one email per delivery target with the download
- *      link, via the same email_queue pipeline the rest of the app uses.
+ * Hourly scheduled-report generator and durable delivery recovery worker.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { processReportRun } from '@/lib/reports/process';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { queueEmails } from '@/lib/email/queue';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
@@ -22,63 +18,85 @@ export async function GET(request: NextRequest) {
 
   try {
     const svc = createServiceClient() as any;
-
-    // 1. Enqueue due schedules.
-    const { data: enqueued, error: enqueueErr } = await svc.rpc('enqueue_scheduled_reports');
-    if (enqueueErr) {
-      return NextResponse.json({ error: `enqueue failed: ${enqueueErr.message}` }, { status: 500 });
+    const { data: enqueued, error: enqueueError } = await svc.rpc('enqueue_scheduled_reports');
+    if (enqueueError) {
+      return NextResponse.json({ error: `enqueue failed: ${enqueueError.message}` }, { status: 500 });
     }
 
-    // 2. Execute queued scheduled runs (including any left over from earlier ticks).
-    const { data: runs } = await svc
+    const { data: queuedRuns, error: runLookupError } = await svc
       .from('report_runs')
-      .select('id, scheduled_report_id')
+      .select('id')
       .eq('status', 'queued')
       .not('scheduled_report_id', 'is', null)
       .order('created_at', { ascending: true })
       .limit(25);
+    if (runLookupError) throw new Error(`run lookup failed: ${runLookupError.message}`);
 
     const results: any[] = [];
-    for (const run of runs ?? []) {
+    for (const run of queuedRuns ?? []) {
       try {
         await processReportRun(run.id);
-      } catch (e: any) {
-        results.push({ run: run.id, status: 'process_failed', error: e.message });
+      } catch (error: any) {
+        results.push({ run: run.id, status: 'process_failed', error: error.message });
+        continue;
+      }
+      const { data: done } = await svc
+        .from('report_runs')
+        .select('id, status, error_message')
+        .eq('id', run.id)
+        .maybeSingle();
+      results.push({ run: run.id, status: done?.status ?? 'unknown', error: done?.error_message ?? undefined });
+    }
+
+    // Recover all still-downloadable successful runs, not just those generated
+    // above. If execution stopped after generation but before queue insertion,
+    // the next cron tick recovers delivery. Queue keys guarantee exactly one
+    // email per run and normalized recipient across every replay.
+    const recoveryCutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    const { data: deliverable, error: deliveryLookupError } = await svc
+      .from('report_runs')
+      .select('id, portfolio_id, output_url, finished_at, portfolios(company_name, support_email), scheduled_reports:scheduled_report_id(name, delivery_channel, delivery_targets)')
+      .eq('status', 'succeeded')
+      .not('scheduled_report_id', 'is', null)
+      .not('output_url', 'is', null)
+      .gte('finished_at', recoveryCutoff)
+      .order('finished_at', { ascending: false })
+      .limit(200);
+    if (deliveryLookupError) throw new Error(`delivery recovery failed: ${deliveryLookupError.message}`);
+
+    const deliveries: any[] = [];
+    for (const run of deliverable ?? []) {
+      const schedule = run.scheduled_reports;
+      if (schedule?.delivery_channel !== 'email') continue;
+      const targets = Array.from(new Set(
+        (Array.isArray(schedule.delivery_targets) ? schedule.delivery_targets : [])
+          .map((value: unknown) => String(value ?? '').trim().toLowerCase())
+          .filter((value: string) => EMAIL_PATTERN.test(value) && value.length <= 320),
+      )).slice(0, 100) as string[];
+      if (!targets.length) {
+        deliveries.push({ run: run.id, status: 'no_valid_recipients' });
         continue;
       }
 
-      // 3. Deliver by email when the schedule asks for it.
-      const { data: done } = await svc
-        .from('report_runs')
-        .select('id, status, output_url, error_message, scheduled_reports:scheduled_report_id(name, delivery_channel, delivery_targets)')
-        .eq('id', run.id)
-        .maybeSingle();
-
-      const sched = done?.scheduled_reports;
-      const targets: string[] = Array.isArray(sched?.delivery_targets) ? sched.delivery_targets.filter(Boolean) : [];
-      if (done?.status === 'succeeded' && done.output_url && sched?.delivery_channel === 'email' && targets.length > 0) {
-        let queuedEmails = 0;
-        for (const to of targets) {
-          const { error: mailErr } = await svc.from('email_queue').insert({
-            to_email: to,
-            subject: `Scheduled report: ${sched.name}`,
-            // Column is `body` — email_queue has no body_html column.
-            body:
-              `<p>Your scheduled report <strong>${sched.name}</strong> is ready.</p>` +
-              `<p><a href="${done.output_url}">Download the report</a> (link valid for 30 days).</p>`,
-            status: 'pending',
-            from_address: 'hello@portier369.com',
-            from_name: 'Portier369',
-          });
-          if (!mailErr) queuedEmails++;
-        }
-        results.push({ run: run.id, status: done.status, emails_queued: queuedEmails });
-      } else {
-        results.push({ run: run.id, status: done?.status ?? 'unknown', error: done?.error_message ?? undefined });
-      }
+      const companyName = run.portfolios?.company_name ?? 'Portier369';
+      const { error, count } = await queueEmails(svc, targets.map((to) => ({
+        to,
+        subject: `Scheduled report: ${schedule.name}`,
+        text: `Your scheduled report "${schedule.name}" is ready.\n\nDownload it here (link valid for 30 days):\n${run.output_url}`,
+        portfolioId: run.portfolio_id,
+        fromName: companyName,
+        replyTo: run.portfolios?.support_email ?? null,
+        idempotencyKey: `scheduled-report:${run.id}:${to}`,
+      })));
+      deliveries.push({
+        run: run.id,
+        status: error ? 'queue_failed' : count ? 'queued' : 'already_queued',
+        emails_queued: count,
+        error,
+      });
     }
 
-    return NextResponse.json({ enqueued: enqueued ?? 0, processed: results.length, results });
+    return NextResponse.json({ enqueued: enqueued ?? 0, processed: results.length, results, deliveries });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

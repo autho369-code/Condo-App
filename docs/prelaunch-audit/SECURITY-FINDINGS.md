@@ -1,9 +1,9 @@
 
 # Security findings
 
-Production was inspected read-only. â€œFixed in branchâ€ means source and regression coverage exist; it does **not** mean the production database has been changed.
+Production was inspected read-only. “Fixed in branch” means source and regression coverage exist; it does **not** mean the production database has been changed.
 
-## SEC-001 â€” Critical â€” Public execution of elevated report functions
+## SEC-001 — Critical — Public execution of elevated report functions
 
 - Affected roles/boundary: anonymous, any authenticated user; company and association boundaries.
 - Workflow: call a `report_data_*` SECURITY DEFINER function with a caller-chosen portfolio or unit ID.
@@ -12,9 +12,9 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Impact: cross-company financial, owner, vendor, violation, or operations disclosure.
 - Fix: service-role-only execution boundary plus explicit portfolio/association validation.
 - Fix status: fixed in audit-branch migrations `20260726050000_security_definer_execution_boundary.sql`, `20260728090000_secure_report_queue_scope.sql`, and `20260728093000_restore_scoped_report_data_functions.sql`.
-- Test status: static regression tests and CI pass; staging RLS execution is still required.
+- Test status: static regression tests, CI, empty-database replay, and the two-portfolio staging role/RLS verifier pass; explicit per-function `anon`/authenticated invocation inventory remains required.
 
-## SEC-002 â€” Critical â€” Audit-log spoofing and cross-company reads
+## SEC-002 — Critical — Audit-log spoofing and cross-company reads
 
 - Affected roles/boundary: anonymous insert; all staff read; every company.
 - Workflow: direct REST insert into `audit_logs`, or staff SELECT against logs belonging to another portfolio.
@@ -25,7 +25,7 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Fix status: fixed in branch migration `20260728094000_audit_log_and_owner_payable_scope.sql`.
 - Test status: static regression test added; staging policy tests pending.
 
-## SEC-003 â€” High â€” Owner-payable tenant relocation
+## SEC-003 — High — Owner-payable tenant relocation
 
 - Affected roles/boundary: authenticated staff; company, association, owner, GL, and bank-account boundaries.
 - Workflow: update a permitted payable while changing its tenant keys.
@@ -35,7 +35,7 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Fix status: fixed in branch migration `20260728094000_audit_log_and_owner_payable_scope.sql`.
 - Test status: static regression test added; staging forged-ID tests pending.
 
-## SEC-004 â€” High â€” Disabled profiles retained usable authorization
+## SEC-004 — High — Disabled profiles retained usable authorization
 
 - Affected roles/boundary: disabled staff, board, owner, tenant, or vendor identities.
 - Workflow: reuse an existing session after a profile is disabled.
@@ -43,9 +43,9 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Impact: a disabled user could retain access until normal session expiry.
 - Fix: Auth admin ban/unban, application sign-out guard, and database role helpers that fail closed for disabled identities.
 - Fix status: fixed in app code and migration `20260728092000_disabled_identity_enforcement.sql`.
-- Test status: unit/static tests pass in CI; live stale-session test pending staging users.
+- Test status: unit/static tests pass; live already-issued-token revocation passes for Operator, Company Admin, Manager, Board, Owner, and Vendor, with profile restoration and re-authentication verified.
 
-## SEC-005 â€” High â€” Queued report association IDOR
+## SEC-005 — High — Queued report association IDOR
 
 - Affected roles/boundary: staff; association boundary inside a company and potentially arbitrary queued parameters.
 - Workflow: call `bulk_queue_reports` with association IDs not owned by the caller's portfolio.
@@ -53,19 +53,19 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Impact: unauthorized report jobs and cross-association disclosure through generated output.
 - Fix: require staff authentication, validate every association and report definition, normalize parameters, and run data helpers only as service role.
 - Fix status: fixed in branch migration `20260728090000_secure_report_queue_scope.sql`.
-- Test status: static test coverage; end-to-end worker/export proof pending staging.
+- Test status: static coverage plus a real association-scoped Balance Sheet run/private PDF download pass; lower-privilege direct access to that run redirects to the correct role home.
 
-## SEC-006 â€” High â€” Migration history cannot reproduce production safely
+## SEC-006 — High — Migration history cannot reproduce production safely
 
 - Affected boundary: entire platform and all data.
 - Workflow: deploy or repair migrations from the current repository.
 - Evidence: 41 invalid filenames, three duplicate-version groups, remote versions absent locally, and an empty staging project.
 - Impact: skipped controls, out-of-order destructive SQL, schema drift, or failed recovery.
 - Fix: recover exact applied history, preserve checksums/order, produce a reviewed forward-only baseline, and replay from empty staging.
-- Fix status: open; no blind repair or production mutation performed.
-- Test status: audit mode passes; strict migration validation fails as intended.
+- Fix status: fixed in the stabilization branch; no production mutation performed.
+- Test status: strict validation passes for 188 unique valid versions, linked staging is current, and an empty local database replay applies the entire chain successfully.
 
-## SEC-007 â€” Medium â€” Broad permissive production policies remain until hardening is deployed
+## SEC-007 — Medium — Broad permissive production policies remain until hardening is deployed
 
 - Affected roles/boundary: anonymous/authenticated access to selected operational tables.
 - Workflow: direct REST reads/inserts allowed by policies such as the current public `house_rules` read.
@@ -84,4 +84,4 @@ Production was inspected read-only. â€œFixed in branchâ€ means source a
 - Impact: a property manager could reach company-level administration functions reserved for the explicit Company Admin role.
 - Fix: require `hoa_role = 'company_admin'` (or platform operator), reject disabled identities, and remove the legacy President/full-access shortcuts at both application and database layers.
 - Fix status: fixed in `lib/auth/me.ts` and migration `20260728095000_company_admin_role_boundary.sql`.
-- Test status: unit and migration regression tests added; staging negative-role replay remains required.
+- Test status: unit/migration tests pass; Manager A is redirected from Company Admin and Platform Operator homes in the staging-backed preview.

@@ -1,50 +1,55 @@
-
 # Test results
 
-Environment date: 2026-07-28  
-Branch: `audit/portier369-prelaunch-verification`  
-Commit: `f77e3c3bc73f0341c3f7154de0dbb96f5fa69b4d`  
-Databases: production `termxngysvotnfbzbgrv` read-only; staging `zalfkrtjeswvfmucicea` inspected read-only and found empty.
+Environment date: 2026-07-31
+
+Branch: `codex/portier369-stabilization`
+
+Commit under verification: `b71b765a35ed5a67068e718235ec3ab1a039f3dc`
+
+Databases: staging `zalfkrtjeswvfmucicea` was mutated only with reversible `CODEX_TEST` fixtures and forward migrations; production `termxngysvotnfbzbgrv` remained frozen.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| GitHub CI run 30343321381 | Pass | Completed successfully for the commit above. |
-| Vercel deployment | Pass | Deployment status succeeded for the commit above. |
-| `npm ci` | Pass in CI | Clean dependency installation. |
-| `npm run typecheck` / `tsc --noEmit` | Pass | Local and CI. |
-| `npm run lint` | Pass with 8 warnings | Pre-existing hooks/image/accessibility debt. |
-| `npm test` | Pass in CI | Includes report accounting, security migration, disabled-profile access, Stripe, and route tests. |
-| `npm run build` | Pass in CI | Production Next.js build. |
-| `npm audit --omit=dev` | Pass in CI | Production dependency gate. |
-| Migration audit | Audit pass; strict fail | 41 invalid filenames, three duplicate-version groups, and remote/local drift remain. |
-| Authenticated manager navigation | 50/50 rendered | 24 top-level and 26 submodule pages; three transient blank pages passed on retry. |
-| Authenticated report-link sweep | 120/120 rendered | No persistent 404/server error; Trial Balance needed one retry after a transient blank render. |
-| Manager-to-Company-Admin boundary | Defect found; fixed in branch | Direct manager access rendered Company Admin before the application/DB role-boundary fix. |
-| Core accounting file exports | 5 implemented in branch | Trial Balance, Balance Sheet, Income Statement, General Ledger, and A/R Aging use portfolio/association-validated worker paths. |
-| Accounting classification / roll-forward | Defects fixed in branch | Income Statement now uses account type, not number bands; Balance Sheet current-year earnings are limited to the report year. |
-| Advertised report implementations | Fail | 95 of 119 catalog definitions have no live implementation or supported dispatcher case. |
-| Production receivable tie-out | Pass (limited) | $10,650 charges - $8,400 applications = $2,250 open A/R. |
-| Production journal balance | Pass (limited) | Four source batches; every batch had equal debits and credits. |
-| Payment-to-journal traceability | Fail | 24 payments are represented by one aggregate journal; no `source_id` matches an individual payment. |
-| Stripe association onboarding | Not operational | 0 of 2 active associations have a connected account. |
-| Plaid/reconciliation execution | Not tested | 0 Plaid items, bank transactions, or reconciliations. |
-| Production mutations | Not run | Prohibited by the audit safety rules. |
+| Local release gate | Pass | 51 Vitest files / 168 tests, TypeScript, route/dashboard audits, migration validation, secret scan, and production build passed. |
+| Lint | Pass with 6 warnings | Existing image/accessibility/hook warnings; no lint errors. |
+| Migration inventory | Pass | 188 SQL files, 188 valid unique versions; linked staging reports up to date. |
+| Empty-database migration replay | Pass | `supabase db reset --local --no-seed` recreated the local database and applied all 188 migrations through `20260731004000`. |
+| Staging role/RLS verifier | Pass | Platform Operator, Company Admin A/B, Manager A, Board A, Owner A/B, and Vendor A/B scope checks passed. |
+| Authenticated role routing | Pass | Platform Operator, Company Admin, Manager, Board, Owner, and Vendor landed on their intended role homes in isolated browser sessions. |
+| Negative role routing | Pass | Owner, Vendor, Board, Manager, and Company Admin attempts to open higher-privilege homes redirected to their own role home. |
+| Direct-ID and private-report checks | Pass (read-only subset) | Lower-privilege report-run attempts redirected; Manager A received 404 for three tenant-B IDs; Company Admin A was redirected; direct public-bucket report access returned HTTP 400. |
+| Live stale sessions | Pass | Already-issued tokens lost all capabilities, tenant identifiers, and protected portfolio reads immediately for Operator, Company Admin, Manager, Board, Owner, and Vendor; all profiles were restored and re-authenticated. |
+| Live API mutation boundary | Pass | Service-only report RPCs were denied to anonymous/manager clients; cross-tenant Manager/Admin updates and same-tenant Board/Owner/Vendor financial mutations were denied. |
+| Private document storage | Pass | Signed PDF upload/download succeeded; public read, unsigned upload, and executable MIME upload were denied; cleanup succeeded. |
+| Signed capability binding/expiry | Pass | An Association A upload token was denied for Association B; a one-second signed URL expired; both association paths were audited clean after cleanup. |
+| Manager invitation lifecycle | Pass (database/Auth) | Disposable invite created the correct manager profile and exact association assignment; token replay and email mismatch were denied; Auth/database cleanup passed. |
+| Invitation/reset abuse controls | Pass (code gate) | IP/token invitation limits, IP/email reset limits, deterministic verification email, failed-queue rollback, and 12-character password UI are covered; deployed browser/email-provider replay remains. |
+| Manager Balance Sheet | Pass | Staging rendered Assets $17,400, Liabilities $0, Equity $17,400. |
+| Balance Sheet PDF | Pass | A queued run completed after provisioning private report storage; downloaded output was 12,113 bytes and began with `%PDF-`. |
+| Board financials | Pass | YTD income $7,200, expenses $1,800, and net operating income rendered with Print/CSV/PDF controls and no browser errors. |
+| Board delinquencies | Pass | One delinquent staging account totaling $1,400 rendered with Print/CSV/PDF controls and no browser errors. |
+| Owner ledger and communications | Pass | Staging charges/payments and the management-message form rendered in the association-scoped owner portal with no browser errors. |
+| Vendor payments and work orders | Pass | Two approved unpaid bills totaling $1,175 and the scoped work-order surface rendered with no browser errors. |
+| Bills / approvals / checks | Pass in staging verification | Payable approval and check-run verification scripts pass; generated check-PDF tests pass. |
+| Communications / documents | Pass in staging verification | Owner/staff communication delivery and generated-PDF tests pass. |
+| Background jobs | Pass in staging verification | Email worker, automation retry, scheduled delivery, and replay-safety tests pass. |
+| Placeholder route audit | Pass | Zero documented placeholder routes; unsupported help slugs return 404 and linked help topics contain real guidance. |
+| Production mutations | Not run | Production remained frozen by design. |
 
-## Manual workflows exercised
+## Browser workflows exercised
 
-- Authenticated manager dashboard and navigation.
-- Full report catalog link sweep.
-- Trial Balance, Balance Sheet, Income Statement, and A/R Aging aggregate checks.
-- Report-run failure history and unsupported report behavior.
-- Association/unit directory rendering.
-- Read-only production catalog queries for migration state, function grants, auth triggers, role/profile state, provider state, receivables, payments, applications, and journals.
+- Manager dashboard, reports catalog, Balance Sheet data, queued PDF generation, and private signed download.
+- Platform Operator and Company Admin home routing; Company Admin manager-assignment form.
+- Board dashboard, financials, and delinquencies.
+- Owner dashboard, account ledger, and communications.
+- Vendor dashboard, payments, and work orders.
+- Five direct-URL privilege-boundary redirects.
+- Browser error logs were empty on the six role workflow pages recorded above.
 
-## Commands and gates executed
+## Still required before production
 
-`npm ci`, `npm audit --omit=dev`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm run check:routes`, `npm run db:migrations:audit`, and `npm run db:migrations:check` (expected strict failure until history is reconciled).
-
-Local Vitest could not start from the disposable workspace because its `node_modules` junction points outside the writable sandbox. GitHub CI ran the same suite successfully and is authoritative.
-
-## Still required
-
-Role-by-role browser/API/RLS tests, clean migration replay, seeded staging financial workflows, provider test-mode webhooks, file-storage isolation, mobile traces, failure injection, and backup/rollback rehearsal remain incomplete.
+- Production backup/restore and rollback rehearsal in a disposable environment.
+- Provider test-mode execution for Stripe/Plaid, including signed webhooks, refunds/disputes, payouts, duplicate ordering, reconciliation, and GL tie-outs.
+- Deployed-browser invitation rollback/rate-limit checks, password-recovery delivery, report-output retention, and remaining workflow-specific signed-upload issuance.
+- Every catalog-only report must be implemented and reconciled or remain visibly unavailable; every supported export requires fixture-based accounting tie-out.
+- Production environment/cron/monitoring validation without exposing secrets, followed by owner approval and read-only post-deploy smoke tests.

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
 import { getMe, roleHome } from '@/lib/auth/me';
+import { siteUrl } from '@/lib/url/site-url';
 
 export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient();
@@ -39,7 +40,7 @@ export async function signupWithPassword(formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_PORTAL_URL}/api/auth/callback` },
+    options: { emailRedirectTo: `${siteUrl()}/api/auth/callback` },
   });
   if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
   redirect('/signup?notice=' + encodeURIComponent('Check your email for the confirmation link.'));

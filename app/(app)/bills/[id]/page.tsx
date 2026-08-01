@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Badge } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
-import { approveBill, voidBill } from '@/lib/rpcs/bills';
+import { approveBill, submitBillForApproval, voidBill, voidPaidCheck } from '@/lib/rpcs/bills';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -11,7 +11,7 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function BillDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -23,6 +23,19 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     .maybeSingle();
 
   if (!b) notFound();
+  const { data: approvalRequest } = b.approval_request_id
+    ? await (supabase as any)
+      .from('approval_requests')
+      .select('id, status, votes_for, votes_against, required_votes, decision_at')
+      .eq('id', b.approval_request_id)
+      .maybeSingle()
+    : { data: null };
+  const { data: checks } = await (supabase as any)
+    .from('payable_checks')
+    .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, run_transaction_id, bank_accounts(name, bank_name)')
+    .eq('bill_id', id)
+    .order('issued_at', { ascending: false });
+  const issuedCheck = (checks ?? []).find((check: any) => check.status === 'issued');
 
   return (
     <Workspace
@@ -68,10 +81,53 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         </dl>
       </Section>
 
+      {b.approval_required && (
+        <Section title="Board approval" padded>
+          {approvalRequest ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div>
+                <div className="font-medium text-gray-950"><Badge status={approvalRequest.status} /></div>
+                <div className="mt-1 text-gray-500">
+                  {approvalRequest.votes_for} approved · {approvalRequest.votes_against} rejected · {approvalRequest.required_votes} required
+                </div>
+              </div>
+              <Link href={`/associations/${b.association_id}/approvals`} className="text-blue-700 hover:underline">Open board approvals</Link>
+            </div>
+          ) : (
+            <p className="text-sm text-amber-800">This bill requires board approval but has not been routed yet.</p>
+          )}
+        </Section>
+      )}
+
+      {(checks ?? []).length > 0 && (
+        <Section title="Check history" padded>
+          <div className="space-y-3">
+            {(checks ?? []).map((check: any) => (
+              <div key={check.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-medium">Check #{check.check_number} · {money(check.amount)}</div>
+                  <Badge status={check.status} />
+                </div>
+                <div className="mt-1 text-gray-500">{check.bank_accounts?.name ?? 'Bank'} · {date(check.payment_date)}</div>
+                {check.void_reason && <div className="mt-1 text-red-700">{check.void_reason}</div>}
+                <Link href={`/bills/check-run/print/${check.id}`} className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+                  {check.status === 'issued' ? 'Preview / reprint run' : 'View watermarked historical copy'}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        {b.status === 'pending_approval' && (
+        {b.status === 'draft' && (
+          <form action={async () => { 'use server'; await submitBillForApproval(id); }}>
+            <Button type="submit">Submit for approval</Button>
+          </form>
+        )}
+        {b.status === 'pending_approval' && (!b.approval_required || approvalRequest?.status === 'approved') && (
           <form action={async () => { 'use server'; await approveBill(id); }}>
-            <Button type="submit">Approve</Button>
+            <Button type="submit">{b.approval_required ? 'Post approved bill' : 'Approve'}</Button>
           </form>
         )}
         {['draft', 'pending_approval', 'approved'].includes(b.status) && b.paid_at === null && (
@@ -81,6 +137,18 @@ export default async function BillDetailPage({ params, searchParams }: { params:
         )}
         {b.status === 'approved' && b.paid_at === null && (
           <Link href="/bills/check-run"><Button variant="secondary">Include in check run</Button></Link>
+        )}
+        {b.status === 'paid' && issuedCheck && (
+          <form action={voidPaidCheck as any} className="flex flex-wrap items-end gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <input type="hidden" name="check_id" value={issuedCheck.id} />
+            <input type="hidden" name="bill_id" value={id} />
+            <label className="text-sm text-red-900">
+              Void/stop reason
+              <input name="reason" required minLength={3} className="mt-1 block rounded-md border border-red-300 bg-white px-3 py-2 text-sm" />
+            </label>
+            <Button type="submit" name="stop_payment" value="false" variant="danger">Void check</Button>
+            <Button type="submit" name="stop_payment" value="true" variant="danger">Stop payment</Button>
+          </form>
         )}
       </div>
     </Workspace>

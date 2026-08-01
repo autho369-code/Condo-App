@@ -12,15 +12,16 @@ import { ContextPanel, PanelSection, PanelLink } from '@/components/workspace/co
 
 export function AssociationsPanel() {
   const pathname = usePathname() || '';
+  const associationId = pathname.match(/^\/associations\/([^/]+)/)?.[1];
 
   // ----- Association detail tabs (most specific first) -----
   if (/^\/associations\/[^/]+\/board/.test(pathname)) {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#email-board">Email Board Members</PanelLink>
-          <PanelLink href="#share-packets">Share Board Member Packets</PanelLink>
-          <PanelLink href="#bulk-update-reports">Bulk Update Board Reports</PanelLink>
+          <PanelLink href="/send-email">Email Board Members</PanelLink>
+          <PanelLink href="/reports/monthly-package">Share Board Member Packets</PanelLink>
+          <PanelLink href="/reports/bulk-association">Bulk Update Board Reports</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/board-reports">Board Reports</PanelLink>
@@ -37,8 +38,8 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#new-approval">New Approval</PanelLink>
-          <PanelLink href="#email-board">Email Board Members</PanelLink>
+          {associationId && <PanelLink href={`/associations/${associationId}/approvals/new`}>New Approval</PanelLink>}
+          <PanelLink href="/send-email">Email Board Members</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
           <PanelLink href="/reports?slug=approval-history">Approval History</PanelLink>
@@ -55,8 +56,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#new-committee">New Committee</PanelLink>
-          <PanelLink href="#email-committee">Email Committee Members</PanelLink>
+          <PanelLink href="/send-email">Email Committee Members</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/committees">Managing Committees</PanelLink>
@@ -69,8 +69,8 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#edit-settings">Edit Settings</PanelLink>
-          <PanelLink href="#view-submissions">View Submissions</PanelLink>
+          <PanelLink href={pathname}>Edit Settings</PanelLink>
+          <PanelLink href="/architectural-reviews">View Submissions</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/architectural-reviews">Architectural Reviews</PanelLink>
@@ -104,8 +104,8 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#create-amenity">Create Amenity</PanelLink>
-          <PanelLink href="#view-reservations">View Reservations</PanelLink>
+          {associationId && <PanelLink href={`/associations/${associationId}/amenities?new=1`}>Create Amenity</PanelLink>}
+          <PanelLink href="/amenities">View Reservations</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/amenities">Setting Up Amenities</PanelLink>
@@ -142,7 +142,7 @@ export function AssociationsPanel() {
     return (
       <ContextPanel title="Tasks">
         <PanelSection title="Tasks">
-          <PanelLink href="#edit-association">Edit Association</PanelLink>
+          <PanelLink href={pathname}>Edit Association</PanelLink>
           <PanelLink href="/units/new">New Unit</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
@@ -180,9 +180,9 @@ export function AssociationsPanel() {
       <PanelSection title="Tasks">
         <PanelLink href="/associations/new">New Property</PanelLink>
         <PanelLink href="/associations/new">New Association</PanelLink>
-        <PanelLink href="#meeting-sign-in">Meeting Sign-In</PanelLink>
-        <PanelLink href="#violations-field-entry">Violations Field Entry</PanelLink>
-        <PanelLink href="#bulk-update-board-reports">Bulk Update Board Reports</PanelLink>
+        <PanelLink href="/meetings">Meeting Sign-In</PanelLink>
+        <PanelLink href="/violations">Violations Field Entry</PanelLink>
+        <PanelLink href="/reports/bulk-association">Bulk Update Board Reports</PanelLink>
       </PanelSection>
       <PanelSection title="Reports">
         <PanelLink href="/reports?slug=homeowner-directory">Owner Directory</PanelLink>

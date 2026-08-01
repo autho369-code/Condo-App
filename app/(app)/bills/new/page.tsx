@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ export default async function NewBillPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const sp = await searchParams;
   const supabase = await createClient();
 

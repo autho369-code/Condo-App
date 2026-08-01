@@ -3,7 +3,7 @@
 // When staff or a vendor changes the status of a work order or service request,
 // the owner gets a white-labeled email (management company name + reply-to, per
 // the pattern in app/api/insurance/send-reminders/route.ts). Emails go through
-// queueEmails() → email_queue → process-email-queue cron → Resend.
+// queueEmails() → email_queue → Vercel's process-queue cron → Resend.
 //
 // This helper NEVER throws — it is fire-and-forget. A notification failure must
 // never break the status update itself, so every error is caught and logged.
@@ -19,8 +19,8 @@
 
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
+import { siteUrl } from '@/lib/url/site-url';
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portier369.com').replace(/\/$/, '');
 
 export interface StatusChangeParams {
   kind: 'work_order' | 'service_request';
@@ -96,7 +96,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
       itemTitle = wo.title ?? 'Work order';
       itemNumber = wo.number ?? null;
       noun = 'work order';
-      link = `${SITE_URL}/portal/work-orders/${wo.id}`;
+      link = `${siteUrl()}/portal/work-orders/${wo.id}`;
     } else {
       const { data: sr, error } = await svc
         .from('service_requests')
@@ -113,7 +113,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
       itemNumber = sr.number ?? null;
       noun = 'service request';
       // No per-request owner detail page exists — link to the portal list.
-      link = `${SITE_URL}/portal/service-requests`;
+      link = `${siteUrl()}/portal/service-requests`;
     }
 
     if (!ownerId) return;

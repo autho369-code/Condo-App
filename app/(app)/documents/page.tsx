@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,7 @@ export default async function DocumentsPage({
       .order('updated_at', { ascending: false })
       .limit(500),
     db.from('documents')
-      .select('id, doc_type, entity_type, entity_id, file_name, uploaded_at, expires_at')
+      .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at')
       .order('uploaded_at', { ascending: false })
       .limit(500),
     db.from('notices')
@@ -84,6 +85,21 @@ export default async function DocumentsPage({
   const allTemplates = (templates ?? []) as any[];
   const allDocuments = (documents ?? []) as any[];
   const allNotices = (notices ?? []) as any[];
+
+  const documentLinks = new Map<string, string>();
+  const storedDocuments = allDocuments.filter((document: any) =>
+    isEntityDocumentStoragePath(document.file_url, document.entity_type, document.entity_id));
+  if (storedDocuments.length) {
+    const service = createServiceClient() as any;
+    const { data: signed } = await service.storage.from('association-documents')
+      .createSignedUrls(storedDocuments.map((document: any) => document.file_url), 3600);
+    const signedByPath = new Map((signed ?? []).filter((item: any) => item.path && item.signedUrl)
+      .map((item: any) => [item.path, item.signedUrl]));
+    storedDocuments.forEach((document: any) => {
+      const url = signedByPath.get(document.file_url);
+      if (typeof url === 'string') documentLinks.set(document.id, url);
+    });
+  }
 
   // Filter by search query
   let filteredTemplates = allTemplates;
@@ -267,7 +283,13 @@ export default async function DocumentsPage({
                   {filteredDocuments.map((d: any) => (
                     <TR key={d.id}>
                       <TD className="font-medium max-w-xs truncate">
-                        <span className="text-gray-900">{d.file_name}</span>
+                        {documentLinks.has(d.id) ? (
+                          <a href={documentLinks.get(d.id)} target="_blank" rel="noreferrer" className="text-gray-900 hover:underline">
+                            {d.file_name}
+                          </a>
+                        ) : (
+                          <span className="text-gray-500">{d.file_name} (file unavailable)</span>
+                        )}
                       </TD>
                       <TD className="text-sm capitalize text-gray-600">
                         {(d.doc_type ?? 'document').replace(/_/g, ' ')}

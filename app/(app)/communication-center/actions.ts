@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { emailQueueRow, textToHtml } from '@/lib/email/queue';
+import { textToHtml } from '@/lib/email/queue';
 
 const CENTER = '/communication-center';
 
@@ -44,26 +44,16 @@ export async function sendCommunication(formData: FormData) {
 
   const html = textToHtml(msg.body);
   const fromName = me.portfolio?.company_name ?? 'Portier369';
-  const queueRows = recipients.map((r) => emailQueueRow({
-    to: r.email,
-    toName: r.name || null,
-    subject: msg.subject,
-    html,
-    portfolioId: msg.portfolio_id ?? me.portfolio?.id,
-    associationId: msg.association_id,
-    fromName,
-    sentBy: me.auth_user_id,
-  }));
-
-  const { error: queueError } = await db.from('email_queue').insert(queueRows);
+  const { data: queuedCount, error: queueError } = await db.rpc('enqueue_communication_message', {
+    p_message_id: messageId,
+    p_recipients: recipients,
+    p_html: html,
+    p_from_name: fromName,
+  });
   if (queueError) fail(`Could not queue for delivery: ${queueError.message}`);
 
-  await db.from('communication_messages')
-    .update({ status: 'sent', sent_at: new Date().toISOString() })
-    .eq('id', messageId);
-
   revalidatePath(CENTER);
-  redirect(`${CENTER}?sent=${recipients.length}`);
+  redirect(`${CENTER}?queued=${Number(queuedCount ?? recipients.length)}`);
 }
 
 async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {

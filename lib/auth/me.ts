@@ -144,6 +144,12 @@ export async function requireVendor() {
   return me;
 }
 
+export async function requireFinanceStaff(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_finance_staff && !me.is_platform_operator) redirect(roleHome(me));
+  return me;
+}
+
 export async function requireOwner(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.owner_id) redirect('/login?mode=owner');
