@@ -25,7 +25,10 @@ export default async function CompanyAdminAssociationsPage({
 
   const { data: associations } = await db
     .from('associations')
-    .select(`id, slug, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, ended_at, profiles:profiles(full_name, email))`)
+    // association_managers has no FK to profiles (user_id references auth.users),
+    // so a nested profiles embed is unresolvable (PGRST200) and would fail the
+    // whole query. Manager names are joined below from the profiles fetch.
+    .select(`id, slug, name, address, city, state, zip, unit_count, status, association_managers!association_managers_association_id_fkey(user_id, ended_at)`)
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name')
@@ -64,13 +67,14 @@ export default async function CompanyAdminAssociationsPage({
     .in('hoa_role', ['manager', 'company_admin'])
 
   const cities = [...new Set((associations ?? []).map((a: any) => a.city).filter(Boolean))].sort() as string[]
+  const profilesById = new Map<string, any>((managers ?? []).map((p: any) => [p.id, p]))
 
   let rows = (associations ?? []).map((assoc: any) => {
     const wo = woByAssoc.get(assoc.id) ?? { open: 0, overdue: 0 }
     const viol = violByAssoc.get(assoc.id) ?? 0
     const rawScore = 100 - (wo.overdue * 8 + wo.open * 3 + viol * 4)
     const healthScore = Math.max(0, Math.min(100, rawScore))
-    const assignedMgrs = (assoc.association_managers ?? []).filter((am: any) => !am.ended_at).map((am: any) => am.profiles)
+    const assignedMgrs = (assoc.association_managers ?? []).filter((am: any) => !am.ended_at).map((am: any) => profilesById.get(am.user_id))
     return {
       id: assoc.id,
       slug: assoc.slug,
