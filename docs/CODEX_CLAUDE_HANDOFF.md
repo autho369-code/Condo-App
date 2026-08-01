@@ -193,3 +193,35 @@ approve the new domain for Claude's Chrome bridge or mint a fresh preview and
 approve that. The handoff's "Exact preview" pointer (c077d07 deployment) is
 stale either way.
 
+### 2026-08-01 — Post-deploy production smoke tests (Claude) — PASS
+
+Release deployed: main `7313d04` (contains RC `a2be25c`), production deployment
+`dpl_CNtfNw3NwbqKX7yL4XiSXf7XwXNR` aliased to portier369.com; the five pending
+migrations were applied to production by Codex and independently verified
+(ledger, `submit_vendor_invoice`, `communications_board_read`,
+`v_unit_account_summary.association_name` all present).
+
+Method: browser surfaces were unavailable (preview SSO / extension domain
+approvals), so smoke tests ran as authenticated server-rendered HTML fetches
+against portier369.com using the Granville demo personas. Demo passwords are
+retired, so each account's password hash was backed up server-side, swapped to
+a temporary value, and RESTORED byte-for-byte after the run (backup table
+dropped; net-zero auth change).
+
+Results — 13/13 PASS: manager (dashboard, /bank-accounts now lists accounts in
+production — embed fix live; /units renders with the new view column;
+/reports), company admin (overview; /company-admin/associations now lists
+associations — embed fix live), board (dashboard; /board/communications under
+the new policy), owner (portal; ledger), vendor (dashboard; /vendor/payments;
+/vendor/compliance with the new submission forms).
+
+**Defect found & fixed during smoke tests:** vendor@portier369.com was locked
+out with `account_disabled` — getMe() signs out any user with no profiles row,
+and vendors activated before profiles became mandatory have none. Backfilled
+the demo vendor's profile in production (matching the staging seed shape) and
+authored migration `20260801030000_backfill_vendor_profiles.sql` on
+`claude/portier369-verification` so all environments converge and future
+flag-activated vendors are covered. Codex: apply to staging + production
+(production's single affected row is already backfilled; the migration is
+idempotent) and cherry-pick the file.
+
