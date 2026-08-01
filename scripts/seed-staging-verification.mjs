@@ -171,9 +171,33 @@ async function main() {
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
   await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
-    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'CODEX_TEST Alpha Operating', bank_name: 'CODEX_TEST Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer', company_name: 'CODEX_TEST Alpha Management', company_address: '100 Verification Way\nSeattle, WA 98101' },
-    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'CODEX_TEST Beta Operating', bank_name: 'CODEX_TEST Staging Bank', account_type: 'checking', purpose: 'operating', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer', company_name: 'CODEX_TEST Beta Management', company_address: '200 Isolation Avenue\nPortland, OR 97205' },
+    { id: ids.bankA, portfolio_id: ids.portfolioA, association_id: ids.associationA, gl_account_id: account(1, 1), name: 'CODEX_TEST Alpha Operating', bank_name: 'CODEX_TEST Staging Bank', account_type: 'checking', purpose: 'operating', last_reconciliation_date: '2026-06-30', next_check_number: 5001, check_signature: 'CODEX_TEST Alpha Authorized Signer', company_name: 'CODEX_TEST Alpha Management', company_address: '100 Verification Way\nSeattle, WA 98101' },
+    { id: ids.bankB, portfolio_id: ids.portfolioB, association_id: ids.associationB, gl_account_id: account(2, 1), name: 'CODEX_TEST Beta Operating', bank_name: 'CODEX_TEST Staging Bank', account_type: 'checking', purpose: 'operating', last_reconciliation_date: '2026-06-30', next_check_number: 7001, check_signature: 'CODEX_TEST Beta Authorized Signer', company_name: 'CODEX_TEST Beta Management', company_address: '200 Isolation Avenue\nPortland, OR 97205' },
   ])
+  // Association creation intentionally provisions empty Operating/Reserve bank
+  // shells. The fixture owns these exact associations, so replace those shells
+  // with the deterministic, fully configured accounts used by verification.
+  // This prevents diagnostics from reporting fake reconciliation lapses while
+  // preserving the production provisioning behavior for real associations.
+  await Promise.all([
+    must('link Alpha fixture bank account', db.from('associations').update({ operating_bank_account_id: ids.bankA, reserve_bank_account_id: null }).eq('id', ids.associationA)),
+    must('link Beta fixture bank account', db.from('associations').update({ operating_bank_account_id: ids.bankB, reserve_bank_account_id: null }).eq('id', ids.associationB)),
+    must('clear Marina fixture bank shells', db.from('associations').update({ operating_bank_account_id: null, reserve_bank_account_id: null }).eq('id', ids.associationA2)),
+  ])
+  const provisionedBankShells = await must(
+    'find auto-provisioned fixture bank shells',
+    db.from('bank_accounts')
+      .select('id, name, bank_name')
+      .in('association_id', [ids.associationA, ids.associationB, ids.associationA2])
+      .in('name', ['Operating', 'Reserve'])
+      .is('bank_name', null),
+  )
+  if (provisionedBankShells.length) {
+    await must(
+      'remove auto-provisioned fixture bank shells',
+      db.from('bank_accounts').delete().in('id', provisionedBankShells.map((row) => row.id)),
+    )
+  }
   const entries = []
   const lines = []
   for (const [tenant, portfolioId, associationId] of [[1, ids.portfolioA, ids.associationA], [2, ids.portfolioB, ids.associationB]]) {

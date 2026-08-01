@@ -16,6 +16,7 @@ const db = createClient(url, key, { auth: { autoRefreshToken: false, persistSess
 const ids = {
   portfolios: ['36900000-0000-4000-8000-000000000001', '36900000-0000-4000-8000-000000000002'],
   associations: ['36900000-0000-4000-8000-000000000011', '36900000-0000-4000-8000-000000000012', '36900000-0000-4000-8000-000000000013'],
+  bankAccounts: ['36900000-0000-4000-8000-000000000061', '36900000-0000-4000-8000-000000000062'],
   workOrders: ['36900000-0000-4000-8100-000000000300', '36900000-0000-4000-8200-000000000300'],
   maintenanceTasks: ['36900000-0000-4000-8100-000000000301', '36900000-0000-4000-8200-000000000301'],
   violations: ['36900000-0000-4000-8100-000000000302', '36900000-0000-4000-8200-000000000302'],
@@ -48,9 +49,23 @@ async function rows(table, expectedIds, columns = 'id') {
 
 const portfolios = await rows('portfolios', ids.portfolios, 'id, company_name')
 assert(portfolios.every((row) => row.company_name?.startsWith(FIXTURE)), 'portfolio ownership markers are missing')
-const associations = await rows('associations', ids.associations, 'id, portfolio_id, name')
+const associations = await rows('associations', ids.associations, 'id, portfolio_id, name, operating_bank_account_id, reserve_bank_account_id')
 assert(associations.every((row) => row.name?.startsWith('CODEX_TEST')), 'association labels are missing CODEX_TEST')
 assert(associations.filter((row) => row.portfolio_id === ids.portfolios[0]).length === 2, 'primary portfolio must have two associations')
+assert(associations.find((row) => row.id === ids.associations[0])?.operating_bank_account_id === ids.bankAccounts[0], 'Alpha association is not linked to its deterministic operating account')
+assert(associations.find((row) => row.id === ids.associations[1])?.operating_bank_account_id === ids.bankAccounts[1], 'Beta association is not linked to its deterministic operating account')
+assert(associations.every((row) => row.reserve_bank_account_id === null), 'fixture associations should not retain empty reserve bank shells')
+
+const { data: fixtureBanks, error: fixtureBanksError } = await db
+  .from('bank_accounts')
+  .select('id, association_id, name, bank_name, gl_account_id, last_reconciliation_date')
+  .in('association_id', ids.associations)
+if (fixtureBanksError) throw new Error(`bank_accounts: ${fixtureBanksError.message}`)
+assert(fixtureBanks.length === 2, `bank_accounts: expected 2 configured fixture accounts, found ${fixtureBanks.length}`)
+assert(ids.bankAccounts.every((id) => fixtureBanks.some((row) => row.id === id)), 'deterministic fixture bank accounts are missing')
+assert(fixtureBanks.every((row) => row.name?.startsWith('CODEX_TEST')), 'auto-provisioned bank shells remain in fixture associations')
+assert(fixtureBanks.every((row) => row.bank_name && row.gl_account_id), 'fixture bank accounts must be fully configured')
+assert(fixtureBanks.every((row) => row.last_reconciliation_date === '2026-06-30'), 'fixture bank accounts must record the completed reconciliation date')
 
 await rows('work_orders', ids.workOrders, 'id, portfolio_id, association_id, title')
 await rows('maintenance_tasks', ids.maintenanceTasks, 'id, association_id, task_name')
