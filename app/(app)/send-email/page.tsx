@@ -32,7 +32,7 @@ export default async function SendEmailPage({
     (supabase as any).from('profiles').select('email, full_name').eq('id', me.auth_user_id ?? '').maybeSingle(),
   ]);
 
-  const fromEmail = profile?.email ?? me.email ?? 'no-reply@condo-app.example';
+  const fromEmail = profile?.email ?? me.email ?? 'hello@portier369.com';
   const preAssoc = sp.association ?? '';
   const returnTo = safeInternalNext(sp.return_to);
   const closeHref = returnTo ?? '/associations';
@@ -89,7 +89,7 @@ export default async function SendEmailPage({
             <Input value={fromEmail} readOnly className="bg-gray-50 text-gray-700" />
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="from_donotreply" className="h-4 w-4 rounded border-gray-300" />
-              Send from donotreply@condo-app.example
+              Send from noreply@portier369.com
             </label>
           </Field>
 
@@ -159,9 +159,7 @@ export default async function SendEmailPage({
                 <Button variant="secondary" type="button">Cancel</Button>
               </Link>
             </div>
-            <Link href="/settings" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
-              Customize my signature
-            </Link>
+            <p className="text-sm text-gray-500">Uses your portfolio name and Portier369 delivery identity.</p>
           </div>
         </form>
       </Surface>

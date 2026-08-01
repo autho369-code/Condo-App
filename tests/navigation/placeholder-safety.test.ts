@@ -53,4 +53,13 @@ describe('placeholder safety', () => {
 
     expect(previewPage).toContain('return mergeValues[key] || `{{${key}}}`');
   });
+
+  it('uses the configured Portier369 delivery identity without a dead manager settings link', () => {
+    const sendEmailPage = source('app/(app)/send-email/page.tsx');
+
+    expect(sendEmailPage).toContain('hello@portier369.com');
+    expect(sendEmailPage).toContain('noreply@portier369.com');
+    expect(sendEmailPage).not.toContain('condo-app.example');
+    expect(sendEmailPage).not.toContain('href="/settings"');
+  });
 });
