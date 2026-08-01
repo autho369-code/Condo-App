@@ -6,6 +6,8 @@ describe('company administrator manager lifecycle', () => {
   const actions = readFileSync(resolve(process.cwd(), 'app/company-admin/managers/actions.ts'), 'utf8');
   const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731005000_atomic_manager_access_scope.sql'), 'utf8');
   const invitationMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731010000_secure_manager_invitations.sql'), 'utf8');
+  const roleCatalogMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731012000_canonicalize_system_user_roles.sql'), 'utf8');
+  const roleBoundaryMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260731013000_deactivate_out_of_scope_system_roles.sql'), 'utf8');
 
   it('queues activation email and rolls back an unusable invitation', () => {
     expect(actions).toContain('manager-invitation:');
@@ -26,6 +28,16 @@ describe('company administrator manager lifecycle', () => {
     expect(migration).toContain('association.portfolio_id = v_portfolio_id');
     expect(migration).toContain("raise exception 'One or more associations are outside your portfolio'");
     expect(migration).toContain("'manager_association_scope_updated'");
+  });
+
+  it('canonicalizes legacy role metadata while preserving the condo-only role boundary', () => {
+    expect(roleCatalogMigration).toContain("(null, 'Leasing Agent'");
+    expect(roleCatalogMigration).toContain("(null, 'Accounts Payable'");
+    expect(roleCatalogMigration).toContain('on conflict (portfolio_id, name) do update');
+    expect(roleCatalogMigration).toContain('is_system = excluded.is_system');
+    expect(roleBoundaryMigration).toContain("name in ('Leasing Agent', 'Accounts Payable')");
+    expect(roleBoundaryMigration).toContain('set is_system = false');
+    expect(roleBoundaryMigration).toContain('is_system is distinct from false');
   });
 
   it('limits login disable/enable to managers in the administrator portfolio', () => {

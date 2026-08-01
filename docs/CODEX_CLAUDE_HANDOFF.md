@@ -1,6 +1,6 @@
 # Codex + Claude release handoff
 
-Last updated: 2026-07-31 19:00 Pacific
+Last updated: 2026-07-31 19:16 Pacific
 
 This file is the shared operational checkpoint for the Portier369 release. Do
 not rely on older chat summaries or the historical section of
@@ -27,16 +27,12 @@ not rely on older chat summaries or the historical section of
 
 ### Claude
 
-- Work only from `C:\Users\autho\Portier369-Claude` on branch
-  `claude/portier369-verification`.
-- Run the full six-role browser regression against the exact preview.
-- Repair application defects found during that regression, with focused commits.
-- Do not apply production migrations, merge PR 24, or deploy production.
-- Do not modify files in `C:\Users\autho\Portier369`; use the separate worktree.
-
-Claude should push focused commits to `claude/portier369-verification` and record
-each commit and verification result in this file. Codex will cherry-pick reviewed
-commits into PR 24.
+- Independently review architecture, product-history decisions, and the final
+  release candidate through the bidirectional Claude MCP workflow.
+- Return prioritized findings with exact evidence; do not mutate production,
+  merge PR 24, or deploy.
+- Codex must address or explicitly resolve every Claude finding and record the
+  result in this handoff before merge.
 
 ## Database release checkpoint
 
@@ -45,29 +41,39 @@ commits into PR 24.
 - The schema-only production baseline `20260715040000` was compared with a fresh
   production schema dump and then marked applied in the migration ledger. Its SQL
   was not executed and no customer data was changed.
-- A production dry run shows 31 forward migrations pending, from
-  `20260726000000` through `20260731011000`.
-- Staging has already applied the full migration set successfully.
-- Production preflight on 2026-07-31 found:
-  - 0 portfolios with plaintext AI API keys.
-  - 0 portfolios with custom AI endpoints.
-  - 0 portfolios with unsupported AI providers.
-  - 0 payment methods linked to AutoPay mandates across multiple associations.
+- The 31 reviewed forward migrations from `20260726000000` through
+  `20260731011000` are applied in both staging and production.
+- Production preflight found 0 plaintext AI keys, 0 custom AI endpoints,
+  0 unsupported AI providers, and 0 cross-association AutoPay conflicts.
+- Post-migration verification exposed legacy role-catalog drift. Migration
+  `20260731012000` normalized the catalog, and Claude's independent review found
+  that two roles were deliberately inactive rather than stale. Corrective
+  migration `20260731013000` restored the documented condo-only boundary.
+- Final role invariant is verified in staging and production: President,
+  Accountant, Property Manager, and On-Site Manager are active system roles;
+  Leasing Agent and Accounts Payable remain inactive.
+- Both databases report no pending migrations. Production database lint passes
+  at error level, and the CLI is relinked to staging.
 - `AI_CREDENTIALS_ENCRYPTION_KEY` exists in the Vercel Production environment.
-  Its value must never be copied into this repository or logged.
+  Its value was not copied into this repository or logged.
 
 ## Release sequence
 
-1. Codex completes review and applies the 31 forward migrations in controlled
-   groups, verifying the ledger and critical data invariants after each group.
-2. Claude completes six-role regression and pushes any focused fixes.
-3. Codex reviews/cherry-picks fixes, reruns all automated gates, and updates PR 24.
-4. Merge PR 24 only when both database and application gates are green.
-5. Deploy the approved commit to production and run read-only production smoke
+1. Commit and push the two role-catalog migrations, regression test, and this
+   release evidence; confirm GitHub CI and the exact Vercel preview are green.
+2. Complete the six-role browser regression against that exact preview.
+3. Merge PR 24 only when database, application, and browser gates are green.
+4. Deploy the approved commit to production and run read-only production smoke
    tests before declaring GO.
 
 ## Claude verification log
 
-Add dated entries here. Include route, role, expected result, actual result, and
-the commit SHA for every repair.
+- 2026-07-31: Claude Fable independently reviewed the post-migration role fix.
+  It confirmed the upsert was mechanically safe but found that activating
+  Leasing Agent and Accounts Payable reversed a deliberate product decision in
+  `supabase/legacy-migrations/rbac_fixes.sql`. Codex accepted the finding,
+  added forward correction `20260731013000`, and verified the corrected 4-active
+  / 2-inactive invariant in staging and production.
+- Six-role browser regression against the next exact preview remains the final
+  application release gate.
 
