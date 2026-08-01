@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/input'
 import { requestViolationHearing } from '@/lib/rpcs/violations'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
-import { ArrowLeft, Image } from 'lucide-react'
+import { ArrowLeft, Image as ImageIcon } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +72,7 @@ export default async function OwnerViolationDetail({
             <div className="flex gap-3 flex-wrap">
               {atts.map((a: string, i: number) => (
                 <a key={i} href={a} target="_blank" className="flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50 transition hover:border-gray-300">
-                  <Image className="h-8 w-8 text-gray-400" />
+                  <ImageIcon className="h-8 w-8 text-gray-400" />
                 </a>
               ))}
             </div>

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
-import { FileText, Image, File } from 'lucide-react'
+import { FileText, Image as ImageIcon, File } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,7 +88,7 @@ export default async function BoardDocumentsPage() {
                   <tr key={`vd-${i}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {d.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <Image className="h-4 w-4 text-gray-400" /> : <FileText className="h-4 w-4 text-gray-400" />}
+                        {d.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <ImageIcon className="h-4 w-4 text-gray-400" /> : <FileText className="h-4 w-4 text-gray-400" />}
                         {d.url ? <a href={d.url} target="_blank" className="block max-w-[300px] truncate font-medium text-gray-900 hover:text-gray-950 hover:underline">{d.name}</a> : <span className="text-[13px] text-gray-700">{d.name}</span>}
                       </div>
                     </td>
