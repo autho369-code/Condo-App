@@ -48,6 +48,7 @@
     "verify:staging:automation-retries": "node scripts/verify-staging-automation-retries.mjs",
     "verify:staging:scheduled-delivery": "npx --yes tsx scripts/verify-staging-scheduled-delivery.ts",
     "verify:staging:vendor-submissions": "node scripts/verify-staging-vendor-submissions.mjs",
+    "verify:staging:owner-hearing": "node scripts/verify-staging-owner-hearing-request.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

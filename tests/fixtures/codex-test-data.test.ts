@@ -35,6 +35,7 @@ describe('CODEX_TEST staging fixture safety', () => {
       expect(seed).toContain(`upsert('${table}'`);
     }
     expect(seed).toContain('expected: { alphaTrialBalanceDebits: 21000');
+    expect(seed).toContain('CODEX_TEST hearing request eligibility');
     expect(seed).not.toContain("output_formats: ['pdf', 'xlsx'");
   });
 

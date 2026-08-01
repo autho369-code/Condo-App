@@ -1,30 +1,50 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { notFound } from 'next/navigation'
-import { Badge } from '@/components/ui/shell'
+import { notFound, redirect } from 'next/navigation'
+import { Alert, Badge, Surface } from '@/components/ui/shell'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/input'
+import { requestViolationHearing } from '@/lib/rpcs/violations'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft, Image } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerViolationDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function OwnerViolationDetail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ hearing_requested?: string; error?: string }>
+}) {
   const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
   const { id } = await params
+  const sp = await searchParams
 
   const { data: v } = await db.from('violations')
-    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, fine_amount, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
+    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
     .eq('id', id).eq('owner_id', me.owner_id).maybeSingle()
 
   if (!v) return notFound()
 
   const atts = Array.isArray(v.attachments) ? v.attachments : []
 
+  async function requestHearing(formData: FormData) {
+    'use server'
+    const result = await requestViolationHearing(id, String(formData.get('reason') ?? ''))
+    if (result.error) redirect(`/portal/violations/${id}?error=${encodeURIComponent(result.error)}`)
+    redirect(`/portal/violations/${id}?hearing_requested=1`)
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <Link href="/portal/violations" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950"><ArrowLeft className="h-4 w-4" /> Back to violations</Link>
+
+      {sp.hearing_requested === '1' && <Alert tone="success">Hearing request submitted to association management.</Alert>}
+      {sp.error && <Alert tone="danger" title="Could not request a hearing:">{sp.error}</Alert>}
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -59,6 +79,26 @@ export default async function OwnerViolationDetail({ params }: { params: Promise
           </div>
         )}
       </div>
+
+      <Surface>
+        {v.hearing_requested_at ? (
+          <div>
+            <h2 className="text-base font-semibold text-gray-950">Hearing requested</h2>
+            <p className="mt-1 text-sm text-gray-500">Submitted {date(v.hearing_requested_at)}. Management will post the date and location after scheduling.</p>
+            {v.hearing_request_note && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">{v.hearing_request_note}</p>}
+          </div>
+        ) : v.hearing_date || v.hearing_at ? (
+          <div><h2 className="text-base font-semibold text-gray-950">Hearing scheduled</h2><p className="mt-1 text-sm text-gray-500">Your hearing is scheduled for {date(v.hearing_date ?? v.hearing_at)}.</p></div>
+        ) : v.status === 'closed' || v.status === 'cured' ? (
+          <p className="text-sm text-gray-500">This violation is closed, so a hearing can no longer be requested.</p>
+        ) : (
+          <form action={requestHearing} className="space-y-4">
+            <div><h2 className="text-base font-semibold text-gray-950">Request a hearing</h2><p className="mt-1 text-sm text-gray-500">Explain why you are contesting the violation or what you want the board to review.</p></div>
+            <Textarea name="reason" required minLength={10} maxLength={1000} rows={4} placeholder="Describe the facts, dates, or governing-document issue you want reviewed." />
+            <Button type="submit">Submit hearing request</Button>
+          </form>
+        )}
+      </Surface>
     </div>
   )
 }

@@ -8,13 +8,36 @@
 // caps server-action bodies at ~4.5 MB), then a second action records them in
 // violations.attachments as [{ name, path, size, uploaded_at, ... }].
 import { createClient } from '@/lib/supabase/server';
-import { getMe } from '@/lib/auth/me';
+import { getMe, requireOwner } from '@/lib/auth/me';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { revalidatePath } from 'next/cache';
 
 const ATTACH_BUCKET = 'association-documents';
 const MAX_VIOLATION_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+export async function requestViolationHearing(
+  violationId: string,
+  reason: string,
+): Promise<{ error?: string; requestedAt?: string }> {
+  const me = await requireOwner();
+  if (!me.auth_user_id || !me.owner_id) return { error: 'Not signed in as an owner.' };
+  const normalizedReason = reason.trim();
+  if (normalizedReason.length < 10 || normalizedReason.length > 1000) {
+    return { error: 'Hearing request reason must be 10 to 1,000 characters.' };
+  }
+
+  const db = (await createClient()) as any;
+  const { data, error } = await db.rpc('request_owner_violation_hearing', {
+    p_violation_id: violationId,
+    p_reason: normalizedReason,
+  });
+  if (error) return { error: error.message };
+  revalidatePath(`/portal/violations/${violationId}`);
+  revalidatePath('/portal/hearings');
+  revalidatePath('/violations');
+  return { requestedAt: data as string };
+}
 
 // Keep in sync with the violation_type enum (lib/types/database.ts).
 const VIOLATION_TYPES = [

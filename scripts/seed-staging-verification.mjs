@@ -272,7 +272,7 @@ async function main() {
 
   const workOrderIds = [account(1, 300), account(2, 300)]
   const maintenanceTaskIds = [account(1, 301), account(2, 301)]
-  const violationIds = [account(1, 302), account(2, 302)]
+  const violationIds = [account(1, 302), account(2, 302), account(1, 312)]
   const calendarEventIds = [account(1, 303), account(2, 303)]
   const meetingIds = [account(1, 304), account(2, 304)]
   const communicationIds = [account(1, 305), account(2, 305)]
@@ -292,6 +292,7 @@ async function main() {
   await upsert('violations', [
     { id: violationIds[0], association_id: ids.associationA, unit_id: ids.unitA, owner_id: ids.ownerA, created_by: managerA.id, title: 'CODEX_TEST repeated noise violation', description: 'Deterministic notice and hearing workflow fixture', violation_type: 'noise', status: 'hearing_pending', date_observed: '2026-07-20', cure_deadline: '2026-07-27', hearing_required: true, hearing_at: '2026-08-12T18:00:00Z', hearing_date: '2026-08-12', fine_amount: 100, attachments: [], communication_log: [], owner_visible_history: [] },
     { id: violationIds[1], association_id: ids.associationB, unit_id: ids.unitB, owner_id: ids.ownerB, created_by: adminB.id, title: 'CODEX_TEST Beta isolation parking violation', description: 'Must never be visible to portfolio Alpha', violation_type: 'parking', status: 'open', date_observed: '2026-07-21', hearing_required: false, attachments: [], communication_log: [], owner_visible_history: [] },
+    { id: violationIds[2], association_id: ids.associationA, unit_id: ids.unitA, owner_id: ids.ownerA, created_by: managerA.id, title: 'CODEX_TEST hearing request eligibility', description: 'Deterministic owner hearing request fixture', violation_type: 'other', status: 'notice_sent', date_observed: '2026-07-24', cure_deadline: '2026-08-07', hearing_required: false, hearing_requested_at: null, hearing_request_note: null, attachments: [], communication_log: [], owner_visible_history: [] },
   ])
   await upsert('calendar_events', [
     { id: calendarEventIds[0], portfolio_id: ids.portfolioA, association_id: ids.associationA, created_by: managerA.id, title: 'CODEX_TEST annual owners meeting', description: FIXTURE, event_type: 'annual_meeting_election', calendar_scope: 'annual', start_datetime: '2026-08-20T18:00:00Z', end_datetime: '2026-08-20T20:00:00Z', location: 'Harbor View Community Room', operations_status: 'scheduled', attendees: [], notification_recipients: ['owners', 'board'], reminder_rules: [] },
@@ -330,7 +331,7 @@ async function main() {
     associations: 3,
     balancedEntries: entries.length,
     journalLines: lines.length,
-    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 2, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 2, insurancePolicies: 2, tenants: 1 },
+    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 3, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 2, insurancePolicies: 2, tenants: 1 },
     expected: { alphaTrialBalanceDebits: 21000, alphaTrialBalanceCredits: 21000, alphaNetIncome: 5400, alphaBalanceSheetTotal: 17400, alphaReceivables: 1400, alphaPayables: 1175, alphaReconciledBookBalance: 10200 },
   }, null, 2))
 }
