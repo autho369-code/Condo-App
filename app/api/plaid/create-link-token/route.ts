@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (!isPlaidConfigured()) {
       return NextResponse.json(
         { error: 'Plaid is not configured. Set PLAID_CLIENT_ID, PLAID_SECRET, and PLAID_ENV in environment variables.' },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
