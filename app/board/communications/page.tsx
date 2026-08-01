@@ -11,23 +11,22 @@ export default async function BoardCommunicationsPage() {
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  let logs: any[] = []
-  try {
-    const { data } = await db
-      .from('communications_log')
-      .select('*')
-      .in('association_id', ids)
-      .order('created_at', { ascending: false })
-      .limit(100)
-    logs = data ?? []
-  } catch { }
+  const { data, error } = await db
+    .from('communications_log')
+    .select('*')
+    .in('association_id', ids)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) throw new Error(`Unable to load board communications: ${error.message}`)
+  const logs: any[] = data ?? []
 
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const mtd = logs.filter((l: any) => l.created_at >= monthStart)
-  const emailsSent = mtd.filter((l: any) => l.channel === 'email' && l.status === 'sent').length
-  const smsSent = mtd.filter((l: any) => l.channel === 'sms' && l.status === 'sent').length
+  const isSuccessfullySent = (status: string | null) => status === 'sent' || status === 'delivered'
+  const emailsSent = mtd.filter((l: any) => l.channel === 'email' && isSuccessfullySent(l.status)).length
+  const smsSent = mtd.filter((l: any) => l.channel === 'sms' && isSuccessfullySent(l.status)).length
   const failed = mtd.filter((l: any) => l.status === 'failed').length
   const announcements = mtd.filter((l: any) => l.channel === 'announcement').length
 

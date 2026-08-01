@@ -28,7 +28,7 @@ describe('CODEX_TEST staging fixture safety', () => {
     for (const table of [
       'portfolios', 'associations', 'buildings', 'units', 'owners', 'tenants', 'vendors',
       'charges', 'payments', 'bank_transactions', 'work_orders', 'maintenance_tasks',
-      'violations', 'documents', 'communication_messages', 'calendar_events', 'meetings',
+      'violations', 'documents', 'communication_messages', 'communications_log', 'calendar_events', 'meetings',
       'insurance_policies', 'payable_bills', 'journal_entries', 'journal_lines',
     ]) {
       expect(seed).toContain(`upsert('${table}'`);
@@ -42,5 +42,6 @@ describe('CODEX_TEST staging fixture safety', () => {
     expect(cleanup).toContain("from('audit_logs').delete().in('actor_id', fixtureUsers.map((user) => user.id))");
     expect(cleanup).toContain("from('email_queue').delete().in('portfolio_id', portfolioIds)");
     expect(cleanup).toContain("removeByIds('profiles', fixtureUsers.map((user) => user.id))");
+    expect(cleanup).toContain("removeByIds('communications_log'");
   });
 });

@@ -22,6 +22,10 @@ const ids = {
   calendarEvents: ['36900000-0000-4000-8100-000000000303', '36900000-0000-4000-8200-000000000303'],
   meetings: ['36900000-0000-4000-8100-000000000304', '36900000-0000-4000-8200-000000000304'],
   communications: ['36900000-0000-4000-8100-000000000305', '36900000-0000-4000-8200-000000000305'],
+  communicationLogs: [
+    '36900000-0000-4000-8100-000000000308', '36900000-0000-4000-8100-000000000309',
+    '36900000-0000-4000-8200-000000000308', '36900000-0000-4000-8200-000000000309',
+  ],
   insurance: ['36900000-0000-4000-8100-000000000306', '36900000-0000-4000-8200-000000000306'],
   documents: ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'],
   tenants: ['36900000-0000-4000-8000-000000000071'],
@@ -50,6 +54,7 @@ await rows('violations', ids.violations, 'id, association_id, title, hearing_req
 await rows('calendar_events', ids.calendarEvents, 'id, portfolio_id, association_id, title')
 await rows('meetings', ids.meetings, 'id, portfolio_id, association_id, title')
 await rows('communication_messages', ids.communications, 'id, portfolio_id, association_id, subject')
+await rows('communications_log', ids.communicationLogs, 'id, portfolio_id, association_id, channel, subject')
 await rows('insurance_policies', ids.insurance, 'id, association_id, owner_id, policy_number')
 await rows('documents', ids.documents, 'id, entity_type, entity_id, file_name, file_url')
 await rows('tenants', ids.tenants, 'id, portfolio_id, association_id, unit_id, owner_id, first_name, lease_start, lease_end')

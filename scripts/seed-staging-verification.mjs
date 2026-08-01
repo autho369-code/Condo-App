@@ -246,6 +246,8 @@ async function main() {
   const calendarEventIds = [account(1, 303), account(2, 303)]
   const meetingIds = [account(1, 304), account(2, 304)]
   const communicationIds = [account(1, 305), account(2, 305)]
+  const communicationLogIds = [account(1, 308), account(1, 309), account(2, 308), account(2, 309)]
+  const communicationTimestamp = new Date().toISOString()
   const insuranceIds = [account(1, 306), account(2, 306)]
   const documentIds = [account(1, 307), account(2, 307)]
 
@@ -273,6 +275,12 @@ async function main() {
     { id: communicationIds[0], portfolio_id: ids.portfolioA, association_id: ids.associationA, created_by: managerA.id, calendar_event_id: calendarEventIds[0], channel: 'portal', status: 'sent', recipient_group: 'owners', subject: 'CODEX_TEST annual meeting announcement', body: 'CODEX_TEST owners meeting announcement for portal visibility verification.', recipient_name: 'Harbor View Owners', sent_at: '2026-07-31T12:00:00Z' },
     { id: communicationIds[1], portfolio_id: ids.portfolioB, association_id: ids.associationB, created_by: adminB.id, calendar_event_id: calendarEventIds[1], channel: 'portal', status: 'sent', recipient_group: 'board', subject: 'CODEX_TEST Beta isolation announcement', body: 'Must never be visible to portfolio Alpha.', recipient_name: 'Cedar Grove Board', sent_at: '2026-07-31T12:00:00Z' },
   ])
+  await upsert('communications_log', [
+    { id: communicationLogIds[0], portfolio_id: ids.portfolioA, association_id: ids.associationA, sender_id: managerA.id, direction: 'outbound', channel: 'announcement', status: 'sent', subject: 'CODEX_TEST annual meeting announcement', recipient_count: 1, created_at: communicationTimestamp },
+    { id: communicationLogIds[1], portfolio_id: ids.portfolioA, association_id: ids.associationA, sender_id: managerA.id, direction: 'outbound', channel: 'email', status: 'delivered', subject: 'CODEX_TEST financial packet delivered', recipient_count: 1, created_at: communicationTimestamp },
+    { id: communicationLogIds[2], portfolio_id: ids.portfolioB, association_id: ids.associationB, sender_id: adminB.id, direction: 'outbound', channel: 'announcement', status: 'sent', subject: 'CODEX_TEST Beta isolation announcement', recipient_count: 1, created_at: communicationTimestamp },
+    { id: communicationLogIds[3], portfolio_id: ids.portfolioB, association_id: ids.associationB, sender_id: adminB.id, direction: 'outbound', channel: 'email', status: 'delivered', subject: 'CODEX_TEST Beta isolation email', recipient_count: 1, created_at: communicationTimestamp },
+  ])
   await upsert('insurance_policies', [
     { id: insuranceIds[0], association_id: ids.associationA, owner_id: ids.ownerA, policy_number: 'CODEX_TEST-HO6-A-369', insurance_company: 'CODEX_TEST Mutual', effective_date: '2026-01-01', expiration_date: '2026-12-31', coverage_amount: 250000, liability_amount: 100000, deductible_amount: 1000, status: 'active', extraction_status: 'verified', notes: FIXTURE },
     { id: insuranceIds[1], association_id: ids.associationB, owner_id: ids.ownerB, policy_number: 'CODEX_TEST-HO6-B-369', insurance_company: 'CODEX_TEST Isolation Mutual', effective_date: '2026-01-01', expiration_date: '2026-12-31', coverage_amount: 200000, liability_amount: 100000, deductible_amount: 1000, status: 'active', extraction_status: 'verified', notes: 'Must never be visible to portfolio Alpha' },
@@ -292,7 +300,7 @@ async function main() {
     associations: 3,
     balancedEntries: entries.length,
     journalLines: lines.length,
-    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 2, calendarEvents: 2, meetings: 2, announcements: 2, documents: 2, insurancePolicies: 2, tenants: 1 },
+    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 2, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 2, insurancePolicies: 2, tenants: 1 },
     expected: { alphaTrialBalanceDebits: 21000, alphaTrialBalanceCredits: 21000, alphaNetIncome: 5400, alphaBalanceSheetTotal: 17400, alphaReceivables: 1400, alphaPayables: 1175, alphaReconciledBookBalance: 10400 },
   }, null, 2))
 }

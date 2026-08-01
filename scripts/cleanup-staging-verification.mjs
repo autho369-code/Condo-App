@@ -58,6 +58,10 @@ async function main() {
   }
 
   // Child-first and exact-ID-only. No wildcard, date-range, or unmarked deletion is allowed.
+  await removeByIds('communications_log', [
+    '36900000-0000-4000-8100-000000000308', '36900000-0000-4000-8100-000000000309',
+    '36900000-0000-4000-8200-000000000308', '36900000-0000-4000-8200-000000000309',
+  ])
   await removeByIds('communication_messages', ['36900000-0000-4000-8100-000000000305', '36900000-0000-4000-8200-000000000305'])
   await removeByIds('documents', ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'])
   await must('delete deterministic document object', db.storage.from(DOCUMENT_BUCKET).remove([DOCUMENT_PATH]))
