@@ -12,17 +12,17 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe('tenant host routing', () => {
   it('separates platform, preview, tenant, and custom-domain hosts', () => {
-    expect(classifyTenantHost('portier369.com').kind).toBe('platform');
-    expect(classifyTenantHost('www.portier369.com').kind).toBe('www');
-    expect(classifyTenantHost('condo-abc-aios2.vercel.app').kind).toBe('platform');
-    expect(classifyTenantHost('localhost:3000').kind).toBe('platform');
-    expect(classifyTenantHost('stellar.localhost:3000')).toEqual({
+    expect(classifyTenantHost('portier369.com', 'portier369.com').kind).toBe('platform');
+    expect(classifyTenantHost('www.portier369.com', 'portier369.com').kind).toBe('www');
+    expect(classifyTenantHost('condo-abc-aios2.vercel.app', 'portier369.com').kind).toBe('platform');
+    expect(classifyTenantHost('localhost:3000', 'portier369.com').kind).toBe('platform');
+    expect(classifyTenantHost('stellar.localhost:3000', 'portier369.com')).toEqual({
       kind: 'subdomain', hostname: 'stellar.localhost', slug: 'stellar',
     });
-    expect(classifyTenantHost('stellar.portier369.com')).toEqual({
+    expect(classifyTenantHost('stellar.portier369.com', 'portier369.com')).toEqual({
       kind: 'subdomain', hostname: 'stellar.portier369.com', slug: 'stellar',
     });
-    expect(classifyTenantHost('portal.example-management.com')).toEqual({
+    expect(classifyTenantHost('portal.example-management.com', 'portier369.com')).toEqual({
       kind: 'custom-domain', hostname: 'portal.example-management.com', slug: null,
     });
   });
@@ -33,24 +33,24 @@ describe('tenant host routing', () => {
   });
 
   it('uses a tenant subdomain only from the production apex origin', () => {
-    expect(tenantWorkspaceUrl('stellar', '/portal', 'https://portier369.com'))
+    expect(tenantWorkspaceUrl('stellar', '/portal', 'https://portier369.com', 'portier369.com'))
       .toBe('https://stellar.portier369.com/portal');
-    expect(tenantWorkspaceUrl('stellar', '/portal', 'https://condo-preview-aios2.vercel.app'))
+    expect(tenantWorkspaceUrl('stellar', '/portal', 'https://condo-preview-aios2.vercel.app', 'portier369.com'))
       .toBe('https://condo-preview-aios2.vercel.app/portal');
-    expect(tenantWorkspaceUrl('Not Valid', '/portal', 'https://portier369.com'))
+    expect(tenantWorkspaceUrl('Not Valid', '/portal', 'https://portier369.com', 'portier369.com'))
       .toBe('https://portier369.com/portal');
   });
 
   it('uses the canonical tenant host for custom-domain auth callbacks', () => {
-    expect(resolvedTenantUrl({ hostname: 'portal.example.com', slug: 'example' }, '/api/auth/callback'))
+    expect(resolvedTenantUrl({ hostname: 'portal.example.com', slug: 'example' }, '/api/auth/callback', 'https://portier369.com', 'portier369.com'))
       .toBe('https://example.portier369.com/api/auth/callback');
-    expect(resolvedTenantUrl({ hostname: 'example.portier369.com', slug: 'example' }, '/api/auth/callback'))
+    expect(resolvedTenantUrl({ hostname: 'example.portier369.com', slug: 'example' }, '/api/auth/callback', 'https://portier369.com', 'portier369.com'))
       .toBe('https://example.portier369.com/api/auth/callback');
   });
 
   it('keeps platform escape links local during tenant development', () => {
-    expect(platformLoginUrl('unknown.localhost:3100')).toBe('http://localhost:3100/login');
-    expect(platformLoginUrl('stellar.portier369.com', '/login?mode=admin'))
+    expect(platformLoginUrl('unknown.localhost:3100', '/login', 'portier369.com')).toBe('http://localhost:3100/login');
+    expect(platformLoginUrl('stellar.portier369.com', '/login?mode=admin', 'portier369.com'))
       .toBe('https://portier369.com/login?mode=admin');
   });
 });

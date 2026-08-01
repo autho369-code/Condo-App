@@ -114,14 +114,15 @@ export function resolvedTenantUrl(
   tenant: { hostname?: string | null; slug?: string | null } | null | undefined,
   path: string,
   platformOrigin = siteUrl(),
+  apex = apexDomain(),
 ) {
   const hostname = normalizeHostname(tenant?.hostname);
-  const host = classifyTenantHost(hostname);
+  const host = classifyTenantHost(hostname, apex);
   if (host.kind === 'subdomain') {
     const protocol = isLocalHostname(hostname) || hostname.endsWith('.localhost') ? 'http' : 'https';
     return new URL(normalizePath(path), `${protocol}://${hostname}`).toString();
   }
-  return tenantWorkspaceUrl(tenant?.slug, path, platformOrigin);
+  return tenantWorkspaceUrl(tenant?.slug, path, platformOrigin, apex);
 }
 
 export function tenantAccessDecision(
