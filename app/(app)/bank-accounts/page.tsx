@@ -26,7 +26,7 @@ export default async function BankAccountsPage({
 
   let query = db
     .from('bank_accounts')
-    .select('id, name, bank_name, account_number, routing_number, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations(name)')
+    .select('id, name, bank_name, account_number, routing_number, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations!bank_accounts_association_id_fkey(name)')
     .is('archived_at', null)
     .order('name');
 
