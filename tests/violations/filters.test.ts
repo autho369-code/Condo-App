@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { normalizeViolationStatusFilter } from '@/lib/violations/filters';
 import { buildViolationFilterSummary } from '@/lib/violations/queries';
 import {
@@ -42,5 +44,22 @@ describe('violation workflow status groups', () => {
   it('recognizes the database hearing status used by oversight dashboards', () => {
     expect(isHearingPendingViolationStatus('hearing_pending')).toBe(true);
     expect(isHearingPendingViolationStatus('hearing_scheduled')).toBe(false);
+  });
+
+  it('keeps oversight queries on the shared database-backed active statuses', () => {
+    const queryConsumers = [
+      'app/board/page.tsx',
+      'app/board/owners/page.tsx',
+      'app/company-admin/overview/page.tsx',
+      'app/company-admin/compliance/page.tsx',
+      'app/company-admin/performance/page.tsx',
+      'lib/ai/board-snapshot.ts',
+    ];
+
+    for (const path of queryConsumers) {
+      const source = readFileSync(resolve(process.cwd(), path), 'utf8');
+      expect(source, path).toContain('ACTIVE_VIOLATION_STATUSES');
+      expect(source, path).not.toContain('violation_dismissed');
+    }
   });
 });

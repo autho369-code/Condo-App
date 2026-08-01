@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import {
   Building2,
   DoorOpen,
@@ -97,7 +98,7 @@ export default async function OverviewPage() {
     db.from('profiles').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
     db.from('owners').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('work_orders').select('association_id, status, priority, scheduled_date').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('violations').select('association_id').is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('architectural_requests').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('status', ['submitted', 'under_review', 'more_info']),
     db.from('subscriptions').select('price_monthly_cents, seats_used, price_per_seat_cents').eq('portfolio_id', portfolioId).eq('status', 'active').maybeSingle(),
     db.from('management_fees').select('fee_amount_cents, collected_cents').eq('portfolio_id', portfolioId).eq('month', monthStart),

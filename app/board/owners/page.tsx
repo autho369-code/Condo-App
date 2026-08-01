@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { money } from '@/lib/utils'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { Users, AlertTriangle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ export default async function BoardOwnersPage() {
       .in('association_id', ids)
       .eq('status', 'current'),
     db.from('unit_balances').select('unit_id, balance').in('association_id', ids),
-    db.from('violations').select('owner_id, unit_id').in('association_id', ids).is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('owner_id, unit_id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('insurance_policies').select('owner_id, expiration_date, status').in('association_id', ids).is('archived_at', null),
   ])
 

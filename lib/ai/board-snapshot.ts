@@ -12,6 +12,7 @@
 import 'server-only';
 import { requireBoard } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries';
 
 const OPEN_WO_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 
@@ -85,7 +86,7 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
     db.from('unit_balances').select('unit_id, unit_number, balance').in('association_id', ids),
     db.from('payable_bills').select('amount, status, due_date, vendors(name)').in('association_id', ids).is('archived_at', null).not('status', 'in', '("paid","void")'),
     db.from('work_orders').select('title, status, priority, scheduled_date, created_at').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('created_at', { ascending: false }),
-    db.from('violations').select('id').in('association_id', ids).is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('approval_requests').select('title, amount').in('association_id', ids).eq('status', 'pending').limit(10),
     db.from('meetings').select('title, meeting_type, start_time').in('association_id', ids).is('archived_at', null).gte('start_time', today.toISOString()).order('start_time').limit(5),
     db.from('maintenance_tasks').select('task_name, next_due_date').in('association_id', ids).is('archived_at', null).order('next_due_date').limit(15),
