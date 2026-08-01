@@ -3,7 +3,8 @@
 *`C:\Users\autho\.claude\projects\C--Users-autho-Portier369\memory\project-state.md`.*
 *The **CURRENT STATE** section below is authoritative; everything under HISTORICAL LOG is old and may be stale.*
 *Engineering reference: [`docs/IMPLEMENTATION_SPEC.md`](IMPLEMENTATION_SPEC.md) — system architecture, data-model & RLS contracts, role/invite chain, module specs.*
-*Last updated: 2026-07-14.*
+*Live Codex/Claude release checkpoint: [`docs/CODEX_CLAUDE_HANDOFF.md`](CODEX_CLAUDE_HANDOFF.md).*
+*Last updated: 2026-07-31.*
 
 ---
 
