@@ -7,6 +7,9 @@ export type ViolationFilters = {
   observedFrom?: string;
 };
 
+export const ACTIVE_VIOLATION_STATUSES = ['open', 'notice_sent', 'hearing_pending', 'fined'] as const;
+export const CLOSED_VIOLATION_STATUSES = ['cured', 'closed'] as const;
+
 export function buildViolationFilterSummary(filters: ViolationFilters) {
   const summary: string[] = [];
   if (filters.associationId) summary.push('Association selected');
@@ -19,7 +22,11 @@ export function buildViolationFilterSummary(filters: ViolationFilters) {
 }
 
 export function isOpenViolationStatus(status: string | null | undefined) {
-  return status !== 'closed' && status !== 'cured';
+  return ACTIVE_VIOLATION_STATUSES.includes(status as (typeof ACTIVE_VIOLATION_STATUSES)[number]);
+}
+
+export function isHearingPendingViolationStatus(status: string | null | undefined) {
+  return status === 'hearing_pending';
 }
 
 export function isOverdueViolation(row: { status?: string | null; due_date?: string | null }, todayDate: string) {

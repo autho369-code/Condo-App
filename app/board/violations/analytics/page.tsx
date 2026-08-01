@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { BarChart3, ArrowLeft, AlertTriangle, TrendingUp, Clock, Users } from 'lucide-react'
+import { ACTIVE_VIOLATION_STATUSES, CLOSED_VIOLATION_STATUSES } from '@/lib/violations/queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,9 +99,8 @@ export default async function ViolationAnalyticsPage() {
   const maxCategory = sortedCategories[0]?.[1] ?? 1
 
   // ── Open vs Closed ──
-  const openStatuses = ['open', 'pending', 'in_progress', 'under_review', 'notice_sent', 'hearing_scheduled']
-  const openCount = violations.filter((v: any) => openStatuses.includes(v.status?.toLowerCase())).length
-  const closedCount = violations.filter((v: any) => ['closed', 'cured', 'resolved'].includes(v.status?.toLowerCase())).length
+  const openCount = violations.filter((v: any) => ACTIVE_VIOLATION_STATUSES.includes(v.status?.toLowerCase())).length
+  const closedCount = violations.filter((v: any) => CLOSED_VIOLATION_STATUSES.includes(v.status?.toLowerCase())).length
   const totalForRatio = openCount + closedCount
   const openPct = totalForRatio > 0 ? Math.round((openCount / totalForRatio) * 100) : 0
   const closedPct = totalForRatio > 0 ? Math.round((closedCount / totalForRatio) * 100) : 0
@@ -140,8 +140,8 @@ export default async function ViolationAnalyticsPage() {
       if (!v.created_at) return false
       return v.created_at >= `${monthKey}-01` && v.created_at < `${nextMonthKey}-01`
     })
-    const monthOpen = monthViolations.filter((v: any) => openStatuses.includes(v.status?.toLowerCase())).length
-    const monthClosed = monthViolations.filter((v: any) => ['closed', 'cured', 'resolved'].includes(v.status?.toLowerCase())).length
+    const monthOpen = monthViolations.filter((v: any) => ACTIVE_VIOLATION_STATUSES.includes(v.status?.toLowerCase())).length
+    const monthClosed = monthViolations.filter((v: any) => CLOSED_VIOLATION_STATUSES.includes(v.status?.toLowerCase())).length
 
     monthlyData.push({
       month: monthLabel,
