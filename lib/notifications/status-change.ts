@@ -3,7 +3,7 @@
 // When staff or a vendor changes the status of a work order or service request,
 // the owner gets a white-labeled email (management company name + reply-to, per
 // the pattern in app/api/insurance/send-reminders/route.ts). Emails go through
-// queueEmails() → email_queue → process-email-queue cron → Resend.
+// queueEmails() → email_queue → Vercel's process-queue cron → Resend.
 //
 // This helper NEVER throws — it is fire-and-forget. A notification failure must
 // never break the status update itself, so every error is caught and logged.
