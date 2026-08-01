@@ -49,6 +49,15 @@ async function main() {
     const { data: leaked, error: isolationError } = await client.from('portfolios').select('id').eq('id', otherPortfolio)
     if (isolationError) throw new Error(`${email} isolation query: ${isolationError.message}`)
     assert((leaked ?? []).length === 0, `${email} can read the other CODEX_TEST portfolio`)
+    if (field === 'is_board') {
+      const { data: communications, error: communicationsError } = await client
+        .from('communications_log')
+        .select('association_id, subject')
+        .like('subject', 'CODEX_TEST%')
+      if (communicationsError) throw new Error(`${email} board communications: ${communicationsError.message}`)
+      assert((communications ?? []).length === 2, `${email} cannot read both own-association communication fixtures`)
+      assert(communications.every((row) => row.association_id === '36900000-0000-4000-8000-000000000011'), `${email} can read another association's communications`)
+    }
     await client.auth.signOut()
     console.log(`${email}: ${field}=PASS, portfolio isolation=PASS`)
   }

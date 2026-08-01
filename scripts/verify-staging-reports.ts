@@ -51,7 +51,11 @@ async function main() {
   const budget = output.get('budget_vs_actual') ?? []
   assert(budget.length >= 2, 'Budget vs actual produced no useful Alpha rows')
   const bank = output.get('bank_reconciliation') ?? []
-  assert(bank.length === 1 && Number(bank[0]['Book balance']) === 10400, 'Bank reconciliation book balance is incorrect')
+  assert(bank.length === 1 && Number(bank[0]['Book balance']) === 10200, 'Bank reconciliation book balance is incorrect')
+  const bankDetail = output.get('bank_reconciliation_detail') ?? []
+  assert(bankDetail.length === 2, `Expected two Alpha reconciliation items, got ${bankDetail.length}`)
+  assert(bankDetail.every((row) => row.Cleared === true), 'Completed reconciliation contains uncleared fixture items')
+  assert(bankDetail.reduce((sum, row) => sum + Number(row.Amount), 0) === 10200, 'Reconciliation detail does not sum to the book balance')
 
   let rejected = false
   try {

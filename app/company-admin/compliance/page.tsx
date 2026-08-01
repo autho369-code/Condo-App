@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { ShieldAlert, FileWarning, AlertTriangle, ShieldCheck } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +43,7 @@ export default async function CompliancePage() {
       .is('archived_at', null)
       .in('status', ['active', 'expiring_soon'])
       .order('expiration_date'),
-    db.from('violations').select('association_id').is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
     // Statutory certifications tracked as preventive maintenance (fire, elevator, boiler, backflow).
     db.from('maintenance_tasks')

@@ -1,8 +1,7 @@
 // Single source of truth for outbound email.
 //
 // Every email in the app is queued into `email_queue` and delivered by the
-// `process-email-queue` cron → `send-email` edge function → Resend (key in
-// Supabase Vault as `resend_api_key`). One Resend account serves every
+// Vercel's `/api/email/process-queue` cron → Resend. One Resend account serves every
 // management company on the platform. Use this helper everywhere instead of
 // hand-writing email_queue rows so columns and the verified sender stay
 // consistent (email_queue has no `created_by` column — it is `sent_by`).

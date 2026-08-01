@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { Trophy, Timer, Wrench, AlertTriangle, ClipboardCheck, ArrowRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -50,7 +51,7 @@ export default async function ManagerPerformancePage() {
     db.from('associations').select('id, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('work_orders').select('association_id, assignee_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES),
     db.from('work_orders').select('association_id, assignee_id, created_at, completed_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', DONE_WO_STATUSES).gte('created_at', ninetyDaysAgo),
-    db.from('violations').select('association_id').is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('inspections').select('association_id, status, completed_date').eq('portfolio_id', portfolioId).is('archived_at', null),
   ])
 

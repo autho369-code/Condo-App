@@ -5,6 +5,7 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { SignatureCapture } from '@/components/board/signature-capture'
 import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
 import { date, money } from '@/lib/utils'
+import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import {
   Heart,
   Landmark,
@@ -91,7 +92,7 @@ export default async function BoardDashboardPage() {
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('violations').select('id').in('association_id', ids).is('archived_at', null).not('status', 'in', '("closed","cured","violation_dismissed")'),
+    db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('unit_balances').select('balance').in('association_id', ids),
     db.from('bank_accounts').select('id, gl_account_id, purpose, association_id').in('association_id', ids).is('archived_at', null),
     db.from('journal_lines').select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)').in('association_id', ids).eq('journal_entries.posted', true),

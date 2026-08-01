@@ -68,7 +68,7 @@ export async function saveInsurancePolicy(input: {
     .limit(1)
     .maybeSingle();
 
-  const { error } = await db.from('insurance_policies').insert({
+  const { data: policy, error } = await db.from('insurance_policies').insert({
     owner_id: me.owner_id,
     association_id: occ?.association_id ?? null,
     insurance_company: carrier,
@@ -81,24 +81,33 @@ export async function saveInsurancePolicy(input: {
     remind_owner: !!input.remindOwner,
     remind_manager: !!input.remindManager,
     status: 'active',
-  });
-  if (error) return { error: error.message };
+  }).select('id').single();
+  if (error || !policy) {
+    if (input.cert) {
+      const svc = createServiceClient() as any;
+      await svc.storage.from(BUCKET).remove([input.cert.path]);
+    }
+    return { error: error?.message ?? 'Could not save the insurance policy.' };
+  }
 
   // File the certificate into the association records (documents table)
   if (input.cert) {
-    try {
-      const svc = createServiceClient() as any;
-      await svc.from('documents').insert({
-        entity_type: 'owner',
-        entity_id: me.owner_id,
-        doc_type: 'insurance_policy',
-        file_name: input.cert.name,
-        file_url: input.cert.path,
-        uploaded_at: new Date().toISOString(),
-        uploaded_by: me.auth_user_id,
-        expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
-      });
-    } catch {}
+    const svc = createServiceClient() as any;
+    const { error: documentError } = await svc.from('documents').insert({
+      entity_type: 'owner',
+      entity_id: me.owner_id,
+      doc_type: 'ho6',
+      file_name: input.cert.name,
+      file_url: input.cert.path,
+      uploaded_at: new Date().toISOString(),
+      uploaded_by: me.auth_user_id,
+      expires_at: new Date(expiration + 'T00:00:00Z').toISOString(),
+    });
+    if (documentError) {
+      await svc.from('insurance_policies').delete().eq('id', policy.id).eq('owner_id', me.owner_id);
+      await svc.storage.from(BUCKET).remove([input.cert.path]);
+      return { error: `Could not file the policy document: ${documentError.message}` };
+    }
   }
 
   revalidatePath('/portal/insurance');

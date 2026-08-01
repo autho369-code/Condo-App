@@ -16,13 +16,15 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
 
   let q = (supabase as any).from('v_unit_account_summary').select('*');
   if (assoc) q = q.eq('association_id', assoc);
-  const { data: rows } = await q.order('association_name').order('unit_number');
+  const { data: rows, error: unitsError } = await q.order('association_name').order('unit_number');
+  if (unitsError) throw new Error(`Could not load unit account summaries: ${unitsError.message}`);
 
   const all = (rows ?? []) as any[];
   const filtered = filter === 'balance' ? all.filter((u) => Number(u.outstanding_balance ?? 0) > 0)
                  : filter === 'credit'  ? all.filter((u) => Number(u.unapplied_credit ?? 0) > 0)
                  : all;
-  const { data: assocs } = await (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name');
+  const { data: assocs, error: associationsError } = await (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name');
+  if (associationsError) throw new Error(`Could not load association filters: ${associationsError.message}`);
   const outstanding = filtered.reduce((s, u) => s + Number(u.outstanding_balance ?? 0), 0);
 
   return (

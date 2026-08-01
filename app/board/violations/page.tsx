@@ -4,6 +4,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { ACTIVE_VIOLATION_STATUSES, CLOSED_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import {
   AlertTriangle,
   Calendar,
@@ -119,11 +120,11 @@ export default async function BoardViolationsPage({
   // Apply filters
   if (statusFilter) {
     if (statusFilter === 'open') {
-      baseQuery = baseQuery.in('status', ['open', 'pending', 'in_progress', 'under_review', 'notice_sent'])
-    } else if (statusFilter === 'hearing_scheduled') {
-      baseQuery = baseQuery.eq('status', 'hearing_scheduled')
+      baseQuery = baseQuery.in('status', [...ACTIVE_VIOLATION_STATUSES])
+    } else if (statusFilter === 'hearing_pending') {
+      baseQuery = baseQuery.eq('status', 'hearing_pending')
     } else if (statusFilter === 'closed') {
-      baseQuery = baseQuery.in('status', ['closed', 'cured', 'resolved'])
+      baseQuery = baseQuery.in('status', [...CLOSED_VIOLATION_STATUSES])
     }
   }
   if (typeFilter) {
@@ -159,8 +160,7 @@ export default async function BoardViolationsPage({
   }
 
   // ── Summary stats ──
-  const openStatuses = ['open', 'pending', 'in_progress', 'under_review', 'notice_sent']
-  const openViolations = violations.filter((v: any) => openStatuses.includes(v.status?.toLowerCase()))
+  const openViolations = violations.filter((v: any) => ACTIVE_VIOLATION_STATUSES.includes(v.status?.toLowerCase()))
   const newThisMonth = violations.filter((v: any) => v.created_at && v.created_at >= firstOfMonth)
   const closedThisMonth = violations.filter((v: any) => v.closed_at && v.closed_at >= firstOfMonth)
   const hearingsScheduled = violations.filter((v: any) => v.hearing_at && v.hearing_at >= todayDate)
@@ -232,7 +232,7 @@ export default async function BoardViolationsPage({
             <select name="status" defaultValue={statusFilter} className={inputCls}>
               <option value="">All Statuses</option>
               <option value="open">Open</option>
-              <option value="hearing_scheduled">Hearing Scheduled</option>
+              <option value="hearing_pending">Hearing Pending</option>
               <option value="closed">Closed</option>
             </select>
           </div>

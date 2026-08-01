@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { PUBLIC_PATHS } from '../../lib/server/public-paths';
 
 const route = readFileSync(resolve('app/api/email/process-queue/route.ts'), 'utf8');
 const migration = readFileSync(resolve('supabase/migrations/20260730004000_durable_email_queue_worker.sql'), 'utf8');
@@ -11,6 +12,13 @@ describe('durable email queue worker', () => {
     expect(vercel.crons).toContainEqual({ path: '/api/email/process-queue', schedule: '* * * * *' });
     expect(route).toContain('requireCronSecret(request)');
     expect(route).toContain("if (!process.env.RESEND_API_KEY)");
+  });
+
+  it('allows every Vercel cron through middleware to its route-level secret check', () => {
+    const publicPaths = new Set<string>(PUBLIC_PATHS);
+    for (const cron of vercel.crons as Array<{ path: string }>) {
+      expect(publicPaths.has(cron.path), `${cron.path} must be public in middleware`).toBe(true);
+    }
   });
 
   it('claims atomically and uses provider idempotency', () => {

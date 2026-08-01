@@ -4,6 +4,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { AlertTriangle, Calendar, FileText, Eye } from 'lucide-react'
+import { isHearingPendingViolationStatus, isOpenViolationStatus } from '@/lib/violations/queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,8 +41,8 @@ export default async function ViolationsOversightPage() {
   const violations = allViolations ?? []
 
   // Stats
-  const openCount = violations.filter((v: any) => !['closed', 'cured', 'resolved'].includes(v.status?.toLowerCase())).length
-  const pendingHearingCount = violations.filter((v: any) => v.status?.toLowerCase() === 'hearing_scheduled').length
+  const openCount = violations.filter((v: any) => isOpenViolationStatus(v.status?.toLowerCase())).length
+  const pendingHearingCount = violations.filter((v: any) => isHearingPendingViolationStatus(v.status?.toLowerCase())).length
   const noticesThisMonth = violations.filter((v: any) => v.notice_sent_at && v.notice_sent_at >= firstOfMonth).length
 
   return (

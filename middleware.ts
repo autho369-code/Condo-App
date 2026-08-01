@@ -2,10 +2,10 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/types/database'
 import { getSupabaseBrowserKey, getSupabaseUrl } from '@/lib/supabase/env'
+import { PUBLIC_PATHS } from '@/lib/server/public-paths'
 
 const APEX_DOMAIN = process.env.NEXT_PUBLIC_APEX_DOMAIN || 'portier369.com'
 const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services']
-const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/accept-invitation', '/api/auth/callback', '/report-violation', '/invite', '/demo', '/legal', '/api/demo-request', '/api/ai/analyze-violation-photo', '/api/piper', '/api/maintenance/send-reminders', '/api/insurance/send-reminders', '/api/payments/reconcile', '/api/payments/autopay-run', '/api/stripe/webhook', '/api/reports/run-scheduled', '/api/billing/assess-late-fees', '/api/automation/run-flows', '/report-card']
 // Crawler + PWA assets — must never bounce to /login
 const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt']
 // Next serves icon/OG conventions at hashed paths (e.g. /opengraph-image-pwu6ef),

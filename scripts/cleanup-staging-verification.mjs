@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 const STAGING_REF = 'zalfkrtjeswvfmucicea'
 const PRODUCTION_REF = 'termxngysvotnfbzbgrv'
 const FIXTURE = 'CODEX_TEST_PORTIER369_V1'
+const DOCUMENT_BUCKET = 'association-documents'
+const DOCUMENT_PATH = 'associations/36900000-0000-4000-8000-000000000011/codex-test/governing-document.pdf'
 const url = process.env.STAGING_SUPABASE_URL
 const key = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY
 
@@ -17,10 +19,10 @@ if (process.env.PORTIER369_CODEX_TEST_CLEANUP_CONFIRM !== FIXTURE) {
 
 const db = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 const portfolioIds = ['36900000-0000-4000-8000-000000000001', '36900000-0000-4000-8000-000000000002']
-const associationIds = ['36900000-0000-4000-8000-000000000011', '36900000-0000-4000-8000-000000000012']
-const buildingIds = ['36900000-0000-4000-8000-000000000021', '36900000-0000-4000-8000-000000000022']
-const unitIds = ['36900000-0000-4000-8000-000000000031', '36900000-0000-4000-8000-000000000032']
-const ownerIds = ['36900000-0000-4000-8000-000000000041', '36900000-0000-4000-8000-000000000042']
+const associationIds = ['36900000-0000-4000-8000-000000000011', '36900000-0000-4000-8000-000000000012', '36900000-0000-4000-8000-000000000013']
+const buildingIds = ['36900000-0000-4000-8000-000000000021', '36900000-0000-4000-8000-000000000022', '36900000-0000-4000-8000-000000000023']
+const unitIds = ['36900000-0000-4000-8000-000000000031', '36900000-0000-4000-8000-000000000032', '36900000-0000-4000-8000-000000000033']
+const ownerIds = ['36900000-0000-4000-8000-000000000041', '36900000-0000-4000-8000-000000000042', '36900000-0000-4000-8000-000000000043']
 const vendorIds = ['36900000-0000-4000-8000-000000000051', '36900000-0000-4000-8000-000000000052']
 const bankIds = ['36900000-0000-4000-8000-000000000061', '36900000-0000-4000-8000-000000000062']
 const fixtureEmails = [
@@ -56,6 +58,23 @@ async function main() {
   }
 
   // Child-first and exact-ID-only. No wildcard, date-range, or unmarked deletion is allowed.
+  await removeByIds('communications_log', [
+    '36900000-0000-4000-8100-000000000308', '36900000-0000-4000-8100-000000000309',
+    '36900000-0000-4000-8200-000000000308', '36900000-0000-4000-8200-000000000309',
+  ])
+  await removeByIds('communication_messages', ['36900000-0000-4000-8100-000000000305', '36900000-0000-4000-8200-000000000305'])
+  await removeByIds('documents', ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'])
+  await must('delete deterministic document object', db.storage.from(DOCUMENT_BUCKET).remove([DOCUMENT_PATH]))
+  await removeByIds('meetings', ['36900000-0000-4000-8100-000000000304', '36900000-0000-4000-8200-000000000304'])
+  await removeByIds('calendar_events', ['36900000-0000-4000-8100-000000000303', '36900000-0000-4000-8200-000000000303'])
+  await removeByIds('insurance_policies', ['36900000-0000-4000-8100-000000000306', '36900000-0000-4000-8200-000000000306'])
+  await removeByIds('violations', ['36900000-0000-4000-8100-000000000302', '36900000-0000-4000-8200-000000000302', '36900000-0000-4000-8100-000000000312'])
+  await removeByIds('work_orders', ['36900000-0000-4000-8100-000000000300', '36900000-0000-4000-8200-000000000300'])
+  await removeByIds('maintenance_tasks', ['36900000-0000-4000-8100-000000000301', '36900000-0000-4000-8200-000000000301'])
+  await removeByIds('bank_reconciliation_items', [
+    '36900000-0000-4000-8100-000000000089', '36900000-0000-4000-8100-000000000090',
+    '36900000-0000-4000-8200-000000000089', '36900000-0000-4000-8200-000000000090',
+  ])
   await removeByIds('bank_reconciliations', ['36900000-0000-4000-8100-000000000087', '36900000-0000-4000-8200-000000000088'])
   await removeByIds('bank_transactions', ['36900000-0000-4000-8100-000000000085', '36900000-0000-4000-8200-000000000086'])
   await removeByIds('payable_bills', ['36900000-0000-4000-8100-000000000081', '36900000-0000-4000-8100-000000000082', '36900000-0000-4000-8200-000000000083'])
@@ -70,12 +89,13 @@ async function main() {
   await removeByIds('journal_lines', journalLineIds)
   await removeByIds('journal_entries', journalEntryIds)
   await removeByIds('bank_accounts', bankIds)
-  await removeByIds('association_assignments', ['36900000-0000-4000-8100-000000000093'])
-  await removeByIds('board_approval_settings', associationIds)
+  await removeByIds('association_assignments', ['36900000-0000-4000-8100-000000000093', '36900000-0000-4000-8100-000000000101'])
+  await must('delete board_approval_settings', db.from('board_approval_settings').delete().in('association_id', associationIds))
   await removeByIds('board_members', ['36900000-0000-4000-8100-000000000094', '36900000-0000-4000-8100-000000000096'])
   await removeByIds('platform_operators', ['36900000-0000-4000-8100-000000000095'])
-  await removeByIds('occupancies', ['36900000-0000-4000-8100-000000000097', '36900000-0000-4000-8200-000000000098'])
-  await removeByIds('unit_owners', ['36900000-0000-4000-8100-000000000091', '36900000-0000-4000-8200-000000000092'])
+  await removeByIds('tenants', ['36900000-0000-4000-8000-000000000071'])
+  await removeByIds('occupancies', ['36900000-0000-4000-8100-000000000097', '36900000-0000-4000-8200-000000000098', '36900000-0000-4000-8100-000000000100'])
+  await removeByIds('unit_owners', ['36900000-0000-4000-8100-000000000091', '36900000-0000-4000-8200-000000000092', '36900000-0000-4000-8100-000000000099'])
   await removeByIds('vendors', vendorIds)
   await removeByIds('owners', ownerIds)
   await removeByIds('units', unitIds)
@@ -84,12 +104,23 @@ async function main() {
   await removeByIds('associations', associationIds)
 
   const listed = await must('list fixture auth users', db.auth.admin.listUsers({ perPage: 1000 }))
-  for (const user of listed.users.filter((candidate) => fixtureEmails.includes(candidate.email ?? ''))) {
+  const fixtureUsers = listed.users.filter((candidate) => fixtureEmails.includes(candidate.email ?? ''))
+  if (fixtureUsers.length) {
+    await must('delete fixture actor audit logs', db.from('audit_logs').delete().in('actor_id', fixtureUsers.map((user) => user.id)))
+  }
+  await removeByIds('profiles', fixtureUsers.map((user) => user.id))
+  for (const user of fixtureUsers) {
     await must(`delete auth user ${user.email}`, db.auth.admin.deleteUser(user.id))
   }
+  await must('delete fixture email queue', db.from('email_queue').delete().in('portfolio_id', portfolioIds))
   await removeByIds('portfolios', portfolioIds)
 
   console.log(JSON.stringify({ project: ref, cleanedFixture: FIXTURE, portfolios: portfolioIds.length }, null, 2))
 }
 
-main().catch((error) => { console.error(error.message); process.exit(1) })
+try {
+  await main()
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
