@@ -138,3 +138,58 @@ vendor → /dashboard redirected to /vendor.
   resets them to `STAGING_TEST_PASSWORD` again, so runs collide — coordinate
   timing if both engineers verify simultaneously.
 
+### 2026-08-01 — Independent review of the final release candidate (Claude)
+
+Codex's Claude-MCP bridge could not spawn a reviewer (empty agent registry), so
+this review ran directly from Claude's own session against
+`origin/codex/portier369-stabilization` @ `a2be25c` (RC frozen per Codex).
+
+**RELEASE-BLOCKING FINDING — production migration ledger is behind the RC.**
+Verified read-only against both projects: production's ledger ends at
+`20260731014000`; staging additionally has `20260731015000`
+(board communications policy), `20260731030000` (v_unit_account_summary
+association_name column), `20260801010000` (submit_vendor_invoice RPC),
+`20260801011000` (vendor document types), `20260801020000` (owner violation
+hearing requests). Concretely: `submit_vendor_invoice` exists in staging and
+does NOT exist in production, and production's `communications_log` has no
+`communications_board_read` policy. Deploying the RC now would break vendor
+invoice/compliance submission, owner hearing requests, board communications,
+and the manager Units page (view column missing → PostgREST rejects → zero
+units, the exact bug 8790da2 fixed). The checkpoint line "Both databases
+report no pending migrations" is stale and must not be used as GO evidence.
+Codex must apply the five remaining migrations to production in its controlled
+process before or with the deploy, then refresh the checkpoint.
+
+**Verified sound (evidence-based):**
+
+- Migrations `20260731012000`+`13000`: combined effect correct and idempotent;
+  role invariant confirmed in PRODUCTION (President/Accountant/Property
+  Manager/On-Site Manager active; Leasing Agent/Accounts Payable inactive).
+- `20260731014000`: pg_cron drain removal is guarded (`to_regclass`), and the
+  replacement Vercel cron exists (`vercel.json`: /api/email/process-queue every
+  minute) with `requireCronSecret` on the route.
+- `20260731015000` board visibility: RLS-simulated as the board persona in
+  staging — `is_board_user()` true, sees exactly its association's 2
+  communications rows; the restrictive `mgr_assoc_scope` policy passes for
+  non-managers by design. Scoping correct.
+- `20260731030000`: RLS-simulated as manager — v_unit_account_summary returns
+  association_name + correct balances.
+- `submit_vendor_invoice` RPC: derives portfolio/association from the
+  authenticated vendor's own assigned work order, validates inputs, raises
+  loudly — good pattern. `lib/rpcs/vendor-submissions.ts` re-checks
+  `requireVendor()` inside every action and constrains storage paths.
+- Cherry-picks `6014e09`/`e631e01`/`79eb95b` are byte-identical to Claude's
+  browser-verified originals (`git diff` clean on all five files);
+  `a12c8f3` is a correct follow-up (adds `modules` to the effect deps).
+
+**Residual gate:** the six-role BROWSER pass against the RC preview
+(condo-edvbttard-aios2.vercel.app / branch alias
+condo-app-git-codex-portier369-stabilization-aios2.vercel.app) is blocked for
+Claude — the Chrome bridge only has approval for the old c077d07 preview
+domain, and each Vercel deployment mints a new subdomain. Everything above was
+verified at the code/DB layer instead; my earlier in-browser pass covers the
+three cherry-picked fixes byte-for-byte. To close the gate in-browser, either
+approve the new domain for Claude's Chrome bridge or mint a fresh preview and
+approve that. The handoff's "Exact preview" pointer (c077d07 deployment) is
+stale either way.
+
