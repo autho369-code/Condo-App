@@ -33,7 +33,7 @@ export default async function BankAccountDetailPage({
   const { data: account } = await db
     .from('bank_accounts')
     .select(
-      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations(name)',
+      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
     )
     .eq('id', id)
     .is('archived_at', null)
