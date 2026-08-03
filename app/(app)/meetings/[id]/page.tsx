@@ -139,7 +139,7 @@ export default async function MeetingDetailPage({
       description={`${meeting.meeting_type?.replace(/_/g, ' ') || 'Meeting'} · ${meeting.associations?.name || 'No association'}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href="/reports/board_packet"><Button variant="secondary" size="sm">Board packet</Button></Link>
+          <Link href="/reports/monthly-package"><Button variant="secondary" size="sm">Board packet</Button></Link>
           <Link href="/meetings"><Button variant="secondary" size="sm">Back to meetings</Button></Link>
         </div>
       }

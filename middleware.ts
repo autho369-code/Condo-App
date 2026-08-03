@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/types/database'
 import { getSupabaseBrowserKey, getSupabaseUrl } from '@/lib/supabase/env'
 import { PUBLIC_PATHS } from '@/lib/server/public-paths'
+import { isStaleAuthSession, isSupabaseAuthCookie } from '@/lib/server/auth-session'
 import { apexDomain, classifyTenantHost, tenantAccessDecision } from '@/lib/tenant/host'
 
 const APEX_DOMAIN = apexDomain()
@@ -28,6 +29,13 @@ function pathMatches(pathname: string, paths: readonly string[]) {
 
 function setEncodedHeader(headers: Headers, name: string, value: unknown) {
   if (typeof value === 'string' && value) headers.set(name, encodeURIComponent(value))
+}
+
+function expireAuthCookies(target: NextResponse, cookieNames: string[]) {
+  cookieNames.forEach((name) => {
+    target.cookies.set(name, '', { httpOnly: true, maxAge: 0, path: '/', sameSite: 'lax' })
+  })
+  return target
 }
 
 export async function middleware(request: NextRequest) {
@@ -113,14 +121,37 @@ export async function middleware(request: NextRequest) {
 
   // Refresh the Auth session. Protected server layouts and route handlers
   // still enforce roles and tenant identity; middleware is defense-in-depth.
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  let expiredAuthCookies: string[] = []
+
+  // A browser can retain a rotated or revoked refresh token indefinitely. Clear
+  // it on the first request so a normal session expiry does not become a stream
+  // of middleware errors and the user gets a clean sign-in path.
+  if (!user && isStaleAuthSession(authError)) {
+    expiredAuthCookies = request.cookies.getAll()
+      .map(({ name }) => name)
+      .filter(isSupabaseAuthCookie)
+
+    expiredAuthCookies.forEach((name) => request.cookies.delete(name))
+    const remainingCookie = request.cookies.getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join('; ')
+    if (remainingCookie) requestHeaders.set('cookie', remainingCookie)
+    else requestHeaders.delete('cookie')
+
+    response = expireAuthCookies(
+      NextResponse.next({ request: { headers: requestHeaders } }),
+      expiredAuthCookies,
+    )
+  }
 
   if (!user && !isPublic && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
     url.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
-    return NextResponse.redirect(url)
+    if (expiredAuthCookies.length > 0) url.searchParams.set('error', 'session_expired')
+    return expireAuthCookies(NextResponse.redirect(url), expiredAuthCookies)
   }
 
   if (user && tenantPortfolio && !isPublic) {

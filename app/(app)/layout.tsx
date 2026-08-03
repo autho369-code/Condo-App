@@ -1,9 +1,12 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import Sidebar from '@/components/nav/sidebar';
 import TasksRail from '@/components/workspace/tasks-rail';
+import ActionCenterShell from '@/components/workspace/action-center-shell';
 import { hasPortfolioAdminAccess, requireAuth, roleHome } from '@/lib/auth/me';
 import { appModules } from '@/lib/navigation/modules';
+import { companyAdminModules } from '@/lib/navigation/role-modules';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +23,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const brandColor = tenant?.brandColor ?? me.portfolio?.brand_color ?? '#10B981';
   // /settings is company-admin/operator only (requirePortfolioAdmin), so plain
   // managers must not see the link — it would silently bounce to /dashboard.
-  const modules = hasPortfolioAdminAccess(me) ? appModules : appModules.filter((m) => m.href !== '/settings');
+  const adminAccess = hasPortfolioAdminAccess(me);
+  const financeAccess = me.is_finance_staff || me.is_platform_operator;
+  const financeOnlyNavigation = new Set(['/bills', '/bills/check-run']);
+  const isCompanyAdminOnly = me.is_company_admin && !me.is_staff && !me.is_platform_operator;
+  const baseModules = isCompanyAdminOnly ? companyAdminModules : appModules;
+  const modules = baseModules
+    .filter((module) => adminAccess || module.href !== '/settings')
+    .map((module) => (
+      module.href === '/accounting'
+        ? {
+            ...module,
+            children: module.children?.filter((child) => (
+              (financeAccess || !financeOnlyNavigation.has(child.href))
+              && (financeAccess || adminAccess || child.href !== '/accounting-periods')
+            )),
+          }
+        : module
+    ));
+  const actionCenterProps = {
+    isStaff: me.is_staff || me.is_platform_operator,
+    isFinanceStaff: financeAccess,
+    isAdmin: adminAccess,
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -28,7 +53,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="h-screen min-w-0 flex-1 overflow-y-auto pt-12 lg:pt-0">
         {children}
       </main>
-      <TasksRail />
+      <Suspense fallback={<TasksRail {...actionCenterProps} />}>
+        <ActionCenterShell {...actionCenterProps} />
+      </Suspense>
     </div>
   );
 }

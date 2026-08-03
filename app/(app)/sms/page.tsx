@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
-import { EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SmsForm } from './_sms-form';
+import { smsDeliveryConfigured } from '@/lib/sms/twilio';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,16 +51,6 @@ export default async function SmsPage({
     .order('name')
     .limit(200);
 
-  // Get tenants for dropdown (data-only contacts — reachable by SMS/email)
-  const { data: tenants } = await db
-    .from('tenants')
-    .select('id, first_name, last_name, phone')
-    .eq('portfolio_id', me.portfolio?.id)
-    .eq('status', 'active')
-    .is('archived_at', null)
-    .order('last_name')
-    .limit(200);
-
   // Get templates
   const { data: templates } = await db
     .from('message_templates')
@@ -73,7 +64,7 @@ export default async function SmsPage({
   return (
     <DataWorkspace
       title="SMS Text Messages"
-      description="Send text messages to owners, tenants, and vendors. Templates, history, and opt-in management available."
+      description="Send consent-checked text messages to owners and vendors with live delivery status and retry history."
       actions={
         <>
           <Link href="/sms/templates"><Button variant="secondary">Templates</Button></Link>
@@ -82,6 +73,7 @@ export default async function SmsPage({
       }
     >
       <div className="space-y-6">
+        {!smsDeliveryConfigured() && <Alert tone="info" title="Live SMS is fail-closed.">Configure Twilio credentials, a sender, the public callback URL, and SMS_DELIVERY_ENABLED=true before messages can be queued.</Alert>}
         {sp.error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             <span className="font-semibold">Could not send SMS:</span> {sp.error}
@@ -91,7 +83,7 @@ export default async function SmsPage({
         {/* Send SMS Form */}
         <Surface>
           <SectionTitle title="Send a text message" />
-          <SmsForm owners={owners ?? []} vendors={vendors ?? []} tenants={tenants ?? []} templates={templates ?? []} />
+          <SmsForm owners={owners ?? []} vendors={vendors ?? []} templates={templates ?? []} />
         </Surface>
 
         {/* Conversations / History */}

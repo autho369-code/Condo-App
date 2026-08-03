@@ -6,6 +6,7 @@ describe('loginErrorMessage', () => {
     expect(loginErrorMessage('workspace_not_found')).toContain('company workspace');
     expect(loginErrorMessage('workspace_access_denied')).toContain('does not have access');
     expect(loginErrorMessage('platform_workspace_only')).toContain('portier369.com');
+    expect(loginErrorMessage('session_expired')).toContain('Sign in again');
   });
 
   it('preserves provider messages and empty state', () => {

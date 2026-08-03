@@ -87,15 +87,23 @@ export default async function ViolationsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
+  let violationsQuery = db.from('violations')
+    .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, closed_at, cured_at, associations(name)')
+    .is('archived_at', null);
+  if (filters.status === 'overdue') {
+    violationsQuery = violationsQuery
+      .lt('cure_deadline', todayDate)
+      .not('status', 'in', '("cured","closed")');
+  }
+  violationsQuery = violationsQuery
+    .order('reported_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(500);
+
   // ── Fetch violations + reference lists ──
   const [{ data: associations }, { data: rows }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('violations')
-      .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, closed_at, cured_at, associations(name)')
-      .is('archived_at', null)
-      .order('reported_date', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(500),
+    violationsQuery,
   ]);
 
   const all = (rows ?? []) as any[];
@@ -108,6 +116,8 @@ export default async function ViolationsPage({
   if (filters.status) {
     if (filters.status === 'all_open') {
       filtered = filtered.filter((v: any) => !isResolvedStatus(v.status));
+    } else if (filters.status === 'overdue') {
+      filtered = filtered.filter((v: any) => v.cure_deadline && v.cure_deadline < todayDate && !isResolvedStatus(v.status));
     } else {
       filtered = filtered.filter((v: any) => v.status === filters.status);
     }
@@ -220,6 +230,7 @@ export default async function ViolationsPage({
 
           <FilterSelect label="Status" name="status" defaultValue={filters.status ?? ''}>
             <option value="">Any</option>
+            <option value="overdue">Past cure date</option>
             <option value="all_open">All Open</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{statusDisplay(s).label}</option>

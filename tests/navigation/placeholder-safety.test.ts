@@ -30,6 +30,17 @@ describe('placeholder safety', () => {
     expect(contextPanel).not.toContain('Decorative close');
   });
 
+  it('honors homeowner scope on contextual receivables links', () => {
+    const chargesPage = source('app/(app)/charges/page.tsx');
+    const actionCenter = source('lib/navigation/action-center.ts');
+
+    expect(actionCenter).toContain('`/charges?owner=${ownerId}`');
+    expect(chargesPage).toContain('owner?: string');
+    expect(chargesPage).toContain(".eq('owner_id', owner)");
+    expect(chargesPage).toContain("chargesQuery = chargesQuery.in('unit_id', scopedUnitIds)");
+    expect(chargesPage).toContain('end_date.is.null,end_date.gte.');
+  });
+
   it('does not fabricate letter merge values', () => {
     const previewPage = source('app/(app)/letters/[id]/preview/page.tsx');
     const editor = source('components/letters/merge-field-editor.tsx');

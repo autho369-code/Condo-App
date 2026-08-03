@@ -17,17 +17,19 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string }> }) {
+export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string; status?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: messages } = await db
+  let messageQuery = db
     .from('communication_messages')
     .select('id, channel, status, recipient_group, recipient_email, recipient_phone, subject, body, created_at, sent_at, associations(name)')
     .order('created_at', { ascending: false })
     .limit(150);
+  if (sp.status === 'failed') messageQuery = messageQuery.eq('status', 'failed');
+  const { data: messages } = await messageQuery;
 
   const rows = messages ?? [];
   const drafts = rows.filter((message: any) => message.status === 'draft').length;
@@ -46,6 +48,11 @@ export default async function CommunicationCenterPage({ searchParams }: { search
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not send">{sp.error}</Alert>}
         {sp.queued && <Alert tone="success" title="Message queued">{`Queued for delivery to ${sp.queued} recipient${sp.queued === '1' ? '' : 's'} via email.`}</Alert>}
+        {sp.status === 'failed' && (
+          <Alert tone="warning" title="Showing failed communications">
+            This queue is filtered to delivery failures. <Link href="/communication-center" className="font-semibold underline">Show all messages</Link>
+          </Alert>
+        )}
 
         <MetricStrip
           metrics={[

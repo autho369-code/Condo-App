@@ -34,6 +34,18 @@
     {
       "path": "/api/automation/run-flows",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/sms/deliver",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/webhooks/deliver",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/mail/deliver",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

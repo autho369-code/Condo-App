@@ -13,8 +13,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export function requireCronSecret(request: NextRequest): NextResponse | null {
   const secret = process.env.CRON_SECRET;
 
-  if (!secret) {
-    return NextResponse.json({ error: 'Cron secret is not configured' }, { status: 503 });
+  if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
+    return NextResponse.json({ error: 'Cron secret is not securely configured' }, { status: 503 });
   }
 
   const presented = request.headers.get('authorization') ?? '';

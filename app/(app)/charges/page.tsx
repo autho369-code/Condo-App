@@ -40,13 +40,46 @@ function parseTab(value: string | undefined): Tab {
 export default async function ChargesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; filter?: string; association_id?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; filter?: string; association_id?: string; owner?: string }>;
 }) {
   const me = await requireStaff();
-  const { tab: tabParam, q = '', filter = '', association_id = '' } = await searchParams;
+  const { tab: tabParam, q = '', filter = '', owner = '' } = await searchParams;
   const tab = parseTab(tabParam);
   const supabase = await createClient();
   const db = supabase as any;
+  const todayDate = new Date().toISOString().slice(0, 10);
+
+  const [{ data: ownerUnits }, { data: selectedOwner }] = await Promise.all([
+    owner
+      ? db.from('unit_owners')
+          .select('unit_id')
+          .eq('owner_id', owner)
+          .or(`start_date.is.null,start_date.lte.${todayDate}`)
+          .or(`end_date.is.null,end_date.gte.${todayDate}`)
+      : Promise.resolve({ data: [] }),
+    owner
+      ? db.from('owners').select('id, full_name').eq('id', owner).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const ownerUnitIdList = (ownerUnits ?? []).map((row: any) => row.unit_id).filter(Boolean);
+  const noUnitMatch = '00000000-0000-0000-0000-000000000000';
+
+  let receiptsQuery = db.from('receivable_payments_ledger').select('*');
+  let chargesQuery = db.from('aged_receivables').select('*');
+  let delinquencyQuery = db.from('delinquent_units').select('*');
+  let violationsQuery = db.from('violations')
+    .select('id, unit_id, dispute_status, status, fine_amount, created_at, units(unit_number, associations(name)), violation_type')
+    .not('dispute_status', 'is', null);
+  if (owner) {
+    receiptsQuery = ownerUnitIdList.length
+      ? receiptsQuery.or(`owner_id.eq.${owner},unit_id.in.(${ownerUnitIdList.join(',')})`)
+      : receiptsQuery.eq('owner_id', owner);
+    const scopedUnitIds = ownerUnitIdList.length ? ownerUnitIdList : [noUnitMatch];
+    chargesQuery = chargesQuery.in('unit_id', scopedUnitIds);
+    delinquencyQuery = delinquencyQuery.in('unit_id', scopedUnitIds);
+    violationsQuery = violationsQuery.in('unit_id', scopedUnitIds);
+  }
 
   // ── PARALLEL: fetch all tab data + reference lists ──
   const [
@@ -60,13 +93,11 @@ export default async function ChargesPage({
     { data: vChargesByCategory },
   ] = await Promise.all([
     // Receipts tab: payments ledger
-    db.from('receivable_payments_ledger')
-      .select('*')
+    receiptsQuery
       .order('payment_date', { ascending: false })
       .limit(500),
     // Charges tab: aged receivables
-    db.from('aged_receivables')
-      .select('*')
+    chargesQuery
       .order('due_date')
       .limit(500),
     // Bank Deposits tab: lockbox batches
@@ -75,14 +106,11 @@ export default async function ChargesPage({
       .order('batch_date', { ascending: false })
       .limit(200),
     // Owner Delinquency tab
-    db.from('delinquent_units')
-      .select('*')
+    delinquencyQuery
       .order('balance', { ascending: false })
       .limit(500),
     // Chargeback Insights tab: violations with dispute_status
-    db.from('violations')
-      .select('id, dispute_status, status, fine_amount, created_at, units(unit_number, associations(name)), violation_type')
-      .not('dispute_status', 'is', null)
+    violationsQuery
       .order('created_at', { ascending: false })
       .limit(200),
     // Associations for filters
@@ -101,8 +129,12 @@ export default async function ChargesPage({
       .order('outstanding_balance', { ascending: false }),
   ]);
 
+  const ownerScopedReceipts = receipts ?? [];
+  const ownerScopedCharges = charges ?? [];
+  const ownerScopedDelinquent = delinquentUnits ?? [];
+
   // ── FILTER RECEIPTS ──
-  let filteredReceipts = (receipts ?? []);
+  let filteredReceipts = ownerScopedReceipts;
   if (q && tab === 'receipts') {
     const ql = q.toLowerCase();
     filteredReceipts = filteredReceipts.filter(
@@ -115,7 +147,7 @@ export default async function ChargesPage({
   }
 
   // ── FILTER CHARGES ──
-  let filteredCharges = (charges ?? []);
+  let filteredCharges = ownerScopedCharges;
   if (q && tab === 'charges') {
     const ql = q.toLowerCase();
     filteredCharges = filteredCharges.filter(
@@ -143,7 +175,7 @@ export default async function ChargesPage({
   }
 
   // ── FILTER DELINQUENCY ──
-  let filteredDelinquent = (delinquentUnits ?? []);
+  let filteredDelinquent = ownerScopedDelinquent;
   if (q && tab === 'owner-delinquency') {
     const ql = q.toLowerCase();
     filteredDelinquent = filteredDelinquent.filter(
@@ -152,16 +184,20 @@ export default async function ChargesPage({
   }
 
   // ── METRICS ──
-  const totalReceipts = (receipts ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
-  const totalOutstanding = (charges ?? []).reduce((s: number, c: any) => s + Number(c.balance_due ?? 0), 0);
-  const receiptsCount = (receipts ?? []).length;
+  const scopedReceipts = ownerScopedReceipts;
+  const scopedCharges = ownerScopedCharges;
+  const scopedDelinquent = ownerScopedDelinquent;
+  const scopedViolations = violations ?? [];
+  const totalReceipts = scopedReceipts.reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
+  const totalOutstanding = scopedCharges.reduce((s: number, c: any) => s + Number(c.balance_due ?? 0), 0);
+  const receiptsCount = scopedReceipts.length;
   const depositsCount = (lockboxBatches ?? []).length;
-  const delinquentCount = (delinquentUnits ?? []).length;
-  const overdueBalance = (delinquentUnits ?? []).reduce((s: number, u: any) => s + Number(u.balance ?? 0), 0);
-  const chargebackCount = (violations ?? []).length;
+  const delinquentCount = scopedDelinquent.length;
+  const overdueBalance = scopedDelinquent.reduce((s: number, u: any) => s + Number(u.balance ?? 0), 0);
+  const chargebackCount = scopedViolations.length;
 
   // Charges by category outstanding
-  const categoryBreakdown = (vChargesByCategory ?? []).slice(0, 5);
+  const categoryBreakdown = owner ? [] : (vChargesByCategory ?? []).slice(0, 5);
 
   // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
@@ -243,7 +279,7 @@ export default async function ChargesPage({
         { header: 'Fine Amount', align: 'right' },
         { header: 'Created' },
       ],
-      rows: (violations ?? []).map((v: any) => [
+      rows: scopedViolations.map((v: any) => [
         v.units?.unit_number ?? '—',
         v.units?.associations?.name ?? '—',
         v.violation_type ?? '—',
@@ -282,7 +318,7 @@ export default async function ChargesPage({
 
   const metrics = [
     { label: 'Receipts', value: receiptsCount, sublabel: `${money(totalReceipts)} total` },
-    { label: 'Outstanding', value: money(totalOutstanding), sublabel: `${(charges ?? []).length} open charges` },
+    { label: 'Outstanding', value: money(totalOutstanding), sublabel: `${scopedCharges.length} open charges` },
     { label: 'Delinquent units', value: delinquentCount, sublabel: `${money(overdueBalance)} overdue` },
     { label: 'Disputed', value: chargebackCount, sublabel: 'Active chargebacks' },
   ];
@@ -310,6 +346,17 @@ export default async function ChargesPage({
       }
     >
       <div className="space-y-6">
+        {owner ? (
+          <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              <span className="font-semibold">Homeowner scope:</span>{' '}
+              {selectedOwner?.full_name ?? 'Selected homeowner'}
+            </span>
+            <Link href={`/charges?tab=${tab}`} className="font-medium text-blue-700 hover:underline">
+              Clear homeowner filter
+            </Link>
+          </div>
+        ) : null}
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
@@ -318,6 +365,7 @@ export default async function ChargesPage({
             const active = t.key === tab;
             const params = new URLSearchParams();
             params.set('tab', t.key);
+            if (owner) params.set('owner', owner);
             return (
               <Link
                 key={t.key}
@@ -349,6 +397,7 @@ export default async function ChargesPage({
           }
         >
           <input type="hidden" name="tab" value={tab} />
+          {owner ? <input type="hidden" name="owner" value={owner} /> : null}
           {tab === 'charges' && (
             <FilterSelect label="Aging" name="filter" defaultValue={filter}>
               <option value="">All aging</option>

@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { canonicalPhone, smsDeliveryConfigured } from '@/lib/sms/twilio';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -26,11 +27,34 @@ export async function sendSms(formData: FormData) {
     redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
   };
 
-  const recipientType = req(formData, 'recipient_type'); // owner | vendor | tenant
+  const recipientType = req(formData, 'recipient_type');
+  if (!['owner', 'vendor'].includes(recipientType)) { failTo('SMS recipients must be an owner or vendor.'); return; }
   const recipientId = req(formData, 'recipient_id');
-  const phoneNumber = req(formData, 'phone_number');
+  const phoneNumber = canonicalPhone(req(formData, 'phone_number'));
   const body = req(formData, 'message');
   const fromNumber = str(formData, 'from_number') ?? me.portfolio?.phone_number ?? '+10000000000';
+  if (!smsDeliveryConfigured()) { failTo('Live SMS delivery is not configured for this environment.'); return; }
+
+  // Consent is a delivery prerequisite, not a warning. The provider worker
+  // never receives messages that did not pass this portfolio-scoped check.
+  const { data: consent } = await db
+    .from('sms_opt_ins')
+    .select('id, opted_in')
+    .eq('portfolio_id', me.portfolio?.id)
+    .eq('phone_number', phoneNumber)
+    .eq('opted_in', true)
+    .maybeSingle();
+  if (!consent) { failTo('This phone number does not have active SMS consent.'); return; }
+
+  const { data: entity } = recipientType === 'owner'
+    ? await db.from('owners').select('full_name, phone, phone_numbers').eq('id', recipientId).maybeSingle()
+    : await db.from('vendors').select('name, phone_numbers').eq('id', recipientId).maybeSingle();
+  if (!entity) { failTo('Select an accessible owner or vendor.'); return; }
+  const entityPhones = [entity.phone, ...(Array.isArray(entity.phone_numbers) ? entity.phone_numbers.map((entry: any) => entry?.number) : [])]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(canonicalPhone);
+  if (!entityPhones.includes(phoneNumber)) { failTo('The SMS number must match the selected recipient record.'); return; }
+  const entityName = recipientType === 'owner' ? entity.full_name : entity.name;
 
   // Find or create conversation
   const { data: existingConv } = await db
@@ -45,19 +69,6 @@ export async function sendSms(formData: FormData) {
   if (existingConv) {
     conversationId = existingConv.id;
   } else {
-    // Resolve entity name
-    let entityName = '';
-    if (recipientType === 'owner') {
-      const { data: owner } = await db.from('owners').select('full_name').eq('id', recipientId).maybeSingle();
-      entityName = owner?.full_name ?? '';
-    } else if (recipientType === 'vendor') {
-      const { data: vendor } = await db.from('vendors').select('name').eq('id', recipientId).maybeSingle();
-      entityName = vendor?.name ?? '';
-    } else if (recipientType === 'tenant') {
-      const { data: tenant } = await db.from('tenants').select('first_name, last_name').eq('id', recipientId).maybeSingle();
-      entityName = tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() : '';
-    }
-
     const { data: newConv, error: convErr } = await db
       .from('sms_conversations')
       .insert({
@@ -187,8 +198,22 @@ export async function toggleOptIn(formData: FormData) {
 
   const entityType = req(formData, 'entity_type');
   const entityId = req(formData, 'entity_id');
-  const phoneNumber = req(formData, 'phone_number');
+  const phoneNumber = canonicalPhone(req(formData, 'phone_number'));
   const optedIn = formData.get('opted_in') === 'true';
+  const consentSource = str(formData, 'consent_source');
+  const failTo = (msg: string) => {
+    redirect(`/sms/opt-ins?error=${encodeURIComponent(msg)}`);
+  };
+  if (!['owner', 'vendor'].includes(entityType)) { failTo('SMS consent is limited to owners and vendors.'); return; }
+  if (optedIn && (!consentSource || consentSource.length < 10)) { failTo('Record how consent was obtained (at least 10 characters).'); return; }
+
+  const { data: entity } = entityType === 'owner'
+    ? await db.from('owners').select('phone, phone_numbers').eq('id', entityId).maybeSingle()
+    : await db.from('vendors').select('phone_numbers').eq('id', entityId).maybeSingle();
+  const entityPhones = [entity?.phone, ...(Array.isArray(entity?.phone_numbers) ? entity.phone_numbers.map((entry: any) => entry?.number) : [])]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(canonicalPhone);
+  if (!entity || !entityPhones.includes(phoneNumber)) { failTo('The phone number must belong to the selected recipient.'); return; }
 
   const { data: existing } = await db
     .from('sms_opt_ins')
@@ -205,11 +230,9 @@ export async function toggleOptIn(formData: FormData) {
     opted_in: optedIn,
     opted_in_at: optedIn ? new Date().toISOString() : null,
     opted_out_at: optedIn ? null : new Date().toISOString(),
+    source: optedIn ? consentSource : 'staff_recorded_opt_out',
+    notes: optedIn ? `Consent evidence: ${consentSource}` : 'Opt-out recorded by staff.',
     updated_at: new Date().toISOString(),
-  };
-
-  const failTo = (msg: string) => {
-    redirect(`/sms/opt-ins?error=${encodeURIComponent(msg)}`);
   };
 
   if (existing) {

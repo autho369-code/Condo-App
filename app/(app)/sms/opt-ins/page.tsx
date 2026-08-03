@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { toggleOptIn } from '@/lib/rpcs/sms';
+import { canonicalPhone } from '@/lib/sms/twilio';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,13 +53,13 @@ export default async function SmsOptInsPage({
     .order('name')
     .limit(500);
 
-  const optInRows = optIns ?? [];
+  const optInRows = (optIns ?? []).filter((record: any) => ['owner', 'vendor'].includes(record.entity_type));
   const optedOutCount = optInRows.filter((o: any) => !o.opted_in).length;
 
   // Build a lookup: phone -> opt-in record
   const optInByPhone: Record<string, any> = {};
   optInRows.forEach((o: any) => {
-    optInByPhone[o.phone_number] = o;
+    optInByPhone[canonicalPhone(o.phone_number)] = o;
   });
 
   // Extract owners with phones
@@ -81,7 +82,7 @@ export default async function SmsOptInsPage({
     }
 
     phones.forEach((phone, idx) => {
-      const optRec = optInByPhone[phone];
+      const optRec = optInByPhone[canonicalPhone(phone)];
       result.push({
         id: `${entity.id}-${idx}`,
         name,
@@ -152,7 +153,7 @@ export default async function SmsOptInsPage({
             </THead>
             <tbody>
               {allPhones.map((p: any) => {
-                const optRec = optInByPhone[p.phone];
+                const optRec = optInByPhone[canonicalPhone(p.phone)];
                 return (
                   <TR key={p.id}>
                     <TD className="font-medium text-gray-900">{p.name}</TD>
@@ -180,9 +181,7 @@ export default async function SmsOptInsPage({
                             Opt out
                           </button>
                         ) : (
-                          <button type="submit" name="opted_in" value="true" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">
-                            Opt in
-                          </button>
+                          <div className="flex min-w-64 gap-2"><input name="consent_source" required minLength={10} placeholder="Consent source and date" className="min-w-0 flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs" /><button type="submit" name="opted_in" value="true" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">Opt in</button></div>
                         )}
                       </form>
                     </TD>

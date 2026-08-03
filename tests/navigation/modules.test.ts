@@ -13,6 +13,33 @@ describe('appModules', () => {
     expect(labels).toContain('People');
     expect(labels).toContain('Vendors');
   });
+
+  it('keeps buried operational workflows discoverable from grouped modules', () => {
+    const byLabel = new Map(appModules.map((module) => [module.label, module]));
+    const childHrefs = (label: string) => byLabel.get(label)?.children?.map((child) => child.href) ?? [];
+
+    expect(childHrefs('Reports')).toEqual(expect.arrayContaining([
+      '/reports/builder',
+      '/scheduled-reports',
+      '/reports/monthly-package',
+      '/reports/bulk-association',
+      '/reports/runs',
+    ]));
+    expect(childHrefs('Maintenance')).toEqual(expect.arrayContaining([
+      '/recurring-work-orders',
+      '/inspections',
+      '/projects',
+      '/purchase-orders',
+      '/inventory',
+      '/fixed-assets',
+    ]));
+    expect(childHrefs('Violations')).toEqual(expect.arrayContaining([
+      '/violations/field',
+      '/compliance',
+      '/architectural-reviews',
+    ]));
+    expect(childHrefs('Communication')).toEqual(expect.arrayContaining(['/inbox', '/letters/mail', '/surveys']));
+  });
 });
 
 describe('platformOperatorModules', () => {

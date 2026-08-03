@@ -42,12 +42,14 @@ export default async function ArchitecturalReviewQueue({
   const supabase = await createClient();
   const db = supabase as any;
 
+  let reviewsQuery = db.from('architectural_requests')
+    .select('id, title, category, status, created_at, decided_at, association_id, associations(name), units(unit_number), owners(full_name)');
+  if (filters.status === 'open') reviewsQuery = reviewsQuery.in('status', OPEN_STATUSES);
+  reviewsQuery = reviewsQuery.order('created_at', { ascending: false }).limit(500);
+
   const [{ data: associations }, { data: rows }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('architectural_requests')
-      .select('id, title, category, status, created_at, decided_at, association_id, associations(name), units(unit_number), owners(full_name)')
-      .order('created_at', { ascending: false })
-      .limit(500),
+    reviewsQuery,
   ]);
 
   const all = (rows ?? []) as any[];
