@@ -9,7 +9,12 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
   if (unauthorized) return unauthorized;
-  if (!smsDeliveryConfigured()) return NextResponse.json({ error: 'SMS delivery is not fully configured' }, { status: 503 });
+  if (!smsDeliveryConfigured()) {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'SMS delivery is not fully configured',
+    });
+  }
   const db = createServiceClient() as any;
   const { data: claimed, error } = await db.rpc('claim_sms_messages', { p_limit: 20 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

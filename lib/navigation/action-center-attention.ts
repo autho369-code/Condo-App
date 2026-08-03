@@ -24,6 +24,13 @@ export async function loadActionCenterAttention(
     .lt('scheduled_date', today)
     .not('status', 'in', '("done","completed","billed","closed","cancelled")') as CountQuery;
 
+  const untriagedServiceRequests = db
+    .from('service_requests')
+    .select('id, work_orders!left(id)', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .in('status', ['open', 'waiting'])
+    .is('work_orders.id', null) as CountQuery;
+
   const overdueViolations = db
     .from('violations')
     .select('id', { count: 'exact', head: true })
@@ -49,8 +56,9 @@ export async function loadActionCenterAttention(
         .eq('status', 'pending_approval') as CountQuery
     : Promise.resolve({ count: 0 });
 
-  const [workOrders, violations, reviews, communications, bills] = await Promise.all([
+  const [workOrders, serviceRequests, violations, reviews, communications, bills] = await Promise.all([
     overdueWorkOrders,
+    untriagedServiceRequests,
     overdueViolations,
     architecturalReviews,
     failedCommunications,
@@ -58,6 +66,7 @@ export async function loadActionCenterAttention(
   ]);
 
   return [
+    { label: 'service requests awaiting triage', count: serviceRequests.count ?? 0, href: '/service-requests?intake=new', tone: 'pending' as const },
     { label: 'overdue work orders', count: workOrders.count ?? 0, href: '/work-orders?status=overdue', tone: 'danger' as const },
     { label: 'violations past cure date', count: violations.count ?? 0, href: '/violations?status=overdue', tone: 'danger' as const },
     { label: 'architectural reviews awaiting action', count: reviews.count ?? 0, href: '/architectural-reviews?status=open', tone: 'pending' as const },

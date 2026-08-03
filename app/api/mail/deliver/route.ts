@@ -9,7 +9,12 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
   if (unauthorized) return unauthorized;
-  if (process.env.PHYSICAL_MAIL_DELIVERY_ENABLED !== 'true') return NextResponse.json({ error: 'Physical-mail delivery is not enabled' }, { status: 503 });
+  if (process.env.PHYSICAL_MAIL_DELIVERY_ENABLED !== 'true') {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'Physical-mail delivery is not enabled',
+    });
+  }
   const db = createServiceClient() as any;
   const { data: claimed, error } = await db.rpc('claim_physical_mail', { p_limit: 10 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

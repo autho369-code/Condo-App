@@ -18,6 +18,7 @@ describe('login mode routing', () => {
   it('sets role-specific default destinations', () => {
     expect(getLoginNext({ mode: 'manager' })).toBe('/dashboard');
     expect(getLoginNext({ mode: 'owner' })).toBe('/portal');
+    expect(getLoginNext({ mode: 'resident' })).toBe('/resident');
     // Operators land in the current operator portal, NOT the legacy
     // app/platform/* section (duplicated — consolidation pending).
     expect(getLoginNext({ mode: 'admin' })).toBe('/platform-operator');
@@ -31,8 +32,8 @@ describe('login mode routing', () => {
   });
 
   it('hides admin sign in from public login choices', () => {
-    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner', 'vendor']);
-    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner', 'vendor']);
+    expect(getVisibleLoginModes('manager').map((mode) => mode.id)).toEqual(['manager', 'owner', 'resident', 'vendor']);
+    expect(getVisibleLoginModes('owner').map((mode) => mode.id)).toEqual(['manager', 'owner', 'resident', 'vendor']);
     expect(getVisibleLoginModes('admin').map((mode) => mode.id)).toEqual(['admin']);
   });
 });

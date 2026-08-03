@@ -11,7 +11,7 @@ import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { createServiceClient } from '@/lib/supabase/server';
-import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, setOwnerPortalAccess } from './occupancy-actions';
+import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, saveOwnerEmergencyContact, sendOwnerPasswordReset, sendTenantPasswordReset, sendTenantPortalInvitation, setOwnerPortalAccess, setTenantPortalAccess } from './occupancy-actions';
 import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
@@ -749,10 +749,38 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                               {' · '}
                               {t.email ? <a href={`mailto:${t.email}`} className="text-blue-700 hover:underline">{t.email}</a> : 'No email'}
                             </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <StatusChip tone={t.portal_activated ? 'success' : t.auth_user_id ? 'warning' : 'neutral'}>
+                                {t.portal_activated ? 'Resident portal active' : t.auth_user_id ? 'Portal disabled' : 'Not invited'}
+                              </StatusChip>
+                              <span className="text-[11px] text-gray-500">Nonfinancial resident access</span>
+                            </div>
                           </div>
-                          <form action={endTenancy.bind(null, t.id, id) as any}>
-                            <button type="submit" className="text-xs text-red-600 hover:underline">End tenancy</button>
-                          </form>
+                          <div className="flex flex-wrap items-center justify-end gap-3">
+                            {!t.auth_user_id ? (
+                              <form action={sendTenantPortalInvitation.bind(null, t.id, id) as any}>
+                                <button type="submit" disabled={!t.email} className="text-xs font-medium text-blue-700 hover:underline disabled:cursor-not-allowed disabled:text-gray-400">Invite resident</button>
+                              </form>
+                            ) : (
+                              <>
+                                <form action={sendTenantPasswordReset.bind(null, t.id, id) as any}>
+                                  <button type="submit" className="text-xs font-medium text-blue-700 hover:underline">Reset password</button>
+                                </form>
+                                {t.portal_activated ? (
+                                  <form action={setTenantPortalAccess.bind(null, t.id, id, false) as any}>
+                                    <button type="submit" className="text-xs font-medium text-amber-700 hover:underline">Disable portal</button>
+                                  </form>
+                                ) : (
+                                  <form action={setTenantPortalAccess.bind(null, t.id, id, true) as any}>
+                                    <button type="submit" className="text-xs font-medium text-emerald-700 hover:underline">Enable portal</button>
+                                  </form>
+                                )}
+                              </>
+                            )}
+                            <form action={endTenancy.bind(null, t.id, id) as any}>
+                              <button type="submit" className="text-xs text-red-600 hover:underline">End tenancy</button>
+                            </form>
+                          </div>
                         </div>
                         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-4">
                           <div>

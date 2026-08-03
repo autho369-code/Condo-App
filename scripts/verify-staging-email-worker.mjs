@@ -92,7 +92,9 @@ async function main() {
   const { data: stillQueued } = await service.from('communication_messages').select('status').eq('id', message).single()
   assert(stillQueued.status === 'queued', 'Multi-recipient communication completed before every email succeeded')
 
-  await service.from('email_queue').update({ next_attempt_at: new Date(Date.now() - 1000).toISOString() }).eq('id', firstId)
+  // Keep the retry ahead of unrelated staging mail without claiming or
+  // modifying those legitimate rows.
+  await service.from('email_queue').update({ next_attempt_at: '1900-01-01T00:00:00.000Z' }).eq('id', firstId)
   const retried = await service.rpc('claim_email_queue', { p_limit: 1 })
   if (retried.error) throw retried.error
   assert(retried.data.length === 1 && retried.data[0].id === firstId && retried.data[0].attempt_count === 2, 'Failed email was not reclaimed when due')
@@ -110,9 +112,11 @@ async function main() {
   if (terminalFail.error) throw terminalFail.error
   const { data: terminalState } = await service.from('communication_messages').select('status, error_message').eq('id', terminalMessage).single()
   assert(terminalState.status === 'failed' && terminalState.error_message === 'CODEX_TEST permanent failure', 'Terminal failure was not reflected in communication history')
-  const noSixthAttempt = await service.rpc('claim_email_queue', { p_limit: 1 })
-  if (noSixthAttempt.error) throw noSixthAttempt.error
-  assert(noSixthAttempt.data.length === 0, 'A sixth delivery attempt was allowed')
+  const { data: terminalQueue, error: terminalQueueError } = await service.from('email_queue')
+    .select('status, attempt_count, processing_at').eq('id', terminalId).single()
+  if (terminalQueueError) throw terminalQueueError
+  assert(terminalQueue.status === 'failed' && terminalQueue.attempt_count === 5 && !terminalQueue.processing_at,
+    'Terminal email remained eligible for a sixth delivery attempt')
 
   console.log('Email worker authorization, atomic claims, retry backoff, completion reconciliation, and terminal failure: PASS')
 }

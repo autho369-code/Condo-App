@@ -2,7 +2,7 @@ import { safeInternalNext } from '@/lib/security/redirects';
 
 export { safeInternalNext } from '@/lib/security/redirects';
 
-export type LoginModeId = 'manager' | 'owner' | 'vendor' | 'admin' | 'company_admin';
+export type LoginModeId = 'manager' | 'owner' | 'resident' | 'vendor' | 'admin' | 'company_admin';
 
 export interface LoginModeConfig {
   id: LoginModeId;
@@ -28,10 +28,19 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
     id: 'owner',
     label: 'Owner',
     title: 'Owner Sign In',
-    description: 'For owners, board members, and residents using the portal.',
+    description: 'For homeowners and board members using the owner portal.',
     defaultNext: '/portal',
     submitLabel: 'Sign in as owner',
     note: 'Owner access is controlled by the portal profile connected to your unit.',
+  },
+  resident: {
+    id: 'resident',
+    label: 'Resident',
+    title: 'Resident Sign In',
+    description: 'For non-owner occupants accessing community information and maintenance services.',
+    defaultNext: '/resident',
+    submitLabel: 'Sign in as resident',
+    note: 'Resident access requires an active occupant record and an invitation from management.',
   },
   vendor: {
     id: 'vendor',
@@ -64,7 +73,7 @@ export const loginModes: Record<LoginModeId, LoginModeConfig> = {
 
 export function normalizeLoginMode(value?: FormDataEntryValue | string | string[] | null): LoginModeId {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === 'owner' || raw === 'vendor' || raw === 'admin' || raw === 'company_admin' ? raw : 'manager';
+  return raw === 'owner' || raw === 'resident' || raw === 'vendor' || raw === 'admin' || raw === 'company_admin' ? raw : 'manager';
 }
 
 export function getLoginModeConfig(value?: FormDataEntryValue | string | string[] | null): LoginModeConfig {
@@ -79,5 +88,5 @@ export function getVisibleLoginModes(value?: FormDataEntryValue | string | strin
   const mode = normalizeLoginMode(value);
   if (mode === 'admin') return [loginModes.admin];
   if (mode === 'company_admin') return [loginModes.company_admin];
-  return [loginModes.manager, loginModes.owner, loginModes.vendor];
+  return [loginModes.manager, loginModes.owner, loginModes.resident, loginModes.vendor];
 }

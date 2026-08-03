@@ -9,7 +9,12 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
   if (unauthorized) return unauthorized;
-  if (process.env.WEBHOOK_DELIVERY_ENABLED !== 'true') return NextResponse.json({ error: 'Webhook delivery is not enabled' }, { status: 503 });
+  if (process.env.WEBHOOK_DELIVERY_ENABLED !== 'true') {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'Webhook delivery is not enabled',
+    });
+  }
   const db = createServiceClient() as any;
   const { data: claimed, error } = await db.rpc('claim_webhook_deliveries', { p_limit: 20 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -51,6 +51,7 @@
     "verify:staging:owner-hearing": "node scripts/verify-staging-owner-hearing-request.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",
     "test": "vitest run",
+    "test:db": "supabase test db --local",
     "test:watch": "vitest",
     "security:secrets:self-test": "node scripts/scan-secrets.mjs --self-test",
     "security:secrets": "node scripts/scan-secrets.mjs"

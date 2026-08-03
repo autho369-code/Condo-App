@@ -22,6 +22,7 @@ const ROLE_LABELS: Record<string, string> = {
   board: 'Board Member',
   owner: 'Owner',
   tenant: 'Tenant',
+  vendor: 'Vendor',
 };
 
 async function acceptInvite(formData: FormData) {
@@ -68,7 +69,11 @@ async function acceptInvite(formData: FormData) {
     password,
     options: {
       redirectTo: callbackUrl,
-      data: { role: invite.hoa_role, portfolio_id: invite.portfolio_id },
+      data: {
+        role: invite.hoa_role,
+        portfolio_id: invite.portfolio_id,
+        invitation_id: invite.id,
+      },
     },
   });
   if (createErr || !linkData?.properties?.action_link || !linkData.user?.id) failTo(createErr?.message ?? 'Could not create the verification link.');

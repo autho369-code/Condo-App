@@ -5,6 +5,7 @@ const PRODUCTION_REF = 'termxngysvotnfbzbgrv'
 const FIXTURE = 'CODEX_TEST_PORTIER369_V1'
 const DOCUMENT_BUCKET = 'association-documents'
 const DOCUMENT_PATH = 'associations/36900000-0000-4000-8000-000000000011/codex-test/governing-document.pdf'
+const RESIDENT_DOCUMENT_PATH = 'associations/36900000-0000-4000-8000-000000000013/codex-test/resident-rules.pdf'
 const url = process.env.STAGING_SUPABASE_URL
 const key = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY
 
@@ -32,6 +33,7 @@ const fixtureEmails = [
   'codex_test.board.a@portier369.invalid',
   'codex_test.board.observer.a@portier369.invalid',
   'codex_test.owner.a@portier369.invalid',
+  'codex_test.tenant.a@portier369.invalid',
   'codex_test.vendor.a@portier369.invalid',
   'codex_test.owner.b@portier369.invalid',
   'codex_test.vendor.b@portier369.invalid',
@@ -63,8 +65,8 @@ async function main() {
     '36900000-0000-4000-8200-000000000308', '36900000-0000-4000-8200-000000000309',
   ])
   await removeByIds('communication_messages', ['36900000-0000-4000-8100-000000000305', '36900000-0000-4000-8200-000000000305'])
-  await removeByIds('documents', ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'])
-  await must('delete deterministic document object', db.storage.from(DOCUMENT_BUCKET).remove([DOCUMENT_PATH]))
+  await removeByIds('documents', ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307', '36900000-0000-4000-8100-000000000313'])
+  await must('delete deterministic document objects', db.storage.from(DOCUMENT_BUCKET).remove([DOCUMENT_PATH, RESIDENT_DOCUMENT_PATH]))
   await removeByIds('meetings', ['36900000-0000-4000-8100-000000000304', '36900000-0000-4000-8200-000000000304'])
   await removeByIds('calendar_events', ['36900000-0000-4000-8100-000000000303', '36900000-0000-4000-8200-000000000303'])
   await removeByIds('insurance_policies', ['36900000-0000-4000-8100-000000000306', '36900000-0000-4000-8200-000000000306'])

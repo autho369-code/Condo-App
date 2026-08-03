@@ -32,7 +32,7 @@ const ids = {
     '36900000-0000-4000-8200-000000000089', '36900000-0000-4000-8200-000000000090',
   ],
   insurance: ['36900000-0000-4000-8100-000000000306', '36900000-0000-4000-8200-000000000306'],
-  documents: ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307'],
+  documents: ['36900000-0000-4000-8100-000000000307', '36900000-0000-4000-8200-000000000307', '36900000-0000-4000-8100-000000000313'],
   tenants: ['36900000-0000-4000-8000-000000000071'],
 }
 
@@ -87,6 +87,7 @@ const fixtureEmails = [
   'codex_test.board.a@portier369.invalid',
   'codex_test.board.observer.a@portier369.invalid',
   'codex_test.owner.a@portier369.invalid',
+  'codex_test.tenant.a@portier369.invalid',
   'codex_test.vendor.a@portier369.invalid',
   'codex_test.owner.b@portier369.invalid',
   'codex_test.vendor.b@portier369.invalid',
@@ -95,12 +96,19 @@ const { data: authPage, error: authError } = await db.auth.admin.listUsers({ per
 if (authError) throw new Error(`auth users: ${authError.message}`)
 const existingEmails = new Set(authPage.users.map((user) => user.email))
 assert(fixtureEmails.every((email) => existingEmails.has(email)), 'one or more fixture auth users are missing')
-assert(!existingEmails.has('codex_test.tenant.a@portier369.invalid'), 'tenant auth identity exists even though tenant portal identity mapping is unsupported')
+const tenantRows = await rows('tenants', ids.tenants, 'id, auth_user_id, portal_activated')
+const tenantAuthUser = authPage.users.find((user) => user.email === 'codex_test.tenant.a@portier369.invalid')
+assert(tenantAuthUser && tenantRows[0].auth_user_id === tenantAuthUser.id && tenantRows[0].portal_activated,
+  'tenant portal identity is not bound to the deterministic tenant record')
 
 const documentPath = 'associations/36900000-0000-4000-8000-000000000011/codex-test/governing-document.pdf'
 const { data: documentBlob, error: documentError } = await db.storage.from('association-documents').download(documentPath)
 if (documentError || !documentBlob) throw new Error(`fixture document: ${documentError?.message ?? 'missing object'}`)
 assert((await documentBlob.text()).startsWith('%PDF-'), 'fixture document is not a PDF payload')
+const residentDocumentPath = 'associations/36900000-0000-4000-8000-000000000013/codex-test/resident-rules.pdf'
+const { data: residentDocumentBlob, error: residentDocumentError } = await db.storage.from('association-documents').download(residentDocumentPath)
+if (residentDocumentError || !residentDocumentBlob) throw new Error(`resident fixture document: ${residentDocumentError?.message ?? 'missing object'}`)
+assert((await residentDocumentBlob.text()).startsWith('%PDF-'), 'resident fixture document is not a PDF payload')
 
 console.log(JSON.stringify({
   project: ref,
@@ -115,5 +123,5 @@ console.log(JSON.stringify({
       .reduce((count, [, group]) => count + group.length, 0),
     privateDocuments: ids.documents.length,
   },
-  unsupported: { tenantPortalAuthIdentity: true },
+  supported: { tenantPortalAuthIdentity: true },
 }, null, 2))

@@ -123,6 +123,25 @@ export async function sendEmail(formData: FormData) {
   const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
   if (communicationError) { failTo(communicationError.message); return; }
 
+  // Publish one durable portal announcement for resident audiences. Portal
+  // feeds read this ledger rather than recipient-level email rows so private
+  // addresses and delivery metadata are never exposed.
+  if (recipientType === 'tenants' || recipientType === 'both') {
+    const { error: announcementError } = await db.from('communications_log').insert({
+      portfolio_id: me.portfolio?.id,
+      association_id: associationId,
+      sender_id: me.auth_user_id,
+      direction: 'outbound',
+      channel: 'announcement',
+      announcement_audience: recipientType,
+      recipient_count: unique.length,
+      status: 'sent',
+      subject,
+      body: fullBody,
+    });
+    if (announcementError) { failTo(`Could not publish the resident announcement: ${announcementError.message}`); return; }
+  }
+
   // 2) Association notices ledger (legacy/reporting).
   const rows = unique.map((r) => ({
     association_id: associationId,

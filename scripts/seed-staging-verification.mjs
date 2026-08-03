@@ -5,6 +5,7 @@ const PRODUCTION_REF = 'termxngysvotnfbzbgrv'
 const FIXTURE = 'CODEX_TEST_PORTIER369_V1'
 const DOCUMENT_BUCKET = 'association-documents'
 const DOCUMENT_PATH = 'associations/36900000-0000-4000-8000-000000000011/codex-test/governing-document.pdf'
+const RESIDENT_DOCUMENT_PATH = 'associations/36900000-0000-4000-8000-000000000013/codex-test/resident-rules.pdf'
 const url = process.env.STAGING_SUPABASE_URL
 const key = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY
 const password = process.env.STAGING_TEST_PASSWORD
@@ -43,10 +44,11 @@ async function ensureUser(email, displayName, portfolioId, role) {
   if (!user) user = await must(`create ${email}`, db.auth.admin.createUser({ email, password, email_confirm: true })).then((r) => r.user)
   else await must(`refresh password ${email}`, db.auth.admin.updateUserById(user.id, { password, email_confirm: true }))
   const isStaff = role === 'company_admin' || role === 'manager'
+  const hoaRole = isStaff || ['board', 'owner', 'tenant', 'vendor'].includes(role) ? role : null
   await upsert('profiles', [{
     id: user.id, email, full_name: displayName, display_name: displayName,
     portfolio_id: portfolioId, role,
-    hoa_role: isStaff ? role : role === 'board' || role === 'owner' ? role : null,
+    hoa_role: hoaRole,
     mvp_role: isStaff ? role : null,
   }])
   return user
@@ -145,10 +147,11 @@ async function main() {
     { id: ids.vendorA, portfolio_id: ids.portfolioA, name: 'CODEX_TEST Alpha Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '410 Fixture Avenue', address_city: 'Seattle', address_state: 'WA', address_zip: '98101' },
     { id: ids.vendorB, portfolio_id: ids.portfolioB, name: 'CODEX_TEST Beta Building Services', trade: 'general_contractor', payment_terms: 'Net 30', portal_activated: true, address_street: '820 Sentinel Street', address_city: 'Portland', address_state: 'OR', address_zip: '97205' },
   ])
-  const [boardA, boardObserverA, ownerAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
+  const [boardA, boardObserverA, ownerAUser, tenantAUser, vendorAUser, ownerBUser, vendorBUser] = await Promise.all([
     ensureUser('codex_test.board.a@portier369.invalid', 'CODEX_TEST Board A', ids.portfolioA, 'board'),
     ensureUser('codex_test.board.observer.a@portier369.invalid', 'CODEX_TEST Board Observer A', ids.portfolioA, 'board'),
     ensureUser('codex_test.owner.a@portier369.invalid', 'CODEX_TEST Owner A', ids.portfolioA, 'owner'),
+    ensureUser('codex_test.tenant.a@portier369.invalid', 'CODEX_TEST Taylor Tenant', ids.portfolioA, 'tenant'),
     ensureUser('codex_test.vendor.a@portier369.invalid', 'CODEX_TEST Vendor A', ids.portfolioA, 'vendor'),
     ensureUser('codex_test.owner.b@portier369.invalid', 'CODEX_TEST Owner B', ids.portfolioB, 'owner'),
     ensureUser('codex_test.vendor.b@portier369.invalid', 'CODEX_TEST Vendor B', ids.portfolioB, 'vendor'),
@@ -168,6 +171,7 @@ async function main() {
   }], 'association_id')
   await must('link owner A auth', db.from('owners').update({ auth_user_id: ownerAUser.id }).eq('id', ids.ownerA))
   await must('link owner B auth', db.from('owners').update({ auth_user_id: ownerBUser.id }).eq('id', ids.ownerB))
+  await must('link tenant A auth', db.from('tenants').update({ auth_user_id: tenantAUser.id, portal_activated: true }).eq('id', ids.tenantA))
   await must('link vendor A auth', db.from('vendors').update({ auth_user_id: vendorAUser.id }).eq('id', ids.vendorA))
   await must('link vendor B auth', db.from('vendors').update({ auth_user_id: vendorBUser.id }).eq('id', ids.vendorB))
   await upsert('bank_accounts', [
@@ -279,7 +283,7 @@ async function main() {
   const communicationLogIds = [account(1, 308), account(1, 309), account(2, 308), account(2, 309)]
   const communicationTimestamp = new Date().toISOString()
   const insuranceIds = [account(1, 306), account(2, 306)]
-  const documentIds = [account(1, 307), account(2, 307)]
+  const documentIds = [account(1, 307), account(2, 307), account(1, 313)]
 
   await upsert('work_orders', [
     { id: workOrderIds[0], portfolio_id: ids.portfolioA, association_id: ids.associationA, unit_id: ids.unitA, vendor_id: ids.vendorA, created_by: managerA.id, number: 'CODEX_TEST-WO-A-001', title: 'CODEX_TEST lobby plumbing repair', description: 'Deterministic manager-owner-vendor workflow fixture', category: 'plumbing', priority: 'high', status: 'assigned', requested_by: 'CODEX_TEST Avery Alpha', scheduled_date: '2026-08-05', vendor_instructions: 'Check in with management before entry.' },
@@ -319,9 +323,11 @@ async function main() {
 
   const pdf = new TextEncoder().encode('%PDF-1.4\n% CODEX_TEST deterministic governing document\n%%EOF\n')
   await must('upload deterministic document', db.storage.from(DOCUMENT_BUCKET).upload(DOCUMENT_PATH, pdf, { contentType: 'application/pdf', upsert: true }))
+  await must('upload deterministic resident document', db.storage.from(DOCUMENT_BUCKET).upload(RESIDENT_DOCUMENT_PATH, pdf, { contentType: 'application/pdf', upsert: true }))
   await upsert('documents', [
     { id: documentIds[0], entity_type: 'association', entity_id: ids.associationA, doc_type: 'bylaws', file_name: 'CODEX_TEST_Harbor_View_Bylaws.pdf', file_url: DOCUMENT_PATH, uploaded_by: managerA.id },
     { id: documentIds[1], entity_type: 'meeting', entity_id: meetingIds[0], doc_type: 'minutes', file_name: 'CODEX_TEST_July_Board_Minutes.pdf', file_url: DOCUMENT_PATH, uploaded_by: managerA.id },
+    { id: documentIds[2], entity_type: 'association', entity_id: ids.associationA2, doc_type: 'rules_regulations', file_name: 'CODEX_TEST_Marina_Court_Resident_Rules.pdf', file_url: RESIDENT_DOCUMENT_PATH, uploaded_by: managerA.id },
   ])
 
   console.log(JSON.stringify({
@@ -331,7 +337,7 @@ async function main() {
     associations: 3,
     balancedEntries: entries.length,
     journalLines: lines.length,
-    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 3, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 2, insurancePolicies: 2, tenants: 1 },
+    operationalFixtures: { workOrders: 2, maintenanceTasks: 2, violations: 3, calendarEvents: 2, meetings: 2, announcementMessages: 2, communicationLogs: 4, documents: 3, insurancePolicies: 2, tenants: 1 },
     expected: { alphaTrialBalanceDebits: 21000, alphaTrialBalanceCredits: 21000, alphaNetIncome: 5400, alphaBalanceSheetTotal: 17400, alphaReceivables: 1400, alphaPayables: 1175, alphaReconciledBookBalance: 10200 },
   }, null, 2))
 }

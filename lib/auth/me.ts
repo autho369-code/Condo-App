@@ -20,11 +20,15 @@ export interface MeResult {
   is_staff: boolean;
   is_board: boolean;
   is_resident: boolean;
+  is_tenant: boolean;
   owner_id: string | null;
+  tenant_id: string | null;
   vendor_id: string | null;
   board_association_ids: string[];
   resident_association_ids: string[];
   resident_unit_ids: string[];
+  tenant_association_ids: string[];
+  tenant_unit_ids: string[];
 }
 
 // Fail LOUDLY (at module load, i.e. build/boot) if someone sets the local
@@ -56,11 +60,15 @@ function localPreviewMe(): MeResult {
     is_staff: true,
     is_board: false,
     is_resident: false,
+    is_tenant: false,
     owner_id: null,
+    tenant_id: null,
     vendor_id: null,
     board_association_ids: [],
     resident_association_ids: [],
     resident_unit_ids: [],
+    tenant_association_ids: [],
+    tenant_unit_ids: [],
   };
 }
 
@@ -132,6 +140,7 @@ export function roleHome(me: MeResult): string {
   if (me.is_board) return '/board';
   if (me.vendor_id) return '/vendor';
   if (me.owner_id) return '/portal';
+  if (me.is_tenant && me.tenant_id) return '/resident';
   return '/login';
 }
 
@@ -202,6 +211,27 @@ export async function requireOwner(): Promise<MeResult> {
     .maybeSingle();
   if (error || !isActivePortalRecord(owner)) {
     redirect('/login?mode=owner&error=portal_access_disabled');
+  }
+  return me;
+}
+
+/** Guard the non-owner resident portal without granting owner financial access. */
+export async function requireTenant(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_tenant || !me.tenant_id) redirect('/login?mode=resident');
+
+  const supabase = await createClient();
+  const { data: tenant, error } = await (supabase as any)
+    .from('tenants')
+    .select('id, status, portal_activated, archived_at')
+    .eq('id', me.tenant_id)
+    .maybeSingle();
+  if (
+    error
+    || !isActivePortalRecord(tenant)
+    || tenant?.status !== 'active'
+  ) {
+    redirect('/login?mode=resident&error=portal_access_disabled');
   }
   return me;
 }

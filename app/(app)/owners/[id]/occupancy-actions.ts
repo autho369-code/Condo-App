@@ -51,7 +51,7 @@ export async function addTenant(ownerId: string, formData: FormData) {
   const db = supabase as any;
 
   // Resolve association from the owner's occupancy of this unit
-  const { data: occ } = await db
+  const { data: occ, error: occupancyError } = await db
     .from('occupancies')
     .select('association_id')
     .eq('owner_id', ownerId)
@@ -59,6 +59,9 @@ export async function addTenant(ownerId: string, formData: FormData) {
     .eq('status', 'current')
     .limit(1)
     .maybeSingle();
+  if (occupancyError || !occ?.association_id) {
+    fail(ownerId, occupancyError?.message ?? 'The selected unit is not a current home for this owner.');
+  }
 
   const svc = createServiceClient() as any;
   const tenantKey = crypto.randomUUID();
@@ -99,13 +102,32 @@ export async function addTenant(ownerId: string, formData: FormData) {
 }
 
 export async function endTenancy(tenantId: string, ownerId: string) {
-  await requireStaff();
+  const me = await requireStaff();
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: tenant, error } = await (supabase as any)
     .from('tenants')
-    .update({ status: 'ended', updated_at: new Date().toISOString() })
-    .eq('id', tenantId);
+    .update({ status: 'ended', portal_activated: false, auth_user_id: null, updated_at: new Date().toISOString() })
+    .eq('id', tenantId)
+    .eq('owner_id', ownerId)
+    .select('email, portfolio_id')
+    .maybeSingle();
   if (error) fail(ownerId, `Could not end tenancy: ${error.message}`);
+  if (tenant?.email) {
+    const svc = createServiceClient() as any;
+    await svc.from('user_invitations')
+      .update({ status: 'revoked', updated_at: new Date().toISOString() })
+      .eq('portfolio_id', tenant.portfolio_id)
+      .eq('hoa_role', 'tenant')
+      .eq('status', 'pending')
+      .ilike('email', tenant.email);
+    await svc.from('audit_logs').insert({
+      entity_type: 'tenant',
+      entity_id: tenantId,
+      action: 'resident_portal_disabled_tenancy_ended',
+      actor_id: me.auth_user_id,
+      actor_email: me.email ?? null,
+    });
+  }
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}`);
 }
@@ -279,4 +301,182 @@ export async function setOwnerPortalAccess(ownerId: string, enable: boolean) {
   if (error || !updated) fail(ownerId, error?.message ?? 'Owner portal access was not updated in this portfolio.');
   revalidatePath(`/owners/${ownerId}`);
   redirect(`/owners/${ownerId}?saved=${enable ? 'portal_enabled' : 'portal_disabled'}`);
+}
+
+export async function sendTenantPortalInvitation(tenantId: string, ownerId: string) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const { data: tenant, error } = await (supabase as any)
+    .from('tenants')
+    .select('id, portfolio_id, association_id, unit_id, auth_user_id, first_name, last_name, email, status, archived_at')
+    .eq('id', tenantId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (error || !tenant) fail(ownerId, error?.message ?? 'Resident not found.');
+  if (tenant.status !== 'active' || tenant.archived_at) fail(ownerId, 'Only an active resident can be invited.');
+  if (!tenant.email) fail(ownerId, 'Add an email address before inviting this resident.');
+  if (tenant.auth_user_id) fail(ownerId, 'This resident already has a linked account. Use password reset or enable access.');
+
+  const email = String(tenant.email).trim().toLowerCase();
+  const fullName = `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() || 'Resident';
+  const svc = createServiceClient() as any;
+  await svc.from('user_invitations')
+    .update({ status: 'revoked', updated_at: new Date().toISOString() })
+    .eq('portfolio_id', tenant.portfolio_id)
+    .eq('hoa_role', 'tenant')
+    .eq('status', 'pending')
+    .ilike('email', email);
+
+  const { data: invitation, error: inviteError } = await svc.from('user_invitations').insert({
+    email,
+    full_name: fullName,
+    portfolio_id: tenant.portfolio_id,
+    association_id: tenant.association_id,
+    unit_id: tenant.unit_id,
+    hoa_role: 'tenant',
+    invited_by: me.auth_user_id,
+    expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+    message: 'Activate your resident portal account.',
+    metadata: { tenant_id: tenant.id, owner_id: ownerId, access: 'resident_nonfinancial' },
+  }).select('id, token').single();
+  if (inviteError || !invitation?.token) fail(ownerId, inviteError?.message ?? 'Could not create the resident invitation.');
+
+  const inviteUrl = tenantWorkspaceUrl(me.portfolio?.slug, `/invite?token=${encodeURIComponent(invitation.token)}`);
+  const queued = await queueEmails(svc, [{
+    to: email,
+    toName: fullName,
+    subject: 'Activate your resident portal',
+    text: [
+      `Hello ${fullName},`,
+      '',
+      `${me.portfolio?.company_name ?? 'Your property management company'} invited you to its resident portal.`,
+      'Use this private link to verify your email and choose your own password:',
+      inviteUrl,
+      '',
+      'Resident access includes community documents, announcements, calendar events, and maintenance requests. It does not include owner financial records.',
+      '',
+      'This link expires in 30 days. If you did not expect it, contact your management office.',
+    ].join('\n'),
+    fromName: me.portfolio?.company_name ?? 'Portier369',
+    replyTo: me.portfolio?.support_email ?? null,
+    portfolioId: tenant.portfolio_id,
+    sentBy: me.auth_user_id,
+  }]);
+  if (queued.error || queued.count !== 1) {
+    await svc.from('user_invitations').update({ status: 'revoked' }).eq('id', invitation.id);
+    fail(ownerId, queued.error ?? 'The invitation could not be queued.');
+  }
+
+  await svc.from('audit_logs').insert({
+    entity_type: 'tenant',
+    entity_id: tenant.id,
+    action: 'resident_portal_invited',
+    actor_id: me.auth_user_id,
+    actor_email: me.email ?? null,
+    changes: { target_email: email, invitation_id: invitation.id, access: 'resident_nonfinancial' },
+  });
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=resident_invited`);
+}
+
+export async function sendTenantPasswordReset(tenantId: string, ownerId: string) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const { data: tenant, error } = await (supabase as any)
+    .from('tenants')
+    .select('id, portfolio_id, auth_user_id, first_name, last_name, email, status, portal_activated, archived_at')
+    .eq('id', tenantId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (error || !tenant) fail(ownerId, error?.message ?? 'Resident not found.');
+  if (!tenant.email || !tenant.auth_user_id || tenant.status !== 'active' || tenant.archived_at) {
+    fail(ownerId, 'This resident does not have an active linked portal account and email.');
+  }
+
+  const email = String(tenant.email).trim().toLowerCase();
+  const fullName = `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() || 'Resident';
+  const svc = createServiceClient() as any;
+  const { data: authData, error: authError } = await svc.auth.admin.getUserById(tenant.auth_user_id);
+  if (
+    authError
+    || !authData?.user
+    || authData.user.id !== tenant.auth_user_id
+    || String(authData.user.email ?? '').trim().toLowerCase() !== email
+    || !authData.user.email_confirmed_at
+  ) {
+    fail(ownerId, 'The resident record must match a verified sign-in email before a reset link can be sent.');
+  }
+
+  const { data: linkData, error: linkError } = await svc.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password') },
+  });
+  if (linkError || !linkData?.properties?.action_link || linkData.user?.id !== tenant.auth_user_id) {
+    fail(ownerId, linkError?.message ?? 'Could not generate a verified resident reset link.');
+  }
+
+  const queued = await queueEmails(svc, [{
+    to: email,
+    toName: fullName,
+    subject: 'Reset your resident portal password',
+    text: [
+      `Hello ${fullName},`,
+      '',
+      `${me.portfolio?.company_name ?? 'Your property management company'} sent you a secure password reset link:`,
+      linkData.properties.action_link,
+      '',
+      'This link expires after a short time. If you did not expect this email, contact your management office.',
+    ].join('\n'),
+    fromName: me.portfolio?.company_name ?? 'Portier369',
+    replyTo: me.portfolio?.support_email ?? null,
+    portfolioId: tenant.portfolio_id,
+    sentBy: me.auth_user_id,
+  }]);
+  if (queued.error || queued.count !== 1) fail(ownerId, queued.error ?? 'The reset email could not be queued.');
+
+  await svc.from('audit_logs').insert({
+    entity_type: 'tenant',
+    entity_id: tenant.id,
+    action: 'password_reset_sent',
+    actor_id: me.auth_user_id,
+    actor_email: me.email ?? null,
+    changes: { target_email: email, method: 'verified_email_recovery_link', delivery: 'email_queue' },
+  });
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=resident_reset_sent`);
+}
+
+export async function setTenantPortalAccess(tenantId: string, ownerId: string, enable: boolean) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const { data: tenant, error: tenantError } = await (supabase as any)
+    .from('tenants')
+    .select('id, auth_user_id, status, archived_at')
+    .eq('id', tenantId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (tenantError || !tenant) fail(ownerId, tenantError?.message ?? 'Resident not found.');
+  if (enable && (!tenant.auth_user_id || tenant.status !== 'active' || tenant.archived_at)) {
+    fail(ownerId, 'Invite and verify an active resident account before enabling portal access.');
+  }
+
+  const { data: updated, error } = await (supabase as any).from('tenants')
+    .update({ portal_activated: enable, updated_at: new Date().toISOString() })
+    .eq('id', tenantId)
+    .eq('owner_id', ownerId)
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) fail(ownerId, error?.message ?? 'Resident portal access was not updated.');
+
+  await (createServiceClient() as any).from('audit_logs').insert({
+    entity_type: 'tenant',
+    entity_id: tenantId,
+    action: enable ? 'resident_portal_enabled' : 'resident_portal_disabled',
+    actor_id: me.auth_user_id,
+    actor_email: me.email ?? null,
+    changes: { portal_activated: enable },
+  });
+  revalidatePath(`/owners/${ownerId}`);
+  redirect(`/owners/${ownerId}?saved=${enable ? 'resident_portal_enabled' : 'resident_portal_disabled'}`);
 }

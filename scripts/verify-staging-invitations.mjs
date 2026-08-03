@@ -46,6 +46,7 @@ async function main() {
       email: invitedEmail,
       password,
       email_confirm: true,
+      user_metadata: { invitation_id: acceptedInvite.id },
     })
     if (createError || !created.user) throw new Error(`invited auth user creation: ${createError?.message ?? 'missing user'}`)
     userId = created.user.id

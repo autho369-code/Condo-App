@@ -4951,12 +4951,15 @@ export type Database = {
       }
       communications_log: {
         Row: {
+          announcement_audience: string | null
           association_id: string | null
+          body: string | null
           channel: string
           created_at: string | null
           direction: string
           error_message: string | null
           id: string
+          idempotency_key: string | null
           portfolio_id: string
           recipient_count: number | null
           sender_id: string | null
@@ -4964,12 +4967,15 @@ export type Database = {
           subject: string | null
         }
         Insert: {
+          announcement_audience?: string | null
           association_id?: string | null
+          body?: string | null
           channel?: string
           created_at?: string | null
           direction?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           portfolio_id: string
           recipient_count?: number | null
           sender_id?: string | null
@@ -4977,12 +4983,15 @@ export type Database = {
           subject?: string | null
         }
         Update: {
+          announcement_audience?: string | null
           association_id?: string | null
+          body?: string | null
           channel?: string
           created_at?: string | null
           direction?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           portfolio_id?: string
           recipient_count?: number | null
           sender_id?: string | null
@@ -14971,6 +14980,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["service_request_priority"]
           source: Database["public"]["Enums"]["service_request_source"]
           status: Database["public"]["Enums"]["service_request_status"]
+          tenant_id: string | null
           unit_id: string | null
           updated_at: string
         }
@@ -14990,6 +15000,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["service_request_priority"]
           source?: Database["public"]["Enums"]["service_request_source"]
           status?: Database["public"]["Enums"]["service_request_status"]
+          tenant_id?: string | null
           unit_id?: string | null
           updated_at?: string
         }
@@ -15009,6 +15020,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["service_request_priority"]
           source?: Database["public"]["Enums"]["service_request_source"]
           status?: Database["public"]["Enums"]["service_request_status"]
+          tenant_id?: string | null
           unit_id?: string | null
           updated_at?: string
         }
@@ -15124,6 +15136,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_portfolio_health"
             referencedColumns: ["portfolio_id"]
+          },
+          {
+            foreignKeyName: "service_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_requests_unit_id_fkey"
@@ -16451,6 +16470,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           association_id: string | null
+          auth_user_id: string | null
           created_at: string
           email: string | null
           emergency_contact_name: string | null
@@ -16467,6 +16487,7 @@ export type Database = {
           notes: string | null
           owner_id: string | null
           phone: string | null
+          portal_activated: boolean
           portfolio_id: string
           status: string
           unit_id: string
@@ -16475,6 +16496,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           association_id?: string | null
+          auth_user_id?: string | null
           created_at?: string
           email?: string | null
           emergency_contact_name?: string | null
@@ -16491,6 +16513,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          portal_activated?: boolean
           portfolio_id: string
           status?: string
           unit_id: string
@@ -16499,6 +16522,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           association_id?: string | null
+          auth_user_id?: string | null
           created_at?: string
           email?: string | null
           emergency_contact_name?: string | null
@@ -16515,6 +16539,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          portal_activated?: boolean
           portfolio_id?: string
           status?: string
           unit_id?: string
@@ -22310,7 +22335,7 @@ export type Database = {
         | "fixed_asset"
       gl_fund_account: "operating" | "reserve" | "special_assessment"
       gl_permission: "full" | "read" | "none"
-      hoa_role: "manager" | "board" | "owner" | "tenant" | "company_admin"
+      hoa_role: "manager" | "board" | "owner" | "tenant" | "company_admin" | "vendor"
       inspection_severity: "info" | "minor" | "moderate" | "major" | "critical"
       inspection_status: "scheduled" | "in_progress" | "completed" | "cancelled"
       invitation_role:
@@ -22967,7 +22992,7 @@ export const Constants = {
       ],
       gl_fund_account: ["operating", "reserve", "special_assessment"],
       gl_permission: ["full", "read", "none"],
-      hoa_role: ["manager", "board", "owner", "tenant", "company_admin"],
+      hoa_role: ["manager", "board", "owner", "tenant", "company_admin", "vendor"],
       inspection_severity: ["info", "minor", "moderate", "major", "critical"],
       inspection_status: ["scheduled", "in_progress", "completed", "cancelled"],
       invitation_role: [

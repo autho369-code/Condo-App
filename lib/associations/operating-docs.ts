@@ -12,3 +12,16 @@ export const OPERATING_DOCS = [
 
 export const REQUIRED_OPERATING_TYPES = OPERATING_DOCS.filter((d) => d.required).map((d) => d.type as string);
 export const OPERATING_TYPES = OPERATING_DOCS.map((d) => d.type as string);
+
+// Public community records that may be shared with non-owner residents. Keep
+// this list intentionally narrower than staff/owner document access: budgets,
+// generated letters, delinquency material, and board packets are excluded.
+export const RESIDENT_SHARED_DOCUMENT_TYPES = [
+  'declaration_ccrs',
+  'bylaws',
+  'articles_of_incorporation',
+  'rules_regulations',
+  'master_insurance_policy',
+] as const;
+
+export type ResidentSharedDocumentType = typeof RESIDENT_SHARED_DOCUMENT_TYPES[number];
