@@ -36,6 +36,10 @@ describe('CODEX_TEST staging fixture safety', () => {
     }
     expect(seed).toContain('expected: { alphaTrialBalanceDebits: 21000');
     expect(seed).toContain('CODEX_TEST hearing request eligibility');
+    expect(seed).toContain("ensureUser('codex_test.tenant.a@portier369.invalid'");
+    expect(seed).toContain("['board', 'owner', 'tenant', 'vendor'].includes(role)");
+    expect(seed).toContain('auth_user_id: tenantAUser.id, portal_activated: true');
+    expect(seed).toContain('CODEX_TEST_Marina_Court_Resident_Rules.pdf');
     expect(seed).not.toContain("output_formats: ['pdf', 'xlsx'");
   });
 
@@ -45,5 +49,7 @@ describe('CODEX_TEST staging fixture safety', () => {
     expect(cleanup).toContain("from('email_queue').delete().in('portfolio_id', portfolioIds)");
     expect(cleanup).toContain("removeByIds('profiles', fixtureUsers.map((user) => user.id))");
     expect(cleanup).toContain("removeByIds('communications_log'");
+    expect(cleanup).toContain('codex_test.tenant.a@portier369.invalid');
+    expect(cleanup).toContain('RESIDENT_DOCUMENT_PATH');
   });
 });
