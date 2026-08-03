@@ -3,19 +3,19 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Surface } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewMeetingPage() {
-  const me = await requireStaff();
+  await requireWorkspaceStaff();
   const supabase = await createClient();
   const { data: associations } = await (supabase as any).from('associations').select('id, name').order('name');
 
   async function handleSubmit(formData: FormData) {
     'use server';
-    await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
+    const actionMe = await (await import('@/lib/auth/me')).requireWorkspaceStaff();
     const supabase = await createClient();
     const { error } = await (supabase as any).from('meetings').insert({
       title: formData.get('title'),
@@ -26,7 +26,7 @@ export default async function NewMeetingPage() {
       location: formData.get('location') || '',
       agenda: formData.get('agenda') || '',
       status: 'scheduled',
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: actionMe.portfolio?.id,
     });
     if (error) {
       redirect(`/meetings/new?error=${encodeURIComponent(error.message)}`);
