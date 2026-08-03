@@ -244,7 +244,7 @@ export default function MeetingDetailClient() {
     setGenerating(true)
 
     try {
-      const [{ jsPDF }] = await Promise.all([
+      const [{ jsPDF }, { autoTable }] = await Promise.all([
         import('jspdf'),
         import('jspdf-autotable'),
       ])
@@ -291,7 +291,7 @@ export default function MeetingDetailClient() {
           ['Net Income (MTD)', money(financials.net_income)],
         ]
 
-        ;(doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Metric', 'Amount']],
           body: finRows,
@@ -317,7 +317,7 @@ export default function MeetingDetailClient() {
           item.duration_minutes ? `${item.duration_minutes} min` : '',
           item.presenter ?? '',
         ])
-        ;(doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Item', 'Category', 'Duration', 'Presenter']],
           body: agendaRows,
@@ -352,7 +352,7 @@ export default function MeetingDetailClient() {
           d.file_type ?? '',
           d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : '',
         ])
-        ;(doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Document', 'Type', 'Size']],
           body: docRows,
@@ -376,7 +376,7 @@ export default function MeetingDetailClient() {
         doc.text('Follow-up Actions', 50, y)
         y += 24
 
-        ;(doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           head: [['Action', 'Responsible', 'Due', 'Status']],
           body: actionItems.map((item: MeetingActionItem) => [

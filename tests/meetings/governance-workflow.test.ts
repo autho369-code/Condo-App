@@ -109,6 +109,9 @@ describe('meeting governance application workflow', () => {
     expect(managerPage).toContain('moveAgendaItem.bind');
     expect(boardPage).toContain('Follow-up Actions');
     expect(boardPage).toContain("head: [['Action', 'Responsible', 'Due', 'Status']]");
+    expect(boardPage).toContain("const [{ jsPDF }, { autoTable }] = await Promise.all");
+    expect(boardPage).toContain('autoTable(doc, {');
+    expect(boardPage).not.toContain('(doc as any).autoTable');
     expect(boardPage).toContain('href={`/api/meeting-documents/${d.id}`}');
     expect(boardPage).not.toContain('.createSignedUrl(d.storage_path');
     expect(boardPage).toContain('const canEdit = false');
