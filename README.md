@@ -101,5 +101,5 @@ All cron endpoints require `Authorization: Bearer ${CRON_SECRET}` (fail-closed; 
 - Central `lib/env.ts` validation for required env vars (currently non-null assertions).
 - Typed domain layer (`lib/domain/*`) to consolidate repeated Supabase queries.
 - GL engine expansion: chart-of-accounts management, budgeting workflow, year-end close, financial statement generation (CPA to verify mappings afterward).
-- Board officer permission tiers (President/Treasurer/Secretary) and manager-facing Vendor Performance Score — planned selling points, need schema design.
+- Manager/company-admin Vendor Performance Scorecards are live and derive transparent 12-month service records from scheduled completions, current backlog, and compliance evidence. Board officer action-permission tiers (President/Treasurer/Secretary) remain a separate authorization design item.
 - `app/platform/*` is a legacy redirect shim to `/platform-operator`; delete after external links age out.

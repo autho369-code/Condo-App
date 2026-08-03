@@ -10,6 +10,8 @@ import { Alert } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance';
+import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { inviteVendorToPortal } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -48,15 +50,18 @@ export default async function VendorsPage({
 }: {
   searchParams: Promise<{ q?: string; trade?: string; invited?: string; error?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const trade = sp.trade ?? 'all';
 
   const supabase = await createClient();
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) throw new Error('Staff workspace is missing its management-company scope.');
   const { data } = await (supabase as any)
     .from('vendors')
     .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
+    .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name');
 
@@ -69,6 +74,25 @@ export default async function VendorsPage({
       [vendor.name, vendor.trade, vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
     );
   }
+
+  const performanceRows = await loadPortfolioVendorPerformanceRows(
+    supabase as any,
+    portfolioId,
+    rows.map((vendor: any) => vendor.id),
+  );
+  const rowsByVendor = new Map<string, typeof performanceRows>();
+  for (const row of performanceRows) {
+    if (!row.vendor_id) continue;
+    const vendorRows = rowsByVendor.get(row.vendor_id) ?? [];
+    vendorRows.push(row);
+    rowsByVendor.set(row.vendor_id, vendorRows);
+  }
+  const performanceByVendor = new Map<string, VendorPerformanceScorecard>(
+    rows.map((vendor: any) => [
+      vendor.id,
+      buildVendorPerformanceScorecard(rowsByVendor.get(vendor.id) ?? [], vendor),
+    ]),
+  );
 
   const achReady = allRows.filter((vendor: any) => vendor.bank_routing_number && vendor.bank_account_number).length;
   const w9Needed = allRows.filter((vendor: any) => vendor.send_1099 && !vendor.taxpayer_id).length;
@@ -117,18 +141,20 @@ export default async function VendorsPage({
               <TH>Trade</TH>
               <TH>Payment</TH>
               <TH>Compliance</TH>
+              <TH>Service record</TH>
               <TH>Documentation</TH>
               <TH>Workflows</TH>
             </TR>
           </THead>
           <tbody>
             {rows.length === 0 ? (
-              <TR><TD colSpan={6} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
+              <TR><TD colSpan={7} className="py-10 text-center text-gray-500">No vendors match this filter.</TD></TR>
             ) : (
-              rows.map((vendor: any) => (
-                <TR key={vendor.id} className="hover:bg-gray-50">
+              rows.map((vendor: any) => {
+                const scorecard = performanceByVendor.get(vendor.id)!;
+                return <TR key={vendor.id} className="hover:bg-gray-50">
                   <TD>
-                    <div className="font-medium text-gray-950">{vendor.name}</div>
+                    <Link href={`/vendors/${vendor.id}`} className="font-medium text-gray-950 hover:underline">{vendor.name}</Link>
                     <div className="mt-1 text-xs text-gray-500">{vendor.vendor_type?.replace(/_/g, ' ') ?? 'general'}</div>
                     {(vendor.emails?.length > 0 || vendor.phone_numbers?.length > 0) && (
                       <div className="mt-1 space-y-0.5">
@@ -156,6 +182,12 @@ export default async function VendorsPage({
                     </div>
                   </TD>
                   <TD>
+                    <StatusChip tone={scorecard.serviceRecord.tone}>{scorecard.serviceRecord.label}</StatusChip>
+                    <div className="mt-1 text-xs tabular-nums text-gray-500">
+                      {scorecard.onTimeRate === null ? 'No scheduled completions' : `${scorecard.onTimeRate}% on time`} · {scorecard.open} open
+                    </div>
+                  </TD>
+                  <TD>
                     <ComplianceBadges vendor={vendor} />
                   </TD>
                   <TD>
@@ -171,8 +203,8 @@ export default async function VendorsPage({
                       )}
                     </div>
                   </TD>
-                </TR>
-              ))
+                </TR>;
+              })
             )}
           </tbody>
         </Table>
