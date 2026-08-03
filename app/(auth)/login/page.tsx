@@ -87,7 +87,7 @@ export default async function LoginPage({
       {!isScoped && (
         <nav
           aria-label="Account type"
-          className="grid grid-cols-3 gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+          className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:grid-cols-4"
         >
           {modes.map((item) => {
             const isActive = item.id === mode.id;

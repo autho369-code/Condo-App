@@ -48,6 +48,17 @@ export const ownerModules: AppModule[] = [
   { label: 'Profile', href: '/portal/profile' },
 ];
 
+export const residentModules: AppModule[] = [
+  { label: 'Dashboard', href: '/resident' },
+  { label: 'Service Requests', href: '/resident/requests', accent: true },
+  { label: 'Work Orders', href: '/resident/work-orders' },
+  { label: 'Communications', href: '/resident/communications' },
+  { label: 'Calendar', href: '/resident/calendar' },
+  { label: 'Meetings', href: '/resident/meetings' },
+  { label: 'Documents', href: '/resident/documents' },
+  { label: 'My Profile', href: '/resident/profile' },
+];
+
 export const companyAdminModules: AppModule[] = [
   { label: 'Overview', href: '/company-admin/overview' },
   { label: 'AI Command Center', href: '/company-admin/insights' },

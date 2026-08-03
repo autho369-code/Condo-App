@@ -111,6 +111,7 @@ export const appModules: AppModule[] = [
     group: 'Operations',
     children: [
       { label: 'Maintenance overview', href: '/maintenance' },
+      { label: 'Service requests', href: '/service-requests' },
       { label: 'Work orders', href: '/work-orders' },
       { label: 'Recurring work orders', href: '/recurring-work-orders' },
       { label: 'Inspections', href: '/inspections' },

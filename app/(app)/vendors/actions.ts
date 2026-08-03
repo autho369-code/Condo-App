@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 // Invite a vendor to the vendor portal. Creates a real user_invitations row so
-// the vendor gets the /invite link, sets a password, and can log in. We use
-// hoa_role 'owner' (a non-staff role) because there is no 'vendor' hoa_role and
+// the vendor gets the /invite link, sets a password, and can log in. Vendor is
+// now a first-class non-staff role so it cannot inherit owner financial access.
 // login routing checks vendor_id BEFORE owner_id — so once auto_link_portal_user
 // links the vendor by email on signup, they land on /vendor.
 export async function inviteVendorToPortal(formData: FormData) {
@@ -44,7 +44,7 @@ export async function inviteVendorToPortal(formData: FormData) {
     portfolio_id: me.portfolio.id,
     email: email!.toLowerCase(),
     full_name: vendor.name,
-    hoa_role: 'owner',
+    hoa_role: 'vendor',
     invited_by: me.auth_user_id,
     message: `Activate your vendor portal for ${me.portfolio?.company_name ?? 'your community'}.`,
     expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
