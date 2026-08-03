@@ -79,9 +79,9 @@ async function main() {
 
     const invalid = await operator.rpc('platform_set_profile_role', {
       p_profile_id: userId,
-      p_hoa_role: 'vendor',
+      p_hoa_role: 'not_a_portier_role',
     })
-    assert(Boolean(invalid.error), 'Invalid non-enum profile role was accepted')
+    assert(Boolean(invalid.error), 'Invalid profile role was accepted')
 
     const selfChange = await operator.rpc('platform_set_profile_role', {
       p_profile_id: (await operator.auth.getUser()).data.user.id,
