@@ -8,9 +8,11 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { Surface, SectionTitle } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { buildVendorPerformanceScorecard, formatPerformanceDays } from '@/lib/vendors/performance';
+import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,33 +52,38 @@ function woStatusTone(status: string | null): Tone {
 }
 
 export default async function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireStaff();
+  const me = await requireWorkspaceStaff();
   const { id } = await params;
   const supabase = await createClient();
   const db = supabase as any;
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) notFound();
 
-  const [{ data: vendor }, { data: workOrders }] = await Promise.all([
-    db.from('vendors').select('*').eq('id', id).is('archived_at', null).maybeSingle(),
+  const { data: vendor } = await db
+    .from('vendors')
+    .select('*')
+    .eq('id', id)
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (!vendor) notFound();
+
+  const [performanceRows, { data: workOrders }] = await Promise.all([
+    loadPortfolioVendorPerformanceRows(db, portfolioId, [vendor.id]),
     db
       .from('work_orders')
       .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name)')
       .eq('vendor_id', id)
+      .eq('portfolio_id', portfolioId)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(25),
   ]);
 
-  if (!vendor) notFound();
-
   const wos = (workOrders ?? []) as any[];
-  const openWos = wos.filter((w) => !['completed', 'closed', 'cancelled'].includes(w.status)).length;
+  const scorecard = buildVendorPerformanceScorecard(performanceRows, vendor);
   const emails: string[] = Array.isArray(vendor.emails) ? vendor.emails : [];
   const phones: Array<{ type?: string; number?: string }> = Array.isArray(vendor.phone_numbers) ? vendor.phone_numbers : [];
-
-  const expiredCount = COMPLIANCE_FIELDS.filter((f) => {
-    const v = vendor[f.key];
-    return v && new Date(v) < new Date();
-  }).length;
 
   const addressParts = [vendor.address_street, vendor.address_city, vendor.address_state, vendor.address_zip].filter(Boolean);
 
@@ -94,10 +101,12 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
       <div className="space-y-6">
         <MetricStrip
           metrics={[
-            { label: 'Work orders', value: wos.length },
-            { label: 'Open work orders', value: openWos },
-            { label: 'Expired compliance', value: expiredCount },
-            { label: 'Portal', value: vendor.portal_activated ? 'Active' : 'Not invited' },
+            { label: 'Completed · 12 mo', value: scorecard.completed },
+            { label: 'Open work orders', value: scorecard.open, sublabel: `${scorecard.overdue} overdue` },
+            { label: 'On-time completion', value: scorecard.onTimeRate === null ? '—' : `${scorecard.onTimeRate}%`, sublabel: scorecard.serviceRecord.evidence },
+            { label: 'Avg completion', value: formatPerformanceDays(scorecard.averageCompletionDays) },
+            { label: 'Service record', value: scorecard.serviceRecord.label },
+            { label: 'Compliance', value: scorecard.compliance.label },
           ]}
         />
 
@@ -143,6 +152,33 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             </div>
           </Surface>
         </div>
+
+        <Surface>
+          <SectionTitle
+            title="Performance scorecard"
+            description="Explainable operational evidence — no subjective or hidden rating"
+          />
+          <div className="grid gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <div className="text-gray-500">Service record</div>
+              <div className="mt-1"><StatusChip tone={scorecard.serviceRecord.tone}>{scorecard.serviceRecord.label}</StatusChip></div>
+              <div className="mt-2 text-xs text-gray-500">{scorecard.serviceRecord.evidence}</div>
+            </div>
+            <div>
+              <div className="text-gray-500">Completion evidence</div>
+              <div className="mt-1 font-medium text-gray-950">{scorecard.onTimeCompletions}/{scorecard.scheduledCompletions} on time</div>
+              <div className="mt-2 text-xs text-gray-500">Completed work orders in the trailing 365 days</div>
+            </div>
+            <div>
+              <div className="text-gray-500">Compliance evidence</div>
+              <div className="mt-1"><StatusChip tone={scorecard.compliance.tone}>{scorecard.compliance.label}</StatusChip></div>
+              <div className="mt-2 text-xs text-gray-500">{scorecard.compliance.current} current · {scorecard.compliance.expiringSoon} expiring · {scorecard.compliance.expired} expired · {scorecard.compliance.notRecorded} not recorded</div>
+            </div>
+          </div>
+          <p className="mt-4 border-t border-gray-100 pt-4 text-xs leading-5 text-gray-500">
+            A service label is shown only after three scheduled completions. Exceptional is 95%+, Strong is 85%+, Watch is 70%+, and Needs attention is below 70%. Open and overdue counts are current rather than limited to the 12-month completion window.
+          </p>
+        </Surface>
 
         <Surface>
           <SectionTitle title="Recent work orders" description={`${wos.length} most recent`} />

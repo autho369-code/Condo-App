@@ -1,7 +1,10 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Truck, ShieldAlert, Shield, Banknote } from 'lucide-react'
+import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance'
+import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +69,14 @@ export default async function VendorsPage({
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
+  if (!portfolioId) throw new Error('Company-admin workspace is missing its management-company scope.')
   const sp = await searchParams
+
+  const allVendorsPromise = db
+    .from('vendors')
+    .select('trade')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
 
   // Fetch vendors
   let query = db
@@ -83,26 +93,27 @@ export default async function VendorsPage({
   const { data: vendors } = await query
   const vendorIds = (vendors ?? []).map((v: any) => v.id)
 
-  // Count open work orders per vendor
-  const { data: woCounts } = await db
-    .from('work_orders')
-    .select('vendor_id, id')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
-    .in('vendor_id', vendorIds.length > 0 ? vendorIds : ['none'])
-
-  const woByVendor = new Map<string, number>()
-  for (const wo of woCounts ?? []) {
-    if (wo.vendor_id) woByVendor.set(wo.vendor_id, (woByVendor.get(wo.vendor_id) ?? 0) + 1)
+  const [performanceRows, { data: allVendors }] = await Promise.all([
+    loadPortfolioVendorPerformanceRows(db, portfolioId, vendorIds),
+    allVendorsPromise,
+  ])
+  const rowsByVendor = new Map<string, typeof performanceRows>()
+  for (const row of performanceRows) {
+    if (!row.vendor_id) continue
+    const rows = rowsByVendor.get(row.vendor_id) ?? []
+    rows.push(row)
+    rowsByVendor.set(row.vendor_id, rows)
   }
-
-  // Get distinct trades for filter
-  const { data: allVendors } = await db
-    .from('vendors')
-    .select('trade')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
+  const performanceByVendor = new Map<string, VendorPerformanceScorecard>(
+    (vendors ?? []).map((vendor: any) => [
+      vendor.id,
+      buildVendorPerformanceScorecard(
+        rowsByVendor.get(vendor.id) ?? [],
+        vendor,
+      ),
+    ]),
+  )
+  const openWorkOrders = [...performanceByVendor.values()].reduce((sum, scorecard) => sum + scorecard.open, 0)
 
   const trades = [...new Set((allVendors ?? []).map((v: any) => v.trade).filter(Boolean))].sort() as string[]
 
@@ -126,7 +137,7 @@ export default async function VendorsPage({
           { label: 'Total Vendors', value: totalVendors, icon: Truck },
           { label: 'ACH Enrolled', value: achEnrolled, icon: Banknote },
           { label: 'Compliance Issues', value: complianceIssues, icon: ShieldAlert },
-          { label: 'Open Work Orders', value: (woCounts ?? []).length, icon: Shield },
+          { label: 'Open Work Orders', value: openWorkOrders, icon: Shield },
         ].map((item) => {
           const Icon = item.icon
           return (
@@ -167,28 +178,35 @@ export default async function VendorsPage({
               <th className="px-4 py-2.5 text-left font-medium">Phone</th>
               <th className="px-4 py-2.5 text-left font-medium">Email</th>
               <th className="px-4 py-2.5 text-left font-medium">Compliance</th>
+              <th className="px-4 py-2.5 text-left font-medium">Service Record</th>
               <th className="px-4 py-2.5 text-right font-medium">Open WO</th>
               <th className="px-4 py-2.5 text-left font-medium">ACH</th>
             </tr>
           </thead>
           <tbody>
             {(vendors ?? []).length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">No vendors found.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">No vendors found.</td></tr>
             ) : (
               (vendors ?? []).map((v: any) => {
-                const openWO = woByVendor.get(v.id) ?? 0
+                const scorecard = performanceByVendor.get(v.id)!
                 return (
                   <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-4 py-3">
-                      <span className="font-medium text-gray-900">{v.name ?? 'Unnamed Vendor'}</span>
+                      <Link href={`/vendors/${v.id}`} className="font-medium text-gray-900 hover:underline">{v.name ?? 'Unnamed Vendor'}</Link>
                       {v.vendor_type && <div className="mt-0.5 text-xs text-gray-500">{v.vendor_type}</div>}
                     </td>
                     <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{v.trade ?? '—'}</td>
                     <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{firstFromJsonb(v.phone_numbers)}</td>
                     <td className="px-4 py-3 text-[13px] text-gray-700">{firstFromJsonb(v.emails)}</td>
                     <td className="px-4 py-3"><ComplianceBadge vendor={v} /></td>
-                    <td className={`px-4 py-3 text-right tabular-nums ${openWO > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>
-                      {openWO}
+                    <td className="px-4 py-3">
+                      <StatusChip tone={scorecard.serviceRecord.tone}>{scorecard.serviceRecord.label}</StatusChip>
+                      <div className="mt-1 text-xs tabular-nums text-gray-500">
+                        {scorecard.onTimeRate === null ? 'No scheduled completions' : `${scorecard.onTimeRate}% on time`} · {scorecard.completed} completed
+                      </div>
+                    </td>
+                    <td className={`px-4 py-3 text-right tabular-nums ${scorecard.open > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>
+                      {scorecard.open}
                     </td>
                     <td className="px-4 py-3">
                       {v.ach_status ? (
