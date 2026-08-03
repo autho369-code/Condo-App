@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const migration = readFileSync(join(root, 'supabase/migrations/20260803070000_secure_meeting_governance.sql'), 'utf8').toLowerCase();
 const auditMigration = readFileSync(join(root, 'supabase/migrations/20260803071000_meeting_action_audit_integrity.sql'), 'utf8').toLowerCase();
+const confidentialReadMigration = readFileSync(join(root, 'supabase/migrations/20260803072000_restrict_confidential_meeting_reads.sql'), 'utf8').toLowerCase();
+const databaseTest = readFileSync(join(root, 'supabase/tests/meeting_governance.sql'), 'utf8').toLowerCase();
 const actions = readFileSync(join(root, 'app/(app)/meetings/[id]/actions.ts'), 'utf8');
 const managerPage = readFileSync(join(root, 'app/(app)/meetings/[id]/page.tsx'), 'utf8');
 const boardPage = readFileSync(join(root, 'app/board/meetings/[id]/page.tsx'), 'utf8');
@@ -61,6 +63,18 @@ describe('meeting governance database boundary', () => {
     expect(auditMigration).toContain('new.completed_by := coalesce(auth.uid(), new.completed_by)');
     expect(auditMigration).toContain('new.completed_at := now()');
     expect(auditMigration).toContain('create trigger trg_meeting_action_item_audit');
+  });
+
+  it('excludes owners from confidential meeting governance reads', () => {
+    expect(confidentialReadMigration).toContain('create or replace function public.can_access_confidential_meeting_mvp');
+    expect(confidentialReadMigration).toContain('public.can_edit_association_mvp(a_id)');
+    expect(confidentialReadMigration).toContain("p.mvp_role = 'assistant_manager'");
+    expect(confidentialReadMigration).toContain('from public.board_members bm');
+    expect(confidentialReadMigration).not.toContain('from public.occupancies');
+    expect(confidentialReadMigration.match(/public\.can_access_confidential_meeting_mvp\(m\.association_id\)/g)).toHaveLength(3);
+    expect(databaseTest).toContain('owners must not read board agenda items');
+    expect(databaseTest).toContain('owners must not read private meeting-document metadata');
+    expect(databaseTest).toContain('owners must not read board follow-up actions');
   });
 });
 

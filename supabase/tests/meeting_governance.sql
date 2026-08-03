@@ -40,13 +40,15 @@ insert into auth.users (
 ) values
   ('a7100000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'governance-manager@example.test', crypt('Manager-Test-Password-123!', gen_salt('bf')), now(), now(), now()),
   ('a7100000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'governance-admin@example.test', crypt('Admin-Test-Password-123!', gen_salt('bf')), now(), now(), now()),
-  ('a7100000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'governance-board@example.test', crypt('Board-Test-Password-123!', gen_salt('bf')), now(), now(), now());
+  ('a7100000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'governance-board@example.test', crypt('Board-Test-Password-123!', gen_salt('bf')), now(), now(), now()),
+  ('a7100000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'governance-owner@example.test', crypt('Owner-Test-Password-123!', gen_salt('bf')), now(), now(), now());
 
 insert into public.profiles (id, email, full_name, portfolio_id, hoa_role, mvp_role)
 values
   ('a7100000-0000-0000-0000-000000000001', 'governance-manager@example.test', 'Legacy Assigned Manager', 'a7000000-0000-0000-0000-000000000001', 'manager', null),
   ('a7100000-0000-0000-0000-000000000002', 'governance-admin@example.test', 'Legacy Company Admin', 'a7000000-0000-0000-0000-000000000001', 'company_admin', null),
-  ('a7100000-0000-0000-0000-000000000003', 'governance-board@example.test', 'Board Director', 'a7000000-0000-0000-0000-000000000001', 'board', null)
+  ('a7100000-0000-0000-0000-000000000003', 'governance-board@example.test', 'Board Director', 'a7000000-0000-0000-0000-000000000001', 'board', null),
+  ('a7100000-0000-0000-0000-000000000004', 'governance-owner@example.test', 'Current Owner', 'a7000000-0000-0000-0000-000000000001', 'owner', null)
 on conflict (id) do update set
   email = excluded.email,
   full_name = excluded.full_name,
@@ -60,6 +62,18 @@ insert into public.associations (
 ) values
   ('a7200000-0000-0000-0000-000000000001', 'a7000000-0000-0000-0000-000000000001', 'Governance Test HOA', '1 Board Way', 'Chicago', 'IL', '60601', 1, 'a7100000-0000-0000-0000-000000000002'),
   ('a7200000-0000-0000-0000-000000000002', 'a7000000-0000-0000-0000-000000000002', 'Outside Test HOA', '2 Board Way', 'Chicago', 'IL', '60602', 1, 'a7100000-0000-0000-0000-000000000002');
+
+insert into public.buildings (id, association_id, name, address)
+values ('a7250000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-000000000001', 'Owner Test Building', '1 Board Way');
+
+insert into public.units (id, building_id, unit_number, ownership_pct)
+values ('a7260000-0000-0000-0000-000000000001', 'a7250000-0000-0000-0000-000000000001', '101', 1);
+
+insert into public.owners (id, portfolio_id, full_name, email, auth_user_id, portal_activated)
+values ('a7270000-0000-0000-0000-000000000001', 'a7000000-0000-0000-0000-000000000001', 'Current Owner', 'governance-owner@example.test', 'a7100000-0000-0000-0000-000000000004', true);
+
+insert into public.occupancies (id, owner_id, unit_id, association_id, occupancy_type, status)
+values ('a7280000-0000-0000-0000-000000000001', 'a7270000-0000-0000-0000-000000000001', 'a7260000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-000000000001', 'owner', 'current');
 
 insert into public.association_managers (user_id, association_id, portfolio_id)
 values ('a7100000-0000-0000-0000-000000000001', 'a7200000-0000-0000-0000-000000000001', 'a7000000-0000-0000-0000-000000000001');
@@ -174,6 +188,23 @@ select pg_temp.assert_raises(
   $$select public.reorder_agenda_items('a7400000-0000-0000-0000-000000000001', array['a7500000-0000-0000-0000-000000000002'::uuid, 'a7500000-0000-0000-0000-000000000001'::uuid])$$,
   'board members must not invoke the agenda mutation RPC'
 );
+
+reset role;
+select set_config('request.jwt.claim.sub', 'a7100000-0000-0000-0000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select pg_temp.assert_true(
+  public.can_access_association_mvp('a7200000-0000-0000-0000-000000000001'),
+  'the fixture owner must retain ordinary resident association access'
+);
+select pg_temp.assert_true(
+  not public.can_access_confidential_meeting_mvp('a7200000-0000-0000-0000-000000000001'),
+  'current owners must be excluded from confidential meeting governance access'
+);
+select pg_temp.assert_true((select count(*) = 0 from public.agenda_items), 'owners must not read board agenda items');
+select pg_temp.assert_true((select count(*) = 0 from public.meeting_documents), 'owners must not read private meeting-document metadata');
+select pg_temp.assert_true((select count(*) = 0 from public.meeting_action_items), 'owners must not read board follow-up actions');
 
 select extensions.pass('meeting governance RLS, tenant scope, board visibility, and follow-up assertions');
 select * from extensions.finish();
