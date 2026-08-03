@@ -1,19 +1,64 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { notFound } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { StatusChip } from '@/components/operations/status-chip';
+import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { Input, Label, Textarea } from '@/components/ui/input';
-import { Alert, Surface } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { Field, Input, Label, Select, Textarea } from '@/components/ui/input';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
-import { isScopedStoragePath } from '@/lib/security/storage-paths';
+import {
+  addAgendaItem,
+  addMeetingActionItem,
+  addMeetingAttendee,
+  addMeetingDocument,
+  moveAgendaItem,
+  removeAgendaItem,
+  removeMeetingActionItem,
+  removeMeetingAttendee,
+  removeMeetingDocument,
+  saveMeetingNotes,
+  updateMeetingActionStatus,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
-const BUCKET = 'association-documents';
+const CATEGORY_LABELS: Record<string, string> = {
+  general: 'General',
+  financial: 'Financial',
+  operations: 'Operations',
+  governance: 'Governance',
+  compliance: 'Compliance',
+  old_business: 'Old business',
+  new_business: 'New business',
+  executive_session: 'Executive session',
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  open: 'Open',
+  in_progress: 'In progress',
+  blocked: 'Blocked',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+const ACTION_TONES: Record<string, Tone> = {
+  open: 'info',
+  in_progress: 'warning',
+  blocked: 'danger',
+  completed: 'success',
+  cancelled: 'neutral',
+};
+
+function successMessage(value?: string) {
+  if (value === 'notes') return 'Meeting notes saved.';
+  if (value === 'attendee') return 'Attendance updated.';
+  if (value === 'agenda') return 'Structured agenda updated.';
+  if (value === 'document') return 'Meeting documents updated.';
+  if (value === 'action') return 'Follow-up actions updated.';
+  return null;
+}
 
 export default async function MeetingDetailPage({
   params,
@@ -22,116 +67,38 @@ export default async function MeetingDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: meeting }, { data: attendees }, { data: documents }] = await Promise.all([
+  const [
+    { data: meeting },
+    { data: attendees },
+    { data: documents },
+    { data: agendaItems },
+    { data: actionItems },
+  ] = await Promise.all([
     db.from('meetings').select('*, associations(id, name)').eq('id', id).single(),
     db.from('meeting_attendees').select('*').eq('meeting_id', id).order('created_at'),
     db.from('meeting_documents').select('*').eq('meeting_id', id).order('uploaded_at', { ascending: false }),
+    db.from('agenda_items').select('*').eq('meeting_id', id).order('sort_order').order('created_at'),
+    db.from('meeting_action_items').select('*').eq('meeting_id', id).order('status').order('due_date', { nullsFirst: false }),
   ]);
 
   if (!meeting) notFound();
 
-  // Board members of this association, offered as one-click sign-ins
   const { data: boardMembers } = meeting.association_id
-    ? await db.from('board_members').select('id, owner_id, full_name, role').eq('association_id', meeting.association_id).eq('active', true)
+    ? await db.from('board_members').select('id, owner_id, full_name, role')
+      .eq('association_id', meeting.association_id).eq('active', true)
     : { data: [] as any[] };
-  const signedInIds = new Set((attendees ?? []).map((a: any) => a.owner_id).filter(Boolean));
-
-  // Signed URLs for meeting documents
-  const docUrlByPath = new Map<string, string>();
-  const documentPaths = (documents ?? [])
-    .map((d: any) => d.storage_path)
-    .filter((path: unknown): path is string => isScopedStoragePath(path, 'meetings', id));
-  if (documentPaths.length > 0) {
-    const svc = createServiceClient() as any;
-    const { data: signed } = await svc.storage.from(BUCKET)
-      .createSignedUrls(documentPaths, 3600);
-    for (const s of signed ?? []) {
-      if (s.path && s.signedUrl) docUrlByPath.set(s.path, s.signedUrl);
-    }
-  }
-
-  const presentCount = (attendees ?? []).filter((a: any) => a.present).length;
+  const signedInIds = new Set((attendees ?? []).map((attendee: any) => attendee.owner_id).filter(Boolean));
+  const presentCount = (attendees ?? []).filter((attendee: any) => attendee.present).length;
   const quorum = meeting.quorum_requirement ?? null;
   const quorumMet = quorum != null ? presentCount >= quorum : null;
-
-  async function saveMinutes(formData: FormData) {
-    'use server';
-    await requireStaff();
-    const sb = await createClient();
-    const fail = (msg: string) => redirect(`/meetings/${id}?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('meetings').update({
-      minutes: ((formData.get('minutes') as string) || '').trim() || null,
-      agenda: ((formData.get('agenda') as string) || '').trim() || null,
-    }).eq('id', id);
-    if (error) fail(error.message);
-    revalidatePath(`/meetings/${id}`);
-    redirect(`/meetings/${id}?saved=minutes`);
-  }
-
-  async function addAttendee(formData: FormData) {
-    'use server';
-    await requireStaff();
-    const sb = await createClient();
-    const fail = (msg: string) => redirect(`/meetings/${id}?error=${encodeURIComponent(msg)}`);
-    const name = ((formData.get('attendee_name') as string) || '').trim();
-    if (!name) fail('Enter an attendee name.');
-    const { error } = await (sb as any).from('meeting_attendees').insert({
-      meeting_id: id,
-      attendee_name: name,
-      attendee_role: ((formData.get('attendee_role') as string) || '').trim() || null,
-      owner_id: ((formData.get('owner_id') as string) || '').trim() || null,
-      present: true,
-      voting_eligible: formData.get('voting_eligible') === 'on',
-      check_in_time: new Date().toISOString(),
-    });
-    if (error) fail(error.message);
-    revalidatePath(`/meetings/${id}`);
-    redirect(`/meetings/${id}`);
-  }
-
-  async function removeAttendee(attendeeId: string) {
-    'use server';
-    await requireStaff();
-    const sb = await createClient();
-    const fail = (msg: string) => redirect(`/meetings/${id}?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('meeting_attendees').delete().eq('id', attendeeId);
-    if (error) fail(error.message);
-    revalidatePath(`/meetings/${id}`);
-    redirect(`/meetings/${id}`);
-  }
-
-  async function addDocument(formData: FormData) {
-    'use server';
-    const me2 = await requireStaff();
-    const sb = await createClient();
-    const fail = (msg: string) => redirect(`/meetings/${id}?error=${encodeURIComponent(msg)}`);
-    const file = formData.get('file') as File | null;
-    if (!file || file.size === 0) fail('Choose a file to attach.');
-    if (file!.size > 25 * 1024 * 1024) fail('Attachments are limited to 25 MB.');
-    const svc = createServiceClient() as any;
-    const safeName = file!.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `meetings/${id}/${Date.now()}-${safeName}`;
-    const { error: upErr } = await svc.storage.from(BUCKET).upload(path, file!, { contentType: file!.type || undefined });
-    if (upErr) fail(`Upload failed: ${upErr.message}`);
-    const { error } = await (sb as any).from('meeting_documents').insert({
-      meeting_id: id,
-      name: file!.name,
-      storage_path: path,
-      file_size: file!.size,
-      file_type: file!.type || null,
-      uploaded_by: me2.auth_user_id,
-      uploaded_at: new Date().toISOString(),
-    });
-    if (error) { await svc.storage.from(BUCKET).remove([path]); fail(error.message); }
-    revalidatePath(`/meetings/${id}`);
-    redirect(`/meetings/${id}?saved=document`);
-  }
+  const agendaEditable = meeting.status !== 'completed' && meeting.status !== 'cancelled';
+  const saved = successMessage(sp.saved);
 
   return (
     <DataWorkspace
@@ -139,129 +106,219 @@ export default async function MeetingDetailPage({
       description={`${meeting.meeting_type?.replace(/_/g, ' ') || 'Meeting'} · ${meeting.associations?.name || 'No association'}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href="/reports/monthly-package"><Button variant="secondary" size="sm">Board packet</Button></Link>
+          <Link href={`/board/meetings/${id}`}><Button variant="secondary" size="sm">Preview board packet</Button></Link>
+          <Link href="/reports/monthly-package"><Button variant="secondary" size="sm">Financial package</Button></Link>
           <Link href="/meetings"><Button variant="secondary" size="sm">Back to meetings</Button></Link>
         </div>
       }
     >
-      <div className="max-w-3xl space-y-4">
+      <div className="max-w-5xl space-y-4">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
-        {sp.saved === 'minutes' && <Alert tone="success" title="Meeting notes saved" />}
-        {sp.saved === 'document' && <Alert tone="success" title="Document attached" />}
+        {saved && <Alert tone="success" title={saved} />}
 
-        <Surface padded={false} className="p-5">
-          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-            <div><span className="text-gray-500">Date</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleDateString() : '—'}</p></div>
-            <div><span className="text-gray-500">Time</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</p></div>
-            <div><span className="text-gray-500">Location</span><p className="font-medium text-gray-900">{meeting.location || '—'}</p></div>
-            <div><span className="text-gray-500">Status</span><p className="font-medium capitalize text-gray-900">{meeting.status || '—'}</p></div>
-          </div>
+        <Surface className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div><span className="text-gray-500">Date</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleDateString() : '—'}</p></div>
+          <div><span className="text-gray-500">Time</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</p></div>
+          <div><span className="text-gray-500">Location</span><p className="font-medium text-gray-900">{meeting.location || '—'}</p></div>
+          <div><span className="text-gray-500">Status</span><p className="font-medium capitalize text-gray-900">{meeting.status?.replace(/_/g, ' ') || '—'}</p></div>
         </Surface>
 
-        {/* ── Sign-in / quorum ── */}
-        <Surface padded={false} className="p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-950">Sign-in &amp; quorum</h2>
-            <div className="flex items-center gap-2">
-              <StatusChip tone="neutral">{presentCount} present</StatusChip>
-              {quorum != null && (
-                <StatusChip tone={quorumMet ? 'success' : 'warning'}>
-                  Quorum {quorumMet ? 'met' : 'not met'} ({presentCount}/{quorum})
-                </StatusChip>
-              )}
-            </div>
-          </div>
-          {(attendees ?? []).length > 0 && (
-            <ul className="mb-4 divide-y divide-gray-100">
-              {(attendees ?? []).map((a: any) => (
-                <li key={a.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-900">{a.attendee_name}</span>
-                    {a.attendee_role && <span className="ml-2 text-xs capitalize text-gray-500">{a.attendee_role}</span>}
-                    {a.voting_eligible && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/15">Voting</span>}
-                    <div className="text-xs text-gray-400">{a.check_in_time ? `Checked in ${new Date(a.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—'}</div>
-                  </div>
-                  <form action={removeAttendee.bind(null, a.id)}>
-                    <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Remove</button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
-          {(boardMembers ?? []).filter((b: any) => !signedInIds.has(b.owner_id)).length > 0 && (
-            <div className="mb-4">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Quick sign-in (board)</div>
-              <div className="flex flex-wrap gap-2">
-                {(boardMembers ?? []).filter((b: any) => !signedInIds.has(b.owner_id)).map((b: any) => (
-                  <form key={b.id} action={addAttendee}>
-                    <input type="hidden" name="attendee_name" value={b.full_name} />
-                    <input type="hidden" name="attendee_role" value={b.role ?? 'board'} />
-                    <input type="hidden" name="owner_id" value={b.owner_id ?? ''} />
-                    <input type="hidden" name="voting_eligible" value="on" />
-                    <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                      + {b.full_name} <span className="capitalize text-gray-400">({b.role})</span>
-                    </button>
-                  </form>
-                ))}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+          <div className="space-y-4">
+            <Surface>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-950">Structured agenda</h2>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">Build the ordered agenda shown to the board and included in its PDF packet.</p>
+                </div>
+                <StatusChip tone="neutral">{agendaItems?.length ?? 0} items</StatusChip>
               </div>
-            </div>
-          )}
-          <form action={addAttendee} className="flex flex-wrap items-end gap-2">
-            <div className="min-w-[180px] flex-1">
-              <Label htmlFor="attendee_name">Add attendee</Label>
-              <Input id="attendee_name" name="attendee_name" placeholder="Name" required />
-            </div>
-            <div className="w-36">
-              <Label htmlFor="attendee_role">Role</Label>
-              <Input id="attendee_role" name="attendee_role" placeholder="e.g. owner" />
-            </div>
-            <label className="mb-2.5 flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="voting_eligible" className="h-4 w-4 rounded border-gray-300" /> Voting
-            </label>
-            <Button type="submit" variant="secondary">Sign in</Button>
-          </form>
-        </Surface>
 
-        {/* ── Agenda & minutes (editable) ── */}
-        <Surface padded={false} className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-950">Agenda &amp; minutes</h2>
-          <form action={saveMinutes} className="space-y-4">
-            <div>
-              <Label htmlFor="agenda">Agenda</Label>
-              <Textarea id="agenda" name="agenda" rows={4} defaultValue={meeting.agenda ?? ''} placeholder="1. Call to order&#10;2. ..." />
-            </div>
-            <div>
-              <Label htmlFor="minutes">Minutes</Label>
-              <Textarea id="minutes" name="minutes" rows={6} defaultValue={meeting.minutes ?? ''} placeholder="Record decisions, votes, and action items…" />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit">Save notes</Button>
-            </div>
-          </form>
-        </Surface>
+              {(agendaItems ?? []).length === 0 ? (
+                <EmptyState title="No agenda items" description={agendaEditable ? 'Add the first item below.' : 'This meeting was finalized without a structured agenda.'} />
+              ) : (
+                <ol className="divide-y divide-gray-100 border-y border-gray-100">
+                  {(agendaItems ?? []).map((item: any, index: number) => (
+                    <li key={item.id} className="flex items-start gap-3 py-3">
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-gray-900">{item.title}</span>
+                          <StatusChip tone="neutral">{CATEGORY_LABELS[item.category] ?? item.category}</StatusChip>
+                        </div>
+                        {item.description && <p className="mt-1 text-sm leading-5 text-gray-600">{item.description}</p>}
+                        <p className="mt-1 text-xs text-gray-400">
+                          {[item.duration_minutes ? `${item.duration_minutes} min` : null, item.presenter ? `Presenter: ${item.presenter}` : null].filter(Boolean).join(' · ') || 'No duration or presenter set'}
+                        </p>
+                      </div>
+                      {agendaEditable && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <form action={moveAgendaItem.bind(null, id, item.id, 'up')}><Button type="submit" variant="ghost" size="sm" disabled={index === 0} aria-label={`Move ${item.title} up`}>↑</Button></form>
+                          <form action={moveAgendaItem.bind(null, id, item.id, 'down')}><Button type="submit" variant="ghost" size="sm" disabled={index === (agendaItems?.length ?? 0) - 1} aria-label={`Move ${item.title} down`}>↓</Button></form>
+                          <form action={removeAgendaItem.bind(null, id, item.id)}><Button type="submit" variant="ghost" size="sm" aria-label={`Remove ${item.title}`}>Remove</Button></form>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
 
-        {/* ── Documents ── */}
-        <Surface padded={false} className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-gray-950">Documents ({documents?.length ?? 0})</h2>
-          {(documents ?? []).length > 0 && (
-            <ul className="mb-4 divide-y divide-gray-100">
-              {(documents ?? []).map((d: any) => (
-                <li key={d.id} className="flex items-center justify-between py-2 text-sm">
-                  {docUrlByPath.has(d.storage_path) ? (
-                    <a href={docUrlByPath.get(d.storage_path)} target="_blank" rel="noreferrer" className="truncate font-medium text-gray-900 hover:underline">{d.name}</a>
-                  ) : (
-                    <span className="truncate font-medium text-gray-900">{d.name}</span>
-                  )}
-                  <span className="text-xs text-gray-400">{date(d.uploaded_at ?? d.created_at)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <form action={addDocument} className="flex items-center gap-2">
-            <input type="file" name="file" required className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 hover:file:bg-gray-50" />
-            <Button type="submit" size="sm" variant="secondary">Attach</Button>
-          </form>
-        </Surface>
+              {agendaEditable ? (
+                <form action={addAgendaItem.bind(null, id)} className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Agenda item" required><Input name="title" required maxLength={255} placeholder="Treasurer’s report" /></Field>
+                    <Field label="Category"><Select name="category" defaultValue="general">{Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
+                    <Field label="Presenter"><Input name="presenter" maxLength={200} placeholder="Name or office" /></Field>
+                    <Field label="Duration (minutes)"><Input name="duration_minutes" type="number" min={1} max={480} placeholder="15" /></Field>
+                  </div>
+                  <Field label="Description"><Textarea name="description" rows={2} maxLength={5000} placeholder="Purpose, supporting material, or requested decision" /></Field>
+                  <Button type="submit" size="sm">Add agenda item</Button>
+                </form>
+              ) : (
+                <Alert tone="info" title="Agenda finalized">Completed and cancelled meetings preserve their structured agenda as read-only evidence.</Alert>
+              )}
+            </Surface>
+
+            <Surface>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-950">Follow-up actions</h2>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">Track ownership and completion after the meeting closes.</p>
+                </div>
+                <StatusChip tone="neutral">{actionItems?.length ?? 0} actions</StatusChip>
+              </div>
+              {(actionItems ?? []).length === 0 ? (
+                <EmptyState title="No follow-up actions" description="Add a decision, commitment, or next step below." />
+              ) : (
+                <ul className="divide-y divide-gray-100 border-y border-gray-100">
+                  {(actionItems ?? []).map((item: any) => (
+                    <li key={item.id} className="py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-gray-900">{item.title}</span>
+                            <StatusChip tone={ACTION_TONES[item.status] ?? 'neutral'}>{ACTION_LABELS[item.status] ?? item.status}</StatusChip>
+                          </div>
+                          {item.description && <p className="mt-1 text-sm leading-5 text-gray-600">{item.description}</p>}
+                          <p className="mt-1 text-xs text-gray-400">{[item.assigned_to ? `Owner: ${item.assigned_to}` : null, item.due_date ? `Due ${date(item.due_date)}` : null].filter(Boolean).join(' · ') || 'Unassigned · no due date'}</p>
+                        </div>
+                        <div className="flex flex-wrap items-end gap-2">
+                          <form action={updateMeetingActionStatus.bind(null, id, item.id)} className="flex items-center gap-2">
+                            <Select name="status" defaultValue={item.status} aria-label={`Status for ${item.title}`} className="w-36">
+                              {Object.entries(ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            </Select>
+                            <Button type="submit" variant="secondary" size="sm">Update</Button>
+                          </form>
+                          <form action={removeMeetingActionItem.bind(null, id, item.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form action={addMeetingActionItem.bind(null, id)} className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label="Follow-up action" required className="sm:col-span-2"><Input name="title" required maxLength={255} placeholder="Obtain revised roofing proposal" /></Field>
+                  <Field label="Due date"><Input name="due_date" type="date" /></Field>
+                  <Field label="Responsible person" className="sm:col-span-3"><Input name="assigned_to" maxLength={200} placeholder="Manager, board officer, committee, or vendor" /></Field>
+                </div>
+                <Field label="Details"><Textarea name="description" rows={2} maxLength={5000} placeholder="Completion criteria or supporting context" /></Field>
+                <Button type="submit" size="sm">Add follow-up</Button>
+              </form>
+            </Surface>
+
+            <Surface>
+              <h2 className="mb-3 text-sm font-semibold text-gray-950">Agenda summary &amp; minutes</h2>
+              <form action={saveMeetingNotes.bind(null, id)} className="space-y-4">
+                <Field label="Agenda summary" hint="Optional narrative summary; structured agenda items remain the board packet source.">
+                  <Textarea id="agenda" name="agenda" rows={4} defaultValue={meeting.agenda ?? ''} placeholder="Call to order, key decisions, executive session…" />
+                </Field>
+                <Field label="Minutes"><Textarea id="minutes" name="minutes" rows={8} defaultValue={meeting.minutes ?? ''} placeholder="Record motions, votes, decisions, recusals, and action items…" /></Field>
+                <div className="flex justify-end"><Button type="submit">Save notes</Button></div>
+              </form>
+            </Surface>
+          </div>
+
+          <div className="space-y-4">
+            <Surface>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-950">Sign-in &amp; quorum</h2>
+                <div className="flex items-center gap-2">
+                  <StatusChip tone="neutral">{presentCount} present</StatusChip>
+                  {quorum != null && <StatusChip tone={quorumMet ? 'success' : 'warning'}>{quorumMet ? 'Quorum met' : `Need ${Math.max(0, quorum - presentCount)} more`}</StatusChip>}
+                </div>
+              </div>
+              {(attendees ?? []).length > 0 && (
+                <ul className="mb-4 divide-y divide-gray-100">
+                  {(attendees ?? []).map((attendee: any) => (
+                    <li key={attendee.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-900">{attendee.attendee_name}</span>
+                        {attendee.attendee_role && <span className="ml-2 text-xs capitalize text-gray-500">{attendee.attendee_role}</span>}
+                        {attendee.voting_eligible && <span className="ml-2 text-[11px] font-medium text-blue-700">Voting</span>}
+                        <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—'}</div>
+                      </div>
+                      <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {(boardMembers ?? []).filter((member: any) => !signedInIds.has(member.owner_id)).length > 0 && (
+                <div className="mb-4">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">Quick sign-in · board</div>
+                  <div className="flex flex-wrap gap-2">
+                    {(boardMembers ?? []).filter((member: any) => !signedInIds.has(member.owner_id)).map((member: any) => (
+                      <form key={member.id} action={addMeetingAttendee.bind(null, id)}>
+                        <input type="hidden" name="attendee_name" value={member.full_name} />
+                        <input type="hidden" name="attendee_role" value={member.role ?? 'board'} />
+                        <input type="hidden" name="owner_id" value={member.owner_id ?? ''} />
+                        <input type="hidden" name="voting_eligible" value="on" />
+                        <Button type="submit" variant="secondary" size="sm">+ {member.full_name}</Button>
+                      </form>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <form action={addMeetingAttendee.bind(null, id)} className="space-y-3 border-t border-gray-100 pt-4">
+                <Field label="Attendee name" required><Input name="attendee_name" required placeholder="Name" /></Field>
+                <Field label="Role"><Input name="attendee_role" placeholder="Owner, guest, counsel…" /></Field>
+                <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="voting_eligible" className="h-4 w-4 rounded border-gray-300" /> Voting eligible</label>
+                <Button type="submit" variant="secondary" size="sm">Sign in</Button>
+              </form>
+            </Surface>
+
+            <Surface>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-950">Meeting documents</h2>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">Private, short-lived downloads for authorized staff and board members.</p>
+                </div>
+                <StatusChip tone="neutral">{documents?.length ?? 0}</StatusChip>
+              </div>
+              {(documents ?? []).length > 0 ? (
+                <ul className="mb-4 divide-y divide-gray-100">
+                  {(documents ?? []).map((document: any) => (
+                    <li key={document.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <div className="min-w-0">
+                        <a href={`/api/meeting-documents/${document.id}`} target="_blank" rel="noreferrer" className="block truncate font-medium text-gray-900 hover:underline">{document.name}</a>
+                        <span className="text-xs text-gray-400">{document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB · ` : ''}{date(document.uploaded_at ?? document.created_at)}</span>
+                      </div>
+                      <form action={removeMeetingDocument.bind(null, id, document.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
+                    </li>
+                  ))}
+                </ul>
+              ) : <EmptyState title="No meeting documents" description="Attach the notice, proposals, exhibits, or signed minutes below." />}
+              <form action={addMeetingDocument.bind(null, id)} className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                <div>
+                  <Label htmlFor="meeting-document">Attach document</Label>
+                  <Input id="meeting-document" type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,.txt,.csv" className="h-auto py-2" />
+                  <p className="mt-1 text-xs text-gray-400">PDF, image, Office, text, or CSV · 25 MB maximum</p>
+                </div>
+                <Button type="submit" variant="secondary" size="sm">Attach document</Button>
+              </form>
+            </Surface>
+          </div>
+        </div>
       </div>
     </DataWorkspace>
   );

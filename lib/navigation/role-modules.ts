@@ -63,6 +63,7 @@ export const companyAdminModules: AppModule[] = [
   { label: 'Overview', href: '/company-admin/overview' },
   { label: 'AI Command Center', href: '/company-admin/insights' },
   { label: 'Associations', href: '/company-admin/associations' },
+  { label: 'Meetings', href: '/meetings' },
   { label: 'Managers', href: '/company-admin/managers' },
   { label: 'Performance', href: '/company-admin/performance' },
   { label: 'Portfolio Health', href: '/company-admin/portfolio-health' },

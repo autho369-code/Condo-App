@@ -1,13 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
 import { Calendar, MapPin, Clock, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
-import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
-import { isScopedStoragePath } from '@/lib/security/storage-paths'
 
 interface Meeting {
   id: string
@@ -42,6 +39,16 @@ interface MeetingDoc {
   file_size: number | null
   file_type: string | null
   uploaded_at: string
+}
+
+interface MeetingActionItem {
+  id: string
+  meeting_id: string
+  title: string
+  description: string | null
+  assigned_to: string | null
+  due_date: string | null
+  status: string
 }
 
 interface FinancialSnapshot {
@@ -91,16 +98,16 @@ const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 te
 export default function MeetingDetailClient() {
   const params = useParams()
   const meetingId = params.id as string
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [meeting, setMeeting] = useState<Meeting | null>(null)
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([])
   const [documents, setDocuments] = useState<MeetingDoc[]>([])
+  const [actionItems, setActionItems] = useState<MeetingActionItem[]>([])
   const [financials, setFinancials] = useState<FinancialSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [isStaff, setIsStaff] = useState(false)
 
   // New agenda item form
   const [newTitle, setNewTitle] = useState('')
@@ -121,40 +128,21 @@ export default function MeetingDetailClient() {
       .single()
     if (m) setMeeting(m as Meeting)
 
-    // Load agenda items
-    const { data: a } = await db
-      .from('agenda_items')
-      .select('*')
-      .eq('meeting_id', meetingId)
-      .order('sort_order', { ascending: true })
-    if (a) setAgendaItems(a as AgendaItem[])
-
-    // Load documents
-    const { data: d } = await db
-      .from('meeting_documents')
-      .select('*')
-      .eq('meeting_id', meetingId)
-      .order('uploaded_at', { ascending: false })
-    if (d) setDocuments(d as MeetingDoc[])
-
-    // Load financial snapshot
-    if (m?.association_id) {
-      const { data: f } = await db.rpc('get_meeting_financial_snapshot', {
-        p_association_id: m.association_id,
-      })
-      if (f) setFinancials(f as FinancialSnapshot)
-    }
-
-    // Check if user is staff
-    const { data: meData } = await supabase.auth.getUser()
-    if (meData.user) {
-      const { data: staffCheck } = await db.rpc('me')
-      // Board members can view, but only staff/operators can edit
-      if (staffCheck) {
-        const s = Array.isArray(staffCheck) ? staffCheck[0] : staffCheck
-        setIsStaff(s?.is_full_access_staff || s?.is_platform_operator || s?.is_staff || false)
-      }
-    }
+    // Start all meeting-child reads together once the authorized meeting has
+    // established the association needed by the financial snapshot RPC.
+    const [agendaResult, documentResult, actionResult, financialResult] = await Promise.all([
+      db.from('agenda_items').select('*').eq('meeting_id', meetingId).order('sort_order', { ascending: true }),
+      db.from('meeting_documents').select('*').eq('meeting_id', meetingId).order('uploaded_at', { ascending: false }),
+      db.from('meeting_action_items').select('*').eq('meeting_id', meetingId)
+        .order('status', { ascending: true }).order('due_date', { ascending: true, nullsFirst: false }),
+      m?.association_id
+        ? db.rpc('get_meeting_financial_snapshot', { p_association_id: m.association_id })
+        : Promise.resolve({ data: null }),
+    ])
+    if (agendaResult.data) setAgendaItems(agendaResult.data as AgendaItem[])
+    if (documentResult.data) setDocuments(documentResult.data as MeetingDoc[])
+    if (actionResult.data) setActionItems(actionResult.data as MeetingActionItem[])
+    if (financialResult.data) setFinancials(financialResult.data as FinancialSnapshot)
 
     setLoading(false)
   }, [meetingId, supabase])
@@ -256,6 +244,10 @@ export default function MeetingDetailClient() {
     setGenerating(true)
 
     try {
+      const [{ jsPDF }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ])
       const doc = new jsPDF({ unit: 'pt', format: 'letter' })
       const pageW = doc.internal.pageSize.getWidth()
       let y = 50
@@ -369,6 +361,35 @@ export default function MeetingDetailClient() {
           margin: { left: 50 },
           tableWidth: pageW - 100,
         })
+        y = (doc as any).lastAutoTable.finalY + 24
+      }
+
+      // Follow-up actions
+      if (actionItems.length > 0) {
+        if (y > 600) {
+          doc.addPage()
+          y = 50
+        }
+        doc.setFontSize(16)
+        doc.setTextColor(30, 58, 95)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Follow-up Actions', 50, y)
+        y += 24
+
+        ;(doc as any).autoTable({
+          startY: y,
+          head: [['Action', 'Responsible', 'Due', 'Status']],
+          body: actionItems.map((item: MeetingActionItem) => [
+            item.title,
+            item.assigned_to ?? '',
+            item.due_date ? date(item.due_date, 'short') : '',
+            item.status.replace(/_/g, ' '),
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [30, 58, 95], fontStyle: 'bold' },
+          margin: { left: 50 },
+          tableWidth: pageW - 100,
+        })
       }
 
       // Footer
@@ -403,7 +424,9 @@ export default function MeetingDetailClient() {
     )
   }
 
-  const canEdit = isStaff && meeting.status !== 'completed' && meeting.status !== 'cancelled'
+  // This route is intentionally a board-view surface. Management mutations
+  // live in /meetings/[id], even when one identity also holds a staff role.
+  const canEdit = false
 
   return (
     <div className="space-y-6">
@@ -589,6 +612,34 @@ export default function MeetingDetailClient() {
               </div>
             )}
           </div>
+
+          {/* Follow-up actions (board read-only) */}
+          <div className={`${card} overflow-hidden`}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="text-sm font-semibold text-gray-950">Follow-up Actions</h2>
+              <span className="text-xs text-gray-400">{actionItems.length} action{actionItems.length !== 1 ? 's' : ''}</span>
+            </div>
+            {actionItems.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-gray-500">No follow-up actions have been recorded.</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {actionItems.map((item: MeetingActionItem) => (
+                  <div key={item.id} className="px-5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-gray-900">{item.title}</span>
+                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
+                        {item.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    {item.description && <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>}
+                    <p className="mt-1 text-xs text-gray-400">
+                      {[item.assigned_to ? `Responsible: ${item.assigned_to}` : null, item.due_date ? `Due ${date(item.due_date, 'short')}` : null].filter(Boolean).join(' · ') || 'Unassigned · no due date'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Sidebar: Documents */}
@@ -605,7 +656,7 @@ export default function MeetingDetailClient() {
             <div className="divide-y divide-gray-100">
               {documents.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-gray-500">
-                  No documents attached. Use the upload button below to add files.
+                  {canEdit ? 'No documents attached. Use the upload button below to add files.' : 'No documents have been attached.'}
                 </div>
               ) : (
                 documents.map((d: MeetingDoc) => (
@@ -617,29 +668,20 @@ export default function MeetingDetailClient() {
                         {d.file_type ?? 'Unknown'} &middot; {d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : 'Unknown size'}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!isScopedStoragePath(d.storage_path, 'meetings', meetingId)) {
-                          alert('Could not open the file: invalid document reference')
-                          return
-                        }
-                        const { data, error } = await supabase.storage
-                          .from('association-documents')
-                          .createSignedUrl(d.storage_path, 60 * 10)
-                        if (error || !data?.signedUrl) { alert('Could not open the file: ' + (error?.message ?? 'unknown error')); return }
-                        window.open(data.signedUrl, '_blank', 'noopener')
-                      }}
+                    <a
+                      href={`/api/meeting-documents/${d.id}`}
+                      target="_blank"
+                      rel="noreferrer"
                       className="shrink-0 text-xs font-medium text-blue-600 transition-colors hover:text-blue-800"
                     >
                       Download
-                    </button>
+                    </a>
                   </div>
                 ))
               )}
             </div>
             {/* Upload */}
-            <div className="border-t border-gray-100 px-5 py-4">
+            {canEdit && <div className="border-t border-gray-100 px-5 py-4">
               <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700">
                 {uploading ? (
                   <>
@@ -659,7 +701,7 @@ export default function MeetingDetailClient() {
                   disabled={uploading}
                 />
               </label>
-            </div>
+            </div>}
           </div>
 
           {/* Meeting Minutes */}
