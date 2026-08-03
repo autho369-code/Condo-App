@@ -36,11 +36,10 @@ export default async function LettersPage() {
     <DataWorkspace
       title="Letters"
       description="Document templates with merge fields for owner notices, vendor correspondence, statements, and more."
-      actions={
-        <Link href="/letters/new">
-          <Button><Plus className="h-4 w-4" /> New template</Button>
-        </Link>
-      }
+      actions={<>
+        <Link href="/letters/mail"><Button variant="secondary">Physical mail</Button></Link>
+        <Link href="/letters/new"><Button><Plus className="h-4 w-4" /> New template</Button></Link>
+      </>}
     >
       <div className="space-y-6">
         <MetricStrip

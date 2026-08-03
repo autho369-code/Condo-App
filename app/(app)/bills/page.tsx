@@ -63,6 +63,11 @@ export default async function BillsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
+  let billsQuery = db.from('payable_bills')
+    .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)');
+  if (statusFilter === 'pending_approval') billsQuery = billsQuery.eq('status', 'pending_approval');
+  billsQuery = billsQuery.order('due_date', { ascending: true, nullsFirst: false }).limit(500);
+
   // ── PARALLEL: fetch all tab data ──
   const [
     { data: allBills },
@@ -73,10 +78,7 @@ export default async function BillsPage({
     { data: bankAccounts },
   ] = await Promise.all([
     // Bills tab: all non-archived bills
-    db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)')
-      .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(500),
+    billsQuery,
     // Payments tab: paid bills
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')

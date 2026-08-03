@@ -1,413 +1,493 @@
 'use client';
 
-/* ────────────────────────────────────────────────────────────────────────
-   TasksRail — route-aware right panel (AppFolio-style Tasks / Reports /
-   Help), restored as a single global component.
-   · ≥1280px (xl): fixed right rail, collapsible, preference remembered
-   · <1280px: floating button opens a slide-over sheet
-   Every href below is a real route — no placeholders.
-   ──────────────────────────────────────────────────────────────────────── */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
-  ClipboardList, X, Star, BarChart3, ChevronRight, PanelRightClose, PanelRightOpen,
+  ArrowUpRight,
+  AlertTriangle,
+  BarChart3,
+  BookOpen,
+  BriefcaseBusiness,
+  ChevronRight,
+  PanelRightClose,
+  PanelRightOpen,
+  Pin,
+  Search,
+  Sparkles,
+  X,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/shell';
+import {
+  getActionCenter,
+  canAccessActionLink,
+  type ActionCenterLink,
+  type ActionCenterSection,
+  type ActionCenterTab,
+} from '@/lib/navigation/action-center';
+import type { ActionCenterAttentionItem } from '@/lib/navigation/action-center-attention';
 
-type PanelLink = { label: string; href: string };
-type PanelSection = { title: string; icon?: 'tasks' | 'reports'; links: PanelLink[] };
-type PanelDef = {
-  match: RegExp;
-  sections?: PanelSection[];
-  // For route families whose panel depends on the URL (record id, ?view= tab)
-  build?: (pathname: string, view: string) => PanelSection[];
+const STORAGE_KEY = 'p369.actionCenter.v1';
+const TAB_META: Record<ActionCenterTab, { label: string; icon: React.ElementType }> = {
+  work: { label: 'Work', icon: BriefcaseBusiness },
+  reports: { label: 'Reports', icon: BarChart3 },
+  help: { label: 'Help', icon: BookOpen },
 };
 
-const PANELS: PanelDef[] = [
-  {
-    match: /^\/associations\/[^/]+\/board/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New approval', href: '/associations' },
-        { label: 'Send email', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/associations\/[^/]+/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New unit', href: '/units/new' },
-        { label: 'New owner', href: '/owners/new' },
-        { label: 'New work order', href: '/maintenance/new' },
-        { label: 'New violation', href: '/violations/new' },
-        { label: 'New meeting', href: '/meetings/new' },
-        { label: 'Send email', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'All reports', href: '/reports' },
-        { label: 'Budget vs actuals', href: '/budget-vs-actuals' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/associations/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New association', href: '/associations/new' },
-        { label: 'New building', href: '/buildings/new' },
-        { label: 'New unit', href: '/units/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/(bank-accounts|bank-transfers|journal-entries|gl-accounts|charges|bills|budget|diagnostics)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New bank account', href: '/bank-accounts/new' },
-        { label: 'Record deposit', href: '/bank-accounts/deposits/new' },
-        { label: 'Reconcile account', href: '/bank-accounts/reconcile/new' },
-        { label: 'Bank adjustment', href: '/bank-accounts/adjustments/new' },
-        { label: 'New bill', href: '/bills/new' },
-        { label: 'Owner payable', href: '/bills/owner-payable/new' },
-        { label: 'New budget', href: '/budget/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'All reports', href: '/reports' },
-        { label: 'Budget vs actuals', href: '/budget-vs-actuals' },
-        { label: 'Diagnostics', href: '/diagnostics' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/(work-orders|maintenance)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New work order', href: '/maintenance/new' },
-        { label: 'Maintenance comms', href: '/maintenance/communications' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    // Individual owner record — actions scoped to this owner
-    match: /^\/owners\/[0-9a-f]{8}-[0-9a-f-]+$/,
-    build: (pathname) => {
-      const ownerId = pathname.split('/')[2];
-      return [
-        { title: 'Tasks', icon: 'tasks', links: [
-          { label: 'Record charge', href: '/charges/new' },
-          { label: 'Charge late fee', href: '/charges/new' },
-          { label: 'Receivables for this owner', href: `/charges?owner=${ownerId}` },
-          { label: 'Send statement', href: `/owners/${ownerId}?view=statements` },
-          { label: 'Owner payable / refund', href: '/bills/owner-payable/new' },
-          { label: 'Edit owner / contact info', href: `/owners/${ownerId}#contact` },
-          { label: 'Manage portal access', href: `/owners/${ownerId}#portal-access` },
-          { label: 'Management agreement', href: `/owners/management-agreements?owner=${ownerId}` },
-          { label: 'Send email', href: '/send-email' },
-        ]},
-        { title: 'Reports', icon: 'reports', links: [
-          { label: 'Owner ledger', href: '/reports/homeowner_ledger' },
-          { label: 'Delinquency', href: '/reports/delinquency' },
-          { label: 'All reports', href: '/reports' },
-        ]},
-      ];
-    },
-  },
-  {
-    match: /^\/owners/,
-    build: (_pathname, view) => {
-      if (view === 'tenants') {
-        return [
-          { title: 'Tasks', icon: 'tasks', links: [
-            { label: 'Add tenant (via owner record)', href: '/owners' },
-            { label: 'Export leases (CSV)', href: '/owners/leases/export' },
-            { label: 'Lease renewal notice', href: '/send-email' },
-          ]},
-          { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-        ];
-      }
-      if (view === 'directory') {
-        return [
-          { title: 'Tasks', icon: 'tasks', links: [
-            { label: 'Export directory (CSV)', href: '/owners/directory/export' },
-            { label: 'Send announcement', href: '/communication-center' },
-            { label: 'Send owner form', href: '/owners/forms' },
-            { label: 'New owner', href: '/owners/new' },
-          ]},
-          { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-        ];
-      }
-      return [
-        { title: 'Tasks', icon: 'tasks', links: [
-          { label: 'New owner', href: '/owners/new' },
-          { label: 'Management agreement', href: '/owners/management-agreements/new' },
-          { label: 'Send email', href: '/send-email' },
-          { label: 'Statement settings', href: '/bulk-statement-settings/new' },
-        ]},
-        { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-      ];
-    },
-  },
-  {
-    match: /^\/vendors/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New vendor', href: '/vendors/new' },
-        { label: 'New work order', href: '/maintenance/new' },
-        { label: 'New bill', href: '/bills/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/(violations)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New violation', href: '/violations/new' },
-        { label: 'Send letter', href: '/letters/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/meetings/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New meeting', href: '/meetings/new' },
-        { label: 'Minutes & sign-in (open a meeting)', href: '/meetings' },
-        { label: 'Send meeting notice', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'Board packet', href: '/reports/board_packet' },
-        { label: 'All reports', href: '/reports' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/calendar/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New event', href: '/calendar/new' },
-        { label: 'New meeting', href: '/meetings/new' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/architectural-reviews/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'Review queue', href: '/architectural-reviews' },
-        { label: 'Send decision letter', href: '/letters/new' },
-        { label: 'Email the owner', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/amenities/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'Manage reservations', href: '/amenities' },
-        { label: 'Bookable amenities (by association)', href: '/associations' },
-        { label: 'Send amenity notice', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'Amenities assigned', href: '/reports/amenities_assigned' },
-        { label: 'All reports', href: '/reports' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/lock-boxes/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'Add lock box', href: '/lock-boxes/new' },
-        { label: 'Active assignments', href: '/lock-boxes?tab=assignments' },
-        { label: 'Key inventory', href: '/lock-boxes?tab=keys' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'Keys report', href: '/reports/keys' },
-        { label: 'All reports', href: '/reports' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/(communication-center|surveys)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'Compose email', href: '/send-email' },
-        { label: 'Send SMS', href: '/sms' },
-        { label: 'New letter', href: '/letters/new' },
-        { label: 'Review drafts', href: '/communication-center' },
-        { label: 'Surveys', href: '/surveys' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/(insurance)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [{ label: 'New policy', href: '/insurance/new' }] },
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-  {
-    match: /^\/(documents|letters|sms|send-email|inbox)/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'Generate document', href: '/documents/generate' },
-        { label: 'New template', href: '/documents/templates/new' },
-        { label: 'New letter', href: '/letters/new' },
-        { label: 'New SMS template', href: '/sms/templates/new' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/dashboard/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New work order', href: '/maintenance/new' },
-        { label: 'New violation', href: '/violations/new' },
-        { label: 'New event', href: '/calendar/new' },
-        { label: 'Send email', href: '/send-email' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [
-        { label: 'All reports', href: '/reports' },
-        { label: 'Budget vs actuals', href: '/budget-vs-actuals' },
-      ]},
-    ],
-  },
-  {
-    match: /^\/automation-center/,
-    sections: [
-      { title: 'Tasks', icon: 'tasks', links: [
-        { label: 'New flow', href: '/automation-center/flows/new' },
-        { label: 'Create event automation', href: '/calendar/new' },
-      ]},
-      { title: 'Reports', icon: 'reports', links: [{ label: 'All reports', href: '/reports' }] },
-    ],
-  },
-];
+type StoredPreferences = {
+  desktopOpen?: boolean;
+  pinned?: ActionCenterLink[];
+};
 
-function panelFor(pathname: string, view: string): PanelSection[] | null {
-  for (const p of PANELS) {
-    if (p.match.test(pathname)) return p.build ? p.build(pathname, view) : (p.sections ?? null);
-  }
-  return null;
-}
+type TasksRailProps = {
+  isStaff?: boolean;
+  isFinanceStaff?: boolean;
+  isAdmin?: boolean;
+  attention?: ActionCenterAttentionItem[];
+};
 
-function SectionBlock({ section }: { section: PanelSection }) {
-  const Icon = section.icon === 'reports' ? BarChart3 : Star;
+function AttentionList({
+  items,
+  idPrefix,
+  onNavigate,
+}: {
+  items: ActionCenterAttentionItem[];
+  idPrefix: string;
+  onNavigate?: () => void;
+}) {
+  if (items.length === 0) return null;
+  const headingId = `${idPrefix}-attention`;
   return (
-    <div>
-      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-        <Icon className="h-3 w-3" /> {section.title}
+    <section className="border-b border-gray-100 bg-white px-3 py-3" aria-labelledby={headingId}>
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <h3 id={headingId} className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+          <AlertTriangle className="h-3 w-3 text-amber-500" /> Needs attention
+        </h3>
+        <span className="text-[10px] text-gray-400">Current</span>
       </div>
-      <ul className="space-y-0.5">
-        {section.links.map((l) => (
-          <li key={l.href + l.label}>
+      <ul className="space-y-1">
+        {items.map((item) => (
+          <li key={item.href}>
             <Link
-              href={l.href}
-              className="group flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-950"
+              href={item.href}
+              onClick={onNavigate}
+              className="flex min-h-10 items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-[12px] text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+              aria-label={`${item.count} ${item.label}`}
             >
-              {l.label}
-              <ChevronRight className="h-3.5 w-3.5 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
+              <span className="leading-4">{item.label}</span>
+              <Badge tone={item.tone} className="shrink-0 tabular-nums">{item.count}</Badge>
             </Link>
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function readPreferences(): StoredPreferences {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) as StoredPreferences : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePreferences(next: StoredPreferences) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // The Action Center remains fully usable when storage is unavailable.
+  }
+}
+
+function ActionRow({
+  item,
+  pinned,
+  onTogglePin,
+  onNavigate,
+}: {
+  item: ActionCenterLink;
+  pinned: boolean;
+  onTogglePin: (item: ActionCenterLink) => void;
+  onNavigate?: () => void;
+}) {
+  return (
+    <li className={item.primary ? 'rounded-xl border border-gray-200 bg-gray-950 text-white shadow-sm' : 'group rounded-xl border border-transparent hover:border-gray-200 hover:bg-white'}>
+      <div className="flex items-start gap-1">
+        <Link
+          href={item.href}
+          onClick={onNavigate}
+          className={item.primary
+            ? 'min-h-10 min-w-0 flex-1 px-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white'
+            : 'min-h-10 min-w-0 flex-1 px-3 py-2.5 focus-visible:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-400'}
+        >
+          <span className="flex items-center justify-between gap-2">
+            <span className={item.primary ? 'text-[13px] font-semibold text-white' : 'text-[13px] font-medium text-gray-800'}>{item.label}</span>
+            {item.primary
+              ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+              : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />}
+          </span>
+          {item.description ? (
+            <span className={item.primary ? 'mt-1 block text-[11px] leading-4 text-gray-300' : 'mt-1 block text-[11px] leading-4 text-gray-500'}>
+              {item.description}
+            </span>
+          ) : null}
+        </Link>
+        <button
+          type="button"
+          onClick={() => onTogglePin(item)}
+          className={item.primary
+            ? 'mr-1 mt-1.5 rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
+            : 'mr-1 mt-1.5 rounded-lg p-2 text-gray-300 opacity-60 hover:bg-gray-100 hover:text-gray-700 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400'}
+          aria-label={`${pinned ? 'Unpin' : 'Pin'} ${item.label}`}
+          aria-pressed={pinned}
+          title={`${pinned ? 'Unpin' : 'Pin'} action`}
+        >
+          <Pin className={`h-3.5 w-3.5 ${pinned ? 'fill-current' : ''}`} />
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function SectionBlock({
+  section,
+  idPrefix,
+  pinnedHrefs,
+  onTogglePin,
+  onNavigate,
+}: {
+  section: ActionCenterSection;
+  idPrefix: string;
+  pinnedHrefs: Set<string>;
+  onTogglePin: (item: ActionCenterLink) => void;
+  onNavigate?: () => void;
+}) {
+  return (
+    <section aria-labelledby={`${idPrefix}-${section.tab}-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <h3
+          id={`${idPrefix}-${section.tab}-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+          className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400"
+        >
+          {section.title}
+        </h3>
+        <span className="text-[10px] tabular-nums text-gray-300">{section.links.length}</span>
+      </div>
+      <ul className="space-y-1">
+        {section.links.map((item) => (
+          <ActionRow
+            key={`${item.href}-${item.label}`}
+            item={item}
+            pinned={pinnedHrefs.has(item.href)}
+            onTogglePin={onTogglePin}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ActionCenterBody({
+  sections,
+  idPrefix,
+  query,
+  pinned,
+  onTogglePin,
+  onNavigate,
+}: {
+  sections: ActionCenterSection[];
+  idPrefix: string;
+  query: string;
+  pinned: ActionCenterLink[];
+  onTogglePin: (item: ActionCenterLink) => void;
+  onNavigate?: () => void;
+}) {
+  const term = query.trim().toLowerCase();
+  const visibleSections = React.useMemo(() => sections
+    .map((section) => ({
+      ...section,
+      links: term
+        ? section.links.filter((link) => `${link.label} ${link.description ?? ''} ${section.title}`.toLowerCase().includes(term))
+        : section.links,
+    }))
+    .filter((section) => section.links.length > 0), [sections, term]);
+  const pinnedHrefs = React.useMemo(() => new Set(pinned.map((item) => item.href)), [pinned]);
+
+  if (visibleSections.length === 0) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <Search className="mx-auto h-5 w-5 text-gray-300" />
+        <p className="mt-3 text-sm font-medium text-gray-700">No matching actions</p>
+        <p className="mt-1 text-xs leading-5 text-gray-400">Try a workflow, report, or task name.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 px-3 py-4">
+      {visibleSections.map((section) => (
+        <SectionBlock
+          key={`${section.tab}-${section.title}`}
+          section={section}
+          idPrefix={idPrefix}
+          pinnedHrefs={pinnedHrefs}
+          onTogglePin={onTogglePin}
+          onNavigate={onNavigate}
+        />
+      ))}
     </div>
   );
 }
 
-function TasksRailInner() {
+function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = false, attention = [] }: TasksRailProps) {
   const pathname = usePathname() || '';
   const searchParams = useSearchParams();
   const view = searchParams?.get('view') ?? '';
-  const sections = panelFor(pathname, view);
+  const panel = React.useMemo(
+    () => getActionCenter(pathname, view, { isStaff, isFinanceStaff, isAdmin }),
+    [pathname, view, isStaff, isFinanceStaff, isAdmin],
+  );
   const [desktopOpen, setDesktopOpen] = React.useState(true);
   const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<ActionCenterTab>('work');
+  const [query, setQuery] = React.useState('');
+  const [pinned, setPinned] = React.useState<ActionCenterLink[]>([]);
+  const desktopSearchRef = React.useRef<HTMLInputElement>(null);
+  const mobileSearchRef = React.useRef<HTMLInputElement>(null);
+  const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const mobileDialogRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('p369.tasksRail');
-      if (saved !== null) setDesktopOpen(saved === '1');
-    } catch {}
+    const saved = readPreferences();
+    if (typeof saved.desktopOpen === 'boolean') setDesktopOpen(saved.desktopOpen);
   }, []);
+
   React.useEffect(() => {
-    setSheetOpen(false); // close sheet on navigation
+    setSheetOpen(false);
+    setQuery('');
   }, [pathname]);
 
-  if (!sections) return null;
+  React.useEffect(() => {
+    const saved = readPreferences();
+    setPinned((saved.pinned ?? []).filter((item) => {
+      if (!item || typeof item.href !== 'string' || typeof item.label !== 'string') return false;
+      if (!item.href.startsWith('/') || item.href.startsWith('//') || item.href.length > 500 || item.label.length > 80) return false;
+      return canAccessActionLink(item, { isStaff, isFinanceStaff, isAdmin });
+    }).slice(-8));
+  }, [isStaff, isFinanceStaff, isAdmin]);
 
-  const body = (
-    <div className="space-y-5 px-4 py-4">
-      {sections.map((s, i) => <SectionBlock key={i} section={s} />)}
-    </div>
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (sheetOpen && event.key === 'Escape' && !event.isComposing) {
+        setSheetOpen(false);
+        window.requestAnimationFrame(() => mobileTriggerRef.current?.focus());
+      }
+      if (sheetOpen && event.key === 'Tab') {
+        const dialog = mobileDialogRef.current;
+        if (!dialog) return;
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )).filter((element) => element.getClientRects().length > 0);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!dialog.contains(document.activeElement)) {
+          event.preventDefault();
+          first.focus();
+        } else if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sheetOpen]);
+
+  React.useEffect(() => {
+    if (!sheetOpen) return;
+    const frame = window.requestAnimationFrame(() => mobileSearchRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [sheetOpen]);
+
+  if (!panel) return null;
+
+  const tabs = (Object.keys(TAB_META) as ActionCenterTab[]).filter((tab) => panel.sections.some((section) => section.tab === tab));
+  const selectedTab = tabs.includes(activeTab) ? activeTab : tabs[0];
+  const selectedSections = panel.sections.filter((section) => section.tab === selectedTab);
+
+  const togglePin = (item: ActionCenterLink) => {
+    setPinned((current) => {
+      const exists = current.some((candidate) => candidate.href === item.href);
+      const next = exists ? current.filter((candidate) => candidate.href !== item.href) : [...current, item].slice(-8);
+      const saved = readPreferences();
+      writePreferences({ ...saved, pinned: next });
+      return next;
+    });
+  };
+
+  const toggleDesktop = () => {
+    setDesktopOpen((current) => {
+      const next = !current;
+      const saved = readPreferences();
+      writePreferences({ ...saved, desktopOpen: next });
+      return next;
+    });
+  };
+
+  const body = (idPrefix: string, searchRef: React.RefObject<HTMLInputElement | null>) => (
+    <>
+      <AttentionList items={attention} idPrefix={idPrefix} onNavigate={() => setSheetOpen(false)} />
+      <div className="border-b border-gray-100 px-3 pb-3 pt-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Find an action or report"
+            className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-[12px] text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white focus:ring-2 focus:ring-gray-200"
+            aria-label="Search Action Center"
+          />
+        </div>
+      </div>
+      <div className="border-b border-gray-100 px-3 py-2">
+        <div className="grid grid-flow-col auto-cols-fr gap-1 rounded-lg bg-gray-100 p-1" aria-label="Action Center sections">
+          {tabs.map((tab) => {
+            const Icon = TAB_META[tab].icon;
+            const count = panel.sections.filter((section) => section.tab === tab).reduce((sum, section) => sum + section.links.length, 0);
+            return (
+              <button
+                key={tab}
+                type="button"
+                aria-pressed={selectedTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={selectedTab === tab
+                  ? 'flex h-8 items-center justify-center gap-1.5 rounded-md bg-white px-2 text-[11px] font-semibold text-gray-900 shadow-sm'
+                  : 'flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-gray-500 hover:text-gray-800'}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {TAB_META[tab].label}
+                <span className="tabular-nums text-[10px] text-gray-400">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {selectedTab === 'work' && pinned.length > 0 && !query ? (
+        <div className="border-b border-gray-100 bg-amber-50/40 px-3 py-3">
+          <div className="mb-2 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+            <Pin className="h-3 w-3 fill-current" /> Pinned shortcuts
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {pinned.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSheetOpen(false)}
+                className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-900 shadow-sm hover:border-amber-300"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
+        <ActionCenterBody
+          sections={selectedSections}
+          idPrefix={idPrefix}
+          query={query}
+          pinned={pinned}
+          onTogglePin={togglePin}
+          onNavigate={() => setSheetOpen(false)}
+        />
+      </div>
+    </>
   );
 
   return (
     <>
-      {/* Desktop rail (xl+) */}
       <aside
-        className={
-          'hidden xl:flex print:hidden h-screen flex-shrink-0 flex-col overflow-hidden border-l border-gray-200/80 bg-white transition-[width] duration-200 ' +
-          (desktopOpen ? 'w-64' : 'w-11')
-        }
-        aria-label="Tasks panel"
+        className={`hidden h-screen flex-shrink-0 flex-col overflow-hidden border-l border-gray-200/80 bg-[#fbfbfc] print:hidden xl:flex ${desktopOpen ? 'w-[304px]' : 'w-12'} transition-[width] duration-200`}
+        aria-label="Action Center"
       >
-        <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-100 px-3">
-          {desktopOpen && <span className="text-[13px] font-semibold text-gray-950">Tasks</span>}
+        <div className={`flex h-14 flex-shrink-0 items-center border-b border-gray-100 ${desktopOpen ? 'justify-between px-4' : 'justify-center px-1'}`}>
+          {desktopOpen ? (
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-950"><Sparkles className="h-3.5 w-3.5" /> Action Center</div>
+              <div className="truncate text-[10px] text-gray-400">{panel.label}</div>
+            </div>
+          ) : null}
           <button
-            onClick={() => {
-              const next = !desktopOpen;
-              setDesktopOpen(next);
-              try { window.localStorage.setItem('p369.tasksRail', next ? '1' : '0'); } catch {}
-            }}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-            aria-label={desktopOpen ? 'Collapse tasks panel' : 'Expand tasks panel'}
+            type="button"
+            onClick={toggleDesktop}
+            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+            aria-label={desktopOpen ? 'Collapse Action Center' : 'Expand Action Center'}
+            title={`${desktopOpen ? 'Collapse' : 'Expand'} Action Center`}
           >
             {desktopOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </button>
         </div>
-        {desktopOpen && <div className="flex-1 overflow-y-auto">{body}</div>}
+        {desktopOpen ? body('desktop-action-center', desktopSearchRef) : (
+          <button type="button" onClick={toggleDesktop} className="mt-3 flex flex-col items-center gap-2 py-3 text-gray-400 hover:text-gray-800" aria-label="Expand Action Center">
+            <Sparkles className="h-4 w-4" />
+            <span className="[writing-mode:vertical-rl] text-[10px] font-semibold uppercase tracking-[0.12em]">Actions</span>
+          </button>
+        )}
       </aside>
 
-      {/* Mobile / tablet: floating button + slide-over */}
       <button
+        ref={mobileTriggerRef}
+        type="button"
         onClick={() => setSheetOpen(true)}
-        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gray-950 text-white shadow-lg transition-transform active:scale-95 xl:hidden"
-        aria-label="Open tasks panel"
+        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 flex h-11 items-center gap-2 rounded-full bg-gray-950 px-4 text-white shadow-lg transition-transform active:scale-95 xl:hidden"
+        aria-label="Open Action Center"
+        aria-haspopup="dialog"
+        aria-expanded={sheetOpen}
       >
-        <ClipboardList className="h-5 w-5" />
+        <Sparkles className="h-4 w-4" />
+        <span className="text-xs font-semibold">Actions</span>
       </button>
-      {sheetOpen && (
-        <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Tasks panel">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSheetOpen(false)} />
-          <div className="absolute inset-y-0 right-0 flex w-[300px] max-w-[85vw] flex-col bg-white shadow-xl">
-            <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-100 px-4">
-              <span className="text-[13px] font-semibold text-gray-950">Tasks</span>
-              <button onClick={() => setSheetOpen(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close tasks panel">
+
+      {sheetOpen ? (
+        <div ref={mobileDialogRef} className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label={`${panel.label} Action Center`}>
+          <button type="button" tabIndex={-1} className="absolute inset-0 bg-black/35" onClick={() => { setSheetOpen(false); mobileTriggerRef.current?.focus(); }} aria-label="Close Action Center" />
+          <div className="absolute inset-y-0 right-0 flex w-[340px] max-w-[92vw] flex-col bg-[#fbfbfc] shadow-2xl">
+            <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-100 px-4">
+              <div>
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-950"><Sparkles className="h-3.5 w-3.5" /> Action Center</div>
+                <div className="text-[10px] text-gray-400">{panel.label}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setSheetOpen(false); mobileTriggerRef.current?.focus(); }}
+                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                aria-label="Close Action Center"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">{body}</div>
+            {body('mobile-action-center', mobileSearchRef)}
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }
 
-// useSearchParams requires a Suspense boundary during prerender.
-export default function TasksRail() {
+export default function TasksRail(props: TasksRailProps) {
   return (
     <React.Suspense fallback={null}>
-      <TasksRailInner />
+      <TasksRailInner {...props} />
     </React.Suspense>
   );
 }

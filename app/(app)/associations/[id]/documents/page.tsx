@@ -87,7 +87,9 @@ export default async function AssociationDocumentsTab({
     const back = `/associations/${backSeg}/documents`;
     const fail = (msg: string): never => redirect(`${back}?error=${encodeURIComponent(msg)}`);
 
-    const docType = (formData.get('doc_type') as string) || 'other';
+    const docType = (formData.get('doc_type') as string) || 'association_document';
+    const allowedDocTypes = new Set<string>([...OPERATING_TYPES, 'association_document']);
+    if (!allowedDocTypes.has(docType)) fail('Choose a valid association document type.');
     const file = formData.get('file') as File | null;
     if (!file || file.size === 0) fail('Choose a file to upload.');
     if (file!.size > 10 * 1024 * 1024) fail('Each document must be under 10 MB — upload files one at a time.');
@@ -108,7 +110,13 @@ export default async function AssociationDocumentsTab({
       uploaded_at: new Date().toISOString(),
       uploaded_by: me.auth_user_id,
     });
-    if (error) fail(error.message);
+    if (error) {
+      // Storage is written with the service client before the tenant-scoped
+      // metadata row is inserted. Roll the object back if the database rejects
+      // the row so a failed upload never leaves an invisible orphan behind.
+      await svc.storage.from(BUCKET).remove([path]);
+      fail(`Could not save document record: ${error.message}`);
+    }
 
     revalidatePath(back);
     revalidatePath('/onboard');

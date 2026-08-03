@@ -322,3 +322,73 @@ architecture makes features cheap that are expensive for AppFolio.
 - Payments/insurance/screening: [homeowners portal](https://www.appfolio.com/hoa/community-association-homeowners) · [insurance Q&A](https://www.justanswer.com/accounting-software/u4ki5-appfolio-insurance-services-tenants-benefits.html) · [Findigs screening](https://www.findigs.com/compare/appfolio-tenant-screening)
 - Reporting/owner/mobile: [report customization](https://www.appfolio.com/blog/tips-and-tricks-for-customizing-your-appfolio-reports) · [owner experience](https://www.appfolio.com/property-management-owner-experience) · [research.com review](https://research.com/software/reviews/appfolio-property-manager)
 - Pricing: [appfoliopricing.com](https://appfoliopricing.com/) · [costbench](https://costbench.com/software/property-management/appfolio/)
+
+---
+
+## 7. Authenticated workflow audit update — 2026-08-01
+
+This update supersedes feature-state claims above where they conflict. Codex inspected the authenticated Stellar Property Group AppFolio workspace; Claude independently cross-checked Portier369's repository coverage and challenged the priorities. No customer names, balances, messages, tokens, or other workspace data are reproduced here. Tenant, rental, leasing, and screening surfaces remain out of scope.
+
+### Audited AppFolio surface
+
+| Segment | Workflows inspected | Portier369 position after this slice |
+|---|---|---|
+| Association administration | Association/unit directory, board and committees, approval routing, ARC, budgets and variances, amenities, fees, keys, settings, statements, banks, attachments, notes, audit history | Broad coverage; Portier adds role-specific board workspaces and now board-visible capital planning |
+| Accounting | Receivables, payables, bank accounts, journal entries, transfers, GL accounts, diagnostics, periods, management fees, approval configuration | Broad coverage; new guided period close adds hard-close readiness gates and audited reopening |
+| Maintenance and assets | Service requests, work orders, recurring work, inspections, unit turns, projects, purchase orders, inventory, fixed assets, scheduling and follow-up | Broad list/create coverage; inspection, project, and unit-turn detail depth remains a priority |
+| Reporting | Standard, scheduled, memorized, bulk, diagnostic, maintenance, association, owner, tax, and custom report-builder entry points | Portier catalog is already broader; saved/memorized view persistence and drill-down polish remain |
+| Communications | Letters, PDF forms, inbox/texting, templates, automated communications, reminders, surveys, bulk communications | Records and workflow coverage exist; a production two-way SMS gateway is still provider-gated |
+| People and vendors | Homeowners, owners, vendors, vendor compliance, payment preferences, tax reporting | Covered, with separate vendor and board workspaces |
+| Administration | Company, banking, roles, GL permissions, property groups, agreements, portals, maintenance policy, communications, sessions/devices, calendar sync | Most primitives exist; GL-permission administration and property-group management UI need depth |
+| Ecosystem | Marketplace/partners, AI assistant, native mobile, physical mail | Portier now has scoped read APIs and self-service keys; signed outbound delivery, marketplace packaging, native/offline field work, and physical-mail fulfillment remain gaps |
+
+### Shipped in this audit slice
+
+1. **Guided accounting-period close** — 12-period initialization, open/soft-closed/closed states, draft-journal and bank-reconciliation close gates, reason-required reopening, and atomic audit history.
+2. **Capital & Reserve Planning** — component inventory, fixed-asset linkage, lifecycle/replacement assumptions, inflation and interest, special assessments, multiple funding scenarios, 1–50 year projections, minimum annual contribution, approval workflow, and a board read view. Draft assumptions are withheld at the RLS boundary.
+3. **Developer Hub and read API** — one-time API secrets, explicit scopes, expiry/revocation, per-IP and per-key rate limits, suspended-portfolio rejection, safe search/pagination, and five portfolio-scoped endpoints: associations, work orders, vendors, violations, and reserve plans.
+4. **Webhook boundary hardening** — arbitrary dispatch and key verification are service-only; endpoint creation rejects non-public DNS/IP targets. Outbound creation remains fail-closed until an SSRF-safe delivery worker is explicitly installed and enabled.
+
+### Next dependency-ordered program
+
+1. Finish inspection, project, and unit-turn detail workflows; add PO approval thresholds.
+2. Add GL-permission administration and a year-end close package with immutable statement snapshots.
+3. Build a stateful, state-law-aware delinquency ladder with human approval for lien/collections steps.
+4. Install real two-way SMS and SSRF-safe signed webhook delivery workers, then enable those provider-gated surfaces.
+5. Add property-group management, management-agreement administration, and stronger saved-report views.
+6. Complete offline field operations, physical-mail fulfillment, and partner marketplace packaging.
+
+This is a competitive program, not a claim that Portier369 already exceeds AppFolio in every segment. Production rollout remains subject to the repository's controlled-pilot gates and explicit migration/provider certification.
+
+---
+
+## 8. Release-closure update — 2026-08-02
+
+Codex re-audited the live Vercel project and Claude independently reviewed the complete uncommitted slice. Production at `portier369.com` is healthy but still serves Git commit `7313d04`; the audited AppFolio workflow slice and the later tenant-routing commits are not in that deployment. No production database or delivery-provider state was changed during this closure pass.
+
+### Additional fixes completed
+
+1. **Action Center report-link integrity** — corrected two homeowner delinquency links from the nonexistent `delinquency_summary` slug to the seeded `delinquency` report, and corrected the meeting Board packet link to the real monthly-package workflow.
+2. **Dynamic report route verification** — the route audit now checks hard-coded `/reports/{slug}` links against seeded report definitions instead of treating every dynamic slug as valid. The stronger check found the additional Board packet defect above.
+3. **Stale-session recovery** — revoked or rotated Supabase refresh tokens are cleared on their first request and protected routes return a professional session-expired sign-in path. This eliminates the repeated `refresh_token_not_found` middleware error seen in production telemetry.
+4. **Manual certified-mail evidence** — while Lob is disabled, a portfolio administrator can record USPS tracking, delivery date, reviewer identity, and a required evidence note. The security-definer RPC enforces portfolio scope, limits the workflow to a delinquency case, and writes an audit event. The human legal-review gate remains mandatory.
+
+### Verified release evidence
+
+- Production build: passed; 157 static pages generated and all dynamic routes compiled.
+- TypeScript: passed after the build.
+- Tests: 75 files and 255 tests passed.
+- Route audit: zero missing routes, zero unresolved seeded report slugs, zero placeholders.
+- Migration check: 207 valid SQL files with unique numeric versions.
+- Production migration dry run: six ordered migrations pending (`20260801040000` through `20260802010000`).
+- Secret scan: passed.
+- Claude first audit: four narrow release findings; all actionable code findings were addressed.
+- Claude final delta review: no P0 blocker; it confirmed the certified-mail authorization and immutability boundaries, then identified two extra stale-session codes and report-audit future-proofing issues. All three findings were addressed and reverified.
+
+### Remaining release boundary
+
+1. Direct Vercel preview upload failed twice at the API/network boundary; the compressed retry uploaded 43.6 MB but failed before deployment creation. No preview exists from this tree.
+2. The reliable publication path is a reviewed Git commit/push, followed by the normal Vercel preview deployment. Codex does not create commits without explicit user authorization.
+3. Apply the six migrations only after the preview artifact is available and reviewed; then promote the same artifact to production.
+4. Final authenticated browser verification requires a manager session in Chrome. Current production and prior preview tabs both redirect to login.
+5. SMS, webhook, and physical-mail provider delivery remain fail-closed. Enable them only after Twilio/Lob account certification and provider smoke tests.

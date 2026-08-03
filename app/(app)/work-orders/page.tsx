@@ -85,33 +85,52 @@ export default async function WorkOrdersPage({
   const me = await requireStaff();
   const { tab: tabParam, q = '', status = '', priority = '', association_id = '', vendor_id = '' } = await searchParams;
   const tab = parseTab(tabParam);
+  const todayDate = new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
   const db = supabase as any;
+
+  let workOrdersQuery = db.from('work_orders')
+    .select('id, number, title, description, status, priority, scheduled_date, vendor_id, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
+    .is('archived_at', null);
+  if (status === 'overdue') {
+    workOrdersQuery = workOrdersQuery
+      .lt('scheduled_date', todayDate)
+      .not('status', 'in', '("done","completed","billed","closed","cancelled")');
+  }
+  workOrdersQuery = workOrdersQuery
+    .order('priority', { ascending: false })
+    .order('scheduled_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(500);
+  const aggregateRowsQuery = status === 'overdue'
+    ? db.from('work_orders')
+        .select('id, status, priority, scheduled_date, vendor_id')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+        .limit(500)
+    : Promise.resolve({ data: null });
 
   // ── Fetch work orders + reference lists ──
   const [
     { data: rows },
     { data: associations },
     { data: vendors },
+    { data: aggregateRows },
   ] = await Promise.all([
-    db.from('work_orders')
-      .select('id, number, title, description, status, priority, scheduled_date, vendor_id, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
-      .is('archived_at', null)
-      .order('priority', { ascending: false })
-      .order('scheduled_date', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(500),
+    workOrdersQuery,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    aggregateRowsQuery,
   ]);
 
   const all = (rows ?? []) as any[];
+  const aggregateAll = status === 'overdue' ? ((aggregateRows ?? []) as any[]) : all;
 
   // ── Tab counts ──
-  const tabCounts = Object.fromEntries(TABS.map((t) => [t.key, all.filter(tabFilter(t.key)).length]));
+  const tabCounts = Object.fromEntries(TABS.map((t) => [t.key, aggregateAll.filter(tabFilter(t.key)).length]));
 
   // ── Filter ──
-  let filtered = all.filter(tabFilter(tab));
+  let filtered = all.filter(tabFilter(status === 'overdue' ? 'all' : tab));
   if (q) {
     const ql = q.toLowerCase();
     filtered = filtered.filter(
@@ -125,20 +144,26 @@ export default async function WorkOrdersPage({
         (w.units?.unit_number ?? '').toLowerCase().includes(ql),
     );
   }
-  if (status) filtered = filtered.filter((w: any) => w.status === status);
+  if (status === 'overdue') {
+    filtered = filtered.filter((w: any) => (
+      w.scheduled_date
+      && w.scheduled_date < todayDate
+      && !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(w.status)
+    ));
+  } else if (status) {
+    filtered = filtered.filter((w: any) => w.status === status);
+  }
   if (priority) filtered = filtered.filter((w: any) => w.priority === priority);
   if (association_id) filtered = filtered.filter((w: any) => w.association_id === association_id);
   if (vendor_id) filtered = filtered.filter((w: any) => w.vendor_id === vendor_id);
 
   // ── Metrics ──
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const openCount = all.filter((w: any) => !['completed','closed','cancelled'].includes(w.status)).length;
-  const inProgressCount = all.filter((w: any) => w.status === 'in_progress').length;
-  const overdueCount = all.filter(
-    (w: any) => w.scheduled_date && new Date(w.scheduled_date) < now && !['completed','closed','cancelled'].includes(w.status),
+  const openCount = aggregateAll.filter((w: any) => !['completed','closed','cancelled'].includes(w.status)).length;
+  const inProgressCount = aggregateAll.filter((w: any) => w.status === 'in_progress').length;
+  const overdueCount = aggregateAll.filter(
+    (w: any) => w.scheduled_date && w.scheduled_date < todayDate && !['done','completed','billed','closed','cancelled'].includes(w.status),
   ).length;
-  const completedMonthCount = all.filter(
+  const completedMonthCount = aggregateAll.filter(
     (w: any) => (w.status === 'completed' || w.status === 'closed'),
   ).length; // simplified
 
@@ -202,7 +227,7 @@ export default async function WorkOrdersPage({
         {/* ── TABS ── */}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TABS.map((t) => {
-            const active = t.key === tab;
+            const active = status !== 'overdue' && t.key === tab;
             const params = new URLSearchParams();
             params.set('tab', t.key);
             if (q) params.set('q', q);
@@ -235,10 +260,11 @@ export default async function WorkOrdersPage({
           searchDefault={q}
           searchPlaceholder="Search by number, title, vendor, unit..."
         >
-          <input type="hidden" name="tab" value={tab} />
+          <input type="hidden" name="tab" value={status === 'overdue' ? 'all' : tab} />
 
           <FilterSelect label="Status" name="status" defaultValue={status}>
             <option value="">All statuses</option>
+            <option value="overdue">Overdue</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>{formatLabel(s)}</option>
             ))}

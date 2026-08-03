@@ -22,12 +22,10 @@ function entityName(e: any): string {
 export function SmsForm({
   owners,
   vendors,
-  tenants = [],
   templates,
 }: {
   owners: any[];
   vendors: any[];
-  tenants?: any[];
   templates: any[];
 }) {
   const [recipientType, setRecipientType] = useState<string>('owner');
@@ -36,7 +34,7 @@ export function SmsForm({
   const [message, setMessage] = useState<string>('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
 
-  const entities = recipientType === 'owner' ? owners : recipientType === 'vendor' ? vendors : tenants;
+  const entities = recipientType === 'owner' ? owners : vendors;
 
   function handleEntityChange(id: string) {
     setSelectedId(id);
@@ -53,7 +51,7 @@ export function SmsForm({
     if (tpl) setMessage(tpl.body);
   }
 
-  const entityLabel = recipientType === 'owner' ? 'Owner' : recipientType === 'vendor' ? 'Vendor' : 'Tenant';
+  const entityLabel = recipientType === 'owner' ? 'Owner' : 'Vendor';
 
   return (
     <form action={sendSms as any} className="space-y-4">
@@ -68,10 +66,6 @@ export function SmsForm({
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
             <input type="radio" name="recipient_type" value="vendor" checked={recipientType === 'vendor'} onChange={() => { setRecipientType('vendor'); setSelectedId(''); setPhoneNumber(''); }} />
             Vendor
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
-            <input type="radio" name="recipient_type" value="tenant" checked={recipientType === 'tenant'} onChange={() => { setRecipientType('tenant'); setSelectedId(''); setPhoneNumber(''); }} />
-            Tenant
           </label>
         </div>
       </div>
@@ -153,21 +147,6 @@ export function SmsForm({
           <span>SMS messages are limited to 1600 characters</span>
           <span>{message.length}/1600</span>
         </div>
-      </div>
-
-      {/* From number (optional) */}
-      <div>
-        <label htmlFor="from_number" className="mb-1 block text-sm font-medium text-gray-700">
-          From number
-        </label>
-        <input
-          id="from_number"
-          name="from_number"
-          type="tel"
-          placeholder="Company phone number"
-          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-        />
-        <p className="mt-1 text-xs text-gray-400">Leave blank to use company default</p>
       </div>
 
       <div className="flex gap-3">

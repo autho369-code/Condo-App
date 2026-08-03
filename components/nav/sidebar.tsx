@@ -1,10 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useMemo } from 'react'
+import { Search } from 'lucide-react'
 import { appModules, type AppModule } from '@/lib/navigation/modules'
 import { createClient } from '@/lib/supabase/client'
+
+function matchesPathname(pathname: string, href: string) {
+  const path = href.split('?')[0]
+  return pathname === path || (path.length > 1 && pathname.startsWith(`${path}/`))
+}
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -39,12 +45,15 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
   subtitle?: string;
 }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const searchKey = searchParams.toString()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [navQuery, setNavQuery] = useState('')
 
   const defaults: Record<string, boolean> = {}
   modules.forEach((s) => {
-    if (s.children) defaults[s.label] = s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))
+    if (s.children) defaults[s.label] = s.children.some((i) => matchesPathname(pathname, i.href))
   })
   const [open, setOpen] = useState<Record<string, boolean>>(defaults)
 
@@ -52,7 +61,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
     setOpen(prev => {
       const next = { ...prev }
       modules.forEach((s) => {
-        if (s.children && s.children.some((i) => pathname.startsWith(i.href.split('?')[0]))) {
+        if (s.children && s.children.some((i) => matchesPathname(pathname, i.href))) {
           next[s.label] = true
         }
       })
@@ -63,10 +72,30 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
   }, [pathname, modules])
 
   const toggle = (label: string) => setOpen(p => ({ ...p, [label]: !p[label] }))
-  const active = (href: string) => {
-    const b = href.split('?')[0]
-    return pathname === b || (b.length > 1 && pathname.startsWith(b))
-  }
+  const activeHref = useMemo(() => {
+    const hrefs = modules.flatMap((module) => [module.href, ...(module.children?.map((child) => child.href) ?? [])])
+    const current = new URLSearchParams(searchKey)
+    return hrefs
+      .map((href) => {
+        const [path, query = ''] = href.split('?')
+        const required = new URLSearchParams(query)
+        const queryMatches = Array.from(required.entries()).every(([key, value]) => current.get(key) === value)
+        return { href, path, queryMatches, querySpecificity: Array.from(required.keys()).length }
+      })
+      .filter(({ href, queryMatches }) => matchesPathname(pathname, href) && queryMatches)
+      .sort((a, b) => (b.path.length - a.path.length) || (b.querySpecificity - a.querySpecificity))[0]?.href
+  }, [modules, pathname, searchKey])
+  const active = (href: string) => href === activeHref
+
+  const visibleModules = useMemo(() => {
+    const query = navQuery.trim().toLowerCase()
+    if (!query) return modules
+    return modules.flatMap((module) => {
+      if (module.label.toLowerCase().includes(query)) return [module]
+      const children = module.children?.filter((child) => child.label.toLowerCase().includes(query)) ?? []
+      return children.length ? [{ ...module, children }] : []
+    })
+  }, [modules, navQuery])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -98,10 +127,28 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
             </div>
           </div>
         )}
+        <div className="relative mt-3">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#52525b]" />
+          <input
+            type="search"
+            value={navQuery}
+            onChange={(event) => setNavQuery(event.target.value)}
+            placeholder="Find a workspace"
+            className="h-8 w-full rounded-md border border-white/[0.08] bg-white/[0.04] pl-8 pr-2 text-[12px] text-[#e4e4e7] outline-none placeholder:text-[#52525b] focus:border-white/[0.18] focus:bg-white/[0.06] focus:ring-1 focus:ring-white/[0.08]"
+            aria-label="Filter navigation"
+            aria-controls="workspace-navigation"
+          />
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 [scrollbar-width:thin] [scrollbar-color:#27272a_transparent]">
-        {modules.map((s) => {
+      <div className="sr-only" aria-live="polite">
+        {navQuery ? `${visibleModules.reduce((count, module) => count + (module.children?.length ?? 1), 0)} navigation results` : ''}
+      </div>
+      <nav id="workspace-navigation" className="flex-1 overflow-y-auto py-3 [scrollbar-width:thin] [scrollbar-color:#27272a_transparent]">
+        {visibleModules.map((s, index) => {
+          const previousGroup = visibleModules[index - 1]?.group
+          const showGroup = Boolean(s.group && s.group !== previousGroup)
+          const item = (() => {
           if (s.accent) return (
             <Link key={s.label} href={s.href}
               className={
@@ -109,17 +156,19 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
                 (active(s.href)
                   ? 'bg-white text-gray-950'
                   : 'bg-white/[0.92] text-gray-950 hover:bg-white')
-              }>
+              }
+              aria-current={active(s.href) ? 'page' : undefined}>
               {s.label}
             </Link>
           )
           if (!s.children) return (
             <Link key={s.label} href={s.href}
-              className={itemBase + ' ' + (active(s.href) ? itemActive : itemIdle)}>
+              className={itemBase + ' ' + (active(s.href) ? itemActive : itemIdle)}
+              aria-current={active(s.href) ? 'page' : undefined}>
               {s.label}
             </Link>
           )
-          const isOpen = open[s.label]
+          const isOpen = navQuery ? true : open[s.label]
           const isActive = s.children.some((i: any) => active(i.href))
           const submenuId = `sidebar-submenu-${s.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
           return (
@@ -137,6 +186,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
                 <div id={submenuId} className="relative my-0.5 ml-[22px] border-l border-white/[0.07] pl-1">
                   {s.children.map((c: any) => (
                     <Link key={c.href} href={c.href}
+                      aria-current={active(c.href) ? 'page' : undefined}
                       className={
                         'flex h-[30px] items-center rounded-md px-3 text-[12.5px] transition-colors duration-100 ' +
                         (active(c.href)
@@ -150,7 +200,23 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
               )}
             </div>
           )
+          })()
+          return (
+            <div key={s.label}>
+              {showGroup ? (
+                <div className={`px-5 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#3f3f46] ${index === 0 ? 'pt-1' : 'pt-4'}`}>
+                  {s.group}
+                </div>
+              ) : null}
+              {item}
+            </div>
+          )
         })}
+        {visibleModules.length === 0 ? (
+          <div className="px-5 py-8 text-center text-[12px] leading-5 text-[#52525b]">
+            No workspace matches &quot;{navQuery}&quot;.
+          </div>
+        ) : null}
       </nav>
 
       {/* User footer */}

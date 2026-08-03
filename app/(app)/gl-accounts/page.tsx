@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -29,7 +29,7 @@ export default async function GLAccountsPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { q = '' } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
@@ -59,11 +59,10 @@ export default async function GLAccountsPage({
     <DataWorkspace
       title="GL Accounts"
       description="Chart of accounts for the portfolio. Ranges follow standard accounting conventions (1xxx Assets, 2xxx Liabilities, 3xxx Equity, 4xxx Income, 5xxx COGS, 6xxx Expenses, 7xxx Other Income, 8xxx Other Expenses, 9xxx Non-Operating)."
-      actions={
-        <Link href="/gl-accounts/new">
-          <Button><Plus className="h-4 w-4" /> New GL account</Button>
-        </Link>
-      }
+      actions={<>
+        {hasPortfolioAdminAccess(me) && <Link href="/gl-accounts/permissions"><Button variant="secondary">Role permissions</Button></Link>}
+        <Link href="/gl-accounts/new"><Button><Plus className="h-4 w-4" /> New GL account</Button></Link>
+      </>}
     >
       <div className="space-y-6">
         <MetricStrip

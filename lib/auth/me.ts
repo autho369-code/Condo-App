@@ -167,6 +167,20 @@ export async function requireVendor() {
   return me;
 }
 
+/** Shared staff workspace, including company admins who may not hold a staff role row. */
+export async function requireWorkspaceStaff(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
+  return me;
+}
+
+/** Financial administration for accountants, full-access staff, company admins, and operators. */
+export async function requireFinanceOrPortfolioAdmin(): Promise<MeResult> {
+  const me = await requireAuth();
+  if (!me.is_finance_staff && !me.is_company_admin && !me.is_platform_operator) redirect(roleHome(me));
+  return me;
+}
+
 export async function requireFinanceStaff(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_finance_staff && !me.is_platform_operator) redirect(roleHome(me));

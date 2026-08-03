@@ -12,6 +12,7 @@ export const PUBLIC_PATHS = [
   '/reset-password',
   '/accept-invitation',
   '/api/auth/callback',
+  '/api/v1',
   '/report-violation',
   '/invite',
   '/demo',
@@ -28,5 +29,10 @@ export const PUBLIC_PATHS = [
   '/api/billing/assess-late-fees',
   '/api/automation/run-flows',
   '/api/email/process-queue',
+  '/api/sms/deliver',
+  '/api/sms/twilio/status',
+  '/api/sms/twilio/inbound',
+  '/api/webhooks/deliver',
+  '/api/mail/deliver',
   '/report-card',
 ] as const;

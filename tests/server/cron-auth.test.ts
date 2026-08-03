@@ -9,6 +9,7 @@ function reqWithAuth(authorization?: string) {
 }
 
 describe('requireCronSecret (fail-closed cron guard)', () => {
+  const secret = 'test-cron-secret-at-least-32-bytes-long';
   afterEach(() => vi.unstubAllEnvs());
 
   it('fails closed with 503 when no CRON_SECRET is configured', () => {
@@ -18,21 +19,26 @@ describe('requireCronSecret (fail-closed cron guard)', () => {
   });
 
   it('rejects a missing bearer token with 401', () => {
-    vi.stubEnv('CRON_SECRET', 's3cret');
+    vi.stubEnv('CRON_SECRET', secret);
     const res = requireCronSecret(reqWithAuth(undefined));
     expect(res?.status).toBe(401);
   });
 
   it('rejects a wrong bearer token with 401', () => {
-    vi.stubEnv('CRON_SECRET', 's3cret');
+    vi.stubEnv('CRON_SECRET', secret);
     expect(requireCronSecret(reqWithAuth('Bearer wrong'))?.status).toBe(401);
     // Prefix/suffix variants must not pass either.
-    expect(requireCronSecret(reqWithAuth('Bearer s3cret-extra'))?.status).toBe(401);
-    expect(requireCronSecret(reqWithAuth('s3cret'))?.status).toBe(401);
+    expect(requireCronSecret(reqWithAuth(`Bearer ${secret}-extra`))?.status).toBe(401);
+    expect(requireCronSecret(reqWithAuth(secret))?.status).toBe(401);
   });
 
   it('passes (returns null) with the exact bearer token', () => {
+    vi.stubEnv('CRON_SECRET', secret);
+    expect(requireCronSecret(reqWithAuth(`Bearer ${secret}`))).toBeNull();
+  });
+
+  it('fails closed when the configured secret is too short', () => {
     vi.stubEnv('CRON_SECRET', 's3cret');
-    expect(requireCronSecret(reqWithAuth('Bearer s3cret'))).toBeNull();
+    expect(requireCronSecret(reqWithAuth('Bearer s3cret'))?.status).toBe(503);
   });
 });

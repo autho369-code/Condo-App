@@ -262,7 +262,9 @@ export default async function InspectionsPage({
                 return (
                   <TR key={insp.id}>
                     <TD className="font-medium text-gray-900">
-                      {insp.inspection_type ?? 'Untitled'}
+                      <Link href={`/inspections/${insp.id}`} className="block text-gray-900 hover:text-blue-700">
+                        {insp.inspection_type ?? 'Untitled'}
+                      </Link>
                     </TD>
                     <TD className="text-sm text-gray-700">{insp.associations?.name ?? '—'}</TD>
                     <TD className="text-sm text-gray-700">{insp.units?.unit_number ?? '—'}</TD>
