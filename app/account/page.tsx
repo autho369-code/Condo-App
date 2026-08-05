@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { requireAuth } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
+import { StatusChip } from '@/components/operations/status-chip';
+import { requiresMfa } from '@/lib/auth/mfa-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +59,10 @@ export default async function AccountPage({
   const me = await requireAuth();
   const sp = await searchParams;
   const back = homeHref(me);
+  const supabase = await createClient();
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const mfaActive = (factors?.totp.length ?? 0) > 0;
+  const mfaRequired = requiresMfa(me);
 
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
@@ -110,6 +116,35 @@ export default async function AccountPage({
             <p className="mt-3 text-xs text-gray-400">
               To change your email, contact an administrator.
             </p>
+          </section>
+
+          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-inset ring-blue-100">
+                  <KeyRound className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Two-step verification</h2>
+                    <StatusChip tone={mfaActive ? 'success' : mfaRequired ? 'warning' : 'neutral'}>
+                      {mfaActive ? 'Active' : mfaRequired ? 'Required — setup needed' : 'Not enabled'}
+                    </StatusChip>
+                  </div>
+                  <p className="mt-1 text-[13px] leading-5 text-gray-500">
+                    {mfaActive
+                      ? 'Your account has a verified authenticator.'
+                      : 'Set up an authenticator app for stronger account protection.'}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/mfa?manage=1&next=${encodeURIComponent('/account')}`}
+                className="inline-flex h-10 shrink-0 items-center rounded-lg border border-gray-300 bg-white px-3 text-[13px] font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-950"
+              >
+                {mfaActive ? 'Review' : 'Set up'}
+              </Link>
+            </div>
           </section>
 
           {/* ======== CHANGE PASSWORD ======== */}

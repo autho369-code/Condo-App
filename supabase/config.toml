@@ -292,6 +292,13 @@ max_frequency = "5s"
 # enabled = true
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
+# Enable after the Supabase organization supports password-verification hooks.
+# The database function is installed by migration 20260803080000 and verified
+# locally, but leaving an unsupported hosted hook enabled makes config push fail.
+# [auth.hook.password_verification_attempt]
+# enabled = true
+# uri = "pg-functions://postgres/public/hook_password_verification_attempt"
+
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
 enabled = false

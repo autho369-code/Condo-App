@@ -6,6 +6,8 @@ import { headers } from 'next/headers';
 import { isActivePortalRecord, isActiveProfile } from '@/lib/security/portal-access';
 import { tenantAccessDecision } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { requiresMfa } from '@/lib/auth/mfa-policy';
+import { safeInternalNext } from '@/lib/security/redirects';
 
 export interface MeResult {
   auth_user_id: string | null;
@@ -72,7 +74,40 @@ function localPreviewMe(): MeResult {
   };
 }
 
-export async function getMe(): Promise<MeResult> {
+function decodeRequestPath(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return safeInternalNext(decodeURIComponent(value));
+  } catch {
+    return null;
+  }
+}
+
+async function enforceConfiguredMfa(me: MeResult, supabase: Awaited<ReturnType<typeof createClient>>) {
+  if (!me.auth_user_id || !requiresMfa(me) || localPreviewEnabled()) return;
+
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (!error && data?.currentLevel === 'aal2') return;
+
+  const requestPath = decodeRequestPath((await headers()).get('x-portier-request-path'));
+  const requestPathname = requestPath
+    ? new URL(requestPath, 'https://portier369.invalid').pathname
+    : null;
+  const home = roleHome(me);
+  const safeHome = home === '/login' ? '/account' : home;
+  const candidate = requestPath && requestPathname !== '/mfa' && !requestPathname?.startsWith('/api/')
+    ? requestPath
+    : safeHome;
+  const candidatePathname = new URL(candidate, 'https://portier369.invalid').pathname;
+  const next = candidatePathname === '/login' || candidatePathname === '/mfa'
+    ? safeHome
+    : candidate;
+  const query = new URLSearchParams({ next });
+  if (error) query.set('error', 'verification_unavailable');
+  redirect(`/mfa?${query.toString()}`);
+}
+
+export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeResult> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('me');
   if (error) {
@@ -85,6 +120,7 @@ export async function getMe(): Promise<MeResult> {
     redirect('/login?error=account_disabled');
   }
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
+  if (options.enforceMfa !== false) await enforceConfiguredMfa(me, supabase);
   return me;
 }
 

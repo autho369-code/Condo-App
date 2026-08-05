@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { isProfileRole } from '@/lib/auth/profile-roles';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { resetUserMfa as resetMfaFactors } from '@/lib/auth/mfa-admin';
 
 const USERS = '/platform-operator/users';
 
@@ -31,7 +32,7 @@ async function requireUserAdministrator() {
 
 async function loadManagedTarget(svc: any, userId: string) {
   const [{ data: profile, error: profileError }, { data: operator, error: operatorError }, authResult] = await Promise.all([
-    svc.from('profiles').select('id, email, hoa_role, disabled_at').eq('id', userId).maybeSingle(),
+    svc.from('profiles').select('id, email, hoa_role, disabled_at, portfolio_id').eq('id', userId).maybeSingle(),
     svc.from('platform_operators').select('id').eq('auth_user_id', userId).maybeSingle(),
     svc.auth.admin.getUserById(userId),
   ]);
@@ -138,4 +139,25 @@ export async function changeUserRole(formData: FormData) {
 
   revalidatePath(USERS);
   redirect(`${USERS}?role_changed=1`);
+}
+
+export async function resetUserMfa(formData: FormData) {
+  const { me, svc } = await requireUserAdministrator();
+  const userId = String(formData.get('user_id') ?? '');
+  if (!userId) fail('Missing user id.');
+  if (userId === me.auth_user_id) fail('You cannot reset your own platform MFA. Ask another platform administrator.');
+
+  const { profile } = await loadManagedTarget(svc, userId);
+  const reset = await resetMfaFactors({
+    service: svc,
+    userId,
+    targetEmail: profile.email,
+    actorId: me.auth_user_id!,
+    actorEmail: me.email,
+    portfolioId: profile.portfolio_id ?? null,
+  });
+  if (reset.error) fail(reset.error);
+
+  revalidatePath(USERS);
+  redirect(`${USERS}?mfa_reset=1`);
 }

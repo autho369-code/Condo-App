@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { isProfileRole, PROFILE_ROLE_OPTIONS } from '@/lib/auth/profile-roles';
 import { date } from '@/lib/utils';
-import { changeUserRole, toggleUserDisable } from './actions';
+import { changeUserRole, resetUserMfa, toggleUserDisable } from './actions';
+import { MfaResetButton } from '@/components/auth/mfa-reset-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export default async function UsersPage({
     role_changed?: string;
     disabled?: string;
     enabled?: string;
+    mfa_reset?: string;
     error?: string;
   }>;
 }) {
@@ -95,6 +97,11 @@ export default async function UsersPage({
       {!canManageUsers && (
         <Alert title="Read-only user directory">
           Platform administrator access is required to change roles or login status.
+        </Alert>
+      )}
+      {sp.mfa_reset === '1' && (
+        <Alert tone="success" title="Authenticator reset">
+          The user must enroll a new authenticator when their role requires MFA.
         </Alert>
       )}
 
@@ -197,6 +204,7 @@ export default async function UsersPage({
                   <TD>
                     {canManageUsers && !platformOperatorIds.has(user.id) ? (
                       <div className="flex flex-wrap items-center gap-1">
+                        <MfaResetButton action={resetUserMfa} userId={user.id} variant="ghost" />
                         <form action={toggleUserDisable as any} className="inline">
                           <input type="hidden" name="user_id" value={user.id} />
                           <input type="hidden" name="action" value={user.disabled_at ? 'enable' : 'disable'} />

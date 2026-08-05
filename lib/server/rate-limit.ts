@@ -23,11 +23,10 @@ function headersFrom(source: HeaderSource): Headers {
     : (source as Request).headers;
 }
 
-function clientAddress(source: HeaderSource): string {
+export function clientAddress(source: HeaderSource): string {
   const headers = headersFrom(source);
-  const forwarded = headers.get('x-vercel-forwarded-for')
-    || headers.get('x-forwarded-for')
-    || headers.get('x-real-ip')
+  const forwarded = headers.get('x-portier-client-address')
+    || headers.get('x-vercel-forwarded-for')
     || 'unknown';
   return forwarded.split(',')[0].trim().slice(0, 128) || 'unknown';
 }
@@ -39,6 +38,7 @@ async function consumeRateLimitForIdentifier(
 ): Promise<RateLimitResult> {
   const secret = process.env.RATE_LIMIT_SECRET || process.env.CRON_SECRET;
   if (!secret || secret.length < 24) {
+    console.error('rate-limit configuration unavailable: RATE_LIMIT_SECRET or CRON_SECRET must contain at least 24 characters');
     return { allowed: false, remaining: 0, retryAfterSeconds: 60, unavailable: true };
   }
 
