@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { queueEmails } from '@/lib/email/queue'
 import { tenantWorkspaceUrl } from '@/lib/tenant/host'
+import { resetUserMfa } from '@/lib/auth/mfa-admin'
 
 // Company admin invites a manager into their own portfolio. If specific
 // associations are selected, the invitation carries them so the manager is
@@ -151,4 +152,36 @@ export async function setManagerLoginStatus(formData: FormData) {
   revalidatePath('/company-admin/managers')
   revalidatePath(returnTo)
   redirect(`${returnTo}?${disabling ? 'disabled' : 'enabled'}=1`)
+}
+
+export async function resetManagerMfa(formData: FormData) {
+  const me = await requirePortfolioAdmin()
+  const managerId = String(formData.get('manager_id') ?? '')
+  const returnTo = `/company-admin/managers/${managerId}`
+  const fail = (msg: string): never => redirect(`${returnTo}?error=${encodeURIComponent(msg)}`)
+  if (!managerId || !me.portfolio?.id) fail('Invalid manager MFA reset request.')
+  if (managerId === me.auth_user_id) fail('You cannot reset your own MFA. Contact Portier369 support for recovery.')
+
+  const svc = createServiceClient() as any
+  const { data: manager, error } = await svc.from('profiles')
+    .select('id, email')
+    .eq('id', managerId)
+    .eq('portfolio_id', me.portfolio.id)
+    .eq('hoa_role', 'manager')
+    .maybeSingle()
+  if (error || !manager) fail('Manager not found in your portfolio.')
+
+  const reset = await resetUserMfa({
+    service: svc,
+    userId: managerId,
+    targetEmail: manager.email,
+    actorId: me.auth_user_id!,
+    actorEmail: me.email,
+    portfolioId: me.portfolio.id,
+  })
+  if (reset.error) fail(reset.error)
+
+  revalidatePath('/company-admin/managers')
+  revalidatePath(returnTo)
+  redirect(`${returnTo}?mfa_reset=1`)
 }

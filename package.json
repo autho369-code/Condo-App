@@ -54,7 +54,8 @@
     "test:db": "supabase test db --local",
     "test:watch": "vitest",
     "security:secrets:self-test": "node scripts/scan-secrets.mjs --self-test",
-    "security:secrets": "node scripts/scan-secrets.mjs"
+    "security:secrets": "node scripts/scan-secrets.mjs",
+    "security:mfa-recover": "node scripts/reset-mfa-break-glass.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",

@@ -5,12 +5,15 @@ import { getSupabaseBrowserKey, getSupabaseUrl } from '@/lib/supabase/env'
 import { PUBLIC_PATHS } from '@/lib/server/public-paths'
 import { isStaleAuthSession, isSupabaseAuthCookie } from '@/lib/server/auth-session'
 import { apexDomain, classifyTenantHost, tenantAccessDecision } from '@/lib/tenant/host'
+import { requiresMfa } from '@/lib/auth/mfa-policy'
 
 const APEX_DOMAIN = apexDomain()
 const MARKETING_PATHS = ['/pricing', '/features', '/company', '/report-card', '/local', '/hoa-laws', '/contact', '/compare', '/customers', '/onboarding', '/ai-receptionist', '/professional-services']
 const PUBLIC_ASSETS = ['/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/llms.txt', '/11d6c6528609b3874d201bf3145e294c.txt']
 const PUBLIC_ASSET_PREFIXES = ['/icon', '/apple-icon', '/opengraph-image', '/manuals/']
 const INTERNAL_TENANT_HEADERS = [
+  'x-portier-client-address',
+  'x-portier-request-path',
   'x-tenant-state',
   'x-tenant-host',
   'x-portfolio-id',
@@ -55,6 +58,9 @@ export async function middleware(request: NextRequest) {
   // the branding RPC. Server layouts may rely on these as a tenant boundary.
   const requestHeaders = new Headers(request.headers)
   INTERNAL_TENANT_HEADERS.forEach((name) => requestHeaders.delete(name))
+  const edgeClientAddress = request.headers.get('x-vercel-forwarded-for') || 'unknown'
+  requestHeaders.set('x-portier-client-address', edgeClientAddress.split(',')[0].trim().slice(0, 128) || 'unknown')
+  requestHeaders.set('x-portier-request-path', encodeURIComponent(`${pathname}${request.nextUrl.search}`))
 
   let response = NextResponse.next({ request: { headers: requestHeaders } })
   const supabase = createServerClient<Database>(
@@ -154,11 +160,18 @@ export async function middleware(request: NextRequest) {
     return expireAuthCookies(NextResponse.redirect(url), expiredAuthCookies)
   }
 
+  let requestIdentity: any = null
+  let requestIdentityError: any = null
+  if (user && !isPublic) {
+    const { data, error } = await (supabase as any).rpc('me')
+    requestIdentity = data
+    requestIdentityError = error
+  }
+
   if (user && tenantPortfolio && !isPublic) {
-    const { data: me, error } = await (supabase as any).rpc('me')
-    const decision = error
+    const decision = requestIdentityError
       ? { allowed: false as const, reason: 'portfolio_mismatch' as const }
-      : tenantAccessDecision(tenantPortfolio.id, me)
+      : tenantAccessDecision(tenantPortfolio.id, requestIdentity)
 
     if (!decision.allowed) {
       if (pathname.startsWith('/api/')) {
@@ -174,6 +187,38 @@ export async function middleware(request: NextRequest) {
           : 'workspace_access_denied',
       )
       return NextResponse.redirect(url)
+    }
+  }
+
+  // Enforce portfolio and operator MFA before any page, route handler, or
+  // server action runs. Server guards repeat the check as defense-in-depth.
+  if (
+    user
+    && !isPublic
+    && !(request.method === 'GET' && pathname === '/mfa')
+    && !requestIdentityError
+    && requestIdentity
+    && requiresMfa(requestIdentity)
+  ) {
+    const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (assuranceError || assurance?.currentLevel !== 'aal2') {
+      const next = pathname.startsWith('/api/') ? '/dashboard' : `${pathname}${request.nextUrl.search}`
+      const mfaUrl = request.nextUrl.clone()
+      mfaUrl.pathname = '/mfa'
+      mfaUrl.search = ''
+      mfaUrl.searchParams.set('next', next)
+      if (assuranceError) mfaUrl.searchParams.set('error', 'verification_unavailable')
+
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          {
+            error: assuranceError ? 'mfa_verification_unavailable' : 'mfa_required',
+            verification_url: `${mfaUrl.pathname}${mfaUrl.search}`,
+          },
+          { status: assuranceError ? 503 : 403, headers: { 'Cache-Control': 'no-store' } },
+        )
+      }
+      return NextResponse.redirect(mfaUrl)
     }
   }
 

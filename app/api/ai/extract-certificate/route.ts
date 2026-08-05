@@ -6,27 +6,18 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIConfig, visionCompletion, chatCompletion } from '@/lib/ai/service';
-import { createClient } from '@/lib/supabase/server';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 
 export async function POST(request: NextRequest) {
+  const me = await requireWorkspaceStaff();
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Get user's portfolio
-    const { data: profile } = await (supabase as any)
-      .from('profiles')
-      .select('portfolio_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.portfolio_id) {
+    const portfolioId = me.portfolio?.id as string | undefined;
+    if (!portfolioId) {
       return NextResponse.json({ error: 'No portfolio found' }, { status: 400 });
     }
 
     // Get AI config
-    const config = await getAIConfig(profile.portfolio_id);
+    const config = await getAIConfig(portfolioId);
     if (!config) {
       return NextResponse.json({ error: 'AI not configured. Set up your AI provider in Settings → AI.' }, { status: 400 });
     }

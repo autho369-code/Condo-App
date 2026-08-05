@@ -6,7 +6,8 @@ import { date } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Activity } from 'lucide-react'
-import { setManagerLoginStatus, updateManagerAssociations } from '../actions'
+import { resetManagerMfa, setManagerLoginStatus, updateManagerAssociations } from '../actions'
+import { MfaResetButton } from '@/components/auth/mfa-reset-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-export default async function ManagerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; disabled?: string; enabled?: string; error?: string }> }) {
+export default async function ManagerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; disabled?: string; enabled?: string; mfa_reset?: string; error?: string }> }) {
   const me = await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
@@ -32,7 +33,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   const { data: manager } = await db
     .from('profiles')
-    .select('id, full_name, email, hoa_role, last_login_at, created_at, disabled_at')
+    .select('id, full_name, email, hoa_role, last_login_at, created_at, disabled_at, mfa_enrolled_at')
     .eq('id', id)
     .eq('portfolio_id', portfolioId)
     .maybeSingle()
@@ -105,6 +106,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
       {sp.saved && <Alert tone="success" title="Saved">Association access updated for this manager.</Alert>}
       {sp.disabled && <Alert tone="success" title="Manager disabled">The manager&apos;s active sessions and login access have been revoked.</Alert>}
       {sp.enabled && <Alert tone="success" title="Manager enabled">The manager can sign in again.</Alert>}
+      {sp.mfa_reset && <Alert tone="success" title="Authenticator reset">The manager must set up a new authenticator at the next sign-in.</Alert>}
       {sp.error && <Alert tone="danger" title="Could not update access">{sp.error}</Alert>}
 
       <div className={card}>
@@ -120,13 +122,16 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
                 {manager.disabled_at && <div className="mt-1 text-xs font-medium text-red-700">Login disabled</div>}
               </div>
             </div>
-            <form action={setManagerLoginStatus}>
-              <input type="hidden" name="manager_id" value={manager.id} />
-              <input type="hidden" name="action" value={manager.disabled_at ? 'enable' : 'disable'} />
-              <Button type="submit" variant={manager.disabled_at ? 'secondary' : 'danger'}>
-                {manager.disabled_at ? 'Enable login' : 'Disable login'}
-              </Button>
-            </form>
+            <div className="flex flex-wrap items-center gap-2">
+              <MfaResetButton action={resetManagerMfa} userId={manager.id} />
+              <form action={setManagerLoginStatus}>
+                <input type="hidden" name="manager_id" value={manager.id} />
+                <input type="hidden" name="action" value={manager.disabled_at ? 'enable' : 'disable'} />
+                <Button type="submit" variant={manager.disabled_at ? 'secondary' : 'danger'}>
+                  {manager.disabled_at ? 'Enable login' : 'Disable login'}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-0 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
@@ -136,6 +141,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
               <InfoRow label="Email" value={manager.email ?? '—'} />
               <InfoRow label="Last Login" value={date(manager.last_login_at)} />
               <InfoRow label="Joined" value={date(manager.created_at)} />
+              <InfoRow label="MFA" value={manager.mfa_enrolled_at ? 'Enrolled' : 'Not enrolled'} />
             </div>
           </div>
           <div className="p-6">

@@ -28,18 +28,21 @@ export default async function SecurityCenterPage() {
     { data: portfolios },
     { count: disabledUsers },
     { data: apiKeys },
+    { data: loginAttempts },
   ] = await Promise.all([
     db.from('audit_logs').select('id, action, actor_email, entity_type, entity_id, ip_address, created_at').in('action', SENSITIVE_ACTIONS).gte('created_at', d30).order('created_at', { ascending: false }).limit(50),
     db.from('platform_impersonation_log').select('id, operator_email, impersonated_email, reason, started_at, ended_at, ip_address').order('started_at', { ascending: false }).limit(25),
-    db.from('portfolios').select('id, company_name, require_mfa_for_staff, require_mfa_for_admins, password_min_length, session_timeout_minutes').is('archived_at', null),
+    db.from('portfolios').select('id, company_name, require_mfa_for_staff, require_mfa_for_admins, password_min_length').is('archived_at', null),
     db.from('profiles').select('id', { count: 'exact', head: true }).not('disabled_at', 'is', null),
     db.from('api_keys').select('id, name, prefix, scopes, last_used_at, expires_at, revoked_at, portfolios(company_name)').order('created_at', { ascending: false }).limit(50),
+    db.from('login_attempts').select('id, email, ip_address, success, failure_reason, at').gte('at', d30).order('at', { ascending: false }).limit(50),
   ])
 
   const today = new Date().toISOString()
   const mfaStaff = (portfolios ?? []).filter((p: any) => p.require_mfa_for_staff).length
   const mfaAdmins = (portfolios ?? []).filter((p: any) => p.require_mfa_for_admins).length
   const activeKeys = (apiKeys ?? []).filter((k: any) => !k.revoked_at && (!k.expires_at || k.expires_at > today))
+  const failedSignIns = (loginAttempts ?? []).filter((attempt: any) => !attempt.success)
 
   return (
     <div className="space-y-6">
@@ -50,11 +53,12 @@ export default async function SecurityCenterPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[
           { label: 'Sensitive Events (30d)', value: (sensitiveEvents ?? []).length, icon: ShieldCheck, warn: false },
           { label: 'Disabled Users', value: disabledUsers ?? 0, icon: UserX, warn: false },
-          { label: 'MFA Required (staff/admins)', value: `${mfaStaff} / ${mfaAdmins} of ${(portfolios ?? []).length}`, icon: ShieldCheck, warn: false },
+          { label: 'MFA Policy (staff/admins)', value: `${mfaStaff} / ${mfaAdmins} of ${(portfolios ?? []).length}`, icon: ShieldCheck, warn: false },
+          { label: 'Failed Sign-ins (30d)', value: failedSignIns.length, icon: UserX, warn: failedSignIns.length > 0 },
           { label: 'Active API Keys', value: activeKeys.length, icon: KeyRound, warn: false },
         ].map((item: any) => {
           const Icon = item.icon
@@ -75,6 +79,41 @@ export default async function SecurityCenterPage() {
       </div>
 
       {/* ── Impersonation log ─────────────────────────── */}
+      <div className={card}>
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="text-sm font-semibold text-gray-950">Recent Sign-in Activity</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Password sign-in attempts only — invitation and recovery-link sessions are not shown</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
+              <tr>
+                <th className="px-5 py-2.5 text-left font-medium">Account</th>
+                <th className="px-5 py-2.5 text-left font-medium">Result</th>
+                <th className="px-5 py-2.5 text-left font-medium">Reason</th>
+                <th className="px-5 py-2.5 text-left font-medium">IP</th>
+                <th className="px-5 py-2.5 text-left font-medium">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(loginAttempts ?? []).length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No Portier369 sign-in activity recorded in the last 30 days.</td></tr>
+              ) : (
+                (loginAttempts ?? []).map((attempt: any) => (
+                  <tr key={attempt.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <td className="px-5 py-3 font-medium text-gray-900">{attempt.email ?? 'Unknown account'}</td>
+                    <td className="px-5 py-3"><StatusChip tone={attempt.success ? 'success' : 'danger'}>{attempt.success ? 'Successful' : 'Denied'}</StatusChip></td>
+                    <td className="px-5 py-3 text-[13px] text-gray-700">{attempt.failure_reason?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-500">{attempt.ip_address ?? '—'}</td>
+                    <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(attempt.at)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className={card}>
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-950">Impersonation History</h2>
@@ -168,7 +207,6 @@ export default async function SecurityCenterPage() {
                 <th className="px-5 py-2.5 text-left font-medium">MFA (Staff)</th>
                 <th className="px-5 py-2.5 text-left font-medium">MFA (Admins)</th>
                 <th className="px-5 py-2.5 text-right font-medium">Min Password</th>
-                <th className="px-5 py-2.5 text-right font-medium">Session Timeout</th>
               </tr>
             </thead>
             <tbody>
@@ -180,7 +218,6 @@ export default async function SecurityCenterPage() {
                   <td className="px-5 py-3"><StatusChip tone={p.require_mfa_for_staff ? 'success' : 'neutral'}>{p.require_mfa_for_staff ? 'Required' : 'Optional'}</StatusChip></td>
                   <td className="px-5 py-3"><StatusChip tone={p.require_mfa_for_admins ? 'success' : 'neutral'}>{p.require_mfa_for_admins ? 'Required' : 'Optional'}</StatusChip></td>
                   <td className="px-5 py-3 text-right tabular-nums text-gray-700">{p.password_min_length ?? '—'}</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-gray-700">{p.session_timeout_minutes ? `${p.session_timeout_minutes}m` : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -234,8 +271,8 @@ export default async function SecurityCenterPage() {
       </div>
 
       <p className="text-xs leading-5 text-gray-400">
-        Failed sign-in attempts and session-level events are available in the Supabase Auth logs; this page covers
-        everything the platform records itself.
+        MFA policy labels reflect controls enforced by Portier369 at the authenticated application boundary.
+        Session idle timeout is not yet enforced per session and is therefore not reported here.
       </p>
     </div>
   )
