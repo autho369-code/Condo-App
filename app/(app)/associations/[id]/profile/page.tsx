@@ -10,6 +10,9 @@ import { updateAssociation } from '@/lib/rpcs/entities';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
+import { ASSOCIATION_SECTIONS } from '@/lib/associations/settings-fields';
+import { AssociationSettingsSection } from '@/components/associations/settings-section';
+import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 
 export const dynamic = 'force-dynamic';
 
@@ -210,6 +213,27 @@ export default async function AssociationProfileTab({
     (supabase as any).from('approval_requests').select('id', { count: 'exact', head: true }).eq('association_id', id).eq('status', 'pending'),
   ]);
 
+  // Full record: every editable setting plus the association's linked lists.
+  const nowIso = new Date().toISOString();
+  const in60 = new Date(Date.now() + 60 * 86400000).toISOString();
+  const [
+    { data: record }, { data: glAccounts }, { data: keys }, { data: notes }, { data: fees },
+    { data: insurance }, { data: events }, { data: banks }, { data: assets }, { data: auditEvents },
+  ] = await Promise.all([
+    (supabase as any).from('associations').select('*').eq('id', id).maybeSingle(),
+    (supabase as any).from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', assoc.portfolio_id).eq('active', true).order('number'),
+    (supabase as any).from('association_keys').select('id, label, key_number, held_by').eq('association_id', id).is('archived_at', null).order('label'),
+    (supabase as any).from('association_notes').select('id, body, is_standard, created_at').eq('association_id', id).is('archived_at', null).order('is_standard', { ascending: false }).order('created_at', { ascending: false }).limit(50),
+    (supabase as any).from('association_additional_fees').select('id, label, gl_account_id, percentage, amount, suppress').eq('association_id', id).order('created_at'),
+    (supabase as any).from('association_insurance_policies').select('*').eq('association_id', id).is('archived_at', null).order('expiration_date', { nullsFirst: false }),
+    (supabase as any).from('calendar_events').select('id, title, start_datetime').eq('association_id', id).is('archived_at', null).gte('start_datetime', nowIso).lte('start_datetime', in60).order('start_datetime').limit(10),
+    (supabase as any).from('bank_accounts').select('id, name, purpose, fund_type, last_reconciliation_date').eq('association_id', id).is('archived_at', null).order('name'),
+    (supabase as any).from('fixed_assets').select('id, name, purchase_price, purchase_date').eq('association_id', id).is('archived_at', null).order('name').limit(20),
+    (supabase as any).from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'association').eq('entity_id', id).order('created_at', { ascending: false }).limit(25),
+  ]);
+  const assocGl = ((glAccounts ?? []) as any[]).filter((g) => !g.association_id || g.association_id === id);
+  const recordBack = `/associations/${assocParam}/profile`;
+
   const rail = null;
 
   return (
@@ -230,30 +254,22 @@ export default async function AssociationProfileTab({
         <Tile label="Pending Approvals" value={approvalsRes.count ?? 0}  href={`/associations/${id}/approvals`} tone={(approvalsRes.count ?? 0) > 0 ? 'warning' : 'neutral'} />
       </div>
 
-      <Section title="Association Information" padded>
-        <dl className="grid grid-cols-[180px_1fr] gap-y-2.5 text-sm">
-          <dt className="text-gray-500">Name</dt>
-          <dd className="text-gray-900">{assoc.name}</dd>
+      {sp.error && !sp.saved && <Alert tone="danger" title="Could not save:" className="mb-4">{sp.error}</Alert>}
+      {sp.saved && sp.saved !== '1' && <Alert tone="success" className="mb-4">{sp.saved}</Alert>}
 
-          <dt className="text-gray-500">Address</dt>
-          <dd className="text-gray-900">
-            {assoc.address || <span className="text-gray-400">—</span>}
-            {assoc.address_line_2 ? `, ${assoc.address_line_2}` : ''}
-            {(assoc.city || assoc.state || assoc.zip) && (
-              <div>{[assoc.city, assoc.state].filter(Boolean).join(', ')} {assoc.zip ?? ''}</div>
-            )}
-          </dd>
+      <UpcomingActivities events={events ?? []} associationId={id} />
 
-          <dt className="text-gray-500">Portfolio</dt>
-          <dd className="text-gray-900">{(assoc.portfolio as any)?.company_name ?? <span className="text-gray-400">—</span>}</dd>
+      {record && ASSOCIATION_SECTIONS.map((section) => (
+        <AssociationSettingsSection key={section.key} section={section} association={record} associationRef={assocParam} glAccounts={assocGl} />
+      ))}
 
-          <dt className="text-gray-500">Status</dt>
-          <dd className="capitalize text-gray-900">{assoc.status ?? 'active'}</dd>
-
-          <dt className="text-gray-500">Created</dt>
-          <dd className="text-gray-900">{assoc.created_at ? formatDate(assoc.created_at) : <span className="text-gray-400">—</span>}</dd>
-        </dl>
-      </Section>
+      <InsuranceList policies={insurance ?? []} associationId={id} back={recordBack} />
+      <AdditionalFees fees={fees ?? []} glAccounts={assocGl} associationId={id} back={recordBack} />
+      <LinkedRecords banks={banks ?? []} assets={assets ?? []} associationId={id} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <KeysList keys={keys ?? []} associationId={id} back={recordBack} />
+        <NotesList notes={notes ?? []} associationId={id} back={recordBack} />
+      </div>
 
       <div className="mt-6">
         <Section title="Site Manager" padded>
@@ -519,6 +535,8 @@ export default async function AssociationProfileTab({
           </details>
         </Section>
       </div>
+
+      <div className="mt-6"><AuditLog events={auditEvents ?? []} /></div>
     </Workspace>
   );
 }

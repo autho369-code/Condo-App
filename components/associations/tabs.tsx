@@ -6,6 +6,7 @@ import { resolveAssociation } from '@/lib/associations/resolve';
 const TABS = [
   { slug: 'profile',               label: 'Association' },
   { slug: 'units',                 label: 'Units' },
+  { slug: 'unit-groups',           label: 'Unit Groups' },
   { slug: 'board',                 label: 'Board of Directors' },
   { slug: 'approvals',             label: 'Approvals' },
   { slug: 'committees',            label: 'Committees' },
