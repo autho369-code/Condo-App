@@ -71,7 +71,7 @@ async function addBoardComment(formData: FormData) {
       author_id: user.id,
       author_name: authorName,
       comment: comment.trim(),
-      visibility: 'board_and_manager',
+      visibility: 'board_and_staff',
     })
 
   if (error) {
