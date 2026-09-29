@@ -98,3 +98,12 @@ default), descriptions, audited folder/sharing changes and deletes, board
 portal "Association documents" section. Fixed: every association document —
 including letters generated for one owner — was readable by all owners.
 
+### Board Reports — Portier status (2026-09-29)
+Association → Board tab → Board reports: choose statements (trial balance,
+balance sheet, income statement, budget vs actual, receivables aging,
+delinquency, payables aging, bank reconciliation), visibility (board /
+board and owners), automatic monthly publishing on a chosen day (daily cron
+with catch-up), email to active board members (once per period), manual
+publish/republish for any period. Packages land in the board portal
+(Reports + Documents) as association documents in a "Board reports" folder.
+

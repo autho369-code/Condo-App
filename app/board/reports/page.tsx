@@ -1,7 +1,35 @@
 import Link from 'next/link'
-import { FileBarChart, AlertTriangle, DollarSign, Wrench, Scale } from 'lucide-react'
+import { FileBarChart, AlertTriangle, DollarSign, Wrench, Scale, FileText } from 'lucide-react'
+import { requireBoard } from '@/lib/auth/me'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
+import { date } from '@/lib/utils'
 
-export default function BoardReportsPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function BoardReportsPage() {
+  const me = await requireBoard()
+  const ids = me.board_association_ids ?? []
+  const db = (await createClient()) as any
+  // RLS limits this to packages shared with the board for the member's associations.
+  const { data: packages } = ids.length
+    ? await db.from('documents')
+        .select('id, entity_id, file_name, file_url, uploaded_at, description')
+        .eq('entity_type', 'association').eq('doc_type', 'board_report').in('entity_id', ids)
+        .order('uploaded_at', { ascending: false }).limit(24)
+    : { data: [] }
+  const { data: assocRows } = ids.length > 1 ? await db.from('associations').select('id, name').in('id', ids) : { data: [] }
+  const nameById = new Map<string, string>(((assocRows ?? []) as any[]).map((a) => [a.id, a.name]))
+  const links = new Map<string, string>()
+  const toSign = ((packages ?? []) as any[]).filter((d) => isScopedStoragePath(d.file_url, 'associations', d.entity_id))
+  if (toSign.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents').createSignedUrls(toSign.map((d) => d.file_url), 3600)
+      const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
+      for (const d of toSign) { const u = byPath.get(d.file_url); if (u) links.set(d.id, u) }
+    } catch {}
+  }
+
   const reports = [
     { label: 'Violation Summary', desc: 'Open, closed, and pending violations by type and status', icon: AlertTriangle, href: '/board/violations/analytics', color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Delinquency Report', desc: 'Past-due accounts, aging summary, and collection status', icon: DollarSign, href: '/board/delinquencies', color: 'text-red-600', bg: 'bg-red-50' },
@@ -16,6 +44,33 @@ export default function BoardReportsPage() {
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Reports</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Board-level reports and summaries for your association</p>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-gray-100 px-5 py-3">
+          <h2 className="text-sm font-semibold text-gray-950">Monthly board packages</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Financial statements published by your management company.</p>
+        </div>
+        {(packages ?? []).length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-gray-500">No board packages have been published yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {(packages ?? []).map((p: any) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" />
+                  <div className="min-w-0">
+                    {links.has(p.id)
+                      ? <a href={links.get(p.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:underline">{p.file_name}</a>
+                      : <span className="text-sm font-medium text-gray-900">{p.file_name}</span>}
+                    <div className="text-xs text-gray-500">{nameById.get(p.entity_id) ? `${nameById.get(p.entity_id)} · ` : ''}{p.description}</div>
+                  </div>
+                </div>
+                <span className="text-xs tabular-nums text-gray-500">Published {date(p.uploaded_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -6,6 +6,7 @@ import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { signSignaturePaths } from '@/lib/board/signature';
 import { ApprovalRulesForm } from '@/components/associations/approval-rules-form';
+import { BoardReportsSection } from '@/components/associations/board-reports-section';
 import { Alert } from '@/components/ui/shell';
 import { saveBoardApprovalSettings } from '@/lib/rpcs/purchase-orders';
 
@@ -16,7 +17,7 @@ export default async function BoardTab({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; report_error?: string; report_saved?: string }>;
 }) {
   const me = await requireStaff();
   const { id: assocParam } = await params;
@@ -140,6 +141,8 @@ export default async function BoardTab({
           </table>
         </details>
       </Section>
+
+      <BoardReportsSection associationId={id} associationRef={association.slug ?? id} error={sp.report_error} saved={sp.report_saved} />
 
       <Section title="Approval rules" subtitle={`Default approvers: ${defaultMembersLabel}. Bills and purchase orders routed to the board wait for a vote before they can be paid or issued.`} padded>
         {sp.error && <Alert tone="danger" title="Could not save approval rules:" className="mb-4">{sp.error}</Alert>}
