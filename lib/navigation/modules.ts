@@ -132,6 +132,7 @@ export const appModules: AppModule[] = [
     children: [
       { label: 'Document library', href: '/documents' },
       { label: 'Generate document', href: '/documents/generate' },
+      { label: 'E-signatures', href: '/signatures' },
       { label: 'Templates', href: '/documents?tab=templates' },
       { label: 'Notices', href: '/documents?tab=notices' },
       { label: 'Forms', href: '/forms' },

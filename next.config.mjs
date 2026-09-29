@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://*.supabase.co",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.vercel-insights.com",
   "worker-src 'self' blob:",
   "upgrade-insecure-requests",
