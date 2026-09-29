@@ -8,10 +8,11 @@ import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { RATABLE_STATUSES, RateWorkOrderForm } from '@/components/work-orders/rating'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerWorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function OwnerWorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; rating_error?: string; rating_saved?: string }> }) {
   await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
@@ -29,6 +30,12 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
     .select('id, author_name, author_role, body, created_at')
     .eq('work_order_id', id)
     .order('created_at', { ascending: true })
+
+  // RLS returns only this owner's own rating (work_order_ratings_own_read).
+  const canRate = Boolean(wo.vendor_id) && RATABLE_STATUSES.has(wo.status)
+  const { data: myRating } = canRate
+    ? await db.from('work_order_ratings').select('score, quality, timeliness, communication, would_hire_again, comment').eq('work_order_id', id).maybeSingle()
+    : { data: null }
 
   const postAction = postWorkOrderMessage.bind(null, id, '/portal/work-orders')
 
@@ -57,6 +64,16 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
           <div><span className="text-gray-500">Completed:</span> <span className="text-gray-900">{wo.completed_date ? date(wo.completed_date) : '—'}</span></div>
         </div>
       </div>
+
+      {canRate && (
+        <Card>
+          <CardHeader><CardTitle>{myRating ? 'Your rating' : 'How did the repair go?'}</CardTitle></CardHeader>
+          <CardBody>
+            <p className="mb-4 text-sm text-gray-500">Your rating goes to your management team and helps them choose vendors. The vendor sees the score and comment, not your name.</p>
+            <RateWorkOrderForm workOrderId={id} back={`/portal/work-orders/${id}`} vendorName={wo.vendors?.name} mine={myRating} error={sp.rating_error} saved={sp.rating_saved} />
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Discussion</CardTitle></CardHeader>

@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance';
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { inviteVendorToPortal } from './actions';
+import { Stars } from '@/components/work-orders/rating';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,14 @@ export default async function VendorsPage({
     .order('name');
 
   const allRows = data ?? [];
+  const { data: ratingRows } = await (supabase as any)
+    .from('work_order_ratings').select('vendor_id, score').eq('portfolio_id', portfolioId);
+  const ratingByVendor = new Map<string, { sum: number; n: number }>();
+  for (const r of (ratingRows ?? []) as any[]) {
+    const t = ratingByVendor.get(r.vendor_id) ?? { sum: 0, n: 0 };
+    t.sum += Number(r.score); t.n += 1;
+    ratingByVendor.set(r.vendor_id, t);
+  }
   const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort();
   let rows = allRows;
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
@@ -186,6 +195,11 @@ export default async function VendorsPage({
                     <div className="mt-1 text-xs tabular-nums text-gray-500">
                       {scorecard.onTimeRate === null ? 'No scheduled completions' : `${scorecard.onTimeRate}% on time`} · {scorecard.open} open
                     </div>
+                    {ratingByVendor.has(vendor.id) && (() => {
+                      const r = ratingByVendor.get(vendor.id)!;
+                      const avg = Math.round((r.sum / r.n) * 10) / 10;
+                      return <div className="mt-1 flex items-center gap-1.5 text-xs tabular-nums text-gray-500"><Stars value={avg} /> {avg} ({r.n})</div>;
+                    })()}
                   </TD>
                   <TD>
                     <ComplianceBadges vendor={vendor} />
