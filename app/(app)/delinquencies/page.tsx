@@ -11,6 +11,7 @@ import { Alert, Badge, EmptyState } from '@/components/ui/shell';
 import { Input, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { JurisdictionPanel, ReferralReadiness } from '@/components/delinquency/compliance-panels';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,12 +105,13 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
     back('saved', 'Certified-mail delivery evidence recorded with an audit trail.');
   }
 
-  const [{ data: cases }, { data: policies }, { data: steps }, { data: associations }, { data: mailDeliveries }] = await Promise.all([
+  const [{ data: cases }, { data: policies }, { data: steps }, { data: associations }, { data: mailDeliveries }, { data: profiles }] = await Promise.all([
     db.from('delinquency_cases').select('*, associations(name), units(unit_number), owners(full_name, email), delinquency_policies(name)').order('balance_snapshot', { ascending: false }),
-    db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active'),
+    db.from('delinquency_policies').select('id, association_id, name, minimum_balance, active, jurisdiction, pre_referral_notice_days, notice_method, payment_plan_offer_required, payment_plan_min_months, board_vote_required, foreclosure_min_balance, foreclosure_min_months'),
     db.from('delinquency_steps').select('policy_id, step_number, name, days_past_due, action_type, requires_human_approval').order('step_number'),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('physical_mail_deliveries').select('id, delinquency_case_id, status, provider, provider_piece_id, expected_delivery_date, delivered_at, delivery_verified_at, updated_at').not('delinquency_case_id', 'is', null).order('created_at', { ascending: false }),
+    db.from('collection_jurisdiction_profiles').select('state_code, state_name, summary, citations').order('state_name'),
   ]);
   const policyAssociations = new Set((policies ?? []).map((policy: any) => policy.association_id));
   const stepsByPolicy = new Map<string, any[]>();
@@ -117,6 +119,19 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   const mailByCase = new Map<string, any>();
   for (const delivery of mailDeliveries ?? []) if (!mailByCase.has(delivery.delinquency_case_id)) mailByCase.set(delivery.delinquency_case_id, delivery);
   const openCases = (cases ?? []).filter((record: any) => !['resolved', 'closed'].includes(record.status));
+  const policyById = new Map<string, any>((policies ?? []).map((policy: any) => [policy.id, policy]));
+  const associationName = new Map<string, string>((associations ?? []).map((a: any) => [a.id, a.name]));
+
+  // Referral readiness (jurisdiction gates) for cases approaching or in legal review.
+  const nearReferral = openCases.filter((record: any) => {
+    const next = (stepsByPolicy.get(record.policy_id) ?? []).find((step) => step.step_number > record.current_step_number);
+    return record.policy_id && (record.status === 'legal_review' || next?.action_type === 'legal_review');
+  });
+  const readinessEntries = await Promise.all(nearReferral.map(async (record: any) => {
+    const { data } = await db.rpc('delinquency_referral_readiness', { p_case_id: record.id });
+    return [record.id, data ?? null] as const;
+  }));
+  const readinessByCase = new Map<string, any>(readinessEntries);
   const overdueTotal = openCases.reduce((sum: number, record: any) => sum + Number(record.balance_snapshot ?? 0), 0);
 
   return <DataWorkspace title="Owner Delinquency Ladder" description="Stateful collection cases with policy deadlines, holds, evidence, and a mandatory human gate before counsel referral." actions={<form action={syncCases}><Button type="submit">Sync owner balances</Button></form>}>
@@ -131,7 +146,9 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
         { label: 'Legal review', value: openCases.filter((record: any) => record.status === 'legal_review').length, sublabel: 'Human decision required' },
       ]} />
 
-      {hasPortfolioAdminAccess(me) && (associations ?? []).some((association: any) => !policyAssociations.has(association.id)) && <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><h2 className="font-semibold text-gray-950">Initialize association policies</h2><p className="mt-1 text-sm text-gray-500">The safe default is 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review.</p><div className="mt-3 flex flex-wrap gap-2">{(associations ?? []).filter((association: any) => !policyAssociations.has(association.id)).map((association: any) => <form action={initializePolicy} key={association.id}><input type="hidden" name="association_id" value={association.id} /><Button type="submit" variant="secondary">Initialize {association.name}</Button></form>)}</div></div>}
+      {hasPortfolioAdminAccess(me) && (associations ?? []).some((association: any) => !policyAssociations.has(association.id)) && <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><h2 className="font-semibold text-gray-950">Initialize association policies</h2><p className="mt-1 text-sm text-gray-500">Creates a 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review, and applies the collection protections for the association<p className="mt-1 text-sm text-gray-500">Creates a 10-day reminder, 30-day approved notice, 45-day tracked mail, and 60-day counsel review, and applies the collection protections for the association&apos;s state.</p>apos;s state.</p><div className="mt-3 flex flex-wrap gap-2">{(associations ?? []).filter((association: any) => !policyAssociations.has(association.id)).map((association: any) => <form action={initializePolicy} key={association.id}><input type="hidden" name="association_id" value={association.id} /><Button type="submit" variant="secondary">Initialize {association.name}</Button></form>)}</div></div>}
+
+      {(policies ?? []).length > 0 && <div className="space-y-2"><h2 className="text-sm font-semibold text-gray-950">Collection protections by association</h2>{(policies ?? []).map((policy: any) => <JurisdictionPanel key={policy.id} associationName={associationName.get(policy.association_id) ?? 'Association'} policy={policy} profiles={profiles ?? []} canEdit={hasPortfolioAdminAccess(me)} />)}</div>}
 
       {openCases.length ? <div className="space-y-4">{openCases.map((record: any) => {
         const policySteps = stepsByPolicy.get(record.policy_id) ?? [];
@@ -139,12 +156,16 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
         const next = policySteps.find((step) => step.step_number > record.current_step_number);
         const mail = mailByCase.get(record.id);
         const days = record.oldest_due_date ? Math.max(0, Math.floor((Date.now() - new Date(record.oldest_due_date).getTime()) / 86400000)) : 0;
+        const readiness = readinessByCase.get(record.id) ?? null;
+        const casePolicy = policyById.get(record.policy_id);
+        const referralBlocked = next?.action_type === 'legal_review' && (readiness?.blockers?.length ?? 1) > 0;
         return <div key={record.id} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="font-semibold text-gray-950">{record.owners?.full_name ?? 'Unassigned owner'} · Unit {record.units?.unit_number ?? '—'}</h2><p className="mt-1 text-sm text-gray-500">{record.associations?.name} · oldest due {date(record.oldest_due_date)} · {days} days</p></div><div className="flex items-center gap-2"><span className="text-lg font-semibold tabular-nums">{currency(record.balance_snapshot)}</span><Badge status={record.status} /></div></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-gray-50 p-3"><div className="text-xs text-gray-500">Current step</div><div className="mt-1 text-sm font-medium">{current?.name ?? 'Case opened'}</div></div><div className="rounded-xl bg-gray-50 p-3"><div className="text-xs text-gray-500">Next step</div><div className="mt-1 text-sm font-medium">{next ? `${next.name} · day ${next.days_past_due}` : 'Policy complete'}</div></div><div className="rounded-xl bg-gray-50 p-3"><div className="text-xs text-gray-500">Policy</div><div className="mt-1 text-sm font-medium">{record.delinquency_policies?.name ?? 'Not configured'}</div></div><div className="rounded-xl bg-gray-50 p-3"><div className="text-xs text-gray-500">Tracked mail</div><div className="mt-1 text-sm font-medium">{mail ? mail.status.replaceAll('_', ' ') : 'Not queued'}</div>{mail?.delivered_at && <div className="mt-1 text-xs text-gray-500">Delivered {date(mail.delivered_at)}</div>}</div></div>
           {(current?.action_type === 'physical_mail' || next?.action_type === 'physical_mail' || next?.action_type === 'legal_review') && mail?.status !== 'delivered' && <div className="mt-3"><Link href={`/letters/mail/new?owner_id=${record.owner_id}&case_id=${record.id}`}><Button variant="secondary">{mail ? 'Queue replacement tracked mail' : 'Queue tracked mail'}</Button></Link></div>}
           {mail && mail.status !== 'delivered' && hasPortfolioAdminAccess(me) && <details className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3"><summary className="cursor-pointer text-sm font-medium text-gray-900">Record manual certified-mail delivery</summary><p className="mt-2 text-xs text-gray-500">Use this only after independently confirming USPS delivery. Tracking, date, reviewer, and rationale are written to the audit trail.</p><form action={recordManualDelivery} className="mt-3 grid gap-3 sm:grid-cols-2"><input type="hidden" name="mail_id" value={mail.id} /><Input name="tracking_number" required minLength={8} maxLength={40} placeholder="USPS certified-mail tracking" /><Input name="delivered_on" type="date" required max={new Date().toISOString().slice(0, 10)} /><div className="sm:col-span-2"><Textarea name="note" required minLength={20} maxLength={2000} placeholder="Describe how delivery was verified and where the supporting receipt is retained (20+ characters)." /></div><div className="sm:col-span-2"><Button type="submit" variant="secondary">Record audited delivery</Button></div></form></details>}
-          {record.status === 'legal_review' ? hasPortfolioAdminAccess(me) ? <form action={reviewLegalGate} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><Textarea name="note" required minLength={20} placeholder="Document ledger review, notices, board policy, disputes, and the reason for the decision (20+ characters)." /><input type="hidden" name="case_id" value={record.id} /><Button type="submit" name="approved" value="true">Approve counsel referral</Button><Button type="submit" name="approved" value="false" variant="danger">Reject and hold</Button></form> : <div className="mt-4 border-t border-gray-100 pt-4"><Alert title="Administrator review required">A portfolio administrator must inspect the delivered-mail evidence and record the legal decision.</Alert></div> : <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row"><form action={advanceCase} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><Input name="note" placeholder="Review note or evidence" /><Button type="submit" disabled={!next || record.status === 'on_hold' || days < Number(next?.days_past_due ?? Infinity) || (next?.action_type === 'legal_review' && mail?.status !== 'delivered')}>Advance</Button></form><form action={setHold} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><input type="hidden" name="hold" value={record.status === 'on_hold' ? 'false' : 'true'} /><Input name="note" placeholder={record.status === 'on_hold' ? 'Optional release note' : 'Required hold reason'} /><Button type="submit" variant="secondary">{record.status === 'on_hold' ? 'Release hold' : 'Place hold'}</Button></form></div>}
+          {readiness && <ReferralReadiness caseId={record.id} readiness={readiness} planRequired={Boolean(casePolicy?.payment_plan_offer_required)} planMinMonths={casePolicy?.payment_plan_min_months ?? null} boardRequired={Boolean(casePolicy?.board_vote_required)} />}
+          {record.status === 'legal_review' ? hasPortfolioAdminAccess(me) ? <form action={reviewLegalGate} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><Textarea name="note" required minLength={20} placeholder="Document ledger review, notices, board policy, disputes, and the reason for the decision (20+ characters)." /><input type="hidden" name="case_id" value={record.id} /><Button type="submit" name="approved" value="true">Approve counsel referral</Button><Button type="submit" name="approved" value="false" variant="danger">Reject and hold</Button></form> : <div className="mt-4 border-t border-gray-100 pt-4"><Alert title="Administrator review required">A portfolio administrator must inspect the delivered-mail evidence and record the legal decision.</Alert></div> : <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row"><form action={advanceCase} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><Input name="note" placeholder="Review note or evidence" /><Button type="submit" disabled={!next || record.status === 'on_hold' || days < Number(next?.days_past_due ?? Infinity) || referralBlocked}>Advance</Button></form><form action={setHold} className="flex flex-1 gap-2"><input type="hidden" name="case_id" value={record.id} /><input type="hidden" name="hold" value={record.status === 'on_hold' ? 'false' : 'true'} /><Input name="note" placeholder={record.status === 'on_hold' ? 'Optional release note' : 'Required hold reason'} /><Button type="submit" variant="secondary">{record.status === 'on_hold' ? 'Release hold' : 'Place hold'}</Button></form></div>}
         </div>;
       })}</div> : <div className="rounded-2xl border border-gray-200/70 bg-white"><EmptyState icon={AlertTriangle} title="No open owner collection cases" description="Sync owner balances to create cases for qualifying overdue accounts." /></div>}
     </div>
