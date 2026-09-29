@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Building2, Search, Plus } from 'lucide-react'
+import { Building2, FolderTree, Search, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PageShell, PageHeader, EmptyState } from '@/components/ui/shell'
 import { DataTable } from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
+import { Input, Select } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 type Association = {
@@ -18,6 +18,7 @@ type Association = {
   state: string
   zip: string
   unit_count: number | null
+  property_group_id: string | null
 }
 
 const PAGE_SIZE = 12
@@ -27,17 +28,29 @@ export default function AssociationsPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([])
+  const [group, setGroup] = useState('')
   const supabase = useMemo(() => createClient(), [])
+
+  // ?group=<id> deep link from the property groups page.
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('group')
+    if (fromUrl) setGroup(fromUrl)
+  }, [])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data } = await (supabase as any)
-        .from('associations')
-        .select('id, slug, name, address, city, state, zip, unit_count')
-        .is('archived_at', null)
-        .order('name', { ascending: true })
+      const [{ data }, { data: groupRows }] = await Promise.all([
+        (supabase as any)
+          .from('associations')
+          .select('id, slug, name, address, city, state, zip, unit_count, property_group_id')
+          .is('archived_at', null)
+          .order('name', { ascending: true }),
+        (supabase as any).from('property_groups').select('id, name').order('name'),
+      ])
       setAssociations(data ?? [])
+      setGroups(groupRows ?? [])
       setLoading(false)
     }
     load()
@@ -45,11 +58,14 @@ export default function AssociationsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return associations
-    return associations.filter(
+    const inGroup = group === 'none'
+      ? associations.filter((a) => !a.property_group_id)
+      : group ? associations.filter((a) => a.property_group_id === group) : associations
+    if (!q) return inGroup
+    return inGroup.filter(
       (a) => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.address?.toLowerCase().includes(q),
     )
-  }, [associations, query])
+  }, [associations, query, group])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, totalPages)
@@ -62,21 +78,40 @@ export default function AssociationsPage() {
         title="Associations"
         description={`${associations.length} communities · ${totalUnits.toLocaleString()} units under management`}
         actions={
-          <Link href="/associations/new">
-            <Button><Plus className="h-4 w-4" /> New association</Button>
-          </Link>
+          <>
+            <Link href="/associations/groups">
+              <Button variant="secondary"><FolderTree className="h-4 w-4" /> Property groups</Button>
+            </Link>
+            <Link href="/associations/new">
+              <Button><Plus className="h-4 w-4" /> New association</Button>
+            </Link>
+          </>
         }
       />
 
-      <div className="mb-4 relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-          placeholder="Search by name, city, or address"
-          className="pl-9"
-          aria-label="Search associations"
-        />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+            placeholder="Search by name, city, or address"
+            className="pl-9"
+            aria-label="Search associations"
+          />
+        </div>
+        {groups.length > 0 && (
+          <Select
+            value={group}
+            onChange={(e) => { setGroup(e.target.value); setPage(1) }}
+            aria-label="Filter by property group"
+            className="sm:w-60"
+          >
+            <option value="">All property groups</option>
+            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            <option value="none">Ungrouped</option>
+          </Select>
+        )}
       </div>
 
       {loading ? (

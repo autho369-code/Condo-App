@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 const STATUS_TONES: Record<string, 'success' | 'neutral' | 'warning' | 'danger' | 'info'> = {
   active: 'success',
+  renewing: 'info',
   draft: 'neutral',
   pending_signature: 'warning',
   expired: 'danger',
@@ -86,7 +87,7 @@ export default async function ManagementAgreementsPage({
             ) : (
               rows.map((r) => (
                 <TR key={r.id} className="hover:bg-gray-50">
-                  <TD className="font-medium text-gray-900">{r.name ?? 'Management agreement'}</TD>
+                  <TD className="font-medium text-gray-900"><Link href={`/owners/management-agreements/${r.id}`} className="hover:text-gray-600">{r.name ?? 'Management agreement'}</Link></TD>
                   <TD>
                     {r.owners?.id
                       ? <Link href={`/owners/${r.owners.id}`} className="text-gray-900 hover:underline">{r.owners.full_name}</Link>
