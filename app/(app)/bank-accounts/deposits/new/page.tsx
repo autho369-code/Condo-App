@@ -79,7 +79,7 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
   return (
     <DataWorkspace
       title="Record bank deposit"
-      description="Record a deposit into a bank account. The deposit posts to the General Ledger immediately as a balanced journal entry."
+      description="Record a deposit that is not an owner payment (interest, insurance proceeds, transfers in). Owner payments recorded as receipts on the unit already post to the bank account — do not deposit them again here."
       actions={<Link href="/bank-accounts"><Button variant="secondary">Back to bank accounts</Button></Link>}
     >
       <div className="max-w-3xl space-y-5">
