@@ -10,7 +10,7 @@ import { generateLiveExportRows, supportsLiveExport } from '@/lib/reports/live-e
 // renders as the download button.
 //
 // Slugs report_data_dispatch doesn't implement fail LOUDLY with an honest
-// error_message — a failed run in the history beats a forever-"queued" one.
+// error_message â€” a failed run in the history beats a forever-"queued" one.
 
 export async function processReportRun(runId: string): Promise<void> {
   const svc = createServiceClient() as any;
@@ -25,7 +25,7 @@ export async function processReportRun(runId: string): Promise<void> {
 
   await svc.from('report_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', runId);
 
-  // duration_ms is a GENERATED column (finished_at - started_at) — never set it.
+  // duration_ms is a GENERATED column (finished_at - started_at) â€” never set it.
   const finish = async (patch: Record<string, unknown>) => {
     const { error } = await svc.from('report_runs').update({
       ...patch,

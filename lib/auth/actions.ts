@@ -117,7 +117,7 @@ export async function loginWithPassword(formData: FormData) {
 
   if (explicitNext) redirect(explicitNext);
 
-  // Single source of truth for role precedence — the same roleHome() every
+  // Single source of truth for role precedence â€” the same roleHome() every
   // guard uses, so login never lands somewhere a guard would bounce from.
   const home = me ? roleHome(me) : '/login';
   if (home !== '/login') redirect(home);
