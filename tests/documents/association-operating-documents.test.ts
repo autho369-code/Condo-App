@@ -5,7 +5,7 @@ const migration = readFileSync(
   'supabase/migrations/20260802020000_association_operating_document_types.sql',
   'utf8',
 ).toLowerCase();
-const page = readFileSync('app/(app)/associations/[id]/documents/page.tsx', 'utf8');
+const page = readFileSync('lib/rpcs/association-documents.ts', 'utf8');
 
 describe('association operating documents', () => {
   it('allows every document type emitted by the association upload form', () => {
@@ -30,8 +30,10 @@ describe('association operating documents', () => {
   });
 
   it('removes the storage object when metadata persistence fails', () => {
-    expect(page).toContain("new Set<string>([...OPERATING_TYPES, 'association_document'])");
+    expect(page).toContain("[...OPERATING_TYPES, 'association_document'].includes(docType)");
     expect(page).toContain('await svc.storage.from(BUCKET).remove([path])');
-    expect(page).toContain('Could not save document record:');
+    expect(page).toContain('Could not save the document:');
+    // Storage uses the service client, so association access is checked first.
+    expect(page.indexOf('assertManages(associationId')).toBeLessThan(page.indexOf('.storage.from(BUCKET).upload('));
   });
 });

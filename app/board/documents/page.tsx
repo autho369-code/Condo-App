@@ -1,8 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
-import { FileText, Image as ImageIcon, File } from 'lucide-react'
+import { FileText, Image as ImageIcon, File, FolderOpen } from 'lucide-react'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
+import { SHARE_LABEL, orderedFolders, type ShareScope } from '@/lib/associations/document-sharing'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +37,32 @@ export default async function BoardDocumentsPage() {
     workOrderDocs = data ?? []
   } catch { }
 
+  // Association documents the manager shared with the board (or with owners).
+  // RLS (documents_board_association_read) enforces share_scope.
+  const { data: assocDocRows } = ids.length
+    ? await db.from('documents')
+        .select('id, entity_id, doc_type, file_name, file_url, uploaded_at, folder, share_scope, description')
+        .eq('entity_type', 'association')
+        .in('entity_id', ids)
+        .order('uploaded_at', { ascending: false })
+    : { data: [] }
+  const assocDocs = (assocDocRows ?? []) as any[]
+  const docLinks = new Map<string, string>()
+  const toSign = assocDocs.filter((d) => isScopedStoragePath(d.file_url, 'associations', d.entity_id))
+  if (toSign.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+        .createSignedUrls(toSign.map((d) => d.file_url), 3600)
+      const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
+      for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
+    } catch {}
+  }
+  const docFolders = orderedFolders(assocDocs.map((d) => d.folder))
+  const docGroups = [
+    ...docFolders.map((f) => ({ folder: f, items: assocDocs.filter((d) => d.folder === f) })),
+    { folder: 'Other', items: assocDocs.filter((d) => !d.folder) },
+  ].filter((g) => g.items.length > 0)
+
   // Build document list from attachments
   const docs: any[] = []
   for (const v of violationDocs ?? []) {
@@ -53,6 +81,41 @@ export default async function BoardDocumentsPage() {
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Documents</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Association documents, notices, and attachments</p>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="border-b border-gray-100 px-5 py-3">
+          <h2 className="text-sm font-semibold text-gray-950">Association documents</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Files management has shared with the board. “Board and owners” files are also in the owner portal.</p>
+        </div>
+        {docGroups.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-gray-500">
+            <FolderOpen className="mx-auto mb-2 h-6 w-6 text-gray-300" />
+            No association documents have been shared with the board yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {docGroups.map((g) => (
+              <div key={g.folder} className="px-5 py-3">
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{g.folder}</div>
+                <ul className="space-y-1.5">
+                  {g.items.map((d: any) => (
+                    <li key={d.id} className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FileText className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                        {docLinks.has(d.id)
+                          ? <a href={docLinks.get(d.id)} target="_blank" rel="noopener noreferrer" className="truncate text-[13px] font-medium text-gray-900 hover:underline">{d.file_name}</a>
+                          : <span className="truncate text-[13px] text-gray-700">{d.file_name}</span>}
+                        {d.description && <span className="hidden truncate text-xs text-gray-500 sm:inline">— {d.description}</span>}
+                      </div>
+                      <span className="text-xs tabular-nums text-gray-500">{SHARE_LABEL[(d.share_scope ?? 'owners') as ShareScope]} · {date(d.uploaded_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

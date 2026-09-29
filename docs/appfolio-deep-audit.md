@@ -90,3 +90,11 @@ Upcoming activities · Notes · **Two-way texts thread** (templates, attach
 image, download) · Emails log · Letters log · Recurring charges · Financials
 (ledger) · **Per-homeowner late fee policy override** · Insurance policies
 (policyholder, expiration) · Animals · Vehicles · Audit log · Attachments.
+
+### Association attachments — Portier status (2026-09-29)
+Documents tab: folders (standard + custom), per-file visibility
+(management only / board / board and owners; new uploads private by
+default), descriptions, audited folder/sharing changes and deletes, board
+portal "Association documents" section. Fixed: every association document —
+including letters generated for one owner — was readable by all owners.
+
