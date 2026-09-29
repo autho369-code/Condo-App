@@ -94,6 +94,9 @@ export async function generateAndStoreDocument(input: GenerateDocumentInput) {
       file_name: fileName,
       file_url: path,
       uploaded_by: me.auth_user_id,
+      // Addressed to specific owners: never shared automatically.
+      share_scope: 'staff',
+      folder: 'Generated letters',
     }).select('id').single();
     if (documentError) throw new Error(`Document record failed: ${documentError.message}`);
     documentId = document.id;
