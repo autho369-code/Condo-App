@@ -49,7 +49,7 @@ export default async function ReportView({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string }>;
+  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string; account?: string }>;
 }) {
   const { slug } = await params;
   // Preserve the legacy public alias while resolving the canonical catalog row.
@@ -89,6 +89,7 @@ export default async function ReportView({
     selectedAssociation: sp.association ?? '',
     selectedPreset: sp.preset ?? 'this_month',
     selectedScope: sp.scope ?? 'association',
+    selectedAccount: /^[0-9a-f-]{36}$/i.test(sp.account ?? '') ? sp.account! : '',
   };
 
   // ── Dispatch to live report or queued view ──
@@ -132,7 +133,32 @@ async function LiveReportView(
 type ReportContext = {
   def: any; runs: any[]; associations: any[]; period: Period;
   selectedAssociation: string; selectedPreset: string; selectedScope: string;
+  selectedAccount?: string;
 };
+
+/**
+ * Drill-down: open the General Ledger filtered to one account for the same
+ * association and period. Point-in-time reports (balance sheet) pass
+ * `sinceInception` so the ledger shows every entry up to the as-of date.
+ */
+function glDrillHref(accountId: string, ctx: Pick<ReportContext, 'period' | 'selectedAssociation'>, sinceInception = false) {
+  const qs = new URLSearchParams({
+    preset: 'custom',
+    from: sinceInception ? '1900-01-01' : ctx.period.from,
+    to: ctx.period.to,
+    account: accountId,
+  });
+  if (ctx.selectedAssociation) qs.set('association', ctx.selectedAssociation);
+  return `/reports/general_ledger?${qs.toString()}`;
+}
+
+function DrillLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} title="Open the ledger lines behind this amount" className="underline decoration-gray-300 decoration-dotted underline-offset-4 transition-colors hover:text-gray-950 hover:decoration-gray-500">
+      {children}
+    </Link>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 1. TRIAL BALANCE
@@ -235,7 +261,7 @@ async function TrialBalanceView({
                   return (
                     <tr key={acc.id} className={`border-t border-gray-100 ${hasActivity ? '' : 'text-gray-400'}`}>
                       <td className="px-5 py-2 font-mono tabular-nums text-xs text-gray-600">{acc.number}</td>
-                      <td className="px-4 py-2 font-medium text-gray-900">{acc.name}</td>
+                      <td className="px-4 py-2 font-medium text-gray-900">{hasActivity ? <DrillLink href={glDrillHref(acc.id, { period, selectedAssociation })}>{acc.name}</DrillLink> : acc.name}</td>
                       <td className="px-4 py-2 text-xs capitalize text-gray-500">{acc.account_type?.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-gray-700">{b.debit > 0 ? money(b.debit) : ''}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-gray-700">{b.credit > 0 ? money(b.credit) : ''}</td>
@@ -350,7 +376,7 @@ async function BalanceSheetView({
                 <tr key={a.id} className="border-t border-gray-100">
                   <td className="px-5 py-2">
                     <span className="font-mono text-xs text-gray-500 mr-2">{a.number}</span>
-                    <span className="font-medium text-gray-900">{a.name}</span>
+                    <span className="font-medium text-gray-900"><DrillLink href={glDrillHref(a.id, { period, selectedAssociation }, true)}>{a.name}</DrillLink></span>
                   </td>
                   <td className={`px-5 py-2 text-right tabular-nums font-medium ${bal >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
                     {money(bal)}
@@ -521,7 +547,7 @@ async function IncomeStatementView({
                   <tr key={a.id} className="border-t border-gray-100">
                     <td className="px-5 py-2">
                       <span className="font-mono text-xs text-gray-500 mr-2">{a.number}</span>
-                      <span className="font-medium text-gray-900">{a.name}</span>
+                      <span className="font-medium text-gray-900"><DrillLink href={glDrillHref(a.id, { period, selectedAssociation })}>{a.name}</DrillLink></span>
                     </td>
                     <td className="px-5 py-2 text-right tabular-nums font-medium text-gray-900">
                       {money(Math.abs(bal))}
@@ -716,7 +742,7 @@ async function CashFlowView({
               <tbody>
                 {bAccounts.map((a: any) => (
                   <tr key={a.id} className="border-t border-gray-100">
-                    <td className="px-5 py-2 font-medium text-gray-900">{a.name}</td>
+                    <td className="px-5 py-2 font-medium text-gray-900">{a.gl_account_id ? <DrillLink href={glDrillHref(a.gl_account_id, { period, selectedAssociation })}>{a.name}</DrillLink> : a.name}</td>
                     <td className="px-4 py-2 text-sm text-gray-600">{a.bank_name ?? '\u2014'}</td>
                     <td className="px-4 py-2 text-xs capitalize text-gray-500">{a.account_type?.replace(/_/g, ' ') ?? '\u2014'}</td>
                     <td className={`px-5 py-2 text-right tabular-nums font-medium ${(balByGl[a.gl_account_id] ?? 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
@@ -801,7 +827,7 @@ async function CashFlowView({
 // 5. GENERAL LEDGER
 // ═══════════════════════════════════════════════════════════════
 async function GeneralLedgerView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedAccount,
 }: ReportContext) {
   const supabase = await createClient();
   const db = supabase as any;
@@ -813,6 +839,7 @@ async function GeneralLedgerView({
     .eq('active', true)
     .order('number');
   if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
+  if (selectedAccount) glAccountQuery = glAccountQuery.eq('id', selectedAccount);
   const { data: glAccounts } = await glAccountQuery;
 
   const accounts = (glAccounts ?? []) as any[];
@@ -829,6 +856,9 @@ async function GeneralLedgerView({
 
   if (selectedAssociation) {
     lineQuery = lineQuery.eq('association_id', selectedAssociation);
+  }
+  if (selectedAccount) {
+    lineQuery = lineQuery.eq('gl_account_id', selectedAccount);
   }
 
   const { data: lines } = await lineQuery;
@@ -908,7 +938,21 @@ async function GeneralLedgerView({
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-3">
+        {selectedAccount && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <span className="text-gray-600">
+              Drill-down: <span className="font-medium text-gray-900">{accounts[0] ? `${accounts[0].number} — ${accounts[0].name}` : 'selected account'}</span>
+              {selectedAssociation && <> · {associations.find((a: any) => a.id === selectedAssociation)?.name ?? 'association'}</>}
+            </span>
+            <Link
+              href={`/reports/general_ledger?${new URLSearchParams({ preset: 'custom', from: period.from, to: period.to, ...(selectedAssociation ? { association: selectedAssociation } : {}) }).toString()}`}
+              className="text-[13px] font-medium text-gray-500 hover:text-gray-900"
+            >
+              Show all accounts
+            </Link>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile label="Total Debits"    value={money(totalDebit)}    tone="neutral" />
           <Tile label="Total Credits"   value={money(totalCredit)}   tone="neutral" />
           <Tile label="Journal Entries" value={totalEntries}         tone="neutral" sub="Posted entries" />
