@@ -83,7 +83,7 @@ export default async function NewPropertyPage() {
         management_start_date: (formData.get('management_start_date') as string) || null,
         nsf_fee_amount_override: numOrNull(formData.get('nsf_fee_amount_override')),
         reserve_funds: numOrNull(formData.get('reserve_funds')) ?? 0,
-        payment_frequency: (formData.get('payment_frequency') as string) || 'net_income',
+        payment_frequency: ['monthly', 'quarterly', 'semi_annually', 'annually'].includes(formData.get('payment_frequency') as string) ? (formData.get('payment_frequency') as string) : 'monthly',
         vendor_1099_payer: (formData.get('vendor_1099_payer') as string) || null,
         fiscal_year_start: yearEndMonthToStartMonth(formData.get('fiscal_year_end')) ?? 1,
         basis_for_owner_packets: (formData.get('basis_for_owner_packets') as string) || null,
@@ -189,6 +189,19 @@ export default async function NewPropertyPage() {
           </FormRow>
           <FormRow label="Management Start Date">
             <input type="date" name="management_start_date" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+          </FormRow>
+          <FormRow label="Fiscal Year Ends">
+            <select name="fiscal_year_end" defaultValue="12" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </FormRow>
+          <FormRow label="Owner Auto-Pay Frequency">
+            <select name="payment_frequency" defaultValue="monthly" className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="semi_annually">Semi-annually</option>
+              <option value="annually">Annually</option>
+            </select>
           </FormRow>
         </Section>
 

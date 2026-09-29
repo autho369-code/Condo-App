@@ -46,6 +46,10 @@
     {
       "path": "/api/mail/deliver",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/billing/assess-interest",
+      "schedule": "15 15 * * *"
     }
   ]
 }
