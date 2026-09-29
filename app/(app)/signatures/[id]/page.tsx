@@ -44,7 +44,8 @@ export default async function SignatureRequestPage({
   }
   const subjectHref = r.subject_id
     ? r.subject_type === 'management_agreement' ? `/owners/management-agreements/${r.subject_id}`
-    : r.subject_type === 'architectural_request' ? `/architectural-reviews/${r.subject_id}` : null
+    : r.subject_type === 'architectural_request' ? `/architectural-reviews/${r.subject_id}`
+    : r.subject_type === 'year_end_package' ? `/accounting/year-end/${r.subject_id}` : null
     : null;
 
   return (

@@ -9,7 +9,7 @@ import { signatureRequestEmail } from '@/lib/signatures/email';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
-const SUBJECT_TYPES = ['document', 'architectural_request', 'board_resolution', 'vendor_agreement', 'management_agreement'];
+const SUBJECT_TYPES = ['document', 'architectural_request', 'board_resolution', 'vendor_agreement', 'management_agreement', 'year_end_package'];
 
 function fail(path: string, msg: string): never {
   redirect(`${path}${path.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);

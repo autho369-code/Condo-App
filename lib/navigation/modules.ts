@@ -72,6 +72,7 @@ export const appModules: AppModule[] = [
       { label: 'Journal entries', href: '/journal-entries' },
       { label: 'GL accounts', href: '/gl-accounts' },
       { label: 'Accounting periods', href: '/accounting-periods' },
+      { label: 'Year-end close', href: '/accounting/year-end' },
       { label: 'Budget', href: '/budget' },
       { label: 'Budget vs actuals', href: '/budget-vs-actuals' },
       { label: 'Capital & reserves', href: '/capital-reserves' },
