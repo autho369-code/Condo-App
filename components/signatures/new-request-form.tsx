@@ -15,6 +15,7 @@ const SUBJECT_LABELS: Record<string, string> = {
   architectural_request: 'Architectural review decision',
   vendor_agreement: 'Vendor agreement',
   management_agreement: 'Management agreement',
+  year_end_package: 'Year-end package acceptance',
 };
 
 export function NewSignatureRequestForm({

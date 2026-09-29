@@ -58,6 +58,34 @@ async function prefill(db: any, subjectType?: string, subjectId?: string) {
       ].join('\n'),
     };
   }
+  if (subjectType === 'year_end_package') {
+    const { data: y } = await db.from('year_end_packages')
+      .select('association_id, fiscal_year, period_start, period_end, snapshot, snapshot_sha256, status')
+      .eq('id', subjectId).eq('status', 'finalized').maybeSingle();
+    if (!y) return {};
+    const s = y.snapshot ?? {};
+    const usd = (n: unknown) => Number(n ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const name = s.association?.legal_name || s.association?.name || 'the Association';
+    return {
+      association_id: y.association_id,
+      title: `Acceptance of FY ${y.fiscal_year} year-end financial package — ${name}`,
+      body_text: [
+        `RESOLVED, that the Board of Directors of ${name} accepts the year-end financial package for fiscal year ${y.fiscal_year} (${y.period_start} to ${y.period_end}) as presented by management.`,
+        '',
+        'Summary of the package:',
+        `  Total assets: ${usd(s.balance_sheet?.total_assets)}`,
+        `  Total liabilities: ${usd(s.balance_sheet?.total_liabilities)}`,
+        `  Total fund balance: ${usd(s.balance_sheet?.total_equity)}`,
+        `  Total income: ${usd(s.income_statement?.total_income)} (budget ${usd(s.income_statement?.budget_income)})`,
+        `  Total expenses: ${usd(s.income_statement?.total_expense)} (budget ${usd(s.income_statement?.budget_expense)})`,
+        `  Net income: ${usd(s.income_statement?.net_income)}`,
+        `  Owner receivables at year end: ${usd(s.receivables?.total)}`,
+        '',
+        `Package fingerprint (SHA-256): ${y.snapshot_sha256}`,
+        'This fingerprint identifies the exact figures accepted. Any later change to the books produces a different package.',
+      ].join('\n'),
+    };
+  }
   return {};
 }
 
@@ -74,7 +102,7 @@ export default async function NewSignatureRequestPage({
     db.from('board_members').select('association_id, full_name, email, role').eq('active', true).order('role'),
     prefill(db, sp.subject_type, sp.subject_id),
   ]);
-  const subjectType = sp.subject_type && ['management_agreement', 'architectural_request'].includes(sp.subject_type) && isUuid(sp.subject_id) ? sp.subject_type : undefined;
+  const subjectType = sp.subject_type && ['management_agreement', 'architectural_request', 'year_end_package'].includes(sp.subject_type) && isUuid(sp.subject_id) ? sp.subject_type : undefined;
 
   return (
     <DataWorkspace title="Request signatures" description="Upload a PDF or write the text, add signers, and send. Each signer gets a private link; every step is recorded with a tamper-evident fingerprint.">

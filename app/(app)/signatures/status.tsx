@@ -26,6 +26,7 @@ export const SUBJECT_LABEL: Record<string, string> = {
   architectural_request: 'Architectural decision',
   vendor_agreement: 'Vendor agreement',
   management_agreement: 'Management agreement',
+  year_end_package: 'Year-end package',
 };
 
 export const fmtDateTime = (v: string | null | undefined) =>

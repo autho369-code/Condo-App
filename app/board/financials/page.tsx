@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
@@ -63,6 +64,15 @@ export default async function BoardFinancialsPage() {
       </div>
     )
   }
+
+  // Finalized year-end packages (RLS exposes only finalized packages to the board).
+  const { data: yearEndRows } = await db
+    .from('year_end_packages')
+    .select('id, fiscal_year, associations(name)')
+    .eq('status', 'finalized')
+    .order('fiscal_year', { ascending: false })
+    .limit(20)
+  const yearEndPackages = (yearEndRows ?? []) as any[]
 
   const today = new Date()
   const currentYear = today.getFullYear()
@@ -226,6 +236,20 @@ export default async function BoardFinancialsPage() {
           footerLine={`Net operating income (${currentYear} YTD): ${money(netOperatingIncome)}`}
         />
       </div>
+
+      {yearEndPackages.length > 0 && (
+        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-gray-100 px-5 py-3"><h2 className="text-sm font-semibold text-gray-900">Year-end financial packages</h2></div>
+          <ul className="divide-y divide-gray-100">
+            {yearEndPackages.map((p: any) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                <span className="text-gray-900">{p.associations?.name ?? 'Association'} · FY {p.fiscal_year}</span>
+                <Link href={`/board/financials/year-end/${p.id}`} className="font-medium text-gray-600 hover:text-gray-950">Open package</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ── Financial Summary Cards ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
