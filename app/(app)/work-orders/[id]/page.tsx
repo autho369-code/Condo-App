@@ -11,6 +11,7 @@ import {
 } from '@/lib/rpcs/work-orders';
 import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
+import { RATABLE_STATUSES, RateWorkOrderForm, Stars, summarize } from '@/components/work-orders/rating';
 import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ function statusBadge(s: string) {
   return 'bg-amber-100 text-amber-800';
 }
 
-export default async function WorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function WorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; rating_error?: string; rating_saved?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -63,6 +64,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     { data: estimates },
     { data: vendors },
     { data: messages },
+    { data: ratings },
+    { data: authData },
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
@@ -74,6 +77,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     (supabase as any).from('work_order_estimates').select('id, amount, notes, submitted_at, approved_at, rejected_at, vendors(name)').eq('work_order_id', id).order('submitted_at', { ascending: false }),
     (supabase as any).from('vendors').select('id, name, trade').is('archived_at', null).order('name'),
     (supabase as any).from('work_order_messages').select('id, author_name, author_role, body, created_at').eq('work_order_id', id).order('created_at', { ascending: true }),
+    (supabase as any).from('work_order_ratings').select('rated_by, rater_role, score, quality, timeliness, communication, would_hire_again, comment, created_at').eq('work_order_id', id).order('created_at', { ascending: false }),
+    supabase.auth.getUser(),
   ]);
   if (!wo) notFound();
 
@@ -310,6 +315,32 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           <Input name="notes" placeholder="Notes" className="md:col-span-3" />
         </form>
       </Section>
+
+      {vendor && RATABLE_STATUSES.has(wo.status) && (() => {
+        const rows = (ratings ?? []) as any[];
+        const summary = summarize(rows);
+        const mine = rows.find((r) => r.rated_by === authData?.user?.id) ?? null;
+        return (
+          <Section
+            title="Vendor rating"
+            subtitle={summary.count ? `${summary.average} ★ from ${summary.count} rating${summary.count === 1 ? '' : 's'}` : 'Rate how the vendor did — it feeds their scorecard.'}
+          >
+            {rows.length > 0 && (
+              <ul className="divide-y divide-gray-100 border-b border-gray-100">
+                {rows.map((r, i) => (
+                  <li key={i} className="px-5 py-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2"><Stars value={r.score} /><span className="text-xs capitalize text-gray-500">{r.rater_role}{r.would_hire_again === false ? ' · would not hire again' : ''}</span></div>
+                    {r.comment && <p className="mt-1 text-gray-700">{r.comment}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="px-5 py-4">
+              <RateWorkOrderForm workOrderId={id} back={`/work-orders/${id}`} vendorName={vendor.name} mine={mine} error={sp.rating_error} saved={sp.rating_saved} />
+            </div>
+          </Section>
+        );
+      })()}
 
       <Section title="Discussion">
         <div className="px-5 py-4">

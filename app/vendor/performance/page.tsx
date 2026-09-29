@@ -4,6 +4,7 @@ import { PageHeader, Surface, SectionTitle, MetricStrip, Metric } from '@/compon
 import { date } from '@/lib/utils';
 import { buildVendorPerformanceScorecard, formatPerformanceDays } from '@/lib/vendors/performance';
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
+import { Stars, summarize } from '@/components/work-orders/rating';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,11 @@ export default async function VendorPerformancePage() {
   if (!vendor?.portfolio_id) throw new Error('Vendor workspace is missing its management-company scope.');
 
   const rows = await loadPortfolioVendorPerformanceRows(db, vendor.portfolio_id, [vendor.id]);
+  // Scores and comments only — my_vendor_ratings never returns who rated.
+  const { data: ratingData, error: ratingError } = await db.rpc('my_vendor_ratings', { p_limit: 100 });
+  if (ratingError) throw new Error(`Could not load ratings: ${ratingError.message}`);
+  const ratings = (ratingData ?? []) as any[];
+  const rating = summarize(ratings);
   const scorecard = buildVendorPerformanceScorecard(rows, vendor);
   const recentlyCompleted = rows
     .filter((row) => row.completed_date)
@@ -39,7 +45,26 @@ export default async function VendorPerformancePage() {
         <Metric label="Avg completion time" value={formatPerformanceDays(scorecard.averageCompletionDays)} />
         <Metric label="On-time completion" value={scorecard.onTimeRate === null ? '—' : `${scorecard.onTimeRate}%`} sub={scorecard.serviceRecord.evidence} accent={scorecard.onTimeRate !== null && scorecard.onTimeRate >= 85 ? 'emerald' : undefined} />
         <Metric label="Emergency completion" value={formatPerformanceDays(scorecard.emergencyAverageCompletionDays)} sub="Created to completed" />
+        <Metric label="Customer rating" value={rating.average === null ? '—' : `${rating.average} ★`} sub={rating.count ? `${rating.count} rating${rating.count === 1 ? '' : 's'}${rating.hireAgainPct !== null ? ` · ${rating.hireAgainPct}% would hire again` : ''}` : 'Ratings appear after completed jobs'} accent={rating.average !== null && rating.average >= 4.5 ? 'emerald' : undefined} />
       </MetricStrip>
+
+      {ratings.length > 0 && (
+        <Surface padded={false} className="mb-6">
+          <SectionTitle title="What customers said" className="px-5 pt-5 sm:px-6" />
+          <ul className="divide-y divide-gray-50">
+            {ratings.slice(0, 10).map((r, i) => (
+              <li key={i} className="px-5 py-3 sm:px-6">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Stars value={r.score} />
+                  <span className="truncate text-gray-900">{r.work_order_title ?? 'Work order'}</span>
+                  <span className="text-xs text-gray-500">{date(r.created_at)}</span>
+                </div>
+                {r.comment && <p className="mt-1 text-sm text-gray-600">{r.comment}</p>}
+              </li>
+            ))}
+          </ul>
+        </Surface>
+      )}
 
       <Surface padded={false}>
         <SectionTitle title="Recently completed" className="px-5 pt-5 sm:px-6" />

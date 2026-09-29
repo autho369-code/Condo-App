@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { buildVendorPerformanceScorecard, formatPerformanceDays } from '@/lib/vendors/performance';
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
+import { Stars, summarize } from '@/components/work-orders/rating';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
     .maybeSingle();
   if (!vendor) notFound();
 
-  const [performanceRows, { data: workOrders }] = await Promise.all([
+  const [performanceRows, { data: workOrders }, { data: ratingRows }] = await Promise.all([
     loadPortfolioVendorPerformanceRows(db, portfolioId, [vendor.id]),
     db
       .from('work_orders')
@@ -78,7 +79,19 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(25),
+    db
+      .from('work_order_ratings')
+      .select('score, quality, timeliness, communication, would_hire_again, comment, rater_role, created_at, work_orders(id, number, title)')
+      .eq('vendor_id', id)
+      .order('created_at', { ascending: false })
+      .limit(200),
   ]);
+  const ratings = (ratingRows ?? []) as any[];
+  const rating = summarize(ratings);
+  const avgOf = (k: 'quality' | 'timeliness' | 'communication') => {
+    const v = ratings.map((r) => r[k]).filter((x) => x != null);
+    return v.length ? Math.round((v.reduce((a, b) => a + Number(b), 0) / v.length) * 10) / 10 : null;
+  };
 
   const wos = (workOrders ?? []) as any[];
   const scorecard = buildVendorPerformanceScorecard(performanceRows, vendor);
@@ -107,6 +120,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             { label: 'Avg completion', value: formatPerformanceDays(scorecard.averageCompletionDays) },
             { label: 'Service record', value: scorecard.serviceRecord.label },
             { label: 'Compliance', value: scorecard.compliance.label },
+            { label: 'Satisfaction', value: rating.average === null ? '—' : `${rating.average} ★`, sublabel: rating.count ? `${rating.count} rating${rating.count === 1 ? '' : 's'}${rating.hireAgainPct !== null ? ` · ${rating.hireAgainPct}% would hire again` : ''}` : 'No ratings yet' },
           ]}
         />
 
@@ -178,6 +192,34 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
           <p className="mt-4 border-t border-gray-100 pt-4 text-xs leading-5 text-gray-500">
             A service label is shown only after three scheduled completions. Exceptional is 95%+, Strong is 85%+, Watch is 70%+, and Needs attention is below 70%. Open and overdue counts are current rather than limited to the 12-month completion window.
           </p>
+        </Surface>
+
+        <Surface>
+          <SectionTitle title="Ratings" description="From staff, owners and the board after completed jobs." />
+          {ratings.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-500">No ratings yet. Rate a completed work order to start this vendor&apos;s record.</p>
+          ) : (
+            <>
+              <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <div><div className="text-gray-500">Overall</div><div className="mt-1 flex items-center gap-2"><Stars value={rating.average} size="md" /><span className="font-medium tabular-nums text-gray-950">{rating.average}</span></div></div>
+                <div><div className="text-gray-500">Quality</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('quality') ?? '—'}</div></div>
+                <div><div className="text-gray-500">On time</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('timeliness') ?? '—'}</div></div>
+                <div><div className="text-gray-500">Communication</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('communication') ?? '—'}</div></div>
+              </div>
+              <ul className="divide-y divide-gray-100 border-t border-gray-100">
+                {ratings.slice(0, 10).map((r, i) => (
+                  <li key={i} className="py-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Stars value={r.score} />
+                      <span className="text-xs capitalize text-gray-500">{r.rater_role} · {date(r.created_at)}</span>
+                      {r.work_orders && <Link href={`/work-orders/${r.work_orders.id}`} className="text-xs text-gray-500 hover:text-gray-900 hover:underline">#{r.work_orders.number ?? ''} {r.work_orders.title}</Link>}
+                    </div>
+                    {r.comment && <p className="mt-1 text-gray-700">{r.comment}</p>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Surface>
 
         <Surface>
