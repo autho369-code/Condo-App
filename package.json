@@ -57,7 +57,8 @@
     "test:watch": "vitest",
     "security:secrets:self-test": "node scripts/scan-secrets.mjs --self-test",
     "security:secrets": "node scripts/scan-secrets.mjs",
-    "security:mfa-recover": "node scripts/reset-mfa-break-glass.mjs"
+    "security:mfa-recover": "node scripts/reset-mfa-break-glass.mjs",
+    "check:queries": "node scripts/check-live-queries.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",

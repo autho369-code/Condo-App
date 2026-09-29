@@ -1322,7 +1322,7 @@ async function VehicleInfoView({
 
   const [{ data }, { data: personVehicles }] = await Promise.all([
     db.from('parking_assignments')
-      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(space_number), units(unit_number, buildings(associations(id, name)))')
+      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(label), units(unit_number, buildings(associations(id, name)))')
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
     db.from('owner_vehicles')
@@ -1403,7 +1403,7 @@ async function VehicleInfoView({
                     <td className="px-4 py-2 text-gray-600">{r.units?.unit_number ?? '—'}</td>
                     <td className="px-4 py-2 text-gray-600">{[r.vehicle_color, r.vehicle_make, r.vehicle_model].filter(Boolean).join(' ') || '—'}</td>
                     <td className="px-4 py-2 tabular-nums text-gray-600">{r.license_plate ?? '—'}</td>
-                    <td className="px-4 py-2 text-gray-600">{r.parking_spaces?.space_number ?? '—'}</td>
+                    <td className="px-4 py-2 text-gray-600">{r.parking_spaces?.label ?? '—'}</td>
                     <td className="px-4 py-2 text-gray-600">{r.insurance_company ?? '—'}</td>
                   </tr>
                 ))}
@@ -1603,7 +1603,7 @@ async function ReserveFundView(ctx: ReportContext) {
 async function FundBalanceView(ctx: ReportContext & { trustOnly: boolean }) {
   const supabase = await createClient();
   const db = supabase as any;
-  let bq = db.from('bank_accounts').select('id, name, bank_name, fund_type, association_id, gl_account_id, associations(name)').is('archived_at', null).order('name');
+  let bq = db.from('bank_accounts').select('id, name, bank_name, fund_type, association_id, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name');
   if (ctx.selectedAssociation) bq = bq.eq('association_id', ctx.selectedAssociation);
   const { data } = await bq;
   let banks = (data ?? []) as any[];

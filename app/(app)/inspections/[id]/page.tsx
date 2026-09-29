@@ -29,7 +29,7 @@ export default async function InspectionDetailPage({
   const sp = await searchParams;
   const db = (await createClient()) as any;
   const [{ data: inspection }, { data: findings }] = await Promise.all([
-    db.from('inspections').select('*, associations(name), units(unit_number), vendors:inspector_vendor_id(name), profiles:inspector_user_id(full_name, email)').eq('id', id).maybeSingle(),
+    db.from('inspections').select('*, associations(name), units(unit_number), vendors:inspector_vendor_id(name)').eq('id', id).maybeSingle(),
     db.from('inspection_items').select('*, work_orders(id, number, title, status)').eq('inspection_id', id).order('sort_order').order('created_at'),
   ]);
   if (!inspection) notFound();

@@ -69,7 +69,7 @@ export default async function ChargesPage({
   let chargesQuery = db.from('aged_receivables').select('*');
   let delinquencyQuery = db.from('delinquent_units').select('*');
   let violationsQuery = db.from('violations')
-    .select('id, unit_id, dispute_status, status, fine_amount, created_at, units(unit_number, associations(name)), violation_type')
+    .select('id, unit_id, dispute_status, status, fine_amount, created_at, units(unit_number, buildings(associations(name))), violation_type')
     .not('dispute_status', 'is', null);
   if (owner) {
     receiptsQuery = ownerUnitIdList.length
@@ -281,7 +281,7 @@ export default async function ChargesPage({
       ],
       rows: scopedViolations.map((v: any) => [
         v.units?.unit_number ?? '—',
-        v.units?.associations?.name ?? '—',
+        v.units?.buildings?.associations?.name ?? '—',
         v.violation_type ?? '—',
         v.dispute_status ?? '—',
         v.status ?? '—',
@@ -667,7 +667,7 @@ export default async function ChargesPage({
                       <TR key={v.id}>
                         <TD className="font-medium">{v.units?.unit_number ?? '—'}</TD>
                         <TD className="text-sm text-gray-600 max-w-[180px] truncate">
-                          {v.units?.associations?.name ?? '—'}
+                          {v.units?.buildings?.associations?.name ?? '—'}
                         </TD>
                         <TD className="text-sm text-gray-700">{v.violation_type ?? '—'}</TD>
                         <TD>

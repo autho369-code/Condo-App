@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   const { data: occs, error } = await db
     .from('occupancies')
-    .select('unit_id, owner_id, dues_amount, units!inner(unit_number, associations!inner(name)), owners(full_name)')
+    .select('unit_id, owner_id, dues_amount, units!inner(unit_number, buildings!inner(associations!inner(name))), owners(full_name)')
     .eq('association_id', associationId)
     .eq('status', 'current')
     .order('unit_number', { foreignTable: 'units' });
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const units = (occs ?? []).map((occ: any) => ({
     unit_id: occ.unit_id,
     unit_number: occ.units?.unit_number ?? '?',
-    association_name: occ.units?.associations?.name ?? '',
+    association_name: occ.units?.buildings?.associations?.name ?? '',
     owner_name: occ.owners?.full_name ?? null,
     current_dues: occ.dues_amount ?? 0,
     occupancy_id: occ.id,

@@ -100,7 +100,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       .select('id, policy_number, insurance_company, coverage_amount, expiration_date, status')
       .eq('owner_id', id).is('archived_at', null).order('expiration_date', { ascending: false }).limit(5),
     db.from('parking_assignments')
-      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, status, parking_spaces(space_number)')
+      .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, status, parking_spaces(label)')
       .eq('owner_id', id).eq('status', 'active'),
     db.from('management_agreements')
       .select('id, name, status, start_date, end_date')
@@ -1236,7 +1236,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                       </span>
                       {v.license_plate && <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700">{v.license_plate}</span>}
                     </div>
-                    <div className="text-xs text-gray-500">Parking space {v.parking_spaces?.space_number ?? '—'}</div>
+                    <div className="text-xs text-gray-500">Parking space {v.parking_spaces?.label ?? '—'}</div>
                   </li>
                 ))}
               </ul>

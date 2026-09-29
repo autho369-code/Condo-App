@@ -5,6 +5,15 @@
  * Called daily via cron or edge function.
  */
 import { createServiceClient } from '@/lib/supabase/server';
+import { firstVendorEmail } from '@/lib/vendors/document-requests';
+
+function firstPhone(list: unknown): string | null {
+  for (const p of Array.isArray(list) ? list : []) {
+    const v = typeof p === 'string' ? p : (p as any)?.number ?? (p as any)?.phone;
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return null;
+}
 
 export interface MaintenanceReminder {
   taskId: string;
@@ -34,19 +43,23 @@ export async function getDueReminders(): Promise<MaintenanceReminder[]> {
   const svc = createServiceClient() as any;
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: tasks } = await svc
+  // vendors store contact details as jsonb lists (emails, phone_numbers).
+  const { data: tasks, error } = await svc
     .from('maintenance_tasks')
-    .select('id, task_name, reminder_days, next_due_date, vendor_id, vendors(name, email, phone), associations(name, portfolio_id, portfolios(company_name, support_email))')
+    .select('id, task_name, reminder_days, next_due_date, vendor_id, vendors(name, emails, phone_numbers), associations(name, portfolio_id, portfolios(company_name, support_email))')
     .is('archived_at', null)
     .eq('status', 'active')
     .not('vendor_id', 'is', null)
     .gte('next_due_date', today);
+  // Fail loudly: a query error must not look like "no reminders due".
+  if (error) throw new Error(`maintenance reminder lookup failed: ${error.message}`);
 
   const reminders: MaintenanceReminder[] = [];
 
   for (const task of tasks ?? []) {
     const vendor = task.vendors;
-    if (!vendor?.email) continue;
+    const vendorEmail = firstVendorEmail(vendor?.emails);
+    if (!vendorEmail) continue;
 
     const daysUntilDue = Math.round(
       (new Date(task.next_due_date + 'T00:00:00Z').getTime() - new Date(today + 'T00:00:00Z').getTime()) / 86400000,
@@ -64,8 +77,8 @@ export async function getDueReminders(): Promise<MaintenanceReminder[]> {
       associationName: assoc?.name ?? 'Association',
       dueDate: task.next_due_date,
       daysUntilDue,
-      vendorEmail: vendor.email,
-      vendorPhone: vendor.phone ?? null,
+      vendorEmail,
+      vendorPhone: firstPhone(vendor?.phone_numbers),
       vendorName: vendor.name ?? null,
       staffEmail: null,
       portfolioId: assoc?.portfolio_id ?? null,
