@@ -2,7 +2,7 @@
 import * as React from 'react';
 
 /** Toggles every checkbox with a matching name within a parent form. */
-export function SelectAllCheckbox({ targetName }: { targetName: string }) {
+export function SelectAllCheckbox({ targetName, defaultChecked = true }: { targetName: string; defaultChecked?: boolean }) {
   const ref = React.useRef<HTMLInputElement>(null);
   function onToggle(e: React.ChangeEvent<HTMLInputElement>) {
     const form = e.target.closest('form');
@@ -10,5 +10,5 @@ export function SelectAllCheckbox({ targetName }: { targetName: string }) {
     form.querySelectorAll<HTMLInputElement>(`input[type="checkbox"][name="${targetName}"]`)
       .forEach((cb) => { cb.checked = e.target.checked; });
   }
-  return <input ref={ref} type="checkbox" defaultChecked onChange={onToggle} aria-label="Select all" />;
+  return <input ref={ref} type="checkbox" defaultChecked={defaultChecked} onChange={onToggle} aria-label="Select all" className="h-4 w-4 rounded border-gray-300" />;
 }

@@ -12,6 +12,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
+import { EscalationPanel } from '@/components/violations/escalation-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function ViolationDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
@@ -46,6 +47,22 @@ export default async function ViolationDetailPage({
   ]);
 
   if (!violation) notFound();
+
+  // Escalation: the rule's custom ladder when it has one, else the association default.
+  const { data: rule } = violation.house_rule_id
+    ? await db.from('house_rules').select('id, rule_number, title, description, action_to_resolve, custom_schedule').eq('id', violation.house_rule_id).maybeSingle()
+    : { data: null };
+  let stepsQuery = db.from('violation_followup_steps')
+    .select('id, follow_up_name, days_after_previous, fee, offers_hearing')
+    .eq('association_id', violation.association_id)
+    .is('archived_at', null)
+    .order('step_order');
+  stepsQuery = rule?.custom_schedule ? stepsQuery.eq('house_rule_id', rule.id) : stepsQuery.is('house_rule_id', null);
+  const [{ data: steps }, { data: violationSettings }, { data: fines }] = await Promise.all([
+    stepsQuery,
+    db.from('association_violation_settings').select('hearing_required_before_fine, hearing_request_days').eq('association_id', violation.association_id).maybeSingle(),
+    db.from('violation_fines').select('id, step_name, amount, assessed_at').eq('violation_id', id).order('step_order'),
+  ]);
 
   // Attachments: written by the field-capture flow as
   // [{ name, path, size, uploaded_at, ... }] (same shape as
@@ -86,13 +103,24 @@ export default async function ViolationDetailPage({
       rail={<DetailRail />}
     >
       <div className="space-y-6">
-        {sp.error && <Alert tone="danger" title="Heads up">{sp.error}</Alert>}
+        {sp.error && <Alert tone="danger" title="Could not update violation:">{sp.error}</Alert>}
+        {sp.saved && <Alert tone="success">{sp.saved}</Alert>}
         <MetricStrip metrics={[
           { label: 'Status', value: <StatusChip tone={violation.status === 'closed' || violation.status === 'cured' ? 'success' : 'warning'}>{formatStatus(violation.status)}</StatusChip> },
           { label: 'Observed', value: date(violation.date_observed) },
-          { label: 'Due date', value: date(violation.due_date) },
-          { label: 'Fine', value: violation.fine_amount ? money(violation.fine_amount) : '-' },
+          { label: 'Cure by', value: date(violation.cure_deadline ?? violation.due_date) },
+          { label: 'Fines', value: Number(violation.fines_total ?? 0) > 0 ? money(violation.fines_total) : violation.fine_amount ? money(violation.fine_amount) : '-' },
         ]} />
+
+        <EscalationPanel violation={violation} steps={steps ?? []} settings={violationSettings ?? null} fines={fines ?? []} />
+
+        {rule && (
+          <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <h2 className="text-sm font-semibold text-gray-950"><Link href={`/violations/rules/${rule.id}`} className="hover:text-gray-600">{rule.rule_number} — {rule.title}</Link></h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{rule.description}</p>
+            {rule.action_to_resolve && <p className="mt-2 text-sm text-gray-600"><span className="font-medium text-gray-800">To resolve: </span>{rule.action_to_resolve}</p>}
+          </section>
+        )}
 
         <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <h2 className="text-sm font-semibold text-gray-950">Violation details</h2>

@@ -1,12 +1,14 @@
 import Link from 'next/link';
-import { Plus, ShieldAlert, Smartphone } from 'lucide-react';
+import { BookOpenCheck, Plus, ShieldAlert, Smartphone } from 'lucide-react';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
+import { SelectAllCheckbox } from '@/components/ui/select-all';
+import { bulkViolationAction } from '@/lib/rpcs/violation-rules';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -65,6 +67,10 @@ function isOverdue(row: { cure_deadline?: string | null; due_date?: string | nul
   return !!deadline && deadline < todayDate;
 }
 
+function isFollowUpDue(row: { next_followup_on?: string | null; status?: string | null }, todayDate: string): boolean {
+  return !isResolvedStatus(row.status) && !!row.next_followup_on && row.next_followup_on <= todayDate;
+}
+
 // ── Page ──
 
 export default async function ViolationsPage({
@@ -75,6 +81,8 @@ export default async function ViolationsPage({
     status?: string;
     severity?: string;
     q?: string;
+    error?: string;
+    saved?: string;
   }>;
 }) {
   const me = await requireStaff();
@@ -88,7 +96,7 @@ export default async function ViolationsPage({
   const db = supabase as any;
 
   let violationsQuery = db.from('violations')
-    .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, closed_at, cured_at, associations(name)')
+    .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, fines_total, next_followup_on, current_step, hearing_requested_at, closed_at, cured_at, associations(name)')
     .is('archived_at', null);
   if (filters.status === 'overdue') {
     violationsQuery = violationsQuery
@@ -118,6 +126,8 @@ export default async function ViolationsPage({
       filtered = filtered.filter((v: any) => !isResolvedStatus(v.status));
     } else if (filters.status === 'overdue') {
       filtered = filtered.filter((v: any) => v.cure_deadline && v.cure_deadline < todayDate && !isResolvedStatus(v.status));
+    } else if (filters.status === 'followup_due') {
+      filtered = filtered.filter((v: any) => isFollowUpDue(v, todayDate));
     } else {
       filtered = filtered.filter((v: any) => v.status === filters.status);
     }
@@ -138,6 +148,7 @@ export default async function ViolationsPage({
   // ── Metrics ──
   const openCases = all.filter((v: any) => !isResolvedStatus(v.status)).length;
   const overdue = all.filter((v: any) => isOverdue(v, todayDate)).length;
+  const followUpDue = all.filter((v: any) => isFollowUpDue(v, todayDate)).length;
   const resolvedThisMonth = all.filter(
     (v: any) =>
       isResolvedStatus(v.status) &&
@@ -149,6 +160,11 @@ export default async function ViolationsPage({
       label: 'Open Cases',
       value: openCases,
       sublabel: <Link href="/violations?status=all_open" className="font-medium text-gray-500 transition-colors hover:text-gray-900">View open queue</Link>,
+    },
+    {
+      label: 'Follow-up Due',
+      value: followUpDue,
+      sublabel: <Link href="/violations?status=followup_due" className="font-medium text-gray-500 transition-colors hover:text-gray-900">Work the queue</Link>,
     },
     {
       label: 'Overdue',
@@ -202,6 +218,9 @@ export default async function ViolationsPage({
             filename={`violations-${exportStamp}`}
             tables={[exportTable]}
           />
+          <Link href="/violations/rules">
+            <Button variant="secondary"><BookOpenCheck className="h-4 w-4" /> Rules & fines</Button>
+          </Link>
           <Link href="/violations/field">
             <Button variant="secondary"><Smartphone className="h-4 w-4" /> Field capture</Button>
           </Link>
@@ -212,6 +231,8 @@ export default async function ViolationsPage({
       }
     >
       <div className="space-y-6">
+        {filters.error && <Alert tone="danger" title="Bulk action:">{filters.error}</Alert>}
+        {filters.saved && <Alert tone="success">{filters.saved}</Alert>}
         {/* ── METRIC STRIP ── */}
         <MetricStrip metrics={metrics} />
 
@@ -230,6 +251,7 @@ export default async function ViolationsPage({
 
           <FilterSelect label="Status" name="status" defaultValue={filters.status ?? ''}>
             <option value="">Any</option>
+            <option value="followup_due">Follow-up due</option>
             <option value="overdue">Past cure date</option>
             <option value="all_open">All Open</option>
             {STATUS_OPTIONS.map((s) => (
@@ -247,9 +269,21 @@ export default async function ViolationsPage({
 
         {/* ── TABLE ── */}
         {filtered.length > 0 ? (
+          <form action={bulkViolationAction} className="space-y-3">
+          <input type="hidden" name="back" value={`/violations${filters.status ? `?status=${encodeURIComponent(filters.status)}` : ''}`} />
+          <div className="flex flex-col gap-2 rounded-2xl border border-gray-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center">
+            <span className="text-[13px] text-gray-500">With selected:</span>
+            <select name="bulk_action" defaultValue="advance" aria-label="Bulk action" className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              <option value="advance">Record next follow-up step</option>
+              <option value="cured">Mark corrected</option>
+            </select>
+            <Button type="submit" variant="secondary">Apply</Button>
+            <span className="text-[12px] text-gray-400 sm:ml-auto">Fines still respect each association&apos;s hearing rules; blocked rows are reported.</span>
+          </div>
           <Table>
             <THead>
               <TR>
+                <TH className="w-8"><SelectAllCheckbox targetName="violation_ids" defaultChecked={false} /></TH>
                 <TH>Case #</TH>
                 <TH>Title</TH>
                 <TH>Association</TH>
@@ -257,6 +291,7 @@ export default async function ViolationsPage({
                 <TH>Severity</TH>
                 <TH>Reported Date</TH>
                 <TH>Cure Deadline</TH>
+                <TH>Next Follow-up</TH>
               </TR>
             </THead>
             <tbody>
@@ -264,6 +299,7 @@ export default async function ViolationsPage({
                 const sd = statusDisplay(v.status);
                 return (
                   <TR key={v.id}>
+                    <TD>{!isResolvedStatus(v.status) && <input type="checkbox" name="violation_ids" value={v.id} aria-label={`Select ${v.title ?? 'violation'}`} className="h-4 w-4 rounded border-gray-300" />}</TD>
                     <TD className="font-mono text-xs whitespace-nowrap">
                       <Link href={`/violations/${v.id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                         {formatCaseNumber(v.id)}
@@ -286,11 +322,16 @@ export default async function ViolationsPage({
                     <TD className="text-sm capitalize text-gray-600">{formatLabel(v.violation_type)}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{date(v.reported_date)}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{date(v.cure_deadline)}</TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-600">
+                      {isResolvedStatus(v.status) ? '—' : v.next_followup_on ? date(v.next_followup_on) : '—'}
+                      {isFollowUpDue(v, todayDate) && <span className="ml-1.5"><StatusChip tone="warning">Due</StatusChip></span>}
+                    </TD>
                   </TR>
                 );
               })}
             </tbody>
           </Table>
+          </form>
         ) : (
           <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState

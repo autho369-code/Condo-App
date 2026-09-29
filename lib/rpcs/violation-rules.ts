@@ -1,0 +1,217 @@
+'use server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
+
+// Every RPC below re-checks can_manage_violations(association) in the
+// database; requireStaff here is the in-action guard for callable endpoints.
+
+const str = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
+function go(path: string, key: 'error' | 'saved', msg: string): never {
+  redirect(`${path}${path.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(msg)}`);
+}
+
+function rulesHref(associationId: string) {
+  return `/violations/rules?association_id=${associationId}`;
+}
+
+export async function saveHouseRule(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'id') || null;
+  const associationId = str(formData, 'association_id');
+  const back = id ? `/violations/rules/${id}` : `/violations/rules/new?association_id=${associationId}`;
+  const fineRaw = str(formData, 'fine_amount');
+  const fine = fineRaw ? Number(fineRaw) : null;
+  if (fine !== null && !Number.isFinite(fine)) go(back, 'error', 'Default fine must be a number.');
+
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('save_house_rule', {
+    p_id: id,
+    p_association_id: associationId,
+    p_rule_number: str(formData, 'rule_number'),
+    p_title: str(formData, 'title'),
+    p_description: str(formData, 'description'),
+    p_action_to_resolve: str(formData, 'action_to_resolve') || null,
+    p_category: str(formData, 'category') || null,
+    p_default_violation_type: str(formData, 'default_violation_type') || 'other',
+    p_fine_amount: fine,
+    p_active: formData.get('active') === 'on',
+  });
+  if (error) go(back, 'error', error.message);
+  revalidatePath('/violations/rules');
+  redirect(`/violations/rules/${data}?saved=${encodeURIComponent('Rule saved.')}`);
+}
+
+export async function archiveHouseRule(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'id');
+  const associationId = str(formData, 'association_id');
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('archive_house_rule', { p_id: id });
+  if (error) go(`/violations/rules/${id}`, 'error', error.message);
+  revalidatePath('/violations/rules');
+  go(rulesHref(associationId), 'saved', 'Rule archived.');
+}
+
+export async function installStarterRules(formData: FormData) {
+  await requireStaff();
+  const associationId = str(formData, 'association_id');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('install_starter_house_rules', { p_association_id: associationId });
+  if (error) go(rulesHref(associationId), 'error', error.message);
+  revalidatePath('/violations/rules');
+  go(rulesHref(associationId), 'saved', data > 0 ? `Added ${data} starter rules and a default follow-up schedule. Review them against your governing documents.` : 'All starter rules were already in this association.');
+}
+
+export async function copyHouseRules(formData: FormData) {
+  await requireStaff();
+  const associationId = str(formData, 'association_id');
+  const targets = formData.getAll('target_association_ids').map(String).filter(Boolean);
+  if (targets.length === 0) go(rulesHref(associationId), 'error', 'Choose at least one association to copy to.');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('copy_house_rules', {
+    p_source_association_id: associationId,
+    p_target_association_ids: targets,
+    p_include_schedules: formData.get('include_schedules') === 'on',
+  });
+  if (error) go(rulesHref(associationId), 'error', error.message);
+  revalidatePath('/violations/rules');
+  go(rulesHref(associationId), 'saved', `Copied ${data} rule${data === 1 ? '' : 's'} to ${targets.length} association${targets.length === 1 ? '' : 's'}. Rules with the same number were skipped.`);
+}
+
+export async function saveViolationSchedule(formData: FormData) {
+  await requireStaff();
+  const associationId = str(formData, 'association_id');
+  const ruleId = str(formData, 'house_rule_id') || null;
+  const back = ruleId ? `/violations/rules/${ruleId}` : `/violations/rules/schedule?association_id=${associationId}`;
+  let steps: unknown;
+  try {
+    steps = JSON.parse(str(formData, 'steps') || '[]');
+  } catch {
+    go(back, 'error', 'Could not read the schedule steps.');
+  }
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('save_violation_schedule', {
+    p_association_id: associationId,
+    p_house_rule_id: ruleId,
+    p_steps: steps,
+  });
+  if (error) go(back, 'error', error.message);
+  revalidatePath('/violations/rules');
+  go(back, 'saved', ruleId && Array.isArray(steps) && steps.length === 0 ? 'This rule now uses the association default schedule.' : 'Follow-up schedule saved.');
+}
+
+export async function saveViolationSettings(formData: FormData) {
+  await requireStaff();
+  const associationId = str(formData, 'association_id');
+  const back = `/violations/rules/schedule?association_id=${associationId}`;
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('save_violation_settings', {
+    p_association_id: associationId,
+    p_hearing_required_before_fine: formData.get('hearing_required_before_fine') === 'on',
+    p_hearing_request_days: Number(str(formData, 'hearing_request_days') || 14),
+    p_default_cure_days: Number(str(formData, 'default_cure_days') || 14),
+    p_fine_charge_category_id: str(formData, 'fine_charge_category_id') || null,
+  });
+  if (error) go(back, 'error', error.message);
+  go(back, 'saved', 'Fining policy saved.');
+}
+
+// ── Violation lifecycle ────────────────────────────────────────────────────
+
+export async function openViolation(formData: FormData) {
+  await requireStaff();
+  const associationId = str(formData, 'association_id');
+  const back = `/violations/new${associationId ? `?association_id=${associationId}` : ''}`;
+  if (!associationId) go(back, 'error', 'Choose an association.');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('open_violation', {
+    p_association_id: associationId,
+    p_unit_id: str(formData, 'unit_id') || null,
+    p_house_rule_id: str(formData, 'house_rule_id') || null,
+    p_title: str(formData, 'title') || null,
+    p_description: str(formData, 'description') || null,
+    p_date_observed: str(formData, 'date_observed') || null,
+    p_violation_type: str(formData, 'violation_type') || null,
+  });
+  if (error) go(back, 'error', error.message);
+  revalidatePath('/violations');
+  redirect(`/violations/${data}?saved=${encodeURIComponent('Violation opened. Send the first notice when ready.')}`);
+}
+
+function describeStep(result: any): string {
+  const parts = [`${result.step_name} recorded`];
+  if (Number(result.fee) > 0) parts.push(`$${Number(result.fee).toFixed(2)} fine posted to the unit ledger`);
+  if (result.next_followup_on) parts.push(`next follow-up ${result.next_followup_on}`);
+  return parts.join(' · ') + '.';
+}
+
+export async function advanceViolation(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'id');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('advance_violation', { p_violation_id: id, p_note: str(formData, 'note') || null });
+  if (error) go(`/violations/${id}`, 'error', error.message);
+  revalidatePath('/violations');
+  go(`/violations/${id}`, 'saved', describeStep(data));
+}
+
+export async function recordViolationHearing(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'id');
+  const heldOn = str(formData, 'hearing_at');
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('record_violation_hearing', {
+    p_violation_id: id,
+    p_decision: str(formData, 'decision'),
+    p_hearing_at: heldOn ? new Date(`${heldOn}T12:00:00`).toISOString() : null,
+    p_notes: str(formData, 'notes') || null,
+  });
+  if (error) go(`/violations/${id}`, 'error', error.message);
+  revalidatePath('/violations');
+  go(`/violations/${id}`, 'saved', 'Hearing decision recorded.');
+}
+
+export async function resolveViolation(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'id');
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('resolve_violation', {
+    p_violation_id: id,
+    p_resolution: str(formData, 'resolution'),
+    p_note: str(formData, 'note') || null,
+  });
+  if (error) go(`/violations/${id}`, 'error', error.message);
+  revalidatePath('/violations');
+  go(`/violations/${id}`, 'saved', str(formData, 'resolution') === 'cured' ? 'Marked corrected.' : 'Violation closed.');
+}
+
+/** Bulk follow-up from the violations queue. Each row runs through the same RPC; failures are reported, not hidden. */
+export async function bulkViolationAction(formData: FormData) {
+  await requireStaff();
+  const action = str(formData, 'bulk_action');
+  const ids = formData.getAll('violation_ids').map(String).filter(Boolean).slice(0, 100);
+  const back = str(formData, 'back') || '/violations';
+  if (ids.length === 0) go(back, 'error', 'Select at least one violation.');
+  if (!['advance', 'cured'].includes(action)) go(back, 'error', 'Choose a bulk action.');
+
+  const supabase = await createClient();
+  const db = supabase as any;
+  let ok = 0;
+  const failures: string[] = [];
+  for (const id of ids) {
+    const { error } = action === 'advance'
+      ? await db.rpc('advance_violation', { p_violation_id: id, p_note: 'Bulk follow-up' })
+      : await db.rpc('resolve_violation', { p_violation_id: id, p_resolution: 'cured', p_note: 'Bulk: marked corrected' });
+    if (error) failures.push(error.message);
+    else ok += 1;
+  }
+  revalidatePath('/violations');
+  const verb = action === 'advance' ? 'advanced to their next step' : 'marked corrected';
+  if (failures.length > 0) {
+    const reasons = Array.from(new Set(failures)).slice(0, 3).join(' | ');
+    go(back, 'error', `${ok} of ${ids.length} ${verb}. ${failures.length} skipped: ${reasons}`);
+  }
+  go(back, 'saved', `${ok} violation${ok === 1 ? '' : 's'} ${verb}.`);
+}
