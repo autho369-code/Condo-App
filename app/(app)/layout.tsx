@@ -8,6 +8,7 @@ import { hasPortfolioAdminAccess, requireAuth, roleHome } from '@/lib/auth/me';
 import { appModules } from '@/lib/navigation/modules';
 import { companyAdminModules } from '@/lib/navigation/role-modules';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { CommandPalette, type PaletteLink } from '@/components/search/command-palette';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Staff workspace. Company admins are admitted at the layout so their nav
@@ -41,6 +42,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }
         : module
     ));
+  // Command palette (Ctrl/Cmd+K): every visible nav destination plus common
+  // create actions. Record search is served by /api/search under RLS.
+  const pages: PaletteLink[] = modules.flatMap((module) => [
+    { label: module.label, href: module.href, section: module.group },
+    ...(module.children ?? [])
+      .filter((child) => child.href !== module.href)
+      .map((child) => ({ label: child.label, href: child.href, section: module.label })),
+  ]);
+  const paletteActions: PaletteLink[] = [
+    { label: 'New work order', href: '/work-orders/new', section: 'Maintenance' },
+    { label: 'New violation', href: '/violations/new', section: 'Compliance' },
+    { label: 'Post owner charge', href: '/charges/new', section: 'Receivables' },
+    ...(financeAccess ? [{ label: 'New bill', href: '/bills/new', section: 'Payables' }] : []),
+    { label: 'New homeowner', href: '/owners/new', section: 'People' },
+    { label: 'New vendor', href: '/vendors/new', section: 'People' },
+    { label: 'Schedule meeting', href: '/meetings/new', section: 'Governance' },
+    { label: 'New architectural review', href: '/architectural-reviews/new', section: 'Compliance' },
+    { label: 'New letter', href: '/letters/new', section: 'Communication' },
+    ...(financeAccess ? [{ label: 'New journal entry', href: '/journal-entries/new', section: 'Accounting' }] : []),
+  ];
   const actionCenterProps = {
     isStaff: me.is_staff || me.is_platform_operator,
     isFinanceStaff: financeAccess,
@@ -53,6 +74,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="h-screen min-w-0 flex-1 overflow-y-auto pt-12 lg:pt-0">
         {children}
       </main>
+      <CommandPalette pages={pages} actions={paletteActions} />
       <Suspense fallback={<TasksRail {...actionCenterProps} />}>
         <ActionCenterShell {...actionCenterProps} />
       </Suspense>
