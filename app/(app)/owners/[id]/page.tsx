@@ -15,6 +15,7 @@ import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, sa
 import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
+import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
 }
 
 export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -46,7 +47,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
-      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, units(id, unit_number, buildings(name, associations(id, name)))')
+      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
     db.from('service_requests')
@@ -309,6 +310,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'late_fee' && <div className="mb-4"><Alert tone="success" title="Late-fee rule saved" /></div>}
       {sp.saved === 'financial' && <div className="mb-4"><Alert tone="success" title="Financial details saved" /></div>}
       {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
       {sp.saved === 'reset_sent' && <div className="mb-4"><Alert tone="success" title="Password reset email queued" /></div>}
@@ -649,6 +651,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </tbody>
             </table>
           )}
+
+          <OwnerLateFeeOverrides ownerId={id} occupancies={(occs ?? []) as any[]} canEdit={me.is_finance_staff || me.is_company_admin || me.is_platform_operator} />
 
           <details className="border-t border-gray-100 px-5 py-4" {...((occs ?? []).length === 0 ? { open: true } : {})}>
             <summary className="cursor-pointer select-none text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 hover:underline">+ Link to a unit</summary>
