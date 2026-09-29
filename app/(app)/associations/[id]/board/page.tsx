@@ -5,16 +5,22 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { signSignaturePaths } from '@/lib/board/signature';
+import { ApprovalRulesForm } from '@/components/associations/approval-rules-form';
+import { Alert } from '@/components/ui/shell';
+import { saveBoardApprovalSettings } from '@/lib/rpcs/purchase-orders';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BoardTab({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id: assocParam } = await params;
+  const sp = await searchParams;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
@@ -42,15 +48,12 @@ export default async function BoardTab({
 
   const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
-    .select('signatures_required, default_board_member_ids, default_voting_scheme, sends_bills_to_board, bills_threshold')
+    .select('signatures_required, default_board_member_ids, default_voting_scheme, default_percentage_required, sends_bills_to_board, bills_threshold, sends_pos_to_board, pos_threshold')
     .eq('association_id', id)
     .maybeSingle();
 
-  const sigsRequired = settings?.signatures_required ?? true;
   const defaultIds = settings?.default_board_member_ids ?? [];
   const defaultMembersLabel = defaultIds.length === 0 ? 'All' : `${defaultIds.length} selected`;
-  const votingScheme = humanVotingScheme(settings?.default_voting_scheme ?? 'majority_approval_required');
-  const sendsBills = humanSendsBills(settings?.sends_bills_to_board ?? 'never', settings?.bills_threshold);
 
   const rail = null;
 
@@ -138,20 +141,15 @@ export default async function BoardTab({
         </details>
       </Section>
 
-      <Section title="Board Approvals" padded>
-        <dl className="grid grid-cols-[200px_1fr] gap-y-2.5 text-sm">
-          <dt className="text-gray-500">Signatures Required</dt>
-          <dd className="text-gray-900">{sigsRequired ? 'Yes' : 'No'}</dd>
-
-          <dt className="text-gray-500">Default Board Members</dt>
-          <dd className="text-gray-900">{defaultMembersLabel}</dd>
-
-          <dt className="text-gray-500">Voting Scheme</dt>
-          <dd className="text-gray-900">{votingScheme}</dd>
-
-          <dt className="text-gray-500">Sends Bills To Board</dt>
-          <dd className="text-gray-900">{sendsBills}</dd>
-        </dl>
+      <Section title="Approval rules" subtitle={`Default approvers: ${defaultMembersLabel}. Bills and purchase orders routed to the board wait for a vote before they can be paid or issued.`} padded>
+        {sp.error && <Alert tone="danger" title="Could not save approval rules:" className="mb-4">{sp.error}</Alert>}
+        {sp.saved && <Alert tone="success" className="mb-4">Approval rules saved.</Alert>}
+        <ApprovalRulesForm
+          associationId={id}
+          settings={settings}
+          action={saveBoardApprovalSettings}
+          canEdit={me.is_full_access_staff || me.is_platform_operator}
+        />
       </Section>
     </Workspace>
   );
@@ -160,25 +158,6 @@ export default async function BoardTab({
 function humanRole(role: string | null): string {
   if (!role) return '—';
   return role.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
-}
-
-function humanVotingScheme(scheme: string): string {
-  switch (scheme) {
-    case 'majority_approval_required':  return 'Majority Approval Required';
-    case 'unanimous_approval_required': return 'Unanimous Approval Required';
-    case 'any_one_approver':            return 'Any One Approver';
-    case 'percentage_required':         return 'Percentage Required';
-    default: return scheme;
-  }
-}
-
-function humanSendsBills(value: string, threshold: number | null | undefined): string {
-  switch (value) {
-    case 'always':         return 'Always';
-    case 'over_threshold': return threshold != null ? `Over $${Number(threshold).toFixed(2)}` : 'Over threshold';
-    case 'never':
-    default:               return 'Never';
-  }
 }
 
 function formatDate(d: string): string {
