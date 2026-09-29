@@ -57,7 +57,7 @@ export default async function ManagerArchitecturalDetail({
 
   return (
     <Workspace
-      header={<WorkspaceHeader title={req.title} subtitle={`${req.associations?.name ?? ''} · Unit ${req.units?.unit_number ?? '—'} · ${req.owners?.full_name ?? ''}`} />}
+      header={<WorkspaceHeader title={req.title} subtitle={`${req.associations?.name ?? ''} · Unit ${req.units?.unit_number ?? '—'} · ${req.owners?.full_name ?? ''}`} actions={<Link href={`/signatures/new?subject_type=architectural_request&subject_id=${req.id}`}><Button variant="secondary">Send decision for e-signature</Button></Link>} />}
     >
       <div className="max-w-3xl space-y-5">
         <Link href="/architectural-reviews" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">

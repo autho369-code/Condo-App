@@ -35,4 +35,5 @@ export const PUBLIC_PATHS = [
   '/api/webhooks/deliver',
   '/api/mail/deliver',
   '/report-card',
+  '/sign',
 ] as const;

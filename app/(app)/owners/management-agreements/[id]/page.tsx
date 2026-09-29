@@ -69,6 +69,7 @@ export default async function ManagementAgreementPage({
               <span>· {date(a.start_date)} — {a.end_date ? date(a.end_date) : 'ongoing'}</span>
             </span>
           }
+          actions={!a.signed_at ? <Link href={`/signatures/new?subject_type=management_agreement&subject_id=${a.id}`}><Button>Send for e-signature</Button></Link> : undefined}
         />
       }
     >
