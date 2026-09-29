@@ -33,7 +33,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
 
     // start_date, name, terms (jsonb) and portfolio_id are NOT NULL on the table;
     // fee / signature-due / delivery have no columns, so they live in terms jsonb.
-    const { error } = await (supabase as any).from('management_agreements').insert({
+    const { data: created, error } = await (supabase as any).from('management_agreements').insert({
       portfolio_id: me.portfolio?.id,
       owner_id: (formData.get('owner_id') as string) || null,
       association_id: associationId,
@@ -48,9 +48,9 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
         delivery_method: (formData.get('delivery_method') as string) || 'email',
       },
       created_by: me.auth_user_id,
-    });
+    }).select('id').single();
     if (error) redirect(`/owners/management-agreements/new?error=${encodeURIComponent(error.message)}`);
-    redirect('/owners?agreement_created=1');
+    redirect(`/owners/management-agreements/${created.id}?saved=${encodeURIComponent('Agreement created. Add terms and record signatures when executed.')}`);
   }
 
   return (

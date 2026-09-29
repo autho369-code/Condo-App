@@ -20,6 +20,7 @@ export const appModules: AppModule[] = [
     children: [
       { label: 'Association directory', href: '/associations' },
       { label: 'New association', href: '/associations/new' },
+      { label: 'Property groups', href: '/associations/groups' },
       { label: 'Import homeowners & units', href: '/owners/import' },
       { label: 'Units', href: '/units' },
       { label: 'Parking', href: '/parking' },
