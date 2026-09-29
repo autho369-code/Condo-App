@@ -38,4 +38,5 @@ export const PUBLIC_PATHS = [
   '/api/mail/deliver',
   '/report-card',
   '/sign',
+  '/vendor-upload',
 ] as const;
