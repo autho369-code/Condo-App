@@ -60,9 +60,10 @@ export default async function AccountPage({
   const sp = await searchParams;
   const back = homeHref(me);
   const supabase = await createClient();
-  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
   const mfaActive = (factors?.totp.length ?? 0) > 0;
   const mfaRequired = requiresMfa(me);
+  const mfaStatusUnavailable = Boolean(factorsError);
 
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
@@ -127,12 +128,18 @@ export default async function AccountPage({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Two-step verification</h2>
-                    <StatusChip tone={mfaActive ? 'success' : mfaRequired ? 'warning' : 'neutral'}>
-                      {mfaActive ? 'Active' : mfaRequired ? 'Required — setup needed' : 'Not enabled'}
+                    <StatusChip tone={mfaActive ? 'success' : mfaRequired && !mfaStatusUnavailable ? 'warning' : 'neutral'}>
+                      {mfaStatusUnavailable
+                        ? 'Status unavailable'
+                        : mfaActive
+                          ? 'Active'
+                          : mfaRequired ? 'Required — setup needed' : 'Not enabled'}
                     </StatusChip>
                   </div>
                   <p className="mt-1 text-[13px] leading-5 text-gray-500">
-                    {mfaActive
+                    {mfaStatusUnavailable
+                      ? 'Authenticator status could not be loaded. Open security setup to try again.'
+                      : mfaActive
                       ? 'Your account has a verified authenticator.'
                       : 'Set up an authenticator app for stronger account protection.'}
                   </p>
@@ -142,7 +149,7 @@ export default async function AccountPage({
                 href={`/mfa?manage=1&next=${encodeURIComponent('/account')}`}
                 className="inline-flex h-10 shrink-0 items-center rounded-lg border border-gray-300 bg-white px-3 text-[13px] font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-950"
               >
-                {mfaActive ? 'Review' : 'Set up'}
+                {mfaActive || mfaStatusUnavailable ? 'Review' : 'Set up'}
               </Link>
             </div>
           </section>

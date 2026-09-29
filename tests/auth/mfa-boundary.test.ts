@@ -28,7 +28,11 @@ describe('MFA application boundary', () => {
 
     expect(completion).toContain("assurance?.currentLevel !== 'aal2'");
     expect(completion).toContain("action: 'mfa_enrolled'");
+    expect(completion).toContain('enrollmentAuditResult.data?.created_at');
+    expect(completion).toContain("'mfa_reset_status_sync_failed'");
+    expect(completion).toContain('latestRecordedAt > latestResetAt');
     expect(completion).toContain("update({ mfa_used: true })");
+    expect(completion.indexOf("action: 'mfa_enrolled'")).toBeLessThan(completion.indexOf('const [profileUpdate'));
     expect(recovery).toContain('auth.admin.mfa.listFactors');
     expect(recovery).toContain('auth.admin.mfa.deleteFactor');
     expect(recovery).toContain("action: 'mfa_reset_authorized'");

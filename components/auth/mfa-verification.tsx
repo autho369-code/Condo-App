@@ -17,12 +17,17 @@ interface EnrollmentDetails {
   secret: string;
 }
 
-async function persistVerifiedFactor() {
+async function persistVerifiedFactor(): Promise<boolean> {
   try {
     const response = await fetch('/api/auth/mfa-complete', { method: 'POST' });
-    if (!response.ok) console.error('Unable to record verified MFA status.');
+    if (!response.ok) {
+      console.error('Unable to record verified MFA status.');
+      return false;
+    }
+    return true;
   } catch {
     console.error('Unable to record verified MFA status.');
+    return false;
   }
 }
 
@@ -66,7 +71,13 @@ export function MfaVerification({
         return;
       }
       if (assurance.data.currentLevel === 'aal2') {
-        await persistVerifiedFactor();
+        const persisted = await persistVerifiedFactor();
+        if (!active) return;
+        if (!persisted) {
+          setError('Your authenticator was verified, but we could not record the security update. Try again before continuing.');
+          setStep('error');
+          return;
+        }
         if (required && !manage) {
           router.replace(destination);
           router.refresh();
@@ -164,7 +175,13 @@ export function MfaVerification({
       return;
     }
 
-    await persistVerifiedFactor();
+    const persisted = await persistVerifiedFactor();
+    if (!persisted) {
+      setError('Your authenticator was verified, but we could not record the security update. Try again before continuing.');
+      setStep('error');
+      setBusy(false);
+      return;
+    }
     if (required && !manage) {
       router.replace(destination);
       router.refresh();
