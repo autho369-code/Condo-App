@@ -1,248 +1,120 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { money } from '@/lib/utils';
-import { Plus, Pencil, PiggyBank } from 'lucide-react';
+import { PiggyBank } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
-import { Alert, EmptyState, Surface } from '@/components/ui/shell';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
+import { fiscalYearFor } from '@/lib/budget/fiscal';
 
 export const dynamic = 'force-dynamic';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function BudgetPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ association?: string; year?: string }>;
-}) {
-  let error: string | null = null;
-  let associations: any[] = [];
-  let lines: any[] = [];
-  let selectedYear = new Date().getFullYear();
-  let selectedAssociation = '';
+// Portfolio overview of every association's budget. Editing happens on the
+// association's Budget tab (worksheet), so old deep links redirect there.
+export default async function BudgetPage({ searchParams }: { searchParams: Promise<{ association?: string; year?: string }> }) {
+  await requireStaff();
+  const db = (await createClient()) as any;
+  const sp = await searchParams;
+  const requested = Number(sp.year);
+  const year = Number.isInteger(requested) && requested >= 2000 && requested <= 2100 ? requested : null;
 
-  try {
-    await requireStaff();
-    const supabase = await createClient();
-    const db = supabase as any;
-    const params = await searchParams;
-    const { association } = params;
-    const year = params.year;
-    selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
-
-    const assocResult = await db.from('associations').select('id, name').order('name');
-    if (assocResult.error) throw new Error('associations: ' + assocResult.error.message);
-    associations = assocResult.data ?? [];
-
-    selectedAssociation = association ?? associations?.[0]?.id ?? '';
-
-    if (selectedAssociation) {
-      const blResult = await db.rpc('list_budget_lines', {
-        p_association_id: selectedAssociation,
-        p_fiscal_year: selectedYear,
-      });
-      if (blResult.error) throw new Error('list_budget_lines: ' + blResult.error.message);
-      lines = blResult.data ?? [];
-    }
-  } catch (e: any) {
-    error = e.message || String(e);
+  if (sp.association && UUID_RE.test(sp.association)) {
+    const { data: a } = await db.from('associations').select('id, slug').eq('id', sp.association).maybeSingle();
+    if (a) redirect(`/associations/${a.slug ?? a.id}/budget${year ? `?fiscal_year=${year}` : ''}`);
   }
 
-  if (!selectedAssociation && associations.length > 0) {
-    selectedAssociation = associations[0].id;
+  const { data: associations, error } = await db.from('associations').select('id, slug, name, fiscal_year_start').is('archived_at', null).order('name');
+  const list = (associations ?? []) as any[];
+  const fy = year ?? fiscalYearFor(new Date(), 1);
+  const ids = list.map((a) => a.id);
+
+  const [linesRes, headersRes] = ids.length
+    ? await Promise.all([
+        db.from('budget_lines').select('association_id, category, annual_total').in('association_id', ids).eq('fiscal_year', fy),
+        db.from('association_budgets').select('association_id, status, adopted_at').in('association_id', ids).eq('fiscal_year', fy),
+      ])
+    : [{ data: [] }, { data: [] }];
+
+  const totals = new Map<string, { income: number; expense: number; lines: number }>();
+  for (const l of (linesRes.data ?? []) as any[]) {
+    const t = totals.get(l.association_id) ?? { income: 0, expense: 0, lines: 0 };
+    if (l.category === 'income') t.income += Number(l.annual_total); else t.expense += Number(l.annual_total);
+    t.lines += 1;
+    totals.set(l.association_id, t);
   }
-  const incomeLines = lines.filter((l: any) => l.category === 'income');
-  const expenseLines = lines.filter((l: any) => l.category === 'expense');
-  const totalIncomeBudget = incomeLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
-  const totalExpenseBudget = expenseLines.reduce((s: number, l: any) => s + (l.annual_total ?? 0), 0);
-  const selectedName = associations?.find((a: any) => a.id === selectedAssociation)?.name;
+  const headers = new Map<string, any>(((headersRes.data ?? []) as any[]).map((h) => [h.association_id, h]));
+  const adoptedCount = list.filter((a) => headers.get(a.id)?.status === 'adopted').length;
+  const draftCount = list.filter((a) => totals.has(a.id) && headers.get(a.id)?.status !== 'adopted').length;
+  const years = [fy - 2, fy - 1, fy, fy + 1, fy + 2];
 
   return (
-    <DataWorkspace
-      title="Budget management"
-      description="Per-association budget entries with monthly allocations."
-      actions={
-        selectedAssociation && (
-          <Link href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}>
-            <Button><Plus className="h-4 w-4" /> Add budget line</Button>
-          </Link>
-        )
-      }
-    >
+    <DataWorkspace title="Budgets" description="Every association’s annual budget and where it stands. Open one to edit its worksheet, adopt it, and update assessments.">
       <div className="space-y-6">
-        {error && <Alert tone="danger" title="Error:">{error}</Alert>}
-
+        {error && <Alert tone="danger">{error.message}</Alert>}
         <MetricStrip
           metrics={[
-            { label: 'Income budget', value: money(totalIncomeBudget) },
-            { label: 'Expense budget', value: money(totalExpenseBudget) },
-            { label: 'Net budget', value: money(totalIncomeBudget - totalExpenseBudget) },
-            {
-              label: 'Budget lines',
-              value: lines.length,
-              sublabel: (
-                <Link
-                  href={`/budget-vs-actuals${selectedAssociation ? `?association=${selectedAssociation}&year=${selectedYear}` : ''}`}
-                  className="font-medium text-gray-500 transition-colors hover:text-gray-900"
-                >
-                  Budget vs actuals
-                </Link>
-              ),
-            },
+            { label: `FY${fy} adopted`, value: `${adoptedCount} of ${list.length}` },
+            { label: 'In draft', value: draftCount },
+            { label: 'Not started', value: list.length - adoptedCount - draftCount },
+            { label: 'Budgeted net', value: money([...totals.values()].reduce((s, t) => s + t.income - t.expense, 0)) },
           ]}
         />
-
         <Surface padded={false} className="p-3 sm:p-4">
           <form className="flex flex-wrap items-end gap-3">
             <label className="text-[12px] font-medium text-gray-500">
-              Association
-              <Select name="association" defaultValue={selectedAssociation} className="mt-1 min-w-56">
-                <option value="">Select association…</option>
-                {(associations ?? []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </Select>
-            </label>
-            <label className="text-[12px] font-medium text-gray-500">
               Fiscal year
-              <Select name="year" defaultValue={String(selectedYear)} className="mt-1 w-28">
-                {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
+              <Select name="year" defaultValue={String(fy)} className="mt-1 w-28">
+                {years.map((y) => <option key={y} value={y}>FY{y}</option>)}
               </Select>
             </label>
-            <Button type="submit">Apply</Button>
+            <Button type="submit" variant="secondary">Apply</Button>
           </form>
         </Surface>
 
-        <Surface padded={false}>
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-950">
-              Budget lines — {selectedName ?? 'No association selected'}
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            {!selectedAssociation ? (
-              <EmptyState
-                icon={PiggyBank}
-                title="No association selected"
-                description="Select an association above to view or manage budget lines."
-              />
-            ) : lines.length === 0 ? (
-              <EmptyState
-                icon={PiggyBank}
-                title={`No budget lines for ${selectedYear}`}
-                description="Add your first budget line to start planning this fiscal year."
-                action={
-                  <Link href={`/budget/new?association=${selectedAssociation}&year=${selectedYear}`}>
-                    <Button><Plus className="h-4 w-4" /> Add budget line</Button>
-                  </Link>
-                }
-              />
-            ) : (
-              <>
-                {incomeLines.length > 0 && (
-                  <BudgetSection
-                    title="Income"
-                    lines={incomeLines}
-                    association={selectedAssociation}
-                    year={selectedYear}
-                  />
-                )}
-                {expenseLines.length > 0 && (
-                  <BudgetSection
-                    title="Expense"
-                    lines={expenseLines}
-                    association={selectedAssociation}
-                    year={selectedYear}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </Surface>
+        {list.length === 0 ? (
+          <Surface><EmptyState icon={PiggyBank} title="No associations yet" /></Surface>
+        ) : (
+          <Table>
+            <THead>
+              <tr>
+                <TH>Association</TH>
+                <TH>Status</TH>
+                <TH className="text-right">Income</TH>
+                <TH className="text-right">Expense</TH>
+                <TH className="text-right">Net</TH>
+                <TH className="text-right">Lines</TH>
+              </tr>
+            </THead>
+            <tbody>
+              {list.map((a) => {
+                const t = totals.get(a.id);
+                const h = headers.get(a.id);
+                const status = h?.status === 'adopted' ? 'adopted' : t ? 'draft' : null;
+                return (
+                  <TR key={a.id}>
+                    <TD>
+                      <Link href={`/associations/${a.slug ?? a.id}/budget?fiscal_year=${fy}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+                    </TD>
+                    <TD>{status ? <Badge tone={status === 'adopted' ? 'complete' : 'pending'}>{status === 'adopted' ? 'Adopted' : 'Draft'}</Badge> : <span className="text-gray-400">Not started</span>}</TD>
+                    <TD className="text-right tabular-nums">{t ? money(t.income) : '—'}</TD>
+                    <TD className="text-right tabular-nums">{t ? money(t.expense) : '—'}</TD>
+                    <TD className="text-right font-medium tabular-nums text-gray-950">{t ? money(t.income - t.expense) : '—'}</TD>
+                    <TD className="text-right tabular-nums">{t?.lines ?? 0}</TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        )}
+        <p className="text-[12px] text-gray-500">FY is the fiscal year ending in that calendar year; associations with a non-calendar fiscal year are grouped by the year their fiscal year ends.</p>
       </div>
     </DataWorkspace>
-  );
-}
-
-function BudgetSection({
-  title,
-  lines,
-  association,
-  year,
-}: {
-  title: 'Income' | 'Expense';
-  lines: any[];
-  association: string;
-  year: number;
-}) {
-  return (
-    <>
-      <div className="border-b border-gray-100 bg-gray-50/60 px-5 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
-      </div>
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
-          <tr>
-            <th className="px-5 py-2 font-medium">GL account</th>
-            <th className="px-5 py-2 text-right font-medium">Annual total</th>
-            <th className="hidden px-5 py-2 font-medium sm:table-cell">Monthly distribution</th>
-            <th className="hidden px-5 py-2 font-medium md:table-cell">Notes</th>
-            <th className="w-20 px-5 py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line: any) => (
-            <BudgetRow key={line.id} line={line} association={association} year={year} />
-          ))}
-        </tbody>
-      </table>
-    </>
-  );
-}
-
-function BudgetRow({ line, association, year }: { line: any; association: string; year: number }) {
-  const monthlyTotal = line.annual_total ?? 0;
-  const monthlyAmounts: number[] = line.monthly_amounts ?? [];
-
-  return (
-    <tr className="border-b border-gray-50 transition-colors last:border-0 hover:bg-gray-50/60">
-      <td className="px-5 py-2.5">
-        <div className="font-medium text-gray-900">{line.gl_account_number} — {line.gl_account_name}</div>
-      </td>
-      <td className="px-5 py-2.5 text-right font-medium tabular-nums text-gray-950">{money(monthlyTotal)}</td>
-      <td className="hidden px-5 py-2.5 sm:table-cell">
-        <div className="flex h-8 items-end gap-0.5">
-          {monthlyAmounts.map((amt: number, i: number) => {
-            const maxVal = Math.max(...monthlyAmounts, 1);
-            const pct = (amt / maxVal) * 100;
-            return (
-              <div
-                key={i}
-                className={`flex-1 rounded-t-sm ${line.category === 'income' ? 'bg-emerald-500/40' : 'bg-amber-500/40'}`}
-                style={{ height: `${Math.max(pct, 2)}%` }}
-                title={`${MONTHS[i]}: ${money(amt)}`}
-              />
-            );
-          })}
-        </div>
-      </td>
-      <td className="hidden max-w-[200px] truncate px-5 py-2.5 text-xs text-gray-500 md:table-cell">
-        {line.notes || '—'}
-      </td>
-      <td className="px-5 py-2.5">
-        <Link
-          href={`/budget/${line.id}/edit?association=${association}&year=${year}`}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
-          title="Edit / Delete"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Link>
-      </td>
-    </tr>
   );
 }

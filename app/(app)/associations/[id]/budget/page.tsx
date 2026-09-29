@@ -5,84 +5,78 @@ import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { Plus } from 'lucide-react';
+import { BudgetWorksheet, type WorksheetAccount } from '@/components/budget/budget-worksheet';
+import { Button } from '@/components/ui/button';
+import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { Alert, Badge } from '@/components/ui/shell';
+import { adoptBudget, reopenBudget } from '@/lib/rpcs/budget-worksheet';
+import { fiscalMonthLabels, fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
+import { money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const;
-
-type BudgetRow = {
-  acct: any;
-  monthly: number[];
-  prior: number;
-};
+const INCOME = new Set(['income', 'other_income']);
+const EXPENSE = new Set(['expense', 'cost_of_goods_sold', 'other_expense', 'non_operating']);
 
 export default async function BudgetTab({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fiscal_year?: string }>;
+  searchParams: Promise<{ fiscal_year?: string; error?: string; saved?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
+  const ref = association.slug ?? id;
   const sp = await searchParams;
-  const fiscalYear = Number(sp.fiscal_year ?? new Date().getFullYear());
 
-  const supabase = await createClient();
+  const db = (await createClient()) as any;
+  const { data: assoc } = await db.from('associations').select('id, name, address, fiscal_year_start').eq('id', id).maybeSingle();
+  if (!assoc) notFound();
 
-  const { data: assoc, error: aErr } = await (supabase as any)
-    .from('associations').select('id, name, address').eq('id', id).maybeSingle();
-  if (aErr || !assoc) notFound();
+  const startMonth = assoc.fiscal_year_start;
+  const currentFy = fiscalYearFor(new Date(), startMonth);
+  const requested = Number(sp.fiscal_year);
+  const fiscalYear = Number.isInteger(requested) && requested >= 2000 && requested <= 2100 ? requested : currentFy;
+  const labels = fiscalMonthLabels(startMonth);
+  const window = fiscalWindow(fiscalYear, startMonth);
 
-  const { data: accounts } = await (supabase as any)
-    .from('gl_accounts')
-    .select('id, number, name, account_type')
-    .or(`association_id.eq.${id},association_id.is.null`)
-    .eq('active', true)
-    .order('number');
+  const [accountsRes, linesRes, headerRes, priorBudgetRes, priorActualsRes] = await Promise.all([
+    db.from('gl_accounts').select('id, number, name, account_type').or(`association_id.eq.${id},association_id.is.null`).eq('active', true).order('number'),
+    db.from('budget_lines').select('gl_account_id, monthly_amounts, notes').eq('association_id', id).eq('fiscal_year', fiscalYear),
+    db.from('association_budgets').select('status, adopted_at, adoption_note').eq('association_id', id).eq('fiscal_year', fiscalYear).maybeSingle(),
+    db.rpc('budget_worksheet_source', { p_association_id: id, p_fiscal_year: fiscalYear, p_source: 'prior_budget' }),
+    db.rpc('budget_worksheet_source', { p_association_id: id, p_fiscal_year: fiscalYear, p_source: 'prior_actuals' }),
+  ]);
+  const loadError = [accountsRes, linesRes, headerRes, priorBudgetRes, priorActualsRes].find((r) => r.error)?.error?.message;
 
-  const { data: lines } = await (supabase as any)
-    .from('budget_lines')
-    .select('gl_account_id, fiscal_year, monthly_amounts, category')
-    .eq('association_id', id)
-    .eq('fiscal_year', fiscalYear);
+  const toMap = (rows: any[] | null) =>
+    Object.fromEntries((rows ?? []).map((r: any) => [r.gl_account_id, (r.monthly_amounts ?? []).map((n: any) => Number(n) || 0)]));
+  const lineMap = new Map<string, any>((linesRes.data ?? []).map((l: any) => [l.gl_account_id, l]));
 
-  const { data: priorActuals } = await (supabase as any)
-    .from('budget_line_totals')
-    .select('gl_account_id, annual_total')
-    .eq('association_id', id)
-    .eq('fiscal_year', fiscalYear - 1);
+  const accounts: WorksheetAccount[] = (accountsRes.data ?? [])
+    .filter((a: any) => INCOME.has(a.account_type) || EXPENSE.has(a.account_type))
+    .map((a: any) => {
+      const l = lineMap.get(a.id);
+      return {
+        glAccountId: a.id,
+        number: a.number ?? null,
+        name: a.name,
+        section: INCOME.has(a.account_type) ? 'income' : 'expense',
+        amounts: l?.monthly_amounts ? l.monthly_amounts.map((n: any) => Number(n) || 0) : Array(12).fill(0),
+        notes: l?.notes ?? '',
+      };
+    });
 
-  const lineByAccount = new Map<string, any>();
-  (lines ?? []).forEach((l: any) => lineByAccount.set(l.gl_account_id, l));
-
-  const priorByAccount = new Map<string, number>();
-  (priorActuals ?? []).forEach((p: any) => priorByAccount.set(p.gl_account_id, Number(p.annual_total)));
-
-  const incomeAccounts = (accounts ?? []).filter((a: any) => a.account_type === 'income');
-  const expenseAccounts = (accounts ?? []).filter((a: any) => a.account_type === 'expense');
-
-  const sumLine = (acctId: string): number[] => {
-    const l = lineByAccount.get(acctId);
-    if (!l?.monthly_amounts) return Array(12).fill(0);
-    return (l.monthly_amounts as any[]).map((n) => Number(n) || 0);
-  };
-
-  const incomeRows: BudgetRow[] = incomeAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
-  const expenseRows: BudgetRow[] = expenseAccounts.map((a: any) => ({ acct: a, monthly: sumLine(a.id), prior: priorByAccount.get(a.id) ?? 0 }));
-
-  const incomeAnnualBudget = incomeRows.reduce((s, r) => s + r.monthly.reduce((x, y) => x + y, 0), 0);
-  const incomeAnnualPrior  = incomeRows.reduce((s, r) => s + r.prior, 0);
-  const expenseAnnualBudget = expenseRows.reduce((s, r) => s + r.monthly.reduce((x, y) => x + y, 0), 0);
-  const expenseAnnualPrior  = expenseRows.reduce((s, r) => s + r.prior, 0);
-
-  const totalRows = incomeRows.length + expenseRows.length + 2;
-
-  const rail = null;
+  const adopted = headerRes.data?.status === 'adopted';
+  const canEdit = me.is_finance_staff || me.is_company_admin || me.is_platform_operator;
+  const incomeTotal = accounts.filter((a) => a.section === 'income').reduce((s, a) => s + a.amounts.reduce((x, y) => x + y, 0), 0);
+  const expenseTotal = accounts.filter((a) => a.section === 'expense').reduce((s, a) => s + a.amounts.reduce((x, y) => x + y, 0), 0);
+  const years = Array.from(new Set([currentFy - 2, currentFy - 1, currentFy, currentFy + 1, currentFy + 2, fiscalYear])).sort();
+  const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <Workspace
@@ -90,100 +84,83 @@ export default async function BudgetTab({
         <>
           <AssociationTabs associationId={id} active="budget" />
           <WorkspaceHeader
-            title="Budget"
-            subtitle={`${assoc.name}${assoc.address ? ` — ${assoc.address}` : ''}`}
+            title={
+              <span className="flex items-center gap-2">
+                FY{fiscalYear} budget
+                <Badge tone={adopted ? 'complete' : 'pending'}>{adopted ? 'Adopted' : 'Draft'}</Badge>
+              </span>
+            }
+            subtitle={`${assoc.name} · ${fmtDate(window.start)} – ${fmtDate(window.end)}`}
             actions={
-              <Link
-                href={`/budget/new?association=${id}&year=${fiscalYear}`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Add Budget Line
-              </Link>
+              <>
+                <form className="flex items-center gap-2">
+                  <Select name="fiscal_year" defaultValue={String(fiscalYear)} aria-label="Fiscal year" className="h-9 w-28">
+                    {years.map((y) => <option key={y} value={y}>FY{y}</option>)}
+                  </Select>
+                  <Button type="submit" size="sm" variant="secondary">Go</Button>
+                </form>
+                <Link href={`/budget-vs-actuals?association=${id}&year=${fiscalYear}`}>
+                  <Button size="sm" variant="secondary">Budget vs actual</Button>
+                </Link>
+                <Link href={`/associations/${ref}/budget/assessments?fiscal_year=${fiscalYear}`}>
+                  <Button size="sm">Update assessments</Button>
+                </Link>
+              </>
             }
           />
         </>
       }
-      rail={rail}
     >
-      <Section>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: 1100 }}>
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
-              <tr>
-                <th className="min-w-[220px] px-3 py-2 text-left font-semibold">GL Account</th>
-                <th className="min-w-[150px] px-3 py-2 text-left font-semibold">Calculation Method</th>
-                <th className="px-3 py-2 text-right font-semibold">{fiscalYear - 1} Actuals ($)</th>
-                <th className="px-3 py-2 text-right font-semibold">{fiscalYear} Budget ($)</th>
-                {MONTHS.map((m) => <th key={m} className="px-3 py-2 text-right font-semibold">{m} ($)</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              <ParentRow label="INCOME" annualPrior={incomeAnnualPrior} annualBudget={incomeAnnualBudget} months={sumColumns(incomeRows.map((r) => r.monthly))} />
-              {incomeRows.map((r: any) => <ChildRow key={r.acct.id} acct={r.acct} prior={r.prior} monthly={r.monthly} />)}
-              <ParentRow label="EXPENSE" annualPrior={expenseAnnualPrior} annualBudget={expenseAnnualBudget} months={sumColumns(expenseRows.map((r) => r.monthly))} />
-              {expenseRows.map((r: any) => <ChildRow key={r.acct.id} acct={r.acct} prior={r.prior} monthly={r.monthly} />)}
-              {totalRows === 2 && (
-                <tr><td colSpan={16} className="px-4 py-8 text-center text-sm text-gray-500">
-                  <p>No budget lines for FY{fiscalYear}.</p>
-                  <Link
-                    href={`/budget/new?association=${id}&year=${fiscalYear}`}
-                    className="mt-2 inline-flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-500"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add your first budget line
-                  </Link>
-                </td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+      <div className="space-y-4">
+        {sp.error && <Alert tone="danger">{sp.error}</Alert>}
+        {sp.saved && <Alert tone="success">{sp.saved}</Alert>}
+        {loadError && <Alert tone="danger">Some budget data could not be loaded: {loadError}</Alert>}
 
-      <div className="mt-3 text-sm text-gray-600">
-        Displaying: <span className="tabular-nums">{totalRows}</span> of <span className="tabular-nums">{totalRows}</span>
+        {adopted && (
+          <Alert tone="info">
+            Adopted {headerRes.data?.adopted_at ? new Date(headerRes.data.adopted_at).toLocaleDateString('en-US') : ''}
+            {headerRes.data?.adoption_note ? ` — ${headerRes.data.adoption_note}` : ''}. The lines are locked; reopen the budget to change them.
+          </Alert>
+        )}
+
+        <BudgetWorksheet
+          associationId={id}
+          associationRef={ref}
+          fiscalYear={fiscalYear}
+          labels={labels}
+          accounts={accounts}
+          sources={{ prior_budget: toMap(priorBudgetRes.data), prior_actuals: toMap(priorActualsRes.data) }}
+          readOnly={adopted || !canEdit}
+        />
+
+        {canEdit && <Section title={adopted ? 'Reopen budget' : 'Adopt budget'} subtitle={
+          adopted
+            ? 'Reopening unlocks the lines. The reason is kept in the association’s change history.'
+            : `Adopting locks FY${fiscalYear} (income ${money(incomeTotal)}, expense ${money(expenseTotal)}) and lets you turn it into owner assessments. Save the worksheet first.`
+        } padded>
+          {adopted ? (
+            <form action={reopenBudget} className="grid max-w-xl gap-3">
+              <input type="hidden" name="association_id" value={id} />
+              <input type="hidden" name="association_ref" value={ref} />
+              <input type="hidden" name="fiscal_year" value={fiscalYear} />
+              <Field label="Reason" htmlFor="reason">
+                <Textarea id="reason" name="reason" rows={2} required minLength={5} maxLength={2000} placeholder="e.g. Board amended the insurance line at the 3/12 meeting" />
+              </Field>
+              <div><Button type="submit" variant="secondary">Reopen for changes</Button></div>
+            </form>
+          ) : (
+            <form action={adoptBudget} className="grid max-w-xl gap-3">
+              <input type="hidden" name="association_id" value={id} />
+              <input type="hidden" name="association_ref" value={ref} />
+              <input type="hidden" name="fiscal_year" value={fiscalYear} />
+              <Field label="Adoption note (optional)" htmlFor="note" hint="e.g. the board meeting and vote that approved it.">
+                <Input id="note" name="note" maxLength={2000} placeholder="Approved 5–0 at the Nov 14 board meeting" />
+              </Field>
+              <div><Button type="submit">Adopt FY{fiscalYear} budget</Button></div>
+            </form>
+          )}
+        </Section>}
       </div>
     </Workspace>
   );
-}
-
-function sumColumns(rows: number[][]): number[] {
-  const out = Array(12).fill(0);
-  for (const r of rows) for (let i = 0; i < 12; i++) out[i] += r[i] ?? 0;
-  return out;
-}
-
-function fmt(n: number): string {
-  if (!n) return '0.00';
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function ParentRow({ label, annualPrior, annualBudget, months }: { label: string; annualPrior: number; annualBudget: number; months: number[]; }) {
-  return (
-    <tr className="border-b border-gray-100 bg-gray-50 font-semibold">
-      <td className="px-3 py-2 text-gray-900"><span className="mr-1 text-gray-400">▾</span>{label}</td>
-      <td className="px-3 py-2"></td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(annualPrior)}</td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(annualBudget)}</td>
-      {months.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-gray-900">{fmt(m)}</td>)}
-    </tr>
-  );
-}
-
-function ChildRow({ acct, prior, monthly }: { acct: { id: string; number: number | null; name: string }; prior: number; monthly: number[]; }) {
-  const annualBudget = monthly.reduce((s, n) => s + n, 0);
-  const code = acct.number != null ? `${acct.number}: ${truncate(acct.name, 20)}` : truncate(acct.name, 22);
-  return (
-    <tr className="border-b border-gray-100 last:border-b-0">
-      <td className="px-3 py-2 pl-8 text-gray-700">{code}</td>
-      <td className="px-3 py-2"><span className="text-xs italic text-gray-400">—</span></td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(prior)}</td>
-      <td className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(annualBudget)}</td>
-      {monthly.map((m, i) => <td key={i} className="px-3 py-2 text-right tabular-nums text-gray-700">{fmt(m)}</td>)}
-    </tr>
-  );
-}
-
-function truncate(s: string, n: number): string {
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }

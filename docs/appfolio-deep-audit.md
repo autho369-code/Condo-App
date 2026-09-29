@@ -57,6 +57,17 @@ full-screen · Overview / Variances tabs · audit log. Task: **Update
 Assessments** (budget → unit dues). Reports: annual budget comparative /
 forecast, budget detail, budget comparative, property comparison.
 
+**Portier status (2026-09-29):** worksheet on the association Budget tab
+(whole year in one grid, fiscal-year month order, fill from prior budget or
+prior GL actuals, % adjust by income/expense/all, type-annual-to-spread, CSV
+export/import, only-budgeted filter, prior-year actual column, notes);
+draft → adopted lock with audited reopen; **Update Assessments** allocates an
+adopted income line by ownership %, equal shares or sq ft into monthly /
+quarterly / annual recurring charges from an effective date, ends the old
+charges, syncs owners' dues and keeps a history. Budget vs actual now uses
+posted GL by fiscal month. Not built: undo/redo, per-row calculation methods,
+full-screen, owner notice letters on assessment change.
+
 ### Amenities
 Amenity Settings list + Create Amenity.
 
