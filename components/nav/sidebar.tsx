@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { Search } from 'lucide-react'
+import { openCommandPalette } from '@/components/search/command-palette'
 import { appModules, type AppModule } from '@/lib/navigation/modules'
 import { createClient } from '@/lib/supabase/client'
 
@@ -139,6 +140,14 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
             aria-controls="workspace-navigation"
           />
         </div>
+        <button
+          type="button"
+          onClick={openCommandPalette}
+          className="mt-1.5 flex h-8 w-full items-center justify-between rounded-md px-2.5 text-[12px] text-[#8a8a93] transition-colors hover:bg-white/[0.04] hover:text-[#e4e4e7]"
+        >
+          <span>Search records</span>
+          <kbd className="rounded border border-white/[0.08] px-1 font-sans text-[10px] text-[#52525b]">Ctrl K</kbd>
+        </button>
       </div>
 
       <div className="sr-only" aria-live="polite">
