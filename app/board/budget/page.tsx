@@ -3,6 +3,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { money } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
+import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,17 +29,25 @@ export default async function BoardBudgetPage() {
   // Fetch budget vs actuals for each association
   const allReports = await Promise.all(
     ids.map(async (assocId: string) => {
-      const { data } = await db.rpc('get_budget_vs_actuals', {
-        p_association_id: assocId,
-        p_fiscal_year: currentYear,
-      })
-      // Fetch association name
       const { data: assoc } = await db
         .from('associations')
-        .select('name')
+        .select('name, fiscal_year_start')
         .eq('id', assocId)
         .single()
-      return { associationId: assocId, associationName: assoc?.name ?? 'Association', rows: (data ?? []) as any[] }
+      // Budgets follow each association's own fiscal year.
+      const fy = fiscalYearFor(new Date(), assoc?.fiscal_year_start)
+      const { data } = await db.rpc('get_budget_vs_actuals', {
+        p_association_id: assocId,
+        p_fiscal_year: fy,
+      })
+      return {
+        associationId: assocId,
+        associationName: assoc?.name ?? 'Association',
+        rows: (data ?? []) as any[],
+        fy,
+        labels: fiscalMonthLabels(assoc?.fiscal_year_start),
+        elapsed: Math.max(1, fiscalMonthsElapsed(fy, assoc?.fiscal_year_start)),
+      }
     })
   )
 
@@ -59,7 +68,7 @@ export default async function BoardBudgetPage() {
   const exportTables: ExportTable[] = allReports
     .filter((report) => report.rows.length > 0)
     .map((report) => ({
-      title: `${report.associationName} — Budget by GL Account (FY${currentYear})`,
+      title: `${report.associationName} — Budget by GL Account (FY${report.fy})`,
       columns: [
         { header: 'GL Account' },
         { header: 'Category' },
@@ -106,7 +115,7 @@ export default async function BoardBudgetPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Budget vs Actual</h1>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — FY{currentYear}</p>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — current fiscal year</p>
         </div>
         <ExportActions
           documentTitle={`Budget vs Actual — FY${currentYear}`}
@@ -124,16 +133,16 @@ export default async function BoardBudgetPage() {
         const expenseRows = rows.filter((r: any) => r.category === 'expense')
 
         const ytdIncomeBudget = incomeRows.reduce((s: number, r: any) => {
-          return s + (r.monthly_budget ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0)
+          return s + (r.monthly_budget ?? []).slice(0, report.elapsed).reduce((a: number, b: number) => a + (b ?? 0), 0)
         }, 0)
         const ytdIncomeActual = incomeRows.reduce((s: number, r: any) => {
-          return s + (r.monthly_actuals ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0)
+          return s + (r.monthly_actuals ?? []).slice(0, report.elapsed).reduce((a: number, b: number) => a + (b ?? 0), 0)
         }, 0)
         const ytdExpenseBudget = expenseRows.reduce((s: number, r: any) => {
-          return s + (r.monthly_budget ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0)
+          return s + (r.monthly_budget ?? []).slice(0, report.elapsed).reduce((a: number, b: number) => a + (b ?? 0), 0)
         }, 0)
         const ytdExpenseActual = expenseRows.reduce((s: number, r: any) => {
-          return s + (r.monthly_actuals ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0)
+          return s + (r.monthly_actuals ?? []).slice(0, report.elapsed).reduce((a: number, b: number) => a + (b ?? 0), 0)
         }, 0)
 
         const ytdNetBudget = ytdIncomeBudget - ytdExpenseBudget
@@ -146,7 +155,7 @@ export default async function BoardBudgetPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                { label: `YTD Budget (thru ${MONTHS[currentMonth - 1]})`, value: money(ytdNetBudget), cls: 'text-gray-950' },
+                { label: `YTD Budget (thru ${report.labels[report.elapsed - 1]})`, value: money(ytdNetBudget), cls: 'text-gray-950' },
                 { label: 'YTD Actual', value: money(ytdNetActual), cls: ytdNetActual >= ytdNetBudget ? 'text-emerald-700' : 'text-red-700' },
                 { label: 'Variance', value: money(ytdNetActual - ytdNetBudget), cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
                 { label: 'Variance %', value: ytdNetBudget !== 0 ? `${(((ytdNetActual - ytdNetBudget) / ytdNetBudget) * 100).toFixed(1)}%` : '—', cls: (ytdNetActual - ytdNetBudget) >= 0 ? 'text-emerald-700' : 'text-red-700' },
@@ -251,7 +260,7 @@ export default async function BoardBudgetPage() {
                                     key={i}
                                     className={`flex-1 rounded-t-sm ${actual >= budget ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
                                     style={{ height: `${Math.max((Math.max(budget, actual) / maxVal) * 100, 2)}%` }}
-                                    title={`${MONTHS[i]}: B ${money(budget)} / A ${money(actual)}`}
+                                    title={`${report.labels[i]}: B ${money(budget)} / A ${money(actual)}`}
                                   />
                                 )
                               })}
@@ -266,7 +275,7 @@ export default async function BoardBudgetPage() {
             ) : (
               <div className={`${card} p-8 text-center`}>
                 <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-                <p className="text-sm font-semibold text-gray-900">No budget lines found for FY{currentYear}</p>
+                <p className="text-sm font-semibold text-gray-900">No budget lines found for FY{report.fy}</p>
                 <p className="mt-1 text-xs text-gray-500">Budget data will appear here once entered by management.</p>
               </div>
             )}

@@ -9,10 +9,10 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { EmptyState, Surface } from '@/components/ui/shell';
+import { fiscalMonthLabels, fiscalMonthsElapsed } from '@/lib/budget/fiscal';
 
 export const dynamic = 'force-dynamic';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default async function BudgetVsActualsPage({
   searchParams,
@@ -30,7 +30,7 @@ export default async function BudgetVsActualsPage({
 
   const { data: associations } = await db
     .from('associations')
-    .select('id, name')
+    .select('id, name, fiscal_year_start')
     .order('name');
 
   const selectedAssociation = association ?? associations?.[0]?.id ?? '';
@@ -56,7 +56,9 @@ export default async function BudgetVsActualsPage({
   const netActual = totalIncomeActual - totalExpenseActual;
   const netVariance = netActual - netBudget;
 
-  const currentMonth = selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
+  const startMonth = associations?.find((a: any) => a.id === selectedAssociation)?.fiscal_year_start ?? 1;
+  const MONTHS = fiscalMonthLabels(startMonth);
+  const currentMonth = Math.max(1, fiscalMonthsElapsed(selectedYear, startMonth));
   const ytdIncomeBudget = incomeRows.reduce((s: number, r: any) => {
     return s + (r.monthly_budget ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0);
   }, 0);
@@ -76,7 +78,7 @@ export default async function BudgetVsActualsPage({
   return (
     <DataWorkspace
       title="Budget vs actuals"
-      description="Compare budgeted amounts against actual financial activity per GL account. Actuals come from posted charges (income) and paid or approved bills (expenses); variance = actual − budget."
+      description="Compare budgeted amounts against actual financial activity per GL account. Actuals come from posted general-ledger entries, by month of the association’s fiscal year; variance = actual − budget."
       actions={
         selectedAssociation && (
           <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`}>
@@ -172,8 +174,8 @@ export default async function BudgetVsActualsPage({
               />
             ) : (
               <>
-                {incomeRows.length > 0 && <ReportSection title="Income" income rows={incomeRows} />}
-                {expenseRows.length > 0 && <ReportSection title="Expense" rows={expenseRows} />}
+                {incomeRows.length > 0 && <ReportSection months={MONTHS} title="Income" income rows={incomeRows} />}
+                {expenseRows.length > 0 && <ReportSection months={MONTHS} title="Expense" rows={expenseRows} />}
 
                 {/* Net summary row */}
                 <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50/60 px-5 py-3">
@@ -248,7 +250,8 @@ function ProgressCard({
   );
 }
 
-function ReportSection({ title, income = false, rows }: { title: string; income?: boolean; rows: any[] }) {
+function ReportSection({ title, income = false, rows, months }: { title: string; income?: boolean; rows: any[]; months: string[] }) {
+  const MONTHS = months;
   const barCls = income ? 'bg-emerald-500/40' : 'bg-amber-500/40';
 
   return (
