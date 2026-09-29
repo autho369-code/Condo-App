@@ -62,13 +62,13 @@ export async function autoMatchTransaction(
   if (searchName.length > 2) {
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('id, name, gl_account_id')
+      .select('id, name, default_gl_account_id')
       .ilike('name', searchName)
       .eq('portfolio_id', portfolioId)
       .maybeSingle();
 
-    if (vendor?.gl_account_id) {
-      return { gl_account_id: vendor.gl_account_id, confidence: 0.95, method: 'auto' };
+    if (vendor?.default_gl_account_id) {
+      return { gl_account_id: vendor.default_gl_account_id, confidence: 0.95, method: 'auto' };
     }
   }
 
@@ -90,13 +90,13 @@ export async function autoMatchTransaction(
   if (searchName.length > 3) {
     const { data: fuzzyVendors } = await supabase
       .from('vendors')
-      .select('id, name, gl_account_id')
+      .select('id, name, default_gl_account_id')
       .eq('portfolio_id', portfolioId)
       .ilike('name', `%${searchName.substring(0, Math.min(searchName.length, 8))}%`)
       .limit(1);
 
-    if (fuzzyVendors && fuzzyVendors.length > 0 && fuzzyVendors[0].gl_account_id) {
-      return { gl_account_id: fuzzyVendors[0].gl_account_id, confidence: 0.7, method: 'auto' };
+    if (fuzzyVendors && fuzzyVendors.length > 0 && fuzzyVendors[0].default_gl_account_id) {
+      return { gl_account_id: fuzzyVendors[0].default_gl_account_id, confidence: 0.7, method: 'auto' };
     }
   }
 

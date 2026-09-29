@@ -52,7 +52,6 @@ export default async function DiagnosticsPage() {
   const secDepGLsQ = db
     .from('gl_accounts')
     .select('id, name, number, account_type')
-    .is('archived_at', null)
     .eq('active', true)
     .or('name.ilike.%security deposit%,name.ilike.%tenant deposit%');
 
@@ -60,7 +59,6 @@ export default async function DiagnosticsPage() {
   const reserveGLsQ = db
     .from('gl_accounts')
     .select('id, name, number')
-    .is('archived_at', null)
     .eq('active', true)
     .eq('fund_account', 'reserve');
 
@@ -74,21 +72,18 @@ export default async function DiagnosticsPage() {
   const clearingGLsQ = db
     .from('gl_accounts')
     .select('id, name, number, account_type')
-    .is('archived_at', null)
     .eq('active', true)
     .or('name.ilike.%clearing%,name.ilike.%suspense%');
 
   // ── 4. Additional fee GL account assignment ────────────────────
   const addFeesQ = db
     .from('association_additional_fees')
-    .select('id, label, gl_account_id, associations!inner(name)')
-    .is('archived_at', null);
+    .select('id, label, gl_account_id, associations!inner(name)');
 
   // ── 5. Prepayment / deferred GL accounts ───────────────────────
   const prepayGLsQ = db
     .from('gl_accounts')
     .select('id, name, number, account_type')
-    .is('archived_at', null)
     .eq('active', true)
     .or('name.ilike.%prepayment%,name.ilike.%prepaid%,name.ilike.%deferred income%');
 
