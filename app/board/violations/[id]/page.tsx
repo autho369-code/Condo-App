@@ -47,7 +47,7 @@ async function addBoardComment(formData: FormData) {
   const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('full_name')
-    .eq('auth_user_id', user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
   const authorName = profile?.full_name ?? user.email ?? 'Board Member'

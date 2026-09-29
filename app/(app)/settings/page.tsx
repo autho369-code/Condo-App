@@ -148,10 +148,19 @@ async function changeStaffRole(formData: FormData) {
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const role = formData.get('role') as string;
   if (role) {
-    await (supabase as any).rpc('assign_role', {
+    // assign_role takes a role id; the form submits the role name. Prefer the
+    // portfolio's own role of that name over the system default.
+    const { data: roles } = await (supabase as any)
+      .from('user_roles')
+      .select('id, portfolio_id')
+      .eq('name', role);
+    const match = (roles ?? []).sort((a: any, b: any) => (a.portfolio_id ? 0 : 1) - (b.portfolio_id ? 0 : 1))[0];
+    if (!match) redirect('/settings?error=' + encodeURIComponent(`Role "${role}" was not found.`));
+    const { error } = await (supabase as any).rpc('assign_role', {
       p_profile_id: formData.get('profile_id') as string,
-      p_role_name: role,
+      p_role_id: match.id,
     });
+    if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
   }
   revalidatePath('/settings');
 }

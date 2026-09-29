@@ -20,18 +20,23 @@ type Vendor1099Detail = {
   address_city: string | null;
   address_state: string | null;
   address_zip: string | null;
+  payer: PayerInfo;
 };
 
-// Payer (Portier369 / management company) info from portfolio
-function getPayerInfo(portfolio: any) {
+type PayerInfo = { name: string; street: string; city: string; state: string; zip: string; tin: string; phone: string };
+
+// The association pays its vendors, so the association is the 1099 payer
+// (its legal name, address, and EIN). The management company's phone is the
+// contact number printed on the form.
+function getPayerInfo(association: any, portfolio: any): PayerInfo {
   return {
-    name: portfolio?.company_name ?? 'Portier369',
-    street: portfolio?.address_street ?? '',
-    city: portfolio?.address_city ?? '',
-    state: portfolio?.address_state ?? '',
-    zip: portfolio?.address_zip ?? '',
-    tin: portfolio?.tax_id ?? '',
-    phone: portfolio?.support_phone ?? '',
+    name: association?.legal_name || association?.name || portfolio?.company_name || 'Association',
+    street: association?.address ?? '',
+    city: association?.city ?? '',
+    state: association?.state ?? '',
+    zip: association?.zip ?? '',
+    tin: association?.tax_id ?? '',
+    phone: portfolio?.support_phone ?? portfolio?.phone_number ?? '',
   };
 }
 
@@ -58,10 +63,10 @@ function formatAddress(v: Vendor1099Detail): string {
 export default async function Print1099Page({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; vendor?: string }>;
+  searchParams: Promise<{ year?: string; vendor?: string; association?: string }>;
 }) {
   const me = await requireStaff();
-  const { year: yearStr, vendor: vendorFilter } = await searchParams;
+  const { year: yearStr, vendor: vendorFilter, association: associationFilter } = await searchParams;
   const taxYear = parseInt(yearStr ?? '') || CURRENT_YEAR;
 
   const supabase = await createClient();
@@ -71,12 +76,11 @@ export default async function Print1099Page({
   const { data: portfolio } = portfolioId
     ? await (supabase as any)
         .from('portfolios')
-        .select('company_name, address_street, address_city, address_state, address_zip, tax_id, support_phone')
+        .select('company_name, support_phone, phone_number')
         .eq('id', portfolioId)
         .single()
     : { data: null };
 
-  const payer = getPayerInfo(portfolio);
 
   // Fetch all paid bills for the tax year with vendor 1099 info
   const yearStart = `${taxYear}-01-01`;
@@ -85,7 +89,8 @@ export default async function Print1099Page({
   let query = (supabase as any)
     .from('payable_bills')
     .select(`
-      id, amount, paid_at, bill_date, status,
+      id, amount, paid_at, bill_date, status, association_id,
+      association:association_id(id, name, legal_name, address, city, state, zip, tax_id),
       vendor:vendor_id(
         id, name, vendor_type, send_1099,
         taxpayer_name, taxpayer_id, tax_account_number,
@@ -99,6 +104,9 @@ export default async function Print1099Page({
   if (vendorFilter) {
     query = query.eq('vendor_id', vendorFilter);
   }
+  if (associationFilter) {
+    query = query.eq('association_id', associationFilter);
+  }
 
   const { data: bills } = await query.order('paid_at', { ascending: true });
 
@@ -108,7 +116,8 @@ export default async function Print1099Page({
     const v = bill.vendor;
     if (!v || typeof v !== 'object' || !v.send_1099) continue;
 
-    const vid = v.id;
+    // One 1099 per payer (association) and payee (vendor).
+    const vid = `${bill.association_id ?? 'none'}:${v.id}`;
     if (!vendorMap.has(vid)) {
       vendorMap.set(vid, {
         vendor_id: vid,
@@ -123,6 +132,7 @@ export default async function Print1099Page({
         address_city: v.address_city ?? null,
         address_state: v.address_state ?? null,
         address_zip: v.address_zip ?? null,
+        payer: getPayerInfo(bill.association, portfolio),
       });
     }
     const entry = vendorMap.get(vid)!;
@@ -170,7 +180,7 @@ export default async function Print1099Page({
         <div key={v.vendor_id} className={idx < vendors.length - 1 ? 'page-break' : ''}>
           <Form1099NEC
             vendor={v}
-            payer={payer}
+            payer={v.payer}
             taxYear={taxYear}
           />
         </div>
@@ -185,7 +195,7 @@ function Form1099NEC({
   taxYear,
 }: {
   vendor: Vendor1099Detail;
-  payer: ReturnType<typeof getPayerInfo>;
+  payer: PayerInfo;
   taxYear: number;
 }) {
   return (

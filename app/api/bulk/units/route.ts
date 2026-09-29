@@ -22,7 +22,6 @@ export async function GET(request: Request) {
     .select('unit_id, owner_id, dues_amount, units!inner(unit_number, associations!inner(name)), owners(full_name)')
     .eq('association_id', associationId)
     .eq('status', 'current')
-    .is('archived_at', null)
     .order('unit_number', { foreignTable: 'units' });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
