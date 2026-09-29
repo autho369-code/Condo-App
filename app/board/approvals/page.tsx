@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<string, string> = {
   budget: 'Budget',
   policy: 'Policy',
   architectural: 'Architectural',
+  purchase_order: 'Purchase order',
 }
 
 function statusTone(status?: string | null): Tone {
