@@ -11,10 +11,11 @@ import {
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; receipt?: string }> }) {
   const me = await requireStaff();
   const { id: unitId } = await params;
   const sp = await searchParams;
@@ -35,6 +36,11 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
   ]);
 
   if (!unit) notFound();
+  const associationId = (unit.buildings as any)?.association_id;
+  const { data: bankAccounts } = associationId
+    ? await (supabase as any).from('bank_accounts').select('id, name, fund_type, gl_account_id').eq('association_id', associationId).is('archived_at', null).order('name')
+    : { data: [] };
+  const depositable = ((bankAccounts ?? []) as any[]).filter((b) => b.gl_account_id);
 
   return (
     <div className="flex h-full flex-col">
@@ -55,6 +61,11 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
       </div>
       <div className="flex-1 space-y-6 overflow-y-auto bg-gray-50 px-8 py-6">
 
+      {sp.receipt && (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
+          Payment recorded and posted to the general ledger. <Link href={`/payments/${sp.receipt}/receipt`} className="font-semibold underline">Print receipt</Link>
+        </div>
+      )}
       {sp.error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Could not save:</span> {sp.error}
@@ -91,7 +102,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
                     <TD className="text-right">{money(s.amount)}</TD>
                     <TD className="capitalize">{s.frequency}</TD>
                     <TD>{date(s.next_post_date)}</TD>
-                    <TD className="text-gray-600 text-sm">{s.memo ?? 'Ã¢â‚¬â€'}</TD>
+                    <TD className="text-gray-600 text-sm">{s.memo ?? '—'}</TD>
                     <TD className="text-right">
                       <form action={unsubscribeUnit.bind(null, s.recurring_charge_id, unitId) as any}>
                         <button type="submit" className="text-xs text-red-600 hover:underline">End</button>
@@ -112,7 +123,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               <Label htmlFor="charge_category_id">Add subscription</Label>
               <select id="charge_category_id" name="charge_category_id" required
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                <option value="">Choose a categoryÃ¢â‚¬Â¦</option>
+                <option value="">Choose a category…</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name} ({money(c.default_amount)} / {c.default_frequency})</option>
                 ))}
@@ -179,7 +190,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               <Label htmlFor="adhoc_cat">Category</Label>
               <select id="adhoc_cat" name="charge_category_id" required
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                <option value="">ChooseÃ¢â‚¬Â¦</option>
+                <option value="">Choose…</option>
                 {(categories ?? []).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -212,13 +223,16 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               {(payments ?? []).map((p: any) => (
                 <TR key={p.id}>
                   <TD>{date(p.payment_date)}</TD>
-                  <TD className="uppercase">{p.method}</TD>
-                  <TD className="text-gray-600">{p.reference ?? p.notes ?? 'Ã¢â‚¬â€'}</TD>
+                  <TD>{receiptMethodLabel(p.method)}</TD>
+                  <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
                   <TD className="text-right text-green-600">{money(p.amount)}</TD>
                   <TD className="text-right">
-                    <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
-                      <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
-                    </form>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link href={`/payments/${p.id}/receipt`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Receipt</Link>
+                      <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
+                        <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
+                      </form>
+                    </div>
                   </TD>
                 </TR>
               ))}
@@ -238,15 +252,21 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div>
               <Label htmlFor="pay_method">Method</Label>
               <select id="pay_method" name="method" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" required>
-                <option value="check">check</option><option value="ach">ach</option>
-                <option value="card">card</option><option value="manual">manual</option><option value="other">other</option>
+                {RECEIPT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div>
               <Label htmlFor="pay_ref">Reference</Label>
               <Input id="pay_ref" name="reference" placeholder="Check #, ACH ID, etc." />
             </div>
-            <div className="flex items-end"><Button type="submit" className="w-full">Record receipt</Button></div>
+            <div>
+              <Label htmlFor="pay_bank">Deposit to</Label>
+              <select id="pay_bank" name="bank_account_id" defaultValue={depositable.find((b) => b.fund_type === 'operating')?.id ?? depositable[0]?.id ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                {depositable.length === 0 && <option value="">Association operating account</option>}
+                {depositable.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end md:col-span-5"><Button type="submit">Record receipt</Button></div>
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />

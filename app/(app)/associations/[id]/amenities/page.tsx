@@ -328,15 +328,15 @@ function FormRow({
 }
 
 function formatHours(opens: string | null, closes: string | null): string {
-  if (!opens && !closes) return 'â€”';
+  if (!opens && !closes) return '—';
   const fmt = (t: string | null) => {
-    if (!t) return 'â€”';
+    if (!t) return '—';
     const [h, m] = t.split(':').map(Number);
     const hr12 = h % 12 || 12;
     const ampm = h < 12 ? 'AM' : 'PM';
     return `${hr12}:${String(m).padStart(2, '0')} ${ampm}`;
   };
-  return `${fmt(opens)} â€“ ${fmt(closes)}`;
+  return `${fmt(opens)} – ${fmt(closes)}`;
 }
 
 function parsePricingMode(value: FormDataEntryValue | null): 'flat' | 'hourly' | null {

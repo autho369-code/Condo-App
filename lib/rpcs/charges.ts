@@ -1,4 +1,5 @@
 'use server';
+import { isReceiptMethod } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
@@ -153,22 +154,26 @@ export async function postAdHocCharge(formData: FormData) {
 export async function recordReceipt(formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
-  const unit_id      = formData.get('unit_id') as string;
-  const failTo = (msg: string) => {
-    redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
-  };
-  const amount       = parseFloat(formData.get('amount') as string);
-  const payment_date = formData.get('payment_date') as string;
-  const method       = formData.get('method') as string;
-  const reference    = (formData.get('reference') as string) || null;
-  const notes        = (formData.get('notes') as string) || null;
+  const unit_id      = String(formData.get('unit_id') ?? '');
+  const failTo = (msg: string): never => redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
+  const amount       = Number(formData.get('amount'));
+  const payment_date = String(formData.get('payment_date') ?? '');
+  const method       = String(formData.get('method') ?? '');
+  const reference    = String(formData.get('reference') ?? '').trim() || null;
+  const notes        = String(formData.get('notes') ?? '').trim() || null;
+  const bank_account_id = String(formData.get('bank_account_id') ?? '') || null;
+  if (!Number.isFinite(amount) || amount <= 0) failTo('Enter the amount received.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payment_date)) failTo('Enter the date received.');
+  if (!isReceiptMethod(method)) failTo('Choose how the payment was made.');
 
-  // auto_apply_new_payment trigger handles application automatically
-  const { error } = await (supabase as any).from('payments').insert({
-    unit_id, amount, payment_date, method, reference, notes,
-  });
-  if (error) { failTo(error.message); return; }
+  // RLS (payments_finance_all) scopes the unit; auto_apply_new_payment applies
+  // it to charges and trg_post_payment_to_gl posts Dr bank / Cr A/R.
+  const { data, error } = await (supabase as any).from('payments').insert({
+    unit_id, amount: Math.round(amount * 100) / 100, payment_date, method, reference, notes, bank_account_id,
+  }).select('id').single();
+  if (error) failTo(error.message);
   revalidatePath(`/units/${unit_id}`);
+  redirect(`/units/${unit_id}?receipt=${data.id}`);
 }
 
 export async function unapplyPayment(paymentId: string, unitId: string) {
