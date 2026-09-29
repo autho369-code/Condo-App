@@ -62,7 +62,7 @@ export default function PreviewLetterPage() {
           .order('name'),
         supabase
           .from('owners')
-          .select('id, full_name, email, mailing_address, address_street, address_city, address_state, address_zip, phone, unit_owners(is_primary, end_date, units(unit_number, association_id))')
+          .select('id, full_name, email, mailing_address, address_street, address_city, address_state, address_zip, phone, unit_owners(is_primary, end_date, units(unit_number, buildings(association_id)))')
           .order('full_name'),
         supabase
           .from('vendors')
@@ -95,7 +95,7 @@ export default function PreviewLetterPage() {
     const owner = owners.find((o: any) => o.id === selectedOwnerId);
     const activeOwnerships = owner?.unit_owners?.filter((row: any) => !row.end_date) ?? [];
     const primaryOwnership = activeOwnerships.find((row: any) => row.is_primary) ?? activeOwnerships[0];
-    const effectiveAssocId = selectedAssocId || primaryOwnership?.units?.association_id || '';
+    const effectiveAssocId = selectedAssocId || primaryOwnership?.units?.buildings?.association_id || '';
 
     // Association values
     const assoc = associations.find((a: any) => a.id === effectiveAssocId);
