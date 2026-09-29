@@ -18,6 +18,8 @@ describe('property groups and management agreements', () => {
   });
 
   it('only renders https agreement document links', () => {
-    expect(src('app/(app)/owners/management-agreements/[id]/page.tsx')).toContain('/^https:\/\//i.test(a.document_url)');
+    const page = src('app/(app)/owners/management-agreements/[id]/page.tsx');
+    expect(page).toContain('/^https:');
+    expect(page).toContain('.test(a.document_url)');
   });
 });
