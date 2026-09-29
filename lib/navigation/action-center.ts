@@ -276,6 +276,8 @@ const DEFINITIONS: ActionCenterDefinition[] = [
       work('Compliance actions', [
         { label: 'New violation', href: '/violations/new', description: 'Open a documented case.', primary: true },
         { label: 'Field capture', href: '/violations/field', description: 'Capture photos, location, and observations.' },
+        { label: 'Follow-ups due', href: '/violations?status=followup_due', description: 'Send the next notice or fine in bulk.' },
+        { label: 'Rules & fines', href: '/violations/rules', description: 'Rule library, follow-up ladders, and fining policy.' },
         { label: 'Compliance overview', href: '/compliance', description: 'Review portfolio policies and exposure.' },
         { label: 'Draft violation letter', href: '/letters/new', description: 'Create a reviewed notice from a template.' },
         { label: 'Physical mail queue', href: '/letters/mail', description: 'Track printed and certified delivery.' },

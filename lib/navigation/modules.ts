@@ -100,6 +100,7 @@ export const appModules: AppModule[] = [
       { label: 'Violation queue', href: '/violations' },
       { label: 'New violation', href: '/violations/new' },
       { label: 'Field capture', href: '/violations/field' },
+      { label: 'Rules & fines', href: '/violations/rules' },
       { label: 'Compliance overview', href: '/compliance' },
       { label: 'Architectural reviews', href: '/architectural-reviews' },
       { label: 'Insurance', href: '/insurance' },
