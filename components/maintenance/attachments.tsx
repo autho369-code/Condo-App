@@ -5,7 +5,7 @@
 // recorded server-side (lib/rpcs/maintenance-attachments.ts).
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, FileText, LoaderCircle, Play, X } from 'lucide-react';
+import { Camera, FileText, LoaderCircle, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   createMaintenanceUpload, recordMaintenanceUpload, removeMaintenanceAttachment,
@@ -77,7 +77,6 @@ export function MaintenanceAttachments({
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((item) => {
             const isImage = (item.content_type ?? '').startsWith('image/');
-            const isVideo = (item.content_type ?? '').startsWith('video/');
             const removable = canRemoveAny || (currentUserId && item.uploaded_by === currentUserId);
             return (
               <li key={item.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
@@ -87,7 +86,7 @@ export function MaintenanceAttachments({
                     <img src={item.url} alt={item.file_name} className="h-full w-full object-cover" loading="lazy" />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-gray-400">
-                      {isVideo ? <Play className="h-8 w-8" /> : <FileText className="h-8 w-8" />}
+                      <FileText className="h-8 w-8" />
                     </span>
                   )}
                 </a>
@@ -114,9 +113,9 @@ export function MaintenanceAttachments({
             {progress ?? (pending ? 'Updating…' : 'Add photos or files')}
           </label>
           <input id={`maint-files-${parentId}`} ref={input} type="file" multiple className="sr-only" disabled={busy}
-            accept="image/*,application/pdf,video/mp4,video/quicktime"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
             onChange={(e) => upload(Array.from(e.target.files ?? []))} />
-          <p className="text-xs text-gray-400">Photos, short videos or PDFs · up to 20 MB each · 12 per record</p>
+          <p className="text-xs text-gray-400">Photos (JPG, PNG, HEIC, WebP) or PDFs · up to 20 MB each · 12 per record</p>
         </>
       ) : null}
     </div>

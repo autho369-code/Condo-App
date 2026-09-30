@@ -8,7 +8,7 @@
 // RLS-scoped client, so a user can only attach to a request or work order
 // they can already see, and only in their own role:
 //   - staff: any request or work order in scope
-//   - residents: their own open service request
+//   - residents (owners and tenants): their own open service request
 //   - vendors: a work order assigned to them
 // Rows are written with the service client (the table has no write policies).
 
@@ -21,7 +21,8 @@ const BUCKET = 'association-documents';
 const NAMESPACE = 'maintenance';
 const MAX_FILES = 12;
 const MAX_BYTES = 20 * 1024 * 1024;
-const ALLOWED_TYPE = /^(image\/(jpeg|png|gif|webp|heic|heif)|application\/pdf|video\/(mp4|quicktime))$/i;
+// Must stay within the association-documents bucket's allowed MIME types.
+const ALLOWED_TYPE = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type MaintenanceParentKind = 'service_request' | 'work_order';
@@ -45,12 +46,13 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
 
   if (kind === 'service_request') {
     const { data: sr } = await db.from('service_requests')
-      .select('id, portfolio_id, association_id, status, homeowner_id, owner_id')
+      .select('id, portfolio_id, association_id, status, homeowner_id, owner_id, tenant_id')
       .eq('id', id).is('archived_at', null).maybeSingle();
     if (!sr) return { error: 'Request not found' };
     let role: Parent['role'];
     if (isStaff) role = 'staff';
-    else if (me.owner_id && (sr.homeowner_id === me.owner_id || sr.owner_id === me.owner_id)) {
+    else if ((me.owner_id && (sr.homeowner_id === me.owner_id || sr.owner_id === me.owner_id))
+      || (me.tenant_id && sr.tenant_id === me.tenant_id)) {
       if (sr.status !== 'open' && sr.status !== 'waiting') return { error: 'This request is closed' };
       role = 'resident';
     } else return { error: 'You cannot add files to this request' };
@@ -89,7 +91,7 @@ export async function createMaintenanceUpload(
   if (!file?.name) return { error: 'Missing file name' };
   if (!file.size || file.size <= 0) return { error: `"${file.name}" is empty` };
   if (file.size > MAX_BYTES) return { error: `"${file.name}" is over ${MAX_BYTES / 1048576} MB` };
-  if (!ALLOWED_TYPE.test(file.type || '')) return { error: `"${file.name}" is not a photo, video or PDF` };
+  if (!ALLOWED_TYPE.test(file.type || '')) return { error: `"${file.name}" is not a JPG, PNG, HEIC, WebP photo or a PDF` };
   const svc = createServiceClient() as any;
   if ((await countFor(svc, resolved.parent)) >= MAX_FILES) return { error: `Limit of ${MAX_FILES} files reached` };
 
@@ -165,6 +167,7 @@ export async function removeMaintenanceAttachment(attachmentId: string): Promise
   revalidatePath('/service-requests', 'layout');
   revalidatePath('/work-orders', 'layout');
   revalidatePath('/portal/service-requests');
+  revalidatePath('/resident/requests');
   revalidatePath('/vendor/work-orders', 'layout');
   return { ok: true };
 }
@@ -176,4 +179,5 @@ function revalidateParent(parent: Parent) {
     revalidatePath(`/vendor/work-orders/${parent.workOrderId}`);
   }
   revalidatePath('/portal/service-requests');
+  revalidatePath('/resident/requests');
 }
