@@ -20,6 +20,14 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
+const TERMINAL_WORK_ORDER = new Set(['done', 'completed', 'billed', 'closed', 'cancelled']);
+
+/** The request's open work order, if any. Finished/cancelled orders don't count as triage. */
+function activeWorkOrder(request: any): any | null {
+  const list = Array.isArray(request.work_orders) ? request.work_orders : request.work_orders ? [request.work_orders] : [];
+  return list.find((w: any) => !TERMINAL_WORK_ORDER.has(w.status)) ?? null;
+}
+
 function statusTone(status: string): Tone {
   if (status === 'completed') return 'success';
   if (status === 'cancelled') return 'neutral';
@@ -63,7 +71,7 @@ export default async function ServiceRequestsPage({
   const now = Date.now();
   const isOverdue = (request: any) => Boolean(responseState(request, now)?.overdue);
   let filtered = all.filter((request) => {
-    const workOrder = one<any>(request.work_orders);
+    const workOrder = activeWorkOrder(request);
     if (intake === 'new') return !workOrder && isOpen(request);
     if (intake === 'overdue') return isOverdue(request);
     if (intake === 'questions') return request.request_kind === 'admin' && isOpen(request);
@@ -93,9 +101,9 @@ export default async function ServiceRequestsPage({
     });
   }
 
-  const newCount = all.filter((request) => !one(request.work_orders) && !['completed', 'cancelled'].includes(request.status)).length;
+  const newCount = all.filter((request) => !activeWorkOrder(request) && !['completed', 'cancelled'].includes(request.status)).length;
   const emergencyCount = all.filter((request) => request.priority === 'emergency' && !['completed', 'cancelled'].includes(request.status)).length;
-  const triagedCount = all.filter((request) => one(request.work_orders) && !['completed', 'cancelled'].includes(request.status)).length;
+  const triagedCount = all.filter((request) => activeWorkOrder(request) && !['completed', 'cancelled'].includes(request.status)).length;
   const averageAge = all.length === 0 ? 0 : Math.round(all.reduce((sum, request) => sum + ageInDays(request.created_at), 0) / all.length);
   const overdueCount = all.filter(isOverdue).length;
   const questionCount = all.filter((request) => request.request_kind === 'admin' && isOpen(request)).length;
@@ -186,7 +194,7 @@ export default async function ServiceRequestsPage({
               {filtered.map((request) => {
                 const tenant = one<any>(request.tenants);
                 const owner = one<any>(request.owners) ?? one<any>(request.homeowners);
-                const workOrder = one<any>(request.work_orders);
+                const workOrder = activeWorkOrder(request);
                 const requestor = tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() : owner?.full_name ?? 'Resident';
                 return (
                   <TR key={request.id}>
