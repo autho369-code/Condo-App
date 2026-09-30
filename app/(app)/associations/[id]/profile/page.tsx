@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
@@ -27,6 +27,7 @@ export default async function AssociationProfileTab({
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   const me = await requireStaff();
+  const canManageLoans = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
@@ -165,7 +166,7 @@ export default async function AssociationProfileTab({
 
   async function addLoan(formData: FormData) {
     'use server';
-    await requireStaff();
+    await requireFinanceStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
     const lender = ((formData.get('lender') as string) || '').trim();
@@ -193,7 +194,7 @@ export default async function AssociationProfileTab({
 
   async function archiveLoan(loanId: string) {
     'use server';
-    await requireStaff();
+    await requireFinanceStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
     const { error } = await (sb as any).from('association_loans').update({ archived_at: new Date().toISOString() }).eq('id', loanId);
@@ -480,14 +481,15 @@ export default async function AssociationProfileTab({
                       {l.maturity_date ? ` · matures ${date(l.maturity_date)}` : ''}
                     </div>
                   </div>
-                  <form action={archiveLoan.bind(null, l.id)}>
+                  {canManageLoans && <form action={archiveLoan.bind(null, l.id)}>
                     <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-red-600">Archive</button>
-                  </form>
+                  </form>}
                 </li>
               ))}
             </ul>
           )}
-          <details>
+          {!canManageLoans && <p className="text-xs text-gray-500">Loans are managed by accounting staff.</p>}
+          {canManageLoans && <details>
             <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-950">+ Add loan / mortgage</summary>
             <form action={addLoan} className="mt-4 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -539,7 +541,7 @@ export default async function AssociationProfileTab({
                 <Button type="submit">Add loan</Button>
               </div>
             </form>
-          </details>
+          </details>}
         </Section>
       </div>
 
