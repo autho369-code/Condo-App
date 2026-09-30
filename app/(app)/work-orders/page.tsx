@@ -8,7 +8,9 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
+import { SelectAllCheckbox } from '@/components/ui/select-all';
+import { bulkWorkOrderAction } from '@/lib/rpcs/work-order-bulk';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
@@ -81,10 +83,11 @@ function formatLabel(s: string): string {
 export default async function WorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
 }) {
   const me = await requireStaff();
-  const { tab: tabParam, q = '', status = '', priority = '', association_id = '', vendor_id = '' } = await searchParams;
+  const sp = await searchParams;
+  const { tab: tabParam, q = '', status = '', priority = '', association_id = '', vendor_id = '' } = sp;
   const tab = parseTab(tabParam);
   const todayDate = new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
@@ -203,6 +206,12 @@ export default async function WorkOrdersPage({
     ]),
   };
 
+  // Bulk actions return to exactly this view.
+  const viewParams = new URLSearchParams();
+  for (const [k, v] of Object.entries({ tab: status === 'overdue' ? 'all' : tab, q, status, priority, association_id, vendor_id })) if (v) viewParams.set(k, v);
+  const backHref = `/work-orders?${viewParams.toString()}`;
+  const BULK_LABEL: Record<string, string> = { assign: 'assigned', status: 'updated', priority: 'reprioritized' };
+
   // ── Render ──
   return (
     <DataWorkspace
@@ -293,11 +302,44 @@ export default async function WorkOrdersPage({
           </FilterSelect>
         </FilterBar>
 
+        {sp.bulk && (
+          <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} work order${sp.done === '1' ? '' : 's'} ${BULK_LABEL[sp.bulk] ?? 'updated'}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
+            {sp.reason}
+          </Alert>
+        )}
+        {sp.error && <Alert tone="danger" title="Could not update work orders">{sp.error}</Alert>}
+
         {/* ── TABLE ── */}
         {filtered.length > 0 ? (
+          <form action={bulkWorkOrderAction} className="space-y-3">
+          <input type="hidden" name="back" value={backHref} />
+          <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:items-end lg:justify-between">
+            <p className="text-sm text-gray-600">Select work orders, then act on all of them at once.</p>
+            <div className="flex flex-wrap items-end gap-2">
+              <select name="vendor_id" aria-label="Vendor to assign" defaultValue=""
+                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <option value="">Vendor…</option>
+                {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+              <Button type="submit" name="op" value="assign" size="sm" variant="secondary">Assign</Button>
+              <select name="status" aria-label="New status" defaultValue=""
+                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <option value="">Status…</option>
+                {STATUSES.map((s) => <option key={s} value={s}>{formatLabel(s)}</option>)}
+              </select>
+              <Button type="submit" name="op" value="status" size="sm" variant="secondary">Set status</Button>
+              <select name="priority" aria-label="New priority" defaultValue=""
+                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <option value="">Priority…</option>
+                {PRIORITIES.map((p) => <option key={p} value={p}>{formatLabel(p)}</option>)}
+              </select>
+              <Button type="submit" name="op" value="priority" size="sm" variant="secondary">Set priority</Button>
+            </div>
+          </div>
           <Table>
             <THead>
               <TR>
+                <TH className="w-10"><SelectAllCheckbox targetName="work_order_id" defaultChecked={false} /></TH>
                 <TH>#</TH>
                 <TH>Description</TH>
                 <TH>Association</TH>
@@ -314,6 +356,9 @@ export default async function WorkOrdersPage({
                 const pb = priorityBadge(w.priority);
                 return (
                   <TR key={w.id}>
+                    <TD>
+                      <input type="checkbox" name="work_order_id" value={w.id} aria-label={`Select work order ${w.number ?? w.title ?? ''}`} className="h-4 w-4 rounded border-gray-300" />
+                    </TD>
                     <TD className="font-mono text-xs">
                       <Link href={`/work-orders/${w.id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                         {w.number ?? w.id.slice(0, 8)}
@@ -350,6 +395,7 @@ export default async function WorkOrdersPage({
               })}
             </tbody>
           </Table>
+          </form>
         ) : (
           <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
