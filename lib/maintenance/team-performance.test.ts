@@ -53,6 +53,7 @@ describe('buildTeamScoreboard', () => {
       workOrders: [
         { id: 'r', assignee_id: 'u2', completed_by_assignee_id: 'u1', status: 'closed', priority: 'normal', created_at: '2026-09-05T00:00:00Z', scheduled_date: null, completed_date: '2026-09-06' },
         { id: 's', assignee_id: null, completed_by_assignee_id: 'u1', status: 'done', priority: 'normal', created_at: '2026-09-05T00:00:00Z', scheduled_date: null, completed_date: '2026-09-07' },
+        { id: 't', assignee_id: 'u2', completed_by_assignee_id: null, status: 'closed', priority: 'normal', created_at: '2026-09-05T00:00:00Z', scheduled_date: null, completed_date: '2026-09-08' },
       ],
       labor: [{ tech_id: 'u1', tech_name: 'Meho', date_worked: '2026-10-05', hours: 8, labor_cost: 400 }],
     });
