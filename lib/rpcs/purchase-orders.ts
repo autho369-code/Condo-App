@@ -81,6 +81,39 @@ export async function cancelPurchaseOrder(formData: FormData) {
   redirect(`/purchase-orders/${id}`);
 }
 
+/**
+ * Bill an approved PO. bill_purchase_order re-checks finance access and
+ * association scope, and a trigger refuses bills that would exceed the PO
+ * total; po_billed and the billed status follow automatically.
+ */
+export async function billPurchaseOrder(formData: FormData) {
+  await requireFinanceStaff();
+  const id = ((formData.get('id') as string) ?? '').trim();
+  const back = `/purchase-orders/${id}`;
+  const amount = Number(((formData.get('amount') as string) ?? '').replace(/[$,\s]/g, ''));
+  const billDate = ((formData.get('bill_date') as string) ?? '').trim();
+  const dueDate = ((formData.get('due_date') as string) ?? '').trim();
+  const gl = ((formData.get('gl_account_id') as string) ?? '').trim();
+  if (!Number.isFinite(amount) || amount <= 0) redirect(`${back}?error=${encodeURIComponent('Enter the bill amount.')}`);
+  const iso = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('bill_purchase_order', {
+    p_po_id: id,
+    p_bill_number: ((formData.get('bill_number') as string) ?? '').trim() || null,
+    p_bill_date: iso(billDate),
+    p_due_date: iso(dueDate),
+    p_amount: Math.round(amount * 100) / 100,
+    p_gl_account_id: /^[0-9a-f-]{36}$/i.test(gl) ? gl : null,
+    p_memo: ((formData.get('memo') as string) ?? '').trim() || null,
+    p_submit_for_approval: formData.get('submit_for_approval') === 'on',
+  });
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(back);
+  revalidatePath('/purchase-orders');
+  revalidatePath('/bills');
+  redirect(`/bills/${data}`);
+}
+
 /** Association spending authority: which bills and POs need a board vote. */
 export async function saveBoardApprovalSettings(formData: FormData) {
   await requireStaff(); // the RPC enforces full-access staff + portfolio scope and audits the change
