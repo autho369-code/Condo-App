@@ -39,7 +39,7 @@ export function ViolationLettersList({ letters, links, markMailed, back }: Props
                 <span>{date(l.created_at)}</span>
                 {email && <span>· {email}</span>}
                 {markMailed && l.delivery_methods.includes('portal') && <span>· On owner portal</span>}
-                {markMailed && l.mail_status === 'to_mail' && <StatusChip tone="warning">To mail</StatusChip>}
+                {markMailed && l.mail_status === 'to_mail' && <StatusChip tone="warning">{l.delivery_methods.includes('certified_mail') ? 'To mail — certified' : 'To mail'}</StatusChip>}
                 {markMailed && l.mail_status === 'mailed' && <StatusChip tone="success">Mailed {date(l.mailed_at)}</StatusChip>}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { generateDocumentPdf } from '@/lib/documents/generated-pdf';
-import { queueEmails, textToHtml } from '@/lib/email/queue';
+import { queueEmails, richTextToPlainText, textToHtml } from '@/lib/email/queue';
 import { createServiceClient } from '@/lib/supabase/server';
 import { buildStepLetter } from '@/lib/violations/step-letter';
 
@@ -27,12 +27,13 @@ export type AdvanceResult = {
  * client, at a path the letter row is bound to.
  */
 export async function deliverStepLetter(db: any, violationId: string, result: AdvanceResult, sentBy: string | null): Promise<string> {
-  const methods = (result.delivery_methods ?? []).filter((m) => ['email', 'portal', 'mail'].includes(m));
+  const methods = (result.delivery_methods ?? []).filter((m) => ['email', 'portal', 'mail', 'certified_mail'].includes(m));
+  const byMail = methods.includes('mail') || methods.includes('certified_mail');
   if (methods.length === 0) return 'No letter for this step (no delivery method set).';
 
   const { data: v, error } = await db
     .from('violations')
-    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id), units(unit_number), owners(full_name, email)')
+    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, last_step_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id), units(unit_number), owners(full_name, email)')
     .eq('id', violationId)
     .maybeSingle();
   if (error || !v) throw new Error('Could not load the violation to write its letter.');
@@ -46,8 +47,10 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
 
   const today = new Date().toISOString().slice(0, 10);
   const hearingDays = Number(settings?.hearing_request_days ?? 14);
+  // Anchored to when the step was recorded, so a resent letter states the same deadline.
+  const stepAt = v.last_step_at ? new Date(v.last_step_at).getTime() : Date.now();
   const hearingDeadline = result.offers_hearing
-    ? new Date(Date.now() + hearingDays * 86_400_000).toISOString().slice(0, 10)
+    ? new Date(stepAt + hearingDays * 86_400_000).toISOString().slice(0, 10)
     : null;
   const associationName = v.associations?.name ?? 'Your association';
   const { subject, body } = buildStepLetter(
@@ -67,7 +70,8 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
       hearingDeadline,
       today,
     },
-    template ?? null,
+    // Templates from the rich-text editor are HTML; letters are plain text (escaped again for email).
+    template ? { subject: template.subject ? richTextToPlainText(template.subject) : null, body: template.body ? richTextToPlainText(template.body) : null } : null,
   );
 
   const pdf = generateDocumentPdf({
@@ -96,7 +100,7 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
       delivery_methods: methods,
       emailed_to: wantsEmail ? ownerEmail : null,
       email_status: !wantsEmail ? 'not_requested' : ownerEmail ? 'queued' : 'no_email_on_file',
-      mail_status: methods.includes('mail') ? 'to_mail' : 'not_requested',
+      mail_status: byMail ? 'to_mail' : 'not_requested',
     })
     .select('id')
     .single();
@@ -126,6 +130,7 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
     }
   }
   if (methods.includes('portal')) done.push(v.owner_id ? 'posted to the owner portal' : 'not posted to a portal — no owner on the violation');
-  if (methods.includes('mail')) done.push('added to the mail queue');
+  if (methods.includes('certified_mail')) done.push('added to the mail queue (certified)');
+  else if (methods.includes('mail')) done.push('added to the mail queue');
   return `Letter ${done.join(', ')}.`;
 }

@@ -227,3 +227,12 @@ anything, so questions arrive as maintenance requests.
 | Resident ↔ management secure messaging | ✅ **beyond AppFolio** | owner + tenant portals, staff Inbox, internal notes, assign, close/reopen, 48h reply clock, email both ways |
 | Two-way SMS | 🟡 | built; blocked on Twilio Trust Hub KYC |
 | Letters, email blasts, announcements, surveys | ✅ | |
+
+## 6. Violations follow-ups (2026-09-30)
+
+| Area | Portier | Notes |
+|---|---|---|
+| Step letter sent automatically on each follow-up | ✅ | template or standard wording; PDF stored; email / owner portal / mail / certified mail; resend for the current step (#84, #85) |
+| Mail queue with proof-of-mailing date | ✅ | /violations/letters |
+| Public / resident violation reports reach staff | ✅ | /violations/reports — open as a violation (reporter stays staff-only) or dismiss with reason (#85) |
+

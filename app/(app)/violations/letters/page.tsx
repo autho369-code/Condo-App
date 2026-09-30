@@ -107,7 +107,7 @@ export default async function ViolationLettersPage({
                     </TD>
                     <TD>
                       {l.mail_status === 'to_mail'
-                        ? <StatusChip tone="warning">To mail</StatusChip>
+                        ? <StatusChip tone="warning">{l.delivery_methods.includes('certified_mail') ? 'To mail — certified' : 'To mail'}</StatusChip>
                         : <StatusChip tone="success">Mailed {date(l.mailed_at)}</StatusChip>}
                     </TD>
                     <TD className="text-right">

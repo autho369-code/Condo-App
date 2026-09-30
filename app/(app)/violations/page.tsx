@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpenCheck, Mail, Plus, ShieldAlert, Smartphone } from 'lucide-react';
+import { BookOpenCheck, Inbox, Mail, Plus, ShieldAlert, Smartphone } from 'lucide-react';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -205,7 +205,10 @@ export default async function ViolationsPage({
     }),
   };
 
-  const { count: lettersToMail } = await db.from('violation_letters').select('id', { count: 'exact', head: true }).eq('mail_status', 'to_mail');
+  const [{ count: lettersToMail }, { count: reportsToReview }] = await Promise.all([
+    db.from('violation_letters').select('id', { count: 'exact', head: true }).eq('mail_status', 'to_mail'),
+    db.from('violation_cases').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'reported'),
+  ]);
 
   // ── Render ──
   return (
@@ -220,6 +223,9 @@ export default async function ViolationsPage({
             filename={`violations-${exportStamp}`}
             tables={[exportTable]}
           />
+          <Link href="/violations/reports">
+            <Button variant="secondary"><Inbox className="h-4 w-4" /> Resident reports{reportsToReview ? ` (${reportsToReview})` : ''}</Button>
+          </Link>
           <Link href="/violations/letters">
             <Button variant="secondary"><Mail className="h-4 w-4" /> Letters to mail{lettersToMail ? ` (${lettersToMail})` : ''}</Button>
           </Link>
