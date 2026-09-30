@@ -1,6 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceOrPortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
@@ -306,7 +306,9 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
 
 /** Bill the cost of an owner-caused repair back to the unit's owner ledger. */
 export async function chargeBackWorkOrder(workOrderId: string, formData: FormData) {
-  await requireStaff();  // in-action guard; the RPC re-checks finance + association scope
+  // Finance staff and company admins (both pass can_manage_finance in the RPC,
+  // which re-checks finance + association scope).
+  await requireFinanceOrPortfolioAdmin();
   const back = `/work-orders/${workOrderId}`;
   const amount = Number(String(formData.get('amount') ?? '').replace(/[$,\s]/g, ''));
   const categoryId = String(formData.get('charge_category_id') ?? '');
