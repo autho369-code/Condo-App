@@ -170,7 +170,7 @@ permissions, recalculate balances. Diagnostics: 10 balance checks.
 | Purchase order → bill matching | ✅ | bill from an approved PO; bills can never exceed the PO total; po_billed + billed status automatic (#90) |
 | Recurring bills | ✅ | /bills/recurring (2026-09-30) |
 | Recurring journal entries | ✅ | /journal-entries/recurring/new |
-| Pay management fees | ✅ | /accounting/management-fees (#65) |
+| Pay management fees | ✅ | /accounting/management-fees (#65); automatic monthly schedule + daily cron (/api/billing/run-management-fees) |
 | Smart bill entry (invoice → bill) | ✅ | AI invoice extraction on New bill |
 | Upload bulk bills / JE batch CSV | ✅ | #68 |
 | Bulk board approval of bills | ✅ | #67 |

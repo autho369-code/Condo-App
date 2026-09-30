@@ -52,6 +52,10 @@
       "schedule": "15 15 * * *"
     },
     {
+      "path": "/api/billing/run-management-fees",
+      "schedule": "0 16 * * *"
+    },
+    {
       "path": "/api/reports/publish-board-packages",
       "schedule": "30 13 * * *"
     }
