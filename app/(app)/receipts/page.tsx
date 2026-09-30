@@ -34,24 +34,36 @@ export default async function ReceiptsPage({
   const q = (sp.q ?? '').trim().toLowerCase();
 
   const db = (await createClient()) as any;
-  let query = db
-    .from('payments')
-    .select('id, amount, payment_date, method, reference, notes, processor, unit_id, bank_accounts(name), units(unit_number, buildings(association_id, associations(id, name)))')
-    .gte('payment_date', from)
-    .lte('payment_date', to)
-    .order('payment_date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(1000);
-  if (method) query = query.eq('method', method);
-  else if (!includeCredits) query = query.neq('method', 'credit');
-  const [{ data, error }, { data: associations }] = await Promise.all([
-    query,
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
-  ]);
-  if (error) throw new Error(`Could not load receipts: ${error.message}`);
+  // Page through the whole filtered range so totals are complete; the
+  // association filter runs in the database (inner join), not after a limit.
+  const PAGE = 1000;
+  const MAX_ROWS = 20000;
+  const unitSelect = assoc
+    ? 'units!inner(unit_number, buildings!inner(association_id, associations(id, name)))'
+    : 'units(unit_number, buildings(association_id, associations(id, name)))';
+  const fetched: any[] = [];
+  for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
+    let query = db
+      .from('payments')
+      .select(`id, amount, payment_date, method, reference, notes, processor, unit_id, created_at, bank_accounts(name), ${unitSelect}`)
+      .gte('payment_date', from)
+      .lte('payment_date', to)
+      .order('payment_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + PAGE - 1);
+    if (assoc) query = query.eq('units.buildings.association_id', assoc);
+    if (method) query = query.eq('method', method);
+    else if (!includeCredits) query = query.neq('method', 'credit');
+    const { data, error } = await query;
+    if (error) throw new Error(`Could not load receipts: ${error.message}`);
+    fetched.push(...(data ?? []));
+    if ((data ?? []).length < PAGE) break;
+  }
+  const truncated = fetched.length >= MAX_ROWS;
+  const { data: associations } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
 
-  let rows = (data ?? []) as any[];
-  if (assoc) rows = rows.filter((r) => r.units?.buildings?.association_id === assoc);
+  let rows = fetched;
   if (q) {
     rows = rows.filter((r) =>
       [r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
@@ -62,7 +74,6 @@ export default async function ReceiptsPage({
   const total = cash.reduce((s, r) => s + Number(r.amount), 0);
   const online = cash.filter((r) => r.method === 'online' || r.processor).reduce((s, r) => s + Number(r.amount), 0);
   const credits = rows.filter((r) => r.method === 'credit').reduce((s, r) => s + Number(r.amount), 0);
-  const truncated = (data ?? []).length === 1000;
 
   return (
     <DataWorkspace
@@ -108,8 +119,9 @@ export default async function ReceiptsPage({
           </label>
         </FilterBar>
 
-        {truncated && <p className="text-xs text-amber-700">Showing the 1,000 most recent receipts in this range — narrow the dates to see all.</p>}
+        {truncated && <p className="text-xs text-amber-700">This range has more than 20,000 receipts — totals cover the newest 20,000. Narrow the dates to see all.</p>}
 
+        {rows.length > 500 && <p className="text-xs text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()} receipts; totals include all of them.</p>}
         {rows.length === 0 ? (
           <Surface padded={false}>
             <EmptyState icon={Receipt} title="No receipts in this range" description="Change the dates or filters." />
@@ -128,7 +140,7 @@ export default async function ReceiptsPage({
               </tr>
             </THead>
             <tbody>
-              {rows.map((r) => (
+              {rows.slice(0, 500).map((r) => (
                 <TR key={r.id}>
                   <TD className="whitespace-nowrap">{date(r.payment_date)}</TD>
                   <TD>
