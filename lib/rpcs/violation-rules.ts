@@ -296,16 +296,25 @@ export async function sendCurrentStepLetter(formData: FormData) {
   const me = await requireStaff();
   const id = str(formData, 'id');
   const supabase = await createClient();
-  const { data, error } = await (supabase as any).rpc('violation_current_step_letter', { p_violation_id: id });
-  if (error) go(`/violations/${id}`, 'error', error.message);
+  const { data: v } = await (supabase as any).from('violations').select('current_step').eq('id', id).maybeSingle();
+  const step = Number(v?.current_step ?? 0);
+  if (step < 1) go(`/violations/${id}`, 'error', 'No follow-up step has been recorded yet.');
   let letter: string;
   try {
-    letter = (await retryStepLetter(supabase, id, Number(data.step), me.auth_user_id ?? null))
-      ?? await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
+    // An existing letter only needs its email retried / repeated — this works
+    // for every violation, including ones advanced before step terms were saved.
+    const retried = await retryStepLetter(supabase, id, step, me.auth_user_id ?? null);
+    if (retried) {
+      letter = retried;
+    } else {
+      const { data: terms, error } = await (supabase as any).rpc('violation_current_step_letter', { p_violation_id: id });
+      if (error) throw new Error(error.message);
+      letter = `${terms.step_name}: ${await deliverStepLetter(supabase, id, terms, me.auth_user_id ?? null)}`;
+    }
   } catch (e) {
     go(`/violations/${id}`, 'error', `The letter was not sent: ${e instanceof Error ? e.message : 'unknown error'}`);
   }
   revalidatePath(`/violations/${id}`);
   revalidatePath('/violations/letters');
-  go(`/violations/${id}`, 'saved', `${data.step_name}: ${letter}`);
+  go(`/violations/${id}`, 'saved', letter);
 }

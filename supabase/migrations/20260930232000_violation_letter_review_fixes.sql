@@ -15,11 +15,13 @@ do $$
 declare def text;
 begin
   def := pg_get_functiondef('public.advance_violation(uuid, text)'::regprocedure);
-  if position('set current_step = s.ordinal, status = v_new_status,' in def) = 0 then
+  -- Match with flexible whitespace: the original definition splits this
+  -- assignment list across lines.
+  if def !~ 'set current_step = s\.ordinal,\s*status = v_new_status,' then
     raise exception 'violation_letter_review_fixes: advance_violation drifted';
   end if;
-  def := replace(def, 'set current_step = s.ordinal, status = v_new_status,',
-    'set current_step = s.ordinal, status = v_new_status,' || chr(10) ||
+  def := regexp_replace(def, 'set current_step = s\.ordinal,(\s*)status = v_new_status,',
+    'set current_step = s.ordinal,\1status = v_new_status,' || chr(10) ||
     '         current_step_terms = jsonb_build_object(''step'', s.ordinal, ''step_name'', s.follow_up_name, ''fee'', s.fee,' ||
     ' ''letter_template_id'', s.letter_template_id, ''delivery_methods'', s.delivery_methods, ''offers_hearing'', s.offers_hearing),');
   execute def;

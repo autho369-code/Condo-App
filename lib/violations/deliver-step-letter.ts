@@ -14,6 +14,10 @@ export type AdvanceResult = {
   letter_template_id: string | null;
   delivery_methods: string[] | null;
   offers_hearing: boolean;
+  /** Present when the terms come from the snapshot recorded at advance time. */
+  hearing_request_days?: number | null;
+  template_subject?: string | null;
+  template_body?: string | null;
 };
 
 /**
@@ -38,12 +42,21 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
     .maybeSingle();
   if (error || !v) throw new Error('Could not load the violation to write its letter.');
 
-  const [{ data: template }, { data: settings }] = await Promise.all([
-    result.letter_template_id
+  // Prefer the terms recorded when the step was taken (template wording and
+  // hearing window as they were then); fall back to live values only when the
+  // caller has no snapshot (the advance itself, which happens at the same moment).
+  const snapshot = 'template_body' in result || 'hearing_request_days' in result;
+  const [{ data: liveTemplate }, { data: settings }] = await Promise.all([
+    !snapshot && result.letter_template_id
       ? db.from('document_templates').select('subject, body').eq('id', result.letter_template_id).is('archived_at', null).maybeSingle()
       : Promise.resolve({ data: null }),
-    db.from('association_violation_settings').select('hearing_request_days').eq('association_id', v.association_id).maybeSingle(),
+    snapshot && result.hearing_request_days != null
+      ? Promise.resolve({ data: { hearing_request_days: result.hearing_request_days } })
+      : db.from('association_violation_settings').select('hearing_request_days').eq('association_id', v.association_id).maybeSingle(),
   ]);
+  const template = snapshot
+    ? (result.template_subject || result.template_body ? { subject: result.template_subject ?? null, body: result.template_body ?? null } : null)
+    : liveTemplate;
 
   const today = new Date().toISOString().slice(0, 10);
   const hearingDays = Number(settings?.hearing_request_days ?? 14);
@@ -107,6 +120,9 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
     .single();
   if (letterError || !letter) {
     await service.storage.from(BUCKET).remove([path]);
+    if (letterError?.code === '23505') {
+      throw new Error('A letter for this step was already created (probably by another request a moment ago). Refresh the page.');
+    }
     throw new Error(`Could not record the letter: ${letterError?.message ?? 'unknown error'}`);
   }
 
