@@ -108,6 +108,26 @@ publish/republish for any period. Packages land in the board portal
 (Reports + Documents) as association documents in a "Board reports" folder.
 
 
+### Homeowner record — Portier status (2026-09-30)
+AppFolio homeowner page (audited live): Summary (recurring charges, balance,
+last receipt) · status block (delinquency notes, in foreclosure, in
+collections, certified funds only, allow online payments, require online
+payments in full) · tags · contact · renter status · homeowner status
+(purchase/sale date, send dues reminders) · board status · portal status ·
+electronic cash payments (PaySlip) · emergency contact · violations ·
+activities · insurance policies · notes · two-way texts · emails log (78
+entries w/ opened status) · letters log · recurring charges · financials
+(NSF fee, eligible for dues increase) · late fee override · animals ·
+vehicles · audit log · attachments (share with homeowner).
+Portier already had most of this. Added: collections/payment-rule flags
+(enforced — certified funds blocks check/cash/other receipts via trigger,
+online payments off blocks portal checkout + autopay, pay-in-full enforced at
+checkout) and per-unit delinquency notes. Still missing: tags, emails log with
+open tracking, letters log on the owner page, PaySlip, dues reminders,
+two-way texts. Vendor trades: AppFolio has 14 more (alarm/security,
+appliances, capital improvements, carpet, cleaning, deck, doors/windows,
+drywall, elevator, fences/gates, fire/water damage, redevelopment,
+smoke/CO detectors) than the vendor_trade enum.
 ### Vendor record — Portier status (2026-09-29)
 AppFolio vendor page (audited live): contact, portal activation, federal tax
 (+ Request W-9), accounting (check consolidation/stub, hold payments, eCheck

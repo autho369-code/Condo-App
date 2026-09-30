@@ -101,6 +101,12 @@ export async function GET(request: NextRequest) {
       summary.details.push(`mandate ${m.id}: association not Stripe-enabled`);
       continue; // do not advance — charge as soon as the association goes live
     }
+    const { data: blocked } = await svc.from('occupancies').select('id').eq('unit_id', m.unit_id).eq('status', 'current').eq('allow_online_payments', false).limit(1);
+    if (blocked?.length) {
+      summary.skipped++;
+      summary.details.push(`mandate ${m.id}: online payments disabled for this homeowner`);
+      continue;
+    }
     if (!m.payment_methods?.processor_token || !m.payment_methods?.processor_customer_id) {
       summary.skipped++;
       summary.details.push(`mandate ${m.id}: no saved payment method`);
