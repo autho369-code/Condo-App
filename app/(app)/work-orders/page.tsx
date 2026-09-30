@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, Wrench } from 'lucide-react';
+import { Plus, Users, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
@@ -44,7 +44,7 @@ function tabFilter(tab: Tab): (r: any) => boolean {
     case 'open':       return (r) => !['completed','closed','cancelled'].includes(r.status);
     case 'emergency':  return (r) => r.priority === 'emergency' && !['completed','closed','cancelled'].includes(r.status);
     case 'scheduled':  return (r) => r.status === 'scheduled';
-    case 'unassigned': return (r) => !r.vendor_id && !['completed','closed','cancelled'].includes(r.status);
+    case 'unassigned': return (r) => !r.vendor_id && !r.assignee_id && !['completed','closed','cancelled'].includes(r.status);
     case 'completed':  return (r) => r.status === 'completed' || r.status === 'closed';
     case 'all':        return () => true;
   }
@@ -83,18 +83,20 @@ function formatLabel(s: string): string {
 export default async function WorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; assignee?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
   const { tab: tabParam, q = '', status = '', priority = '', association_id = '', vendor_id = '' } = sp;
+  // In-house assignee filter: a staff id, or "me".
+  const assignee = sp.assignee === 'me' ? (me.auth_user_id ?? '') : (sp.assignee ?? '');
   const tab = parseTab(tabParam);
   const todayDate = new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
   const db = supabase as any;
 
   let workOrdersQuery = db.from('work_orders')
-    .select('id, number, title, description, status, priority, scheduled_date, vendor_id, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
+    .select('id, number, title, description, status, priority, scheduled_date, vendor_id, assignee_id, assigned_to, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
     .is('archived_at', null);
   if (status === 'overdue') {
     workOrdersQuery = workOrdersQuery
@@ -108,7 +110,7 @@ export default async function WorkOrdersPage({
     .limit(500);
   const aggregateRowsQuery = status === 'overdue'
     ? db.from('work_orders')
-        .select('id, status, priority, scheduled_date, vendor_id')
+        .select('id, status, priority, scheduled_date, vendor_id, assignee_id')
         .is('archived_at', null)
         .order('created_at', { ascending: false })
         .limit(500)
@@ -120,11 +122,13 @@ export default async function WorkOrdersPage({
     { data: associations },
     { data: vendors },
     { data: aggregateRows },
+    { data: staff },
   ] = await Promise.all([
     workOrdersQuery,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('vendors').select('id, name').is('archived_at', null).order('name'),
     aggregateRowsQuery,
+    db.rpc('mentionable_staff'),
   ]);
 
   const all = (rows ?? []) as any[];
@@ -160,6 +164,7 @@ export default async function WorkOrdersPage({
   if (priority) filtered = filtered.filter((w: any) => w.priority === priority);
   if (association_id) filtered = filtered.filter((w: any) => w.association_id === association_id);
   if (vendor_id) filtered = filtered.filter((w: any) => w.vendor_id === vendor_id);
+  if (assignee) filtered = filtered.filter((w: any) => w.assignee_id === assignee);
 
   // ── Metrics ──
   const openCount = aggregateAll.filter((w: any) => !['completed','closed','cancelled'].includes(w.status)).length;
@@ -208,7 +213,7 @@ export default async function WorkOrdersPage({
 
   // Bulk actions return to exactly this view.
   const viewParams = new URLSearchParams();
-  for (const [k, v] of Object.entries({ tab: status === 'overdue' ? 'all' : tab, q, status, priority, association_id, vendor_id })) if (v) viewParams.set(k, v);
+  for (const [k, v] of Object.entries({ tab: status === 'overdue' ? 'all' : tab, q, status, priority, association_id, vendor_id, assignee: sp.assignee ?? '' })) if (v) viewParams.set(k, v);
   const backHref = `/work-orders?${viewParams.toString()}`;
   const BULK_LABEL: Record<string, string> = { assign: 'assigned', status: 'updated', priority: 'reprioritized' };
 
@@ -225,6 +230,9 @@ export default async function WorkOrdersPage({
             filename={`work-orders-${tab}-${exportStamp}`}
             tables={[exportTable]}
           />
+          <Link href="/work-orders/team">
+            <Button variant="secondary"><Users className="h-4 w-4" /> Team</Button>
+          </Link>
           <Link href="/work-orders/new">
             <Button><Plus className="h-4 w-4" /> New work order</Button>
           </Link>
@@ -292,6 +300,12 @@ export default async function WorkOrdersPage({
             {(associations ?? []).map((a: any) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
+          </FilterSelect>
+
+          <FilterSelect label="In-house" name="assignee" defaultValue={sp.assignee ?? ''}>
+            <option value="">Anyone</option>
+            <option value="me">Assigned to me</option>
+            {(staff ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </FilterSelect>
 
           <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor_id}>
@@ -385,9 +399,10 @@ export default async function WorkOrdersPage({
                         <Link href={`/vendors/${w.vendor_id}`} className="text-gray-700 hover:text-gray-950 hover:underline">
                           {w.vendors.name}
                         </Link>
-                      ) : (
+                      ) : !w.assignee_id ? (
                         <StatusChip tone="danger">Unassigned</StatusChip>
-                      )}
+                      ) : null}
+                      {w.assignee_id ? <div className="text-xs text-gray-500">In-house: {w.assigned_to ?? 'team member'}</div> : null}
                     </TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{date(w.scheduled_date)}</TD>
                   </TR>

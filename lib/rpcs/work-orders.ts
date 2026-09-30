@@ -4,6 +4,7 @@ import { requireFinanceOrPortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
+import { companyStaff } from '@/lib/maintenance/staff';
 
 async function accessibleWorkOrder(db: any, workOrderId: string) {
   return db
@@ -171,9 +172,20 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
     return;
   }
+  // A team member picked from the list (counted on the team scoreboard), or a
+  // typed name for someone without an account (e.g. a day helper).
+  const techId = String(formData.get('tech_id') ?? '');
+  let techName = String(formData.get('tech_name') ?? '').trim();
+  if (techId) {
+    const staffName = (await companyStaff(supabase as any)).get(techId);
+    if (!staffName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('That person is not an active member of your team')}`); return; }
+    techName = staffName;
+  }
+  if (!techName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('Pick a team member or type a name')}`); return; }
   const { error } = await (supabase as any).from('work_order_labor_entries').insert({
     work_order_id: workOrderId,
-    tech_name:     formData.get('tech_name') as string,
+    tech_id:       techId || null,
+    tech_name:     techName,
     date_worked:   formData.get('date_worked') as string,
     hours:         parseFloat(formData.get('hours') as string),
     description:   (formData.get('description') as string) || null,
