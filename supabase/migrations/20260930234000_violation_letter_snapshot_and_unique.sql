@@ -20,4 +20,13 @@ begin
   execute def;
 end $$;
 
+-- Deployments that used the earlier "Resend letter" action can hold several
+-- rows for one step. Keep the first letter per step (the one actually sent as
+-- the notice) and drop the later copies before the index is created.
+delete from public.violation_letters l
+ using public.violation_letters keep
+ where keep.violation_id = l.violation_id
+   and keep.step_order = l.step_order
+   and (keep.created_at, keep.id) < (l.created_at, l.id);
+
 create unique index if not exists violation_letters_one_per_step on public.violation_letters (violation_id, step_order);
