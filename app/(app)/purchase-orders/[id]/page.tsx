@@ -41,7 +41,7 @@ export default async function PurchaseOrderDetailPage({
 
   const [{ data: lines }, { data: request }, { data: decisions }, { data: bills }] = await Promise.all([
     db.from('purchase_order_line_items')
-      .select('id, description, qty, unit_price, line_total, gl_account_id, gl_accounts(number, name)')
+      .select('id, description, qty, unit_price, line_total, gl_account_id, gl_accounts(number, name, account_type, active)')
       .eq('purchase_order_id', id)
       .order('sort_order'),
     po.approval_request_id
@@ -73,8 +73,13 @@ export default async function PurchaseOrderDetailPage({
     if (l.gl_account_id) lineGls.set(l.gl_account_id, l.gl_accounts ? `${l.gl_accounts.number ?? ''} ${l.gl_accounts.name}`.trim() : 'GL account');
   }
   // Same rule as bill_purchase_order: infer the account only when every line uses one and the same.
+  const EXPENSE_TYPES = ['expense', 'other_expense', 'cost_of_goods_sold'];
   const hasUncategorized = ((lines ?? []) as any[]).some((l) => !l.gl_account_id);
-  const needsGlChoice = hasUncategorized || lineGls.size !== 1;
+  // An inferred account must still be an active expense account (same rule as the RPC).
+  const soleAccountUsable = ((lines ?? []) as any[]).every(
+    (l) => l.gl_accounts && l.gl_accounts.active !== false && EXPENSE_TYPES.includes(String(l.gl_accounts.account_type)),
+  );
+  const needsGlChoice = hasUncategorized || lineGls.size !== 1 || !soleAccountUsable;
   const { data: glChoices } = billable && needsGlChoice
     ? await db.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', po.portfolio_id).eq('active', true)
         .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold']).order('number')
@@ -196,10 +201,10 @@ export default async function PurchaseOrderDetailPage({
                   <Input name="due_date" type="date" />
                 </Field>
                 {needsGlChoice && (
-                  <Field label="GL account" className="sm:col-span-2" hint={hasUncategorized ? 'Some line items have no GL account, so choose where this bill posts.' : 'The line items use several accounts — choose where this bill posts.'}>
+                  <Field label="GL account" className="sm:col-span-2" hint={hasUncategorized ? 'Some line items have no GL account, so choose where this bill posts.' : lineGls.size > 1 ? 'The line items use several accounts — choose where this bill posts.' : 'The purchase order\'s account is inactive or not an expense account — choose an expense account.'}>
                     <Select name="gl_account_id" required defaultValue="">
                       <option value="">Choose the account this bill goes to</option>
-                      {[...lineGls.entries()].map(([glId, label]) => <option key={glId} value={glId}>{label} (on this PO)</option>)}
+                      {[...lineGls.entries()].filter(([glId]) => glOptions.some((g) => g.id === glId)).map(([glId, label]) => <option key={glId} value={glId}>{label} (on this PO)</option>)}
                       {glOptions.filter((g) => !lineGls.has(g.id)).map((g) => <option key={g.id} value={g.id}>{g.number} {g.name}</option>)}
                     </Select>
                   </Field>
