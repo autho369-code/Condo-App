@@ -31,7 +31,7 @@ export default async function ServiceRequestsList({
     .from('service_requests')
     .select(`
       id, number, description, priority, status, source, created_on, created_at,
-      permission_to_enter,
+      permission_to_enter, resolution_note,
       units(unit_number, buildings(associations(name))),
       work_orders(id, status)
     `)
@@ -92,6 +92,11 @@ export default async function ServiceRequestsList({
                         {wo && (
                           <div className="mt-0.5 text-xs text-gray-500">
                             → Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
+                          </div>
+                        )}
+                        {r.resolution_note && (
+                          <div className="mt-1.5 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-700">
+                            <span className="font-medium text-gray-900">Reply: </span>{r.resolution_note}
                           </div>
                         )}
                       </TD>

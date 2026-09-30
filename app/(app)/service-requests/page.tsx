@@ -12,6 +12,7 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { triageServiceRequest } from '@/app/(app)/service-requests/actions';
+import { requestKindLabel, responseState } from '@/lib/maintenance/intake';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export default async function ServiceRequestsPage({
 
   const [{ data: requestRows }, { data: associations }] = await Promise.all([
     db.from('service_requests')
-      .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
+      .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
       .is('archived_at', null)
       .order('priority', { ascending: false })
       .order('created_at', { ascending: false })
@@ -57,9 +58,16 @@ export default async function ServiceRequestsPage({
   ]);
 
   const all = (requestRows ?? []) as any[];
+  const isOpen = (request: any) => !['completed', 'cancelled'].includes(request.status);
+  const isDuplicate = (request: any) => Boolean(request.duplicate_of) && !request.duplicate_reviewed && isOpen(request);
+  const now = Date.now();
+  const isOverdue = (request: any) => Boolean(responseState(request, now)?.overdue);
   let filtered = all.filter((request) => {
     const workOrder = one<any>(request.work_orders);
-    if (intake === 'new') return !workOrder && !['completed', 'cancelled'].includes(request.status);
+    if (intake === 'new') return !workOrder && isOpen(request);
+    if (intake === 'overdue') return isOverdue(request);
+    if (intake === 'questions') return request.request_kind === 'admin' && isOpen(request);
+    if (intake === 'duplicates') return isDuplicate(request);
     if (intake === 'triaged') return Boolean(workOrder) && !['completed', 'cancelled'].includes(request.status);
     if (intake === 'completed') return request.status === 'completed';
     if (intake === 'cancelled') return request.status === 'cancelled';
@@ -89,6 +97,9 @@ export default async function ServiceRequestsPage({
   const emergencyCount = all.filter((request) => request.priority === 'emergency' && !['completed', 'cancelled'].includes(request.status)).length;
   const triagedCount = all.filter((request) => one(request.work_orders) && !['completed', 'cancelled'].includes(request.status)).length;
   const averageAge = all.length === 0 ? 0 : Math.round(all.reduce((sum, request) => sum + ageInDays(request.created_at), 0) / all.length);
+  const overdueCount = all.filter(isOverdue).length;
+  const questionCount = all.filter((request) => request.request_kind === 'admin' && isOpen(request)).length;
+  const duplicateCount = all.filter(isDuplicate).length;
 
   const exportTable: ExportTable = {
     columns: [
@@ -133,16 +144,19 @@ export default async function ServiceRequestsPage({
       <div className="space-y-6">
         {error ? <Alert>{error}</Alert> : null}
         <MetricStrip metrics={[
-          { label: 'Awaiting triage', value: newCount, sublabel: 'Needs manager review' },
-          { label: 'Emergencies', value: emergencyCount, sublabel: 'Open urgent requests' },
-          { label: 'In work orders', value: triagedCount, sublabel: 'Dispatched or active' },
-          { label: 'Average age', value: `${averageAge}d`, sublabel: 'All requests' },
+          { label: 'Awaiting triage', value: newCount, sublabel: `${triagedCount} in work orders · avg age ${averageAge}d` },
+          { label: 'Reply overdue', value: overdueCount, sublabel: 'Past the first-response time' },
+          { label: 'Emergencies', value: emergencyCount, sublabel: 'Open, reply within 2 hours' },
+          { label: 'Questions, not repairs', value: questionCount, sublabel: duplicateCount ? `${duplicateCount} possible duplicate${duplicateCount === 1 ? '' : 's'}` : 'Answer and close' },
         ]} />
 
         <FilterBar action="/service-requests" searchDefault={q} searchPlaceholder="Search requests, residents, units">
           <FilterSelect label="Queue" name="intake" defaultValue={intake}>
             <option value="open">Open requests</option>
             <option value="new">Awaiting triage</option>
+            <option value="overdue">Reply overdue</option>
+            <option value="questions">Questions, not repairs</option>
+            <option value="duplicates">Possible duplicates</option>
             <option value="triaged">Converted to work order</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
@@ -177,19 +191,29 @@ export default async function ServiceRequestsPage({
                 return (
                   <TR key={request.id}>
                     <TD className="max-w-md">
-                      <div className="font-mono text-[11px] text-gray-400">{request.number ?? request.id.slice(0, 8)}</div>
-                      <div className="mt-1 line-clamp-2 font-medium leading-5 text-gray-900">{request.description}</div>
-                      <div className="mt-1 text-[11px] capitalize text-gray-400">{String(request.source).replace(/_/g, ' ')}</div>
+                      <div className="font-mono text-[11px] text-gray-400">#{request.number ?? request.id.slice(0, 8)}</div>
+                      <Link href={`/service-requests/${request.id}`} className="mt-1 line-clamp-2 font-medium leading-5 text-gray-900 hover:underline">{request.description}</Link>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <StatusChip tone={request.request_kind === 'admin' ? 'info' : 'neutral'}>{requestKindLabel(request.request_kind, request.admin_topic, request.category)}</StatusChip>
+                        {isDuplicate(request) ? <StatusChip tone="warning">Possible duplicate</StatusChip> : null}
+                        <span className="text-[11px] capitalize text-gray-400">{String(request.source).replace(/_/g, ' ')}</span>
+                      </div>
                     </TD>
                     <TD><div className="font-medium text-gray-900">{requestor}</div><div className="mt-0.5 text-xs text-gray-400">{tenant ? 'Tenant' : 'Owner'}</div></TD>
                     <TD><div className="font-medium text-gray-900">{request.associations?.name ?? '—'}</div><div className="mt-0.5 text-xs text-gray-400">Unit {request.units?.unit_number ?? '—'}</div></TD>
                     <TD><StatusChip tone={priorityTone(request.priority)}>{request.priority}</StatusChip></TD>
                     <TD><StatusChip tone={statusTone(request.status)}>{workOrder ? 'In work order' : request.status}</StatusChip></TD>
-                    <TD><div className="tabular-nums text-gray-900">{ageInDays(request.created_at)}d</div><div className="mt-0.5 text-xs text-gray-400">{date(request.created_at)}</div></TD>
+                    <TD>
+                      <div className="tabular-nums text-gray-900">{ageInDays(request.created_at)}d</div>
+                      <div className="mt-0.5 text-xs text-gray-400">{date(request.created_at)}</div>
+                      {(() => { const state = responseState(request, now); return state && !request.acknowledged_at ? <div className="mt-1"><StatusChip tone={state.tone}>{state.label}</StatusChip></div> : null; })()}
+                    </TD>
                     <TD className="text-right">
                       {workOrder ? (
                         <Link href={`/work-orders/${workOrder.id}`}><Button size="sm" variant="secondary">Open <ArrowUpRight className="h-3.5 w-3.5" /></Button></Link>
-                      ) : !['completed', 'cancelled'].includes(request.status) ? (
+                      ) : isOpen(request) && (request.request_kind === 'admin' || isDuplicate(request)) ? (
+                        <Link href={`/service-requests/${request.id}`}><Button size="sm" variant="secondary">{isDuplicate(request) ? 'Review' : 'Answer'}</Button></Link>
+                      ) : isOpen(request) ? (
                         <form action={triageServiceRequest.bind(null, request.id)}>
                           <Button type="submit" size="sm"><Wrench className="h-3.5 w-3.5" /> Create work order</Button>
                         </form>

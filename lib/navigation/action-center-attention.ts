@@ -31,6 +31,14 @@ export async function loadActionCenterAttention(
     .in('status', ['open', 'waiting'])
     .is('work_orders.id', null) as CountQuery;
 
+  const overdueReplies = db
+    .from('service_requests')
+    .select('id', { count: 'exact', head: true })
+    .is('archived_at', null)
+    .in('status', ['open', 'waiting'])
+    .is('acknowledged_at', null)
+    .lt('first_response_due_at', new Date().toISOString()) as CountQuery;
+
   const overdueViolations = db
     .from('violations')
     .select('id', { count: 'exact', head: true })
@@ -63,9 +71,10 @@ export async function loadActionCenterAttention(
         .eq('status', 'pending_approval') as CountQuery
     : Promise.resolve({ count: 0 });
 
-  const [workOrders, serviceRequests, violations, followUps, reviews, communications, bills] = await Promise.all([
+  const [workOrders, serviceRequests, replies, violations, followUps, reviews, communications, bills] = await Promise.all([
     overdueWorkOrders,
     untriagedServiceRequests,
+    overdueReplies,
     overdueViolations,
     violationFollowUps,
     architecturalReviews,
@@ -74,6 +83,7 @@ export async function loadActionCenterAttention(
   ]);
 
   return [
+    { label: 'service requests past their reply time', count: replies.count ?? 0, href: '/service-requests?intake=overdue', tone: 'danger' as const },
     { label: 'service requests awaiting triage', count: serviceRequests.count ?? 0, href: '/service-requests?intake=new', tone: 'pending' as const },
     { label: 'overdue work orders', count: workOrders.count ?? 0, href: '/work-orders?status=overdue', tone: 'danger' as const },
     { label: 'violation follow-ups due', count: followUps.count ?? 0, href: '/violations?status=followup_due', tone: 'pending' as const },

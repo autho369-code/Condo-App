@@ -26,6 +26,8 @@ export interface StatusChangeParams {
   kind: 'work_order' | 'service_request';
   id: string;
   newStatus: string;
+  /** Optional note from staff, quoted in the email (e.g. the answer to a question). */
+  message?: string | null;
 }
 
 /** "in_progress" → "In progress" */
@@ -68,7 +70,7 @@ export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<stri
  * White-labeled as the management company. Never throws; skips silently when
  * there is no owner or the owner has no email on file.
  */
-export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusChangeParams): Promise<void> {
+export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }: StatusChangeParams): Promise<void> {
   try {
     const svc = createServiceClient() as any;
 
@@ -150,6 +152,7 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
         text:
           `Hi ${ownerName},\n\n` +
           `Your ${noun} ${ref}"${itemTitle}"${associationName ? ` at ${associationName}` : ''} has a new status: ${label}.\n\n` +
+          (message?.trim() ? `Message from ${brandName}:\n\n${message.trim()}\n\n` : '') +
           `View the latest details in your owner portal:\n${link}\n\n${signature}`,
         portfolioId,
         associationId,

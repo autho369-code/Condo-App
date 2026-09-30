@@ -19,7 +19,16 @@ export function Workspace({
         {header}
       </div>
       <div data-workspace-main className="bg-[#f6f7f9] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        {children}
+        {rail ? (
+          // The rail is a card inside the content area (not a fourth page
+          // column): above the content on small screens, beside it on wide ones.
+          <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+            <aside data-workspace-rail className="rounded-2xl border border-gray-200/70 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] xl:sticky xl:top-4 xl:order-2">
+              {rail}
+            </aside>
+            <div className="min-w-0 xl:order-1">{children}</div>
+          </div>
+        ) : children}
       </div>
     </div>
   );
