@@ -28,7 +28,7 @@ export default async function ResidentRequestsPage({
       .select('id, unit_id, units(unit_number, buildings(name, associations(name)))')
       .in('unit_id', me.tenant_unit_ids ?? []),
     db.from('service_requests')
-      .select('id, number, description, priority, status, permission_to_enter, created_at, work_orders(id, status)')
+      .select('id, number, description, priority, status, permission_to_enter, created_at, resolution_note, work_orders(id, status)')
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -125,6 +125,11 @@ export default async function ResidentRequestsPage({
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">{request.description}</p>
                       <div className="mt-2 text-xs text-gray-500">Submitted {date(request.created_at)}{request.permission_to_enter ? ' · Permission to enter granted' : ''}</div>
                       {workOrder ? <div className="mt-1 text-xs font-medium text-indigo-700">Work order {String(workOrder.status ?? 'created').replace(/_/g, ' ')}</div> : null}
+                      {request.resolution_note ? (
+                        <div className="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-700">
+                          <span className="font-medium text-gray-900">Reply from management: </span>{request.resolution_note}
+                        </div>
+                      ) : null}
                     </div>
                     {canCancel ? (
                       <form action={cancelResidentRequest.bind(null, request.id) as any}>
