@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/input';
 import { Badge } from '@/components/ui/shell';
-import { addDelinquencyNote, setCollectionStatus } from '@/lib/rpcs/owner-collections';
+import { addDelinquencyNote, setCollectionStatus, setDuesReminders } from '@/lib/rpcs/owner-collections';
 import { date } from '@/lib/utils';
 
 export type CollectionOcc = {
@@ -13,6 +13,7 @@ export type CollectionOcc = {
   certified_funds_only: boolean | null;
   allow_online_payments: boolean | null;
   require_full_online_payment: boolean | null;
+  send_dues_reminders?: boolean | null;
   units?: { unit_number?: string | null; buildings?: { associations?: { name?: string | null } | null } | null } | null;
 };
 export type DelinquencyNote = { id: string; occupancy_id: string; note: string; created_by_email: string | null; created_at: string };
@@ -63,8 +64,23 @@ export function OwnerCollectionStatus({
                   {o.certified_funds_only && <Badge tone="pending">Certified funds only</Badge>}
                   {!allowOnline && <Badge tone="inactive">Online payments off</Badge>}
                   {allowOnline && o.require_full_online_payment && <Badge tone="progress">Online: pay in full</Badge>}
+                  {o.send_dues_reminders === false && <Badge tone="inactive">Dues reminders off</Badge>}
                 </div>
               </div>
+
+              <form action={setDuesReminders} className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gray-50/60 px-3 py-2">
+                <input type="hidden" name="owner_id" value={ownerId} />
+                <input type="hidden" name="occupancy_id" value={o.id} />
+                <input type="hidden" name="enabled" value={o.send_dues_reminders === false ? 'true' : 'false'} />
+                <span className="text-xs text-gray-600">
+                  {o.send_dues_reminders === false
+                    ? 'Dues reminder emails are off for this unit.'
+                    : o.in_collections || o.in_foreclosure
+                      ? 'Dues reminders are paused while the account is in collections.'
+                      : 'Dues reminder emails go out on the company reminder schedule.'}
+                </span>
+                <Button type="submit" variant="ghost" size="sm">{o.send_dues_reminders === false ? 'Turn on reminders' : 'Turn off reminders'}</Button>
+              </form>
 
               {canEdit && (
                 <details className="mt-2">

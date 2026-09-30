@@ -30,42 +30,57 @@ export default function AssociationsPage() {
   const [page, setPage] = useState(1)
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([])
   const [group, setGroup] = useState('')
+  const [tags, setTags] = useState<{ id: string; name: string }[]>([])
+  const [tag, setTag] = useState('')
+  const [tagged, setTagged] = useState<Set<string> | null>(null)
   const supabase = useMemo(() => createClient(), [])
 
   // ?group=<id> deep link from the property groups page.
   useEffect(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get('group')
+    const params = new URLSearchParams(window.location.search)
+    const fromUrl = params.get('group')
     if (fromUrl) setGroup(fromUrl)
+    const tagFromUrl = params.get('tag')
+    if (tagFromUrl) setTag(tagFromUrl)
   }, [])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [{ data }, { data: groupRows }] = await Promise.all([
+      const [{ data }, { data: groupRows }, { data: tagRows }] = await Promise.all([
         (supabase as any)
           .from('associations')
           .select('id, slug, name, address, city, state, zip, unit_count, property_group_id')
           .is('archived_at', null)
           .order('name', { ascending: true }),
         (supabase as any).from('property_groups').select('id, name').order('name'),
+        (supabase as any).from('tags').select('id, name, tag_assignments!inner(entity_type)').eq('tag_assignments.entity_type', 'association').order('name'),
       ])
       setAssociations(data ?? [])
       setGroups(groupRows ?? [])
+      setTags(((tagRows ?? []) as any[]).map((t) => ({ id: t.id, name: t.name })))
       setLoading(false)
     }
     load()
   }, [supabase])
+
+  useEffect(() => {
+    if (!tag) { setTagged(null); return }
+    ;(supabase as any).from('tag_assignments').select('entity_id').eq('entity_type', 'association').eq('tag_id', tag)
+      .then(({ data }: any) => setTagged(new Set(((data ?? []) as any[]).map((r) => r.entity_id))))
+  }, [supabase, tag])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     const inGroup = group === 'none'
       ? associations.filter((a) => !a.property_group_id)
       : group ? associations.filter((a) => a.property_group_id === group) : associations
-    if (!q) return inGroup
-    return inGroup.filter(
+    const inTag = tagged ? inGroup.filter((a) => tagged.has(a.id)) : inGroup
+    if (!q) return inTag
+    return inTag.filter(
       (a) => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.address?.toLowerCase().includes(q),
     )
-  }, [associations, query, group])
+  }, [associations, query, group, tagged])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, totalPages)
@@ -110,6 +125,17 @@ export default function AssociationsPage() {
             <option value="">All property groups</option>
             {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             <option value="none">Ungrouped</option>
+          </Select>
+        )}
+        {(tags.length > 0 || tag) && (
+          <Select
+            value={tag}
+            onChange={(e) => { setTag(e.target.value); setPage(1) }}
+            aria-label="Filter by tag"
+            className="sm:w-52"
+          >
+            <option value="">All tags</option>
+            {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </Select>
         )}
       </div>

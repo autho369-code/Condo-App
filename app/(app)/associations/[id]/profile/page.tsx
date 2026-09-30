@@ -12,6 +12,8 @@ import { Input, Label, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
 import { ASSOCIATION_SECTIONS } from '@/lib/associations/settings-fields';
 import { AssociationSettingsSection } from '@/components/associations/settings-section';
+import { RecordMetaPanels } from '@/components/records/record-meta';
+import { loadRecordMeta } from '@/lib/records/load';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +25,7 @@ export default async function AssociationProfileTab({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
@@ -256,6 +258,10 @@ export default async function AssociationProfileTab({
 
       {sp.error && !sp.saved && <Alert tone="danger" title="Could not save:" className="mb-4">{sp.error}</Alert>}
       {sp.saved && sp.saved !== '1' && <Alert tone="success" className="mb-4">{sp.saved}</Alert>}
+
+      <div className="mb-6">
+        <RecordMetaPanels type="association" id={id} meta={await loadRecordMeta(supabase, 'association', id)} currentUserId={me.auth_user_id} tagHref={(t) => `/associations?tag=${t}`} showNotes={false} />
+      </div>
 
       <UpcomingActivities events={events ?? []} associationId={id} />
 

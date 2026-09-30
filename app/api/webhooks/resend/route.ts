@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     type === 'bounced' ? event.data?.bounce?.message ?? event.data?.bounce?.type
     : type === 'clicked' ? event.data?.click?.link
     : null;
-  const { error } = await (createServiceClient() as any).rpc('record_email_event', {
+  const { data: matched, error } = await (createServiceClient() as any).rpc('record_email_event', {
     p_provider_message_id: messageId,
     p_event_type: type,
     p_occurred_at: event.created_at ?? null,
@@ -45,5 +45,14 @@ export async function POST(request: NextRequest) {
     p_detail: detail ? String(detail).slice(0, 500) : null,
   });
   if (error) return NextResponse.json({ error: 'Could not record event' }, { status: 500 });
+  // An event can beat the send worker, which stores the provider id only after
+  // Resend accepts the email. Ask Resend to retry recent unmatched events; older
+  // ones are for mail this app did not queue (e.g. auth emails) and are dropped.
+  if (matched === false) {
+    const at = Date.parse(event.created_at ?? '');
+    if (Number.isFinite(at) && Date.now() - at < 60 * 60 * 1000) {
+      return NextResponse.json({ error: 'Email not recorded yet; retry' }, { status: 409 });
+    }
+  }
   return new NextResponse(null, { status: 204 });
 }

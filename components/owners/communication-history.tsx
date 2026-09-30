@@ -29,7 +29,7 @@ export type OwnerLetter = {
 };
 
 function emailState(e: OwnerEmail): { label: string; tone: 'complete' | 'progress' | 'pending' | 'danger' | 'inactive' | 'info' } {
-  if (e.status === 'failed') return { label: 'Failed', tone: 'danger' };
+  if (e.status === 'failed' || e.delivery_status === 'failed') return { label: 'Failed', tone: 'danger' };
   if (e.delivery_status === 'bounced') return { label: 'Bounced', tone: 'danger' };
   if (e.delivery_status === 'complained') return { label: 'Marked as spam', tone: 'danger' };
   if (e.delivery_status === 'opened' || (e.open_count ?? 0) > 0) {
@@ -88,7 +88,7 @@ export function OwnerCommunicationHistory({ emails, letters }: { emails: OwnerEm
                       {r.e.last_opened_at ? ` · last opened ${date(r.e.last_opened_at)}` : ''}
                       {r.e.clicked_at ? ' · link clicked' : ''}
                     </p>
-                    {(r.e.status === 'failed' || r.e.delivery_status === 'bounced') && r.e.error_message && (
+                    {(r.e.status === 'failed' || r.e.delivery_status === 'bounced' || r.e.delivery_status === 'failed') && r.e.error_message && (
                       <p className="mt-0.5 text-xs text-red-700">{r.e.error_message}</p>
                     )}
                   </div>
