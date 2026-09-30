@@ -315,7 +315,7 @@ export default async function WorkOrdersPage({
           <form action={bulkWorkOrderAction} className="space-y-3">
           <input type="hidden" name="back" value={backHref} />
           <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:flex-row lg:items-end lg:justify-between">
-            <p className="text-sm text-gray-600">Select work orders, then act on all of them at once.</p>
+            <p className="text-sm text-gray-600">Select work orders (up to 200 at a time), then act on all of them at once.</p>
             <div className="flex flex-wrap items-end gap-2">
               <select name="vendor_id" aria-label="Vendor to assign" defaultValue=""
                 className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
@@ -340,7 +340,7 @@ export default async function WorkOrdersPage({
           <Table>
             <THead>
               <TR>
-                <TH className="w-10"><SelectAllCheckbox targetName="work_order_id" defaultChecked={false} /></TH>
+                <TH className="w-10"><SelectAllCheckbox targetName="work_order_id" defaultChecked={false} max={200} /></TH>
                 <TH>#</TH>
                 <TH>Description</TH>
                 <TH>Association</TH>

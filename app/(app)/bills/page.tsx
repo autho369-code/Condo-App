@@ -368,7 +368,7 @@ export default async function BillsPage({
               <Table>
                 <THead>
                   <TR>
-                    <TH className="w-10">{actionableCount > 0 && <SelectAllCheckbox targetName="bill_id" defaultChecked={false} />}</TH>
+                    <TH className="w-10">{actionableCount > 0 && <SelectAllCheckbox targetName="bill_id" defaultChecked={false} max={200} />}</TH>
                     <TH>Payee</TH>
                     <TH>Ref #</TH>
                     <TH>Bill Date</TH>
