@@ -150,3 +150,36 @@ export async function voidPaidCheck(formData: FormData) {
   revalidatePath(`/bills/${billId}`);
   redirect(`/bills/${billId}?check_voided=1`);
 }
+
+const BULK_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Bulk "Submit for approval" / "Approve" from the bills list (AppFolio
+ * "Bulk Board Approval"). Each bill goes through the same RPC as the single
+ * bill page, which re-checks permission, board rules and the accrual; bills
+ * that can't move are reported back rather than failing the whole batch.
+ */
+export async function bulkBillAction(formData: FormData) {
+  await requireFinanceStaff();
+  const op = String(formData.get('op') ?? '');
+  const back = String(formData.get('back') ?? '/bills');
+  const safeBack = back.startsWith('/bills') ? back : '/bills';
+  const sep = safeBack.includes('?') ? '&' : '?';
+  const ids = [...new Set(formData.getAll('bill_id').map(String).filter((v) => BULK_UUID.test(v)))];
+  if (op !== 'submit' && op !== 'approve') redirect(`${safeBack}${sep}error=${encodeURIComponent('Choose an action')}`);
+  if (!ids.length) redirect(`${safeBack}${sep}error=${encodeURIComponent('Select at least one bill')}`);
+  if (ids.length > 200) redirect(`${safeBack}${sep}error=${encodeURIComponent(`${ids.length} bills selected — select 200 or fewer at a time`)}`);
+
+  const supabase = (await createClient()) as any;
+  const rpc = op === 'submit' ? 'request_payable_bill_approval' : 'approve_payable_bill';
+  let done = 0;
+  const failures: string[] = [];
+  for (const id of ids) {
+    const { error } = await supabase.rpc(rpc, { p_bill_id: id });
+    if (error) failures.push(error.message);
+    else done += 1;
+  }
+  revalidatePath('/bills');
+  const reasons = [...new Set(failures)].slice(0, 3).join('; ');
+  redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}`);
+}

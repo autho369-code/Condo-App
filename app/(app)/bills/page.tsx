@@ -7,7 +7,9 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
+import { SelectAllCheckbox } from '@/components/ui/select-all';
+import { bulkBillAction } from '@/lib/rpcs/bills';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
@@ -54,10 +56,11 @@ function parseStatus(value: string | undefined): BillStatusFilter {
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; q?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
 }) {
   const me = await requireFinanceStaff();
-  const { tab: tabParam, status: statusParam, q = '' } = await searchParams;
+  const sp = await searchParams;
+  const { tab: tabParam, status: statusParam, q = '' } = sp;
   const tab = parseTab(tabParam);
   const statusFilter = parseStatus(statusParam);
   const supabase = await createClient();
@@ -129,6 +132,8 @@ export default async function BillsPage({
         (b.gl_accounts?.name ?? '').toLowerCase().includes(ql),
     );
   }
+
+  const actionableCount = filteredBills.filter((b: any) => b.status === 'draft' || b.status === 'pending_approval').length;
 
   // ── FILTER PAID BILLS by search ──
   let filteredPayments = (paidBills ?? []);
@@ -335,13 +340,32 @@ export default async function BillsPage({
           {statusFilter !== 'all' && <input type="hidden" name="status" value={statusFilter} />}
         </FilterBar>
 
+        {sp.bulk && (
+          <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} bill${sp.done === '1' ? '' : 's'} ${sp.bulk === 'submit' ? 'submitted for approval' : 'approved'}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
+            {sp.reason}
+          </Alert>
+        )}
+        {sp.error && <Alert tone="danger" title="Could not update bills">{sp.error}</Alert>}
+
         {/* ── TAB: BILLS ── */}
         {tab === 'bills' && (
           <>
             {filteredBills.length > 0 ? (
+              <form action={bulkBillAction} className="space-y-3">
+              <input type="hidden" name="back" value={`/bills?tab=bills${statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`} />
+              {actionableCount > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <p className="text-sm text-gray-600">Select draft or pending bills, then send them to the board or approve them together.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" name="op" value="submit" variant="secondary" size="sm">Submit selected for approval</Button>
+                    <Button type="submit" name="op" value="approve" size="sm">Approve selected</Button>
+                  </div>
+                </div>
+              )}
               <Table>
                 <THead>
                   <TR>
+                    <TH className="w-10">{actionableCount > 0 && <SelectAllCheckbox targetName="bill_id" defaultChecked={false} />}</TH>
                     <TH>Payee</TH>
                     <TH>Ref #</TH>
                     <TH>Bill Date</TH>
@@ -356,6 +380,11 @@ export default async function BillsPage({
                 <tbody>
                   {filteredBills.map((b: any) => (
                     <TR key={b.id}>
+                      <TD>
+                        {(b.status === 'draft' || b.status === 'pending_approval') && (
+                          <input type="checkbox" name="bill_id" value={b.id} aria-label={`Select bill from ${b.vendors?.name ?? 'vendor'}`} className="h-4 w-4 rounded border-gray-300" />
+                        )}
+                      </TD>
                       <TD className="font-medium">
                         <Link href={`/bills/${b.id}`} className="text-gray-900 hover:text-gray-950 hover:underline">
                           {b.vendors?.name ?? '—'}
@@ -394,6 +423,7 @@ export default async function BillsPage({
                   ))}
                 </tbody>
               </Table>
+              </form>
             ) : (
               <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState
