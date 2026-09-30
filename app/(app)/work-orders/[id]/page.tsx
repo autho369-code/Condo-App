@@ -72,7 +72,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
-      units(unit_number, buildings(association_id, associations(name))),
+      units(unit_number, buildings(association_id, associations(name, portfolio_id))),
       service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
@@ -90,7 +90,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
       ? (supabase as any).from('charges').select('id, description, amount, due_date, created_at').eq('work_order_id', wo.id).order('created_at')
       : Promise.resolve({ data: [] }),
     wo.unit_id
-      ? (supabase as any).from('charge_categories').select('id, name, association_id').is('archived_at', null).order('name')
+      ? (supabase as any).from('charge_categories').select('id, name, association_id, portfolio_id, active').is('archived_at', null).order('name')
       : Promise.resolve({ data: [] }),
   ]);
   const approvedEstimate = (estimates ?? []).find((e: any) => e.approved_at);
@@ -326,7 +326,12 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             <div>
               <Label>Charge category</Label>
               <Select name="charge_category_id" required
-                options={(chargeCategories ?? []).filter((c: any) => !c.association_id || c.association_id === wo.association_id).map((c: any) => ({ value: c.id, label: c.name }))} />
+                options={(chargeCategories ?? [])
+                  // Same scope charge_back_work_order accepts: active, this company, this association or company-wide.
+                  .filter((c: any) => c.active !== false
+                    && c.portfolio_id === (wo.portfolio_id ?? (wo.units as any)?.buildings?.associations?.portfolio_id)
+                    && (!c.association_id || c.association_id === wo.association_id))
+                  .map((c: any) => ({ value: c.id, label: c.name }))} />
             </div>
             <div>
               <Label htmlFor="cb_amount">Amount</Label>
