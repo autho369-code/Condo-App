@@ -15,6 +15,7 @@ import { addPet, addTenant, addVehicle, endTenancy, removePet, removeVehicle, sa
 import { addOwnerToBoard, endBoardSeat } from '@/lib/rpcs/board-membership';
 import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } from './financial-actions';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
+import { OwnerCollectionStatus } from '@/components/owners/collections-status';
 import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
 
 export const dynamic = 'force-dynamic';
@@ -42,12 +43,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: srs },
     { data: violations },
     { data: units },
+    { data: delinquencyNotes },
   ] = await Promise.all([
     db.from('owners')
       .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
-      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, units(id, unit_number, buildings(name, associations(id, name)))')
+      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
     db.from('service_requests')
@@ -60,6 +62,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       .select('id, unit_number, buildings(name, associations(name))')
       .is('archived_at', null)
       .order('unit_number'),
+    db.from('occupancy_delinquency_notes')
+      .select('id, occupancy_id, note, created_by_email, created_at')
+      .in('occupancy_id', (await db.from('occupancies').select('id').eq('owner_id', id)).data?.map((r: any) => r.id) ?? [])
+      .order('created_at', { ascending: false })
+      .limit(200),
   ]);
 
   if (!owner) notFound();
@@ -310,6 +317,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'collections' && <div className="mb-4"><Alert tone="success" title="Collections status saved" /></div>}
+      {sp.saved === 'delinquency_note' && <div className="mb-4"><Alert tone="success" title="Delinquency note added" /></div>}
       {sp.saved === 'late_fee' && <div className="mb-4"><Alert tone="success" title="Late-fee rule saved" /></div>}
       {sp.saved === 'financial' && <div className="mb-4"><Alert tone="success" title="Financial details saved" /></div>}
       {sp.saved === 'attachment' && <div className="mb-4"><Alert tone="success" title="Attachment added" /></div>}
@@ -651,6 +660,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </tbody>
             </table>
           )}
+
+          <OwnerCollectionStatus ownerId={id} occupancies={(occs ?? []) as any[]} notes={(delinquencyNotes ?? []) as any[]} canEdit={me.is_finance_staff || me.is_company_admin || me.is_platform_operator} />
 
           <OwnerLateFeeOverrides ownerId={id} occupancies={(occs ?? []) as any[]} canEdit={me.is_finance_staff || me.is_company_admin || me.is_platform_operator} />
 

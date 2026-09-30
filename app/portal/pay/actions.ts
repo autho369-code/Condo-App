@@ -35,13 +35,23 @@ export async function startOnlinePayment(formData: FormData) {
   // Validate the unit belongs to this owner and resolve association/portfolio.
   const { data: occ } = await svc
     .from('occupancies')
-    .select('unit_id, association_id, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
+    .select('unit_id, association_id, allow_online_payments, require_full_online_payment, associations(portfolio_id, name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
     .eq('owner_id', me.owner_id)
     .eq('unit_id', unitId)
     .eq('status', 'current')
     .maybeSingle();
   if (!occ?.association_id || !occ?.associations?.portfolio_id) {
     redirect(`${RETURN}?error=${encodeURIComponent('That unit is not linked to your account.')}`);
+  }
+  if (occ.allow_online_payments === false) {
+    redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not available for this account. Please contact the management office.')}`);
+  }
+  if (occ.require_full_online_payment) {
+    const { data: bal } = await svc.from('unit_balances').select('balance').eq('unit_id', unitId).maybeSingle();
+    const owed = Math.round(Math.max(0, Number(bal?.balance ?? 0)) * 100);
+    if (amountCents < owed) {
+      redirect(`${RETURN}?error=${encodeURIComponent(`This account must pay the full balance of $${(owed / 100).toFixed(2)} online.`)}`);
+    }
   }
   // Per-association Stripe accounts: money settles to THIS association's own
   // bank. No connected account, no online payments.
