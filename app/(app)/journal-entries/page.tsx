@@ -209,6 +209,9 @@ export default async function JournalEntriesPage({
           <Link href="/journal-entries/recurring/new">
             <Button variant="secondary">New recurring entry</Button>
           </Link>
+          <Link href="/journal-entries/upload">
+            <Button variant="secondary">Upload batch</Button>
+          </Link>
         </>
       }
     >

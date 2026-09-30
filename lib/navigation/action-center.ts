@@ -175,6 +175,8 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Reconcile bank account', href: '/bank-accounts/reconcile/new', description: 'Match statement activity.' },
         { label: 'New journal entry', href: '/journal-entries/new', description: 'Post a balanced manual entry.' },
         { label: 'Recurring journal entry', href: '/journal-entries/recurring/new', description: 'Depreciation, reserve allocations and other repeating entries.', access: 'finance' },
+        { label: 'Upload journal entries', href: '/journal-entries/upload', description: 'Post a batch of entries from a CSV.', access: 'finance' },
+        { label: 'Upload bills', href: '/bills/upload', description: 'Enter many vendor bills from a CSV.', access: 'finance' },
       ]),
       work('Controls', [
         { label: 'Financial diagnostics', href: '/diagnostics', description: 'Resolve mismatches and stale reconciliations.' },
