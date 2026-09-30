@@ -2,24 +2,25 @@
 
 // Phone-first field capture form: a manager walking the property files a
 // violation in under 30 seconds — snap photos, auto-GPS, pick unit, done.
-// Photos upload browser→Supabase Storage via signed URLs (same pattern as
-// components/architectural/attachments-uploader.tsx) AFTER the violation row
-// exists: createFieldViolation returns { id }, photos go to violations/{id}/,
-// then recordViolationAttachment appends them to violations.attachments.
-import { useEffect, useMemo, useRef, useState } from 'react';
+// Works without a connection: every capture is saved to the device first
+// (lib/violations/offline-queue.ts, photos included) and synced right away
+// when online, or automatically once the connection returns.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Crosshair, LoaderCircle, MapPin, RefreshCw } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { Camera, CloudOff, Crosshair, LoaderCircle, MapPin, RefreshCw } from 'lucide-react';
 import {
-  createFieldViolation,
-  createViolationAttachmentUpload,
-  recordViolationAttachment,
-} from '@/lib/rpcs/violations';
+  listCaptures,
+  localDate,
+  removeCapture,
+  saveCapture,
+  syncCapture,
+  type QueuedCapture,
+} from '@/lib/violations/offline-queue';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
-import { Alert } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 
-const BUCKET = 'association-documents';
 const MAX_PHOTOS = 10;
+const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
 
 const TYPE_OPTIONS = [
   'noise', 'parking', 'pets', 'exterior_modification', 'trash_debris',
@@ -38,10 +39,16 @@ function formatLabel(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const secondaryButton =
+  'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50';
+const card = 'rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+
 export function FieldCaptureForm({
+  userId,
   associations,
   units,
 }: {
+  userId: string;
   associations: AssociationOption[];
   units: UnitOption[];
 }) {
@@ -56,6 +63,62 @@ export function FieldCaptureForm({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [queue, setQueue] = useState<QueuedCapture[]>([]);
+  const [online, setOnline] = useState(true);
+  const syncing = useRef(false);
+
+  // ── Device queue ──
+  const reloadQueue = useCallback(async () => {
+    try { setQueue(await listCaptures(userId)); } catch { /* no device storage — online filing still works */ }
+  }, [userId]);
+
+  const markFailed = useCallback(async (id: string, message: string) => {
+    const latest = (await listCaptures(userId).catch(() => [] as QueuedCapture[])).find((c) => c.id === id);
+    if (latest) await saveCapture({ ...latest, state: 'failed', error: message }).catch(() => {});
+    return latest ?? null;
+  }, [userId]);
+
+  // Sync everything still on the device, oldest first; one pass at a time.
+  const syncQueue = useCallback(async () => {
+    if (syncing.current || !navigator.onLine) return;
+    syncing.current = true;
+    try {
+      const pending = await listCaptures(userId);
+      for (const capture of pending) {
+        setQueue((q) => q.map((c) => (c.id === capture.id ? { ...c, state: 'syncing', error: null } : c)));
+        try {
+          await syncCapture(capture);
+        } catch (err: any) {
+          await markFailed(capture.id, err?.message ?? 'Sync failed');
+          if (!navigator.onLine) break;
+        }
+      }
+    } catch { /* no device storage */ }
+    finally {
+      syncing.current = false;
+      await reloadQueue();
+    }
+  }, [userId, markFailed, reloadQueue]);
+
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    void reloadQueue().then(() => { if (navigator.onLine) void syncQueue(); });
+    const up = () => { setOnline(true); void syncQueue(); };
+    const down = () => setOnline(false);
+    window.addEventListener('online', up);
+    window.addEventListener('offline', down);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+  }, [reloadQueue, syncQueue]);
+
+  async function discard(capture: QueuedCapture) {
+    const message = capture.violationId
+      ? 'The case is already filed. Discard the photos that have not uploaded yet?'
+      : 'Discard this capture? It has not been filed and will be lost.';
+    if (!window.confirm(message)) return;
+    await removeCapture(capture.id).catch(() => {});
+    await reloadQueue();
+  }
 
   // ── GPS: capture automatically on mount, allow retry, degrade gracefully ──
   function captureGps() {
@@ -100,6 +163,7 @@ export function FieldCaptureForm({
     e.preventDefault();
     if (busy) return;
     setError(null);
+    setNotice(null);
 
     const form = e.currentTarget;
     const fd = new FormData(form);
@@ -108,65 +172,136 @@ export function FieldCaptureForm({
     if (!title) { setError('Give the violation a short title.'); return; }
     const files = Array.from(fileRef.current?.files ?? []);
     if (files.length > MAX_PHOTOS) { setError(`Up to ${MAX_PHOTOS} photos per violation.`); return; }
+    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) { setError('Each photo must be 25 MB or smaller.'); return; }
 
     setBusy(true);
-    setProgress('Creating violation…');
+    setProgress('Saving…');
+    const capture: QueuedCapture = {
+      id: crypto.randomUUID(),
+      userId,
+      associationId,
+      associationName: associations.find((a) => a.id === associationId)?.name ?? 'Association',
+      unitId: unitId || null,
+      unitLabel: selectedUnit ? `Unit ${selectedUnit.unit_number}` : null,
+      violationType: String(fd.get('violation_type') ?? 'other'),
+      title,
+      description: String(fd.get('description') ?? '').trim(),
+      gps: gps.state === 'captured' ? { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy } : null,
+      capturedAt: new Date().toISOString(),
+      observedOn: localDate(),
+      photos: files.map((f) => ({ key: crypto.randomUUID(), name: f.name, type: f.type, size: f.size, blob: f, done: false })),
+      violationId: null,
+      state: 'pending',
+      error: null,
+    };
+
+    const resetForm = () => {
+      form.reset();
+      if (fileRef.current) fileRef.current.value = '';
+      setPhotoCount(0);
+      setUnitId('');
+      setUnitQuery('');
+      setBusy(false);
+      setProgress(null);
+    };
+
+    let stored = true;
     try {
-      const created = await createFieldViolation({
-        association_id: associationId,
-        unit_id: unitId || null,
-        violation_type: String(fd.get('violation_type') ?? 'other'),
-        title,
-        description: String(fd.get('description') ?? ''),
-        location_lat: gps.state === 'captured' ? gps.lat : null,
-        location_lng: gps.state === 'captured' ? gps.lng : null,
-        location_accuracy_m: gps.state === 'captured' ? gps.accuracy : null,
-      });
-      if (created.error || !created.id) {
-        setError(created.error ?? 'Failed to create the violation');
+      await saveCapture(capture);
+    } catch (err: any) {
+      stored = false;
+      if (!navigator.onLine) {
+        setError(`${err?.message ?? 'This device cannot store captures'} — and there is no connection, so nothing was saved.`);
         setBusy(false);
         setProgress(null);
         return;
       }
+    }
 
-      // Upload photos one at a time (browser→storage via signed URL), then
-      // record each into violations.attachments. A failed photo doesn't lose
-      // the violation — we surface it and continue.
-      const supabase = createClient();
-      const failed: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setProgress(`Uploading photo ${i + 1} of ${files.length}…`);
-        try {
-          const signed = await createViolationAttachmentUpload(created.id, file.name, file.size);
-          if (signed.error || !signed.path || !signed.token) { failed.push(file.name); continue; }
-          const { error: upErr } = await supabase.storage
-            .from(BUCKET)
-            .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });
-          if (upErr) { failed.push(file.name); continue; }
-          const rec = await recordViolationAttachment(created.id, { path: signed.path, name: file.name, size: file.size });
-          if (rec.error) { failed.push(file.name); continue; }
-        } catch {
-          failed.push(file.name);
-        }
-      }
+    if (!navigator.onLine) {
+      resetForm();
+      setNotice('Saved on this device. It will be filed automatically when you are back online.');
+      await reloadQueue();
+      return;
+    }
 
-      const suffix = failed.length > 0 ? `?error=${encodeURIComponent(`Violation saved, but ${failed.length} photo${failed.length === 1 ? '' : 's'} failed to upload: ${failed.join(', ')}`)}` : '';
+    setProgress(files.length ? 'Filing and uploading photos…' : 'Filing…');
+    syncing.current = true;
+    try {
+      const violationId = await syncCapture(capture);
       setProgress('Done — opening case…');
-      router.push(`/violations/${created.id}${suffix}`);
+      router.push(`/violations/${violationId}`);
     } catch (err: any) {
-      setError(err?.message ?? 'Something went wrong — the violation may not have been saved.');
-      setBusy(false);
-      setProgress(null);
+      const message = err?.message ?? 'Sync failed';
+      const latest = stored ? await markFailed(capture.id, message) : null;
+      if (!latest) {
+        setError(`${message} — the violation may not have been saved.`);
+        setBusy(false);
+        setProgress(null);
+      } else {
+        resetForm();
+        setNotice(latest.violationId
+          ? `The case was filed, but some photos are still on this device and will keep retrying. ${message}`
+          : `Saved on this device — Portier could not be reached (${message}). It will retry automatically.`);
+      }
+      await reloadQueue();
+    } finally {
+      syncing.current = false;
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-xl space-y-4">
       {error && <Alert tone="danger" title="Could not file the violation">{error}</Alert>}
+      {notice && <Alert tone="info" title="Capture saved">{notice}</Alert>}
+      {!online && (
+        <Alert tone="info" title="You are offline.">
+          Keep capturing — violations and photos are saved on this device and filed when the connection returns.
+        </Alert>
+      )}
+
+      {/* ── Captures waiting on this device ── */}
+      {queue.length > 0 && (
+        <section className={`space-y-2 ${card}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-gray-900">
+              <CloudOff className="h-4 w-4 shrink-0 text-gray-400" />
+              {queue.length} capture{queue.length === 1 ? '' : 's'} waiting on this device
+            </div>
+            <button type="button" onClick={() => void syncQueue()} disabled={!online || busy} className={secondaryButton}>
+              <RefreshCw className="h-4 w-4 text-gray-400" /> Sync now
+            </button>
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {queue.map((c) => (
+              <li key={c.id} className="flex items-start justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-gray-900">{c.title}</div>
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {c.associationName}{c.unitLabel ? ` · ${c.unitLabel}` : ''} · {c.photos.length} photo{c.photos.length === 1 ? '' : 's'}
+                    {c.violationId ? ' · case filed, photos pending' : ''}
+                  </div>
+                  {c.error && <div className="mt-1 text-xs text-red-700">{c.error}</div>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Badge status={c.state}>{c.state}</Badge>
+                  <button
+                    type="button"
+                    onClick={() => void discard(c)}
+                    disabled={c.state === 'syncing' || busy}
+                    className="inline-flex h-10 items-center rounded-lg px-2.5 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* ── GPS status ── */}
-      <section className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <section className={card}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5 text-sm">
             {gps.state === 'capturing' && (
@@ -192,12 +327,7 @@ export function FieldCaptureForm({
             )}
           </div>
           {gps.state !== 'capturing' && (
-            <button
-              type="button"
-              onClick={captureGps}
-              disabled={busy}
-              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
-            >
+            <button type="button" onClick={captureGps} disabled={busy} className={secondaryButton}>
               <RefreshCw className="h-4 w-4 text-gray-400" /> Retry
             </button>
           )}
@@ -205,7 +335,7 @@ export function FieldCaptureForm({
       </section>
 
       {/* ── Where ── */}
-      <section className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <section className={`space-y-4 ${card}`}>
         <Field label="Association" htmlFor="fc-association" required>
           <Select
             id="fc-association"
@@ -269,7 +399,7 @@ export function FieldCaptureForm({
       </section>
 
       {/* ── What ── */}
-      <section className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <section className={`space-y-4 ${card}`}>
         <Field label="Type" htmlFor="fc-type" required>
           <Select id="fc-type" name="violation_type" className="h-12" defaultValue="other" disabled={busy}>
             {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{formatLabel(t)}</option>)}
@@ -284,7 +414,7 @@ export function FieldCaptureForm({
       </section>
 
       {/* ── Photos ── */}
-      <section className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <section className={card}>
         <label
           htmlFor="fc-photos"
           className="flex min-h-[56px] cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
@@ -303,7 +433,7 @@ export function FieldCaptureForm({
           className="sr-only"
           onChange={(e) => setPhotoCount(e.target.files?.length ?? 0)}
         />
-        <p className="mt-2 text-xs text-gray-400">Up to {MAX_PHOTOS} photos, 25 MB each. They upload one at a time after the case is created.</p>
+        <p className="mt-2 text-xs text-gray-400">Up to {MAX_PHOTOS} photos, 25 MB each. They upload after the case is filed — offline, they wait on this device.</p>
       </section>
 
       <button
@@ -311,7 +441,7 @@ export function FieldCaptureForm({
         disabled={busy}
         className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-base font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 disabled:pointer-events-none disabled:opacity-60"
       >
-        {busy ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {progress ?? 'Saving…'}</> : 'File violation'}
+        {busy ? <><LoaderCircle className="h-5 w-5 animate-spin" /> {progress ?? 'Saving…'}</> : online ? 'File violation' : 'Save to device'}
       </button>
     </form>
   );
