@@ -108,13 +108,15 @@ export function FieldCaptureForm({
       syncing.current = false;
       await reloadQueue();
     }
-    if (remaining > 0) {
-      retryTimer.current = setTimeout(() => { retryTimer.current = null; void syncQueueRef.current(); }, retryDelay.current);
-      retryDelay.current = Math.min(retryDelay.current * 2, RETRY_MAX_MS);
-    } else {
-      retryDelay.current = RETRY_START_MS;
-    }
-  }, [userId, markFailed, reloadQueue]);
+    if (remaining > 0) scheduleRetry();
+    else retryDelay.current = RETRY_START_MS;
+  }, [userId, markFailed, reloadQueue]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Arm (or re-arm) the next automatic retry with backoff.
+  function scheduleRetry() {
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    retryTimer.current = setTimeout(() => { retryTimer.current = null; void syncQueueRef.current(); }, retryDelay.current);
+    retryDelay.current = Math.min(retryDelay.current * 2, RETRY_MAX_MS);
+  }
   const syncQueueRef = useRef(syncQueue);
   useEffect(() => { syncQueueRef.current = syncQueue; }, [syncQueue]);
   useEffect(() => () => { if (retryTimer.current) clearTimeout(retryTimer.current); }, []);
@@ -265,6 +267,7 @@ export function FieldCaptureForm({
         setNotice(latest.violationId
           ? `The case was filed, but some photos are still on this device and will keep retrying. ${message}`
           : `Saved on this device — Portier could not be reached (${message}). It will retry automatically.`);
+        scheduleRetry();
       }
       await reloadQueue();
     } finally {
