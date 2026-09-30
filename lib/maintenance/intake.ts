@@ -65,3 +65,23 @@ export function responseState(row: {
   if (left < 0) return { tone: 'danger', label: `Overdue ${hours(left)}`, overdue: true };
   return { tone: left < 4 * 3_600_000 ? 'warning' : 'neutral', label: `Reply in ${hours(left)}`, overdue: false };
 }
+
+const TERMINAL_WORK_ORDER = new Set(['done', 'completed', 'billed', 'closed', 'cancelled']);
+
+function workOrderList(request: { work_orders?: unknown }): any[] {
+  const w = request.work_orders as any;
+  return Array.isArray(w) ? w : w ? [w] : [];
+}
+
+/** The request's open work order, if any. Finished/cancelled orders don't count as triage. */
+export function activeWorkOrder(request: { work_orders?: unknown }): any | null {
+  return workOrderList(request).find((w) => !TERMINAL_WORK_ORDER.has(w.status)) ?? null;
+}
+
+/** What a resident should see: the open work order, else the most recent one. */
+export function currentWorkOrder(request: { work_orders?: unknown }): any | null {
+  const list = workOrderList(request);
+  return activeWorkOrder(request)
+    ?? [...list].sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')))[0]
+    ?? null;
+}

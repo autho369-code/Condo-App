@@ -42,10 +42,10 @@ export async function loadRequestAttachmentsByRequest(serviceRequestIds: string[
   const db = (await createClient()) as any;
   const rows: any[] = [];
   // Chunked so a long request history never drops older requests' files.
-  for (let i = 0; i < serviceRequestIds.length; i += 150) {
+  for (let i = 0; i < serviceRequestIds.length; i += 80) {
     const { data } = await db.from('maintenance_attachments')
       .select('id, service_request_id, file_name, file_path, content_type, size_bytes, uploader_role, uploaded_by, created_at')
-      .in('service_request_id', serviceRequestIds.slice(i, i + 150))
+      .in('service_request_id', serviceRequestIds.slice(i, i + 80))
       .is('work_order_id', null)
       .order('created_at', { ascending: true });
     rows.push(...(data ?? []));

@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { requestKindLabel, responseState } from './intake';
+import { activeWorkOrder, currentWorkOrder, requestKindLabel, responseState } from './intake';
+
+describe('work order selection', () => {
+  const closed = { id: 'a', status: 'completed', created_at: '2026-09-01T00:00:00Z' };
+  const open = { id: 'b', status: 'assigned', created_at: '2026-09-10T00:00:00Z' };
+  const cancelled = { id: 'c', status: 'cancelled', created_at: '2026-09-20T00:00:00Z' };
+
+  it('ignores finished or cancelled orders when deciding triage', () => {
+    expect(activeWorkOrder({ work_orders: [closed, cancelled] })).toBeNull();
+    expect(activeWorkOrder({ work_orders: [closed, open] })?.id).toBe('b');
+    expect(activeWorkOrder({ work_orders: null })).toBeNull();
+  });
+
+  it('shows residents the open order, else the latest one', () => {
+    expect(currentWorkOrder({ work_orders: [open, cancelled] })?.id).toBe('b');
+    expect(currentWorkOrder({ work_orders: [closed, cancelled] })?.id).toBe('c');
+    expect(currentWorkOrder({ work_orders: open })?.id).toBe('b');
+  });
+});
 
 const NOW = Date.parse('2026-09-30T12:00:00Z');
 

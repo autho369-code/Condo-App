@@ -5,6 +5,7 @@ import { Alert, Badge, EmptyState, PageHeader, Surface } from '@/components/ui/s
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { date } from '@/lib/utils';
+import { currentWorkOrder } from '@/lib/maintenance/intake';
 import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { cancelResidentRequest, submitResidentRequest } from '@/app/resident/actions';
@@ -30,13 +31,23 @@ export default async function ResidentRequestsPage({
       .select('id, unit_id, units(unit_number, buildings(name, associations(name)))')
       .in('unit_id', me.tenant_unit_ids ?? []),
     db.from('service_requests')
-      .select('id, number, description, priority, status, permission_to_enter, created_at, resolution_note, tenant_id, work_orders(id, status)')
+      .select('id, number, description, priority, status, permission_to_enter, created_at, resolution_note, tenant_id, work_orders(id, status, created_at)')
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(100),
   ]);
 
-  const files = await loadRequestAttachmentsByRequest((requests ?? []).map((r: any) => r.id));
+  const [files, { data: tenantIdRows }] = await Promise.all([
+    loadRequestAttachmentsByRequest((requests ?? []).map((r: any) => r.id)),
+    db.rpc('current_tenant_ids'),
+  ]);
+  // One login can rent several units, each its own tenant record.
+  const myTenantIds = new Set<string>(
+    (Array.isArray(tenantIdRows) ? tenantIdRows : [])
+      .map((row: any) => (typeof row === 'string' ? row : row?.current_tenant_ids))
+      .filter(Boolean),
+  );
+  if (me.tenant_id) myTenantIds.add(me.tenant_id);
 
   const unitOptions = (tenants ?? []).map((tenant: any) => {
     const unit = relation<any>(tenant.units);
@@ -115,7 +126,7 @@ export default async function ResidentRequestsPage({
         ) : (
           <div className="divide-y divide-gray-100">
             {(requests ?? []).map((request: any) => {
-              const workOrder = relation<any>(request.work_orders);
+              const workOrder = currentWorkOrder(request);
               const canCancel = ['open', 'waiting'].includes(request.status) && !workOrder;
               return (
                 <div key={request.id} className="px-5 py-4">
@@ -130,7 +141,7 @@ export default async function ResidentRequestsPage({
                       <div className="mt-2 text-xs text-gray-500">Submitted {date(request.created_at)}{request.permission_to_enter ? ' · Permission to enter granted' : ''}</div>
                       {workOrder ? <div className="mt-1 text-xs font-medium text-indigo-700">Work order {String(workOrder.status ?? 'created').replace(/_/g, ' ')}</div> : null}
                       {(() => {
-                        const own = Boolean(me.tenant_id) && request.tenant_id === me.tenant_id;
+                        const own = Boolean(request.tenant_id) && myTenantIds.has(request.tenant_id);
                         const items = files.get(request.id) ?? [];
                         const canAdd = own && ['open', 'waiting'].includes(request.status);
                         if (!items.length && !canAdd) return null;

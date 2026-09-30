@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelServiceRequest } from '@/lib/rpcs/service-requests';
 import { date } from '@/lib/utils';
+import { currentWorkOrder } from '@/lib/maintenance/intake';
 import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 
@@ -35,7 +36,7 @@ export default async function ServiceRequestsList({
       id, number, description, priority, status, source, created_on, created_at,
       permission_to_enter, resolution_note, homeowner_id, owner_id,
       units(unit_number, buildings(associations(name))),
-      work_orders(id, status)
+      work_orders(id, status, created_at)
     `)
     .is('archived_at', null)
     .order('created_at', { ascending: false });
@@ -95,7 +96,7 @@ export default async function ServiceRequestsList({
               <tbody>
                 {rows.map((r: any) => {
                   const assoc = r.units?.buildings?.associations;
-                  const wo    = Array.isArray(r.work_orders) ? r.work_orders[0] : r.work_orders;
+                  const wo    = currentWorkOrder(r);
                   const firstLine = (r.description ?? '').split('\n')[0];
                   const isOpen = r.status === 'open' || r.status === 'waiting';
                   return (

@@ -74,7 +74,7 @@ export default async function ServiceRequestDetail({
 
   const [{ data: original }, { data: merged }, attachments] = await Promise.all([
     sr.duplicate_of
-      ? db.from('service_requests').select(SELECT).eq('id', sr.duplicate_of).maybeSingle()
+      ? db.from('service_requests').select(SELECT).eq('id', sr.duplicate_of).is('archived_at', null).maybeSingle()
       : Promise.resolve({ data: null }),
     db.from('service_requests').select('id, number, description, status, created_at, owners:owner_id(full_name), homeowners:homeowner_id(full_name), tenants:tenant_id(first_name, last_name, email)')
       .eq('duplicate_of', id).order('created_at'),
@@ -86,7 +86,7 @@ export default async function ServiceRequestDetail({
   const workOrders = ((Array.isArray(sr.work_orders) ? sr.work_orders : sr.work_orders ? [sr.work_orders] : []) as any[]);
   const openWorkOrder = workOrders.find((w) => !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(w.status));
   const response = responseState(sr);
-  const showDuplicate = isOpen && original && !sr.duplicate_reviewed;
+  const showDuplicate = isOpen && original && !sr.duplicate_reviewed && ['open', 'waiting'].includes(original.status);
   const firstLine = String(sr.description ?? '').split('\n')[0];
   const reasons: string[] = sr.triage_reasons ?? [];
 

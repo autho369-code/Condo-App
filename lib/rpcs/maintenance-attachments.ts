@@ -37,6 +37,12 @@ interface Parent {
   role: 'staff' | 'resident' | 'vendor';
 }
 
+/** Every tenant identity linked to the caller (one login can rent several units). */
+async function myTenantIds(db: any): Promise<string[]> {
+  const { data } = await db.rpc('current_tenant_ids');
+  return Array.isArray(data) ? data.map((row: any) => (typeof row === 'string' ? row : row?.current_tenant_ids)).filter(Boolean) : [];
+}
+
 async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{ error: string } | { parent: Parent; userId: string }> {
   if (!UUID.test(id) || (kind !== 'service_request' && kind !== 'work_order')) return { error: 'Unknown record' };
   const me = await getMe();
@@ -52,7 +58,7 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
     let role: Parent['role'];
     if (isStaff) role = 'staff';
     else if ((me.owner_id && (sr.homeowner_id === me.owner_id || sr.owner_id === me.owner_id))
-      || (me.tenant_id && sr.tenant_id === me.tenant_id)) {
+      || (sr.tenant_id && (await myTenantIds(db)).includes(sr.tenant_id))) {
       if (sr.status !== 'open' && sr.status !== 'waiting') return { error: 'This request is closed' };
       role = 'resident';
     } else return { error: 'You cannot add files to this request' };
