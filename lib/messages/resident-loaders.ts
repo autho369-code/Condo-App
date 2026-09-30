@@ -59,6 +59,6 @@ export async function residentThread(threadId: string, party: ResidentParty) {
     .select('id, author_role, author_name, body, created_at')
     .eq('thread_id', threadId).eq('internal', false)
     .order('created_at', { ascending: true });
-  await db.rpc('mark_message_thread_read', { p_thread: threadId });
+  await db.rpc('mark_message_thread_read', { p_thread: threadId, p_as: 'resident' });
   return { thread: thread as { id: string; subject: string; status: string }, messages: (messages ?? []) as ThreadMessage[] };
 }
