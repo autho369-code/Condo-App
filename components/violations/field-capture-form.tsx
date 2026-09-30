@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, CloudOff, Crosshair, LoaderCircle, MapPin, RefreshCw } from 'lucide-react';
 import {
+  getCapture,
   listCaptures,
   localDate,
   removeCapture,
@@ -80,7 +81,7 @@ export function FieldCaptureForm({
   }, [userId]);
 
   const markFailed = useCallback(async (id: string, message: string) => {
-    const latest = (await listCaptures(userId).catch(() => [] as QueuedCapture[])).find((c) => c.id === id);
+    const latest = await getCapture(id, userId).catch(() => null);
     if (latest) await saveCapture({ ...latest, state: 'failed', error: message }).catch(() => {});
     return latest ?? null;
   }, [userId]);
@@ -96,7 +97,7 @@ export function FieldCaptureForm({
       for (const { id } of pending) {
         // Re-read each capture right before syncing it: the manager may have
         // discarded it (or its progress changed) while earlier ones uploaded.
-        const capture = (await listCaptures(userId)).find((c) => c.id === id);
+        const capture = await getCapture(id, userId);
         if (!capture) continue;
         setQueue((q) => q.map((c) => (c.id === capture.id ? { ...c, state: 'syncing', error: null } : c)));
         try {
