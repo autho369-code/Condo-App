@@ -54,6 +54,7 @@ export default async function VendorsPage({
   searchParams: Promise<{ q?: string; trade?: string; tag?: string; invited?: string; error?: string }>;
 }) {
   const me = await requireStaff();
+  const canManageBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const trade = sp.trade ?? 'all';
@@ -64,7 +65,7 @@ export default async function VendorsPage({
   if (!portfolioId) throw new Error('Staff workspace is missing its management-company scope.');
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, taxpayer_id, bank_routing_number, bank_account_number, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
+    .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, has_taxpayer_id, has_bank_account, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name');
@@ -111,8 +112,8 @@ export default async function VendorsPage({
     ]),
   );
 
-  const achReady = allRows.filter((vendor: any) => vendor.bank_routing_number && vendor.bank_account_number).length;
-  const w9Needed = allRows.filter((vendor: any) => vendor.send_1099 && !vendor.taxpayer_id).length;
+  const achReady = allRows.filter((vendor: any) => vendor.has_bank_account).length;
+  const w9Needed = allRows.filter((vendor: any) => vendor.send_1099 && !vendor.has_taxpayer_id).length;
   const paymentHold = allRows.filter((vendor: any) => vendor.hold_payments).length;
 
   return (
@@ -189,7 +190,7 @@ export default async function VendorsPage({
                   <TD>{tradeLabel(vendor.trade)}</TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">
-                      <StatusChip tone={vendor.bank_routing_number && vendor.bank_account_number ? 'success' : 'neutral'}>
+                      <StatusChip tone={vendor.has_bank_account ? 'success' : 'neutral'}>
                         {vendor.payment_type?.replace(/_/g, ' ') ?? 'check'}
                       </StatusChip>
                       {vendor.is_auto_pay && <StatusChip tone="info">Auto-pay</StatusChip>}
@@ -200,7 +201,7 @@ export default async function VendorsPage({
                   <TD>
                     <div className="flex flex-wrap gap-1">
                       {vendor.is_utility && <StatusChip tone="info">Utility</StatusChip>}
-                      {vendor.send_1099 && <StatusChip tone={vendor.taxpayer_id ? 'success' : 'warning'}>{vendor.taxpayer_id ? 'W-9 ready' : 'Need W-9'}</StatusChip>}
+                      {vendor.send_1099 && <StatusChip tone={vendor.has_taxpayer_id ? 'success' : 'warning'}>{vendor.has_taxpayer_id ? 'W-9 ready' : 'Need W-9'}</StatusChip>}
                       {vendor.portal_activated && <StatusChip tone="success">Portal</StatusChip>}
                     </div>
                   </TD>
@@ -220,7 +221,7 @@ export default async function VendorsPage({
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">ACH</Link>
+                      {canManageBank && <Link href={`/vendors/ach?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">ACH</Link>}
                       <Link href={`/vendors/w9?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">W-9</Link>
                       <Link href={`/vendors/compliance?vendor=${vendor.id}`} className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-medium text-gray-700 transition-colors hover:bg-gray-50">Docs</Link>
                       {!vendor.portal_activated && (

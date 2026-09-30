@@ -86,7 +86,12 @@ export async function updateVendorRecord(formData: FormData) {
   if (!before) failTo('Vendor not found.')
 
   const canEditBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator)
+  // Tax IDs and bank numbers live in vendor_financial_details (finance staff only).
+  const { data: finBefore } = canEditBank
+    ? await supabase.from('vendor_financial_details').select('*').eq('vendor_id', vendorId).maybeSingle()
+    : { data: null }
   let patch: Record<string, unknown>
+  let fin: Record<string, unknown> = {}
   try {
     const name = text(formData, 'name')
     if (!name) throw new Error('Vendor name is required.')
@@ -111,6 +116,8 @@ export async function updateVendorRecord(formData: FormData) {
       if (!gl) throw new Error('Default GL account not found.')
     }
 
+    const tin = text(formData, 'taxpayer_id')
+    const taxAcct = text(formData, 'tax_account_number')
     const routing = text(formData, 'bank_routing_number')
     if (routing && !/^\d{9}$/.test(routing)) throw new Error('Bank routing number must be 9 digits.')
     // Blank account number keeps the stored one; the page never echoes it back.
@@ -128,8 +135,6 @@ export async function updateVendorRecord(formData: FormData) {
       address_state: text(formData, 'address_state')?.toUpperCase() ?? null,
       address_zip: text(formData, 'address_zip'),
       taxpayer_name: text(formData, 'taxpayer_name'),
-      taxpayer_id: text(formData, 'taxpayer_id'),
-      tax_account_number: text(formData, 'tax_account_number'),
       send_1099: formData.get('send_1099') === 'on',
       is_utility: formData.get('is_utility') === 'on',
       check_consolidation: oneOf(text(formData, 'check_consolidation'), CHECK_CONSOLIDATION.map((o) => o.value), 'check consolidation'),
@@ -141,7 +146,6 @@ export async function updateVendorRecord(formData: FormData) {
       default_gl_account_id: glId,
       work_order_adjustment: adj,
       payment_type: oneOf(text(formData, 'payment_type'), VENDOR_PAYMENT_TYPES, 'payment type') ?? 'check',
-      bank_routing_number: routing,
       savings_account: canEditBank ? formData.get('savings_account') === 'on' : before.savings_account,
       notes: text(formData, 'notes'),
       workers_comp_expiration: text(formData, 'workers_comp_expiration'),
@@ -151,25 +155,35 @@ export async function updateVendorRecord(formData: FormData) {
       state_license_expiration: text(formData, 'state_license_expiration'),
       contract_expiration: text(formData, 'contract_expiration'),
     }
-    if (acct) patch.bank_account_number = acct
+    if (canEditBank) {
+      // Blank TIN / account number keep the stored value; the page never echoes them back.
+      fin = { tax_account_number: taxAcct, bank_routing_number: routing }
+      if (tin) fin.taxpayer_id = tin
+      if (acct) fin.bank_account_number = acct
+    } else if (tin || taxAcct || routing || acct) {
+      throw new Error("Only accounting staff can change a vendor's tax or bank details.")
+    }
   } catch (e) {
     return failTo(e instanceof Error ? e.message : 'Invalid vendor details.')
-  }
-
-  const bankChanged = (patch.bank_routing_number ?? null) !== (before.bank_routing_number ?? null) || 'bank_account_number' in patch
-    || patch.savings_account !== before.savings_account
-  if (bankChanged && !canEditBank) {
-    failTo("Only accounting staff can change a vendor's bank details.")
   }
 
   const { error } = await supabase.from('vendors').update(patch).eq('id', vendorId).eq('portfolio_id', portfolioId)
   if (error) failTo(error.message)
 
+  const finChanged = Object.entries(fin).some(([k, v]) => (finBefore?.[k] ?? null) !== (v ?? null))
+  if (canEditBank && finChanged) {
+    const { error: finError } = await supabase.from('vendor_financial_details').upsert(
+      { vendor_id: vendorId, portfolio_id: portfolioId, ...fin, updated_at: new Date().toISOString(), updated_by: me.auth_user_id },
+      { onConflict: 'vendor_id' },
+    )
+    if (finError) failTo('Saved, but the tax and bank details could not be saved: ' + finError.message)
+  }
+
   // Audit: bank and tax identifiers are logged as changed, never with their values.
   const SENSITIVE = new Set(['bank_routing_number', 'bank_account_number', 'taxpayer_id', 'tax_account_number'])
   const changes: Record<string, { from: unknown; to: unknown }> = {}
-  for (const [k, v] of Object.entries(patch)) {
-    const was = before[k] ?? null
+  for (const [k, v] of Object.entries({ ...patch, ...fin })) {
+    const was = (k in fin ? finBefore?.[k] : before[k]) ?? null
     if (JSON.stringify(was) === JSON.stringify(v ?? null)) continue
     changes[k] = SENSITIVE.has(k) ? { from: '[redacted]', to: '[redacted]' } : { from: was, to: v ?? null }
   }

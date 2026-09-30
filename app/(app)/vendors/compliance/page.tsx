@@ -48,7 +48,7 @@ export default async function VendorCompliancePage({
   const db = (await createClient()) as any;
 
   const [{ data: vendors }, { data: requests }] = await Promise.all([
-    db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, taxpayer_id')
+    db.from('vendors').select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, has_taxpayer_id')
       .is('archived_at', null).order('name'),
     db.from('document_requests').select('id, vendor_id, doc_type, status, requested_at, submitted_at, due_date, review_note, attachment_urls, notes, vendors(name)')
       .not('vendor_id', 'is', null).order('requested_at', { ascending: false }).limit(500),
@@ -166,9 +166,9 @@ export default async function VendorCompliancePage({
                   {EXPIRATIONS.map(([k]) => (
                     <TD key={k}><StatusChip tone={tone(v[k])}>{v[k] ? date(v[k]) : 'None'}</StatusChip></TD>
                   ))}
-                  <TD><StatusChip tone={v.taxpayer_id ? 'success' : 'warning'}>{v.taxpayer_id ? 'On file' : 'Missing'}</StatusChip></TD>
+                  <TD><StatusChip tone={v.has_taxpayer_id ? 'success' : 'warning'}>{v.has_taxpayer_id ? 'On file' : 'Missing'}</StatusChip></TD>
                   <TD className="text-right">
-                    <Link href={`/vendors/forms?vendor=${v.id}&doc=${lapsed ? lapsed[2] : v.taxpayer_id ? 'general_liability' : 'w9'}`} className="text-sm font-medium text-gray-600 hover:text-gray-950">Request →</Link>
+                    <Link href={`/vendors/forms?vendor=${v.id}&doc=${lapsed ? lapsed[2] : v.has_taxpayer_id ? 'general_liability' : 'w9'}`} className="text-sm font-medium text-gray-600 hover:text-gray-950">Request →</Link>
                   </TD>
                 </TR>
               );
