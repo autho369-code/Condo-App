@@ -471,7 +471,9 @@ export default async function AssociationProfileTab({
               {(loans ?? []).map((l: any) => (
                 <li key={l.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
                   <div>
-                    <Link href={`/accounting/loans/${l.id}`} className="font-medium text-gray-900 hover:underline">{l.lender}</Link>
+                    {canManageLoans
+                      ? <Link href={`/accounting/loans/${l.id}`} className="font-medium text-gray-900 hover:underline">{l.lender}</Link>
+                      : <span className="font-medium text-gray-900">{l.lender}</span>}
                     <span className="ml-2 text-xs capitalize text-gray-500">{String(l.loan_type).replace(/_/g, ' ')}</span>
                     <div className="text-xs text-gray-500">
                       {l.current_balance != null ? `Balance $${Number(l.current_balance).toLocaleString()}` : 'No balance'}
