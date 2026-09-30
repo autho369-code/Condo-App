@@ -49,7 +49,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   if (queue === 'closed') list = list.eq('status', 'closed');
   else {
     list = list.eq('status', 'open');
-    if (queue === 'unread') list = list.eq('staff_unread', true);
+    // "Needs reply" = the resident wrote last (reading a thread doesn't answer it).
+    if (queue === 'unread') list = list.eq('last_message_role', 'resident');
     if (queue === 'overdue') list = list.is('acknowledged_at', null).lt('first_response_due_at', nowIso);
     if (queue === 'mine') list = list.eq('assigned_to', me.auth_user_id);
   }
@@ -60,7 +61,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
       ? db.from('sms_messages').select('id, direction, body, from_number, to_number, status, sent_at').order('sent_at', { ascending: false }).limit(100)
       : Promise.resolve({ data: [] }),
     count((q) => q),
-    count((q) => q.eq('staff_unread', true)),
+    count((q) => q.eq('last_message_role', 'resident')),
     count((q) => q.is('acknowledged_at', null).lt('first_response_due_at', nowIso)),
     count((q) => q.eq('assigned_to', me.auth_user_id)),
   ]);
@@ -124,7 +125,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                   <TR key={t.id}>
                     <TD className="max-w-md">
                       <Link href={`/inbox/${t.id}`} className="flex items-center gap-2">
-                        {t.staff_unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" aria-label="Needs reply" /> : null}
+                        {t.staff_unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-blue-600" aria-label="Unread" /> : null}
                         <span className={`truncate ${t.staff_unread ? 'font-semibold text-gray-950' : 'font-medium text-gray-900'} hover:underline`}>{t.subject}</span>
                       </Link>
                       <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{t.last_message_role === 'staff' ? 'You: ' : ''}{t.last_message_preview}</p>

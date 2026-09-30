@@ -38,7 +38,7 @@ export default async function ConversationPage({
       .select('id, subject, status, owner_id, tenant_id, unit_id, assigned_to, first_response_due_at, acknowledged_at, created_at, owners(full_name, email), tenants(first_name, last_name, email, phone), associations(name), units(unit_number)')
       .eq('id', id).maybeSingle(),
     db.from('message_thread_messages').select('id, author_role, author_name, body, internal, created_at').eq('thread_id', id).order('created_at'),
-    db.rpc('mentionable_staff'),
+    db.rpc('message_thread_assignees', { p_thread: id }),
   ]);
   if (!t) notFound();
   await db.rpc('mark_message_thread_read', { p_thread: id });

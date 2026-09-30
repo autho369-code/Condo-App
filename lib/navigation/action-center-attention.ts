@@ -43,7 +43,7 @@ export async function loadActionCenterAttention(
     .from('message_threads')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'open')
-    .eq('staff_unread', true) as CountQuery;
+    .eq('last_message_role', 'resident') as CountQuery;
 
   const overdueViolations = db
     .from('violations')
