@@ -7,7 +7,7 @@ import { Input, Label, Textarea } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { CHECK_CONSOLIDATION, CHECK_STUB, VENDOR_PAYMENT_TYPES, VENDOR_TRADES, VENDOR_TYPES } from '@/lib/vendors/options';
+import { CHECK_CONSOLIDATION, CHECK_STUB, VENDOR_PAYMENT_TYPES, VENDOR_TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 import { updateVendorRecord } from '../../actions';
 
 export const dynamic = 'force-dynamic';
@@ -94,7 +94,7 @@ export default async function EditVendorPage({
           <div>
             <Label htmlFor="trade">Trade</Label>
             <select id="trade" name="trade" defaultValue={v.trade ?? 'other'} className={SELECT}>
-              {VENDOR_TRADES.map((t) => <option key={t} value={t}>{label(t)}</option>)}
+              {VENDOR_TRADES.map((t) => <option key={t} value={t}>{tradeLabel(t)}</option>)}
             </select>
           </div>
         </div>

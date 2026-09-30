@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
-import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES } from '@/lib/vendors/options';
+import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,7 @@ export default async function NewVendorPage({
           <div>
             <Label htmlFor="trade">Trade</Label>
             <select id="trade" name="trade" defaultValue="other" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-              {TRADES.map((type) => <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>)}
+              {TRADES.map((type) => <option key={type} value={type}>{tradeLabel(type)}</option>)}
             </select>
           </div>
         </div>
