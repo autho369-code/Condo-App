@@ -138,7 +138,7 @@ export default async function BoardDelinquenciesPage() {
     if (unitIds.length > 0) {
       const [{ data: uos }, { data: payments }] = await Promise.all([
         db.from('unit_owners').select('unit_id, owner_id, is_primary').in('unit_id', unitIds),
-        db.from('payments').select('unit_id, payment_date').in('unit_id', unitIds).order('payment_date', { ascending: false }),
+        db.from('payments').select('unit_id, payment_date').neq('method', 'credit').in('unit_id', unitIds).order('payment_date', { ascending: false }),
       ])
 
       const ownerIds = [...new Set((uos ?? []).map((u: any) => u.owner_id).filter(Boolean))]

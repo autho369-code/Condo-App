@@ -12,13 +12,14 @@ import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
+import { postHomeownerCredit } from '@/lib/rpcs/credits';
 import { Alert } from '@/components/ui/shell';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; receipt?: string; saved?: string }> }) {
+export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; receipt?: string; saved?: string; credited?: string }> }) {
   const me = await requireStaff();
   const { id: unitId } = await params;
   const sp = await searchParams;
@@ -37,6 +38,11 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
     (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
   ]);
+  const { data: creditAccounts } = me.is_finance_staff || me.is_company_admin || me.is_platform_operator
+    ? await (supabase as any).from('gl_accounts').select('id, number, name, account_type, association_id')
+        .eq('active', true).in('account_type', ['income', 'other_income', 'expense', 'other_expense']).order('number')
+    : { data: [] };
+  const openCharges = ((balances ?? []) as any[]).filter((c) => Number(c.balance_due) > 0);
 
   if (!unit) notFound();
   const meta = await loadRecordMeta(supabase, 'unit', unitId);
@@ -222,6 +228,56 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           </form>
         </CardBody>
       </Card>
+
+      {/* ======== HOMEOWNER CREDIT ======== */}
+      {(creditAccounts ?? []).length > 0 && (
+      <Card>
+        <CardHeader><CardTitle>Give a credit</CardTitle></CardHeader>
+        <CardBody>
+          <div id="credits" className="scroll-mt-24" />
+          {sp.credited && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">Credit posted and applied to the balance.</div>
+          )}
+          <p className="mb-4 text-sm text-gray-500">Waive a fee or reduce the balance without a payment — for example a waived late fee or a board-approved concession. It applies to open charges like a payment and posts to the account you choose instead of cash.</p>
+          <form action={postHomeownerCredit} className="grid grid-cols-1 gap-3 md:grid-cols-6">
+            <input type="hidden" name="unit_id" value={unitId} />
+            <div>
+              <Label htmlFor="credit_amount">Amount</Label>
+              <Input id="credit_amount" name="amount" type="number" step="0.01" min="0.01" required />
+            </div>
+            <div>
+              <Label htmlFor="credit_date">Date</Label>
+              <Input id="credit_date" name="credit_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="credit_gl">Charge the credit to</Label>
+              <select id="credit_gl" name="gl_account_id" required defaultValue=""
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <option value="">Choose an account…</option>
+                {(creditAccounts as any[]).filter((g) => !g.association_id || g.association_id === associationId).map((g) => (
+                  <option key={g.id} value={g.id}>{g.number} · {g.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="credit_charge">Apply to</Label>
+              <select id="credit_charge" name="charge_id" defaultValue=""
+                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <option value="">Oldest open charges first</option>
+                {openCharges.map((c: any) => (
+                  <option key={c.charge_id} value={c.charge_id}>{c.description} · {date(c.due_date)} · {money(c.balance_due)} open</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-5">
+              <Label htmlFor="credit_memo">Reason</Label>
+              <Input id="credit_memo" name="memo" required maxLength={500} placeholder="Board approved waiver of September late fee" />
+            </div>
+            <div className="flex items-end"><Button type="submit" variant="secondary">Post credit</Button></div>
+          </form>
+        </CardBody>
+      </Card>
+      )}
 
       {/* ======== PAYMENTS HISTORY + MANUAL RECEIPT ======== */}
       <Card>

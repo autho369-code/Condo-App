@@ -168,7 +168,7 @@ export default async function MetricsPage() {
           .eq('journal_entries.posted', true)
       : Promise.resolve({ data: [] }),
     db.from('charges').select('amount').gte('created_at', monthStartStr),
-    db.from('payments').select('amount').gte('created_at', monthStartStr),
+    db.from('payments').select('amount').neq('method', 'credit').gte('created_at', monthStartStr),
   ]);
   const cashPosition = ((bankLines ?? []) as any[]).reduce(
     (s: number, l: any) => s + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0), 0);

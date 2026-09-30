@@ -48,13 +48,13 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
             <div className="text-sm text-gray-500">on behalf of {assoc?.name ?? 'the association'}</div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">Payment receipt</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
             <div className="mt-1 font-mono text-sm text-gray-900">#{receiptNo}</div>
           </div>
         </div>
 
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <div><dt className="text-gray-500">Received from</dt><dd className="font-medium text-gray-900">{ownerNames || 'Owner of record'}</dd></div>
+          <div><dt className="text-gray-500">{p.method === 'credit' ? 'Credited to' : 'Received from'}</dt><dd className="font-medium text-gray-900">{ownerNames || 'Owner of record'}</dd></div>
           <div><dt className="text-gray-500">Unit</dt><dd className="font-medium text-gray-900">{p.units?.unit_number ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Date received</dt><dd className="font-medium text-gray-900">{fmtDate(p.payment_date)}</dd></div>
           <div><dt className="text-gray-500">Method</dt><dd className="font-medium text-gray-900">{receiptMethodLabel(p.method)}{p.reference ? ` · ${p.reference}` : ''}</dd></div>
