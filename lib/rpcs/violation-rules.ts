@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { deliverStepLetter } from '@/lib/violations/deliver-step-letter';
 
 // Every RPC below re-checks can_manage_violations(association) in the
 // database; requireStaff here is the in-action guard for callable endpoints.
@@ -148,13 +149,22 @@ function describeStep(result: any): string {
 }
 
 export async function advanceViolation(formData: FormData) {
-  await requireStaff();
+  const me = await requireStaff();
   const id = str(formData, 'id');
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('advance_violation', { p_violation_id: id, p_note: str(formData, 'note') || null });
   if (error) go(`/violations/${id}`, 'error', error.message);
   revalidatePath('/violations');
-  go(`/violations/${id}`, 'saved', describeStep(data));
+  // The step is recorded; now send its letter. A delivery failure is reported
+  // loudly (the step stays recorded — staff can resend from the letters list).
+  let letter: string;
+  try {
+    letter = await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
+  } catch (e) {
+    go(`/violations/${id}`, 'error', `${describeStep(data)} But the letter was not sent: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+  revalidatePath(`/violations/${id}`);
+  go(`/violations/${id}`, 'saved', `${describeStep(data)} ${letter}`);
 }
 
 export async function recordViolationHearing(formData: FormData) {
@@ -189,7 +199,7 @@ export async function resolveViolation(formData: FormData) {
 
 /** Bulk follow-up from the violations queue. Each row runs through the same RPC; failures are reported, not hidden. */
 export async function bulkViolationAction(formData: FormData) {
-  await requireStaff();
+  const me = await requireStaff();
   const action = str(formData, 'bulk_action');
   const ids = formData.getAll('violation_ids').map(String).filter(Boolean).slice(0, 100);
   const back = str(formData, 'back') || '/violations';
@@ -201,17 +211,44 @@ export async function bulkViolationAction(formData: FormData) {
   let ok = 0;
   const failures: string[] = [];
   for (const id of ids) {
-    const { error } = action === 'advance'
+    const { data, error } = action === 'advance'
       ? await db.rpc('advance_violation', { p_violation_id: id, p_note: 'Bulk follow-up' })
       : await db.rpc('resolve_violation', { p_violation_id: id, p_resolution: 'cured', p_note: 'Bulk: marked corrected' });
-    if (error) failures.push(error.message);
-    else ok += 1;
+    if (error) { failures.push(error.message); continue; }
+    ok += 1;
+    if (action === 'advance') {
+      try {
+        await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
+      } catch (e) {
+        failures.push(`step recorded but letter not sent (${e instanceof Error ? e.message : 'unknown error'})`);
+      }
+    }
   }
   revalidatePath('/violations');
   const verb = action === 'advance' ? 'advanced to their next step' : 'marked corrected';
   if (failures.length > 0) {
     const reasons = Array.from(new Set(failures)).slice(0, 3).join(' | ');
-    go(back, 'error', `${ok} of ${ids.length} ${verb}. ${failures.length} skipped: ${reasons}`);
+    go(back, 'error', `${ok} of ${ids.length} ${verb}. ${failures.length} problem${failures.length === 1 ? '' : 's'}: ${reasons}`);
   }
   go(back, 'saved', `${ok} violation${ok === 1 ? '' : 's'} ${verb}.`);
+}
+
+/** Staff printed and mailed a step letter. RLS + the letter trigger allow only to_mail -> mailed. */
+export async function markViolationLetterMailed(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'letter_id');
+  const backRaw = str(formData, 'back');
+  const back = /^\/violations(\/[0-9a-z-]+)*(\?[a-z_=&0-9-]*)?$/i.test(backRaw) ? backRaw : '/violations/letters';
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any)
+    .from('violation_letters')
+    .update({ mail_status: 'mailed' })
+    .eq('id', id)
+    .eq('mail_status', 'to_mail')
+    .select('violation_id');
+  if (error) go(back, 'error', error.message);
+  if (!data?.length) go(back, 'error', 'That letter was already marked mailed or is outside your access.');
+  revalidatePath('/violations/letters');
+  revalidatePath(`/violations/${data[0].violation_id}`);
+  go(back, 'saved', 'Letter marked mailed.');
 }

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpenCheck, Plus, ShieldAlert, Smartphone } from 'lucide-react';
+import { BookOpenCheck, Mail, Plus, ShieldAlert, Smartphone } from 'lucide-react';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -205,6 +205,8 @@ export default async function ViolationsPage({
     }),
   };
 
+  const { count: lettersToMail } = await db.from('violation_letters').select('id', { count: 'exact', head: true }).eq('mail_status', 'to_mail');
+
   // ── Render ──
   return (
     <DataWorkspace
@@ -218,6 +220,9 @@ export default async function ViolationsPage({
             filename={`violations-${exportStamp}`}
             tables={[exportTable]}
           />
+          <Link href="/violations/letters">
+            <Button variant="secondary"><Mail className="h-4 w-4" /> Letters to mail{lettersToMail ? ` (${lettersToMail})` : ''}</Button>
+          </Link>
           <Link href="/violations/rules">
             <Button variant="secondary"><BookOpenCheck className="h-4 w-4" /> Rules & fines</Button>
           </Link>

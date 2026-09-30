@@ -8,6 +8,8 @@ import { requestViolationHearing } from '@/lib/rpcs/violations'
 import { money, date } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft, Image as ImageIcon } from 'lucide-react'
+import { ViolationLettersList } from '@/components/violations/letters-list'
+import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,12 +27,18 @@ export default async function OwnerViolationDetail({
   const sp = await searchParams
 
   const { data: v } = await db.from('violations')
-    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
+    .select('id, title, description, violation_type, status, date_observed, hearing_date, hearing_at, hearing_required, hearing_requested_at, hearing_request_note, fine_amount, fines_total, fine_assessed_at, notice_sent_at, board_decision, attachments, governing_document_reference, units!inner(unit_number)')
     .eq('id', id).eq('owner_id', me.owner_id).maybeSingle()
 
   if (!v) return notFound()
 
   const atts = Array.isArray(v.attachments) ? v.attachments : []
+  // RLS returns only this owner's letters that were delivered to the portal.
+  const { data: letterRows } = await db.from('violation_letters')
+    .select(VIOLATION_LETTER_COLUMNS).eq('violation_id', v.id).order('created_at', { ascending: false })
+  const letters = (letterRows ?? []) as ViolationLetterRow[]
+  const letterLinks = await signLetterLinks(letters)
+  const fines = Number(v.fines_total ?? 0) > 0 ? Number(v.fines_total) : Number(v.fine_amount ?? 0)
 
   async function requestHearing(formData: FormData) {
     'use server'
@@ -59,7 +67,7 @@ export default async function OwnerViolationDetail({
 
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div><span className="text-gray-500">Date Observed:</span> <span className="text-gray-900">{date(v.date_observed)}</span></div>
-          <div><span className="text-gray-500">Fine:</span> <span className="text-gray-900 font-medium">{v.fine_amount ? money(v.fine_amount) : 'None'}</span></div>
+          <div><span className="text-gray-500">Fine:</span> <span className="text-gray-900 font-medium">{fines > 0 ? money(fines) : 'None'}</span></div>
           <div><span className="text-gray-500">Hearing Date:</span> <span className="text-gray-900">{v.hearing_date ? date(v.hearing_date) : v.hearing_at ? date(v.hearing_at) : 'Not scheduled'}</span></div>
           <div><span className="text-gray-500">Notice Sent:</span> <span className="text-gray-900">{v.notice_sent_at ? date(v.notice_sent_at) : '—'}</span></div>
           <div><span className="text-gray-500">Board Decision:</span> <span className="text-gray-900 capitalize">{v.board_decision ?? 'Pending'}</span></div>
@@ -79,6 +87,14 @@ export default async function OwnerViolationDetail({
           </div>
         )}
       </div>
+
+      <Surface padded={false}>
+        <div className="border-b border-gray-100 px-5 py-3">
+          <h2 className="text-base font-semibold text-gray-950">Letters</h2>
+          <p className="mt-0.5 text-sm text-gray-500">Notices the association has sent you about this violation.</p>
+        </div>
+        <ViolationLettersList letters={letters} links={letterLinks} />
+      </Surface>
 
       <Surface>
         {v.hearing_requested_at ? (
