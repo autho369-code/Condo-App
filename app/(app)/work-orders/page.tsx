@@ -98,6 +98,7 @@ export default async function WorkOrdersPage({
   let workOrdersQuery = db.from('work_orders')
     .select('id, number, title, description, status, priority, scheduled_date, vendor_id, assignee_id, assigned_to, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
     .is('archived_at', null);
+  if (assignee) workOrdersQuery = workOrdersQuery.eq('assignee_id', assignee);
   if (status === 'overdue') {
     workOrdersQuery = workOrdersQuery
       .lt('scheduled_date', todayDate)

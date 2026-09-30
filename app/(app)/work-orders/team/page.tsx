@@ -25,24 +25,33 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const db = (await createClient()) as any;
 
+  // The Data API returns at most 1,000 rows per request — page through all of them.
+  async function all(build: () => any): Promise<any[]> {
+    const rows: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await build().order('id', { ascending: true }).range(from, from + 999);
+      if (error) throw new Error(error.message);
+      rows.push(...(data ?? []));
+      if (!data || data.length < 1000) return rows;
+    }
+  }
+
   // Open work orders (any age) + everything completed inside the window.
-  const [{ data: staffRows }, { data: workOrders }, { data: labor }] = await Promise.all([
+  const [{ data: staffRows }, workOrders, labor] = await Promise.all([
     db.rpc('mentionable_staff'),
-    db.from('work_orders')
+    all(() => db.from('work_orders')
       .select('id, assignee_id, vendor_id, status, priority, created_at, scheduled_date, completed_date')
       .is('archived_at', null)
-      .or(`status.not.in.${CLOSED},completed_date.gte.${since}`)
-      .limit(10000),
-    db.from('work_order_labor_entries')
-      .select('tech_id, tech_name, date_worked, hours, labor_cost')
-      .gte('date_worked', since)
-      .limit(20000),
+      .or(`status.not.in.${CLOSED},completed_date.gte.${since}`)),
+    all(() => db.from('work_order_labor_entries')
+      .select('id, tech_id, tech_name, date_worked, hours, labor_cost')
+      .gte('date_worked', since)),
   ]);
 
   const board = buildTeamScoreboard({
     staff: (staffRows ?? []) as Array<{ id: string; name: string }>,
-    workOrders: workOrders ?? [],
-    labor: labor ?? [],
+    workOrders,
+    labor,
     since,
     today,
   });

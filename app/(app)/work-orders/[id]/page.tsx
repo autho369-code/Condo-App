@@ -235,7 +235,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5">{wo.trade ? tradeLabel(wo.trade) : '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Assigned to</dt><dd className="mt-0.5">{wo.assigned_to ?? '—'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">In-house assignee</dt><dd className="mt-0.5">{wo.assignee_id ? (staff.find((s) => s.id === wo.assignee_id)?.name ?? wo.assigned_to ?? 'Team member') : '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>
           <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? '—'}</dd></div>
           {wo.vendor_instructions && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Vendor instructions</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.vendor_instructions}</dd></div>}
@@ -253,7 +253,6 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             <div><Label>Priority</Label><Select name="priority" defaultValue={wo.priority} options={PRIORITIES} required /></div>
             <div><Label>Category</Label><Select name="category" defaultValue={wo.category} options={CATEGORIES} required /></div>
             <div><Label>Trade</Label><Select name="trade" defaultValue={wo.trade ?? ''} options={TRADES} /></div>
-            <div><Label htmlFor="assigned_to">Assigned to</Label><Input id="assigned_to" name="assigned_to" defaultValue={wo.assigned_to ?? ''} /></div>
             <div><Label htmlFor="scheduled_date">Scheduled date</Label><Input id="scheduled_date" name="scheduled_date" type="date" defaultValue={wo.scheduled_date ?? ''} /></div>
             <div><Label htmlFor="scheduled_time">Scheduled time</Label><Input id="scheduled_time" name="scheduled_time" type="time" defaultValue={wo.scheduled_time ?? ''} /></div>
             <div><Label htmlFor="next_followup_date">Next follow-up</Label><Input id="next_followup_date" name="next_followup_date" type="date" defaultValue={wo.next_followup_date ?? ''} /></div>

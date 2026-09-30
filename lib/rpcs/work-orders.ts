@@ -68,7 +68,7 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     trade:                  str('trade'),
     scheduled_date:         str('scheduled_date'),
     scheduled_time:         str('scheduled_time'),
-    assigned_to:            str('assigned_to'),
+    // assigned_to is maintained by assignWorkOrderToStaff with assignee_id.
     requested_by:           str('requested_by'),
     vendor_instructions:    str('vendor_instructions'),
     owner_availability: str('owner_availability'),
