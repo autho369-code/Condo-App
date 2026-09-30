@@ -9,6 +9,8 @@ const FINISHED = new Set(['done', 'completed', 'billed', 'closed']);
 export interface TeamWorkOrder {
   id: string;
   assignee_id: string | null;
+  /** Who was assigned when the job was finished (credit stays with them). */
+  completed_by_assignee_id?: string | null;
   vendor_id?: string | null;
   status: string;
   priority: string | null;
@@ -69,6 +71,18 @@ export function buildTeamScoreboard(opts: {
   let unassignedOpen = 0;
   for (const wo of workOrders) {
     const open = !CLOSED.has(wo.status);
+    if (!open && FINISHED.has(wo.status)) {
+      // Finished work is credited to whoever finished it, even if reassigned since.
+      const who = wo.completed_by_assignee_id ?? wo.assignee_id;
+      if (who && wo.completed_date && wo.completed_date >= since && wo.completed_date <= today) {
+        const m = member(who, 'Former staff');
+        m.completed += 1;
+        if (wo.priority === 'emergency') m.emergenciesCompleted += 1;
+        const days = (Date.parse(wo.completed_date) - Date.parse(wo.created_at.slice(0, 10))) / DAY_MS;
+        if (Number.isFinite(days) && days >= 0) completionDays.set(m.id, [...(completionDays.get(m.id) ?? []), days]);
+      }
+      continue;
+    }
     if (!wo.assignee_id) {
       if (open && !wo.vendor_id) unassignedOpen += 1;
       continue;
@@ -77,11 +91,6 @@ export function buildTeamScoreboard(opts: {
     if (open) {
       m.open += 1;
       if (wo.scheduled_date && wo.scheduled_date < today) m.overdue += 1;
-    } else if (FINISHED.has(wo.status) && wo.completed_date && wo.completed_date >= since) {
-      m.completed += 1;
-      if (wo.priority === 'emergency') m.emergenciesCompleted += 1;
-      const days = (Date.parse(wo.completed_date) - Date.parse(wo.created_at.slice(0, 10))) / DAY_MS;
-      if (Number.isFinite(days) && days >= 0) completionDays.set(m.id, [...(completionDays.get(m.id) ?? []), days]);
     }
   }
   for (const [id, days] of completionDays) {
@@ -91,7 +100,8 @@ export function buildTeamScoreboard(opts: {
 
   const other = new Map<string, { name: string; hours: number; laborCost: number }>();
   for (const entry of labor) {
-    if (entry.date_worked < since) continue;
+    // Only work inside the window — never future-dated entries.
+    if (entry.date_worked < since || entry.date_worked > today) continue;
     const hours = Number(entry.hours ?? 0) || 0;
     const cost = Number(entry.labor_cost ?? 0) || 0;
     if (entry.tech_id) {

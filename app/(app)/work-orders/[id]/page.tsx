@@ -97,7 +97,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     wo.unit_id
       ? (supabase as any).from('charge_categories').select('id, name, association_id, portfolio_id, active').is('archived_at', null).order('name')
       : Promise.resolve({ data: [] }),
-    (supabase as any).rpc('mentionable_staff'),
+    (supabase as any).rpc('work_order_staff', { p_work_order: wo.id }),
   ]);
   const approvedEstimate = (estimates ?? []).find((e: any) => e.approved_at);
   const staff = (staffRows ?? []) as Array<{ id: string; name: string }>;
@@ -318,7 +318,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <Input name="tech_name" placeholder="Name if not on the team" />
-          <Input name="date_worked" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+          <Input name="date_worked" type="date" defaultValue={new Date().toISOString().slice(0, 10)} max={new Date().toISOString().slice(0, 10)} required />
           <Input name="hours" type="number" step="0.25" min="0.25" placeholder="Hours" required />
           <Input name="hourly_rate" type="number" step="0.01" placeholder="$/hr (optional)" />
           <div className="flex gap-3 md:col-span-5">
