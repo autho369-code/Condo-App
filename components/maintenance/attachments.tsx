@@ -77,7 +77,8 @@ export function MaintenanceAttachments({
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((item) => {
             const isImage = (item.content_type ?? '').startsWith('image/');
-            const removable = canRemoveAny || (currentUserId && item.uploaded_by === currentUserId);
+            // Non-staff may remove their own files only while they can still add files (the job is open).
+            const removable = canRemoveAny || (canUpload && currentUserId && item.uploaded_by === currentUserId);
             return (
               <li key={item.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                 <a href={item.url ?? '#'} target="_blank" rel="noreferrer" className="block aspect-[4/3]">

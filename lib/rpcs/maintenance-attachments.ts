@@ -203,7 +203,15 @@ export async function removeMaintenanceAttachment(attachmentId: string): Promise
     .eq('id', attachmentId).maybeSingle();
   if (!row) return { error: 'File not found' };
   const isStaff = me.is_staff || me.is_platform_operator || me.is_company_admin;
-  if (!isStaff && row.uploaded_by !== me.auth_user_id) return { error: 'You can only remove files you added' };
+  if (!isStaff) {
+    if (row.uploaded_by !== me.auth_user_id) return { error: 'You can only remove files you added' };
+    // Same rule as uploading: once the request / work order is closed, its
+    // files are the record of the job and only staff can remove them.
+    const access = row.work_order_id
+      ? await resolveParent('work_order', row.work_order_id)
+      : await resolveParent('service_request', row.service_request_id);
+    if ('error' in access) return { error: access.error === 'This request is closed' || access.error === 'This work order is closed' ? 'Files on a closed job can only be removed by the management team' : access.error };
+  }
   const svc = createServiceClient() as any;
   const { error } = await svc.from('maintenance_attachments').delete().eq('id', attachmentId);
   if (error) return { error: error.message };
