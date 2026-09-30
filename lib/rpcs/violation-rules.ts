@@ -156,7 +156,8 @@ export async function advanceViolation(formData: FormData) {
   if (error) go(`/violations/${id}`, 'error', error.message);
   revalidatePath('/violations');
   // The step is recorded; now send its letter. A delivery failure is reported
-  // loudly (the step stays recorded — staff can resend from the letters list).
+  // loudly (the step stays recorded — staff send it with "Send letter for this
+  // step" on the violation, which does not advance again).
   let letter: string;
   try {
     letter = await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
@@ -251,4 +252,54 @@ export async function markViolationLetterMailed(formData: FormData) {
   revalidatePath('/violations/letters');
   revalidatePath(`/violations/${data[0].violation_id}`);
   go(back, 'saved', 'Letter marked mailed.');
+}
+
+// Resident / public reports (violation_cases). Both RPCs re-check
+// can_manage_violations(association) and that the report is still open.
+export async function convertViolationReport(formData: FormData) {
+  await requireStaff();
+  const id = str(formData, 'case_id');
+  const unitId = str(formData, 'unit_id');
+  const ruleId = str(formData, 'house_rule_id');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('convert_violation_report', {
+    p_case_id: id,
+    p_unit_id: unitId || null,
+    p_house_rule_id: ruleId || null,
+    p_title: str(formData, 'title') || null,
+  });
+  if (error) go('/violations/reports', 'error', error.message);
+  revalidatePath('/violations/reports');
+  revalidatePath('/violations');
+  go(`/violations/${data}`, 'saved', 'Violation opened from the resident report. Send the first notice when ready.');
+}
+
+export async function dismissViolationReport(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('dismiss_violation_report', {
+    p_case_id: str(formData, 'case_id'),
+    p_reason: str(formData, 'reason'),
+  });
+  if (error) go('/violations/reports', 'error', error.message);
+  revalidatePath('/violations/reports');
+  go('/violations/reports', 'saved', 'Report dismissed.');
+}
+
+/** (Re)send the letter for the violation's current step without advancing it. */
+export async function sendCurrentStepLetter(formData: FormData) {
+  const me = await requireStaff();
+  const id = str(formData, 'id');
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).rpc('violation_current_step_letter', { p_violation_id: id });
+  if (error) go(`/violations/${id}`, 'error', error.message);
+  let letter: string;
+  try {
+    letter = await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
+  } catch (e) {
+    go(`/violations/${id}`, 'error', `The letter was not sent: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+  revalidatePath(`/violations/${id}`);
+  revalidatePath('/violations/letters');
+  go(`/violations/${id}`, 'saved', `${data.step_name}: ${letter}`);
 }

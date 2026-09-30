@@ -14,7 +14,7 @@ import { date, money } from '@/lib/utils';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { EscalationPanel } from '@/components/violations/escalation-panel';
 import { ViolationLettersList } from '@/components/violations/letters-list';
-import { markViolationLetterMailed } from '@/lib/rpcs/violation-rules';
+import { markViolationLetterMailed, sendCurrentStepLetter } from '@/lib/rpcs/violation-rules';
 import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links';
 
 export const dynamic = 'force-dynamic';
@@ -65,9 +65,11 @@ export default async function ViolationDetailPage({
     stepsQuery,
     db.from('association_violation_settings').select('hearing_required_before_fine, hearing_request_days').eq('association_id', violation.association_id).maybeSingle(),
     db.from('violation_fines').select('id, step_name, amount, assessed_at').eq('violation_id', id).order('step_order'),
-    db.from('violation_letters').select(VIOLATION_LETTER_COLUMNS).eq('violation_id', id).order('created_at', { ascending: false }),
+    db.from('violation_letters').select(`${VIOLATION_LETTER_COLUMNS}, step_order`).eq('violation_id', id).order('created_at', { ascending: false }),
   ]);
   const letters = (letterRows ?? []) as ViolationLetterRow[];
+  const currentStep = Number(violation.current_step ?? 0);
+  const currentStepLetterMissing = currentStep > 0 && !(letterRows ?? []).some((l: any) => l.step_order === currentStep);
   const letterLinks = await signLetterLinks(letters);
 
   // Attachments: written by the field-capture flow as
@@ -175,10 +177,23 @@ export default async function ViolationDetailPage({
         </section>
 
         <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-950">Letters sent</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Written and delivered automatically at each follow-up step, using the step&apos;s template and delivery methods.</p>
+          <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-950">Letters sent</h2>
+              <p className="mt-0.5 text-xs text-gray-500">Written and delivered automatically at each follow-up step, using the step&apos;s template and delivery methods.</p>
+            </div>
+            {currentStep > 0 && (
+              <form action={sendCurrentStepLetter} className="shrink-0">
+                <input type="hidden" name="id" value={violation.id} />
+                <Button type="submit" size="sm" variant={currentStepLetterMissing ? 'primary' : 'secondary'}>
+                  {currentStepLetterMissing ? 'Send missing letter for this step' : 'Resend letter for this step'}
+                </Button>
+              </form>
+            )}
           </div>
+          {currentStepLetterMissing && (
+            <p className="border-b border-amber-100 bg-amber-50 px-5 py-2.5 text-xs text-amber-800">The current step was recorded but its letter was not sent.</p>
+          )}
           <ViolationLettersList letters={letters} links={letterLinks} markMailed={markViolationLetterMailed} back={`/violations/${violation.id}`} />
         </section>
 
