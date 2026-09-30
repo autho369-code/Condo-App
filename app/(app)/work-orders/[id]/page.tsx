@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getMe } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,9 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
+  const me = await getMe();
+  // Same people the chargeback action and RPC accept.
+  const canChargeBack = me.is_finance_staff || me.is_company_admin || me.is_platform_operator;
 
   const [
     { data: wo },
@@ -306,7 +310,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         </form>
       </Section>
 
-      {wo.unit_id ? (
+      {wo.unit_id && canChargeBack ? (
         <Section title="Charge back to homeowner" subtitle="For repairs the owner caused. The charge goes on the unit ledger and posts to the GL.">
           {(chargebacks ?? []).length > 0 ? (
             <Table>
