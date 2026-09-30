@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Inbox, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -35,7 +35,7 @@ function residentName(t: any) {
 }
 
 export default async function InboxPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const me = await requireStaff();
+  const me = await requireWorkspaceStaff();
   const sp = await searchParams;
   const queue: Queue = (QUEUES.find((x) => x.key === sp.q)?.key ?? 'open') as Queue;
   const db = (await createClient()) as any;

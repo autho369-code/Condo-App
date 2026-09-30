@@ -8,7 +8,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth, requireStaff } from '@/lib/auth/me';
+import { requireAuth, requireWorkspaceStaff } from '@/lib/auth/me';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Where resident-side forms may send people back to. */
@@ -66,7 +66,7 @@ export async function replyAsResident(threadId: string, formData: FormData) {
 }
 
 export async function replyAsStaff(threadId: string, formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const back = `/inbox/${threadId}`;
   if (!UUID.test(threadId)) redirect('/inbox');
   const body = text(formData, 'body', 5000);
@@ -83,7 +83,7 @@ export async function replyAsStaff(threadId: string, formData: FormData) {
 }
 
 export async function setConversationStatus(threadId: string, status: 'open' | 'closed') {
-  await requireStaff();
+  await requireWorkspaceStaff();
   if (!UUID.test(threadId)) redirect('/inbox');
   const db = (await createClient()) as any;
   const { error } = await db.rpc('set_message_thread_status', { p_thread: threadId, p_status: status });
@@ -93,7 +93,7 @@ export async function setConversationStatus(threadId: string, status: 'open' | '
 }
 
 export async function assignConversation(threadId: string, formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   if (!UUID.test(threadId)) redirect('/inbox');
   const userId = String(formData.get('assigned_to') ?? '');
   if (userId && !UUID.test(userId)) redirect(`/inbox/${threadId}?error=${encodeURIComponent('Pick a team member')}`);
@@ -105,7 +105,7 @@ export async function assignConversation(threadId: string, formData: FormData) {
 }
 
 export async function startStaffConversation(formData: FormData) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const ownerId = String(formData.get('owner_id') ?? '');
   const tenantId = String(formData.get('tenant_id') ?? '');
   const back = `/inbox/new?${ownerId ? `owner=${ownerId}` : `tenant=${tenantId}`}`;
@@ -116,8 +116,10 @@ export async function startStaffConversation(formData: FormData) {
   if (!subject) fail('Add a subject');
   if (!body) fail('Write a message');
   const db = (await createClient()) as any;
+  const unitId = String(formData.get('unit_id') ?? '');
+  if (unitId && !UUID.test(unitId)) fail('Pick the unit');
   const { data, error } = await db.rpc('start_staff_message_thread', {
-    p_owner: ownerId || null, p_tenant: tenantId || null, p_subject: subject, p_body: body,
+    p_owner: ownerId || null, p_tenant: tenantId || null, p_subject: subject, p_body: body, p_unit: unitId || null,
   });
   if (error || !data) fail(error?.message ?? 'Could not send the message');
   refresh(data);

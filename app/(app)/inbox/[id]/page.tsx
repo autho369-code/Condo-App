@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
@@ -28,7 +28,7 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 export default async function ConversationPage({
   params, searchParams,
 }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
-  await requireStaff();
+  await requireWorkspaceStaff();
   const { id } = await params;
   const sp = await searchParams;
   const db = (await createClient()) as any;
