@@ -110,9 +110,9 @@ export default async function WorkOrdersPage({
     .order('created_at', { ascending: false })
     .limit(500);
   const aggregateRowsQuery = status === 'overdue'
-    ? db.from('work_orders')
-        .select('id, status, priority, scheduled_date, vendor_id, assignee_id')
-        .is('archived_at', null)
+    ? (assignee
+        ? db.from('work_orders').select('id, status, priority, scheduled_date, vendor_id, assignee_id').is('archived_at', null).eq('assignee_id', assignee)
+        : db.from('work_orders').select('id, status, priority, scheduled_date, vendor_id, assignee_id').is('archived_at', null))
         .order('created_at', { ascending: false })
         .limit(500)
     : Promise.resolve({ data: null });
