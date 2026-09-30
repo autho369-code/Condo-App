@@ -93,7 +93,11 @@ export function FieldCaptureForm({
     let remaining = 0;
     try {
       const pending = await listCaptures(userId);
-      for (const capture of pending) {
+      for (const { id } of pending) {
+        // Re-read each capture right before syncing it: the manager may have
+        // discarded it (or its progress changed) while earlier ones uploaded.
+        const capture = (await listCaptures(userId)).find((c) => c.id === id);
+        if (!capture) continue;
         setQueue((q) => q.map((c) => (c.id === capture.id ? { ...c, state: 'syncing', error: null } : c)));
         try {
           await syncCapture(capture);
