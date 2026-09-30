@@ -31,6 +31,19 @@ export async function setCollectionStatus(formData: FormData) {
   redirect(`${to}?saved=collections#collections`);
 }
 
+export async function setDuesReminders(formData: FormData) {
+  await requireStaff();
+  const to = target(formData);
+  const db = (await createClient()) as any;
+  const { error } = await db.rpc('set_occupancy_dues_reminders', {
+    p_occupancy_id: s(formData, 'occupancy_id'),
+    p_enabled: s(formData, 'enabled') === 'true',
+  });
+  if (error) redirect(`${to}?error=${encodeURIComponent(error.message)}#collections`);
+  revalidatePath(to);
+  redirect(`${to}?saved=dues_reminders#collections`);
+}
+
 export async function addDelinquencyNote(formData: FormData) {
   await requireStaff();
   const to = target(formData);
