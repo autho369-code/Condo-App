@@ -108,6 +108,7 @@ publish/republish for any period. Packages land in the board portal
 (Reports + Documents) as association documents in a "Board reports" folder.
 
 
+<<<<<<< HEAD
 ### Homeowner record — Portier status (2026-09-30)
 AppFolio homeowner page (audited live): Summary (recurring charges, balance,
 last receipt) · status block (delinquency notes, in foreclosure, in
@@ -128,3 +129,18 @@ two-way texts. Vendor trades: AppFolio has 14 more (alarm/security,
 appliances, capital improvements, carpet, cleaning, deck, doors/windows,
 drywall, elevator, fences/gates, fire/water damage, redevelopment,
 smoke/CO detectors) than the vendor_trade enum.
+=======
+### Vendor record — Portier status (2026-09-29)
+AppFolio vendor page (audited live): contact, portal activation, federal tax
+(+ Request W-9), accounting (check consolidation/stub, hold payments, eCheck
+receipt, terms, default memo/GL, work order adjustment), payment type + bank,
+compliance (6 expirations + Request Compliance Documents), notes with
+@mentions, two-way texts, emails log, audit log, attachments.
+Portier now: full Edit page for every field above (bank details restricted to
+accounting staff, account number never echoed, blank = keep), portal status +
+invitation from the record, notes, audit log of changes (bank/tax values
+redacted). Fixed: New Vendor offered vendor types/payment types that are not
+in the database enums (insurance/legal/accounting/utility, wire/credit_card)
+so those choices failed on save. Not built: two-way vendor texts (Twilio
+KYC), emails log, attachments, @mentions.
+>>>>>>> origin/main

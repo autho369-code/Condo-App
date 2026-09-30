@@ -5,17 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { requireStaff } from '@/lib/auth/me';
 import { createVendor } from '@/lib/rpcs/entities';
+import { VENDOR_PAYMENT_TYPES as PAYMENT_TYPES, VENDOR_TRADES as TRADES, VENDOR_TYPES } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
-const TRADES = [
-  'hvac', 'plumbing', 'electrical', 'landscaping', 'roofing', 'general_contractor', 'handyperson', 'snow_removal',
-  'pest_control', 'pool_spa', 'painting', 'keys_locks', 'fireplace_chimney', 'garage_doors', 'gutter_cleaning',
-  'inspections', 'parking_driveways', 'preventative_maintenance', 'repairs_exterior', 'repairs_interior', 'septic',
-  'trash_recycling', 'utilities', 'turnover', 'other',
-];
-const VENDOR_TYPES = ['general', 'insurance', 'legal', 'accounting', 'utility', 'other'];
-const PAYMENT_TYPES = ['check', 'ach', 'wire', 'credit_card'];
 
 export default async function NewVendorPage({
   searchParams,

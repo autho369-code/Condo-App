@@ -672,53 +672,6 @@ export async function createVendor(formData: FormData) {
   redirect('/vendors');
 }
 
-export async function updateVendor(id: string, formData: FormData) {
-  await requireStaff();
-  const supabase = await createClient();
-  const failTo = (msg: string) => redirect(`/vendors/${id}?error=${encodeURIComponent(msg)}`);
-
-  const phones: Array<{type: string; number: string}> = [];
-  const landline = str(formData, 'phone_landline');
-  const mobile = str(formData, 'phone_mobile');
-  if (landline) phones.push({ type: 'landline', number: landline });
-  if (mobile) phones.push({ type: 'mobile', number: mobile });
-
-  const emailVal = str(formData, 'email');
-  const emails: string[] = emailVal ? [emailVal] : [];
-
-  const patch: Record<string, unknown> = {
-    name:         str(formData, 'name'),
-    vendor_type:  str(formData, 'vendor_type'),
-    trade:        str(formData, 'trade'),
-    phone_numbers: phones,
-    emails:        emails,
-    address_street: str(formData, 'address_street'),
-    address_city:   str(formData, 'address_city'),
-    address_state:  str(formData, 'address_state'),
-    address_zip:    str(formData, 'address_zip'),
-    taxpayer_name: str(formData, 'taxpayer_name'),
-    taxpayer_id:   str(formData, 'taxpayer_id'),
-    send_1099:     formData.get('send_1099') === 'on',
-    payment_type:  str(formData, 'payment_type'),
-    payment_terms: str(formData, 'payment_terms'),
-    bank_routing_number: str(formData, 'bank_routing_number'),
-    bank_account_number: str(formData, 'bank_account_number'),
-    is_utility:    formData.get('is_utility') === 'on',
-    notes:         str(formData, 'notes'),
-    workers_comp_expiration:       str(formData, 'workers_comp_expiration'),
-    general_liability_expiration:  str(formData, 'general_liability_expiration'),
-    epa_certification_expiration:  str(formData, 'epa_certification_expiration'),
-    auto_insurance_expiration:     str(formData, 'auto_insurance_expiration'),
-    state_license_expiration:      str(formData, 'state_license_expiration'),
-    contract_expiration:           str(formData, 'contract_expiration'),
-  };
-  Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await (supabase as any).from('vendors').update(patch).eq('id', id);
-  if (error) { failTo(error.message); return; }
-  revalidatePath(`/vendors/${id}`);
-  revalidatePath('/vendors');
-}
-
 // ============================================================================
 // VENDOR ACH AUTHORIZATION
 // ============================================================================
