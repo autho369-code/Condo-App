@@ -42,6 +42,11 @@ describe('amortizationSchedule', () => {
     expect(s.rows.map((r) => r.date)).toEqual(['2026-12-15', '2027-03-15', '2027-06-15']);
   });
 
+  it('advances end-of-month dates the way the database does (Jan 31 -> Feb 28 -> Mar 28)', () => {
+    const s = amortizationSchedule({ balance: 3000, annualRatePct: 0, payment: 1000, frequency: 'monthly', firstPaymentDate: '2027-01-31' });
+    expect(s.rows.map((r) => r.date)).toEqual(['2027-01-31', '2027-02-28', '2027-03-28']);
+  });
+
   it('stops at the period cap and reports it', () => {
     const s = amortizationSchedule({ balance: 1_000_000, annualRatePct: 1, payment: 900, frequency: 'monthly', firstPaymentDate: null, maxPeriods: 12 });
     expect(s.rows).toHaveLength(12);

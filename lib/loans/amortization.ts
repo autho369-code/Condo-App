@@ -78,7 +78,12 @@ export function amortizationSchedule(input: {
     return { rows, totalInterest: 0, payoffDate: null, neverPaysOff: true, truncated: false };
   }
 
+  // Each due date steps from the previous one — the same way record_loan_payment
+  // advances next_payment_date (Jan 31 -> Feb 28 -> Mar 28), so projections
+  // match the dates the ledger will actually use.
+  let dueDate: string | null = input.firstPaymentDate;
   for (let n = 1; n <= maxPeriods && balance > 0; n++) {
+    if (n > 1 && dueDate) dueDate = addMonths(dueDate, monthsPerPeriod);
     const interest = interestFor(balance, input.annualRatePct, input.frequency);
     const payment = Math.min(cents(input.payment), cents(balance + interest));
     const principal = cents(payment - interest);
@@ -86,7 +91,7 @@ export function amortizationSchedule(input: {
     totalInterest = cents(totalInterest + interest);
     rows.push({
       n,
-      date: input.firstPaymentDate ? addMonths(input.firstPaymentDate, (n - 1) * monthsPerPeriod) : null,
+      date: dueDate,
       payment,
       interest,
       principal,
