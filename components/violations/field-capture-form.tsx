@@ -21,6 +21,10 @@ import { Alert, Badge } from '@/components/ui/shell';
 
 const MAX_PHOTOS = 10;
 const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+// Failed syncs retry on their own (the browser may never report going offline
+// and back): 30 s, doubling, capped at 5 minutes.
+const RETRY_START_MS = 30_000;
+const RETRY_MAX_MS = 5 * 60_000;
 
 const TYPE_OPTIONS = [
   'noise', 'parking', 'pets', 'exterior_modification', 'trash_debris',
@@ -67,6 +71,8 @@ export function FieldCaptureForm({
   const [queue, setQueue] = useState<QueuedCapture[]>([]);
   const [online, setOnline] = useState(true);
   const syncing = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryDelay = useRef(RETRY_START_MS);
 
   // ── Device queue ──
   const reloadQueue = useCallback(async () => {
@@ -82,7 +88,9 @@ export function FieldCaptureForm({
   // Sync everything still on the device, oldest first; one pass at a time.
   const syncQueue = useCallback(async () => {
     if (syncing.current || !navigator.onLine) return;
+    if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     syncing.current = true;
+    let remaining = 0;
     try {
       const pending = await listCaptures(userId);
       for (const capture of pending) {
@@ -94,17 +102,27 @@ export function FieldCaptureForm({
           if (!navigator.onLine) break;
         }
       }
+      remaining = (await listCaptures(userId)).length;
     } catch { /* no device storage */ }
     finally {
       syncing.current = false;
       await reloadQueue();
     }
+    if (remaining > 0) {
+      retryTimer.current = setTimeout(() => { retryTimer.current = null; void syncQueueRef.current(); }, retryDelay.current);
+      retryDelay.current = Math.min(retryDelay.current * 2, RETRY_MAX_MS);
+    } else {
+      retryDelay.current = RETRY_START_MS;
+    }
   }, [userId, markFailed, reloadQueue]);
+  const syncQueueRef = useRef(syncQueue);
+  useEffect(() => { syncQueueRef.current = syncQueue; }, [syncQueue]);
+  useEffect(() => () => { if (retryTimer.current) clearTimeout(retryTimer.current); }, []);
 
   useEffect(() => {
     setOnline(navigator.onLine);
     void reloadQueue().then(() => { if (navigator.onLine) void syncQueue(); });
-    const up = () => { setOnline(true); void syncQueue(); };
+    const up = () => { setOnline(true); retryDelay.current = RETRY_START_MS; void syncQueue(); };
     const down = () => setOnline(false);
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
@@ -228,13 +246,17 @@ export function FieldCaptureForm({
     setProgress(files.length ? 'Filing and uploading photos…' : 'Filing…');
     syncing.current = true;
     try {
-      const violationId = await syncCapture(capture);
+      const violationId = await syncCapture(capture, { persist: stored });
       setProgress('Done — opening case…');
       router.push(`/violations/${violationId}`);
     } catch (err: any) {
       const message = err?.message ?? 'Sync failed';
       const latest = stored ? await markFailed(capture.id, message) : null;
-      if (!latest) {
+      if (!latest && message.startsWith('The case was filed')) {
+        // Not stored on the device, so no automatic retry — don't invite a duplicate resubmission.
+        resetForm();
+        setError(`${message}. Add the missing photos from the case page.`);
+      } else if (!latest) {
         setError(`${message} — the violation may not have been saved.`);
         setBusy(false);
         setProgress(null);

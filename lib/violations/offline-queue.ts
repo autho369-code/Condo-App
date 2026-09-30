@@ -86,8 +86,11 @@ export function localDate(date = new Date()) {
  * Sync one capture. Returns the violation id once everything (the case and
  * every photo) is on the server; otherwise throws with a readable message and
  * leaves the capture — with its progress saved — on the device.
+ * persist=false is for a capture the device could not store (IndexedDB denied
+ * or full): it is filed directly and nothing is written locally.
  */
-export async function syncCapture(capture: QueuedCapture): Promise<string> {
+export async function syncCapture(capture: QueuedCapture, { persist = true }: { persist?: boolean } = {}): Promise<string> {
+  const save = (c: QueuedCapture) => (persist ? saveCapture(c) : Promise.resolve());
   let current = { ...capture, photos: capture.photos.map((p) => ({ ...p })) };
   if (!current.violationId) {
     const created = await createFieldViolation({
@@ -104,7 +107,7 @@ export async function syncCapture(capture: QueuedCapture): Promise<string> {
     });
     if (created.error || !created.id) throw new Error(created.error ?? 'Portier did not create the violation');
     current = { ...current, violationId: created.id };
-    await saveCapture(current);
+    await save(current);
   }
   const violationId = current.violationId!;
 
@@ -124,7 +127,7 @@ export async function syncCapture(capture: QueuedCapture): Promise<string> {
         if (rec.error) throw new Error(rec.error);
       }
       photo.done = true;
-      await saveCapture(current);
+      await save(current);
     } catch (error: any) {
       failed.push(`${photo.name}: ${error?.message ?? 'upload failed'}`);
     }
@@ -132,6 +135,6 @@ export async function syncCapture(capture: QueuedCapture): Promise<string> {
   if (failed.length) {
     throw new Error(`The case was filed, but ${failed.length} photo${failed.length === 1 ? '' : 's'} still need to upload (${failed.join('; ')})`);
   }
-  await removeCapture(current.id);
+  if (persist) await removeCapture(current.id);
   return violationId;
 }
