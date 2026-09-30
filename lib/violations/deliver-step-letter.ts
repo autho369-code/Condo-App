@@ -190,7 +190,7 @@ async function queueLetterEmail(
 export async function retryStepLetter(db: any, violationId: string, step: number, sentBy: string | null): Promise<string | null> {
   const { data: letter, error } = await db
     .from('violation_letters')
-    .select('id, subject, body, emailed_to, email_status, delivery_methods, violations(association_id, owner_id, associations(portfolio_id), owners(full_name))')
+    .select('id, subject, body, emailed_to, email_status, delivery_methods, violations(association_id, owner_id, associations(portfolio_id), owners(full_name, email))')
     .eq('violation_id', violationId)
     .eq('step_order', step)
     .order('created_at', { ascending: false })
@@ -200,10 +200,23 @@ export async function retryStepLetter(db: any, violationId: string, step: number
   if (!letter) return null;
 
   const wantsEmail = (letter.delivery_methods ?? []).includes('email');
-  if (!wantsEmail || !letter.emailed_to) {
-    return letter.email_status === 'no_email_on_file'
-      ? "The letter for this step already exists; it can't be emailed because the owner has no email on file. Nothing was duplicated."
-      : 'The letter for this step was already delivered by portal / mail. Nothing was duplicated.';
+  if (!wantsEmail) {
+    return 'The letter for this step was already delivered by portal / mail. Nothing was duplicated.';
+  }
+  if (letter.email_status === 'no_email_on_file') {
+    // The owner had no email when the letter was written; use the address on file now.
+    const current = letter.violations?.owners?.email?.trim() || null;
+    if (!current) {
+      return "The letter for this step already exists; it can't be emailed because the owner still has no email on file. Nothing was duplicated.";
+    }
+    const { error: addrError } = await db
+      .from('violation_letters').update({ email_status: 'pending', emailed_to: current }).eq('id', letter.id).eq('email_status', 'no_email_on_file');
+    if (addrError) throw new Error(`Could not update the letter's recipient: ${addrError.message}`);
+    letter.email_status = 'pending';
+    letter.emailed_to = current;
+  }
+  if (!letter.emailed_to) {
+    return 'The letter for this step has no email address to send to. Nothing was duplicated.';
   }
   const ctx: LetterEmailContext = {
     toName: letter.violations?.owners?.full_name ?? null,
