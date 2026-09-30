@@ -167,6 +167,7 @@ permissions, recalculate balances. Diagnostics: 10 balance checks.
 | Vendor / other receipts (non-owner income) | ✅ | /receipts/other — split across GL lines, one balanced JE, void = reversing entry dated today |
 | Homeowner credits + apply credits | ✅ | #64 |
 | Bills, approval, check run, owner payables | ✅ | |
+| Purchase order → bill matching | ✅ | bill from an approved PO; bills can never exceed the PO total; po_billed + billed status automatic (#90) |
 | Recurring bills | ✅ | /bills/recurring (2026-09-30) |
 | Recurring journal entries | ✅ | /journal-entries/recurring/new |
 | Pay management fees | ✅ | /accounting/management-fees (#65) |

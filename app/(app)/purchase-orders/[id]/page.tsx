@@ -4,10 +4,10 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Field, Input, Select } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
-import { cancelPurchaseOrder, submitPurchaseOrder } from '@/lib/rpcs/purchase-orders';
+import { billPurchaseOrder, cancelPurchaseOrder, submitPurchaseOrder } from '@/lib/rpcs/purchase-orders';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { ApprovalStatusChip, OrderStatusChip } from '../status-chips';
@@ -39,9 +39,9 @@ export default async function PurchaseOrderDetailPage({
     .maybeSingle();
   if (!po) notFound();
 
-  const [{ data: lines }, { data: request }, { data: decisions }] = await Promise.all([
+  const [{ data: lines }, { data: request }, { data: decisions }, { data: bills }] = await Promise.all([
     db.from('purchase_order_line_items')
-      .select('id, description, qty, unit_price, line_total, gl_accounts(number, name)')
+      .select('id, description, qty, unit_price, line_total, gl_account_id, gl_accounts(number, name)')
       .eq('purchase_order_id', id)
       .order('sort_order'),
     po.approval_request_id
@@ -56,11 +56,23 @@ export default async function PurchaseOrderDetailPage({
           .eq('approval_request_id', po.approval_request_id)
           .order('decided_at')
       : Promise.resolve({ data: [] }),
+    db.from('payable_bills')
+      .select('id, bill_number, bill_date, amount, status')
+      .eq('purchase_order_id', id)
+      .is('archived_at', null)
+      .order('bill_date', { ascending: false }),
   ]);
 
   const editable = po.status !== 'cancelled' && ['draft', 'rejected'].includes(po.approval_status);
   const cancellable = po.status !== 'cancelled' && po.status !== 'billed' && Number(po.po_billed ?? 0) === 0;
   const remaining = Math.max(0, Number(po.po_total ?? 0) - Number(po.po_billed ?? 0));
+  const billable = po.approval_status === 'approved' && po.status !== 'cancelled' && remaining > 0 && !!po.vendor_id;
+  // One GL per bill: offer a choice only when the PO's lines use more than one account.
+  const lineGls = new Map<string, string>();
+  for (const l of (lines ?? []) as any[]) {
+    if (l.gl_account_id) lineGls.set(l.gl_account_id, l.gl_accounts ? `${l.gl_accounts.number ?? ''} ${l.gl_accounts.name}`.trim() : 'GL account');
+  }
+  const today = new Date().toISOString().slice(0, 10);
   const title = `PO ${po.number ?? po.id.slice(0, 8)}`;
 
   const timeline = [
@@ -128,6 +140,66 @@ export default async function PurchaseOrderDetailPage({
               </Table>
             ) : (
               <EmptyState title="No line items" description="Edit this purchase order to itemize the work before submitting." />
+            )}
+          </Section>
+
+          <Section title="Bills" subtitle={`${money(po.po_billed)} billed of ${money(po.po_total)}`}>
+            {(bills ?? []).length > 0 ? (
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Bill</TH>
+                    <TH>Date</TH>
+                    <TH>Status</TH>
+                    <TH className="text-right">Amount</TH>
+                  </TR>
+                </THead>
+                <tbody>
+                  {(bills ?? []).map((b: any) => (
+                    <TR key={b.id}>
+                      <TD><Link href={`/bills/${b.id}`} className="font-medium text-gray-950 hover:underline">{b.bill_number ?? 'Bill'}</Link></TD>
+                      <TD className="text-gray-600">{date(b.bill_date)}</TD>
+                      <TD><StatusChip tone={b.status === 'paid' ? 'success' : b.status === 'void' ? 'neutral' : b.status === 'approved' ? 'info' : 'warning'}>{String(b.status).replace(/_/g, ' ')}</StatusChip></TD>
+                      <TD className={`text-right tabular-nums ${b.status === 'void' ? 'text-gray-400 line-through' : 'text-gray-950'}`}>{money(b.amount)}</TD>
+                    </TR>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <p className="px-5 py-4 text-sm text-gray-500">No bills against this purchase order yet.</p>
+            )}
+            {billable && (
+              <form action={billPurchaseOrder} className="grid gap-4 border-t border-gray-100 px-5 py-5 sm:grid-cols-2">
+                <input type="hidden" name="id" value={id} />
+                <div className="sm:col-span-2">
+                  <div className="text-sm font-semibold text-gray-950">Bill this purchase order</div>
+                  <p className="mt-0.5 text-[13px] text-gray-500">Creates a bill for {po.vendors?.name ?? 'the vendor'} linked to this PO. Bills can never add up to more than the PO total.</p>
+                </div>
+                <Field label="Invoice number">
+                  <Input name="bill_number" maxLength={100} placeholder="Vendor's invoice #" />
+                </Field>
+                <Field label="Amount" hint={`Up to ${money(remaining)} remaining`}>
+                  <Input name="amount" type="number" step="0.01" min="0.01" max={remaining.toFixed(2)} required defaultValue={remaining.toFixed(2)} />
+                </Field>
+                <Field label="Invoice date">
+                  <Input name="bill_date" type="date" required defaultValue={today} />
+                </Field>
+                <Field label="Due date (optional)">
+                  <Input name="due_date" type="date" />
+                </Field>
+                {lineGls.size > 1 && (
+                  <Field label="GL account" className="sm:col-span-2">
+                    <Select name="gl_account_id" required defaultValue="">
+                      <option value="">Choose the account this bill goes to</option>
+                      {[...lineGls.entries()].map(([glId, label]) => <option key={glId} value={glId}>{label}</option>)}
+                    </Select>
+                  </Field>
+                )}
+                <label className="flex items-center gap-2 text-[13px] text-gray-700 sm:col-span-2">
+                  <input type="checkbox" name="submit_for_approval" /> Submit the bill for approval now
+                </label>
+                <div className="sm:col-span-2"><Button type="submit">Create bill</Button></div>
+              </form>
             )}
           </Section>
 

@@ -23,6 +23,10 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     .maybeSingle();
 
   if (!b) notFound();
+  // No FK between bills and POs (see purchase_order_billing): load the PO separately.
+  const { data: purchaseOrder } = b.purchase_order_id
+    ? await (supabase as any).from('purchase_orders').select('id, number, po_total, po_billed').eq('id', b.purchase_order_id).maybeSingle()
+    : { data: null };
   const { data: approvalRequest } = b.approval_request_id
     ? await (supabase as any)
       .from('approval_requests')
@@ -70,6 +74,15 @@ export default async function BillDetailPage({ params, searchParams }: { params:
           <div><dt className="text-gray-500">Amount</dt><dd className="font-semibold tabular-nums text-gray-950">{money(b.amount)}</dd></div>
           <div><dt className="text-gray-500">Bill date</dt><dd className="text-gray-900">{date(b.bill_date)}</dd></div>
           <div><dt className="text-gray-500">Due date</dt><dd className="text-gray-900">{date(b.due_date)}</dd></div>
+          {purchaseOrder && (
+            <div>
+              <dt className="text-gray-500">Purchase order</dt>
+              <dd className="text-gray-900">
+                <Link href={`/purchase-orders/${purchaseOrder.id}`} className="font-medium hover:underline">PO {purchaseOrder.number ?? purchaseOrder.id.slice(0, 8)}</Link>
+                <span className="text-gray-500"> · {money(purchaseOrder.po_billed)} of {money(purchaseOrder.po_total)} billed</span>
+              </dd>
+            </div>
+          )}
           <div><dt className="text-gray-500">GL account</dt><dd className="text-gray-900">{b.gl_accounts ? `${b.gl_accounts.number} — ${b.gl_accounts.name}` : '—'}</dd></div>
           <div><dt className="text-gray-500">Bank account</dt><dd className="text-gray-900">{b.bank_accounts?.name ?? '—'}</dd></div>
           <div className="sm:col-span-2">

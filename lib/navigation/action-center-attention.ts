@@ -80,6 +80,14 @@ export async function loadActionCenterAttention(
     .select('id', { count: 'exact', head: true })
     .eq('status', 'failed') as CountQuery;
 
+  const poApprovals = options.isFinanceStaff
+    ? db
+        .from('purchase_orders')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null)
+        .eq('approval_status', 'pending_approval') as CountQuery
+    : Promise.resolve({ count: 0 });
+
   const weekAhead = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
   const loansDue = options.isFinanceStaff
     ? db
@@ -98,7 +106,7 @@ export async function loadActionCenterAttention(
         .eq('status', 'pending_approval') as CountQuery
     : Promise.resolve({ count: 0 });
 
-  const [workOrders, serviceRequests, replies, messages, violations, followUps, reports, letters, reviews, communications, bills, loans] = await Promise.all([
+  const [workOrders, serviceRequests, replies, messages, violations, followUps, reports, letters, reviews, communications, bills, loans, pos] = await Promise.all([
     overdueWorkOrders,
     untriagedServiceRequests,
     overdueReplies,
@@ -111,6 +119,7 @@ export async function loadActionCenterAttention(
     failedCommunications,
     pendingBills,
     loansDue,
+    poApprovals,
   ]);
 
   return [
@@ -125,6 +134,7 @@ export async function loadActionCenterAttention(
     { label: 'architectural reviews awaiting action', count: reviews.count ?? 0, href: '/architectural-reviews?status=open', tone: 'pending' as const },
     { label: 'failed communications', count: communications.count ?? 0, href: '/communication-center?status=failed', tone: 'pending' as const },
     { label: 'loan payments due this week', count: loans.count ?? 0, href: '/accounting/loans', tone: 'pending' as const },
+    { label: 'purchase orders awaiting approval', count: pos.count ?? 0, href: '/purchase-orders?status=pending_approval', tone: 'pending' as const },
     { label: 'bills pending approval', count: bills.count ?? 0, href: '/bills?status=pending_approval', tone: 'info' as const },
   ].filter((item) => item.count > 0);
 }
