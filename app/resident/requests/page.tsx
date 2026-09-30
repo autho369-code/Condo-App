@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { AlertTriangle, Wrench } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -74,6 +75,7 @@ export default async function ResidentRequestsPage({
       <Surface>
         <h2 className="text-[15px] font-semibold text-gray-950">Submit a request</h2>
         <p className="mt-1 text-[13px] leading-5 text-gray-500">For fire, gas, an active flood, or immediate danger, call 911 and your building&apos;s emergency line first.</p>
+        <p className="mt-1 text-[13px] leading-5 text-gray-500">A question rather than a repair? <Link href="/resident/messages?compose=1" className="font-medium text-gray-900 hover:underline">Send a message instead</Link>.</p>
         {unitOptions.length === 0 ? (
           <Alert tone="warning" className="mt-4">Your account is not linked to an active unit. Contact management.</Alert>
         ) : (
