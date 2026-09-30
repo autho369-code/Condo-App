@@ -26,6 +26,8 @@ export interface StatusChangeParams {
   kind: 'work_order' | 'service_request';
   id: string;
   newStatus: string;
+  /** Optional note from staff, quoted in the email (e.g. the answer to a question). */
+  message?: string | null;
 }
 
 /** "in_progress" → "In progress" */
@@ -68,11 +70,13 @@ export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<stri
  * White-labeled as the management company. Never throws; skips silently when
  * there is no owner or the owner has no email on file.
  */
-export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusChangeParams): Promise<void> {
+export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }: StatusChangeParams): Promise<void> {
   try {
     const svc = createServiceClient() as any;
 
     let ownerId: string | null = null;
+    // Tenant-submitted requests carry only tenant_id: reply to the tenant.
+    let tenant: { email: string | null; first_name: string | null; last_name: string | null } | null = null;
     let associationId: string | null = null;
     let portfolioId: string | null = null;
     let associationName: string | null = null;
@@ -100,11 +104,12 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
     } else {
       const { data: sr, error } = await svc
         .from('service_requests')
-        .select('id, number, description, homeowner_id, owner_id, association_id, portfolio_id, associations(name, portfolio_id)')
+        .select('id, number, description, homeowner_id, owner_id, tenant_id, association_id, portfolio_id, associations(name, portfolio_id), tenants:tenant_id(email, first_name, last_name)')
         .eq('id', id)
         .maybeSingle();
       if (error || !sr) return;
       ownerId = sr.homeowner_id ?? sr.owner_id ?? null;
+      if (!ownerId && sr.tenant_id) tenant = Array.isArray(sr.tenants) ? sr.tenants[0] ?? null : sr.tenants ?? null;
       associationId = sr.association_id ?? null;
       portfolioId = sr.portfolio_id ?? sr.associations?.portfolio_id ?? null;
       associationName = sr.associations?.name ?? null;
@@ -113,13 +118,17 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
       itemNumber = sr.number ?? null;
       noun = 'service request';
       // No per-request owner detail page exists — link to the portal list.
-      linkPath = '/portal/service-requests';
+      linkPath = tenant ? '/resident/requests' : '/portal/service-requests';
     }
 
-    if (!ownerId) return;
-
-    const { data: owner } = await svc.from('owners').select('email, full_name').eq('id', ownerId).maybeSingle();
-    if (!owner?.email) return; // owner has no email on file — skip silently
+    let owner: { email: string | null; full_name: string | null } | null = null;
+    if (ownerId) {
+      const { data } = await svc.from('owners').select('email, full_name').eq('id', ownerId).maybeSingle();
+      owner = data ?? null;
+    } else if (tenant) {
+      owner = { email: tenant.email, full_name: [tenant.first_name, tenant.last_name].filter(Boolean).join(' ') || 'Resident' };
+    }
+    if (!owner?.email) return; // no recipient / no email on file — skip silently
 
     // White-label branding: present as the management company (same pattern as
     // insurance reminders). Only the sending address stays on portier369.com.
@@ -150,7 +159,8 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus }: StatusC
         text:
           `Hi ${ownerName},\n\n` +
           `Your ${noun} ${ref}"${itemTitle}"${associationName ? ` at ${associationName}` : ''} has a new status: ${label}.\n\n` +
-          `View the latest details in your owner portal:\n${link}\n\n${signature}`,
+          (message?.trim() ? `Message from ${brandName}:\n\n${message.trim()}\n\n` : '') +
+          `View the latest details in your ${tenant ? 'resident' : 'owner'} portal:\n${link}\n\n${signature}`,
         portfolioId,
         associationId,
       },

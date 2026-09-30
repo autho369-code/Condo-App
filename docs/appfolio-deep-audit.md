@@ -163,20 +163,54 @@ permissions, recalculate balances. Diagnostics: 10 balance checks.
 |---|---|---|
 | Charges, bulk & recurring charges, late fees, interest | ✅ | |
 | Homeowner receipts (office) + receipt print | ✅ | GL-posted since #55 |
-| Receipts list (all receipts, search) | ❌ | only per unit |
+| Receipts list (all receipts, search) | ✅ | /receipts (#64) |
 | Vendor / other receipts (non-owner income) | ❌ | |
-| Homeowner credits + apply credits | ❌ | |
+| Homeowner credits + apply credits | ✅ | #64 |
 | Bills, approval, check run, owner payables | ✅ | |
 | Recurring bills | ✅ | /bills/recurring (2026-09-30) |
 | Recurring journal entries | ✅ | /journal-entries/recurring/new |
-| Pay management fees | ❌ | policies UI only |
+| Pay management fees | ✅ | /accounting/management-fees (#65) |
 | Smart bill entry (invoice → bill) | ✅ | AI invoice extraction on New bill |
-| Upload bulk bills / JE batch CSV | ❌ | batches table exists |
-| Bulk board approval of bills | ❌ | |
-| Lockbox import | ❌ | tables exist |
+| Upload bulk bills / JE batch CSV | ✅ | #68 |
+| Bulk board approval of bills | ✅ | #67 |
+| Lockbox import | ✅ | auto-matching, #69 |
 | Bank accounts, deposits, reconcile, feeds, transfers | ✅ | |
 | Close accounting period | ✅ | /accounting-periods |
 | GL accounts + permissions | ✅ | GL account map ➖ |
 | Diagnostics | ✅ | compare checks list |
 | Loans | 🟡 | association_loans on profile |
 | Online payables, chargeback insights, subsidy, GPR | ➖ | AppFolio services / rental |
+
+## 4. Maintenance (audited live 2026-09-30)
+
+AppFolio nav: Work Orders, Recurring Work Orders, Inspections, Unit Turns,
+Projects, Purchase Orders, Inventory, Fixed Assets, Maintenance Performer.
+Work order list: dashboard metrics (unassigned resident-requested,
+unassigned internal, ready to bill), property / status / assignee / vendor
+filters, saved filters, bulk actions. Service request record: description,
+priority, permission to enter, homeowner availability, recent work orders for
+the unit; each work order has estimates + owner approval, vendor trade, issue,
+vendor instructions, scheduling, actions log, follow-up date, assignee, labor,
+purchase orders, withheld amount, invoices, texts, emails, attachments,
+@mention notes.
+
+**What the live account shows:** 1,942 resident requests sit unassigned. A
+large share are not repairs at all (ledger copies, meeting minutes, insurance
+declarations pages, move-in COIs, "who is on the board"), and many are repeat
+reports of the same problem ("third time asking"). AppFolio files them all as
+work orders and has no first-response clock, so nothing surfaces what is late.
+
+| Area | Portier | Notes |
+|---|---|---|
+| Work orders, recurring, inspections, unit turns, projects, POs, inventory, fixed assets | ✅ | all routes exist |
+| Estimates + approval, labor, vendor rating, message thread | ✅ | work order detail |
+| Request / work order numbers | ✅ | were never assigned; "N" and "N-1" since smart intake |
+| Emergency / urgent detection from the text | ✅ **beyond AppFolio** | priority only raised, reasons shown |
+| Questions vs repairs (account, documents, insurance, move, access, board) | ✅ **beyond AppFolio** | answer-and-close with emailed reply |
+| Duplicate detection + merge | ✅ **beyond AppFolio** | trigram similarity, same association, 30 days |
+| First-response clock + overdue queue + Action Center count | ✅ **beyond AppFolio** | 2h / 24h / 48h / 72h by priority |
+| Emergency alert email to managers | ✅ | association managers, else company managers + support inbox |
+| Work order attachments / photos | ❌ | next |
+| Homeowner chargeback from a work order | ❌ | next |
+| Work order bulk actions + saved filters | 🟡 | filters yes, bulk no |
+| Maintenance performer (tech productivity) | ❌ | |
