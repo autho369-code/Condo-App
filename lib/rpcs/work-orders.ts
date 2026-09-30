@@ -303,3 +303,26 @@ export async function createWorkOrderFromServiceRequest(serviceRequestId: string
   revalidatePath('/work-orders');
   redirect(`/work-orders/${wo.id}`);
 }
+
+/** Bill the cost of an owner-caused repair back to the unit's owner ledger. */
+export async function chargeBackWorkOrder(workOrderId: string, formData: FormData) {
+  await requireStaff();  // in-action guard; the RPC re-checks finance + association scope
+  const back = `/work-orders/${workOrderId}`;
+  const amount = Number(String(formData.get('amount') ?? '').replace(/[$,\s]/g, ''));
+  const categoryId = String(formData.get('charge_category_id') ?? '');
+  const dueDate = String(formData.get('due_date') ?? '') || null;
+  if (!Number.isFinite(amount) || amount <= 0) redirect(`${back}?error=${encodeURIComponent('Enter an amount above zero')}`);
+  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) redirect(`${back}?error=${encodeURIComponent('Pick a valid due date')}`);
+  const supabase = await createClient();
+  const { error } = await (supabase as any).rpc('charge_back_work_order', {
+    p_work_order: workOrderId,
+    p_category: categoryId,
+    p_amount: amount,
+    p_description: String(formData.get('description') ?? ''),
+    p_due_date: dueDate,
+  });
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(back);
+  redirect(`${back}?saved=chargeback`);
+}
+

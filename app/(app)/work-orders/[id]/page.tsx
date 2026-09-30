@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import {
   updateWorkOrderStatus, updateWorkOrder, assignVendor, unassignVendor,
-  addLaborEntry, addEstimate, approveEstimate, addNote,
+  addLaborEntry, addEstimate, approveEstimate, addNote, chargeBackWorkOrder,
 } from '@/lib/rpcs/work-orders';
 import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { RATABLE_STATUSES, RateWorkOrderForm, Stars, summarize } from '@/components/work-orders/rating';
 import { money, date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
+import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +55,7 @@ function statusBadge(s: string) {
   return 'bg-amber-100 text-amber-800';
 }
 
-export default async function WorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; rating_error?: string; rating_saved?: string }> }) {
+export default async function WorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string; rating_error?: string; rating_saved?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -70,7 +72,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
-      units(unit_number, buildings(association_id, associations(name))),
+      units(unit_number, buildings(association_id, associations(name, portfolio_id))),
       service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
     (supabase as any).from('work_order_updates').select('id, note, new_status, created_at, created_by').eq('work_order_id', id).order('created_at', { ascending: false }),
@@ -82,6 +84,16 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     supabase.auth.getUser(),
   ]);
   if (!wo) notFound();
+  const [attachments, { data: chargebacks }, { data: chargeCategories }] = await Promise.all([
+    loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id }),
+    wo.unit_id
+      ? (supabase as any).from('charges').select('id, description, amount, due_date, created_at').eq('work_order_id', wo.id).order('created_at')
+      : Promise.resolve({ data: [] }),
+    wo.unit_id
+      ? (supabase as any).from('charge_categories').select('id, name, association_id, portfolio_id, active').is('archived_at', null).order('name')
+      : Promise.resolve({ data: [] }),
+  ]);
+  const approvedEstimate = (estimates ?? []).find((e: any) => e.approved_at);
 
   const assoc = (wo.units as any)?.buildings?.associations;
   const sr = wo.service_requests as any;
@@ -193,6 +205,12 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         </div>
       )}
 
+      {sp.saved === 'chargeback' && (
+        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+          Chargeback posted to the homeowner&apos;s ledger.
+        </div>
+      )}
+
       <Section title="Work details">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>
@@ -248,6 +266,12 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         </Section>
       )}
 
+      <Section title="Photos & files" subtitle="Includes the resident's photos on the request. The assigned vendor sees these too.">
+        <div className="px-5 py-4">
+          <MaintenanceAttachments kind="work_order" parentId={wo.id} items={attachments} canUpload currentUserId={authData?.user?.id ?? null} canRemoveAny />
+        </div>
+      </Section>
+
       <Section
         title="Labor entries"
         actions={laborTotal > 0 ? <div className="text-xs text-gray-500">Total <span className="font-semibold text-gray-900">{money(laborTotal)}</span></div> : null}
@@ -281,6 +305,56 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           </div>
         </form>
       </Section>
+
+      {wo.unit_id ? (
+        <Section title="Charge back to homeowner" subtitle="For repairs the owner caused. The charge goes on the unit ledger and posts to the GL.">
+          {(chargebacks ?? []).length > 0 ? (
+            <Table>
+              <THead><TR><TH>Charge</TH><TH className="text-right">Amount</TH><TH>Due</TH></TR></THead>
+              <tbody>
+                {(chargebacks ?? []).map((c: any) => (
+                  <TR key={c.id}>
+                    <TD><Link href={`/units/${wo.unit_id}`} className="hover:underline">{c.description}</Link></TD>
+                    <TD className="text-right font-medium tabular-nums">{money(c.amount)}</TD>
+                    <TD>{date(c.due_date)}</TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          ) : null}
+          <form action={chargeBackWorkOrder.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-3">
+            <div>
+              <Label>Charge category</Label>
+              <Select name="charge_category_id" required
+                options={(chargeCategories ?? [])
+                  // Same scope charge_back_work_order accepts: active, this company, this association or company-wide.
+                  .filter((c: any) => c.active !== false
+                    && c.portfolio_id === (wo.portfolio_id ?? (wo.units as any)?.buildings?.associations?.portfolio_id)
+                    && (!c.association_id || c.association_id === wo.association_id))
+                  .map((c: any) => ({ value: c.id, label: c.name }))} />
+            </div>
+            <div>
+              <Label htmlFor="cb_amount">Amount</Label>
+              <Input id="cb_amount" name="amount" type="number" step="0.01" min="0.01" max="100000" required
+                placeholder={approvedEstimate ? String(approvedEstimate.amount) : laborTotal > 0 ? laborTotal.toFixed(2) : '0.00'} />
+            </div>
+            <div>
+              <Label htmlFor="cb_due">Due date</Label>
+              <Input id="cb_due" name="due_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+            </div>
+            <div className="md:col-span-3">
+              <Label htmlFor="cb_description">Description on the owner&apos;s ledger</Label>
+              <Input id="cb_description" name="description" maxLength={500} placeholder={`Chargeback: ${wo.title ?? 'repair'}${wo.number ? ` (work order #${wo.number})` : ''}`} />
+            </div>
+            <div className="flex flex-col gap-2 md:col-span-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-xs text-gray-500">
+                Costs on this work order: labor {money(laborTotal)}{approvedEstimate ? ` · approved estimate ${money(approvedEstimate.amount)}` : ''}
+              </p>
+              <Button type="submit" variant="secondary">Post chargeback</Button>
+            </div>
+          </form>
+        </Section>
+      ) : null}
 
       <Section title="Estimates">
         {estimates && estimates.length > 0 ? (

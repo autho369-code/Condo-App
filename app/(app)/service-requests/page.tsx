@@ -12,20 +12,12 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { triageServiceRequest } from '@/app/(app)/service-requests/actions';
-import { requestKindLabel, responseState } from '@/lib/maintenance/intake';
+import { activeWorkOrder, requestKindLabel, responseState } from '@/lib/maintenance/intake';
 
 export const dynamic = 'force-dynamic';
 
 function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
-}
-
-const TERMINAL_WORK_ORDER = new Set(['done', 'completed', 'billed', 'closed', 'cancelled']);
-
-/** The request's open work order, if any. Finished/cancelled orders don't count as triage. */
-function activeWorkOrder(request: any): any | null {
-  const list = Array.isArray(request.work_orders) ? request.work_orders : request.work_orders ? [request.work_orders] : [];
-  return list.find((w: any) => !TERMINAL_WORK_ORDER.has(w.status)) ?? null;
 }
 
 function statusTone(status: string): Tone {
@@ -55,35 +47,45 @@ export default async function ServiceRequestsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: requestRows }, { data: associations }] = await Promise.all([
-    db.from('service_requests')
-      .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
-      .is('archived_at', null)
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(500),
+  const OPEN = ['open', 'waiting'];
+  const nowIso = new Date().toISOString();
+  // Queue predicates run in the database so they see every request, not just
+  // the first page; only the work-order-based "new"/"triaged" split is done
+  // in memory, over open requests.
+  let listQuery = db.from('service_requests')
+    .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
+    .is('archived_at', null);
+  if (intake === 'overdue') listQuery = listQuery.in('status', OPEN).is('acknowledged_at', null).lt('first_response_due_at', nowIso);
+  else if (intake === 'questions') listQuery = listQuery.in('status', OPEN).eq('request_kind', 'admin');
+  else if (intake === 'duplicates') listQuery = listQuery.in('status', OPEN).not('duplicate_of', 'is', null).eq('duplicate_reviewed', false);
+  else if (intake === 'completed' || intake === 'cancelled') listQuery = listQuery.eq('status', intake);
+  else if (intake !== 'all') listQuery = listQuery.in('status', OPEN);
+  if (priority) listQuery = listQuery.eq('priority', priority);
+  if (association_id) listQuery = listQuery.eq('association_id', association_id);
+
+  const openCount = (build: (query: any) => any) =>
+    build(db.from('service_requests').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', OPEN));
+
+  const [{ data: requestRows }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes] = await Promise.all([
+    listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('service_requests').select('id, created_at, work_orders(status)').is('archived_at', null).in('status', OPEN).limit(5000),
+    openCount((query) => query.is('acknowledged_at', null).lt('first_response_due_at', nowIso)),
+    openCount((query) => query.eq('request_kind', 'admin')),
+    openCount((query) => query.not('duplicate_of', 'is', null).eq('duplicate_reviewed', false)),
+    openCount((query) => query.eq('priority', 'emergency')),
   ]);
 
   const all = (requestRows ?? []) as any[];
-  const isOpen = (request: any) => !['completed', 'cancelled'].includes(request.status);
+  const open = (openRows ?? []) as any[];
+  const isOpen = (request: any) => OPEN.includes(request.status);
   const isDuplicate = (request: any) => Boolean(request.duplicate_of) && !request.duplicate_reviewed && isOpen(request);
   const now = Date.now();
-  const isOverdue = (request: any) => Boolean(responseState(request, now)?.overdue);
   let filtered = all.filter((request) => {
-    const workOrder = activeWorkOrder(request);
-    if (intake === 'new') return !workOrder && isOpen(request);
-    if (intake === 'overdue') return isOverdue(request);
-    if (intake === 'questions') return request.request_kind === 'admin' && isOpen(request);
-    if (intake === 'duplicates') return isDuplicate(request);
-    if (intake === 'triaged') return Boolean(workOrder) && !['completed', 'cancelled'].includes(request.status);
-    if (intake === 'completed') return request.status === 'completed';
-    if (intake === 'cancelled') return request.status === 'cancelled';
-    if (intake === 'all') return true;
-    return !['completed', 'cancelled'].includes(request.status);
+    if (intake === 'new') return !activeWorkOrder(request);
+    if (intake === 'triaged') return Boolean(activeWorkOrder(request));
+    return true;
   });
-  if (priority) filtered = filtered.filter((request) => request.priority === priority);
-  if (association_id) filtered = filtered.filter((request) => request.association_id === association_id);
   if (q) {
     const needle = q.toLowerCase();
     filtered = filtered.filter((request) => {
@@ -101,13 +103,13 @@ export default async function ServiceRequestsPage({
     });
   }
 
-  const newCount = all.filter((request) => !activeWorkOrder(request) && !['completed', 'cancelled'].includes(request.status)).length;
-  const emergencyCount = all.filter((request) => request.priority === 'emergency' && !['completed', 'cancelled'].includes(request.status)).length;
-  const triagedCount = all.filter((request) => activeWorkOrder(request) && !['completed', 'cancelled'].includes(request.status)).length;
-  const averageAge = all.length === 0 ? 0 : Math.round(all.reduce((sum, request) => sum + ageInDays(request.created_at), 0) / all.length);
-  const overdueCount = all.filter(isOverdue).length;
-  const questionCount = all.filter((request) => request.request_kind === 'admin' && isOpen(request)).length;
-  const duplicateCount = all.filter(isDuplicate).length;
+  const newCount = open.filter((request) => !activeWorkOrder(request)).length;
+  const triagedCount = open.length - newCount;
+  const averageAge = open.length === 0 ? 0 : Math.round(open.reduce((sum, request) => sum + ageInDays(request.created_at), 0) / open.length);
+  const emergencyCount = emergencyRes.count ?? 0;
+  const overdueCount = overdueRes.count ?? 0;
+  const questionCount = questionRes.count ?? 0;
+  const duplicateCount = duplicateRes.count ?? 0;
 
   const exportTable: ExportTable = {
     columns: [

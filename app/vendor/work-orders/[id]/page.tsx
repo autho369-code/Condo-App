@@ -4,6 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
+import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
+import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { PageHeader, Surface, SectionTitle, Badge, Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
@@ -35,7 +37,7 @@ export default async function VendorWorkOrderDetail({
 
   const { data: wo } = await db
     .from('work_orders')
-    .select('id, number, title, status, priority, description, job_description, vendor_instructions, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
+    .select('id, number, title, status, priority, description, job_description, vendor_instructions, service_request_id, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
     .eq('id', id)
     .eq('vendor_id', me.vendor_id)
     .maybeSingle();
@@ -53,6 +55,8 @@ export default async function VendorWorkOrderDetail({
     .select('id, author_name, author_role, body, created_at')
     .eq('work_order_id', id)
     .order('created_at', { ascending: true });
+
+  const attachments = await loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id });
 
   async function postUpdate(formData: FormData) {
     'use server';
@@ -150,6 +154,18 @@ export default async function VendorWorkOrderDetail({
                 )}
               </div>
             </dl>
+          </Surface>
+
+          <Surface>
+            <SectionTitle title="Photos & files" description="The resident's photos of the problem, plus anything you add — before/after photos, quotes, invoices." />
+            <MaintenanceAttachments
+              kind="work_order"
+              parentId={wo.id}
+              items={attachments}
+              canUpload={!['completed', 'closed', 'cancelled', 'billed'].includes(wo.status)}
+              currentUserId={me.auth_user_id}
+              canRemoveAny={false}
+            />
           </Surface>
 
           <Surface>
