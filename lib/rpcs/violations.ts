@@ -10,6 +10,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getMe, requireOwner } from '@/lib/auth/me';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
+import { observedDate } from '@/lib/violations/observed-date';
 import { revalidatePath } from 'next/cache';
 
 const ATTACH_BUCKET = 'association-documents';
@@ -54,7 +55,13 @@ export type FieldViolationInput = {
   location_lat?: number | null;
   location_lng?: number | null;
   location_accuracy_m?: number | null;
+  /** Device-generated id of an offline capture — makes retried syncs create one violation. */
+  client_mutation_id?: string | null;
+  /** The device's local date when the capture was made (YYYY-MM-DD). */
+  observed_on?: string | null;
 };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Create a violation from the phone field-capture flow. Called
@@ -80,6 +87,18 @@ export async function createFieldViolation(
 
   const supabase = await createClient();
   const db = supabase as any;
+
+  const clientMutationId = input.client_mutation_id?.trim() || null;
+  if (clientMutationId && !UUID.test(clientMutationId)) return { error: 'Invalid capture reference' };
+  const findSynced = async () => {
+    if (!clientMutationId) return null;
+    const { data } = await db.from('violations').select('id')
+      .eq('created_by', me.auth_user_id).eq('client_mutation_id', clientMutationId).maybeSingle();
+    return (data?.id as string | undefined) ?? null;
+  };
+  // A retried sync whose first attempt already landed returns the same case.
+  const alreadySynced = await findSynced();
+  if (alreadySynced) return { id: alreadySynced };
 
   // If a unit was picked, confirm (RLS-scoped) it belongs to the selected
   // association — never trust the client-side pairing.
@@ -107,9 +126,10 @@ export async function createFieldViolation(
       violation_type: violationType,
       title,
       description: input.description?.trim() || null,
-      date_observed: new Date().toISOString().slice(0, 10),
+      date_observed: observedDate(input.observed_on),
       status: 'open',
       created_by: me.auth_user_id,
+      client_mutation_id: clientMutationId,
       location_lat: lat,
       location_lng: lng,
       location_accuracy_m: lat !== null && lng !== null && Number.isFinite(input.location_accuracy_m)
@@ -119,6 +139,11 @@ export async function createFieldViolation(
     .select('id')
     .single();
 
+  if (error?.code === '23505') {
+    // Two syncs of the same capture raced; the other one created it.
+    const raced = await findSynced();
+    if (raced) return { id: raced };
+  }
   if (error || !row) return { error: error?.message ?? 'Failed to create violation' };
   revalidatePath('/violations');
   return { id: row.id as string };
@@ -150,20 +175,25 @@ export async function createViolationAttachmentUpload(
   violationId: string,
   fileName: string,
   fileSize: number,
-): Promise<{ error?: string; path?: string; token?: string }> {
+  /** Device-generated photo id from an offline capture: a retry reuses the same path instead of adding a copy. */
+  clientKey?: string | null,
+): Promise<{ error?: string; path?: string; token?: string; recorded?: boolean }> {
   const { error, violation } = await verifyViolationAttachmentAccess(violationId);
   if (error) return { error };
   if (!fileName) return { error: 'Missing file name' };
   if (!fileSize || fileSize <= 0) return { error: 'Empty file' };
   if (fileSize > MAX_ATTACHMENT_BYTES) return { error: `"${fileName}" is over ${Math.round(MAX_ATTACHMENT_BYTES / 1048576)} MB` };
+  if (clientKey && !UUID.test(clientKey)) return { error: 'Invalid photo reference' };
   const existing = Array.isArray(violation.attachments) ? violation.attachments : [];
-  if (existing.length >= MAX_VIOLATION_ATTACHMENTS) return { error: `Limit of ${MAX_VIOLATION_ATTACHMENTS} photos reached` };
 
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `violations/${violationId}/${Date.now()}-${safeName}`;
+  const path = `violations/${violationId}/${clientKey ?? Date.now()}-${safeName}`;
+  if (clientKey && existing.some((a: any) => a?.path === path)) return { path, recorded: true };
+  if (existing.length >= MAX_VIOLATION_ATTACHMENTS) return { error: `Limit of ${MAX_VIOLATION_ATTACHMENTS} photos reached` };
   const { createServiceClient } = await import('@/lib/supabase/server');
   const svc = createServiceClient() as any;
-  const { data, error: signErr } = await svc.storage.from(ATTACH_BUCKET).createSignedUploadUrl(path);
+  // A keyed path may already hold a copy from an interrupted sync; overwrite it.
+  const { data, error: signErr } = await svc.storage.from(ATTACH_BUCKET).createSignedUploadUrl(path, clientKey ? { upsert: true } : undefined);
   if (signErr || !data?.token) return { error: signErr?.message ?? 'Could not authorize the upload' };
   return { path, token: data.token };
 }

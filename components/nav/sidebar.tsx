@@ -101,6 +101,8 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
+    // The offline copy of the violation field page holds this user's associations and units.
+    try { if ('caches' in window) await caches.delete('portier-field-v1') } catch {}
     router.push('/login')
   }
 

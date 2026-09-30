@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FieldCaptureForm } from '@/components/violations/field-capture-form';
+import { FieldOfflineWorker } from '@/components/violations/field-offline-worker';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * the desktop-grade form lives at /violations/new.
  */
 export default async function ViolationFieldCapturePage() {
-  await requireStaff();
+  const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -35,10 +36,12 @@ export default async function ViolationFieldCapturePage() {
   return (
     <DataWorkspace
       title="Field capture"
-      description="File a violation from the property — photos and GPS attach automatically."
+      description="File a violation from the property — photos and GPS attach automatically. No signal? Captures wait on this device and file when you are back online."
       actions={<Link href="/violations" className="text-sm font-medium text-gray-600 hover:text-gray-950">Cancel</Link>}
     >
+      <FieldOfflineWorker />
       <FieldCaptureForm
+        userId={me.auth_user_id!}
         associations={(associations ?? []).map((a: any) => ({ id: a.id as string, name: a.name as string }))}
         units={unitOptions}
       />
