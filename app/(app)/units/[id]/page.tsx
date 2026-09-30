@@ -263,7 +263,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               <Label htmlFor="credit_charge">Apply to</Label>
               <select id="credit_charge" name="charge_id" defaultValue=""
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                <option value="">Oldest open charges first</option>
+                <option value="">Automatically (association payment order)</option>
                 {openCharges.map((c: any) => (
                   <option key={c.charge_id} value={c.charge_id}>{c.description} · {date(c.due_date)} · {money(c.balance_due)} open</option>
                 ))}

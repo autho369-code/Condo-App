@@ -209,6 +209,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       db.from('payments')
         .select('id, amount, payment_date, method, reference, notes, unit_id, created_at')
         .in('unit_id', unitIds)
+        .neq('method', 'credit') // credits reduce the balance but are not payments
         .gte('created_at', ytdStart)
         .order('created_at', { ascending: false })
         .limit(200)
