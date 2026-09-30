@@ -164,7 +164,7 @@ permissions, recalculate balances. Diagnostics: 10 balance checks.
 | Charges, bulk & recurring charges, late fees, interest | ✅ | |
 | Homeowner receipts (office) + receipt print | ✅ | GL-posted since #55 |
 | Receipts list (all receipts, search) | ✅ | /receipts (#64) |
-| Vendor / other receipts (non-owner income) | ❌ | |
+| Vendor / other receipts (non-owner income) | ✅ | /receipts/other — split across GL lines, one balanced JE, void = reversing entry dated today |
 | Homeowner credits + apply credits | ✅ | #64 |
 | Bills, approval, check run, owner payables | ✅ | |
 | Recurring bills | ✅ | /bills/recurring (2026-09-30) |

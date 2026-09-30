@@ -167,6 +167,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'New bill', href: '/bills/new', description: 'Enter or extract a vendor invoice.', primary: true, access: 'finance' },
         { label: 'Bulk charges & credits', href: '/charges/bulk', description: 'Post reviewed owner transactions in bulk.' },
         { label: 'Receipts', href: '/receipts', description: 'Every homeowner payment received, with totals.', access: 'finance' },
+        { label: 'Other receipt', href: '/receipts/other/new', description: 'Vendor refunds, insurance proceeds and other non-owner income.', access: 'finance' },
         { label: 'Recurring charges', href: '/charges/bulk-recurring', description: 'Set up recurring association assessments.' },
         { label: 'Run approved checks', href: '/bills/check-run', description: 'Pay approved bills and print checks.', access: 'finance' },
         { label: 'Pay management fees', href: '/accounting/management-fees', description: 'Bill each association its monthly management fee.', access: 'finance' },

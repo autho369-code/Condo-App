@@ -81,7 +81,7 @@ export default async function ReceiptsPage({
       description="Every homeowner payment received, across all associations."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/bank-accounts/deposits/new"><Button variant="secondary">Other receipt / deposit</Button></Link>
+          <Link href="/receipts/other"><Button variant="secondary">Other receipts</Button></Link>
           <Link href="/units"><Button>Record homeowner receipt</Button></Link>
         </div>
       }
