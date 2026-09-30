@@ -25,7 +25,7 @@ export default async function LoanDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  const me = await requireFinanceStaff();
+  await requireFinanceStaff();
   const { id } = await params;
   const sp = await searchParams;
   if (!UUID.test(id)) notFound();
@@ -47,11 +47,12 @@ export default async function LoanDetailPage({
       .order('created_at', { ascending: false }),
     db.from('gl_accounts')
       .select('id, number, name, account_type, association_id')
-      .eq('portfolio_id', me.portfolio?.id)
+      .eq('portfolio_id', loan.portfolio_id)
       .eq('active', true)
       .order('number'),
     db.from('bank_accounts')
       .select('id, name, association_id, gl_account_id')
+      .eq('portfolio_id', loan.portfolio_id)
       .is('archived_at', null)
       .order('name'),
   ]);

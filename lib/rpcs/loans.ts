@@ -14,6 +14,13 @@ const money = (fd: FormData, k: string): number | null => {
   const n = Number(raw);
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
 };
+// Rates keep up to 3 decimals (e.g. 6.125%); only money rounds to cents.
+const rateValue = (fd: FormData, k: string): number | null => {
+  const raw = s(fd, k).replace(/[%,\s]/g, '');
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.round(n * 1000) / 1000 : NaN;
+};
 function go(path: string, key: 'error' | 'saved', msg: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(msg)}`);
 }
@@ -30,7 +37,7 @@ export async function saveLoanSetup(formData: FormData) {
   if (!UUID_RE.test(id)) go('/accounting/loans', 'error', 'Loan not found.');
   const back = `/accounting/loans/${id}`;
   const frequency = s(formData, 'payment_frequency');
-  const rate = money(formData, 'interest_rate');
+  const rate = rateValue(formData, 'interest_rate');
   const payment = money(formData, 'payment_amount');
   const nextDate = s(formData, 'next_payment_date');
   const maturity = s(formData, 'maturity_date');
