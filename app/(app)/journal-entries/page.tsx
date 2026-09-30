@@ -66,7 +66,7 @@ export default async function JournalEntriesPage({
       .limit(500),
     // Recurring journal entries
     db.from('recurring_journal_entries')
-      .select('id, name, memo, frequency, interval_count, next_post_date, auto_generate, last_generated_at, created_at')
+      .select('id, name, memo, frequency, interval_count, next_post_date, auto_generate, last_generated_at, last_error, created_at')
       .is('archived_at', null)
       .order('next_post_date', { ascending: true, nullsFirst: false })
       .limit(500),
@@ -397,7 +397,10 @@ export default async function JournalEntriesPage({
                 <tbody>
                   {filteredRecurring.map((r: any) => (
                     <TR key={r.id}>
-                      <TD className="font-medium text-sm text-gray-900">{r.name}</TD>
+                      <TD className="font-medium text-sm text-gray-900">
+                        {r.name}
+                        {r.last_error && <p className="mt-1 max-w-xs text-xs font-normal text-red-700">Not posting: {r.last_error}</p>}
+                      </TD>
                       <TD className="max-w-xs truncate text-sm text-gray-600" title={r.memo ?? ''}>
                         {r.memo ?? '—'}
                       </TD>
@@ -416,8 +419,8 @@ export default async function JournalEntriesPage({
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.last_generated_at)}</TD>
                       <TD>
-                        <StatusChip tone={r.auto_generate ? 'info' : 'neutral'}>
-                          {r.auto_generate ? 'Active' : 'Paused'}
+                        <StatusChip tone={r.last_error ? 'danger' : r.auto_generate ? 'info' : 'neutral'}>
+                          {r.last_error ? 'Needs attention' : r.auto_generate ? 'Active' : 'Paused'}
                         </StatusChip>
                       </TD>
                     </TR>

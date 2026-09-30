@@ -35,7 +35,8 @@ export default async function RecurringBillsPage({
     .order('next_post_date', { ascending: true, nullsFirst: false });
   if (error) throw new Error(`Could not load recurring bills: ${error.message}`);
   const list = (rows ?? []) as any[];
-  const active = list.filter((r) => r.auto_generate);
+  const ended = (r: any) => r.end_date && r.next_post_date && r.next_post_date > r.end_date;
+  const active = list.filter((r) => r.auto_generate && !ended(r));
   const monthly = active.reduce((sum, r) => {
     const n = Math.max(1, r.interval_count ?? 1);
     const perMonth = r.frequency === 'weekly' ? (52 / 12) / n : r.frequency === 'monthly' ? 1 / n
@@ -88,7 +89,7 @@ export default async function RecurringBillsPage({
                   <TD>
                     <Link href={`/bills/recurring/${r.id}/edit`} className="font-medium text-gray-950 hover:underline">{r.name}</Link>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {!r.auto_generate && <Badge tone="inactive">Paused</Badge>}
+                      {ended(r) ? <Badge tone="inactive">Ended</Badge> : !r.auto_generate && <Badge tone="inactive">Paused</Badge>}
                       {r.last_error && <Badge tone="danger">Needs attention</Badge>}
                     </div>
                     {r.last_error && <p className="mt-1 max-w-xs text-xs text-red-700">{r.last_error}</p>}
