@@ -24,6 +24,8 @@ const MAX_BYTES = 20 * 1024 * 1024;
 // Must stay within the association-documents bucket's allowed MIME types.
 const ALLOWED_TYPE = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Vendors can't add files once the job is finished (matches the vendor page).
+const VENDOR_CLOSED = new Set(['completed', 'closed', 'cancelled', 'billed']);
 
 export type MaintenanceParentKind = 'service_request' | 'work_order';
 
@@ -66,12 +68,15 @@ async function resolveParent(kind: MaintenanceParentKind, id: string): Promise<{
   }
 
   const { data: wo } = await db.from('work_orders')
-    .select('id, portfolio_id, association_id, service_request_id, vendor_id, associations(portfolio_id)')
+    .select('id, status, portfolio_id, association_id, service_request_id, vendor_id, associations(portfolio_id)')
     .eq('id', id).is('archived_at', null).maybeSingle();
   if (!wo) return { error: 'Work order not found' };
   let role: Parent['role'];
   if (isStaff) role = 'staff';
-  else if (me.vendor_id && wo.vendor_id === me.vendor_id) role = 'vendor';
+  else if (me.vendor_id && wo.vendor_id === me.vendor_id) {
+    if (VENDOR_CLOSED.has(wo.status)) return { error: 'This work order is closed' };
+    role = 'vendor';
+  }
   else return { error: 'You cannot add files to this work order' };
   const portfolioId = wo.portfolio_id ?? wo.associations?.portfolio_id;
   if (!portfolioId) return { error: 'Work order has no company' };
@@ -146,6 +151,13 @@ export async function recordMaintenanceUpload(
   const { data: listed } = await svc.storage.from(BUCKET).list(folder, { search: objectName, limit: 1 });
   const stored = (listed ?? []).find((o: any) => o.name === objectName);
   if (!stored) return { error: 'Upload not found — try again' };
+  // The bucket allows larger objects than we do, and the size claimed when
+  // signing isn't binding — check what was actually stored.
+  const storedSize = Number(stored.metadata?.size ?? NaN);
+  if (!Number.isFinite(storedSize) || storedSize <= 0 || storedSize > MAX_BYTES || storedSize !== Number(file.size)) {
+    await svc.storage.from(BUCKET).remove([file.path]);
+    return { error: `"${file.name}" is over ${MAX_BYTES / 1048576} MB or didn't upload completely` };
+  }
 
   const actualType = await sniffStoredType(svc, file.path);
   if (!actualType) {
@@ -168,7 +180,7 @@ export async function recordMaintenanceUpload(
     file_name: String(file.name || objectName).slice(0, 255),
     file_path: file.path,
     content_type: actualType,
-    size_bytes: stored.metadata?.size ?? file.size ?? null,
+    size_bytes: storedSize,
     uploaded_by: userId,
     uploader_role: parent.role,
   });
