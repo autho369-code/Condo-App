@@ -44,7 +44,8 @@ function tabFilter(tab: Tab): (r: any) => boolean {
     case 'open':       return (r) => !['completed','closed','cancelled'].includes(r.status);
     case 'emergency':  return (r) => r.priority === 'emergency' && !['completed','closed','cancelled'].includes(r.status);
     case 'scheduled':  return (r) => r.status === 'scheduled';
-    case 'unassigned': return (r) => !r.vendor_id && !r.assignee_id && !['completed','closed','cancelled'].includes(r.status);
+    // Same finished set as the team scoreboard's "nobody on it" count.
+    case 'unassigned': return (r) => !r.vendor_id && !r.assignee_id && !['done','completed','billed','closed','cancelled'].includes(r.status);
     case 'completed':  return (r) => r.status === 'completed' || r.status === 'closed';
     case 'all':        return () => true;
   }
