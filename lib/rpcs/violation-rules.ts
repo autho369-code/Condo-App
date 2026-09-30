@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { deliverStepLetter } from '@/lib/violations/deliver-step-letter';
+import { deliverStepLetter, retryStepLetter } from '@/lib/violations/deliver-step-letter';
 
 // Every RPC below re-checks can_manage_violations(association) in the
 // database; requireStaff here is the in-action guard for callable endpoints.
@@ -286,7 +286,12 @@ export async function dismissViolationReport(formData: FormData) {
   go('/violations/reports', 'saved', 'Report dismissed.');
 }
 
-/** (Re)send the letter for the violation's current step without advancing it. */
+/**
+ * Send the current step's letter without advancing: if the letter exists, only
+ * its email is retried / repeated (no duplicate PDF, portal copy or mail item);
+ * otherwise it is written and delivered in full using the terms recorded when
+ * the step was taken.
+ */
 export async function sendCurrentStepLetter(formData: FormData) {
   const me = await requireStaff();
   const id = str(formData, 'id');
@@ -295,7 +300,8 @@ export async function sendCurrentStepLetter(formData: FormData) {
   if (error) go(`/violations/${id}`, 'error', error.message);
   let letter: string;
   try {
-    letter = await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
+    letter = (await retryStepLetter(supabase, id, Number(data.step), me.auth_user_id ?? null))
+      ?? await deliverStepLetter(supabase, id, data, me.auth_user_id ?? null);
   } catch (e) {
     go(`/violations/${id}`, 'error', `The letter was not sent: ${e instanceof Error ? e.message : 'unknown error'}`);
   }

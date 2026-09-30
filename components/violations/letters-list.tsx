@@ -14,6 +14,7 @@ type Props = {
 function emailLabel(l: ViolationLetterRow) {
   if (l.email_status === 'queued') return `Emailed to ${l.emailed_to}`;
   if (l.email_status === 'no_email_on_file') return 'Not emailed — no email on file';
+  if (l.email_status === 'pending') return `Email to ${l.emailed_to} NOT sent yet — retry below`;
   return null;
 }
 
