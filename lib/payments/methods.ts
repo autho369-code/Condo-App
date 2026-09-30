@@ -14,4 +14,5 @@ export const RECEIPT_METHODS = [
 ] as const;
 export type ReceiptMethod = (typeof RECEIPT_METHODS)[number]['value'];
 export const isReceiptMethod = (v: string): v is ReceiptMethod => RECEIPT_METHODS.some((m) => m.value === v);
-export const receiptMethodLabel = (v: string | null | undefined) => RECEIPT_METHODS.find((m) => m.value === v)?.label ?? (v ?? '—');
+export const receiptMethodLabel = (v: string | null | undefined) =>
+  v === 'credit' ? 'Credit' : RECEIPT_METHODS.find((m) => m.value === v)?.label ?? (v ?? '—');

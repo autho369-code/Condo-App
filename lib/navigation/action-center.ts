@@ -160,12 +160,13 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Accounting',
-    match: /^\/(accounting(?:\/|$)|command-center|bank-accounts|bank-transfers|journal-entries|gl-accounts|charges|charge-categories|bills|budget|budget-vs-actuals|diagnostics|accounting-periods|delinquencies)/,
+    match: /^\/(accounting(?:\/|$)|receipts|command-center|bank-accounts|bank-transfers|journal-entries|gl-accounts|charges|charge-categories|bills|budget|budget-vs-actuals|diagnostics|accounting-periods|delinquencies)/,
     sections: [
       work('Daily accounting', [
         { label: 'Post owner charge', href: '/charges/new', description: 'Record an individual assessment or fee.', primary: true },
         { label: 'New bill', href: '/bills/new', description: 'Enter or extract a vendor invoice.', primary: true, access: 'finance' },
         { label: 'Bulk charges & credits', href: '/charges/bulk', description: 'Post reviewed owner transactions in bulk.' },
+        { label: 'Receipts', href: '/receipts', description: 'Every homeowner payment received, with totals.', access: 'finance' },
         { label: 'Recurring charges', href: '/charges/bulk-recurring', description: 'Set up recurring association assessments.' },
         { label: 'Run approved checks', href: '/bills/check-run', description: 'Pay approved bills and print checks.', access: 'finance' },
         { label: 'Recurring bills', href: '/bills/recurring', description: 'Janitorial, utilities and other bills entered automatically.', access: 'finance' },
