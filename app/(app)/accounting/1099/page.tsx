@@ -59,7 +59,7 @@ export default async function Tax1099Page({
       id, amount, paid_at, bill_date, status, 
       vendor:vendor_id(
         id, name, vendor_type, send_1099, 
-        taxpayer_name, taxpayer_id, tax_account_number,
+        taxpayer_name, vendor_financial_details(taxpayer_id, tax_account_number),
         address_street, address_city, address_state, address_zip
       )
     `)
@@ -80,8 +80,8 @@ export default async function Tax1099Page({
         vendor_id: vid,
         vendor_name: v.name ?? 'Unknown',
         taxpayer_name: v.taxpayer_name ?? v.name ?? 'Unknown',
-        taxpayer_id: v.taxpayer_id ?? '',
-        tax_account_number: v.tax_account_number ?? null,
+        taxpayer_id: v.vendor_financial_details?.taxpayer_id ?? '',
+        tax_account_number: v.vendor_financial_details?.tax_account_number ?? null,
         vendor_type: v.vendor_type ?? '',
         total_paid: 0,
         bill_count: 0,

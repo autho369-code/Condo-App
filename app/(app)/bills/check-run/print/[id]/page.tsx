@@ -70,7 +70,7 @@ export default async function PrintChecksPage({
     .from('payable_checks')
     .select(`
       id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
-      vendors(name, address_street, address_city, address_state, address_zip, taxpayer_id),
+      vendors(name, address_street, address_city, address_state, address_zip, vendor_financial_details(taxpayer_id)),
       associations(name),
       bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature),
       payable_bills(bill_number, memo, bill_date, due_date, gl_accounts(number, name))
@@ -200,7 +200,7 @@ export default async function PrintChecksPage({
                   <div><div className="stub-label">Association</div><div>{c.associations?.name ?? '—'}</div></div>
                   <div><div className="stub-label">GL</div><div>{bill?.gl_accounts ? `${bill.gl_accounts.number}` : '—'}</div></div>
                   <div className="col-span-2"><div className="stub-label">Memo</div><div>{bill?.memo ?? '—'}</div></div>
-                  {v?.taxpayer_id && <div className="col-span-2"><div className="stub-label">1099 (TIN on file)</div><div className="mono text-xs">ends in {String(v.taxpayer_id).slice(-4)}</div></div>}
+                  {v?.vendor_financial_details?.taxpayer_id && <div className="col-span-2"><div className="stub-label">1099 (TIN on file)</div><div className="mono text-xs">ends in {String(v.vendor_financial_details.taxpayer_id).slice(-4)}</div></div>}
                 </div>
               </div>
             </section>

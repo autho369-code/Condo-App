@@ -8,7 +8,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/entities';
@@ -17,7 +17,7 @@ import { tradeLabel } from '@/lib/vendors/options';
 
 async function saveVendorBankDetails(formData: FormData) {
   'use server';
-  await requireStaff();
+  const me = await requireFinanceOrPortfolioAdmin();
   const supabase = await createClient();
   const vendorId = formData.get('vendor_id') as string;
   const routing = ((formData.get('bank_routing_number') as string) ?? '').replace(/\D/g, '');
@@ -28,9 +28,16 @@ async function saveVendorBankDetails(formData: FormData) {
   if (routing.length !== 9) fail('Routing number must be exactly 9 digits.');
   if (account.length < 4 || account.length > 17) fail('Account number must be 4–17 digits.');
 
+  const { data: vendor } = await (supabase as any).from('vendors').select('id, portfolio_id').eq('id', vendorId).maybeSingle();
+  if (!vendor) fail('Vendor not found.');
+  // Bank numbers live in vendor_financial_details (finance-only RLS).
+  const { error: finError } = await (supabase as any).from('vendor_financial_details').upsert({
+    vendor_id: vendorId, portfolio_id: vendor.portfolio_id,
+    bank_routing_number: routing, bank_account_number: account,
+    updated_at: new Date().toISOString(), updated_by: me.auth_user_id,
+  }, { onConflict: 'vendor_id' });
+  if (finError) fail(finError.message);
   const { error } = await (supabase as any).from('vendors').update({
-    bank_routing_number: routing,
-    bank_account_number: account,
     savings_account: formData.get('savings_account') === 'on',
     ach_status: 'pending',
   }).eq('id', vendorId);
@@ -88,14 +95,14 @@ export default async function VendorAchPage({
 }: {
   searchParams: Promise<{ q?: string; vendor?: string; error?: string }>;
 }) {
-  await requireStaff();
+  await requireFinanceOrPortfolioAdmin();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const supabase = await createClient();
 
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, trade, payment_type, bank_routing_number, bank_account_number, savings_account, is_auto_pay, auto_pay_setup_at, auto_pay_notes, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at')
+    .select('id, name, trade, payment_type, vendor_financial_details(bank_routing_number, bank_account_number), savings_account, is_auto_pay, auto_pay_setup_at, auto_pay_notes, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at')
     .is('archived_at', null)
     .order('name');
 
@@ -111,6 +118,11 @@ export default async function VendorAchPage({
   const profileMap = new Map<string, string>();
   for (const p of (profiles ?? [])) profileMap.set(p.id, p.full_name);
 
+  // Flatten the finance-only bank numbers onto each row.
+  for (const v of (data ?? []) as any[]) {
+    v.bank_routing_number = v.vendor_financial_details?.bank_routing_number ?? null;
+    v.bank_account_number = v.vendor_financial_details?.bank_account_number ?? null;
+  }
   let rows: any[] = data ?? [];
 
   // Filter for single-vendor view

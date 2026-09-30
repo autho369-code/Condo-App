@@ -35,7 +35,7 @@ export default async function CompliancePage() {
     { data: certTasks },
   ] = await Promise.all([
     db.from('vendors')
-      .select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, epa_certification_expiration, contract_expiration, send_1099, taxpayer_id')
+      .select('id, name, trade, general_liability_expiration, workers_comp_expiration, auto_insurance_expiration, state_license_expiration, epa_certification_expiration, contract_expiration, send_1099, has_taxpayer_id')
       .eq('portfolio_id', portfolioId)
       .is('archived_at', null),
     db.from('insurance_policies')
@@ -70,7 +70,7 @@ export default async function CompliancePage() {
         vendorIssues.push({ vendor: v.name, item: f.label, state: 'expiring', date: value })
       }
     }
-    if (v.send_1099 && !v.taxpayer_id) {
+    if (v.send_1099 && !v.has_taxpayer_id) {
       vendorIssues.push({ vendor: v.name, item: 'W-9 / Taxpayer ID', state: 'missing' })
     }
   }

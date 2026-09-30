@@ -73,7 +73,8 @@ export default async function VendorDetailPage({
 
   const { data: vendor } = await db
     .from('vendors')
-    .select('*')
+    // vendor_financial_details is finance-only; for other staff the embed is null.
+    .select('*, vendor_financial_details(bank_account_number)')
     .eq('id', id)
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
@@ -173,7 +174,7 @@ export default async function VendorDetailPage({
               </div>
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">1099</dt>
-                <dd className="text-gray-900">{vendor.send_1099 ? (vendor.taxpayer_id ? 'W-9 on file' : 'Needs W-9') : 'Not required'}</dd>
+                <dd className="text-gray-900">{vendor.send_1099 ? (vendor.has_taxpayer_id ? 'W-9 on file' : 'Needs W-9') : 'Not required'}</dd>
               </div>
             </dl>
           </Surface>
@@ -206,7 +207,7 @@ export default async function VendorDetailPage({
                 ['Default memo', vendor.default_check_memo || '—'],
                 ['Default GL', glRow ? `${glRow.number} · ${glRow.name}` : '—'],
                 ['Work order adjustment', `${Number(vendor.work_order_adjustment ?? 0).toFixed(2)}%`],
-                ['Bank account', vendor.bank_account_number ? `${vendor.savings_account ? 'Savings' : 'Checking'} ending ${String(vendor.bank_account_number).slice(-4)}` : '—'],
+                ['Bank account', vendor.has_bank_account ? `${vendor.savings_account ? 'Savings' : 'Checking'}${vendor.vendor_financial_details?.bank_account_number ? ` ending ${String(vendor.vendor_financial_details.bank_account_number).slice(-4)}` : ' on file'}` : '—'],
               ] as const).map(([k, val]) => (
                 <div key={k} className="flex gap-2">
                   <dt className="w-40 shrink-0 text-gray-500">{k}</dt>

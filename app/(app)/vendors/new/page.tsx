@@ -15,7 +15,8 @@ export default async function NewVendorPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
+  const canEditFinancials = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
   const sp = await searchParams;
 
   return (
@@ -85,7 +86,7 @@ export default async function NewVendorPage({
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Tax and 1099</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" placeholder="Name on W-9" /></div>
-            <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" placeholder="EIN or SSN" /></div>
+            {canEditFinancials && <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" autoComplete="off" placeholder="EIN or SSN" /></div>}
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
               <input type="checkbox" name="send_1099" className="mt-1" />
               <span><span className="block text-sm font-medium text-gray-900">Send 1099 at year-end</span><span className="block text-xs text-gray-500">Use for service vendors paid at or above the filing threshold.</span></span>
@@ -107,14 +108,20 @@ export default async function NewVendorPage({
               </select>
             </div>
             <div><Label htmlFor="payment_terms">Payment terms</Label><Input id="payment_terms" name="payment_terms" placeholder="Net 30, due on receipt..." /></div>
-            <div>
-              <Label htmlFor="bank_routing_number">Bank routing # (for ACH)</Label>
-              <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" placeholder="9 digits — required for ACH payments" />
-            </div>
-            <div>
-              <Label htmlFor="bank_account_number">Bank account # (for ACH)</Label>
-              <Input id="bank_account_number" name="bank_account_number" inputMode="numeric" placeholder="Vendor's deposit account" />
-            </div>
+            {canEditFinancials ? (
+              <>
+                <div>
+                  <Label htmlFor="bank_routing_number">Bank routing # (for ACH)</Label>
+                  <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" placeholder="9 digits — required for ACH payments" />
+                </div>
+                <div>
+                  <Label htmlFor="bank_account_number">Bank account # (for ACH)</Label>
+                  <Input id="bank_account_number" name="bank_account_number" inputMode="numeric" autoComplete="off" placeholder="Vendor's deposit account" />
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-gray-500 md:col-span-2">Accounting staff add the vendor&apos;s taxpayer ID and bank details after the vendor is created.</p>
+            )}
           </div>
         </section>
 

@@ -25,7 +25,7 @@ export default async function VendorW9Page({
   const [{ data: vendors }, { data: requests }] = await Promise.all([
     (supabase as any)
       .from('vendors')
-      .select('id, name, email_echeck_receipt, send_1099, taxpayer_name, taxpayer_id, is_utility, archived_at')
+      .select('id, name, email_echeck_receipt, send_1099, taxpayer_name, has_taxpayer_id, is_utility, archived_at')
       .is('archived_at', null)
       .order('name'),
     (supabase as any)
@@ -47,7 +47,7 @@ export default async function VendorW9Page({
   if (q) rows = rows.filter((row) => [row.vendor.name, row.vendor.taxpayer_name, row.latest?.status].some((value) => value?.toLowerCase().includes(q)));
 
   const needs1099 = (vendors ?? []).filter((vendor: any) => vendor.send_1099).length;
-  const missingTin = (vendors ?? []).filter((vendor: any) => vendor.send_1099 && !vendor.taxpayer_id).length;
+  const missingTin = (vendors ?? []).filter((vendor: any) => vendor.send_1099 && !vendor.has_taxpayer_id).length;
 
   return (
     <DataWorkspace
@@ -70,7 +70,7 @@ export default async function VendorW9Page({
               <TR key={vendor.id} className="hover:bg-gray-50">
                 <TD><div className="font-medium text-gray-950">{vendor.name}</div>{vendor.is_utility && <div className="mt-1 text-xs text-gray-500">Utility</div>}</TD>
                 <TD><StatusChip tone={vendor.send_1099 ? 'warning' : 'neutral'}>{vendor.send_1099 ? 'Needs 1099 review' : 'Not marked'}</StatusChip></TD>
-                <TD><StatusChip tone={vendor.taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
+                <TD><StatusChip tone={vendor.has_taxpayer_id ? 'success' : vendor.send_1099 ? 'danger' : 'neutral'}>{vendor.has_taxpayer_id ? 'TIN on file' : 'Missing TIN'}</StatusChip><div className="mt-1 text-xs text-gray-500">{vendor.taxpayer_name ?? 'No taxpayer name'}</div></TD>
                 <TD><div className="capitalize">{latest?.status?.replace(/_/g, ' ') ?? 'No request'}</div><div className="mt-1 text-xs text-gray-500">{date(latest?.requested_at)}</div></TD>
                 <TD><Link href={`/vendors/forms?vendor=${vendor.id}&template=w9_request`} className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">Stage request →</Link></TD>
               </TR>

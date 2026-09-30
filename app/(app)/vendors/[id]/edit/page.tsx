@@ -67,7 +67,12 @@ export default async function EditVendorPage({
   const phone = (t: string) => phones.find((p) => p.type === t)?.number ?? '';
   const emails: string[] = Array.isArray(v.emails) ? v.emails : [];
   const canEditBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
-  const acct: string | null = v.bank_account_number ?? null;
+  // Tax IDs and bank numbers are finance-only (vendor_financial_details).
+  const { data: fin } = canEditBank
+    ? await db.from('vendor_financial_details').select('taxpayer_id, tax_account_number, bank_routing_number, bank_account_number').eq('vendor_id', id).maybeSingle()
+    : { data: null };
+  const acct: string | null = fin?.bank_account_number ?? null;
+  const tin: string | null = fin?.taxpayer_id ?? null;
 
   return (
     <DataWorkspace
@@ -120,8 +125,17 @@ export default async function EditVendorPage({
         <Section title="Tax and 1099">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div><Label htmlFor="taxpayer_name">Taxpayer name</Label><Input id="taxpayer_name" name="taxpayer_name" defaultValue={v.taxpayer_name ?? ''} /></div>
-            <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" defaultValue={v.taxpayer_id ?? ''} placeholder="EIN or SSN" /></div>
-            <div><Label htmlFor="tax_account_number">Tax form account number</Label><Input id="tax_account_number" name="tax_account_number" defaultValue={v.tax_account_number ?? ''} /></div>
+            {canEditBank ? (
+              <>
+                <div><Label htmlFor="taxpayer_id">Taxpayer ID</Label><Input id="taxpayer_id" name="taxpayer_id" autoComplete="off" placeholder={tin ? `On file — ending ${tin.slice(-4)}. Leave blank to keep.` : 'EIN or SSN'} /></div>
+                <div><Label htmlFor="tax_account_number">Tax form account number</Label><Input id="tax_account_number" name="tax_account_number" defaultValue={fin?.tax_account_number ?? ''} /></div>
+              </>
+            ) : (
+              <div className="md:col-span-2">
+                <Label>Taxpayer ID</Label>
+                <p className="mt-2 text-sm text-gray-600">{v.has_taxpayer_id ? 'On file' : 'Not on file'} · only accounting staff can view or change it.</p>
+              </div>
+            )}
             <Check name="send_1099" defaultChecked={!!v.send_1099} title="Send 1099 at year-end" hint="Service vendors paid at or above the filing threshold." />
             <Check name="is_utility" defaultChecked={!!v.is_utility} title="Utility vendor" hint="Tracked separately in reports." />
           </div>
@@ -169,21 +183,29 @@ export default async function EditVendorPage({
               </select>
             </div>
             <Check name="savings_account" defaultChecked={!!v.savings_account} disabled={!canEditBank} title="Savings account" hint="The deposit account below is a savings account." />
-            <div>
-              <Label htmlFor="bank_routing_number">Bank routing number</Label>
-              <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" defaultValue={v.bank_routing_number ?? ''} readOnly={!canEditBank} />
-            </div>
-            <div>
-              <Label htmlFor="bank_account_number">Bank account number</Label>
-              <Input
-                id="bank_account_number"
-                name="bank_account_number"
-                inputMode="numeric"
-                autoComplete="off"
-                readOnly={!canEditBank}
-                placeholder={acct ? `On file — ending ${acct.slice(-4)}. Leave blank to keep.` : 'Vendor deposit account'}
-              />
-            </div>
+            {canEditBank ? (
+              <>
+                <div>
+                  <Label htmlFor="bank_routing_number">Bank routing number</Label>
+                  <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" defaultValue={fin?.bank_routing_number ?? ''} />
+                </div>
+                <div>
+                  <Label htmlFor="bank_account_number">Bank account number</Label>
+                  <Input
+                    id="bank_account_number"
+                    name="bank_account_number"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder={acct ? `On file — ending ${acct.slice(-4)}. Leave blank to keep.` : 'Vendor deposit account'}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="md:col-span-2">
+                <Label>Bank account</Label>
+                <p className="mt-2 text-sm text-gray-600">{v.has_bank_account ? 'On file' : 'Not on file'}</p>
+              </div>
+            )}
           </div>
           {!canEditBank && <p className="mt-2 text-xs text-gray-500">Only accounting staff can change bank details.</p>}
         </Section>

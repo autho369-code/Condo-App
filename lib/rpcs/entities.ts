@@ -2,7 +2,7 @@
 // Entity CRUD for Associations, Buildings, Units, Owners, Vendors.
 // Every insert resolves portfolio_id from me() server-side; never trust client.
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { requireStaff, requirePortfolioAdmin } from '@/lib/auth/me';
+import { requireStaff, requirePortfolioAdmin, requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
@@ -648,12 +648,9 @@ export async function createVendor(formData: FormData) {
     address_state:  str(formData, 'address_state'),
     address_zip:    str(formData, 'address_zip'),
     taxpayer_name:  str(formData, 'taxpayer_name'),
-    taxpayer_id:    str(formData, 'taxpayer_id'),
     send_1099:      formData.get('send_1099') === 'on',
     payment_type:   str(formData, 'payment_type') ?? 'check',
     payment_terms:  str(formData, 'payment_terms'),
-    bank_routing_number: str(formData, 'bank_routing_number'),
-    bank_account_number: str(formData, 'bank_account_number'),
     is_utility:     formData.get('is_utility') === 'on',
     notes:          str(formData, 'notes'),
     workers_comp_expiration:       str(formData, 'workers_comp_expiration'),
@@ -665,8 +662,27 @@ export async function createVendor(formData: FormData) {
     created_by:     me.auth_user_id,
   };
 
+  // Tax IDs and bank numbers live in vendor_financial_details (finance staff only).
+  const fin = {
+    taxpayer_id:         str(formData, 'taxpayer_id'),
+    bank_routing_number: str(formData, 'bank_routing_number')?.replace(/\D/g, '') || null,
+    bank_account_number: str(formData, 'bank_account_number')?.replace(/\D/g, '') || null,
+  };
+  const hasFin = Object.values(fin).some(Boolean);
+  const canEditFinancials = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
+  if (hasFin && !canEditFinancials) { failTo("Only accounting staff can add a vendor's tax or bank details."); return; }
+  if (fin.bank_routing_number && !/^\d{9}$/.test(fin.bank_routing_number)) { failTo('Bank routing number must be 9 digits.'); return; }
+  if (fin.bank_account_number && !/^\d{4,17}$/.test(fin.bank_account_number)) { failTo('Bank account number must be 4–17 digits.'); return; }
+
   const { data: v, error } = await (supabase as any).from('vendors').insert(payload).select('id').single();
   if (error || !v) { failTo(error?.message ?? 'Failed to create vendor'); return; }
+
+  if (hasFin) {
+    const { error: finError } = await (supabase as any).from('vendor_financial_details').insert({
+      vendor_id: v.id, portfolio_id: me.portfolio?.id, ...fin, updated_by: me.auth_user_id,
+    });
+    if (finError) redirect(`/vendors/${v.id}/edit?error=${encodeURIComponent('Vendor created, but the tax and bank details could not be saved: ' + finError.message)}`);
+  }
 
   revalidatePath('/vendors');
   redirect('/vendors');
@@ -678,7 +694,7 @@ export async function createVendor(formData: FormData) {
 
 export async function verifyVendorAch(formData: FormData): Promise<void> {
   'use server';
-  const me = await requireStaff();
+  const me = await requireFinanceOrPortfolioAdmin();
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
@@ -698,7 +714,7 @@ export async function verifyVendorAch(formData: FormData): Promise<void> {
 
 export async function activateVendorAch(formData: FormData): Promise<void> {
   'use server';
-  const me = await requireStaff();
+  const me = await requireFinanceOrPortfolioAdmin();
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
@@ -720,7 +736,7 @@ export async function activateVendorAch(formData: FormData): Promise<void> {
 
 export async function revokeVendorAch(formData: FormData): Promise<void> {
   'use server';
-  const me = await requireStaff();
+  const me = await requireFinanceOrPortfolioAdmin();
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
