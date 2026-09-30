@@ -44,10 +44,34 @@ async function runFees(formData: FormData) {
   redirect(`${back}&billed=${data ?? 0}`);
 }
 
+async function saveSchedule(formData: FormData) {
+  'use server';
+  await requireFinanceStaff();
+  const back = '/accounting/management-fees';
+  const day = Number(formData.get('auto_day'));
+  const vendor = String(formData.get('vendor_id') ?? '');
+  const gl = String(formData.get('gl_account_id') ?? '');
+  const db = (await createClient()) as any;
+  const { error } = await db.rpc('set_management_fee_schedule', {
+    p_enabled: formData.get('auto_enabled') === 'on',
+    p_day: Number.isInteger(day) ? day : null,
+    p_vendor_id: UUID.test(vendor) ? vendor : null,
+    p_gl_account_id: UUID.test(gl) ? gl : null,
+  });
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(back);
+  redirect(`${back}?scheduled=1`);
+}
+
+function ordinal(n: number) {
+  const suffix = n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th';
+  return `${n}${suffix}`;
+}
+
 export default async function ManagementFeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; error?: string; billed?: string }>;
+  searchParams: Promise<{ month?: string; error?: string; billed?: string; scheduled?: string }>;
 }) {
   const me = await requireFinanceStaff();
   const sp = await searchParams;
@@ -61,7 +85,7 @@ export default async function ManagementFeesPage({
     db.from('vendors').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name').eq('active', true).is('association_id', null)
       .in('account_type', ['expense', 'other_expense']).order('number'),
-    db.from('portfolios').select('management_fee_vendor_id, management_fee_gl_account_id, company_name').eq('id', me.portfolio?.id).maybeSingle(),
+    db.from('portfolios').select('management_fee_vendor_id, management_fee_gl_account_id, company_name, management_fee_auto_enabled, management_fee_auto_day, management_fee_auto_last_run').eq('id', me.portfolio?.id).maybeSingle(),
   ]);
   if (error) throw new Error(`Could not calculate management fees: ${error.message}`);
   const rows = (preview ?? []) as any[];
@@ -71,6 +95,9 @@ export default async function ManagementFeesPage({
   const billedTotal = billed.reduce((s, r) => s + Number(r.fee), 0);
   const defaultGl = portfolio?.management_fee_gl_account_id
     ?? (gls ?? []).find((g: any) => /management fee/i.test(g.name))?.id ?? '';
+  const autoOn = !!portfolio?.management_fee_auto_enabled;
+  const autoDay = Number(portfolio?.management_fee_auto_day ?? 1);
+  const lastRun = portfolio?.management_fee_auto_last_run as { month?: string; ran_at?: string; bills?: number; error?: string } | null;
 
   return (
     <DataWorkspace
@@ -80,7 +107,13 @@ export default async function ManagementFeesPage({
     >
       <div className="space-y-4">
         {sp.billed && <Alert tone="success" title={`${sp.billed} management fee bill${sp.billed === '1' ? '' : 's'} created`}>They are approved and posted to Accounts Payable. Pay them from the check run.</Alert>}
-        {sp.error && <Alert tone="danger" title="Could not bill fees">{sp.error}</Alert>}
+        {sp.scheduled && <Alert tone="success" title="Automatic billing saved">{autoOn ? `Last month's fees will be billed on the ${ordinal(autoDay)} of each month.` : 'Automatic billing is off.'}</Alert>}
+        {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
+        {autoOn && lastRun?.error && (
+          <Alert tone="danger" title={`Automatic billing for ${lastRun.month ? monthLabel(lastRun.month.slice(0, 7)) : 'last month'} failed`}>
+            {lastRun.error}. It retries daily — fix the vendor or account below, or bill the month by hand.
+          </Alert>
+        )}
 
         <Surface>
           <form className="flex flex-wrap items-end gap-3">
@@ -89,6 +122,43 @@ export default async function ManagementFeesPage({
             </Field>
             <Button type="submit" variant="secondary">Calculate</Button>
           </form>
+        </Surface>
+
+        <Surface>
+          <SectionTitle
+            title="Automatic billing"
+            description="Bill last month's fee for every association with a fee policy on a set day each month. Months already billed by hand are skipped."
+          />
+          <form action={saveSchedule} className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <label className="flex min-h-10 items-center gap-2 text-sm font-medium text-gray-900 sm:col-span-4">
+              <input type="checkbox" name="auto_enabled" defaultChecked={autoOn} className="h-4 w-4" />
+              Bill management fees automatically
+            </label>
+            <Field label="Day of the month" htmlFor="auto_day">
+              <Select id="auto_day" name="auto_day" defaultValue={String(autoDay)}>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{ordinal(d)}</option>)}
+              </Select>
+            </Field>
+            <Field label="Pay to (management company vendor)" htmlFor="auto_vendor_id">
+              <Select id="auto_vendor_id" name="vendor_id" defaultValue={portfolio?.management_fee_vendor_id ?? ''}>
+                <option value="">Choose a vendor</option>
+                {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </Select>
+            </Field>
+            <Field label="Expense account" htmlFor="auto_gl_account_id">
+              <Select id="auto_gl_account_id" name="gl_account_id" defaultValue={defaultGl}>
+                <option value="">Choose an account</option>
+                {(gls ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.number} · {g.name}</option>)}
+              </Select>
+            </Field>
+            <div className="flex items-end">
+              <Button type="submit" variant="secondary">Save schedule</Button>
+            </div>
+          </form>
+          <p className="mt-3 text-sm text-gray-500">
+            {autoOn ? `On — runs on the ${ordinal(autoDay)} of each month.` : 'Off — bill each month by hand below.'}
+            {lastRun?.ran_at && !lastRun.error && ` Last run: ${lastRun.month ? monthLabel(lastRun.month.slice(0, 7)) : ''}, ${lastRun.bills ?? 0} bill${lastRun.bills === 1 ? '' : 's'} created.`}
+          </p>
         </Surface>
 
         <MetricStrip
