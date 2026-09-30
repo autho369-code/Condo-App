@@ -83,7 +83,7 @@ function formatLabel(s: string): string {
 export default async function WorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; nolog?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
@@ -305,6 +305,7 @@ export default async function WorkOrdersPage({
         {sp.bulk && (
           <Alert tone={sp.failed ? 'danger' : 'success'} title={`${sp.done ?? 0} work order${sp.done === '1' ? '' : 's'} ${BULK_LABEL[sp.bulk] ?? 'updated'}${sp.failed ? ` · ${sp.failed} could not be` : ''}`}>
             {sp.reason}
+            {sp.nolog ? `${sp.reason ? ' ' : ''}${sp.nolog} updated work order${sp.nolog === '1' ? '' : 's'} could not get an activity-log entry — the change itself was saved; don't repeat it.` : null}
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not update work orders">{sp.error}</Alert>}

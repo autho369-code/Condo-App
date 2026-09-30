@@ -62,6 +62,10 @@ export async function bulkWorkOrderAction(formData: FormData) {
 
   let done = 0;
   const failures: string[] = [];
+  // Orders that WERE updated but whose activity entry could not be written.
+  // Counted separately so the banner never reports one order as both updated
+  // and failed (and nobody retries — and re-notifies — an order that changed).
+  let logMissing = 0;
   for (const id of ids) {
     const rowPatch: Record<string, unknown> = { ...patch };
     if (op === 'assign') {
@@ -81,12 +85,12 @@ export async function bulkWorkOrderAction(formData: FormData) {
       note,
       new_status: statusChanged ?? null,
     });
-    if (logError) failures.push(`Updated, but the activity entry failed: ${logError.message}`);
+    if (logError) logMissing += 1;
     if (statusChanged) await notifyOwnerOfStatusChange({ kind: 'work_order', id, newStatus: statusChanged });
     done += 1;
   }
 
   revalidatePath('/work-orders');
   const reasons = [...new Set(failures)].slice(0, 3).join('; ');
-  redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}`);
+  redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}${logMissing ? `&nolog=${logMissing}` : ''}`);
 }

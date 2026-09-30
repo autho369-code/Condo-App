@@ -53,6 +53,16 @@ describe('bulkWorkOrderAction', () => {
     expect(mocks.notify).toHaveBeenCalledTimes(2);
   });
 
+  it('counts a missing activity entry separately from a failed update', async () => {
+    const workOrders = builder([{ id: A, status: 'closed' }]);
+    const insert = vi.fn(async () => ({ error: { message: 'log down' } }));
+    mocks.createClient.mockResolvedValue({ from: (t: string) => (t === 'work_orders' ? workOrders : { insert }) });
+
+    const run = bulkWorkOrderAction(form({ op: 'status', status: 'closed', work_order_id: A }));
+    await expect(run).rejects.toThrow('REDIRECT:/work-orders?bulk=status&done=1&nolog=1');
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
+  });
+
   it('never assigns a vendor from another company', async () => {
     const vendors = builder([{ id: V, name: 'Vendor', portfolio_id: 'p-b' }]);
     const workOrders = builder([{ id: A, status: 'new', portfolio_id: 'p-a' }]);
