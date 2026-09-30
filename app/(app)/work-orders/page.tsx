@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -323,7 +324,7 @@ export default async function WorkOrdersPage({
                         {w.title ?? w.description ?? 'Untitled'}
                       </Link>
                       {w.trade && (
-                        <div className="text-xs capitalize text-gray-500">{w.trade.replace(/_/g, ' ')}</div>
+                        <div className="text-xs text-gray-500">{tradeLabel(w.trade)}</div>
                       )}
                     </TD>
                     <TD className="text-sm text-gray-700">{w.associations?.name ?? '—'}</TD>

@@ -14,6 +14,7 @@ import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { inviteVendorToPortal } from './actions';
 import { Stars } from '@/components/work-orders/rating';
+import { tradeLabel } from '@/lib/vendors/options';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +78,7 @@ export default async function VendorsPage({
     t.sum += Number(r.score); t.n += 1;
     ratingByVendor.set(r.vendor_id, t);
   }
-  const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort();
+  const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort((a, b) => tradeLabel(a).localeCompare(tradeLabel(b)));
   let rows = allRows;
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
   if (tag) {
@@ -87,7 +88,7 @@ export default async function VendorsPage({
   const tagOptions = await tagsInUse(supabase, 'vendor');
   if (q) {
     rows = rows.filter((vendor: any) =>
-      [vendor.name, vendor.trade, vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
+      [vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
     );
   }
 
@@ -146,7 +147,7 @@ export default async function VendorsPage({
         <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
           <FilterSelect label="Trade" name="trade" defaultValue={trade}>
             <option value="all">All trades</option>
-            {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
+            {trades.map((item) => <option key={item} value={item}>{tradeLabel(item)}</option>)}
           </FilterSelect>
           {(tagOptions.length > 0 || tag) && (
             <FilterSelect label="Tag" name="tag" defaultValue={tag}>
@@ -185,7 +186,7 @@ export default async function VendorsPage({
                       </div>
                     )}
                   </TD>
-                  <TD className="capitalize">{vendor.trade?.replace(/_/g, ' ') ?? 'other'}</TD>
+                  <TD>{tradeLabel(vendor.trade)}</TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">
                       <StatusChip tone={vendor.bank_routing_number && vendor.bank_account_number ? 'success' : 'neutral'}>

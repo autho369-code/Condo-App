@@ -17,6 +17,7 @@ import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-qu
 import { Stars, summarize } from '@/components/work-orders/rating';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,7 +125,7 @@ export default async function VendorDetailPage({
   return (
     <DataWorkspace
       title={vendor.name}
-      description={`${(vendor.trade ?? 'other').replace(/_/g, ' ')} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
+      description={`${tradeLabel(vendor.trade)} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
       actions={
         <div className="flex items-center gap-2">
           <Link href="/vendors"><Button variant="secondary"><ArrowLeft className="h-4 w-4" /> Vendors</Button></Link>

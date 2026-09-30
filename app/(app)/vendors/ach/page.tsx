@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/entities';
 import { Field, Input } from '@/components/ui/input';
+import { tradeLabel } from '@/lib/vendors/options';
 
 async function saveVendorBankDetails(formData: FormData) {
   'use server';
@@ -120,7 +121,7 @@ export default async function VendorAchPage({
   }
   if (q) {
     rows = rows.filter((vendor: any) =>
-      [vendor.name, vendor.trade, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
+      [vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
     );
   }
 
@@ -154,7 +155,7 @@ export default async function VendorAchPage({
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-950">{focusVendor.name}</h2>
-                <p className="mt-1 text-sm capitalize text-gray-500">{focusVendor.trade?.replace(/_/g, ' ')}</p>
+                <p className="mt-1 text-sm text-gray-500">{tradeLabel(focusVendor.trade)}</p>
                 <div className="mt-2 flex gap-2">
                   <StatusChip tone={focusVendor.payment_type === 'ach' ? 'success' : 'neutral'}>
                     {focusVendor.payment_type?.replace(/_/g, ' ') ?? 'check'}
@@ -368,7 +369,7 @@ export default async function VendorAchPage({
                     <Link href={`/vendors/ach?vendor=${vendor.id}`} className="font-medium text-gray-900 hover:text-gray-950 hover:underline">
                       {vendor.name}
                     </Link>
-                    <div className="mt-1 text-xs capitalize text-gray-500">{vendor.trade?.replace(/_/g, ' ')}</div>
+                    <div className="mt-1 text-xs text-gray-500">{tradeLabel(vendor.trade)}</div>
                   </TD>
                   <TD>
                     <StatusChip tone={vendor.payment_type === 'ach' ? 'success' : 'neutral'}>

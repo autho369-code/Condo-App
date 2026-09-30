@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,7 @@ export default async function VendorDashboard() {
     <div>
       <PageHeader
         title={`Welcome${vendor?.name ? `, ${vendor.name}` : ''}`}
-        description={vendor?.trade ? `Trade: ${vendor.trade.replace(/_/g, ' ')}` : 'Your assigned work at a glance.'}
+        description={vendor?.trade ? `Trade: ${tradeLabel(vendor.trade)}` : 'Your assigned work at a glance.'}
       />
 
       {expiring.length > 0 && (
