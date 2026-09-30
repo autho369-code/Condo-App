@@ -17,6 +17,8 @@ import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } 
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { OwnerCollectionStatus } from '@/components/owners/collections-status';
 import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
+import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
+import { loadRecordMeta } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
 export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
   const me = await requireStaff();
   const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
@@ -307,6 +310,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     notes: p.notes,
   }));
 
+  const meta = await loadRecordMeta(db, 'owner', id);
+
   const unitNames = (currentOccs ?? []).map((o: any) => {
     const assocName = o.units?.buildings?.associations?.name ?? '';
     const unitNum = o.units?.unit_number ?? '';
@@ -317,6 +322,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'tags' && <div className="mb-4"><Alert tone="success" title="Tags saved" /></div>}
+      {sp.saved === 'note' && <div className="mb-4"><Alert tone="success" title="Note added" /></div>}
       {sp.saved === 'collections' && <div className="mb-4"><Alert tone="success" title="Collections status saved" /></div>}
       {sp.saved === 'delinquency_note' && <div className="mb-4"><Alert tone="success" title="Delinquency note added" /></div>}
       {sp.saved === 'late_fee' && <div className="mb-4"><Alert tone="success" title="Late-fee rule saved" /></div>}
@@ -368,6 +375,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               Board — {s.role ?? 'Member'}{s.associations?.name ? ` · ${s.associations.name}` : ''}
             </StatusChip>
           ))}
+          <RecordTagChips tags={meta.tags} href={(t) => `/owners?tag=${t}`} />
         </div>
 
         {/* ── Financial Summary ── */}
@@ -386,6 +394,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             <Button variant="secondary" size="sm">View charges</Button>
           </Link>
         </div>
+
+        <RecordMetaPanels type="owner" id={id} meta={meta} currentUserId={me.auth_user_id} tagHref={(t) => `/owners?tag=${t}`} />
 
         {/* ── Board Membership: mark this owner as a board member ── */}
         <Section title="Board Membership">

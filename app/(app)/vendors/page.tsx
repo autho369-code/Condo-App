@@ -14,6 +14,7 @@ import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query';
 import { inviteVendorToPortal } from './actions';
 import { Stars } from '@/components/work-orders/rating';
+import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,12 +50,13 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
 export default async function VendorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; trade?: string; invited?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; trade?: string; tag?: string; invited?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const trade = sp.trade ?? 'all';
+  const tag = /^[0-9a-f-]{36}$/i.test(sp.tag ?? '') ? sp.tag! : '';
 
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id;
@@ -78,6 +80,11 @@ export default async function VendorsPage({
   const trades: string[] = Array.from(new Set(allRows.map((vendor: any) => vendor.trade).filter(Boolean) as string[])).sort();
   let rows = allRows;
   if (trade !== 'all') rows = rows.filter((vendor: any) => vendor.trade === trade);
+  if (tag) {
+    const tagged = new Set(await recordIdsWithTag(supabase, 'vendor', tag));
+    rows = rows.filter((vendor: any) => tagged.has(vendor.id));
+  }
+  const tagOptions = await tagsInUse(supabase, 'vendor');
   if (q) {
     rows = rows.filter((vendor: any) =>
       [vendor.name, vendor.trade, vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
@@ -141,6 +148,12 @@ export default async function VendorsPage({
             <option value="all">All trades</option>
             {trades.map((item) => <option key={item} value={item}>{String(item).replace(/_/g, ' ')}</option>)}
           </FilterSelect>
+          {(tagOptions.length > 0 || tag) && (
+            <FilterSelect label="Tag" name="tag" defaultValue={tag}>
+              <option value="">All tags</option>
+              {tagOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </FilterSelect>
+          )}
         </FilterBar>
 
         <Table>
