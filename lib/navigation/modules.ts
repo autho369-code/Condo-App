@@ -63,6 +63,7 @@ export const appModules: AppModule[] = [
       { label: 'Receivables', href: '/charges' },
       { label: 'Receipts', href: '/receipts' },
       { label: 'Other receipts', href: '/receipts/other' },
+      { label: 'Loans', href: '/accounting/loans' },
       { label: 'Charge categories', href: '/charge-categories' },
       { label: 'Delinquency ladder', href: '/delinquencies' },
       { label: 'Payables', href: '/bills' },

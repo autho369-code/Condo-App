@@ -80,6 +80,16 @@ export async function loadActionCenterAttention(
     .select('id', { count: 'exact', head: true })
     .eq('status', 'failed') as CountQuery;
 
+  const weekAhead = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const loansDue = options.isFinanceStaff
+    ? db
+        .from('association_loans')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null)
+        .eq('status', 'active')
+        .lte('next_payment_date', weekAhead) as CountQuery
+    : Promise.resolve({ count: 0 });
+
   const pendingBills = options.isFinanceStaff
     ? db
         .from('payable_bills')
@@ -88,7 +98,7 @@ export async function loadActionCenterAttention(
         .eq('status', 'pending_approval') as CountQuery
     : Promise.resolve({ count: 0 });
 
-  const [workOrders, serviceRequests, replies, messages, violations, followUps, reports, letters, reviews, communications, bills] = await Promise.all([
+  const [workOrders, serviceRequests, replies, messages, violations, followUps, reports, letters, reviews, communications, bills, loans] = await Promise.all([
     overdueWorkOrders,
     untriagedServiceRequests,
     overdueReplies,
@@ -100,6 +110,7 @@ export async function loadActionCenterAttention(
     architecturalReviews,
     failedCommunications,
     pendingBills,
+    loansDue,
   ]);
 
   return [
@@ -113,6 +124,7 @@ export async function loadActionCenterAttention(
     { label: 'violations past cure date', count: violations.count ?? 0, href: '/violations?status=overdue', tone: 'danger' as const },
     { label: 'architectural reviews awaiting action', count: reviews.count ?? 0, href: '/architectural-reviews?status=open', tone: 'pending' as const },
     { label: 'failed communications', count: communications.count ?? 0, href: '/communication-center?status=failed', tone: 'pending' as const },
+    { label: 'loan payments due this week', count: loans.count ?? 0, href: '/accounting/loans', tone: 'pending' as const },
     { label: 'bills pending approval', count: bills.count ?? 0, href: '/bills?status=pending_approval', tone: 'info' as const },
   ].filter((item) => item.count > 0);
 }

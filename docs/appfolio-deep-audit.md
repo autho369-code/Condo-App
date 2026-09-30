@@ -178,7 +178,7 @@ permissions, recalculate balances. Diagnostics: 10 balance checks.
 | Close accounting period | ✅ | /accounting-periods |
 | GL accounts + permissions | ✅ | GL account map ➖ |
 | Diagnostics | ✅ | compare checks list |
-| Loans | 🟡 | association_loans on profile |
+| Loans | ✅ | /accounting/loans — payments split principal / interest, one balanced JE, balance + due date update, void = reversing entry, amortization schedule + payoff projection |
 | Online payables, chargeback insights, subsidy, GPR | ➖ | AppFolio services / rental |
 
 ## 4. Maintenance (audited live 2026-09-30)
