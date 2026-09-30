@@ -65,7 +65,8 @@ export default async function LoanDetailPage({
 
   const hasPayments = (payments ?? []).length > 0;
   const setupComplete = !!(loan.gl_account_id && loan.interest_gl_account_id);
-  const active = loan.status !== 'paid_off' && Number(loan.current_balance ?? 0) > 0;
+  // Same rule as record_loan_payment: only active loans with a balance take payments.
+  const active = (loan.status ?? 'active') === 'active' && Number(loan.current_balance ?? 0) > 0;
   const balance = Number(loan.current_balance ?? 0);
   const rate = Number(loan.interest_rate ?? 0);
   const payment = Number(loan.payment_amount ?? 0);
@@ -106,7 +107,7 @@ export default async function LoanDetailPage({
             { label: 'Next due', value: loan.next_payment_date ? date(loan.next_payment_date) : '—', sublabel: loan.next_payment_date && loan.next_payment_date < today && active ? 'Overdue' : undefined },
             {
               label: 'Projected payoff',
-              value: loan.status === 'paid_off' ? 'Paid off' : schedule.neverPaysOff ? 'Never' : schedule.payoffDate ? date(schedule.payoffDate) : '—',
+              value: loan.status === 'paid_off' ? 'Paid off' : loan.status === 'refinanced' ? 'Refinanced' : schedule.neverPaysOff ? 'Never' : schedule.payoffDate ? date(schedule.payoffDate) : '—',
               sublabel: schedule.neverPaysOff ? 'Payment does not cover interest' : schedule.totalInterest ? `${money(schedule.totalInterest)} interest to go` : undefined,
             },
           ]}

@@ -119,6 +119,8 @@ export default async function LoansPage({
                     <TD>
                       {l.status === 'paid_off'
                         ? <StatusChip tone="success">Paid off</StatusChip>
+                        : l.status === 'refinanced'
+                          ? <StatusChip tone="neutral">Refinanced</StatusChip>
                         : !l.gl_account_id || !l.interest_gl_account_id
                           ? <StatusChip tone="warning">Needs GL setup</StatusChip>
                           : <StatusChip tone="info">Active</StatusChip>}
