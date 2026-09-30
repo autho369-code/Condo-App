@@ -68,6 +68,12 @@ export async function listCaptures(userId: string): Promise<QueuedCapture[]> {
   return all.filter((c) => c.userId === userId).sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
 }
 
+/** One capture by id (a keyed read — no need to load every queued photo). */
+export async function getCapture(id: string, userId: string): Promise<QueuedCapture | null> {
+  const capture = await run<QueuedCapture | undefined>('readonly', (store) => store.get(id) as IDBRequest<QueuedCapture | undefined>);
+  return capture && capture.userId === userId ? capture : null;
+}
+
 export async function saveCapture(capture: QueuedCapture) {
   await run('readwrite', (store) => store.put(capture));
 }
