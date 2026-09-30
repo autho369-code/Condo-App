@@ -121,7 +121,7 @@ export default async function VendorDetailPage({
   return (
     <DataWorkspace
       title={vendor.name}
-      description={`${(vendor.trade ?? 'other').replace(/_/g, ' ')} · ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
+      description={`${(vendor.trade ?? 'other').replace(/_/g, ' ')} Â· ${(vendor.vendor_type ?? 'general').replace(/_/g, ' ')}`}
       actions={
         <div className="flex items-center gap-2">
           <Link href="/vendors"><Button variant="secondary"><ArrowLeft className="h-4 w-4" /> Vendors</Button></Link>
@@ -136,13 +136,13 @@ export default async function VendorDetailPage({
         {sp.error && <Alert>{sp.error}</Alert>}
         <MetricStrip
           metrics={[
-            { label: 'Completed · 12 mo', value: scorecard.completed },
+            { label: 'Completed Â· 12 mo', value: scorecard.completed },
             { label: 'Open work orders', value: scorecard.open, sublabel: `${scorecard.overdue} overdue` },
-            { label: 'On-time completion', value: scorecard.onTimeRate === null ? '—' : `${scorecard.onTimeRate}%`, sublabel: scorecard.serviceRecord.evidence },
+            { label: 'On-time completion', value: scorecard.onTimeRate === null ? 'â€”' : `${scorecard.onTimeRate}%`, sublabel: scorecard.serviceRecord.evidence },
             { label: 'Avg completion', value: formatPerformanceDays(scorecard.averageCompletionDays) },
             { label: 'Service record', value: scorecard.serviceRecord.label },
             { label: 'Compliance', value: scorecard.compliance.label },
-            { label: 'Satisfaction', value: rating.average === null ? '—' : `${rating.average} ★`, sublabel: rating.count ? `${rating.count} rating${rating.count === 1 ? '' : 's'}${rating.hireAgainPct !== null ? ` · ${rating.hireAgainPct}% would hire again` : ''}` : 'No ratings yet' },
+            { label: 'Satisfaction', value: rating.average === null ? 'â€”' : `${rating.average} â˜…`, sublabel: rating.count ? `${rating.count} rating${rating.count === 1 ? '' : 's'}${rating.hireAgainPct !== null ? ` Â· ${rating.hireAgainPct}% would hire again` : ''}` : 'No ratings yet' },
           ]}
         />
 
@@ -152,19 +152,19 @@ export default async function VendorDetailPage({
             <dl className="space-y-2 text-sm">
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">Emails</dt>
-                <dd className="text-gray-900">{emails.length ? emails.join(', ') : '—'}</dd>
+                <dd className="text-gray-900">{emails.length ? emails.join(', ') : 'â€”'}</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">Phone</dt>
-                <dd className="text-gray-900">{phones.length ? phones.map((p) => `${p.type ? `${p.type}: ` : ''}${p.number}`).join(', ') : '—'}</dd>
+                <dd className="text-gray-900">{phones.length ? phones.map((p) => `${p.type ? `${p.type}: ` : ''}${p.number}`).join(', ') : 'â€”'}</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">Address</dt>
-                <dd className="text-gray-900">{addressParts.length ? addressParts.join(', ') : '—'}</dd>
+                <dd className="text-gray-900">{addressParts.length ? addressParts.join(', ') : 'â€”'}</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">Payment</dt>
-                <dd className="text-gray-900 capitalize">{(vendor.payment_type ?? 'check').replace(/_/g, ' ')}{vendor.payment_terms ? ` · ${vendor.payment_terms}` : ''}</dd>
+                <dd className="text-gray-900 capitalize">{(vendor.payment_type ?? 'check').replace(/_/g, ' ')}{vendor.payment_terms ? ` Â· ${vendor.payment_terms}` : ''}</dd>
               </div>
               <div className="flex gap-2">
                 <dt className="w-28 shrink-0 text-gray-500">1099</dt>
@@ -197,11 +197,11 @@ export default async function VendorDetailPage({
                 ['Check consolidation', vendor.check_consolidation === 'per_bill' ? 'One check per bill' : 'All bills on a single check'],
                 ['Check stub', vendor.check_stub_breakdown === 'summary' ? 'One line per bill' : 'Each bill line item'],
                 ['Hold payments', vendor.hold_payments ? 'Yes' : 'No'],
-                ['Payment terms', vendor.payment_terms || '�'],
-                ['Default memo', vendor.default_check_memo || '�'],
-                ['Default GL', glRow ? `${glRow.number} � ${glRow.name}` : '�'],
+                ['Payment terms', vendor.payment_terms || '—'],
+                ['Default memo', vendor.default_check_memo || '—'],
+                ['Default GL', glRow ? `${glRow.number} · ${glRow.name}` : '—'],
                 ['Work order adjustment', `${Number(vendor.work_order_adjustment ?? 0).toFixed(2)}%`],
-                ['Bank account', vendor.bank_account_number ? `${vendor.savings_account ? 'Savings' : 'Checking'} ending ${String(vendor.bank_account_number).slice(-4)}` : '�'],
+                ['Bank account', vendor.bank_account_number ? `${vendor.savings_account ? 'Savings' : 'Checking'} ending ${String(vendor.bank_account_number).slice(-4)}` : '—'],
               ] as const).map(([k, val]) => (
                 <div key={k} className="flex gap-2">
                   <dt className="w-40 shrink-0 text-gray-500">{k}</dt>
@@ -237,7 +237,7 @@ export default async function VendorDetailPage({
         <Surface>
           <SectionTitle
             title="Performance scorecard"
-            description="Explainable operational evidence — no subjective or hidden rating"
+            description="Explainable operational evidence â€” no subjective or hidden rating"
           />
           <div className="grid gap-4 text-sm sm:grid-cols-3">
             <div>
@@ -253,7 +253,7 @@ export default async function VendorDetailPage({
             <div>
               <div className="text-gray-500">Compliance evidence</div>
               <div className="mt-1"><StatusChip tone={scorecard.compliance.tone}>{scorecard.compliance.label}</StatusChip></div>
-              <div className="mt-2 text-xs text-gray-500">{scorecard.compliance.current} current · {scorecard.compliance.expiringSoon} expiring · {scorecard.compliance.expired} expired · {scorecard.compliance.notRecorded} not recorded</div>
+              <div className="mt-2 text-xs text-gray-500">{scorecard.compliance.current} current Â· {scorecard.compliance.expiringSoon} expiring Â· {scorecard.compliance.expired} expired Â· {scorecard.compliance.notRecorded} not recorded</div>
             </div>
           </div>
           <p className="mt-4 border-t border-gray-100 pt-4 text-xs leading-5 text-gray-500">
@@ -269,16 +269,16 @@ export default async function VendorDetailPage({
             <>
               <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 <div><div className="text-gray-500">Overall</div><div className="mt-1 flex items-center gap-2"><Stars value={rating.average} size="md" /><span className="font-medium tabular-nums text-gray-950">{rating.average}</span></div></div>
-                <div><div className="text-gray-500">Quality</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('quality') ?? '—'}</div></div>
-                <div><div className="text-gray-500">On time</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('timeliness') ?? '—'}</div></div>
-                <div><div className="text-gray-500">Communication</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('communication') ?? '—'}</div></div>
+                <div><div className="text-gray-500">Quality</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('quality') ?? 'â€”'}</div></div>
+                <div><div className="text-gray-500">On time</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('timeliness') ?? 'â€”'}</div></div>
+                <div><div className="text-gray-500">Communication</div><div className="mt-1 font-medium tabular-nums text-gray-950">{avgOf('communication') ?? 'â€”'}</div></div>
               </div>
               <ul className="divide-y divide-gray-100 border-t border-gray-100">
                 {ratings.slice(0, 10).map((r, i) => (
                   <li key={i} className="py-3 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <Stars value={r.score} />
-                      <span className="text-xs capitalize text-gray-500">{r.rater_role} · {date(r.created_at)}</span>
+                      <span className="text-xs capitalize text-gray-500">{r.rater_role} Â· {date(r.created_at)}</span>
                       {r.work_orders && <Link href={`/work-orders/${r.work_orders.id}`} className="text-xs text-gray-500 hover:text-gray-900 hover:underline">#{r.work_orders.number ?? ''} {r.work_orders.title}</Link>}
                     </div>
                     {r.comment && <p className="mt-1 text-gray-700">{r.comment}</p>}
@@ -313,10 +313,10 @@ export default async function VendorDetailPage({
                       </Link>
                       {w.number && <div className="text-xs text-gray-500">#{w.number}</div>}
                     </TD>
-                    <TD className="text-gray-700">{w.associations?.name ?? '—'}</TD>
-                    <TD><StatusChip tone={woStatusTone(w.status)}>{(w.status ?? '').replace(/_/g, ' ') || '—'}</StatusChip></TD>
-                    <TD className="whitespace-nowrap text-sm text-gray-600">{w.scheduled_date ? date(w.scheduled_date) : '—'}</TD>
-                    <TD className="whitespace-nowrap text-sm text-gray-600">{w.completed_date ? date(w.completed_date) : '—'}</TD>
+                    <TD className="text-gray-700">{w.associations?.name ?? 'â€”'}</TD>
+                    <TD><StatusChip tone={woStatusTone(w.status)}>{(w.status ?? '').replace(/_/g, ' ') || 'â€”'}</StatusChip></TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-600">{w.scheduled_date ? date(w.scheduled_date) : 'â€”'}</TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-600">{w.completed_date ? date(w.completed_date) : 'â€”'}</TD>
                   </TR>
                 ))}
               </tbody>
@@ -332,7 +332,7 @@ export default async function VendorDetailPage({
             <ul className="divide-y divide-gray-100">
               {(auditRows as any[]).map((a, i) => (
                 <li key={i} className="py-3 text-sm">
-                  <div className="text-gray-900">{String(a.action).replace(/_/g, ' ')} <span className="text-gray-500">� {a.actor_email ?? 'system'} � {date(a.created_at)}</span></div>
+                  <div className="text-gray-900">{String(a.action).replace(/_/g, ' ')} <span className="text-gray-500">· {a.actor_email ?? 'system'} · {date(a.created_at)}</span></div>
                   {a.changes && Object.keys(a.changes).length > 0 && (
                     <div className="mt-1 text-xs text-gray-500">Changed: {Object.keys(a.changes).map((k) => k.replace(/_/g, ' ')).join(', ')}</div>
                   )}

@@ -25,10 +25,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Check({ name, defaultChecked, title, hint }: { name: string; defaultChecked: boolean; title: string; hint: string }) {
+function Check({ name, defaultChecked, title, hint, disabled }: { name: string; defaultChecked: boolean; title: string; hint: string; disabled?: boolean }) {
   return (
     <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-1" />
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} disabled={disabled} className="mt-1" />
       <span>
         <span className="block text-sm font-medium text-gray-900">{title}</span>
         <span className="block text-xs text-gray-500">{hint}</span>
@@ -152,8 +152,8 @@ export default async function EditVendorPage({
             </div>
             <div>
               <Label htmlFor="work_order_adjustment">Work order adjustment (%)</Label>
-              <Input id="work_order_adjustment" name="work_order_adjustment" type="number" step="0.01" min={-100} max={100} defaultValue={Number(v.work_order_adjustment ?? 0)} />
-              <p className="mt-1 text-xs text-gray-500">Discount (+) or markup (−) applied to this vendor&apos;s work order costs.</p>
+              <Input id="work_order_adjustment" name="work_order_adjustment" type="number" step="0.01" min={0} max={100} defaultValue={Number(v.work_order_adjustment ?? 0)} />
+              <p className="mt-1 text-xs text-gray-500">Percentage discount applied to this vendor&apos;s work order costs (0–100).</p>
             </div>
             <Check name="hold_payments" defaultChecked={!!v.hold_payments} title="Hold payments" hint="Bills stay unpaid until you clear this." />
             <Check name="email_echeck_receipt" defaultChecked={v.email_echeck_receipt !== false} title="Email eCheck receipt" hint="Send the vendor a receipt when an electronic payment goes out." />
@@ -168,7 +168,7 @@ export default async function EditVendorPage({
                 {VENDOR_PAYMENT_TYPES.map((t) => <option key={t} value={t}>{label(t).toUpperCase()}</option>)}
               </select>
             </div>
-            <Check name="savings_account" defaultChecked={!!v.savings_account} title="Savings account" hint="The deposit account below is a savings account." />
+            <Check name="savings_account" defaultChecked={!!v.savings_account} disabled={!canEditBank} title="Savings account" hint="The deposit account below is a savings account." />
             <div>
               <Label htmlFor="bank_routing_number">Bank routing number</Label>
               <Input id="bank_routing_number" name="bank_routing_number" inputMode="numeric" defaultValue={v.bank_routing_number ?? ''} readOnly={!canEditBank} />

@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { requireStaff } from '@/lib/auth/me'
+import { requireStaff, requireWorkspaceStaff } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { safeInternalNext } from '@/lib/security/redirects'
@@ -73,7 +73,7 @@ const oneOf = <T extends string>(v: string | null, allowed: readonly T[], label:
 // Re-checks scope inside the action: the vendor must belong to the caller's portfolio,
 // and the default GL account must belong to that same portfolio.
 export async function updateVendorRecord(formData: FormData) {
-  const me = await requireStaff()
+  const me = await requireWorkspaceStaff()
   const vendorId = text(formData, 'vendor_id')
   const failTo = (msg: string): never => redirect(`/vendors/${vendorId}/edit?error=${encodeURIComponent(msg)}`)
   if (!vendorId) redirect('/vendors?error=' + encodeURIComponent('Missing vendor.'))
@@ -85,11 +85,14 @@ export async function updateVendorRecord(formData: FormData) {
     .from('vendors').select('*').eq('id', vendorId).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle()
   if (!before) failTo('Vendor not found.')
 
+  const canEditBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator)
   let patch: Record<string, unknown>
   try {
     const name = text(formData, 'name')
     if (!name) throw new Error('Vendor name is required.')
-    const phones: Array<{ type: string; number: string }> = []
+    // Keep phone entries this form doesn't edit (e.g. the vendor's own 'work' number from the portal).
+    const phones: Array<{ type: string; number: string }> = (Array.isArray(before.phone_numbers) ? before.phone_numbers : [])
+      .filter((p: any) => p && p.type !== 'landline' && p.type !== 'mobile')
     const landline = text(formData, 'phone_landline')
     const mobile = text(formData, 'phone_mobile')
     if (landline) phones.push({ type: 'landline', number: landline })
@@ -100,7 +103,7 @@ export async function updateVendorRecord(formData: FormData) {
 
     const adjRaw = text(formData, 'work_order_adjustment')
     const adj = adjRaw === null ? 0 : Number(adjRaw)
-    if (!Number.isFinite(adj) || adj < -100 || adj > 100) throw new Error('Work order adjustment must be between -100 and 100 percent.')
+    if (!Number.isFinite(adj) || adj < 0 || adj > 100) throw new Error('Work order adjustment must be between 0 and 100 percent.')
 
     const glId = text(formData, 'default_gl_account_id')
     if (glId) {
@@ -139,7 +142,7 @@ export async function updateVendorRecord(formData: FormData) {
       work_order_adjustment: adj,
       payment_type: oneOf(text(formData, 'payment_type'), VENDOR_PAYMENT_TYPES, 'payment type') ?? 'check',
       bank_routing_number: routing,
-      savings_account: formData.get('savings_account') === 'on',
+      savings_account: canEditBank ? formData.get('savings_account') === 'on' : before.savings_account,
       notes: text(formData, 'notes'),
       workers_comp_expiration: text(formData, 'workers_comp_expiration'),
       general_liability_expiration: text(formData, 'general_liability_expiration'),
@@ -154,7 +157,8 @@ export async function updateVendorRecord(formData: FormData) {
   }
 
   const bankChanged = (patch.bank_routing_number ?? null) !== (before.bank_routing_number ?? null) || 'bank_account_number' in patch
-  if (bankChanged && !me.is_finance_staff && !me.is_company_admin && !me.is_platform_operator) {
+    || patch.savings_account !== before.savings_account
+  if (bankChanged && !canEditBank) {
     failTo("Only accounting staff can change a vendor's bank details.")
   }
 
