@@ -168,9 +168,11 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Bulk charges & credits', href: '/charges/bulk', description: 'Post reviewed owner transactions in bulk.' },
         { label: 'Recurring charges', href: '/charges/bulk-recurring', description: 'Set up recurring association assessments.' },
         { label: 'Run approved checks', href: '/bills/check-run', description: 'Pay approved bills and print checks.', access: 'finance' },
+        { label: 'Recurring bills', href: '/bills/recurring', description: 'Janitorial, utilities and other bills entered automatically.', access: 'finance' },
         { label: 'Record bank deposit', href: '/bank-accounts/deposits/new', description: 'Group receipts into a deposit.' },
         { label: 'Reconcile bank account', href: '/bank-accounts/reconcile/new', description: 'Match statement activity.' },
         { label: 'New journal entry', href: '/journal-entries/new', description: 'Post a balanced manual entry.' },
+        { label: 'Recurring journal entry', href: '/journal-entries/recurring/new', description: 'Depreciation, reserve allocations and other repeating entries.', access: 'finance' },
       ]),
       work('Controls', [
         { label: 'Financial diagnostics', href: '/diagnostics', description: 'Resolve mismatches and stale reconciliations.' },

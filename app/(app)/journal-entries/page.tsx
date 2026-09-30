@@ -202,9 +202,14 @@ export default async function JournalEntriesPage({
       title="Journal Entries"
       description="Create, review, and post journal entries. Manage recurring entries and upload batches."
       actions={
-        <Link href="/journal-entries/new">
-          <Button><Plus className="h-4 w-4" /> New entry</Button>
-        </Link>
+        <>
+          <Link href="/journal-entries/new">
+            <Button><Plus className="h-4 w-4" /> New entry</Button>
+          </Link>
+          <Link href="/journal-entries/recurring/new">
+            <Button variant="secondary">New recurring entry</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-6">

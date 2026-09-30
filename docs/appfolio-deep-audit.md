@@ -141,3 +141,42 @@ redacted). Fixed: New Vendor offered vendor types/payment types that are not
 in the database enums (insurance/legal/accounting/utility, wire/credit_card)
 so those choices failed on save. Not built: two-way vendor texts (Twilio
 KYC), emails log, attachments, @mentions.
+
+## 3. Accounting (audited live 2026-09-30)
+
+AppFolio structure: Receivables (Receipts · Charges · Bank Deposits ·
+Homeowner Delinquencies · Chargeback Insights) · Payables (Bills · Payments ·
+Recurring · Loans · Online Payables) · Financial Accounts · Journal Entries
+(history · recurring · batches) · Bank Transfers · GL Accounts · Diagnostics.
+Receivables tasks: homeowner / vendor / other / subsidy receipts, homeowner
+charge, bulk charges & credits, bulk recurring charges, homeowner credit,
+apply credits, common charge, charge late fees, new bank deposit, lockbox,
+eCheck fee settings. Payables tasks: enter bill, smart bill entry, enter
+credit, pay bills, pay management fees, homeowner payable, transfer funds,
+new recurring bill, manually post bills, upload bulk bills, bulk board
+approval. Financial accounts: new bank account, deposit, bank feed,
+reconcile, close accounting period, link with bank. Journal entries: new,
+recurring, upload batch, manually post. GL: new account, GL account map,
+permissions, recalculate balances. Diagnostics: 10 balance checks.
+
+| Area | Portier | Notes |
+|---|---|---|
+| Charges, bulk & recurring charges, late fees, interest | ✅ | |
+| Homeowner receipts (office) + receipt print | ✅ | GL-posted since #55 |
+| Receipts list (all receipts, search) | ❌ | only per unit |
+| Vendor / other receipts (non-owner income) | ❌ | |
+| Homeowner credits + apply credits | ❌ | |
+| Bills, approval, check run, owner payables | ✅ | |
+| Recurring bills | ✅ | /bills/recurring (2026-09-30) |
+| Recurring journal entries | ✅ | /journal-entries/recurring/new |
+| Pay management fees | ❌ | policies UI only |
+| Smart bill entry (invoice → bill) | ✅ | AI invoice extraction on New bill |
+| Upload bulk bills / JE batch CSV | ❌ | batches table exists |
+| Bulk board approval of bills | ❌ | |
+| Lockbox import | ❌ | tables exist |
+| Bank accounts, deposits, reconcile, feeds, transfers | ✅ | |
+| Close accounting period | ✅ | /accounting-periods |
+| GL accounts + permissions | ✅ | GL account map ➖ |
+| Diagnostics | ✅ | compare checks list |
+| Loans | 🟡 | association_loans on profile |
+| Online payables, chargeback insights, subsidy, GPR | ➖ | AppFolio services / rental |
