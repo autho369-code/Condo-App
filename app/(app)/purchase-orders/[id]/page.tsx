@@ -72,6 +72,14 @@ export default async function PurchaseOrderDetailPage({
   for (const l of (lines ?? []) as any[]) {
     if (l.gl_account_id) lineGls.set(l.gl_account_id, l.gl_accounts ? `${l.gl_accounts.number ?? ''} ${l.gl_accounts.name}`.trim() : 'GL account');
   }
+  // Same rule as bill_purchase_order: infer the account only when every line uses one and the same.
+  const hasUncategorized = ((lines ?? []) as any[]).some((l) => !l.gl_account_id);
+  const needsGlChoice = hasUncategorized || lineGls.size !== 1;
+  const { data: glChoices } = billable && needsGlChoice
+    ? await db.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', po.portfolio_id).eq('active', true)
+        .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold']).order('number')
+    : { data: [] };
+  const glOptions = ((glChoices ?? []) as any[]).filter((g) => !g.association_id || g.association_id === po.association_id);
   const today = new Date().toISOString().slice(0, 10);
   const title = `PO ${po.number ?? po.id.slice(0, 8)}`;
 
@@ -187,11 +195,12 @@ export default async function PurchaseOrderDetailPage({
                 <Field label="Due date (optional)">
                   <Input name="due_date" type="date" />
                 </Field>
-                {lineGls.size > 1 && (
-                  <Field label="GL account" className="sm:col-span-2">
+                {needsGlChoice && (
+                  <Field label="GL account" className="sm:col-span-2" hint={hasUncategorized ? 'Some line items have no GL account, so choose where this bill posts.' : 'The line items use several accounts — choose where this bill posts.'}>
                     <Select name="gl_account_id" required defaultValue="">
                       <option value="">Choose the account this bill goes to</option>
-                      {[...lineGls.entries()].map(([glId, label]) => <option key={glId} value={glId}>{label}</option>)}
+                      {[...lineGls.entries()].map(([glId, label]) => <option key={glId} value={glId}>{label} (on this PO)</option>)}
+                      {glOptions.filter((g) => !lineGls.has(g.id)).map((g) => <option key={g.id} value={g.id}>{g.number} {g.name}</option>)}
                     </Select>
                   </Field>
                 )}

@@ -85,7 +85,8 @@ export async function loadActionCenterAttention(
         .from('purchase_orders')
         .select('id', { count: 'exact', head: true })
         .is('archived_at', null)
-        .eq('approval_status', 'pending_approval') as CountQuery
+        .eq('approval_status', 'pending_approval')
+        .neq('status', 'cancelled') as CountQuery
     : Promise.resolve({ count: 0 });
 
   const weekAhead = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
