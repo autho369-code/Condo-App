@@ -17,6 +17,7 @@ import { money, date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
 import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
+import { assignWorkOrderToStaff } from '@/lib/rpcs/work-order-team';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +89,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     supabase.auth.getUser(),
   ]);
   if (!wo) notFound();
-  const [attachments, { data: chargebacks }, { data: chargeCategories }] = await Promise.all([
+  const [attachments, { data: chargebacks }, { data: chargeCategories }, { data: staffRows }] = await Promise.all([
     loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id }),
     wo.unit_id
       ? (supabase as any).from('charges').select('id, description, amount, due_date, created_at').eq('work_order_id', wo.id).order('created_at')
@@ -96,8 +97,10 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     wo.unit_id
       ? (supabase as any).from('charge_categories').select('id, name, association_id, portfolio_id, active').is('archived_at', null).order('name')
       : Promise.resolve({ data: [] }),
+    (supabase as any).rpc('mentionable_staff'),
   ]);
   const approvedEstimate = (estimates ?? []).find((e: any) => e.approved_at);
+  const staff = (staffRows ?? []) as Array<{ id: string; name: string }>;
 
   const assoc = (wo.units as any)?.buildings?.associations;
   const sr = wo.service_requests as any;
@@ -151,6 +154,17 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               );
             })}
           </div>
+
+          {/* In-house assignee */}
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">In-house assignee</div>
+          <form action={assignWorkOrderToStaff.bind(null, id) as any} className="mb-5 flex gap-2">
+            <select name="assignee_id" defaultValue={wo.assignee_id ?? ''} aria-label="In-house assignee"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+              <option value="">Nobody</option>
+              {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <Button type="submit" size="sm" variant="secondary">Save</Button>
+          </form>
 
           {/* Vendor */}
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{vendor ? 'Vendor' : 'Assign vendor'}</div>
@@ -221,7 +235,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5">{wo.trade ? tradeLabel(wo.trade) : '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Assigned to</dt><dd className="mt-0.5">{wo.assigned_to ?? '—'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">In-house assignee</dt><dd className="mt-0.5">{wo.assignee_id ? (staff.find((s) => s.id === wo.assignee_id)?.name ?? wo.assigned_to ?? 'Team member') : '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>
           <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Issue</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.issue ?? wo.description ?? '—'}</dd></div>
           {wo.vendor_instructions && <div className="col-span-2"><dt className="text-xs uppercase tracking-wider text-gray-500">Vendor instructions</dt><dd className="mt-0.5 whitespace-pre-wrap">{wo.vendor_instructions}</dd></div>}
@@ -239,7 +253,6 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             <div><Label>Priority</Label><Select name="priority" defaultValue={wo.priority} options={PRIORITIES} required /></div>
             <div><Label>Category</Label><Select name="category" defaultValue={wo.category} options={CATEGORIES} required /></div>
             <div><Label>Trade</Label><Select name="trade" defaultValue={wo.trade ?? ''} options={TRADES} /></div>
-            <div><Label htmlFor="assigned_to">Assigned to</Label><Input id="assigned_to" name="assigned_to" defaultValue={wo.assigned_to ?? ''} /></div>
             <div><Label htmlFor="scheduled_date">Scheduled date</Label><Input id="scheduled_date" name="scheduled_date" type="date" defaultValue={wo.scheduled_date ?? ''} /></div>
             <div><Label htmlFor="scheduled_time">Scheduled time</Label><Input id="scheduled_time" name="scheduled_time" type="time" defaultValue={wo.scheduled_time ?? ''} /></div>
             <div><Label htmlFor="next_followup_date">Next follow-up</Label><Input id="next_followup_date" name="next_followup_date" type="date" defaultValue={wo.next_followup_date ?? ''} /></div>
@@ -298,12 +311,17 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           </Table>
         ) : <p className="px-5 py-4 text-sm text-gray-500">No labor entries yet.</p>}
 
-        <form action={addLaborEntry.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-4">
-          <Input name="tech_name" placeholder="Tech name" required />
+        <form action={addLaborEntry.bind(null, id) as any} className="grid grid-cols-1 gap-3 border-t border-gray-100 px-5 py-4 md:grid-cols-5">
+          <select name="tech_id" defaultValue={wo.assignee_id ?? ''} aria-label="Team member"
+            className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <option value="">Someone else (type name)…</option>
+            {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <Input name="tech_name" placeholder="Name if not on the team" />
           <Input name="date_worked" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
           <Input name="hours" type="number" step="0.25" min="0.25" placeholder="Hours" required />
           <Input name="hourly_rate" type="number" step="0.01" placeholder="$/hr (optional)" />
-          <div className="flex gap-3 md:col-span-4">
+          <div className="flex gap-3 md:col-span-5">
             <Input name="description" placeholder="What was done" className="flex-1" />
             <Button type="submit">Add entry</Button>
           </div>
