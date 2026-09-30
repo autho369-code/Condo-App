@@ -40,12 +40,13 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
   const [{ data: staffRows }, workOrders, labor] = await Promise.all([
     db.rpc('mentionable_staff'),
     all(() => db.from('work_orders')
-      .select('id, assignee_id, vendor_id, status, priority, created_at, scheduled_date, completed_date')
+      .select('id, assignee_id, completed_by_assignee_id, vendor_id, status, priority, created_at, scheduled_date, completed_date')
       .is('archived_at', null)
       .or(`status.not.in.${CLOSED},completed_date.gte.${since}`)),
     all(() => db.from('work_order_labor_entries')
       .select('id, tech_id, tech_name, date_worked, hours, labor_cost')
-      .gte('date_worked', since)),
+      .gte('date_worked', since)
+      .lte('date_worked', today)),
   ]);
 
   const board = buildTeamScoreboard({

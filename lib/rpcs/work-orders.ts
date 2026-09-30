@@ -4,7 +4,7 @@ import { requireFinanceOrPortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
-import { companyStaff } from '@/lib/maintenance/staff';
+import { workOrderStaff } from '@/lib/maintenance/staff';
 
 async function accessibleWorkOrder(db: any, workOrderId: string) {
   return db
@@ -177,11 +177,15 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
   const techId = String(formData.get('tech_id') ?? '');
   let techName = String(formData.get('tech_name') ?? '').trim();
   if (techId) {
-    const staffName = (await companyStaff(supabase as any)).get(techId);
-    if (!staffName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('That person is not an active member of your team')}`); return; }
+    const staffName = (await workOrderStaff(supabase as any, workOrderId)).get(techId);
+    if (!staffName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('That person can’t see this association’s work orders')}`); return; }
     techName = staffName;
   }
   if (!techName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('Pick a team member or type a name')}`); return; }
+  const dateWorked = String(formData.get('date_worked') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateWorked) || dateWorked > new Date().toISOString().slice(0, 10)) {
+    redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('Pick the day the work was done (not a future date)')}`); return;
+  }
   const { error } = await (supabase as any).from('work_order_labor_entries').insert({
     work_order_id: workOrderId,
     tech_id:       techId || null,

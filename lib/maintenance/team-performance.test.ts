@@ -45,6 +45,22 @@ describe('buildTeamScoreboard', () => {
     expect(board.otherLabor).toEqual([{ name: 'Day helper', hours: 5, laborCost: 20 }]);
   });
 
+  it('credits a finished job to whoever finished it and ignores future labor', () => {
+    const board = buildTeamScoreboard({
+      staff,
+      since: '2026-09-01',
+      today: '2026-09-30',
+      workOrders: [
+        { id: 'r', assignee_id: 'u2', completed_by_assignee_id: 'u1', status: 'closed', priority: 'normal', created_at: '2026-09-05T00:00:00Z', scheduled_date: null, completed_date: '2026-09-06' },
+        { id: 's', assignee_id: null, completed_by_assignee_id: 'u1', status: 'done', priority: 'normal', created_at: '2026-09-05T00:00:00Z', scheduled_date: null, completed_date: '2026-09-07' },
+      ],
+      labor: [{ tech_id: 'u1', tech_name: 'Meho', date_worked: '2026-10-05', hours: 8, labor_cost: 400 }],
+    });
+    expect(board.members.find((m) => m.id === 'u1')).toMatchObject({ completed: 2, hours: 0, lastWorked: null });
+    expect(board.members.find((m) => m.id === 'u2')).toMatchObject({ completed: 0 });
+    expect(board.unassignedOpen).toBe(0);
+  });
+
   it('keeps work assigned to someone no longer on staff', () => {
     const board = buildTeamScoreboard({
       staff,

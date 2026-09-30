@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
-import { companyStaff } from '@/lib/maintenance/staff';
+import { workOrderStaff } from '@/lib/maintenance/staff';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,8 +24,8 @@ export async function assignWorkOrderToStaff(workOrderId: string, formData: Form
   let name: string | null = null;
   if (userId) {
     if (!UUID.test(userId)) fail('Pick a team member');
-    name = (await companyStaff(db)).get(userId) ?? null;
-    if (!name) fail('That person is not an active member of your team');
+    name = (await workOrderStaff(db, workOrderId)).get(userId) ?? null;
+    if (!name) fail('That person can’t see this association’s work orders');
   }
 
   const { data: updated, error } = await db.from('work_orders')
