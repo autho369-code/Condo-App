@@ -212,5 +212,5 @@ work orders and has no first-response clock, so nothing surfaces what is late.
 | Emergency alert email to managers | ✅ | association managers, else company managers + support inbox |
 | Work order attachments / photos | ✅ | residents on their request, staff, vendors (before/after); signed URLs |
 | Homeowner chargeback from a work order | ✅ | charge linked to the work order, GL-posted, logged |
-| Work order bulk actions + saved filters | 🟡 | filters yes, bulk no |
-| Maintenance performer (tech productivity) | ❌ | |
+| Work order bulk actions + saved filters | ✅ | bulk assign / status / priority (#73); saved filters ➖ |
+| Maintenance performer (tech productivity) | ✅ | /work-orders/team: per-staff open, overdue, completed, avg days, emergencies, hours, labor cost; in-house assignee + staff-linked labor |
