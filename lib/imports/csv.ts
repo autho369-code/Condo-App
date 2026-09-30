@@ -9,6 +9,10 @@ const ALIASES: Record<string, string> = {
   debit: 'debit', credit: 'credit', memo: 'memo', description: 'memo',
   vendor: 'vendor', payee: 'vendor', 'bill number': 'bill_number', 'bill #': 'bill_number', 'invoice number': 'bill_number', invoice: 'bill_number',
   'bill date': 'bill_date', 'invoice date': 'bill_date', 'due date': 'due_date', amount: 'amount',
+  // lockbox files
+  'check number': 'check_number', 'check #': 'check_number', 'check no': 'check_number', check: 'check_number',
+  payer: 'payer', remitter: 'payer', 'payer name': 'payer', name: 'payer', 'check amount': 'amount',
+  unit: 'unit', 'unit number': 'unit', coupon: 'unit', 'account number': 'unit',
 };
 
 export const canonicalHeader = (h: string) => {

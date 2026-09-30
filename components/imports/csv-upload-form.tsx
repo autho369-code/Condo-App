@@ -13,12 +13,15 @@ export function CsvUploadForm({
   templateName,
   showName = false,
   submitLabel,
+  extraFields,
 }: {
   action: (prev: ImportResult | null, formData: FormData) => Promise<ImportResult>;
   templateCsv: string;
   templateName: string;
   showName?: boolean;
   submitLabel: string;
+  /** Additional inputs rendered before the file picker. */
+  extraFields?: React.ReactNode;
 }) {
   const [result, formAction, pending] = React.useActionState(action, null);
   const templateHref = `data:text/csv;charset=utf-8,${encodeURIComponent(templateCsv)}`;
@@ -36,6 +39,7 @@ export function CsvUploadForm({
         </Alert>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {extraFields}
         {showName && (
           <Field label="Batch name" htmlFor="name" hint="Optional — shown in Journal Entry Batches.">
             <Input id="name" name="name" maxLength={120} placeholder="September accruals" />

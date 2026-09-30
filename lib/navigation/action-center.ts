@@ -172,6 +172,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Pay management fees', href: '/accounting/management-fees', description: 'Bill each association its monthly management fee.', access: 'finance' },
         { label: 'Recurring bills', href: '/bills/recurring', description: 'Janitorial, utilities and other bills entered automatically.', access: 'finance' },
         { label: 'Record bank deposit', href: '/bank-accounts/deposits/new', description: 'Group receipts into a deposit.' },
+        { label: 'Lockbox import', href: '/bank-accounts/lockbox', description: 'Import the bank lockbox file and post matched checks.', access: 'finance' },
         { label: 'Reconcile bank account', href: '/bank-accounts/reconcile/new', description: 'Match statement activity.' },
         { label: 'New journal entry', href: '/journal-entries/new', description: 'Post a balanced manual entry.' },
         { label: 'Recurring journal entry', href: '/journal-entries/recurring/new', description: 'Depreciation, reserve allocations and other repeating entries.', access: 'finance' },
