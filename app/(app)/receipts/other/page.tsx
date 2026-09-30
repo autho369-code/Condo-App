@@ -55,6 +55,7 @@ export default async function OtherReceiptsPage({
     fetched.push(...(data ?? []));
     if ((data ?? []).length < PAGE) break;
   }
+  const truncated = fetched.length >= MAX_ROWS;
   const { data: associations } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
 
   const rows = q
@@ -107,6 +108,8 @@ export default async function OtherReceiptsPage({
             <input type="checkbox" name="voided" value="1" defaultChecked={showVoided} /> Include voided
           </label>
         </FilterBar>
+
+        {truncated && <p className="text-xs text-amber-700">This range has more than {MAX_ROWS.toLocaleString()} receipts — totals and search cover the newest {MAX_ROWS.toLocaleString()}. Narrow the dates to see all.</p>}
 
         {rows.length === 0 ? (
           <Surface padded={false}>

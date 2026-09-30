@@ -29,6 +29,8 @@ export interface QueuedEmail {
   sentBy?: string | null;
   communicationMessageId?: string | null;
   idempotencyKey?: string | null;
+  /** Owner the email is about (drives the owner's email history). */
+  ownerId?: string | null;
 }
 
 function escapeHtml(s: string): string {
@@ -82,6 +84,7 @@ export function emailQueueRow(e: QueuedEmail) {
     sent_by: e.sentBy ?? null,
     communication_message_id: e.communicationMessageId ?? null,
     idempotency_key: e.idempotencyKey ?? null,
+    ...(e.ownerId ? { owner_id: e.ownerId } : {}),
   };
 }
 

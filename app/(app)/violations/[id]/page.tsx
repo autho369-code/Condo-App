@@ -13,6 +13,9 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { EscalationPanel } from '@/components/violations/escalation-panel';
+import { ViolationLettersList } from '@/components/violations/letters-list';
+import { markViolationLetterMailed } from '@/lib/rpcs/violation-rules';
+import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,11 +61,14 @@ export default async function ViolationDetailPage({
     .is('archived_at', null)
     .order('step_order');
   stepsQuery = rule?.custom_schedule ? stepsQuery.eq('house_rule_id', rule.id) : stepsQuery.is('house_rule_id', null);
-  const [{ data: steps }, { data: violationSettings }, { data: fines }] = await Promise.all([
+  const [{ data: steps }, { data: violationSettings }, { data: fines }, { data: letterRows }] = await Promise.all([
     stepsQuery,
     db.from('association_violation_settings').select('hearing_required_before_fine, hearing_request_days').eq('association_id', violation.association_id).maybeSingle(),
     db.from('violation_fines').select('id, step_name, amount, assessed_at').eq('violation_id', id).order('step_order'),
+    db.from('violation_letters').select(VIOLATION_LETTER_COLUMNS).eq('violation_id', id).order('created_at', { ascending: false }),
   ]);
+  const letters = (letterRows ?? []) as ViolationLetterRow[];
+  const letterLinks = await signLetterLinks(letters);
 
   // Attachments: written by the field-capture flow as
   // [{ name, path, size, uploaded_at, ... }] (same shape as
@@ -166,6 +172,14 @@ export default async function ViolationDetailPage({
           ) : (
             <div className="px-5 py-8 text-center text-sm text-gray-500">No updates recorded yet.</div>
           )}
+        </section>
+
+        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-gray-100 px-5 py-3">
+            <h2 className="text-sm font-semibold text-gray-950">Letters sent</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Written and delivered automatically at each follow-up step, using the step&apos;s template and delivery methods.</p>
+          </div>
+          <ViolationLettersList letters={letters} links={letterLinks} markMailed={markViolationLetterMailed} back={`/violations/${violation.id}`} />
         </section>
 
         <ViolationLetterDrafter violationId={violation.id} />

@@ -21,7 +21,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('bank_accounts').select('id, name, association_id, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name'),
     db.from('vendors').select('id, name').eq('portfolio_id', portfolioId).is('archived_at', null).order('name').limit(1000),
-    db.from('gl_accounts').select('id, number, name, account_type').eq('portfolio_id', portfolioId).eq('active', true)
+    db.from('gl_accounts').select('id, number, name, account_type, association_id, associations!gl_accounts_association_id_fkey(name)').eq('portfolio_id', portfolioId).eq('active', true)
       .not('account_type', 'in', '(cash,accounts_receivable)').order('number'),
   ]);
   const today = new Date().toISOString().slice(0, 10);
@@ -93,7 +93,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
                     <Field label={i === 0 ? 'GL account' : undefined}>
                       <Select name={`line_gl_${i}`} defaultValue="" aria-label={`Line ${i + 1} GL account`} required={i === 0}>
                         <option value="">Select GL account</option>
-                        {(glAccounts ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.number} — {g.name}</option>)}
+                        {(glAccounts ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.number} — {g.name}{g.association_id ? ` (${g.associations?.name ?? 'one association'} only)` : ''}</option>)}
                       </Select>
                     </Field>
                     <Field label={i === 0 ? 'Amount' : undefined}>
