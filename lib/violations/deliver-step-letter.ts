@@ -209,11 +209,20 @@ export async function retryStepLetter(db: any, violationId: string, step: number
     if (!current) {
       return "The letter for this step already exists; it can't be emailed because the owner still has no email on file. Nothing was duplicated.";
     }
-    const { error: addrError } = await db
-      .from('violation_letters').update({ email_status: 'pending', emailed_to: current }).eq('id', letter.id).eq('email_status', 'no_email_on_file');
+    const { data: claimed, error: addrError } = await db
+      .from('violation_letters').update({ email_status: 'pending', emailed_to: current })
+      .eq('id', letter.id).eq('email_status', 'no_email_on_file')
+      .select('email_status, emailed_to');
     if (addrError) throw new Error(`Could not update the letter's recipient: ${addrError.message}`);
-    letter.email_status = 'pending';
-    letter.emailed_to = current;
+    // Use what the database now holds: if another request claimed the letter a
+    // moment earlier, send to the address it recorded, never our own read.
+    const saved = claimed?.[0] ?? (await db.from('violation_letters').select('email_status, emailed_to').eq('id', letter.id).maybeSingle()).data;
+    if (!saved) throw new Error('Could not reload the letter.');
+    if (!claimed?.length && saved.email_status === 'queued') {
+      return `The letter was just emailed to ${saved.emailed_to} by another request. Nothing was duplicated.`;
+    }
+    letter.email_status = saved.email_status;
+    letter.emailed_to = saved.emailed_to;
   }
   if (!letter.emailed_to) {
     return 'The letter for this step has no email address to send to. Nothing was duplicated.';
