@@ -59,7 +59,7 @@ export async function replyAsResident(threadId: string, formData: FormData) {
   const body = text(formData, 'body', 5000);
   if (!body) redirect(`${back}?error=${encodeURIComponent('Write your message')}`);
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('post_message', { p_thread: threadId, p_body: body, p_internal: false });
+  const { error } = await db.rpc('post_message', { p_thread: threadId, p_body: body, p_internal: false, p_as: 'resident' });
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   refresh(threadId);
   redirect(`${back}?sent=1`);
@@ -73,7 +73,7 @@ export async function replyAsStaff(threadId: string, formData: FormData) {
   const internal = formData.get('internal') === 'on';
   if (!body) redirect(`${back}?error=${encodeURIComponent('Write a message')}`);
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('post_message', { p_thread: threadId, p_body: body, p_internal: internal });
+  const { error } = await db.rpc('post_message', { p_thread: threadId, p_body: body, p_internal: internal, p_as: 'staff' });
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   if (formData.get('close_after') === 'on' && !internal) {
     await db.rpc('set_message_thread_status', { p_thread: threadId, p_status: 'closed' });

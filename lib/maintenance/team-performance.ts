@@ -73,7 +73,9 @@ export function buildTeamScoreboard(opts: {
     const open = !CLOSED.has(wo.status);
     if (!open && FINISHED.has(wo.status)) {
       // Finished work is credited to whoever finished it, even if reassigned since.
-      const who = wo.completed_by_assignee_id ?? wo.assignee_id;
+      // completed_by_assignee_id is authoritative when loaded (null = nobody in-house finished it);
+      // fall back to assignee_id only for callers that don't load it.
+      const who = 'completed_by_assignee_id' in wo ? wo.completed_by_assignee_id : wo.assignee_id;
       if (who && wo.completed_date && wo.completed_date >= since && wo.completed_date <= today) {
         const m = member(who, 'Former staff');
         m.completed += 1;

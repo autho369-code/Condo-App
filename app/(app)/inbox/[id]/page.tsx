@@ -41,7 +41,7 @@ export default async function ConversationPage({
     db.rpc('message_thread_assignees', { p_thread: id }),
   ]);
   if (!t) notFound();
-  await db.rpc('mark_message_thread_read', { p_thread: id });
+  await db.rpc('mark_message_thread_read', { p_thread: id, p_as: 'staff' });
 
   const owner = one<any>(t.owners);
   const tenant = one<any>(t.tenants);
