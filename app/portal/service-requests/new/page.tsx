@@ -74,6 +74,10 @@ export default async function NewServiceRequest({
           dispatches a vendor when needed. For an active emergency — burst pipe, no heat in winter, fire, gas leak —
           <strong className="text-gray-700"> please also call your emergency maintenance line.</strong>
         </p>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          A question rather than a repair — your ledger, documents, insurance, a move?{' '}
+          <Link href="/portal/messages?compose=1" className="font-medium text-gray-900 hover:underline">Send a message instead</Link>.
+        </p>
       </div>
 
       {sp.error && (

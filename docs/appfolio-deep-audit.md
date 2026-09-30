@@ -214,3 +214,16 @@ work orders and has no first-response clock, so nothing surfaces what is late.
 | Homeowner chargeback from a work order | ✅ | charge linked to the work order, GL-posted, logged |
 | Work order bulk actions + saved filters | 🟡 | filters yes, bulk no |
 | Maintenance performer (tech productivity) | ❌ | |
+
+## 5. Communication (2026-09-30)
+
+Reporting was audited 2026-08-01 (≈119 Portier reports vs ≈90 AppFolio — parity-plus; resale/estoppel
+certificate declined by Mirsad). Communication: letters, email blasts, SMS (blocked on Twilio KYC), surveys,
+announcements already exist. The gap the live AppFolio queue exposes: residents have no way to *ask* management
+anything, so questions arrive as maintenance requests.
+
+| Area | Portier | Notes |
+|---|---|---|
+| Resident ↔ management secure messaging | ✅ **beyond AppFolio** | owner + tenant portals, staff Inbox, internal notes, assign, close/reopen, 48h reply clock, email both ways |
+| Two-way SMS | 🟡 | built; blocked on Twilio Trust Hub KYC |
+| Letters, email blasts, announcements, surveys | ✅ | |

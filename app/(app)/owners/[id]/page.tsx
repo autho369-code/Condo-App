@@ -362,6 +362,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       description={`Owner portal — ${owner.email}${unitNames ? ` · ${unitNames}` : ''}`}
       actions={
         <div className="flex items-center gap-2">
+          <Link href={`/inbox/new?owner=${id}`}>
+            <Button size="sm">Message</Button>
+          </Link>
           <Link href={`/owners/${id}?view=statements`}>
             <Button variant="secondary" size="sm">View Statements</Button>
           </Link>
