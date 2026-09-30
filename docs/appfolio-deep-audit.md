@@ -211,6 +211,6 @@ work orders and has no first-response clock, so nothing surfaces what is late.
 | First-response clock + overdue queue + Action Center count | ✅ **beyond AppFolio** | 2h / 24h / 48h / 72h by priority |
 | Emergency alert email to managers | ✅ | association managers, else company managers + support inbox |
 | Work order attachments / photos | ✅ | residents on their request, staff, vendors (before/after); signed URLs |
-| Homeowner chargeback from a work order | ❌ | next |
+| Homeowner chargeback from a work order | ✅ | charge linked to the work order, GL-posted, logged |
 | Work order bulk actions + saved filters | 🟡 | filters yes, bulk no |
 | Maintenance performer (tech productivity) | ❌ | |
