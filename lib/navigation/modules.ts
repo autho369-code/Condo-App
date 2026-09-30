@@ -65,6 +65,7 @@ export const appModules: AppModule[] = [
       { label: 'Delinquency ladder', href: '/delinquencies' },
       { label: 'Payables', href: '/bills' },
       { label: 'Check run', href: '/bills/check-run' },
+      { label: 'Recurring bills', href: '/bills/recurring' },
       { label: 'Bank accounts', href: '/bank-accounts' },
       { label: 'Bank reconciliation', href: '/bank-accounts/reconcile' },
       { label: 'Bank activity', href: '/bank-accounts/activity' },

@@ -259,6 +259,9 @@ export default async function BillsPage({
           <Link href="/bills/check-run">
             <Button variant="secondary">Run checks</Button>
           </Link>
+          <Link href="/bills/recurring">
+            <Button variant="secondary">Recurring bills</Button>
+          </Link>
         </>
       }
     >
