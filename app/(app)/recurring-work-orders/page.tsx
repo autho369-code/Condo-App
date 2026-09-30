@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,7 +162,7 @@ export default async function RecurringWorkOrdersPage({
                     <TD className="max-w-xs">
                       <div className="font-medium text-gray-900">{r.title}</div>
                       {r.trade && (
-                        <div className="text-xs capitalize text-gray-500">{r.trade.replace(/_/g, ' ')}</div>
+                        <div className="text-xs text-gray-500">{tradeLabel(r.trade)}</div>
                       )}
                       {r.vendors?.name && (
                         <div className="text-xs text-gray-400">{r.vendors.name}</div>

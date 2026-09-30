@@ -5,6 +5,7 @@ import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/input';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export default async function VendorProfile({
     <div>
       <PageHeader
         title="Profile"
-        description={v?.name ? `${v.name}${v.trade ? ` · ${String(v.trade).replace(/_/g, ' ')}` : ''}` : 'Your vendor profile'}
+        description={v?.name ? `${v.name}${v.trade ? ` · ${tradeLabel(v.trade)}` : ''}` : 'Your vendor profile'}
       />
 
       {sp.error && <Alert tone="danger" title="Could not save:" className="mb-5">{sp.error}</Alert>}

@@ -7,19 +7,23 @@ import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/utils';
+import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UnitsPage({ searchParams }: { searchParams: Promise<{ assoc?: string; filter?: string }> }) {
-  const { assoc, filter } = await searchParams;
+export default async function UnitsPage({ searchParams }: { searchParams: Promise<{ assoc?: string; filter?: string; tag?: string }> }) {
+  const { assoc, filter, tag: tagParam } = await searchParams;
+  const tag = /^[0-9a-f-]{36}$/i.test(tagParam ?? '') ? tagParam! : '';
   const supabase = await createClient();
+  const tagOptions = await tagsInUse(supabase, 'unit');
+  const tagged = tag ? new Set(await recordIdsWithTag(supabase, 'unit', tag)) : null;
 
   let q = (supabase as any).from('v_unit_account_summary').select('*');
   if (assoc) q = q.eq('association_id', assoc);
   const { data: rows, error: unitsError } = await q.order('association_name').order('unit_number');
   if (unitsError) throw new Error(`Could not load unit account summaries: ${unitsError.message}`);
 
-  const all = (rows ?? []) as any[];
+  const all = ((rows ?? []) as any[]).filter((u) => !tagged || tagged.has(u.unit_id));
   const filtered = filter === 'balance' ? all.filter((u) => Number(u.outstanding_balance ?? 0) > 0)
                  : filter === 'credit'  ? all.filter((u) => Number(u.unapplied_credit ?? 0) > 0)
                  : all;
@@ -49,6 +53,12 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
               <option value="balance">With outstanding balance</option>
               <option value="credit">With credit on file</option>
             </FilterSelect>
+            {(tagOptions.length > 0 || tag) && (
+              <FilterSelect label="Tag" name="tag" defaultValue={tag}>
+                <option value="">All tags</option>
+                {tagOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </FilterSelect>
+            )}
             <Button variant="secondary" type="submit">Apply</Button>
           </form>
         </Surface>

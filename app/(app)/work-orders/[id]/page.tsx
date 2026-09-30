@@ -13,6 +13,7 @@ import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { RATABLE_STATUSES, RateWorkOrderForm, Stars, summarize } from '@/components/work-orders/rating';
 import { money, date } from '@/lib/utils';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,7 +108,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
               <span className={`mr-1 rounded px-2 py-0.5 text-xs ${priorityBadge(wo.priority)}`}>{wo.priority}</span>
               <span className={`mr-1 rounded px-2 py-0.5 text-xs ${statusBadge(wo.status)}`}>{wo.status}</span>
               {wo.category && <span className="mr-1 rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">{wo.category.replace(/_/g, ' ')}</span>}
-              {wo.trade && <span className="mr-1 rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">{wo.trade.replace(/_/g, ' ')}</span>}
+              {wo.trade && <span className="mr-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{tradeLabel(wo.trade)}</span>}
             </>
           }
         />
@@ -196,7 +197,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-sm">
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Priority</dt><dd className="mt-0.5 font-medium capitalize">{wo.priority}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Category</dt><dd className="mt-0.5 capitalize">{wo.category?.replace(/_/g, ' ') ?? '—'}</dd></div>
-          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5 capitalize">{wo.trade?.replace(/_/g, ' ') ?? '—'}</dd></div>
+          <div><dt className="text-xs uppercase tracking-wider text-gray-500">Trade</dt><dd className="mt-0.5">{wo.trade ? tradeLabel(wo.trade) : '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Scheduled</dt><dd className="mt-0.5">{date(wo.scheduled_date)} {wo.scheduled_time ?? ''}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Assigned to</dt><dd className="mt-0.5">{wo.assigned_to ?? '—'}</dd></div>
           <div><dt className="text-xs uppercase tracking-wider text-gray-500">Requested by</dt><dd className="mt-0.5">{wo.requested_by ?? '—'}</dd></div>

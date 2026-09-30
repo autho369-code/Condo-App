@@ -17,6 +17,8 @@ import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } 
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { OwnerCollectionStatus } from '@/components/owners/collections-status';
 import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
+import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
+import { loadRecordMeta } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
 export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
   const me = await requireStaff();
   const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
@@ -49,7 +52,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
-      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, units(id, unit_number, buildings(name, associations(id, name)))')
+      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, send_dues_reminders, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
     db.from('service_requests')
@@ -307,6 +310,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     notes: p.notes,
   }));
 
+  const meta = await loadRecordMeta(db, 'owner', id);
+
   const unitNames = (currentOccs ?? []).map((o: any) => {
     const assocName = o.units?.buildings?.associations?.name ?? '';
     const unitNum = o.units?.unit_number ?? '';
@@ -317,7 +322,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'tags' && <div className="mb-4"><Alert tone="success" title="Tags saved" /></div>}
+      {sp.saved === 'note' && <div className="mb-4"><Alert tone="success" title="Note added" /></div>}
       {sp.saved === 'collections' && <div className="mb-4"><Alert tone="success" title="Collections status saved" /></div>}
+      {sp.saved === 'dues_reminders' && <div className="mb-4"><Alert tone="success" title="Dues reminder setting saved" /></div>}
       {sp.saved === 'delinquency_note' && <div className="mb-4"><Alert tone="success" title="Delinquency note added" /></div>}
       {sp.saved === 'late_fee' && <div className="mb-4"><Alert tone="success" title="Late-fee rule saved" /></div>}
       {sp.saved === 'financial' && <div className="mb-4"><Alert tone="success" title="Financial details saved" /></div>}
@@ -368,6 +376,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               Board — {s.role ?? 'Member'}{s.associations?.name ? ` · ${s.associations.name}` : ''}
             </StatusChip>
           ))}
+          <RecordTagChips tags={meta.tags} href={(t) => `/owners?tag=${t}`} />
         </div>
 
         {/* ── Financial Summary ── */}
@@ -386,6 +395,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
             <Button variant="secondary" size="sm">View charges</Button>
           </Link>
         </div>
+
+        <RecordMetaPanels type="owner" id={id} meta={meta} currentUserId={me.auth_user_id} tagHref={(t) => `/owners?tag=${t}`} />
 
         {/* ── Board Membership: mark this owner as a board member ── */}
         <Section title="Board Membership">

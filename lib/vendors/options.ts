@@ -18,7 +18,8 @@ export const VENDOR_TRADES = (Object.keys(TRADE_LABELS) as VendorTrade[]).sort((
   a === 'other' ? 1 : b === 'other' ? -1 : TRADE_LABELS[a].localeCompare(TRADE_LABELS[b]),
 );
 export const tradeLabel = (v: string | null | undefined) =>
-  (v && (TRADE_LABELS as Record<string, string>)[v]) ?? (v ? v.replace(/_/g, ' ') : 'Other');
+  (v && (TRADE_LABELS as Record<string, string>)[v]) ??
+  (v ? v.charAt(0).toUpperCase() + v.slice(1).replace(/_/g, ' ') : 'Other');
 export const VENDOR_TYPES = ['general', 'contractor', 'sub_contractor', 'service_provider', 'other'] as const;
 export const VENDOR_PAYMENT_TYPES = ['check', 'echeck', 'ach', 'online'] as const;
 export const CHECK_CONSOLIDATION = [

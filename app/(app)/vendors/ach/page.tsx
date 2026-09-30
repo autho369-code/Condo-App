@@ -121,7 +121,7 @@ export default async function VendorAchPage({
   }
   if (q) {
     rows = rows.filter((vendor: any) =>
-      [vendor.name, vendor.trade, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
+      [vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
     );
   }
 
@@ -155,7 +155,7 @@ export default async function VendorAchPage({
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-950">{focusVendor.name}</h2>
-                <p className="mt-1 text-sm capitalize text-gray-500">{focusVendor.trade?.replace(/_/g, ' ')}</p>
+                <p className="mt-1 text-sm text-gray-500">{tradeLabel(focusVendor.trade)}</p>
                 <div className="mt-2 flex gap-2">
                   <StatusChip tone={focusVendor.payment_type === 'ach' ? 'success' : 'neutral'}>
                     {focusVendor.payment_type?.replace(/_/g, ' ') ?? 'check'}

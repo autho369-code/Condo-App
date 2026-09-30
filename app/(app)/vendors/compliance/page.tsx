@@ -15,6 +15,7 @@ import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { vendorDocExpires, vendorDocLabel } from '@/lib/vendors/document-requests';
+import { tradeLabel } from '@/lib/vendors/options';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,7 +162,7 @@ export default async function VendorCompliancePage({
               const lapsed = EXPIRATIONS.find(([k]) => tone(v[k]) === 'danger' || tone(v[k]) === 'warning');
               return (
                 <TR key={v.id}>
-                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-xs capitalize text-gray-500">{v.trade?.replace(/_/g, ' ')}</div></TD>
+                  <TD><Link href={`/vendors/${v.id}`} className="font-medium text-gray-950 hover:underline">{v.name}</Link><div className="text-xs text-gray-500">{tradeLabel(v.trade)}</div></TD>
                   {EXPIRATIONS.map(([k]) => (
                     <TD key={k}><StatusChip tone={tone(v[k])}>{v[k] ? date(v[k]) : 'None'}</StatusChip></TD>
                   ))}

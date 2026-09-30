@@ -11,6 +11,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,15 +57,17 @@ function assocAddress(association: any) {
 export default async function OwnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; letter?: string; q?: string }>;
+  searchParams: Promise<{ view?: string; letter?: string; q?: string; tag?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
   const view = sp.view === 'directory' || sp.view === 'tenants' ? sp.view : 'homeowners';
   const letter = sp.letter ?? 'all';
   const q = (sp.q ?? '').trim().toLowerCase();
+  const tag = /^[0-9a-f-]{36}$/i.test(sp.tag ?? '') ? sp.tag! : '';
 
   const supabase = await createClient();
+  const tagOptions = await tagsInUse(supabase, 'owner');
 
   const [{ data: owners }, { data: occupancies }, { data: tenants }] = await Promise.all([
     (supabase as any)
@@ -136,6 +139,10 @@ export default async function OwnersPage({
 
   if (view === 'homeowners') rows = rows.filter((row) => row.occupancyType === 'owner');
   if (letter !== 'all') rows = rows.filter((row) => row.lastInitial === letter);
+  if (tag) {
+    const tagged = new Set(await recordIdsWithTag(supabase, 'owner', tag));
+    rows = rows.filter((row) => tagged.has(row.id));
+  }
   if (q) {
     rows = rows.filter((row) =>
       [row.name, row.email, row.phone, row.associationName, row.unitNumber].some((value) =>
@@ -277,6 +284,12 @@ export default async function OwnersPage({
 
         <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
           {view !== 'homeowners' && <input type="hidden" name="view" value={view} />}
+          {(tagOptions.length > 0 || tag) && (
+            <FilterSelect label="Tag" name="tag" defaultValue={tag}>
+              <option value="">All tags</option>
+              {tagOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </FilterSelect>
+          )}
           <FilterSelect label="Letter" name="letter" defaultValue={letter}>
             <option value="all">All</option>
             {LETTERS.map((item) => (
