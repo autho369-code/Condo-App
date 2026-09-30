@@ -165,9 +165,10 @@ export async function bulkBillAction(formData: FormData) {
   const back = String(formData.get('back') ?? '/bills');
   const safeBack = back.startsWith('/bills') ? back : '/bills';
   const sep = safeBack.includes('?') ? '&' : '?';
-  const ids = [...new Set(formData.getAll('bill_id').map(String).filter((v) => BULK_UUID.test(v)))].slice(0, 200);
+  const ids = [...new Set(formData.getAll('bill_id').map(String).filter((v) => BULK_UUID.test(v)))];
   if (op !== 'submit' && op !== 'approve') redirect(`${safeBack}${sep}error=${encodeURIComponent('Choose an action')}`);
   if (!ids.length) redirect(`${safeBack}${sep}error=${encodeURIComponent('Select at least one bill')}`);
+  if (ids.length > 200) redirect(`${safeBack}${sep}error=${encodeURIComponent(`${ids.length} bills selected — select 200 or fewer at a time`)}`);
 
   const supabase = (await createClient()) as any;
   const rpc = op === 'submit' ? 'request_payable_bill_approval' : 'approve_payable_bill';
