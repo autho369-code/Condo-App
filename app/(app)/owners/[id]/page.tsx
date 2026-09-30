@@ -17,6 +17,7 @@ import { addOwnerAttachment, removeOwnerAttachment, saveOwnerFinancialDetails } 
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { OwnerCollectionStatus } from '@/components/owners/collections-status';
 import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
+import { OwnerCommunicationHistory } from '@/components/owners/communication-history';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
 
@@ -311,6 +312,14 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   }));
 
   const meta = await loadRecordMeta(db, 'owner', id);
+  const [{ data: ownerEmails }, { data: ownerLetters }] = await Promise.all([
+    db.from('email_queue')
+      .select('id, subject, to_email, status, delivery_status, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, error_message, created_at, sent_at')
+      .eq('owner_id', id).order('created_at', { ascending: false }).limit(100),
+    db.from('physical_mail_deliveries')
+      .select('id, description, mail_class, status, expected_delivery_date, delivered_at, submitted_at, created_at, error_message')
+      .eq('owner_id', id).order('created_at', { ascending: false }).limit(100),
+  ]);
 
   const unitNames = (currentOccs ?? []).map((o: any) => {
     const assocName = o.units?.buildings?.associations?.name ?? '';
@@ -1328,6 +1337,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
               </form>
             </div>
           </Section>
+
+          <OwnerCommunicationHistory emails={(ownerEmails ?? []) as any[]} letters={(ownerLetters ?? []) as any[]} />
 
           <Section title="Audit log">
             {auditRows && auditRows.length > 0 ? (
