@@ -70,6 +70,7 @@ export default async function ViolationDetailPage({
   const letters = (letterRows ?? []) as ViolationLetterRow[];
   const currentStep = Number(violation.current_step ?? 0);
   const currentStepLetterMissing = currentStep > 0 && !(letterRows ?? []).some((l: any) => l.step_order === currentStep);
+  const currentStepEmailPending = (letterRows ?? []).some((l: any) => l.step_order === currentStep && l.email_status === 'pending');
   const letterLinks = await signLetterLinks(letters);
 
   // Attachments: written by the field-capture flow as
@@ -185,14 +186,16 @@ export default async function ViolationDetailPage({
             {currentStep > 0 && (
               <form action={sendCurrentStepLetter} className="shrink-0">
                 <input type="hidden" name="id" value={violation.id} />
-                <Button type="submit" size="sm" variant={currentStepLetterMissing ? 'primary' : 'secondary'}>
-                  {currentStepLetterMissing ? 'Send missing letter for this step' : 'Resend letter for this step'}
+                <Button type="submit" size="sm" variant={currentStepLetterMissing || currentStepEmailPending ? 'primary' : 'secondary'}>
+                  {currentStepLetterMissing ? 'Send missing letter for this step' : currentStepEmailPending ? 'Retry the email for this step' : "Email this step's letter again"}
                 </Button>
               </form>
             )}
           </div>
-          {currentStepLetterMissing && (
-            <p className="border-b border-amber-100 bg-amber-50 px-5 py-2.5 text-xs text-amber-800">The current step was recorded but its letter was not sent.</p>
+          {(currentStepLetterMissing || currentStepEmailPending) && (
+            <p className="border-b border-amber-100 bg-amber-50 px-5 py-2.5 text-xs text-amber-800">
+              {currentStepLetterMissing ? 'The current step was recorded but its letter was not sent.' : "The current step's letter was saved, but its email did not go out."}
+            </p>
           )}
           <ViolationLettersList letters={letters} links={letterLinks} markMailed={markViolationLetterMailed} back={`/violations/${violation.id}`} />
         </section>

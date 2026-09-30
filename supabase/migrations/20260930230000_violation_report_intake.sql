@@ -12,6 +12,14 @@ alter table public.violation_cases
   add column if not exists reviewed_by uuid,
   add column if not exists reviewed_at timestamptz;
 
+-- Older deployments used a longer status vocabulary (notice_sent,
+-- hearing_scheduled, violation_dismissed, closed, ...). Map it first so the
+-- constraint can be added: finished cases count as dismissed (their notes are
+-- kept), anything still in progress goes back to the review queue.
+update public.violation_cases
+   set status = case when status in ('violation_dismissed', 'dismissed', 'closed', 'resolved') then 'dismissed' else 'reported' end
+ where status is null or status not in ('reported', 'converted', 'dismissed');
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'violation_cases_status_check' and conrelid = 'public.violation_cases'::regclass) then
