@@ -108,6 +108,26 @@ export async function createMaintenanceUpload(
   return { path, token: data.token };
 }
 
+/**
+ * The real type of a stored file, from its first bytes. The storage mimetype
+ * comes from the client's upload header, so it can't be trusted for deciding
+ * what residents may see.
+ */
+async function sniffStoredType(svc: any, path: string): Promise<string | null> {
+  const { data: signed } = await svc.storage.from(BUCKET).createSignedUrl(path, 60);
+  if (!signed?.signedUrl) return null;
+  const res = await fetch(signed.signedUrl, { headers: { Range: 'bytes=0-31' } });
+  if (!res.ok) return null;
+  const b = new Uint8Array(await res.arrayBuffer()).slice(0, 32);
+  const ascii = (from: number, to: number) => String.fromCharCode(...b.slice(from, to));
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png';
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+  if (ascii(4, 8) === 'ftyp' && ['heic', 'heix', 'heim', 'heis', 'mif1', 'msf1', 'hevc'].includes(ascii(8, 12))) return 'image/heic';
+  if (ascii(0, 5) === '%PDF-') return 'application/pdf';
+  return null;
+}
+
 /** Step 2: record a file the browser finished uploading. */
 export async function recordMaintenanceUpload(
   kind: MaintenanceParentKind,
@@ -127,6 +147,12 @@ export async function recordMaintenanceUpload(
   const stored = (listed ?? []).find((o: any) => o.name === objectName);
   if (!stored) return { error: 'Upload not found — try again' };
 
+  const actualType = await sniffStoredType(svc, file.path);
+  if (!actualType) {
+    await svc.storage.from(BUCKET).remove([file.path]);
+    return { error: `"${file.name}" is not a JPG, PNG, HEIC, WebP photo or a PDF` };
+  }
+
   const { data: existing } = await svc.from('maintenance_attachments').select('id').eq('file_path', file.path).maybeSingle();
   if (existing) return { ok: true };
   if ((await countFor(svc, parent)) >= MAX_FILES) {
@@ -141,7 +167,7 @@ export async function recordMaintenanceUpload(
     work_order_id: parent.workOrderId,
     file_name: String(file.name || objectName).slice(0, 255),
     file_path: file.path,
-    content_type: stored.metadata?.mimetype ?? file.type ?? null,
+    content_type: actualType,
     size_bytes: stored.metadata?.size ?? file.size ?? null,
     uploaded_by: userId,
     uploader_role: parent.role,
