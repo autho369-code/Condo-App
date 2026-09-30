@@ -50,8 +50,7 @@ export default async function ServiceRequestsPage({
   const OPEN = ['open', 'waiting'];
   const nowIso = new Date().toISOString();
   // Queue predicates run in the database so they see every request, not just
-  // the first page; only the work-order-based "new"/"triaged" split is done
-  // in memory, over open requests.
+  // the first page (has_open_work_order is kept in sync by a work_orders trigger).
   let listQuery = db.from('service_requests')
     .select('id, number, description, priority, status, source, permission_to_enter, created_at, association_id, unit_id, tenant_id, owner_id, homeowner_id, request_kind, admin_topic, category, duplicate_of, duplicate_reviewed, first_response_due_at, acknowledged_at, associations(name), units(unit_number), tenants:tenant_id(first_name,last_name,email), owners:owner_id(full_name,email), homeowners:homeowner_id(full_name,email), work_orders(id,number,status)')
     .is('archived_at', null);
@@ -59,6 +58,8 @@ export default async function ServiceRequestsPage({
   else if (intake === 'questions') listQuery = listQuery.in('status', OPEN).eq('request_kind', 'admin');
   else if (intake === 'duplicates') listQuery = listQuery.in('status', OPEN).not('duplicate_of', 'is', null).eq('duplicate_reviewed', false);
   else if (intake === 'completed' || intake === 'cancelled') listQuery = listQuery.eq('status', intake);
+  else if (intake === 'new') listQuery = listQuery.in('status', OPEN).eq('has_open_work_order', false);
+  else if (intake === 'triaged') listQuery = listQuery.in('status', OPEN).eq('has_open_work_order', true);
   else if (intake !== 'all') listQuery = listQuery.in('status', OPEN);
   if (priority) listQuery = listQuery.eq('priority', priority);
   if (association_id) listQuery = listQuery.eq('association_id', association_id);
@@ -66,14 +67,16 @@ export default async function ServiceRequestsPage({
   const openCount = (build: (query: any) => any) =>
     build(db.from('service_requests').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', OPEN));
 
-  const [{ data: requestRows }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes] = await Promise.all([
+  const [{ data: requestRows }, { data: associations }, { data: openRows }, overdueRes, questionRes, duplicateRes, emergencyRes, newRes, triagedRes] = await Promise.all([
     listQuery.order('priority', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('service_requests').select('id, created_at, work_orders(status)').is('archived_at', null).in('status', OPEN).limit(5000),
+    db.from('service_requests').select('created_at').is('archived_at', null).in('status', OPEN).order('created_at').limit(5000),
     openCount((query) => query.is('acknowledged_at', null).lt('first_response_due_at', nowIso)),
     openCount((query) => query.eq('request_kind', 'admin')),
     openCount((query) => query.not('duplicate_of', 'is', null).eq('duplicate_reviewed', false)),
     openCount((query) => query.eq('priority', 'emergency')),
+    openCount((query) => query.eq('has_open_work_order', false)),
+    openCount((query) => query.eq('has_open_work_order', true)),
   ]);
 
   const all = (requestRows ?? []) as any[];
@@ -81,11 +84,7 @@ export default async function ServiceRequestsPage({
   const isOpen = (request: any) => OPEN.includes(request.status);
   const isDuplicate = (request: any) => Boolean(request.duplicate_of) && !request.duplicate_reviewed && isOpen(request);
   const now = Date.now();
-  let filtered = all.filter((request) => {
-    if (intake === 'new') return !activeWorkOrder(request);
-    if (intake === 'triaged') return Boolean(activeWorkOrder(request));
-    return true;
-  });
+  let filtered = all;
   if (q) {
     const needle = q.toLowerCase();
     filtered = filtered.filter((request) => {
@@ -103,8 +102,8 @@ export default async function ServiceRequestsPage({
     });
   }
 
-  const newCount = open.filter((request) => !activeWorkOrder(request)).length;
-  const triagedCount = open.length - newCount;
+  const newCount = newRes.count ?? 0;
+  const triagedCount = triagedRes.count ?? 0;
   const averageAge = open.length === 0 ? 0 : Math.round(open.reduce((sum, request) => sum + ageInDays(request.created_at), 0) / open.length);
   const emergencyCount = emergencyRes.count ?? 0;
   const overdueCount = overdueRes.count ?? 0;

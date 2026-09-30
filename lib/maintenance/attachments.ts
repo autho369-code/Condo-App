@@ -41,14 +41,22 @@ export async function loadRequestAttachmentsByRequest(serviceRequestIds: string[
   if (!serviceRequestIds.length) return byRequest;
   const db = (await createClient()) as any;
   const rows: any[] = [];
-  // Chunked so a long request history never drops older requests' files.
-  for (let i = 0; i < serviceRequestIds.length; i += 80) {
-    const { data } = await db.from('maintenance_attachments')
-      .select('id, service_request_id, file_name, file_path, content_type, size_bytes, uploader_role, uploaded_by, created_at')
-      .in('service_request_id', serviceRequestIds.slice(i, i + 80))
-      .is('work_order_id', null)
-      .order('created_at', { ascending: true });
-    rows.push(...(data ?? []));
+  // Request-level files plus the work-order files RLS lets this viewer see
+  // (for residents: vendor before/after photos). Chunked by request and paged
+  // so no file is dropped by the API's row limit.
+  const PAGE = 1000;
+  for (let i = 0; i < serviceRequestIds.length; i += 50) {
+    const chunk = serviceRequestIds.slice(i, i + 50);
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await db.from('maintenance_attachments')
+        .select('id, service_request_id, file_name, file_path, content_type, size_bytes, uploader_role, uploaded_by, created_at')
+        .in('service_request_id', chunk)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) break;
+    }
   }
   for (const item of await sign(rows)) {
     const key = (item as any).service_request_id as string;
