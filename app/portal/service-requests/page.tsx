@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelServiceRequest } from '@/lib/rpcs/service-requests';
 import { date } from '@/lib/utils';
+import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
+import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +25,7 @@ export default async function ServiceRequestsList({
 }: {
   searchParams: Promise<{ submitted?: string; error?: string }>;
 }) {
-  await requireAuth();
+  const me = await requireAuth();
   const { submitted, error } = await searchParams;
   const supabase = await createClient();
 
@@ -31,12 +33,15 @@ export default async function ServiceRequestsList({
     .from('service_requests')
     .select(`
       id, number, description, priority, status, source, created_on, created_at,
-      permission_to_enter, resolution_note,
+      permission_to_enter, resolution_note, homeowner_id, owner_id,
       units(unit_number, buildings(associations(name))),
       work_orders(id, status)
     `)
     .is('archived_at', null)
     .order('created_at', { ascending: false });
+  const files = await loadRequestAttachmentsByRequest((rows ?? []).map((r: any) => r.id));
+  const isMine = (r: any) => Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id);
+  const justSubmitted = submitted ? (rows ?? []).find((r: any) => r.id === submitted && isMine(r)) : null;
 
   return (
     <div className="space-y-6">
@@ -52,6 +57,17 @@ export default async function ServiceRequestsList({
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed — usually within one business day.
         </div>
+      )}
+
+      {justSubmitted && (
+        <Card>
+          <CardHeader><CardTitle>Add photos to request #{justSubmitted.number ?? ''}</CardTitle></CardHeader>
+          <CardBody>
+            <p className="mb-3 text-sm text-gray-500">A photo of the problem helps us send the right vendor the first time.</p>
+            <MaintenanceAttachments kind="service_request" parentId={justSubmitted.id} items={files.get(justSubmitted.id) ?? []}
+              canUpload currentUserId={me.auth_user_id} canRemoveAny={false} emptyText="No photos yet." />
+          </CardBody>
+        </Card>
       )}
 
       {error && (
@@ -94,6 +110,17 @@ export default async function ServiceRequestsList({
                             → Work order <span className="capitalize">{wo.status?.replace(/_/g, ' ')}</span>
                           </div>
                         )}
+                        {(files.get(r.id)?.length || (isOpen && isMine(r))) ? (
+                          <details className="mt-1.5">
+                            <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">
+                              {files.get(r.id)?.length ? `${files.get(r.id)!.length} photo${files.get(r.id)!.length === 1 ? '' : 's'}` : 'Add photos'}
+                            </summary>
+                            <div className="mt-2 min-w-[16rem]">
+                              <MaintenanceAttachments kind="service_request" parentId={r.id} items={files.get(r.id) ?? []}
+                                canUpload={isOpen && isMine(r)} currentUserId={me.auth_user_id} canRemoveAny={false} />
+                            </div>
+                          </details>
+                        ) : null}
                         {r.resolution_note && (
                           <div className="mt-1.5 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-700">
                             <span className="font-medium text-gray-900">Reply: </span>{r.resolution_note}

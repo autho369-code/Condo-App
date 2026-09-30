@@ -14,6 +14,8 @@ import { ArcMessageThread, type ArcMessage } from '@/components/architectural/me
 import { RATABLE_STATUSES, RateWorkOrderForm, Stars, summarize } from '@/components/work-orders/rating';
 import { money, date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
+import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +84,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     supabase.auth.getUser(),
   ]);
   if (!wo) notFound();
+  const attachments = await loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id });
 
   const assoc = (wo.units as any)?.buildings?.associations;
   const sr = wo.service_requests as any;
@@ -247,6 +250,12 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
           </div>
         </Section>
       )}
+
+      <Section title="Photos & files" subtitle="Includes the resident's photos on the request. The assigned vendor sees these too.">
+        <div className="px-5 py-4">
+          <MaintenanceAttachments kind="work_order" parentId={wo.id} items={attachments} canUpload currentUserId={authData?.user?.id ?? null} canRemoveAny />
+        </div>
+      </Section>
 
       <Section
         title="Labor entries"

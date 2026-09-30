@@ -9,6 +9,8 @@ import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import { Label, Select, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
+import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
+import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import {
   ADMIN_TOPIC_LABELS, CATEGORY_LABELS, REPLY_STARTERS, requestKindLabel, responseState,
 } from '@/lib/maintenance/intake';
@@ -62,7 +64,7 @@ export default async function ServiceRequestDetail({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
   const db = (await createClient()) as any;
@@ -70,12 +72,13 @@ export default async function ServiceRequestDetail({
   const { data: sr } = await db.from('service_requests').select(SELECT).eq('id', id).is('archived_at', null).maybeSingle();
   if (!sr) notFound();
 
-  const [{ data: original }, { data: merged }] = await Promise.all([
+  const [{ data: original }, { data: merged }, attachments] = await Promise.all([
     sr.duplicate_of
       ? db.from('service_requests').select(SELECT).eq('id', sr.duplicate_of).maybeSingle()
       : Promise.resolve({ data: null }),
     db.from('service_requests').select('id, number, description, status, created_at, owners:owner_id(full_name), homeowners:homeowner_id(full_name), tenants:tenant_id(first_name, last_name, email)')
       .eq('duplicate_of', id).order('created_at'),
+    loadMaintenanceAttachments({ serviceRequestId: id }),
   ]);
 
   const who = requester(sr);
@@ -200,6 +203,13 @@ export default async function ServiceRequestDetail({
               {sr.priority}{sr.submitted_priority && sr.submitted_priority !== sr.priority ? <span className="text-gray-500"> (resident chose {sr.submitted_priority})</span> : null}
             </dd></div>
           </dl>
+        </div>
+      </Section>
+
+      <Section title="Photos & files">
+        <div className="px-5 py-4">
+          <MaintenanceAttachments kind="service_request" parentId={sr.id} items={attachments} canUpload={isOpen}
+            currentUserId={me.auth_user_id} canRemoveAny emptyText="The resident didn't attach any photos." />
         </div>
       </Section>
 
