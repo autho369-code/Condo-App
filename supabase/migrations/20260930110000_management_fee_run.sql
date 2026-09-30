@@ -44,9 +44,11 @@ create policy platform_requests_operator_update on public.platform_requests for 
 revoke all on public.platform_requests from anon;
 
 -- ---------------------------------------------------------------- fee run
+-- No foreign keys here on purpose: a second vendors<->portfolios relationship
+-- makes existing PostgREST embeds ambiguous. run_management_fees validates both.
 alter table public.portfolios
-  add column if not exists management_fee_vendor_id uuid references public.vendors(id) on delete set null,
-  add column if not exists management_fee_gl_account_id uuid references public.gl_accounts(id) on delete set null;
+  add column if not exists management_fee_vendor_id uuid,
+  add column if not exists management_fee_gl_account_id uuid;
 
 alter table public.management_fees
   add column if not exists fee_type text,
