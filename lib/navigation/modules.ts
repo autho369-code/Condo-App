@@ -72,6 +72,7 @@ export const appModules: AppModule[] = [
       { label: 'Bank reconciliation', href: '/bank-accounts/reconcile' },
       { label: 'Bank activity', href: '/bank-accounts/activity' },
       { label: 'Bank transfers', href: '/bank-transfers' },
+      { label: 'Lockbox', href: '/bank-accounts/lockbox' },
       { label: 'Journal entries', href: '/journal-entries' },
       { label: 'GL accounts', href: '/gl-accounts' },
       { label: 'Accounting periods', href: '/accounting-periods' },

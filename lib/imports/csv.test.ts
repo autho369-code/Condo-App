@@ -17,6 +17,11 @@ describe('parseImportCsv', () => {
     expect(canonicalHeader('Custom')).toBe('custom');
   });
 
+  it('maps lockbox bank file headers', () => {
+    const { rows } = parseImportCsv('Check #,Check Amount,Remitter,Account Number\n1001,350.00,Jane Smith,101\n');
+    expect(rows?.[0]).toMatchObject({ check_number: '1001', amount: '350.00', payer: 'Jane Smith', unit: '101', row: '2' });
+  });
+
   it('rejects an empty file', () => {
     expect(parseImportCsv('vendor,amount\n').error).toMatch(/no rows/);
   });
