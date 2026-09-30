@@ -169,6 +169,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Receipts', href: '/receipts', description: 'Every homeowner payment received, with totals.', access: 'finance' },
         { label: 'Recurring charges', href: '/charges/bulk-recurring', description: 'Set up recurring association assessments.' },
         { label: 'Run approved checks', href: '/bills/check-run', description: 'Pay approved bills and print checks.', access: 'finance' },
+        { label: 'Pay management fees', href: '/accounting/management-fees', description: 'Bill each association its monthly management fee.', access: 'finance' },
         { label: 'Recurring bills', href: '/bills/recurring', description: 'Janitorial, utilities and other bills entered automatically.', access: 'finance' },
         { label: 'Record bank deposit', href: '/bank-accounts/deposits/new', description: 'Group receipts into a deposit.' },
         { label: 'Reconcile bank account', href: '/bank-accounts/reconcile/new', description: 'Match statement activity.' },
