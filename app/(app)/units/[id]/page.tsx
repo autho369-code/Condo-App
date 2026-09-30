@@ -12,10 +12,13 @@ import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
+import { Alert } from '@/components/ui/shell';
+import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
+import { loadRecordMeta } from '@/lib/records/load';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; receipt?: string }> }) {
+export default async function UnitDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; receipt?: string; saved?: string }> }) {
   const me = await requireStaff();
   const { id: unitId } = await params;
   const sp = await searchParams;
@@ -36,6 +39,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
   ]);
 
   if (!unit) notFound();
+  const meta = await loadRecordMeta(supabase, 'unit', unitId);
   const associationId = (unit.buildings as any)?.association_id;
   const { data: bankAccounts } = associationId
     ? await (supabase as any).from('bank_accounts').select('id, name, fund_type, gl_account_id').eq('association_id', associationId).is('archived_at', null).order('name')
@@ -56,6 +60,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div className="mt-1 text-sm text-gray-500">
               {unit.bedrooms ? `${unit.bedrooms} bd` : ''}{unit.bathrooms ? ` · ${unit.bathrooms} ba` : ''}{unit.sqft ? ` · ${unit.sqft} sqft` : ''}
             </div>
+            <div className="mt-2"><RecordTagChips tags={meta.tags} href={(t) => `/units?tag=${t}`} /></div>
           </div>
         </div>
       </div>
@@ -71,6 +76,11 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           <span className="font-semibold">Could not save:</span> {sp.error}
         </div>
       )}
+
+      {sp.saved === 'tags' && <Alert tone="success" title="Tags saved" />}
+      {sp.saved === 'note' && <Alert tone="success" title="Note added" />}
+
+      <RecordMetaPanels type="unit" id={unitId} meta={meta} currentUserId={me.auth_user_id} tagHref={(t) => `/units?tag=${t}`} />
 
       {/* ======== ACCOUNT SUMMARY ======== */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
