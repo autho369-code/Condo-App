@@ -28,26 +28,35 @@ export async function POST(request: NextRequest) {
   }
 
   // Get current state
+  // The item must belong to this reconciliation, and a completed
+  // reconciliation is closed: un-clearing an item would silently rewrite it.
   const { data: item } = await db
     .from('bank_reconciliation_items')
-    .select('id, is_cleared')
+    .select('id, is_cleared, reconciliation_id, bank_reconciliations!inner(status)')
     .eq('id', itemId)
-    .single();
+    .eq('reconciliation_id', reconciliationId)
+    .maybeSingle();
 
   if (!item) {
-    return back('Item not found');
+    return back('Item not found on this reconciliation');
+  }
+  if (item.bank_reconciliations?.status !== 'in_progress') {
+    return back('This reconciliation is completed; its cleared items can no longer change.');
   }
 
   // Toggle cleared state
-  const { error } = await db
+  const { data: updated, error } = await db
     .from('bank_reconciliation_items')
     .update({
       is_cleared: !item.is_cleared,
       cleared_at: !item.is_cleared ? new Date().toISOString() : null,
     })
-    .eq('id', itemId);
+    .eq('id', itemId)
+    .eq('is_cleared', item.is_cleared)
+    .select('id')
+    .maybeSingle();
 
-  if (error) {
+  if (error || !updated) {
     console.error('Failed to toggle cleared:', error);
     return back('Failed to update item');
   }
