@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
+import { todayInZone } from '@/lib/time/zoned';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUSES = new Set(['new', 'assigned', 'scheduled', 'in_progress', 'done', 'completed', 'billed', 'closed', 'cancelled']);
@@ -48,7 +49,7 @@ export async function bulkWorkOrderAction(formData: FormData) {
     if (!STATUSES.has(status)) fail('Pick a status');
 
     patch = { status };
-    if (status === 'completed' || status === 'closed') patch.completed_date = new Date().toISOString().slice(0, 10);
+    if (status === 'completed' || status === 'closed') patch.completed_date = todayInZone();
     else if (status === 'cancelled') patch.completed_date = null;
     note = `Status changed to ${status.replace(/_/g, ' ')} (bulk)`;
   } else if (op === 'priority') {

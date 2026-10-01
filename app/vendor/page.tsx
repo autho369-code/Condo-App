@@ -5,6 +5,7 @@ import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export default async function VendorDashboard() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const todayDate = new Date().toISOString().slice(0, 10);
+  const todayDate = todayInZone();
 
   const [{ data: vendor }, { data: workOrders }, { data: compliance }, { data: openBills }] = await Promise.all([
     db.from('vendors').select('id, name, trade').eq('id', me.vendor_id).maybeSingle(),
