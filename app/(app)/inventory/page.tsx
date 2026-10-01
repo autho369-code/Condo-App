@@ -40,7 +40,7 @@ function formatMoney(cents: number | null): string {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; view?: string; archived?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; view?: string; archived?: string; removed?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -52,6 +52,7 @@ export default async function InventoryPage({
   // that we catch gracefully so the page still renders with an empty list.
   let allRows: (InventoryRow & { category: string | null })[] = [];
   let queryError: string | null = null;
+  let removedItems: { id: string; name: string; category: string | null }[] = [];
   try {
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
@@ -59,6 +60,10 @@ export default async function InventoryPage({
       .select('id, name, sku, category, quantity_on_hand, reorder_point, unit_of_measure, location, unit_cost')
       .is('archived_at', null)
       .order('name');
+    const { data: removedData } = sp.removed === '1'
+      ? await (supabase as any).from('inventory_items').select('id, name, category, archived_at').not('archived_at', 'is', null).order('name')
+      : { data: null };
+    removedItems = (removedData ?? []) as { id: string; name: string; category: string | null }[];
 
     if (error) {
       queryError = error.message ?? 'Unknown database error';
@@ -280,6 +285,24 @@ export default async function InventoryPage({
             </tbody>
           </Table>
         )}
+        <div className="text-sm">
+          {sp.removed === '1' ? (
+            <div className="space-y-2">
+              <Link href="/inventory" className="text-gray-500 underline underline-offset-4 hover:text-gray-900">Hide removed items</Link>
+              {removedItems.length === 0 ? (
+                <p className="text-gray-500">No removed items.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {removedItems.map((r) => (
+                    <li key={r.id}><Link href={`/inventory/${r.id}`} className="rounded bg-gray-100 px-2 py-1 text-gray-700 hover:bg-gray-200">{r.name}</Link></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <Link href="/inventory?removed=1" className="text-gray-500 underline underline-offset-4 hover:text-gray-900">Show removed items</Link>
+          )}
+        </div>
       </div>
     </DataWorkspace>
   );
