@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getLoginModeConfig, normalizeLoginMode, safeInternalNext } from '@/lib/auth/login-modes';
 import { getMe, roleHome } from '@/lib/auth/me';
-import { siteUrl } from '@/lib/url/site-url';
 import { tenantAccessDecision } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { clientAddress, consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
@@ -126,20 +125,6 @@ export async function loginWithPassword(formData: FormData) {
   redirect(getLoginModeConfig(mode).defaultNext);
 }
 
-export async function signupWithPassword(formData: FormData) {
-  const supabase = await createClient();
-  const email = (formData.get('email') as string)?.trim().toLowerCase();
-  const password = formData.get('password') as string;
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo: `${siteUrl()}/api/auth/callback` },
-  });
-  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
-  redirect('/signup?notice=' + encodeURIComponent('Check your email for the confirmation link.'));
-}
-
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -147,11 +132,23 @@ export async function logout() {
   redirect('/login');
 }
 
-export async function acceptInvitation(token: string) {
+/**
+ * Accept an invitation as the signed-in user (form action — never on page
+ * render: accepting changes the account's company and role). Fails loudly
+ * back to the confirmation page.
+ */
+export async function acceptInvitation(formData: FormData) {
+  const token = String(formData.get('token') ?? '').trim();
+  const back = (msg: string): never =>
+    redirect(`/accept-invitation?token=${encodeURIComponent(token)}&error=${encodeURIComponent(msg)}`);
+  if (!token || token.length > 200) redirect('/login?error=link_invalid');
   const supabase = await createClient();
-  const { data, error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
-  if (error) return { error: error.message };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect(`/invite?token=${encodeURIComponent(token)}`);
+  const { error } = await (supabase as any).rpc('accept_invitation', { p_token: token });
+  if (error) back(error.message);
   revalidatePath('/', 'layout');
-  return { success: true, result: data };
+  const me = await getMe({ enforceMfa: false });
+  redirect(roleHome(me));
 }
 
