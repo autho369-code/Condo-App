@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { getBoardPermissions } from '@/lib/board/permissions'
 import { Badge, Alert } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import {
@@ -92,6 +93,7 @@ export default async function BoardViolationDetailPage({
   const supabase = await createClient()
   const db = supabase as any
   const boardAssocIds = me.board_association_ids ?? []
+  const permissions = await getBoardPermissions(db)
   const { id } = await params
   const sp = await searchParams
   const errorMsg = typeof sp.error === 'string' ? sp.error : ''
@@ -397,6 +399,9 @@ export default async function BoardViolationDetailPage({
             )}
 
             {/* Add comment form */}
+            {!permissions.can(violation.association_id, 'comment_cases') ? (
+              <p className="text-sm text-gray-500">Your board role doesn&rsquo;t comment on cases for this association.</p>
+            ) : (
             <form action={addBoardComment} className="space-y-3">
               <input type="hidden" name="violation_id" value={violation.id} />
               <textarea
@@ -417,6 +422,7 @@ export default async function BoardViolationDetailPage({
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
 

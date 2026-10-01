@@ -2,6 +2,8 @@ import Sidebar from '@/components/nav/sidebar'
 import { boardModules } from '@/lib/navigation/role-modules'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient } from '@/lib/supabase/server'
+import { getBoardPermissions } from '@/lib/board/permissions'
+import { SECTION_PERMISSIONS } from '@/lib/board/permission-catalog'
 
 async function getAssociationName(associationIds: string[]): Promise<string | undefined> {
   if (!associationIds || associationIds.length === 0) return undefined
@@ -22,10 +24,17 @@ export default async function BoardLayout({ children }: { children: React.ReactN
   const me = await requireBoard()
   const associationName = await getAssociationName(me.board_association_ids)
 
+  // Hide sections the member's officer role can't use in any of their associations.
+  const permissions = await getBoardPermissions(await createClient())
+  const visible = boardModules.filter((m) => {
+    const needed = SECTION_PERMISSIONS[m.href]
+    return !needed || permissions.any(needed)
+  })
+
   // Board members who are also owners get both portals on one login.
   const modules = me.owner_id
-    ? [boardModules[0], { label: 'My Owner Portal', href: '/portal' }, ...boardModules.slice(1)]
-    : boardModules
+    ? [visible[0], { label: 'My Owner Portal', href: '/portal' }, ...visible.slice(1)]
+    : visible
 
   return (
     <div className="flex min-h-screen">
