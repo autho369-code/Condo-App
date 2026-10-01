@@ -6,23 +6,30 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { advanceViolation, recordViolationHearing, resolveViolation } from '@/lib/rpcs/violation-rules';
 import { date, money } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone } from '@/lib/time/zoned';
 
 type Step = { id: string; follow_up_name: string; days_after_previous: number; fee: number | null; offers_hearing: boolean };
 type Settings = { hearing_required_before_fine?: boolean; hearing_request_days?: number } | null;
 
-function addDays(iso: string, days: number) {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d;
+/** Calendar date (YYYY-MM-DD) plus whole days. */
+function addDaysToDate(day: string, days: number): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-/** Mirrors the due-process gate in advance_violation() so staff see why a fine is blocked before clicking. */
+/**
+ * Mirrors the due-process gate in advance_violation() so staff see why a fine
+ * is blocked before clicking: the owner may request a hearing through the
+ * notice date + N days (association-local dates); fining opens the day after.
+ */
 function fineGate(v: any, settings: Settings): string | null {
   if (!(settings?.hearing_required_before_fine ?? true) || v.board_decision === 'upheld') return null;
   if (v.hearing_requested_at) return 'The owner requested a hearing. Record the hearing decision before fining.';
   if (!v.notice_sent_at) return 'Send a notice before fining.';
-  const until = addDays(v.notice_sent_at, settings?.hearing_request_days ?? 14);
-  if (until > new Date()) return `The owner can request a hearing until ${until.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`;
+  const zone = displayTimeZone();
+  const until = addDaysToDate(todayInZone(zone, new Date(v.notice_sent_at)), settings?.hearing_request_days ?? 14);
+  if (until >= todayInZone(zone)) return `The owner can request a hearing until ${date(until)}.`;
   return null;
 }
 
