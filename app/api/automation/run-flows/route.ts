@@ -16,7 +16,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
-import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { resolveUnitOwnerId } from '@/lib/notifications/status-change';
 import {
   actionAllowedForTrigger,
