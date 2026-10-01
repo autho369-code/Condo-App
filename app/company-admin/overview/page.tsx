@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
@@ -97,8 +98,8 @@ export default async function OverviewPage() {
     db.from('associations').select('id, slug, name, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('profiles').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
     db.from('owners').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('work_orders').select('association_id, status, priority, scheduled_date').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('violations').select('association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, status, priority, scheduled_date').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows })),
     db.from('architectural_requests').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('status', ['submitted', 'under_review', 'more_info']),
     db.from('subscriptions').select('price_monthly_cents, seats_used, price_per_seat_cents').eq('portfolio_id', portfolioId).eq('status', 'active').maybeSingle(),
     db.from('management_fees').select('fee_amount_cents, collected_cents').eq('portfolio_id', portfolioId).eq('month', monthStart),
@@ -132,9 +133,9 @@ export default async function OverviewPage() {
   }
 
   // ── Collections balance (A/R across the portfolio) ─────────────
-  const { data: balances } = assocIds.size > 0
-    ? await db.from('unit_balances').select('association_id, balance').in('association_id', [...assocIds])
-    : { data: [] as any[] }
+  const { rows: balances } = assocIds.size > 0
+    ? await fetchAllRows(() => db.from('unit_balances').select('unit_id, association_id, balance').in('association_id', [...assocIds]).order('unit_id'))
+    : { rows: [] as any[] }
   const collectionsBalance = (balances ?? []).reduce(
     (sum: number, b: any) => sum + Math.max(0, Number(b.balance ?? 0)), 0)
   const unitsWithBalance = (balances ?? []).filter((b: any) => Number(b.balance ?? 0) > 0).length

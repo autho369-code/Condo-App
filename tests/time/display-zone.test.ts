@@ -23,3 +23,12 @@ describe('display time zone', () => {
     expect(date('2026-10-02T04:30:00Z', 'short', 'America/Chicago')).toBe('Oct 1, 2026');
   });
 });
+
+describe('todayInZone', () => {
+  it('returns the calendar date in the zone', async () => {
+    const { todayInZone } = await import('@/lib/time/zoned');
+    const at = new Date('2026-10-02T03:00:00Z');
+    expect(todayInZone('America/Chicago', at)).toBe('2026-10-01');
+    expect(todayInZone('UTC', at)).toBe('2026-10-02');
+  });
+});

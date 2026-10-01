@@ -71,3 +71,8 @@ export function formatInZone(
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleString('en-US', { ...options, timeZone, timeZoneName: 'short' });
 }
+
+/** Today's calendar date (YYYY-MM-DD) in a time zone. */
+export function todayInZone(timeZone: string = displayTimeZone(), now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
