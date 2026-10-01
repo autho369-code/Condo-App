@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { getBoardPermissions } from '@/lib/board/permissions'
 import { StatusChip } from '@/components/operations/status-chip'
 import { SignatureCapture } from '@/components/board/signature-capture'
 import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
@@ -63,7 +62,6 @@ export default async function BoardDashboardPage() {
   const me = await requireBoard()
   const supabase = await createClient()
   const db = supabase as any
-  const permissions = await getBoardPermissions(db)
   const ids = me.board_association_ids ?? []
   const today = new Date()
   const todayDate = today.toISOString().slice(0, 10)
@@ -182,9 +180,9 @@ export default async function BoardDashboardPage() {
       {/* ── KPI grid ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Health Score" value={`${score}`} sub={health} icon={Heart} tone={score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
-        {permissions.any('view_financials') && <StatCard label="Operating Balance" value={money(operating)} icon={Landmark} href="/board/financials" />}
-        {permissions.any('view_financials') && <StatCard label="Reserve Balance" value={money(reserve)} icon={PiggyBank} href="/board/financials" />}
-        {permissions.any('view_delinquency') && <StatCard label="Delinquent Owners" value={delinquentUnits} sub={`${money(arTotal)} outstanding`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />}
+        <StatCard label="Operating Balance" value={money(operating)} icon={Landmark} href="/board/financials" />
+        <StatCard label="Reserve Balance" value={money(reserve)} icon={PiggyBank} href="/board/financials" />
+        <StatCard label="Delinquent Owners" value={delinquentUnits} sub={`${money(arTotal)} outstanding`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
         <StatCard label="Open Work Orders" value={open.length} sub={`${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
         <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} href="/board/violations" />
         <StatCard label="Active Projects" value={activeProjects} icon={HardHat} href="/board/projects" />
