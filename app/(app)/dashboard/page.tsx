@@ -87,7 +87,7 @@ export default async function DashboardPage({
     .from('work_orders')
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")');
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")');
 
   // ── NEW: Demo-worthy real-time metrics ────────────────────────
   // 1. Open violations (already covered above in openViolationsQuery)
@@ -96,7 +96,7 @@ export default async function DashboardPage({
     .from('work_orders')
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
     .lt('scheduled_date', todayDate);
 
   // 3. Bills awaiting payment: payable_bills approved but not paid
@@ -148,9 +148,10 @@ export default async function DashboardPage({
     .is('archived_at', null)
     .eq('status', 'paid')
     .gte('updated_at', sinceIso);
+  // charges carry no association_id; filter through unit -> building.
   const chargesBilledQuery = db
     .from('charges')
-    .select('amount, due_date')
+    .select(assocFilter ? 'amount, due_date, units!inner(buildings!inner(association_id))' : 'amount, due_date')
     .gte('due_date', sinceDate);
   const woOpenedQuery = db
     .from('work_orders')
@@ -167,7 +168,7 @@ export default async function DashboardPage({
   if (assocFilter) {
     paymentsInQuery.eq('association_id', assocFilter);
     billsPaidQuery.eq('association_id', assocFilter);
-    chargesBilledQuery.eq('association_id', assocFilter);
+    chargesBilledQuery.eq('units.buildings.association_id', assocFilter);
     woOpenedQuery.eq('association_id', assocFilter);
     woCompletedQuery.eq('association_id', assocFilter);
   }
@@ -586,7 +587,7 @@ function buildWorkOrderQueue(db: any, assocFilter: string) {
     .from('work_orders')
     .select('id, title, status, priority, associations(name)')
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
     .order('priority', { ascending: false })
     .order('scheduled_date', { ascending: true, nullsFirst: false })
     .limit(4);

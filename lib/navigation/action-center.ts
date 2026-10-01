@@ -166,6 +166,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Post owner charge', href: '/charges/new', description: 'Record an individual assessment or fee.', primary: true },
         { label: 'New bill', href: '/bills/new', description: 'Enter or extract a vendor invoice.', primary: true, access: 'finance' },
         { label: 'Bulk charges & credits', href: '/charges/bulk', description: 'Post reviewed owner transactions in bulk.' },
+        { label: 'Homeowner receipt', href: '/receipts/new', description: 'Record a check or payment received from a homeowner.', access: 'finance' },
         { label: 'Receipts', href: '/receipts', description: 'Every homeowner payment received, with totals.', access: 'finance' },
         { label: 'Other receipt', href: '/receipts/other/new', description: 'Vendor refunds, insurance proceeds and other non-owner income.', access: 'finance' },
         { label: 'Loans', href: '/accounting/loans', description: 'Record loan payments; principal and interest post to the ledger.', access: 'finance' },
@@ -431,6 +432,9 @@ const DEFINITIONS: ActionCenterDefinition[] = [
       work('Quick create', [
         { label: 'New work order', href: '/work-orders/new', description: 'Dispatch maintenance.', primary: true },
         { label: 'New violation', href: '/violations/new', description: 'Open a compliance case.' },
+        { label: 'Homeowner receipt', href: '/receipts/new', description: 'Record a payment received.', access: 'finance' },
+        { label: 'Enter bill', href: '/bills/new', description: 'Enter a vendor invoice.', access: 'finance' },
+        { label: 'New vendor', href: '/vendors/new', description: 'Add a vendor and trade profile.' },
         { label: 'New event', href: '/calendar/new', description: 'Add a community event.' },
         { label: 'Compose email', href: '/send-email', description: 'Notify owners, boards, or vendors.' },
       ]),

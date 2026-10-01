@@ -55,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { label: 'New violation', href: '/violations/new', section: 'Compliance' },
     { label: 'Post owner charge', href: '/charges/new', section: 'Receivables' },
     ...(financeAccess ? [{ label: 'New bill', href: '/bills/new', section: 'Payables' }] : []),
+    ...(financeAccess ? [{ label: 'Homeowner receipt', href: '/receipts/new', section: 'Receivables' }] : []),
     { label: 'New homeowner', href: '/owners/new', section: 'People' },
     { label: 'New vendor', href: '/vendors/new', section: 'People' },
     { label: 'Schedule meeting', href: '/meetings/new', section: 'Governance' },
