@@ -20,13 +20,16 @@ export default async function CreditCardsPage({ searchParams }: { searchParams: 
   const monthStart = new Date();
   monthStart.setDate(1);
   const monthStartIso = monthStart.toISOString().slice(0, 10);
+  const nextMonth = new Date(monthStart);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
+  const nextMonthIso = nextMonth.toISOString().slice(0, 10);
 
   const [{ data: cards }, { data: monthCharges }, { data: associations }, { data: liabilityGls }] = await Promise.all([
     db.from('credit_card_accounts')
       .select('id, name, issuer, last_four, association_id, associations(name), gl_accounts(number, name)')
       .is('archived_at', null)
       .order('name'),
-    db.from('credit_card_charges').select('card_id, amount').is('voided_at', null).gte('charge_date', monthStartIso),
+    db.from('credit_card_charges').select('card_id, amount').is('voided_at', null).gte('charge_date', monthStartIso).lt('charge_date', nextMonthIso),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name, association_id').eq('active', true)
       .in('account_type', ['liability', 'accounts_payable']).order('number'),

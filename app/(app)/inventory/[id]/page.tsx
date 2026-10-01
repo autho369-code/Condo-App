@@ -40,7 +40,7 @@ export default async function InventoryItemPage({
 }) {
   const me = await requireStaff();
   // Platform operators can look at a company's inventory but not change it.
-  const canEdit = me.is_staff;
+  let canEdit = me.is_staff;
   const { id } = await params;
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -50,10 +50,12 @@ export default async function InventoryItemPage({
     .from('inventory_items')
     .select('id, name, sku, category, location, unit_of_measure, quantity_on_hand, reorder_point, unit_cost, archived_at')
     .eq('id', id)
-    .is('archived_at', null)
     .maybeSingle();
   if (!item) notFound();
+  // Removed items stay viewable (read-only) so their full history is reachable.
+  const removed = !!item.archived_at;
   const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
+  if (removed) canEdit = false;
 
   const [{ data: movements, count: movementCount }, { data: workOrders }] = await Promise.all([
     db.from('inventory_movements')
@@ -88,6 +90,7 @@ export default async function InventoryItemPage({
       actions={<Link href="/inventory"><Button variant="secondary">Back to inventory</Button></Link>}
     >
       <div className="space-y-4">
+        {removed && <Alert tone="info" title="Removed from inventory">This item is no longer stocked. Its history is kept here for reference.</Alert>}
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
         {sp.saved && <Alert tone="success">Item details saved.</Alert>}
         {sp.moved && MOVED_LABEL[sp.moved] && <Alert tone="success">{MOVED_LABEL[sp.moved]}</Alert>}
