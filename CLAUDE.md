@@ -33,6 +33,9 @@ functionality with an original design. Next.js 15 (App Router) + Supabase
 6. RLS is enabled on all tables. New tables: enable RLS + portfolio-scoped
    policies using the helpers `can_access_portfolio(uuid)`,
    `can_manage_finance(uuid)`, `is_any_staff()`, `is_platform_operator()`.
+   New functions are NOT executable by `anon` by default (and new trigger
+   functions by nobody) — an RPC for signed-out callers needs an explicit
+   `grant execute ... to anon` (migration default_function_privileges).
 
 ## Architecture map
 - `app/(app)/*` — manager workspace (dark left sidebar + content + right TasksRail)
