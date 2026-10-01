@@ -66,11 +66,12 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     .eq('status', 'paid')
     .gte('paid_at', monthStart);
 
+  // invoices.status has no 'failed' value (draft/open/paid/void/overdue), so
+  // this always read 0. A failed card charge leaves the subscription past_due.
   const { count: failedPayments } = await db
-    .from('invoices')
+    .from('subscriptions')
     .select('id', { count: 'exact', head: true })
-    .eq('status', 'failed')
-    .gte('created_at', monthStart);
+    .eq('status', 'past_due');
 
   const { count: pastDue } = await db
     .from('invoices')
@@ -120,7 +121,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <StatCard label="Current MRR" value={money(mrr)} icon={DollarSign} />
         <StatCard label="Open Invoices" value={openInvoices ?? 0} icon={FileText} />
         <StatCard label="Paid This Month" value={money(paidAmount)} icon={CreditCard} />
-        <StatCard label="Failed Payments" value={failedPayments ?? 0} icon={AlertCircle} />
+        <StatCard label="Failed Payments (past due)" value={failedPayments ?? 0} icon={AlertCircle} />
         <StatCard label="Past Due" value={pastDue ?? 0} icon={Clock} />
       </div>
 

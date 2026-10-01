@@ -3,6 +3,10 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
+import { ownPortalUnitIds } from '@/lib/portal/own-units'
+import { zonedWallTimeToUtc } from '@/lib/time/zoned'
+
+const DEFAULT_TZ = 'America/Chicago'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,15 +26,20 @@ type Reservation = {
   end_time: string
   party_size: number | null
   notes: string | null
+  association_id: string | null
   association_amenities: { name: string | null } | null
 }
 
-function fmtDateTime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
+// Server components render in UTC; show times in the community's own zone.
+function fmtDateTime(iso: string, timeZone: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    timeZone, weekday: 'short', month: 'short', day: 'numeric',
     hour: 'numeric', minute: '2-digit',
   })
+}
+
+function fmtTime(iso: string, timeZone: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
 }
 
 function fmtHours(opens: string | null, closes: string | null): string | null {
@@ -64,14 +73,6 @@ async function requestReservation(formData: FormData) {
   if (!date) { failTo('Please choose a date'); return }
   if (!startTime || !endTime) { failTo('Please choose a start and end time'); return }
 
-  const start = new Date(`${date}T${startTime}`)
-  const end = new Date(`${date}T${endTime}`)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    failTo('That date/time is not valid'); return
-  }
-  if (end <= start) { failTo('End time must be after the start time'); return }
-  if (start < new Date()) { failTo('Please pick a time in the future'); return }
-
   const supabase = await createClient()
   const db = supabase as any
 
@@ -79,20 +80,32 @@ async function requestReservation(formData: FormData) {
   // RLS on association_amenities already scopes this to the owner's associations.
   const { data: amenity, error: aErr } = await db
     .from('association_amenities')
-    .select('id, association_id, allow_reservations, archived_at')
+    .select('id, association_id, allow_reservations, archived_at, associations(timezone)')
     .eq('id', amenityId)
     .maybeSingle()
   if (aErr || !amenity) { failTo('Amenity not found or unavailable'); return }
   if (amenity.archived_at) { failTo('That amenity is no longer available'); return }
   if (!amenity.allow_reservations) { failTo('That amenity does not accept reservations'); return }
 
-  // Resolve unit + portfolio from the owner's occupancy for this association.
-  const { data: occ } = await db
+  // The owner types times in their community's zone; the server runs in UTC.
+  const timeZone = amenity.associations?.timezone || DEFAULT_TZ
+  const start = zonedWallTimeToUtc(date, startTime, timeZone)
+  const end = zonedWallTimeToUtc(date, endTime, timeZone)
+  if (!start || !end) { failTo('That date/time is not valid'); return }
+  if (end <= start) { failTo('End time must be after the start time'); return }
+  if (start < new Date()) { failTo('Please pick a time in the future'); return }
+
+  // Resolve unit + portfolio from the owner's own unit in this association
+  // (an owner who is also on the board can read every unit there).
+  const myUnits = await ownPortalUnitIds(db, me.owner_id)
+  const { data: occ } = myUnits.length === 0 ? { data: null } : await db
     .from('v_unit_account_summary')
-    .select('unit_id, portfolio_id, association_id')
+    .select('unit_id, portfolio_id')
     .eq('association_id', amenity.association_id)
+    .in('unit_id', myUnits)
     .limit(1)
     .maybeSingle()
+  if (!occ) { failTo('You need a unit in this community to reserve its amenities'); return }
 
   let partySize: number | null = null
   if (partyRaw) {
@@ -103,8 +116,8 @@ async function requestReservation(formData: FormData) {
   const { error } = await db.from('amenity_reservations').insert({
     amenity_id: amenity.id,
     association_id: amenity.association_id,
-    portfolio_id: occ?.portfolio_id ?? null,
-    unit_id: occ?.unit_id ?? null,
+    portfolio_id: occ.portfolio_id,
+    unit_id: occ.unit_id,
     owner_id: me.owner_id,
     reserved_by: me.auth_user_id,
     reserved_for_name: me.profile?.full_name ?? null,
@@ -136,13 +149,15 @@ async function cancelReservation(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
   // RLS (amenity_res_resident_cancel) enforces own + pending/approved → cancelled.
-  const { error } = await db
+  const { data: cancelled, error } = await db
     .from('amenity_reservations')
     .update({ status: 'cancelled' })
     .eq('id', id)
     .eq('owner_id', me.owner_id)
+    .select('id')
 
   if (error) { failTo(error.message || 'Could not cancel that reservation'); return }
+  if (!cancelled || cancelled.length === 0) { failTo('That reservation can no longer be cancelled. Contact management.'); return }
 
   revalidatePath('/portal/amenities')
   redirect('/portal/amenities?cancelled=1')
@@ -170,11 +185,17 @@ export default async function OwnerAmenitiesPage({
   // The owner's own reservations.
   const { data: resRows } = await db
     .from('amenity_reservations')
-    .select('id, status, start_time, end_time, party_size, notes, association_amenities(name)')
+    .select('id, status, start_time, end_time, party_size, notes, association_id, association_amenities(name)')
     .eq('owner_id', me.owner_id)
     .order('start_time', { ascending: false })
     .limit(100)
   const reservations = (resRows ?? []) as Reservation[]
+
+  const assocIds = [...new Set([...amenities.map((a) => a.association_id), ...reservations.map((r) => r.association_id)].filter(Boolean))] as string[]
+  const { data: zoneRows } = assocIds.length > 0
+    ? await db.from('associations').select('id, timezone').in('id', assocIds)
+    : { data: [] }
+  const zones: Record<string, string> = Object.fromEntries((zoneRows ?? []).map((z: any) => [z.id, z.timezone || DEFAULT_TZ]))
 
   const now = Date.now()
   const upcoming = reservations.filter((r) => new Date(r.end_time).getTime() >= now)
@@ -304,8 +325,8 @@ export default async function OwnerAmenitiesPage({
           </div>
         ) : (
           <div className="space-y-4">
-            <ReservationList title="Upcoming" rows={upcoming} cancelAction={cancelReservation} allowCancel />
-            <ReservationList title="Past" rows={past} cancelAction={cancelReservation} allowCancel={false} />
+            <ReservationList title="Upcoming" rows={upcoming} zones={zones} cancelAction={cancelReservation} allowCancel />
+            <ReservationList title="Past" rows={past} zones={zones} cancelAction={cancelReservation} allowCancel={false} />
           </div>
         )}
       </section>
@@ -314,10 +335,11 @@ export default async function OwnerAmenitiesPage({
 }
 
 function ReservationList({
-  title, rows, cancelAction, allowCancel,
+  title, rows, zones, cancelAction, allowCancel,
 }: {
   title: string
   rows: Reservation[]
+  zones: Record<string, string>
   cancelAction: (formData: FormData) => void
   allowCancel: boolean
 }) {
@@ -330,12 +352,13 @@ function ReservationList({
       <ul className="divide-y divide-gray-50">
         {rows.map((r) => {
           const cancellable = allowCancel && ['pending', 'approved'].includes(r.status)
+          const tz = (r.association_id && zones[r.association_id]) || DEFAULT_TZ
           return (
             <li key={r.id} className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="font-medium text-gray-900">{r.association_amenities?.name ?? 'Amenity'}</div>
                 <div className="text-[13px] text-gray-500">
-                  {fmtDateTime(r.start_time)} – {new Date(r.end_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                  {fmtDateTime(r.start_time, tz)} – {fmtTime(r.end_time, tz)}
                   {r.party_size ? ` · party of ${r.party_size}` : ''}
                 </div>
               </div>

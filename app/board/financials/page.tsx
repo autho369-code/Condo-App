@@ -108,7 +108,7 @@ export default async function BoardFinancialsPage() {
   try {
     const { data: accounts } = await db
       .from('bank_accounts')
-      .select('id, gl_account_id, purpose')
+      .select('id, gl_account_id, purpose, fund_type')
       .in('association_id', boardAssocIds)
       .is('archived_at', null)
     const glIds = (accounts ?? []).map((a: any) => a.gl_account_id).filter(Boolean)
@@ -126,7 +126,7 @@ export default async function BoardFinancialsPage() {
       for (const a of accounts ?? []) {
         const bal = balByGl[a.gl_account_id] ?? 0
         bankBalance += bal
-        if (a.purpose === 'reserve') reserveBalance += bal
+        if (a.fund_type === 'reserve' || (a.purpose ?? '').toLowerCase().includes('reserve')) reserveBalance += bal
       }
     }
   } catch { /* may not exist */ }
@@ -157,6 +157,8 @@ export default async function BoardFinancialsPage() {
       .select('id, memo, debit_amount, credit_amount, created_at, association_id, associations(name), journal_entries!inner(description, entry_date, posted)')
       .in('association_id', boardAssocIds)
       .eq('journal_entries.posted', true)
+      // Newest by accounting date, not by when the line was keyed in.
+      .order('journal_entries(entry_date)', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(20)
     recentTransactions = (txns ?? []).map((l: any) => {

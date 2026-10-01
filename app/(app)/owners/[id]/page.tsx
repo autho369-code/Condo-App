@@ -332,6 +332,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
+      {sp.saved === 'profile' && <div className="mb-4"><Alert tone="success" title="Owner details saved" /></div>}
       {sp.saved === 'tags' && <div className="mb-4"><Alert tone="success" title="Tags saved" /></div>}
       {sp.saved === 'note' && <div className="mb-4"><Alert tone="success" title="Note added" /></div>}
       {sp.saved === 'collections' && <div className="mb-4"><Alert tone="success" title="Collections status saved" /></div>}

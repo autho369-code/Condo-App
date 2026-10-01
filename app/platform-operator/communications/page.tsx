@@ -53,15 +53,30 @@ export default async function CommunicationsPage() {
       .limit(2000);
     commRows = data ?? [];
   } catch { commRows = []; }
-
-  // Current month only
+  // Current month's send batches, listed below the charts.
   const monthComms = commRows.filter((c: any) => c.created_at && c.created_at >= monthStart);
 
+  // Volume comes from the actual deliveries: one email_queue row per email and
+  // one outbound sms_messages row per text. communications_log holds one row
+  // per send *batch* (recipient_count recipients), so counting it undercounted
+  // volume and never saw per-message failures.
+  const trendStart = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString();
+  type Delivery = { channel: 'email' | 'sms'; failed: boolean; portfolio_id: string | null; created_at: string };
+  const [{ data: emailRows }, { data: smsRows }] = await Promise.all([
+    db.from('email_queue').select('status, bounced_at, portfolio_id, created_at').gte('created_at', trendStart).limit(10000),
+    db.from('sms_messages').select('status, created_at, sms_conversations(portfolio_id)').eq('direction', 'outbound').gte('created_at', trendStart).limit(10000),
+  ]);
+  const deliveries: Delivery[] = [
+    ...(emailRows ?? []).map((e: any) => ({ channel: 'email' as const, failed: e.status === 'failed' || !!e.bounced_at, portfolio_id: e.portfolio_id, created_at: e.created_at })),
+    ...(smsRows ?? []).map((m: any) => ({ channel: 'sms' as const, failed: ['failed', 'undelivered'].includes(m.status), portfolio_id: m.sms_conversations?.portfolio_id ?? null, created_at: m.created_at })),
+  ];
+  const monthDeliveries = deliveries.filter((d) => d.created_at >= monthStart);
+
   // Stats
-  const emailsSent = monthComms.filter((c: any) => c.channel === 'email').length;
-  const emailsFailed = monthComms.filter((c: any) => c.channel === 'email' && c.status === 'failed').length;
-  const smsSent = monthComms.filter((c: any) => c.channel === 'sms').length;
-  const smsFailed = monthComms.filter((c: any) => c.channel === 'sms' && c.status === 'failed').length;
+  const emailsSent = monthDeliveries.filter((d) => d.channel === 'email').length;
+  const emailsFailed = monthDeliveries.filter((d) => d.channel === 'email' && d.failed).length;
+  const smsSent = monthDeliveries.filter((d) => d.channel === 'sms').length;
+  const smsFailed = monthDeliveries.filter((d) => d.channel === 'sms' && d.failed).length;
 
   // By company: need portfolios
   const { data: portfolios } = await db.from('portfolios').select('id, company_name');
@@ -74,16 +89,16 @@ export default async function CommunicationsPage() {
   for (const p of portfolios ?? []) {
     companyComms.set(p.id, { name: p.company_name, emailsSent: 0, emailsFailed: 0, smsSent: 0, smsFailed: 0 });
   }
-  for (const c of monthComms) {
+  for (const c of monthDeliveries) {
     if (!c.portfolio_id) continue;
     const entry = companyComms.get(c.portfolio_id);
     if (!entry) continue;
     if (c.channel === 'email') {
       entry.emailsSent++;
-      if (c.status === 'failed') entry.emailsFailed++;
-    } else if (c.channel === 'sms') {
+      if (c.failed) entry.emailsFailed++;
+    } else {
       entry.smsSent++;
-      if (c.status === 'failed') entry.smsFailed++;
+      if (c.failed) entry.smsFailed++;
     }
   }
   const companyList = Array.from(companyComms.values())
@@ -96,11 +111,11 @@ export default async function CommunicationsPage() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const start = d.toISOString();
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1).toISOString();
-    const inMonth = commRows.filter((c: any) => c.created_at >= start && c.created_at < end);
+    const inMonth = deliveries.filter((c) => c.created_at >= start && c.created_at < end);
     monthlyTrend.push({
       month: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-      emails: inMonth.filter((c: any) => c.channel === 'email').length,
-      sms: inMonth.filter((c: any) => c.channel === 'sms').length,
+      emails: inMonth.filter((c) => c.channel === 'email').length,
+      sms: inMonth.filter((c) => c.channel === 'sms').length,
     });
   }
   const maxVol = Math.max(1, ...monthlyTrend.map((m) => m.emails + m.sms));

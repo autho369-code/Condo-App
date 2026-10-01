@@ -264,7 +264,9 @@ export default async function PlatformOperatorOverviewPage() {
     .from('management_fees')
     .select('month, fee_amount_cents')
     .gte('month', revenueMonths[0].month + '-01')
-    .lte('month', revenueMonths[revenueMonths.length - 1].month + '-31')
+    // Upper bound is the first of next month: "-31" is not a valid date in
+    // 30-day months, and Postgres rejected the whole query.
+    .lt('month', new Date(Date.UTC(today.getFullYear(), today.getMonth() + 1, 1)).toISOString().slice(0, 10))
 
   // Company growth: portfolios created by month (last 6 months)
   const portfolioCreationQuery = db

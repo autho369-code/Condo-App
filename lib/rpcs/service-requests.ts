@@ -90,10 +90,13 @@ export async function cancelServiceRequest(serviceRequestId: string) {
     .eq('id', serviceRequestId)
     .select('id');
   if (error) { redirect(`/portal/service-requests?error=${encodeURIComponent(error.message)}`); return; }
-  // Only notify when RLS let the update through (0 rows = not this owner's request)
-  if (updated && updated.length > 0) {
-    // Confirmation email to the owner — never fails the action (helper never throws)
-    await notifyOwnerOfStatusChange({ kind: 'service_request', id: serviceRequestId, newStatus: 'cancelled' });
+  // 0 rows = RLS refused (not this owner's request, or no longer open).
+  if (!updated || updated.length === 0) {
+    redirect(`/portal/service-requests?error=${encodeURIComponent('That request can no longer be cancelled. Contact management if it still needs to stop.')}`);
+    return;
   }
+  // Confirmation email to the owner — never fails the action (helper never throws)
+  await notifyOwnerOfStatusChange({ kind: 'service_request', id: serviceRequestId, newStatus: 'cancelled' });
   revalidatePath('/portal/service-requests');
+  redirect('/portal/service-requests?cancelled=1');
 }

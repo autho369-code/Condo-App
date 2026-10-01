@@ -25,10 +25,10 @@ const PRIORITY_TONE: Record<string, Tone> = {
 export default async function ServiceRequestsList({
   searchParams,
 }: {
-  searchParams: Promise<{ submitted?: string; error?: string }>;
+  searchParams: Promise<{ submitted?: string; error?: string; cancelled?: string }>;
 }) {
   const me = await requireAuth();
-  const { submitted, error } = await searchParams;
+  const { submitted, error, cancelled } = await searchParams;
   const supabase = await createClient();
 
   const { data: rows } = await (supabase as any)
@@ -73,6 +73,11 @@ export default async function ServiceRequestsList({
         </Card>
       )}
 
+      {cancelled === '1' && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" role="status">
+          Your request was cancelled.
+        </div>
+      )}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Something went wrong:</span> {error}

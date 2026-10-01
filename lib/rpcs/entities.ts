@@ -532,24 +532,34 @@ export async function updateOwner(id: string, formData: FormData) {
   const failTo = (msg: string) => {
     redirect(`/owners/${id}?error=${encodeURIComponent(msg)}`);
   };
-  const patch: Record<string, unknown> = {
-    first_name:    str(formData, 'first_name'),
-    last_name:     str(formData, 'last_name'),
-    full_name:     str(formData, 'full_name'),
-    email:         str(formData, 'email'),
-    phone:         str(formData, 'phone'),
-    address_street: str(formData, 'address_street'),
-    address_city:   str(formData, 'address_city'),
-    address_state:  str(formData, 'address_state'),
-    address_zip:    str(formData, 'address_zip'),
-    preferred_comm: str(formData, 'preferred_comm'),
-    notes:          str(formData, 'notes'),
-  };
-  Object.keys(patch).forEach((k) => patch[k] === null && delete patch[k]);
-  const { error } = await (supabase as any).from('owners').update(patch).eq('id', id);
+  const patch: Record<string, unknown> = {};
+  // Optional fields the form submits: a blank value clears the field (dropping
+  // blanks meant a phone, address or note could never be removed).
+  for (const k of ['first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_state', 'address_zip', 'notes']) {
+    if (formData.has(k)) patch[k] = str(formData, k);
+  }
+  // Required columns: only written when a value is supplied.
+  if (formData.has('email')) {
+    const email = str(formData, 'email');
+    if (!email) { failTo('Email is required.'); return; }
+    patch.email = email;
+  }
+  const preferredComm = str(formData, 'preferred_comm');
+  if (preferredComm) patch.preferred_comm = preferredComm;
+  // full_name is what every list, ledger and letter shows; keep it in step
+  // with the first/last name fields.
+  const explicitFullName = str(formData, 'full_name');
+  const composed = [patch.first_name, patch.last_name].filter(Boolean).join(' ').trim();
+  if (explicitFullName) patch.full_name = explicitFullName;
+  else if (composed) patch.full_name = composed;
+  // Both blank (e.g. an LLC owner known only by full_name): keep full_name.
+
+  const { data: updated, error } = await (supabase as any).from('owners').update(patch).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
+  if (!updated || updated.length === 0) { failTo('Owner not found or you do not have access to edit it.'); return; }
   revalidatePath(`/owners/${id}`);
   revalidatePath('/owners');
+  redirect(`/owners/${id}?saved=profile`);
 }
 
 // ============================================================================
