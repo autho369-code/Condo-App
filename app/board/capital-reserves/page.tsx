@@ -5,6 +5,8 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { EmptyState, PageHeader, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireBoard } from '@/lib/auth/me';
+import { getBoardPermissions } from '@/lib/board/permissions';
+import { BoardPermissionNotice } from '@/components/board/permission-notice';
 import { firstShortfallYear, projectReserveFunding, reserveHealthTone } from '@/lib/reserves/projection';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
@@ -13,9 +15,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function BoardCapitalReservesPage() {
   const me = await requireBoard();
-  const associationIds = me.board_association_ids ?? [];
   const supabase = await createClient();
   const db = supabase as any;
+  const permissions = await getBoardPermissions(db);
+  if ((me.board_association_ids ?? []).length > 0 && !permissions.any('view_financials')) {
+    return <BoardPermissionNotice title="Capital & Reserves" permission="view_financials" />;
+  }
+  const associationIds = permissions.associationsWith('view_financials');
   const { data, error } = associationIds.length > 0
     ? await db
       .from('reserve_studies')
