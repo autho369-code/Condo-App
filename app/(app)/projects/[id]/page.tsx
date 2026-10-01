@@ -53,7 +53,7 @@ export default async function ProjectDetailPage({
   ]);
   const categories = (costLines ?? []) as any[];
   const categoryGls = ((costGls ?? []) as any[]).filter((g) => !g.association_id || g.association_id === project.association_id);
-  const canEditCosts = Boolean(me.is_finance_staff || me.is_platform_operator);
+  const canEditCosts = Boolean((me.is_finance_staff || me.is_platform_operator) && !project.archived_at);
   const categoryBudget = categories.reduce((s, c) => s + Number(c.budget_amount ?? 0), 0);
   const categoryActual = categories.reduce((s, c) => s + Number(c.actual_amount ?? 0), 0);
   const spent = Number(financials?.committed_spend ?? 0);

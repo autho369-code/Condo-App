@@ -32,6 +32,7 @@ create policy capital_project_budget_lines_board_read on public.capital_project_
      where p.id = capital_project_budget_lines.project_id and public.is_board_user()
        and p.association_id in (select public.current_board_association_ids()) and p.status <> 'planning'));
 -- Writes go through save_project_budget_line / delete_project_budget_line.
+-- (The board read policy above is dropped again in 20261001141000.)
 
 create or replace function public.save_project_budget_line(
   p_project_id uuid, p_id uuid, p_category text, p_gl_account_id uuid, p_budget_amount numeric)
