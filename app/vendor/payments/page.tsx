@@ -15,7 +15,7 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
 
   const [billResult, workOrderResult] = await Promise.all([
     db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, associations(name)')
+      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, associations(name)')
       .eq('vendor_id', me.vendor_id).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
     db.from('work_orders')
       .select('id, number, title, associations(name)')
@@ -33,7 +33,8 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
   const pending = rows.filter((b: any) => b.status === 'pending_approval');
   const approved = rows.filter((b: any) => b.status === 'approved');
   const paid = rows.filter((b: any) => b.status === 'paid');
-  const sum = (list: any[]) => list.reduce((s, b) => s + Number(b.amount ?? 0), 0);
+  // Vendor credits applied to a bill are not paid (or owed) in cash.
+  const sum = (list: any[]) => list.reduce((s, b) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
   const statusLabel = (s: string | null) =>
     s === 'pending_approval' ? 'Awaiting approval' : s === 'approved' ? 'Approved — payment scheduled' : s ?? '—';

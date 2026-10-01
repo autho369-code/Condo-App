@@ -72,7 +72,7 @@ export default async function FinancialOversightPage() {
       .eq('journal_entries.posted', true)
       .gte('journal_entries.entry_date', yearStart),
     db.from('aged_receivables').select('balance_due, aging_bucket'),
-    db.from('payable_bills').select('amount, status, due_date, vendor_id, vendors(name)').eq('portfolio_id', portfolioId).is('archived_at', null),
+    db.from('payable_bills').select('amount, credit_applied, status, due_date, vendor_id, vendors(name)').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('charges').select('amount, due_date').eq('charge_type', 'late_fee').gte('due_date', yearStart),
     db.from('bank_accounts').select('id, name, bank_name, account_type, purpose, gl_account_id, last_reconciliation_date, auto_reconciliation').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
@@ -106,7 +106,7 @@ export default async function FinancialOversightPage() {
 
   // ── Payables ─────────────────────────────────────────────────
   const openBills = (bills ?? []).filter((b: any) => !['paid', 'void'].includes(b.status))
-  const apTotal = openBills.reduce((s: number, b: any) => s + Number(b.amount ?? 0), 0)
+  const apTotal = openBills.reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0)
   const pendingApproval = (bills ?? []).filter((b: any) => b.status === 'pending_approval')
   const approvedUnpaid = (bills ?? []).filter((b: any) => b.status === 'approved')
 
@@ -181,7 +181,7 @@ export default async function FinancialOversightPage() {
                     <td className="px-5 py-3 font-medium text-gray-900">{b.vendors?.name ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.due_date ?? '—'}</td>
                     <td className="px-5 py-3"><StatusChip tone={b.status === 'pending_approval' ? 'warning' : 'info'}>{b.status === 'pending_approval' ? 'Pending approval' : 'Approved'}</StatusChip></td>
-                    <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(b.amount ?? 0))}</td>
+                    <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}</td>
                   </tr>
                 ))
               )}

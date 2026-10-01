@@ -67,7 +67,7 @@ export default async function BillsPage({
   const db = supabase as any;
 
   let billsQuery = db.from('payable_bills')
-    .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)');
+    .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)');
   if (statusFilter === 'pending_approval') billsQuery = billsQuery.eq('status', 'pending_approval');
   billsQuery = billsQuery.order('due_date', { ascending: true, nullsFirst: false }).limit(500);
 
@@ -159,7 +159,7 @@ export default async function BillsPage({
   );
   const pendingApprovalCount = pendingApprovalBills.length;
   const pendingApprovalTotal = pendingApprovalBills.reduce(
-    (s: number, b: any) => s + Number(b.amount ?? 0),
+    (s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0,
   );
 
@@ -168,7 +168,7 @@ export default async function BillsPage({
   );
   const approvedCount = approvedBills.length;
   const approvedTotal = approvedBills.reduce(
-    (s: number, b: any) => s + Number(b.amount ?? 0),
+    (s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0,
   );
 
@@ -181,7 +181,7 @@ export default async function BillsPage({
   );
   const overdueCount = overdueBills.length;
   const overdueTotal = overdueBills.reduce(
-    (s: number, b: any) => s + Number(b.amount ?? 0),
+    (s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0,
   );
 

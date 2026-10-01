@@ -47,10 +47,10 @@ export default async function VendorCreditsPage({
   // Approved, unpaid bills for the vendors/associations that have open credits.
   const vendorIds = [...new Set(open.map((c) => c.vendor_id))];
   const { data: bills } = vendorIds.length
-    ? await db.from('payable_bills')
+    ? await pageAll(() => db.from('payable_bills')
         .select('id, vendor_id, association_id, bill_number, due_date, amount, credit_applied')
         .eq('status', 'approved').is('paid_at', null).is('archived_at', null).in('vendor_id', vendorIds)
-        .order('due_date')
+        .order('due_date').order('id'))
     : { data: [] };
   const billsFor = (c: any) => ((bills ?? []) as any[]).filter((b) => b.vendor_id === c.vendor_id && b.association_id === c.association_id
     && Number(b.amount) - Number(b.credit_applied ?? 0) > 0.005);

@@ -84,7 +84,7 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
       .in('association_id', ids)
       .eq('journal_entries.posted', true),
     db.from('unit_balances').select('unit_id, unit_number, balance').in('association_id', ids),
-    db.from('payable_bills').select('amount, status, due_date, vendors(name)').in('association_id', ids).is('archived_at', null).not('status', 'in', '("paid","void")'),
+    db.from('payable_bills').select('amount, credit_applied, status, due_date, vendors(name)').in('association_id', ids).is('archived_at', null).not('status', 'in', '("paid","void")'),
     db.from('work_orders').select('title, status, priority, scheduled_date, created_at').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('created_at', { ascending: false }),
     db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('approval_requests').select('title, amount').in('association_id', ids).eq('status', 'pending').limit(10),
@@ -145,7 +145,7 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
     },
     vendorBills: (bills ?? []).slice(0, 10).map((b: any) => ({
       vendor: b.vendors?.name ?? null,
-      amount: Number(b.amount ?? 0),
+      amount: Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
       status: b.status ?? null,
       dueDate: b.due_date ?? null,
     })),

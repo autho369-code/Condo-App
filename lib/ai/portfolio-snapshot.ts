@@ -107,12 +107,12 @@ export async function buildPortfolioSnapshot(): Promise<PortfolioSnapshot> {
       .limit(5),
     db
       .from('payable_bills')
-      .select('amount', { count: 'exact', head: false })
+      .select('amount, credit_applied', { count: 'exact', head: false })
       .is('archived_at', null)
       .eq('status', 'pending_approval'),
     db
       .from('payable_bills')
-      .select('amount', { count: 'exact', head: false })
+      .select('amount, credit_applied', { count: 'exact', head: false })
       .is('archived_at', null)
       .eq('status', 'approved'),
     db
@@ -153,12 +153,12 @@ export async function buildPortfolioSnapshot(): Promise<PortfolioSnapshot> {
     .slice(0, 8)
     .map((r) => ({ unit: r.unit_number, balance: round2(r.balance ?? 0) }));
 
-  const pendingTotal = ((pendingBills.data ?? []) as Array<{ amount: number | null }>).reduce(
-    (sum, b) => sum + (b.amount ?? 0),
+  const pendingTotal = ((pendingBills.data ?? []) as Array<{ amount: number | null; credit_applied: number | null }>).reduce(
+    (sum, b) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0,
   );
-  const awaitingTotal = ((awaitingBills.data ?? []) as Array<{ amount: number | null }>).reduce(
-    (sum, b) => sum + (b.amount ?? 0),
+  const awaitingTotal = ((awaitingBills.data ?? []) as Array<{ amount: number | null; credit_applied: number | null }>).reduce(
+    (sum, b) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0,
   );
 
