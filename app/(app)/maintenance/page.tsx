@@ -82,12 +82,12 @@ async function updateTask(formData: FormData) {'use server';
   const { data: saved } = await db.from('maintenance_tasks').select('association_id, next_due_date, start_date').eq('id', id).maybeSingle();
   const zone = await associationZone(db, saved?.association_id ?? null);
   const due = String(saved?.next_due_date ?? saved?.start_date ?? '').slice(0, 10);
-  const endDate = (formData.get('end_date') as string) || '';
   const { error: eventError } = await db.from('calendar_events').update({
     title: `🔧 ${formData.get('task_name')}`,
     event_type: eventType,
     start_datetime: due ? (wallDateTimeToIso(`${due}T09:00`, zone) ?? undefined) : undefined,
-    end_datetime: endDate ? wallDateTimeToIso(`${endDate}T17:00`, zone) : null,
+    // Same-day 9-5 occurrence; the task end date only bounds the recurrence.
+    end_datetime: due ? wallDateTimeToIso(`${due}T17:00`, zone) : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
     description: (formData.get('notes') as string)?.slice(0,200)||null,
   }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');

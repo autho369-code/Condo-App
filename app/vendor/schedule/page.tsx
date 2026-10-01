@@ -28,6 +28,9 @@ export default async function VendorSchedulePage() {
       .select('id, title, start_datetime, location, operations_status, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
+      // Maintenance tasks are listed from maintenance_tasks below; their
+      // calendar events would show the same visit twice.
+      .is('maintenance_task_id', null)
       // Upcoming, plus past visits still marked scheduled (they're overdue,
       // not finished; they used to vanish from the schedule).
       .or(`start_datetime.gte.${new Date().toISOString()},operations_status.eq.scheduled`)
