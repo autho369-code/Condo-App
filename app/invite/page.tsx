@@ -9,6 +9,7 @@ import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rat
 import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { siteUrl } from '@/lib/url/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,15 +28,26 @@ const ROLE_LABELS: Record<string, string> = {
   vendor: 'Vendor',
 };
 
-/** Whether the invited email already has a Portier369 sign-in. */
-async function hasExistingAccount(svc: any, email: string): Promise<boolean> {
+/**
+ * The invited email's existing Portier369 sign-in, if any. `otherCompany` is
+ * true when that account belongs to a different company than the invitation.
+ */
+async function existingAccount(svc: any, email: string, invitePortfolioId: string): Promise<{ otherCompany: boolean } | null> {
   const candidates = [...new Set([email, email.toLowerCase()])];
-  const { data } = await svc.from('profiles').select('id').in('email', candidates).limit(1);
-  return (data ?? []).length > 0;
+  const { data } = await svc.from('profiles').select('id, portfolio_id').in('email', candidates).limit(1);
+  const row = (data ?? [])[0];
+  if (!row) return null;
+  return { otherCompany: !!row.portfolio_id && row.portfolio_id !== invitePortfolioId };
 }
 
-function signInToAcceptHref(token: string): string {
-  return `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`;
+/**
+ * Sign in, then confirm on /accept-invitation. An account from another
+ * company signs in on the main site: the inviting company's branded host
+ * would refuse that account before it could accept.
+ */
+function signInToAcceptHref(token: string, otherCompany: boolean): string {
+  const path = `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`;
+  return otherCompany ? `${siteUrl()}${path}` : path;
 }
 
 async function acceptInvite(formData: FormData) {
@@ -73,7 +85,8 @@ async function acceptInvite(formData: FormData) {
 
   // An existing account signs in and confirms instead of creating a second
   // identity (generateLink would fail with a raw "already registered" error).
-  if (await hasExistingAccount(svc, invite.email)) redirect(signInToAcceptHref(token));
+  const existing = await existingAccount(svc, invite.email, invite.portfolio_id);
+  if (existing) redirect(signInToAcceptHref(token, existing.otherCompany));
 
   const callbackUrl = tenant
     ? resolvedTenantUrl(tenant, '/api/auth/callback')
@@ -93,7 +106,7 @@ async function acceptInvite(formData: FormData) {
       },
     },
   });
-  if (createErr && /already (been )?registered|already exists/i.test(createErr.message ?? '')) redirect(signInToAcceptHref(token));
+  if (createErr && /already (been )?registered|already exists/i.test(createErr.message ?? '')) redirect(signInToAcceptHref(token, true));
   if (createErr || !linkData?.properties?.action_link || !linkData.user?.id) failTo(createErr?.message ?? 'Could not create the verification link.');
 
   const queued = await queueEmails(svc, [{
@@ -194,7 +207,8 @@ export default async function InvitePage({
   const companyName = invite.portfolios?.company_name;
   const roleLabel = ROLE_LABELS[invite.hoa_role] ?? invite.hoa_role ?? 'staff';
 
-  if (await hasExistingAccount(svc, invite.email)) {
+  const existing = await existingAccount(svc, invite.email, invite.portfolio_id);
+  if (existing) {
     return (
       <Shell title="Accept your invitation">
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
@@ -203,7 +217,7 @@ export default async function InvitePage({
         <p className="mt-1 text-sm leading-6 text-gray-500">
           <strong className="text-gray-900">{invite.email}</strong> already has a Portier369 account. Sign in with it to accept.
         </p>
-        <a href={signInToAcceptHref(token)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-[14px] font-medium text-white hover:bg-gray-800">
+        <a href={signInToAcceptHref(token, existing.otherCompany)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-[14px] font-medium text-white hover:bg-gray-800">
           Sign in to accept
         </a>
         <a href="/forgot-password" className="mt-3 block text-center text-sm text-gray-500 underline-offset-4 hover:underline">Forgot your password?</a>
