@@ -37,9 +37,9 @@ export default async function VendorCreditsPage({
     // Every credit with a balance left, so recent history can never crowd one out.
     pageAll(() => db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }).order('id')),
     db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    pageAll(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
     pageAll(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
-    db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    pageAll(() => db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number').order('id')),
   ]);
   const open = (openCredits ?? []) as any[];
   const rows = [...open, ...((history ?? []) as any[])];
@@ -47,10 +47,10 @@ export default async function VendorCreditsPage({
   // Approved, unpaid bills for the vendors/associations that have open credits.
   const vendorIds = [...new Set(open.map((c) => c.vendor_id))];
   const { data: bills } = vendorIds.length
-    ? await db.from('payable_bills')
+    ? await pageAll(() => db.from('payable_bills')
         .select('id, vendor_id, association_id, bill_number, due_date, amount, credit_applied')
         .eq('status', 'approved').is('paid_at', null).is('archived_at', null).in('vendor_id', vendorIds)
-        .order('due_date')
+        .order('due_date').order('id'))
     : { data: [] };
   const billsFor = (c: any) => ((bills ?? []) as any[]).filter((b) => b.vendor_id === c.vendor_id && b.association_id === c.association_id
     && Number(b.amount) - Number(b.credit_applied ?? 0) > 0.005);
@@ -124,6 +124,8 @@ export default async function VendorCreditsPage({
                     <TD>
                       {left <= 0.005 ? (
                         <span className="text-xs text-gray-500">Fully applied</span>
+                      ) : c.credit_date > today ? (
+                        <span className="text-xs text-gray-500">Can be applied from {date(c.credit_date)}</span>
                       ) : candidates.length === 0 ? (
                         <span className="text-xs text-gray-500">No approved unpaid bills from this vendor for this association</span>
                       ) : (
