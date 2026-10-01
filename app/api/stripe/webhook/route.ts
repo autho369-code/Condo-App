@@ -66,7 +66,10 @@ async function emailReceipt(db: any, intent: any, method: string) {
     const ownerName = escapeHtml(owner.full_name);
     const unitNumber = escapeHtml(unit?.unit_number);
     const associationName = escapeHtml(assoc?.name || 'your association');
+    // checkout.session.completed and payment_intent.succeeded can both reach
+    // this point; the idempotency key keeps the owner to one receipt.
     const { error } = await db.from('email_queue').insert({
+      idempotency_key: `stripe-receipt:${intent.id}`,
       to_email: owner.email,
       to_name: owner.full_name,
       subject: `Payment received — ${amount} for Unit ${unit?.unit_number ?? ''}`,
@@ -80,6 +83,23 @@ async function emailReceipt(db: any, intent: any, method: string) {
   } catch {
     return false;
   }
+}
+
+/** 'ach' or 'card' from the charge that actually settled the PaymentIntent. */
+async function settledMethod(obj: any, piId: string, stripeAccount: string): Promise<'ach' | 'card'> {
+  const fromCharge = (charge: any) => charge?.payment_method_details?.type;
+  let type = typeof obj.latest_charge === 'object' ? fromCharge(obj.latest_charge) : undefined;
+  if (!type) {
+    if (Array.isArray(obj.payment_method_types) && obj.payment_method_types.length === 1) {
+      type = obj.payment_method_types[0];
+    } else {
+      try {
+        const full = await retrievePaymentIntent(piId, stripeAccount);
+        type = fromCharge(full?.latest_charge);
+      } catch { /* fall through to card */ }
+    }
+  }
+  return type === 'us_bank_account' ? 'ach' : 'card';
 }
 
 /** Best-effort Stripe fee capture from the charge's balance transaction. */
@@ -483,9 +503,11 @@ export async function POST(request: NextRequest) {
           throw new Error('Payment mode does not match the payment intent');
         }
         const wasSucceeded = intent.status === 'succeeded' && !!intent.payment_id;
-        const pmType = Array.isArray(obj.payment_method_types) && obj.payment_method_types.includes('us_bank_account') && obj.payment_method_types.length === 1
-          ? 'ach'
-          : (obj.latest_charge?.payment_method_details?.type === 'us_bank_account' ? 'ach' : 'card');
+        // Checkout/AutoPay offer ['card','us_bank_account'], and webhook payloads
+        // carry latest_charge as an id string, so read the charge's actual
+        // method (fetching the expanded PaymentIntent when needed). Before,
+        // every ACH payment was recorded and receipted as "card".
+        const pmType = await settledMethod(obj, piId, stripeAccount);
         const paymentId = await postLedgerPayment(svc, intent, pmType, piId, stripeAccount);
         const { error: updateError } = await svc.from('payment_intents').update({
           status: 'succeeded',
@@ -497,7 +519,10 @@ export async function POST(request: NextRequest) {
           processor_livemode: event.livemode,
           processor_charge_id: typeof obj.latest_charge === 'string' ? obj.latest_charge : obj.latest_charge?.id ?? null,
           updated_at: now,
-        }).eq('id', intent.id);
+        })
+          .eq('id', intent.id)
+          // A retried or late "succeeded" event must not undo a refund or dispute.
+          .not('status', 'in', '("refunded","chargeback")');
         if (updateError) throw new Error(`Settled payment update failed: ${updateError.message}`);
         await finalizeAutopayRun(svc, obj, intent.id, stripeAccount, 'succeeded');
         if (!wasSucceeded) {

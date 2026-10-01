@@ -5,10 +5,11 @@
 // mutation via the service-role client, (3) writes an audit_logs row scoped to
 // entity_type 'company' / entity_id = portfolio id, (4) fails loudly via
 // redirect(?error=...) per CLAUDE.md rule 3.
+import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { requirePlatformOperator, type MeResult } from '@/lib/auth/me';
+import { requirePlatformAdmin, requirePlatformOperator, type MeResult } from '@/lib/auth/me';
 import { PLAN_BY_ID, type PlanId } from '@/lib/billing/plans';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { siteUrl } from '@/lib/url/site-url';
@@ -73,7 +74,7 @@ function inviteEmailBody(companyName: string, token: string, expiresAt: string |
 
 // ── Create Company + Invite Company Admin ─────────────────────────────────
 export async function createCompanyWithAdmin(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const supabase = await createClient();
 
   const companyName = (formData.get('company_name') as string)?.trim();
@@ -115,8 +116,11 @@ export async function createCompanyWithAdmin(formData: FormData) {
 
   // Post-provision details the RPC doesn't cover.
   // No trials: companies start as active subscriptions immediately.
-  if (phone) await svc.from('portfolios').update({ phone_number: phone }).eq('id', portfolioId);
-  await svc.from('subscriptions')
+  if (phone) {
+    const { error: phoneError } = await svc.from('portfolios').update({ phone_number: phone }).eq('id', portfolioId);
+    if (phoneError) fail(COMPANIES, `Company created, but the phone number was not saved: ${phoneError.message}`);
+  }
+  const { error: subscriptionError } = await svc.from('subscriptions')
     .update({
       status: 'active',
       trial_ends_at: null,
@@ -124,9 +128,14 @@ export async function createCompanyWithAdmin(formData: FormData) {
       ...(plan && !plan.custom ? { price_monthly_cents: plan.priceMonthlyCents } : {}),
     })
     .eq('portfolio_id', portfolioId);
-  await svc.from('user_invitations')
+  if (subscriptionError) fail(COMPANIES, `Company created, but its subscription could not be activated: ${subscriptionError.message}`);
+  // provision_portfolio creates the invitation as a manager; it must be a
+  // company admin before the email goes out, or the first admin joins as a manager.
+  const { data: promoted, error: promoteError } = await svc.from('user_invitations')
     .update({ hoa_role: 'company_admin', full_name: fullName })
-    .eq('id', invitationId);
+    .eq('id', invitationId)
+    .select('id');
+  if (promoteError || !promoted?.length) fail(COMPANIES, `Company created, but the admin invitation could not be set up: ${promoteError?.message ?? 'invitation not found'}. Invite the admin again from the company page.`);
 
   // 4: send welcome email
   const { error: mailError } = await svc.from('email_queue').insert({
@@ -151,7 +160,7 @@ export async function createCompanyWithAdmin(formData: FormData) {
 
 // ── Invite an additional Company Admin ────────────────────────────────────
 export async function inviteAdmin(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
   const firstName = (formData.get('first_name') as string)?.trim();
@@ -183,7 +192,7 @@ export async function inviteAdmin(formData: FormData) {
     .single();
   if (error) fail(returnTo, `Could not create invitation: ${error.message}`);
 
-  await svc.from('email_queue').insert({
+  const { error: inviteEmailError } = await svc.from('email_queue').insert({
     to_email: email,
     to_name: fullName,
     subject: `You're invited to administer ${portfolio.company_name} on Portier369`,
@@ -193,6 +202,7 @@ export async function inviteAdmin(formData: FormData) {
     from_name: FROM_NAME,
     portfolio_id: portfolioId,
   });
+  if (inviteEmailError) fail(returnTo, `Invitation created, but the email could not be queued: ${inviteEmailError.message}. Use Resend on the invitation.`);
 
   await audit(svc, me, 'admin_invited', portfolioId, { email, full_name: fullName, invitation_id: invite.id });
   revalidatePath(returnTo);
@@ -201,7 +211,7 @@ export async function inviteAdmin(formData: FormData) {
 
 // ── Invitation quick actions ──────────────────────────────────────────────
 export async function resendInvitation(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invitationId = formData.get('invitation_id') as string;
   const returnTo = returnPath(formData, '/platform-operator/invitations');
 
@@ -213,13 +223,14 @@ export async function resendInvitation(formData: FormData) {
     .maybeSingle();
   if (!inv?.token) fail(returnTo, 'Invitation not found or missing token.');
   if (inv.status !== 'pending') fail(returnTo, `Only pending invitations can be resent (this one is ${inv.status}).`);
+  if (inv.expires_at && new Date(inv.expires_at) < new Date()) fail(returnTo, 'This invitation has expired. Use Regenerate to send a fresh link.');
 
   const { data: portfolio } = inv.portfolio_id
     ? await svc.from('portfolios').select('company_name, slug').eq('id', inv.portfolio_id).maybeSingle()
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
-  await svc.from('email_queue').insert({
+  const { error: resendError } = await svc.from('email_queue').insert({
     to_email: inv.email,
     to_name: inv.full_name,
     subject: `Reminder: set up your ${companyName} Portier369 account`,
@@ -229,6 +240,7 @@ export async function resendInvitation(formData: FormData) {
     from_name: FROM_NAME,
     portfolio_id: inv.portfolio_id,
   });
+  if (resendError) fail(returnTo, `Could not queue the reminder email: ${resendError.message}`);
 
   const meta = { ...(inv.metadata ?? {}), resent_count: ((inv.metadata?.resent_count as number) ?? 0) + 1, last_resent_at: new Date().toISOString() };
   await svc.from('user_invitations').update({ metadata: meta }).eq('id', invitationId);
@@ -239,7 +251,7 @@ export async function resendInvitation(formData: FormData) {
 }
 
 export async function cancelInvitation(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invitationId = formData.get('invitation_id') as string;
   const returnTo = returnPath(formData, '/platform-operator/invitations');
 
@@ -248,9 +260,11 @@ export async function cancelInvitation(formData: FormData) {
     .from('user_invitations')
     .update({ status: 'revoked' })
     .eq('id', invitationId)
+    .eq('status', 'pending') // an accepted invitation is history, not cancellable
     .select('portfolio_id, email')
-    .single();
+    .maybeSingle();
   if (error) fail(returnTo, `Could not cancel invitation: ${error.message}`);
+  if (!inv) fail(returnTo, 'Only pending invitations can be cancelled.');
 
   await audit(svc, me, 'invitation_cancelled', inv.portfolio_id, { email: inv.email, invitation_id: invitationId });
   revalidatePath(returnTo);
@@ -258,20 +272,24 @@ export async function cancelInvitation(formData: FormData) {
 }
 
 export async function regenerateInvitation(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invitationId = formData.get('invitation_id') as string;
   const returnTo = returnPath(formData, '/platform-operator/invitations');
 
   const svc = createServiceClient() as any;
   const { data: old } = await svc
     .from('user_invitations')
-    .select('email, full_name, hoa_role, role_id, portfolio_id, message, metadata')
+    .select('email, full_name, hoa_role, role_id, portfolio_id, message, metadata, status')
     .eq('id', invitationId)
     .maybeSingle();
   if (!old) fail(returnTo, 'Invitation not found.');
+  // An accepted invitation means the person is already onboarded.
+  if (!['pending', 'expired'].includes(old.status)) fail(returnTo, `Only pending or expired invitations can be regenerated (this one is ${old.status}).`);
 
-  // Revoke the old link, mint a fresh one (new token + 30-day expiry)
-  await svc.from('user_invitations').update({ status: 'revoked' }).eq('id', invitationId);
+  // Revoke the old link, mint a fresh one (new token + 30-day expiry). If the
+  // revoke fails, stop: two live tokens must never exist.
+  const { error: revokeError } = await svc.from('user_invitations').update({ status: 'revoked' }).eq('id', invitationId).in('status', ['pending', 'expired']);
+  if (revokeError) fail(returnTo, `Could not revoke the old invitation: ${revokeError.message}`);
   const { data: fresh, error } = await svc
     .from('user_invitations')
     .insert({
@@ -294,7 +312,7 @@ export async function regenerateInvitation(formData: FormData) {
     : { data: null };
   const companyName = portfolio?.company_name ?? 'your company';
 
-  await svc.from('email_queue').insert({
+  const { error: regenEmailError } = await svc.from('email_queue').insert({
     to_email: old.email,
     to_name: old.full_name,
     subject: `Your new ${companyName} invitation link`,
@@ -304,6 +322,7 @@ export async function regenerateInvitation(formData: FormData) {
     from_name: FROM_NAME,
     portfolio_id: old.portfolio_id,
   });
+  if (regenEmailError) fail(returnTo, `New link created, but the email could not be queued: ${regenEmailError.message}. Use Resend.`);
 
   await audit(svc, me, 'invitation_regenerated', old.portfolio_id, { email: old.email, old_invitation_id: invitationId, new_invitation_id: fresh.id });
   revalidatePath(returnTo);
@@ -315,7 +334,7 @@ export async function regenerateInvitation(formData: FormData) {
 // keep profiles.disabled_at in step with the auth ban — that flag is what
 // isActiveProfile enforces and what /platform-operator/users shows.
 async function requireAccountAdministrator(returnTo: string, profileId: string) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const svc = createServiceClient() as any;
   const { data: operator } = await svc.from('platform_operators')
     .select('role, active').eq('auth_user_id', me.auth_user_id).maybeSingle();
@@ -330,7 +349,7 @@ async function requireAccountAdministrator(returnTo: string, profileId: string) 
 
 // ── Password management ───────────────────────────────────────────────────
 export async function sendPasswordReset(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const profileId = formData.get('profile_id') as string;
   const returnTo = returnPath(formData, COMPANIES);
 
@@ -352,7 +371,7 @@ export async function sendPasswordReset(formData: FormData) {
     to_email: profile.email,
     to_name: profile.full_name,
     subject: 'Reset your Portier369 password',
-    body: `<p>Hello,</p><p>A password reset was requested for your account by the platform team.</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>If you did not expect this, contact support.</p>`,
+    body: `<p>Hello,</p><p>A password reset was requested for your account by the platform team.</p><p><a href="${verifiedAuthLink(linkData, tenantWorkspaceUrl(portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery')}">Reset your password</a></p><p>If you did not expect this, contact support.</p>`,
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -393,7 +412,7 @@ export async function forcePasswordReset(formData: FormData) {
     to_email: profile.email,
     to_name: profile.full_name,
     subject: 'Set a new Portier369 password',
-    body: `<p>Hello,</p><p>The platform team has reset your password. Choose a new one to sign in again.</p><p><a href="${linkData.properties.action_link}">Set a new password</a></p><p>If you did not expect this, contact support.</p>`,
+    body: `<p>Hello,</p><p>The platform team has reset your password. Choose a new one to sign in again.</p><p><a href="${verifiedAuthLink(linkData, tenantWorkspaceUrl(portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery')}">Set a new password</a></p><p>If you did not expect this, contact support.</p>`,
     status: 'pending',
     from_address: FROM_ADDRESS,
     from_name: FROM_NAME,
@@ -417,7 +436,7 @@ function invoiceNumber(): string {
 // Generate an invoice for a company. Amount defaults to the subscription's
 // monthly price; period defaults to the current calendar month.
 export async function generateInvoice(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
   const periodStart = (formData.get('period_start') as string) || '';
@@ -453,7 +472,7 @@ export async function generateInvoice(formData: FormData) {
 
 // Email the invoice to the company's billing contact via the email queue.
 export async function sendInvoice(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
@@ -508,32 +527,43 @@ export async function sendInvoice(formData: FormData) {
 }
 
 export async function markInvoicePaid(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
-  const { error } = await svc.from('invoices')
-    .update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', invoiceId);
+  // Only open/overdue invoices can be paid (a voided one must stay void).
+  const { data: paid, error } = await svc.from('invoices')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', invoiceId)
+    .in('status', ['open', 'overdue'])
+    .select('id, portfolio_id');
   if (error) fail(returnTo, `Could not mark invoice paid: ${error.message}`);
+  if (!paid?.length) fail(returnTo, 'Only open or overdue invoices can be marked paid.');
 
-  await audit(svc, me, 'invoice_marked_paid', portfolioId, { invoice_id: invoiceId });
+  await audit(svc, me, 'invoice_marked_paid', paid[0].portfolio_id ?? portfolioId, { invoice_id: invoiceId });
   revalidatePath(returnTo);
   ok(returnTo, 'invoice_paid');
 }
 
 export async function voidInvoice(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const invoiceId = formData.get('invoice_id') as string;
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
   const svc = createServiceClient() as any;
-  const { error } = await svc.from('invoices').update({ status: 'void' }).eq('id', invoiceId);
+  // A paid invoice cannot be voided (refund it instead).
+  const { data: voided, error } = await svc.from('invoices')
+    .update({ status: 'void' })
+    .eq('id', invoiceId)
+    .in('status', ['draft', 'open', 'overdue'])
+    .select('id, portfolio_id');
   if (error) fail(returnTo, `Could not void invoice: ${error.message}`);
+  if (!voided?.length) fail(returnTo, 'Only draft, open or overdue invoices can be voided.');
 
-  await audit(svc, me, 'invoice_voided', portfolioId, { invoice_id: invoiceId });
+  await audit(svc, me, 'invoice_voided', voided[0].portfolio_id ?? portfolioId, { invoice_id: invoiceId });
   revalidatePath(returnTo);
   ok(returnTo, 'invoice_voided');
 }
@@ -570,7 +600,7 @@ export async function disableLogin(formData: FormData) {
 
 // ── Edit company details ──────────────────────────────────────────────────
 export async function updateCompanyDetails(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
@@ -596,7 +626,7 @@ export async function updateCompanyDetails(formData: FormData) {
 
 // ── Company status ────────────────────────────────────────────────────────
 export async function suspendCompany(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const reason = (formData.get('reason') as string)?.trim() || null;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
@@ -614,7 +644,7 @@ export async function suspendCompany(formData: FormData) {
 }
 
 export async function reactivateCompany(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
@@ -633,7 +663,7 @@ export async function reactivateCompany(formData: FormData) {
 // ── Archive (soft delete) ─────────────────────────────────────────────────
 // Disables all logins; preserves association data, billing records, and audit logs.
 export async function archiveCompany(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
 
   const svc = createServiceClient() as any;
@@ -648,25 +678,35 @@ export async function archiveCompany(formData: FormData) {
   if (error) fail(COMPANIES, `Could not archive company: ${error.message}`);
 
   // Disable every login on the account
+  // (The company is also suspended above, which blocks access in RLS and
+  // getMe.) Mark every profile disabled so the users list and
+  // isActiveProfile agree, and report bans that failed instead of hiding them.
   const { data: members } = await svc.from('profiles').select('id, email').eq('portfolio_id', portfolioId);
+  const disabledAt = new Date().toISOString();
+  const banFailures: string[] = [];
   for (const member of members ?? []) {
-    await svc.auth.admin.updateUserById(member.id, { ban_duration: '876000h' });
+    const { error: banError } = await svc.auth.admin.updateUserById(member.id, { ban_duration: '876000h' });
+    if (banError) banFailures.push(member.email ?? member.id);
   }
+  const { error: disableError } = await svc.from('profiles').update({ disabled_at: disabledAt }).eq('portfolio_id', portfolioId).is('disabled_at', null);
+  if (disableError) banFailures.push(`profiles (${disableError.message})`);
 
   // Revoke any open invitations
   await svc.from('user_invitations').update({ status: 'revoked' }).eq('portfolio_id', portfolioId).eq('status', 'pending');
 
   await audit(svc, me, 'company_archived', portfolioId, {
     company_name: portfolio.company_name,
-    logins_disabled: (members ?? []).length,
+    logins_disabled: (members ?? []).length - banFailures.length,
+    ban_failures: banFailures,
   });
   revalidatePath(COMPANIES);
+  if (banFailures.length) fail(COMPANIES, `Company archived and suspended, but ${banFailures.length} login(s) could not be banned: ${banFailures.slice(0, 5).join(', ')}. Their access is still blocked by the suspension.`);
   ok(COMPANIES, 'archived');
 }
 
 // ── Subscription plan & limits ────────────────────────────────────────────
 export async function changePlan(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const tier = formData.get('tier') as string;
   const priceMonthly = formData.get('price_monthly') as string;
@@ -684,7 +724,8 @@ export async function changePlan(formData: FormData) {
   const svc = createServiceClient() as any;
   const { error } = await svc.from('subscriptions').update(update).eq('portfolio_id', portfolioId);
   if (error) fail(returnTo, `Could not change plan: ${error.message}`);
-  await svc.from('portfolios').update({ tier }).eq('id', portfolioId);
+  const { error: tierError } = await svc.from('portfolios').update({ tier }).eq('id', portfolioId);
+  if (tierError) fail(returnTo, `Subscription updated, but the company tier could not be saved: ${tierError.message}`);
 
   await audit(svc, me, 'plan_changed', portfolioId, update);
   revalidatePath(returnTo);
@@ -692,7 +733,7 @@ export async function changePlan(formData: FormData) {
 }
 
 export async function adjustLimits(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
 
@@ -716,7 +757,7 @@ export async function adjustLimits(formData: FormData) {
 
 // ── Transfer ownership ────────────────────────────────────────────────────
 export async function transferOwnership(formData: FormData) {
-  const me = await requirePlatformOperator();
+  const me = await requirePlatformAdmin();
   const portfolioId = formData.get('portfolio_id') as string;
   const newOwnerId = formData.get('new_owner_id') as string;
   const returnTo = returnPath(formData, `${COMPANIES}/${portfolioId}`);
@@ -738,13 +779,18 @@ export async function transferOwnership(formData: FormData) {
     .eq('portfolio_id', portfolioId)
     .eq('hoa_role', 'company_admin');
 
-  for (const admin of currentAdmins ?? []) {
-    if (admin.id !== newOwnerId) {
-      await svc.from('profiles').update({ hoa_role: 'manager' }).eq('id', admin.id);
-    }
-  }
+  // Promote first, then demote: a failure part-way must never leave the
+  // company with no admin.
   const { error } = await svc.from('profiles').update({ hoa_role: 'company_admin' }).eq('id', newOwnerId);
   if (error) fail(returnTo, `Could not transfer ownership: ${error.message}`);
+  const demoteFailures: string[] = [];
+  for (const admin of currentAdmins ?? []) {
+    if (admin.id !== newOwnerId) {
+      const { error: demoteError } = await svc.from('profiles').update({ hoa_role: 'manager' }).eq('id', admin.id);
+      if (demoteError) demoteFailures.push(admin.email ?? admin.id);
+    }
+  }
+  if (demoteFailures.length) fail(returnTo, `New admin set, but these admins could not be changed to manager: ${demoteFailures.join(', ')}`);
 
   await audit(svc, me, 'ownership_transferred', portfolioId, {
     new_admin: newOwner.email,

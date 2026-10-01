@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
+import { Alert } from '@/components/ui/shell';
 import { money } from '@/lib/utils';
 import {
   Building2,
@@ -45,7 +46,8 @@ function StatCard({
   );
 }
 
-export default async function PlatformOperatorOverview() {
+export default async function PlatformOperatorOverview({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error: pageError } = await searchParams;
   await requirePlatformOperator();
   const supabase = await createClient();
   const db = supabase as any;
@@ -74,6 +76,7 @@ export default async function PlatformOperatorOverview() {
 
   return (
     <div className="space-y-6">
+      {pageError && <Alert tone="danger" title="Not allowed">{pageError}</Alert>}
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Operator</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide administration and monitoring dashboard</p>

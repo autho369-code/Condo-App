@@ -1,3 +1,4 @@
+import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { createClient } from '@/lib/supabase/server';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { Input, Label, Select } from '@/components/ui/input';
@@ -101,7 +102,7 @@ async function resetStaffPassword(formData: FormData) {
     text: [
       'A portfolio administrator requested a password reset for your Portier369 staff account.',
       '',
-      `Choose a new password: ${linkData.properties.action_link}`,
+      `Choose a new password: ${verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio.slug, '/api/auth/callback?next=/reset-password'), 'recovery')}`,
       '',
       'This recovery link expires after a short time. If you did not expect it, contact your portfolio administrator.',
     ].join('\n'),

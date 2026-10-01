@@ -9,8 +9,14 @@ describe('loginErrorMessage', () => {
     expect(loginErrorMessage('session_expired')).toContain('Sign in again');
   });
 
-  it('preserves provider messages and empty state', () => {
-    expect(loginErrorMessage('Invalid login credentials')).toBe('Invalid login credentials');
+  it('never echoes unknown ?error= text (a crafted link could phish on the real sign-in page)', () => {
+    expect(loginErrorMessage('Your account is locked. Call 555-0100 to unlock it.')).toBe(loginErrorMessage('anything_unknown'));
+    expect(loginErrorMessage('anything_unknown')).toContain('could not sign you in');
     expect(loginErrorMessage(undefined)).toBeNull();
+  });
+
+  it('explains expired reset links and disabled accounts', () => {
+    expect(loginErrorMessage('reset_link_expired')).toContain('Request a new one');
+    expect(loginErrorMessage('account_disabled')).toContain('disabled');
   });
 });

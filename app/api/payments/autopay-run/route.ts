@@ -21,6 +21,7 @@ import {
   isIndeterminateStripeError,
 } from '@/lib/payments/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { associationCanAcceptStripePayments, nextMonthlyRunDate } from '@/lib/payments/guards';
 import { assertStripeId } from '@/lib/payments/stripe-invariants';
@@ -79,11 +80,15 @@ export async function GET(request: NextRequest) {
   const today = new Date().toISOString().slice(0, 10);
   const summary = { due: 0, charged: 0, skipped: 0, failed: 0, details: [] as string[] };
 
-  const { data: mandates } = await svc
+  // Every due mandate (one request stops at 1,000 rows); a read error must
+  // fail loudly instead of reporting "0 due".
+  const { rows: mandates, error: mandatesError } = await fetchAllRows<any>(() => svc
     .from('autopay_mandates')
     .select('*, payment_methods(processor_token, processor_customer_id, processor_account_id), associations(name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at), units(unit_number)')
     .eq('status', 'active')
-    .lte('next_run_date', today);
+    .lte('next_run_date', today)
+    .order('id'));
+  if (mandatesError) return NextResponse.json({ error: `Could not load AutoPay mandates: ${mandatesError}` }, { status: 500 });
 
   for (const m of mandates ?? []) {
     summary.due++;
@@ -336,10 +341,16 @@ export async function GET(request: NextRequest) {
       });
       submittedToStripe = true;
       const processorPaymentIntentId = assertStripeId(pi.id, 'pi', 'Stripe PaymentIntent id');
-      await updateRun(svc, run.id, {
-        status: 'submitted',
-        processor_payment_intent_id: processorPaymentIntentId,
-      });
+      // Card charges succeed immediately and the webhook may already have
+      // finalized this run; never move a finished run back to 'submitted'.
+      {
+        const { error: runError } = await svc
+          .from('stripe_autopay_runs')
+          .update({ status: 'submitted', processor_payment_intent_id: processorPaymentIntentId, updated_at: new Date().toISOString() })
+          .eq('id', run.id)
+          .not('status', 'in', '("succeeded","failed")');
+        if (runError) throw runError;
+      }
       if (!['processing', 'succeeded'].includes(pi.status)) {
         const failureReason = pi.status === 'requires_action'
           ? 'Owner authentication is required before this AutoPay can complete'
@@ -373,7 +384,10 @@ export async function GET(request: NextRequest) {
         processor_payment_intent_id: processorPaymentIntentId,
         status: 'processing', // webhook finalizes success + ledger
         updated_at: new Date().toISOString(),
-      }).eq('id', intent.id);
+      })
+        .eq('id', intent.id)
+        // Only from pending: the success webhook may have finished first.
+        .eq('status', 'pending');
       if (intentUpdateError) throw intentUpdateError;
       const { error: advanceError } = await advance();
       if (advanceError) throw advanceError;

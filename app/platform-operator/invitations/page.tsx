@@ -8,7 +8,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { Alert } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
 import { createClient } from '@/lib/supabase/server';
-import { requirePlatformOperator } from '@/lib/auth/me';
+import { requirePlatformAdmin, requirePlatformOperator } from '@/lib/auth/me';
 import { date } from '@/lib/utils';
 import { cancelInvitation, regenerateInvitation, resendInvitation } from '../companies/actions';
 
@@ -28,7 +28,8 @@ function inviteStatusChip(inv: any) {
 
 async function createInvitation(formData: FormData) {
   'use server';
-  const me = await requirePlatformOperator();
+  // Minting invitations (including company-admin ones) needs the admin role.
+  const me = await requirePlatformAdmin();
   const supabase = await createClient();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const fullName = (formData.get('full_name') as string)?.trim() || null;

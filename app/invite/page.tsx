@@ -1,3 +1,4 @@
+import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
@@ -85,7 +86,7 @@ async function acceptInvite(formData: FormData) {
       'Your password was saved, but your account is not active yet.',
       '',
       'Verify this email address to activate your account:',
-      linkData.properties.action_link,
+      verifiedAuthLink(linkData, callbackUrl, 'signup'),
       '',
       'If you did not request this account, contact your management office.',
     ].join('\n'),
@@ -107,7 +108,7 @@ async function acceptInvite(formData: FormData) {
     if (restoreError || !restoredInvite) failTo('Account setup was rolled back, but the invitation could not be restored. Contact support.');
     failTo(queued.error ?? 'Could not queue the verification email. Please try again.');
   }
-  redirect('/login?message=' + encodeURIComponent('Check your email to verify and activate your account.'));
+  redirect('/login?notice=verify_email');
 
 }
 

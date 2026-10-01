@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { notFound } from 'next/navigation'
 import { Badge, Alert } from '@/components/ui/shell'
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card'
@@ -13,16 +14,18 @@ import { RATABLE_STATUSES, RateWorkOrderForm } from '@/components/work-orders/ra
 export const dynamic = 'force-dynamic'
 
 export default async function OwnerWorkOrderDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; rating_error?: string; rating_saved?: string }> }) {
-  await requireOwner()
+  const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
   const { id } = await params
   const sp = await searchParams
 
-  // RLS scopes work_orders to the owner's unit; no owner_id column exists.
+  // Scope to the owner's own units: RLS alone lets a board member who is also
+  // an owner open any work order in the association from the owner portal.
+  const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
   const { data: wo } = await db.from('work_orders')
     .select('id, title, description, category, priority, status, created_at, scheduled_date, completed_date, vendor_id, units!inner(unit_number), vendors(name)')
-    .eq('id', id).maybeSingle()
+    .eq('id', id).in('unit_id', myUnits).maybeSingle()
 
   if (!wo) return notFound()
 

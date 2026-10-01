@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { FileText, Scale, Users, File } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { date } from '@/lib/utils'
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
 
@@ -51,15 +52,24 @@ function bucketFor(docType: string | null): BucketKey {
 }
 
 export default async function OwnerDocumentsPage() {
-  await requireOwner()
+  const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  // RLS scopes documents to the resident's association(s), unit(s), and owner
-  // record, so a plain select returns only what this owner may see.
+  // Scope explicitly to what an owner may see: their own owner record, their
+  // own units, and association documents shared with owners. Relying on RLS
+  // alone showed board-only association documents to board members who are
+  // also owners.
+  const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
+  const assocIds = (me.resident_association_ids ?? []).length ? me.resident_association_ids : ['00000000-0000-0000-0000-000000000000']
   const { data } = await db
     .from('documents')
     .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at')
+    .or([
+      `and(entity_type.eq.owner,entity_id.eq.${me.owner_id})`,
+      `and(entity_type.eq.unit,entity_id.in.(${myUnits.join(',')}))`,
+      `and(entity_type.eq.association,share_scope.eq.owners,entity_id.in.(${assocIds.join(',')}))`,
+    ].join(','))
     .order('uploaded_at', { ascending: false })
   const docs = (data ?? []) as DocRow[]
 

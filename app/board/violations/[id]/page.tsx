@@ -260,7 +260,7 @@ export default async function BoardViolationDetailPage({
                 <TimelineItem
                   label="Hearing"
                   date={violation.hearing_date}
-                  detail={violation.hearing_at ? `Scheduled at ${new Date(violation.hearing_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : 'Hearing held'}
+                  detail={violation.hearing_at ? `Scheduled at ${new Date(violation.hearing_at).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}` : 'Hearing held'}
                   isWarning
                 />
               )}
@@ -446,7 +446,7 @@ export default async function BoardViolationDetailPage({
             </h2>
             <InfoRow label="Hearing Required" value={violation.hearing_required ? <span className="font-medium text-amber-700">Yes</span> : <span className="text-gray-500">No</span>} />
             <InfoRow label="Hearing Date" value={violation.hearing_date ? date(violation.hearing_date, 'long') : '—'} />
-            <InfoRow label="Hearing Time" value={violation.hearing_at ? new Date(violation.hearing_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'} />
+            <InfoRow label="Hearing Time" value={violation.hearing_at ? new Date(violation.hearing_at).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) : '—'} />
             <InfoRow label="Dispute Status" value={violation.dispute_status ?? '—'} />
           </div>
 

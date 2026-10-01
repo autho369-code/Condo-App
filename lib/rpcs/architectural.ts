@@ -11,6 +11,7 @@ import {
   validateArchitecturalAttachmentFile,
 } from '@/lib/security/tenant-boundaries';
 import { revalidatePath } from 'next/cache';
+import { ownPortalUnitIds } from '@/lib/portal/own-units';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { redirect } from 'next/navigation';
 
@@ -50,6 +51,9 @@ export async function submitArchitecturalRequest(formData: FormData) {
   if (description.length < 10)  { failTo('Please give us at least a sentence describing the work'); return; }
 
   const supabase = await createClient();
+  // The unit must be one of the owner's own (RLS lets a board member who owns a
+  // unit see every unit in the association).
+  if (!(await ownPortalUnitIds(supabase, me.owner_id)).includes(unitId)) { failTo('You can only submit requests for your own unit'); return; }
 
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
@@ -102,6 +106,7 @@ export async function createArchitecturalRequest(input: {
   if (!description || description.length < 10) return { error: 'Please give us at least a sentence describing the work' };
 
   const supabase = await createClient();
+  if (!(await ownPortalUnitIds(supabase, me.owner_id)).includes(unitId)) return { error: 'You can only submit requests for your own unit' };
 
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')

@@ -105,9 +105,17 @@ describe('deliverDueCalendarReminders', () => {
 
   it('still sends a zero-offset reminder picked up just after the start', async () => {
     const { db } = fakeDb({
-      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ start_datetime: justStarted }) }],
+      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 0, calendar_events: event({ start_datetime: justStarted }) }],
     });
     const summary = await deliverDueCalendarReminders(db);
     expect(summary.sent).toBe(1);
+  });
+
+  it('expires an earlier notice that runs late after the start', async () => {
+    const { db } = fakeDb({
+      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', offset_minutes: 480, calendar_events: event({ start_datetime: justStarted }) }],
+    });
+    const summary = await deliverDueCalendarReminders(db);
+    expect(summary).toEqual({ sent: 0, expired: 1, skipped: 0, failed: 0 });
   });
 });

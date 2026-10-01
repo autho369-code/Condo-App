@@ -5,12 +5,20 @@ import { date } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 export default async function OwnerMeetingsPage() {
-  await requireOwner()
+  const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: meetings } = await db.from('meetings')
+  // Mirror the owner rule (meetings_portal_resident_read) explicitly: a board
+  // member who is also an owner would otherwise see executive sessions,
+  // cancelled meetings and unpublished minutes here through board RLS.
+  const assocIds = me.resident_association_ids ?? []
+  const { data: meetings } = assocIds.length === 0 ? { data: [] } : await db.from('meetings')
     .select('id, title, meeting_type, status, start_time, agenda, minutes, ai_summary')
+    .in('association_id', assocIds)
+    .is('archived_at', null)
+    .neq('meeting_type', 'executive_session')
+    .or('status.in.(scheduled,in_progress),and(status.eq.completed,minutes.not.is.null)')
     .order('start_time', { ascending: false })
     .limit(100)
 

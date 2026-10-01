@@ -10,6 +10,7 @@ export const PUBLIC_PATHS = [
   '/signup',
   '/forgot-password',
   '/reset-password',
+  '/confirm',
   '/accept-invitation',
   '/api/auth/callback',
   '/api/v1',

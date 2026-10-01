@@ -14,7 +14,8 @@ const RETURN = '/platform-operator/announcements'
 
 async function sendAnnouncement(formData: FormData) {
   'use server'
-  const { requirePlatformOperator: requireOp } = await import('@/lib/auth/me')
+  // Broadcasting to every company needs the admin role.
+  const { requirePlatformAdmin: requireOp } = await import('@/lib/auth/me')
   const me = await requireOp()
 
   const subject = ((formData.get('subject') as string) || '').trim()

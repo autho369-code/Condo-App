@@ -3,6 +3,7 @@
 // Tenancy, pets, and emergency-contact actions for the owner detail page.
 // Condo units are owner-managed; tenants are tracked (not managed) so the
 // association knows who occupies each unit and holds lease/insurance records.
+import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -252,7 +253,7 @@ export async function sendOwnerPasswordReset(ownerId: string) {
       `Hello${owner.full_name ? ` ${owner.full_name}` : ''},`,
       '',
       `${companyName} sent you a link to reset your owner-portal password:`,
-      linkData.properties.action_link,
+      verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
       '',
       'This link expires after a short time. If you did not expect this email, contact your management office.',
     ].join('\n'),
@@ -426,7 +427,7 @@ export async function sendTenantPasswordReset(tenantId: string, ownerId: string)
       `Hello ${fullName},`,
       '',
       `${me.portfolio?.company_name ?? 'Your property management company'} sent you a secure password reset link:`,
-      linkData.properties.action_link,
+      verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio?.slug, '/api/auth/callback?next=/reset-password'), 'recovery'),
       '',
       'This link expires after a short time. If you did not expect this email, contact your management office.',
     ].join('\n'),

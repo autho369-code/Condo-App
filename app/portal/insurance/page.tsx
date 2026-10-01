@@ -36,9 +36,12 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
 
   const current = policies[0] ?? null
   const hasInsurance = policies.length > 0
-  const expDate = current?.expiration_date ? new Date(current.expiration_date) : null
-  const expired = !!(expDate && expDate < new Date())
-  const expiringSoon = !!(expDate && !expired && expDate < new Date(Date.now() + 30 * 86400000))
+  // Date-only compare: coverage ending today is still in force today.
+  const expYmd = current?.expiration_date ? String(current.expiration_date).slice(0, 10) : null
+  const todayYmd = new Date().toISOString().slice(0, 10)
+  const soonYmd = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  const expired = !!(expYmd && expYmd < todayYmd)
+  const expiringSoon = !!(expYmd && !expired && expYmd < soonYmd)
 
   // Signed link to the uploaded certificate (private bucket)
   let certificateUrl: string | null = null

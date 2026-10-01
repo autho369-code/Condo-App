@@ -15,11 +15,13 @@ export default async function OwnerDashboard() {
   const ownerId = me.owner_id
 
   // Owner info + unit (occupancies has no archived_at column)
-  const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).limit(5)
+  // Current occupancies only: a sold unit must not keep showing its new
+  // owner's balance, payments and work orders (board RLS would allow it).
+  const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(5)
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
   const nextDue = occs[0]?.dues_paid_through
-    ? new Date(occs[0].dues_paid_through).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    ? new Date(`${String(occs[0].dues_paid_through).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
     : 'Not set'
   const assocId = occs[0]?.association_id
 
@@ -36,7 +38,7 @@ export default async function OwnerDashboard() {
     const { data: wos } = await db.from('work_orders').select('id,title,status,created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
     workOrders = wos ?? []
   }
-  const openWO = workOrders.filter((w: any) => !['completed','closed','cancelled'].includes(w.status))
+  const openWO = workOrders.filter((w: any) => !['done','completed','billed','closed','cancelled'].includes(w.status))
 
   // Violations
   const { data: viols } = await db.from('violations').select('id,title,status,date_observed').eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
@@ -45,7 +47,7 @@ export default async function OwnerDashboard() {
   // Calendar
   let events: any[] = []
   if (assocId) {
-    const { data: ev } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
+    const { data: ev } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
     events = ev ?? []
   }
 
