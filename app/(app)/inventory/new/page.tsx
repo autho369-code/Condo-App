@@ -27,6 +27,11 @@ export default async function NewInventoryItemPage({ searchParams }: { searchPar
       return Number.isFinite(n) ? n : null;
     };
 
+    for (const key of ['quantity_on_hand', 'reorder_point', 'unit_cost']) {
+      const v = num(key);
+      if (v != null && v < 0) redirect('/inventory/new?error=' + encodeURIComponent('Quantities and costs cannot be negative.'));
+    }
+
     const { error } = await (supabase as any).from('inventory_items').insert({
       name,
       sku: (formData.get('sku') as string)?.trim() || null,
