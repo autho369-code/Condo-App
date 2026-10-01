@@ -10,8 +10,9 @@ import { date } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Wrench } from 'lucide-react';
-import type { CalendarEventType } from '@/lib/operations/calendar';
 import { nextRecurringDate } from '@/lib/time/recurrence';
+import { wallDateTimeToIso } from '@/lib/time/zoned';
+import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,41 +21,9 @@ const CATS = ['Safety','Plumbing','Exterior','Interior','Grounds','HVAC','Mechan
 const FREQS = ['weekly','monthly','bimonthly','quarterly','semiannual','annual','custom'];
 const REMINDERS = [30,14,10,7,5,3,1];
 
-// Map maintenance categories to calendar event types
-const CATEGORY_EVENT_TYPE: Record<string, CalendarEventType> = {
-  Safety: 'inspection', Plumbing: 'vendor_service', Exterior: 'landscaping',
-  Interior: 'vendor_service', Grounds: 'landscaping', HVAC: 'vendor_service',
-  Mechanical: 'vendor_service', Electrical: 'vendor_service',
-  Operations: 'custom_event', Other: 'custom_event',
-};
-
 // Server actions must fail loudly: redirect back with ?error= (CLAUDE.md rule 3).
 function maintenanceFail(message: string, tab = 'tasks'): never {
   redirect(`/maintenance?tab=${tab}&error=${encodeURIComponent(message)}`);
-}
-
-async function syncCalendarEvent(
-  db: any, portfolioId: string, taskId: string, assocId: string | null, vendorId: string | null,
-  title: string, category: string, dueDate: string, endDate: string | null,
-  notes: string | null, createdBy: string | null
-) {
-  const eventType = CATEGORY_EVENT_TYPE[category] || 'custom_event';
-  const start = dueDate ? `${dueDate}T09:00:00` : new Date().toISOString();
-  const end = endDate ? `${endDate}T17:00:00` : null;
-  const { error } = await db.from('calendar_events').insert({
-    portfolio_id: portfolioId,
-    association_id: assocId, vendor_id: vendorId,
-    maintenance_task_id: taskId,
-    title: `🔧 ${title}`, event_type: eventType,
-    calendar_scope: 'daily',
-    start_datetime: start, end_datetime: end,
-    location: null, description: notes?.slice(0,200) || null,
-    operations_status: 'scheduled',
-    notification_recipients: ['management_office'],
-    reminder_rules: [{ minutes_before: 10080, actions: ['notify_management_office'] }],
-    created_by: createdBy,
-  });
-  if (error) maintenanceFail(`The task was saved, but its calendar event could not be created: ${error.message}`);
 }
 
 async function addTask(formData: FormData) {'use server';
@@ -75,7 +44,7 @@ async function addTask(formData: FormData) {'use server';
   if (taskError || !task) maintenanceFail(`Task not added: ${taskError?.message ?? 'unknown error'}`);
 
   if (task && me.portfolio?.id) {
-    await syncCalendarEvent(
+    await syncMaintenanceCalendarEvent(
       db, me.portfolio.id, task.id,
       formData.get('association_id') as string,
       formData.get('vendor_id') as string|null,
@@ -107,14 +76,18 @@ async function updateTask(formData: FormData) {'use server';
     notes: (formData.get('notes') as string)||null,
   }).eq('id', id);
   if (updateError) maintenanceFail(`Task not updated: ${updateError.message}`);
-  // Update linked calendar event
-  const eventType = CATEGORY_EVENT_TYPE[formData.get('category') as string] || 'custom_event';
-  const start = formData.get('start_date') as string;
+  // Update the linked upcoming event. It belongs on the task's NEXT due date
+  // (the start date would move an advanced recurrence back to its first one).
+  const eventType = MAINTENANCE_CATEGORY_EVENT_TYPE[formData.get('category') as string] || 'custom_event';
+  const { data: saved } = await db.from('maintenance_tasks').select('association_id, next_due_date, start_date').eq('id', id).maybeSingle();
+  const zone = await associationZone(db, saved?.association_id ?? null);
+  const due = String(saved?.next_due_date ?? saved?.start_date ?? '').slice(0, 10);
+  const endDate = (formData.get('end_date') as string) || '';
   const { error: eventError } = await db.from('calendar_events').update({
     title: `🔧 ${formData.get('task_name')}`,
     event_type: eventType,
-    start_datetime: start ? `${start}T09:00:00` : undefined,
-    end_datetime: formData.get('end_date') ? `${formData.get('end_date')}T17:00:00` : null,
+    start_datetime: due ? (wallDateTimeToIso(`${due}T09:00`, zone) ?? undefined) : undefined,
+    end_datetime: endDate ? wallDateTimeToIso(`${endDate}T17:00`, zone) : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
     description: (formData.get('notes') as string)?.slice(0,200)||null,
   }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
@@ -180,7 +153,7 @@ async function completeTask(formData: FormData) {'use server';
 
     // Create calendar event for the next occurrence
     if (me.portfolio?.id) {
-      await syncCalendarEvent(
+      await syncMaintenanceCalendarEvent(
         db, me.portfolio.id, id, task.association_id, task.vendor_id,
         task.task_name, task.category, nd, task.end_date,
         task.notes, me.auth_user_id
@@ -219,7 +192,7 @@ async function cloneGroup(formData: FormData) {'use server';
     // Create calendar events for each cloned task
     if (created && me.portfolio?.id) {
       for (const t of created) {
-        await syncCalendarEvent(
+        await syncMaintenanceCalendarEvent(
           db, me.portfolio.id, t.id, assocId, null,
           t.task_name, t.category, today, null,
           t.notes, me.auth_user_id

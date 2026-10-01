@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Section } from '@/components/workspace/shell';
+import { syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ const REMINDER_OPTIONS = [30, 14, 10, 7, 5, 3, 1];
 
 async function createTask(formData: FormData) {
   'use server';
-  await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
+  const me = await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -31,7 +32,7 @@ async function createTask(formData: FormData) {
   const reminders = formData.getAll('reminder_days').map(Number).filter(n => n > 0);
   const startDate = formData.get('start_date') as string;
 
-  const { error } = await db.from('maintenance_tasks').insert({
+  const { data: task, error } = await db.from('maintenance_tasks').insert({
     association_id: formData.get('association_id') as string,
     task_name: formData.get('task_name') as string,
     category: formData.get('category') as string,
@@ -45,11 +46,27 @@ async function createTask(formData: FormData) {
     end_date: (formData.get('end_date') as string) || null,
     next_due_date: startDate,
     notes: (formData.get('notes') as string) || null,
-  });
+  }).select('id').single();
 
   // Redirect back with the message — a plain form action ignores return
   // values, so returning { error } silently swallowed failures.
-  if (error) redirect('/maintenance/new?error=' + encodeURIComponent(error.message));
+  if (error || !task) redirect('/maintenance/new?error=' + encodeURIComponent(error?.message ?? 'The task could not be saved.'));
+
+  // Put the first occurrence on the association calendar (as the quick-add
+  // form on /maintenance does) so staff and the vendor see it.
+  if (me.portfolio?.id) {
+    await syncMaintenanceCalendarEvent(
+      db, me.portfolio.id, task.id,
+      formData.get('association_id') as string,
+      (formData.get('vendor_id') as string) || null,
+      formData.get('task_name') as string,
+      formData.get('category') as string,
+      startDate,
+      (formData.get('end_date') as string) || null,
+      (formData.get('notes') as string) || null,
+      me.auth_user_id,
+    );
+  }
   revalidatePath('/maintenance');
   redirect('/maintenance');
 }
