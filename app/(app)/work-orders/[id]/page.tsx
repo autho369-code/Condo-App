@@ -74,6 +74,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     { data: messages },
     { data: ratings },
     { data: authData },
+    { data: privateRow },
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
@@ -88,8 +89,11 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     (supabase as any).from('work_order_messages').select('id, author_name, author_role, body, created_at').eq('work_order_id', id).order('created_at', { ascending: true }),
     (supabase as any).from('work_order_ratings').select('rated_by, rater_role, score, quality, timeliness, communication, would_hire_again, comment, created_at').eq('work_order_id', id).order('created_at', { ascending: false }),
     supabase.auth.getUser(),
+    // Staff-only fields (not on the work order row, which vendors/residents can read).
+    (supabase as any).from('work_order_private').select('internal_notes').eq('work_order_id', id).maybeSingle(),
   ]);
   if (!wo) notFound();
+  wo.internal_notes = privateRow?.internal_notes ?? null;
   const [attachments, { data: chargebacks }, { data: chargeCategories }, { data: staffRows }] = await Promise.all([
     loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id }),
     wo.unit_id
@@ -465,7 +469,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
         </ul>
 
         <form action={addNote.bind(null, id) as any} className="flex gap-2 border-t border-gray-100 px-5 py-4">
-          <Input name="note" placeholder="Add a note…" required className="flex-1" />
+          <Input name="note" placeholder="Add an internal note (not shown to the vendor)…" required className="flex-1" />
           <Button type="submit">Post</Button>
         </form>
       </Section>

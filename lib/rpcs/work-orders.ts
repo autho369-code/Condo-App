@@ -72,7 +72,6 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     requested_by:           str('requested_by'),
     vendor_instructions:    str('vendor_instructions'),
     owner_availability: str('owner_availability'),
-    internal_notes:         str('internal_notes'),
     next_followup_date:     str('next_followup_date'),
   };
   // Only write fields this form actually submitted: the edit form has no
@@ -89,6 +88,16 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     .select('id')
     .maybeSingle();
   if (error || !updated) { failTo(error?.message ?? 'Work order not found or not accessible.'); return; }
+
+  // Internal notes live in the staff-only work_order_private table.
+  if (formData.has('internal_notes')) {
+    const { error: notesError } = await (supabase as any).from('work_order_private').upsert({
+      work_order_id: workOrderId,
+      internal_notes: str('internal_notes'),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'work_order_id' });
+    if (notesError) { failTo(`Details saved, but the internal notes could not be saved: ${notesError.message}`); return; }
+  }
 
   const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
@@ -259,9 +268,11 @@ export async function addNote(workOrderId: string, formData: FormData) {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(workOrderError?.message ?? 'Work order not found or not accessible.')}`);
     return;
   }
+  // Staff notes are internal: vendors only see status activity and messages.
   const { error } = await (supabase as any).from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: formData.get('note') as string,
+    staff_only: true,
   });
   if (error) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error.message)}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
