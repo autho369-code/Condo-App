@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ export default async function ServiceRequestsList({
 }: {
   searchParams: Promise<{ submitted?: string; error?: string; cancelled?: string }>;
 }) {
-  const me = await requireAuth();
+  const me = await requireOwner();
   const { submitted, error, cancelled } = await searchParams;
   const supabase = await createClient();
 

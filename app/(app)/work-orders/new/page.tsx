@@ -33,11 +33,19 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     const title = (formData.get('title') as string)?.trim();
     if (!associationId) redirect('/work-orders/new?error=' + encodeURIComponent('Select an association.'));
     if (!title) redirect('/work-orders/new?error=' + encodeURIComponent('Enter a title for the work order.'));
+    const unitId = (formData.get('unit_id') as string) || null;
+    if (unitId) {
+      // The unit picker lists every unit; make sure it is in the chosen association.
+      const { data: unit } = await (supabase as any).from('units').select('id, buildings!inner(association_id)').eq('id', unitId).maybeSingle();
+      if (!unit || unit.buildings?.association_id !== associationId) {
+        redirect(`/work-orders/new?association=${associationId}&error=` + encodeURIComponent('That unit is not in the selected association.'));
+      }
+    }
 
     const { data: wo, error } = await (supabase as any).from('work_orders').insert({
       portfolio_id: me.portfolio?.id,
       association_id: associationId,
-      unit_id: (formData.get('unit_id') as string) || null,
+      unit_id: unitId,
       title,
       description: (formData.get('description') as string)?.trim() || null,
       category: (formData.get('category') as string) || 'other',

@@ -326,7 +326,7 @@ export default async function SettingsPage({
             <THead><tr><TH>Email</TH><TH>Name</TH><TH>HOA role</TH><TH>Last login</TH><TH className="w-64">Actions</TH></tr></THead>
             <tbody>
               {(team ?? []).map((m: any) => (
-                <TR key={m.id}>
+                <TR key={m.id} id={`staff-${m.id}`} className="scroll-mt-24 target:bg-blue-50/60">
                   <TD className="font-medium">{m.email}</TD>
                   <TD>{m.full_name ?? '—'}</TD>
                   <TD className="uppercase">{m.hoa_role}</TD>

@@ -38,9 +38,11 @@ export async function updateChargeCategory(id: string, formData: FormData) {
     redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
   };
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('charge_categories').update({
+  const db = supabase as any;
+  const { data: current } = await db.from('charge_categories').select('id, is_system').eq('id', id).maybeSingle();
+  if (!current) { failTo('Charge category not found.'); return; }
+  const patch: Record<string, unknown> = {
     name:              formData.get('name') as string,
-    code:              (formData.get('code') as string)?.toUpperCase() || null,
     description:       (formData.get('description') as string) || null,
     default_amount:    parseFloat(formData.get('default_amount') as string) || 0,
     default_frequency: (formData.get('default_frequency') as any) || 'monthly',
@@ -49,10 +51,16 @@ export async function updateChargeCategory(id: string, formData: FormData) {
     is_assessment:     formData.get('is_assessment') === 'on',
     is_fee:            formData.get('is_fee') === 'on',
     active:            formData.get('active') === 'on',
-  }).eq('id', id);
+  };
+  // System codes (DUES, PARKING, OTHER, …) are looked up by code elsewhere;
+  // the field is not editable for them, so never overwrite it.
+  if (!current.is_system) patch.code = (formData.get('code') as string)?.trim().toUpperCase() || null;
+  const { data: updated, error } = await db.from('charge_categories').update(patch).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
+  if (!updated || updated.length === 0) { failTo('You need finance access to change charge categories.'); return; }
   revalidatePath('/charge-categories');
   revalidatePath(`/charge-categories/${id}`);
+  redirect(`/charge-categories/${id}?saved=1`);
 }
 
 export async function archiveChargeCategory(id: string) {
@@ -61,9 +69,14 @@ export async function archiveChargeCategory(id: string) {
     redirect(`/charge-categories/${id}?error=${encodeURIComponent(msg)}`);
   };
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('charge_categories')
-    .update({ archived_at: new Date().toISOString(), active: false }).eq('id', id);
+  const db = supabase as any;
+  const { data: current } = await db.from('charge_categories').select('id, is_system').eq('id', id).maybeSingle();
+  if (!current) { failTo('Charge category not found.'); return; }
+  if (current.is_system) { failTo('Built-in categories cannot be archived; mark them inactive instead.'); return; }
+  const { data: updated, error } = await db.from('charge_categories')
+    .update({ archived_at: new Date().toISOString(), active: false }).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
+  if (!updated || updated.length === 0) { failTo('You need finance access to archive charge categories.'); return; }
   revalidatePath('/charge-categories');
   redirect('/charge-categories');
 }

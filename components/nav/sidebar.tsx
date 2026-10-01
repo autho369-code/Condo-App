@@ -37,7 +37,9 @@ function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
   )
 }
 
-export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail, modules = appModules, subtitle = 'Operations workspace' }: {
+export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail, modules = appModules, subtitle = 'Operations workspace', showRecordSearch = false }: {
+  /** Only the staff workspace mounts the Ctrl+K record search palette. */
+  showRecordSearch?: boolean;
   portfolioName?: string;
   logoUrl?: string | null;
   brandColor?: string;
@@ -142,14 +144,14 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
             aria-controls="workspace-navigation"
           />
         </div>
-        <button
+        {showRecordSearch && <button
           type="button"
           onClick={openCommandPalette}
           className="mt-1.5 flex h-8 w-full items-center justify-between rounded-md px-2.5 text-[12px] text-[#8a8a93] transition-colors hover:bg-white/[0.04] hover:text-[#e4e4e7]"
         >
           <span>Search records</span>
           <kbd className="rounded border border-white/[0.08] px-1 font-sans text-[10px] text-[#52525b]">Ctrl K</kbd>
-        </button>
+        </button>}
       </div>
 
       <div className="sr-only" aria-live="polite">

@@ -35,8 +35,11 @@ export function sanitizeSearchTerm(raw: string | null | undefined): string {
 }
 
 const PER_TYPE = 5;
+// Result pages guarded by requireStaff (managers only); a company admin who
+// is not also a manager would be bounced to their own home page.
+const STAFF_ONLY_TYPES = new Set<SearchResult['type']>(['unit', 'architectural_review']);
 
-export async function searchEverything(db: any, rawQuery: string, options: { finance: boolean }): Promise<SearchResult[]> {
+export async function searchEverything(db: any, rawQuery: string, options: { finance: boolean; staff?: boolean }): Promise<SearchResult[]> {
   const q = sanitizeSearchTerm(rawQuery);
   if (q.length < 2) return [];
   const like = `%${q}%`;
@@ -78,5 +81,5 @@ export async function searchEverything(db: any, rawQuery: string, options: { fin
     ...bills.map((b): SearchResult => ({ id: b.id, type: 'bill', title: `Bill ${b.bill_number ?? b.id.slice(0, 8)}`, subtitle: join(b.vendors?.name, b.memo), href: `/bills/${b.id}` })),
     ...reviews.map((r): SearchResult => ({ id: r.id, type: 'architectural_review', title: r.title, subtitle: join(r.associations?.name, status(r.status)), href: `/architectural-reviews/${r.id}` })),
     ...meetings.map((m): SearchResult => ({ id: m.id, type: 'meeting', title: m.title, subtitle: join(m.associations?.name, status(m.status)), href: `/meetings/${m.id}` })),
-  ];
+  ].filter((r) => options.staff !== false || !STAFF_ONLY_TYPES.has(r.type));
 }

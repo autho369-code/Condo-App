@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ export default async function NewServiceRequest({
   searchParams: Promise<{ error?: string }>;
 }) {
   const sp = await searchParams;
-  const me = await requireAuth();
+  const me = await requireOwner();
 
   // Only owners (and board members, who are also owners) submit requests
   if (!me.is_resident && !me.is_board) {

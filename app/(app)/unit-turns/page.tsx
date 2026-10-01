@@ -31,7 +31,6 @@ function mapWorkOrderStatusToTurn(woStatus: string | null): TurnStatus {
     case 'billed':
     case 'closed':
       return 'complete';
-    case 'cancelled':
     default:
       return 'pending';
   }
@@ -71,6 +70,8 @@ export default async function UnitTurnsPage({
       .select('id, title, number, status, scheduled_date, unit_id, association_id, vendor_id, created_at, units(unit_number), associations(name), vendors(name)')
       .is('archived_at', null)
       .not('unit_id', 'is', null)
+      // A cancelled job is not a turn in progress (it counted as Pending).
+      .neq('status', 'cancelled')
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(500),
@@ -209,7 +210,7 @@ export default async function UnitTurnsPage({
                           Work order
                         </Link>
                         <Link
-                          href={`/unit-turns/new?unit_id=${row.unit_id}`}
+                          href={`/work-orders/new?unit=${row.unit_id}${row.association_id ? `&association=${row.association_id}` : ''}`}
                           className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
                         >
                           New turn

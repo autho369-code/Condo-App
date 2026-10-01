@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { NewArchitecturalRequestForm, type UnitOption } from '@/components/architectural/new-request-form';
@@ -15,7 +15,7 @@ type UnitRow = {
 };
 
 export default async function NewArchitecturalRequest() {
-  const me = await requireAuth();
+  const me = await requireOwner();
   if (!me.is_resident && !me.is_board) redirect('/portal');
 
   const supabase = await createClient();

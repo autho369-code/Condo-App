@@ -43,7 +43,10 @@ export default async function ChargesPage({
   searchParams: Promise<{ tab?: string; q?: string; filter?: string; association_id?: string; owner?: string }>;
 }) {
   const me = await requireStaff();
-  const { tab: tabParam, q = '', filter = '', owner = '' } = await searchParams;
+  const { tab: tabParam, q = '', filter = '', owner: ownerParam = '' } = await searchParams;
+  // `owner` comes from the URL and is interpolated into an or() filter, so
+  // accept only a UUID.
+  const owner = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ownerParam) ? ownerParam : '';
   const tab = parseTab(tabParam);
   const supabase = await createClient();
   const db = supabase as any;

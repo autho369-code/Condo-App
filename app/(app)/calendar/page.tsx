@@ -23,6 +23,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   let query = db.from('calendar_events')
     .select('id, title, event_type, start_datetime, end_datetime, all_day, location, operations_status, association_id, public_notice_text, associations(id, name)')
+    .is('archived_at', null)
     .gte('start_datetime', past.toISOString()).lte('start_datetime', future.toISOString()).order('start_datetime', { ascending: true }).limit(500);
   if (sp.assoc) query = query.eq('association_id', sp.assoc);
   if (sp.type) query = query.eq('event_type', sp.type);

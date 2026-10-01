@@ -51,10 +51,25 @@ export async function assignParkingSpace(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: space } = await db.from('parking_spaces').select('id, label, monthly_fee, deposit_amount').eq('id', spaceId).maybeSingle();
+  const { data: space } = await db.from('parking_spaces').select('id, label, monthly_fee, deposit_amount, association_id').eq('id', spaceId).maybeSingle();
   if (!space) fail('Space not found.');
 
   const unitId = s(formData, 'unit_id');
+  const tenantId = s(formData, 'tenant_id');
+  // The unit (and tenant) must belong to the space's association — the
+  // assignment can auto-bill the unit, so never trust these form ids.
+  if (unitId) {
+    const { data: unit } = await db.from('units').select('id, buildings!inner(association_id)').eq('id', unitId).maybeSingle();
+    if (!unit || (space.association_id && unit.buildings?.association_id !== space.association_id)) {
+      fail('That unit is not in the same association as this parking space.');
+    }
+  }
+  if (tenantId) {
+    const { data: tenant } = await db.from('tenants').select('id, association_id, unit_id').eq('id', tenantId).maybeSingle();
+    if (!tenant || (space.association_id && tenant.association_id && tenant.association_id !== space.association_id)) {
+      fail('That tenant is not in the same association as this parking space.');
+    }
+  }
   const startDate = s(formData, 'start_date') ?? new Date().toISOString().slice(0, 10);
   const monthlyFee = num(formData, 'monthly_fee') ?? Number(space.monthly_fee ?? 0);
   const billToUnit = formData.get('bill_to_unit') === 'on';
@@ -63,7 +78,7 @@ export async function assignParkingSpace(formData: FormData) {
     portfolio_id: me.portfolio?.id,
     parking_space_id: spaceId,
     unit_id: unitId,
-    tenant_id: s(formData, 'tenant_id'),
+    tenant_id: tenantId,
     occupant_name: s(formData, 'occupant_name'),
     start_date: startDate,
     monthly_fee: monthlyFee,
@@ -105,7 +120,11 @@ export async function assignParkingSpace(formData: FormData) {
         p_identifier: space.label,
       });
       if (feeErr) warning = `Space assigned, but the monthly charge could not be added: ${feeErr.message}`;
-      else if (charge?.id) await db.from('parking_assignments').update({ recurring_charge_id: charge.id }).eq('id', assignment.id);
+      else if (charge?.id) {
+        // Without this link, releasing the space can't find the charge to stop it.
+        const { error: linkErr } = await db.from('parking_assignments').update({ recurring_charge_id: charge.id }).eq('id', assignment.id);
+        if (linkErr) warning = `Space assigned and billed, but the charge could not be linked to the assignment (${linkErr.message}). Stop the parking charge on the unit by hand when the space is released.`;
+      }
     }
   }
 
@@ -124,31 +143,37 @@ export async function releaseParkingSpace(formData: FormData) {
 
   const { data: assignment } = await db.from('parking_assignments').select('recurring_charge_id').eq('id', assignmentId).maybeSingle();
 
-  const { error } = await db.from('parking_assignments').update({
+  const { data: ended, error } = await db.from('parking_assignments').update({
     status: 'ended',
     end_date: today,
     deposit_returned: depositReturned,
     deposit_returned_at: depositReturned ? today : null,
     updated_at: new Date().toISOString(),
-  }).eq('id', assignmentId);
+  }).eq('id', assignmentId).select('id');
   if (error) fail(`Could not release space: ${error.message}`);
+  if (!ended || ended.length === 0) fail('Assignment not found or you do not have access to it.');
 
   // Stop the unit's monthly parking charge that this assignment created.
+  let warning: string | null = null;
   if (assignment?.recurring_charge_id) {
-    await db.from('unit_recurring_charges')
+    const { data: stopped, error: stopErr } = await db.from('unit_recurring_charges')
       .update({ active: false, end_date: today })
-      .eq('id', assignment.recurring_charge_id);
+      .eq('id', assignment.recurring_charge_id)
+      .select('id');
+    if (stopErr || !stopped || stopped.length === 0) {
+      warning = `Space released, but the unit's monthly parking charge could not be stopped${stopErr ? ` (${stopErr.message})` : ''}. End it under the unit's recurring charges so the owner is not billed again.`;
+    }
   }
 
   revalidatePath('/parking');
-  redirect('/parking?released=1');
+  redirect(`/parking?released=1${warning ? `&warning=${encodeURIComponent(warning)}` : ''}`);
 }
 
 export async function updateVehicle(formData: FormData) {
   await requireStaff();
   const assignmentId = formData.get('assignment_id') as string;
   const supabase = await createClient();
-  const { error } = await (supabase as any).from('parking_assignments').update({
+  const { data: updatedRows, error } = await (supabase as any).from('parking_assignments').update({
     vehicle_make: s(formData, 'vehicle_make'),
     vehicle_model: s(formData, 'vehicle_model'),
     vehicle_color: s(formData, 'vehicle_color'),
@@ -157,8 +182,9 @@ export async function updateVehicle(formData: FormData) {
     insurance_policy_number: s(formData, 'insurance_policy_number'),
     deposit_paid: formData.get('deposit_paid') === 'on',
     updated_at: new Date().toISOString(),
-  }).eq('id', assignmentId);
+  }).eq('id', assignmentId).select('id');
   if (error) fail(`Could not update vehicle: ${error.message}`);
+  if (!updatedRows || updatedRows.length === 0) fail('Assignment not found or you do not have access to it.');
   revalidatePath('/parking');
   redirect('/parking?vehicle_updated=1');
 }

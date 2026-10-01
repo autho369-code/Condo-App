@@ -75,6 +75,10 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     internal_notes:         str('internal_notes'),
     next_followup_date:     str('next_followup_date'),
   };
+  // Only write fields this form actually submitted: the edit form has no
+  // `description` input, so writing every key nulled the original description
+  // (and any other field a form leaves out) on each save.
+  for (const k of Object.keys(patch)) if (!formData.has(k)) delete patch[k];
   // Drop null-out of required fields — title can't be null
   if (!patch.title) delete patch.title;
 

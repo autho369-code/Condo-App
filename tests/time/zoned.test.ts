@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { zonedWallTimeToUtc } from '@/lib/time/zoned';
+import { wallDateTimeToIso, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 describe('zonedWallTimeToUtc', () => {
   it('reads wall time in the association time zone (CDT)', () => {
@@ -15,5 +15,22 @@ describe('zonedWallTimeToUtc', () => {
     expect(zonedWallTimeToUtc('2026-13-01', '10:00', 'America/Chicago')).toBeNull();
     expect(zonedWallTimeToUtc('', '10:00', 'America/Chicago')).toBeNull();
     expect(zonedWallTimeToUtc('2026-10-01', '25:00', 'America/Chicago')).toBeNull();
+  });
+});
+
+describe('wallDateTimeToIso', () => {
+  it('reads datetime-local input in the zone', () => {
+    expect(wallDateTimeToIso('2026-10-05T09:00', 'America/Chicago')).toBe('2026-10-05T14:00:00.000Z');
+  });
+  it('treats a date-only value as local midnight', () => {
+    expect(wallDateTimeToIso('2026-10-05', 'America/Chicago')).toBe('2026-10-05T05:00:00.000Z');
+  });
+  it('keeps values that carry an offset', () => {
+    expect(wallDateTimeToIso('2026-10-05T09:00:00-04:00', 'America/Chicago')).toBe('2026-10-05T13:00:00.000Z');
+    expect(wallDateTimeToIso('2026-10-05T09:00:00Z', 'America/Chicago')).toBe('2026-10-05T09:00:00.000Z');
+  });
+  it('rejects junk', () => {
+    expect(wallDateTimeToIso('tomorrow', 'America/Chicago')).toBeNull();
+    expect(wallDateTimeToIso('', 'America/Chicago')).toBeNull();
   });
 });

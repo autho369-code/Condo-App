@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function EditChargeCategory({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
+export default async function EditChargeCategory({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
   await requireStaff();
   const { id } = await params;
   const sp = await searchParams;
@@ -44,6 +44,9 @@ export default async function EditChargeCategory({ params, searchParams }: { par
       {sp.error && (
         <Alert tone="danger" title="Could not save category" className="mb-6">{sp.error}</Alert>
       )}
+      {sp.saved && (
+        <Alert tone="success" title="Category saved" className="mb-6" />
+      )}
 
       {cat.is_system && (
         <Alert tone="warning" className="mb-6">
@@ -61,7 +64,7 @@ export default async function EditChargeCategory({ params, searchParams }: { par
             <div>
               <Label htmlFor="code">Short code</Label>
               <Input id="code" name="code" defaultValue={cat.code ?? ''} maxLength={20}
-                style={{ textTransform: 'uppercase' }} disabled={cat.is_system} />
+                style={{ textTransform: 'uppercase' }} readOnly={cat.is_system} />
             </div>
             <div>
               <Label htmlFor="default_amount">Default amount</Label>

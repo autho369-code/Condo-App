@@ -342,9 +342,17 @@ function TasksRailInner({ isStaff = false, isFinanceStaff = false, isAdmin = fal
     });
   };
 
+  // Same access rules as the quick links: a company admin sees counts under
+  // RLS, but most of these queues are manager/finance pages they cannot open.
+  const FINANCE_QUEUES = ['/bills', '/accounting/loans', '/purchase-orders'];
+  const visibleAttention = attention.filter((item) => canAccessActionLink(
+    { label: item.label, href: item.href, ...(FINANCE_QUEUES.some((p) => item.href.startsWith(p)) ? { access: 'finance' as const } : {}) },
+    { isStaff, isFinanceStaff, isAdmin },
+  ));
+
   const body = (idPrefix: string, searchRef: React.RefObject<HTMLInputElement | null>) => (
     <>
-      <AttentionList items={attention} idPrefix={idPrefix} onNavigate={() => setSheetOpen(false)} />
+      <AttentionList items={visibleAttention} idPrefix={idPrefix} onNavigate={() => setSheetOpen(false)} />
       <div className="border-b border-gray-100 px-3 pb-3 pt-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />

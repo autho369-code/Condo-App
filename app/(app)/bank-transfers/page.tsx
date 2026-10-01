@@ -1,3 +1,4 @@
+import { sanitizeSearchTerm } from '@/lib/search/global';
 import Link from 'next/link';
 import { ArrowLeftRight, Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -60,8 +61,10 @@ export default async function BankTransfersPage({
   }
   // 'activity' tab shows all transfers — no additional filter
 
-  if (q) {
-    query = query.or(`reference_number.ilike.%${q}%,memo.ilike.%${q}%`);
+  // Strip or()-filter syntax (commas, parentheses) from the search text.
+  const safeQ = sanitizeSearchTerm(q);
+  if (safeQ) {
+    query = query.or(`reference_number.ilike.%${safeQ}%,memo.ilike.%${safeQ}%`);
   }
 
   const { data: rows } = await query;

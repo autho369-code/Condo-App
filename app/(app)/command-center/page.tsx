@@ -63,7 +63,9 @@ export default async function FinancialCommandCenterPage() {
 
   const dayOfMonth = new Date().getDate()
   const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10)
-  const lastMonthSameDay = new Date(new Date().getFullYear(), new Date().getMonth() - 1, dayOfMonth).toISOString().slice(0, 10)
+  // Clamp to the previous month's last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
+  const lastDayPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate()
+  const lastMonthSameDay = new Date(new Date().getFullYear(), new Date().getMonth() - 1, Math.min(dayOfMonth, lastDayPrevMonth)).toISOString().slice(0, 10)
 
   const [
     { data: paymentsToday },

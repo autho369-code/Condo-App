@@ -203,7 +203,9 @@ export async function bulkViolationAction(formData: FormData) {
   const me = await requireStaff();
   const action = str(formData, 'bulk_action');
   const ids = formData.getAll('violation_ids').map(String).filter(Boolean).slice(0, 100);
-  const back = str(formData, 'back') || '/violations';
+  // Only ever return to the violations queue (an unchecked `back` was an open redirect).
+  const backRaw = str(formData, 'back');
+  const back = backRaw && /^\/violations(\/[0-9a-z-]+)*(\?[a-z_=&0-9%.-]*)?$/i.test(backRaw) ? backRaw : '/violations';
   if (ids.length === 0) go(back, 'error', 'Select at least one violation.');
   if (!['advance', 'cured'].includes(action)) go(back, 'error', 'Choose a bulk action.');
 

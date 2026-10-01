@@ -27,9 +27,11 @@ describe('Action Center', () => {
     expect(links).toContain('/recurring-work-orders/new');
     expect(links).toContain('/inspections/new');
     expect(links).toContain('/projects/new');
-    expect(links).toContain('/purchase-orders/new');
     expect(links).toContain('/inventory/new');
     expect(links).toContain('/fixed-assets/new');
+    // /purchase-orders/new requires finance staff; a plain manager would bounce.
+    expect(links).not.toContain('/purchase-orders/new');
+    expect(hrefs('/purchase-orders', financeAdmin)).toContain('/purchase-orders/new');
   });
 
   it('keeps finance and administrator actions out of a regular manager panel', () => {

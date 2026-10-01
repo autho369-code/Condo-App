@@ -150,7 +150,7 @@ export async function runScheduleNow(formData: FormData) {
 }
 
 export async function createSchedule(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
+  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const failTo = (msg: string) => {
     redirect(`/scheduled-reports?error=${encodeURIComponent(msg)}`);
@@ -177,13 +177,9 @@ export async function createSchedule(formData: FormData) {
   const nextRun = new Date(now);
   nextRun.setHours(nextRun.getHours() + 1, 0, 0, 0);
 
-  const { data: portfolioData } = await (supabase as any)
-    .from('portfolios')
-    .select('id')
-    .limit(1)
-    .single();
-
-  const portfolio_id = portfolioData?.id;
+  // The caller's own company (an arbitrary first portfolio was picked before,
+  // which for a platform operator could be any tenant).
+  const portfolio_id = me.portfolio?.id;
   if (!portfolio_id) { failTo('No portfolio found'); return; }
 
   const { error } = await (supabase as any)

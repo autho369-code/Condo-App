@@ -88,9 +88,14 @@ export async function sendEmail(formData: FormData) {
     return true;
   });
 
-  // Add Additional Recipients (comma/semicolon-separated emails)
-  if (additional) {
-    additional.split(/[,;]/).map((s) => s.trim()).filter(Boolean).forEach((em) => {
+  // Add Additional Recipients and Cc (comma/semicolon-separated emails). Cc
+  // used to be pasted into the body as text, so nobody on it got the email.
+  const extra = [additional, cc].filter(Boolean).join(',');
+  if (extra) {
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const bad = extra.split(/[,;]/).map((s) => s.trim()).filter((em) => em && !emailRe.test(em));
+    if (bad.length > 0) { failTo(`Not a valid email address: ${bad.join(', ')}`); return; }
+    extra.split(/[,;]/).map((s) => s.trim()).filter(Boolean).forEach((em) => {
       if (!seen.has(em.toLowerCase())) {
         unique.push({ email: em, name: '', source: 'additional' });
         seen.add(em.toLowerCase());
@@ -103,7 +108,7 @@ export async function sendEmail(formData: FormData) {
     return;
   }
 
-  const fullBody = cc ? body + `\n\n---\nCc: ${cc}` : body;
+  const fullBody = body;
   const fromName = me.portfolio?.company_name ?? 'Portier369';
 
   // Publish the resident announcement FIRST: if it fails nothing else has been
@@ -141,8 +146,14 @@ export async function sendEmail(formData: FormData) {
     created_by:      me.auth_user_id,
   }));
 
-  const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
+  const { data: insertedMessages, error: communicationError } = await db.from('communication_messages').insert(communicationRows).select('id, recipient_email');
   if (communicationError) { failTo(communicationError.message); return; }
+  const count = (insertedMessages ?? []).length;
+  // Each email_queue row must carry its communication_message_id: delivery
+  // updates the message status through it (otherwise "Queued" forever).
+  const messageIdByEmail = new Map<string, string>(
+    (insertedMessages ?? []).map((m: { id: string; recipient_email: string }) => [String(m.recipient_email).toLowerCase(), m.id]),
+  );
 
   // 2) Association notices ledger (legacy/reporting).
   const rows = unique.map((r) => ({
@@ -167,6 +178,7 @@ export async function sendEmail(formData: FormData) {
     html,
     portfolioId: me.portfolio?.id,
     associationId,
+    communicationMessageId: messageIdByEmail.get(r.email.toLowerCase()) ?? null,
     fromAddress: fromOverride ? 'noreply@portier369.com' : 'hello@portier369.com',
     fromName,
     sentBy: me.auth_user_id,

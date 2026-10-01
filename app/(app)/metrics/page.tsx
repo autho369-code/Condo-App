@@ -119,7 +119,7 @@ export default async function MetricsPage() {
   ] = await Promise.all([
     db.from('v_portfolio_health').select('*').eq('portfolio_id', portfolioId).maybeSingle(),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portfolio_id', portfolioId),
-    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("completed","closed","cancelled")'),
+    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")'),
     db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'),
     db.from('unit_balances').select('balance').gt('balance', 0),
     db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved'),

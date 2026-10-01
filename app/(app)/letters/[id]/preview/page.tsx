@@ -131,7 +131,9 @@ export default function PreviewLetterPage() {
       vals['vendor_name'] = vendor.name || '';
       vals['vendor_address'] = [vendor.address_street, vendor.address_city, vendor.address_state, vendor.address_zip].filter(Boolean).join(', ');
       vals['vendor_email'] = vendor.emails?.[0] || '';
-      vals['vendor_phone'] = vendor.phone_numbers?.[0] || '';
+      // phone_numbers is jsonb [{ type, number }] (a bare string on old rows).
+      const firstPhone = vendor.phone_numbers?.[0];
+      vals['vendor_phone'] = (typeof firstPhone === 'string' ? firstPhone : firstPhone?.number) || '';
     }
 
     return vals;

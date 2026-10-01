@@ -14,7 +14,7 @@ export default async function BulkStatementSettingsPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requirePortfolioAdmin();
+  const me = await requirePortfolioAdmin();
   const sp = await searchParams;
   const supabase = await createClient();
 
@@ -22,6 +22,7 @@ export default async function BulkStatementSettingsPage({
   const { data: assocs } = await (supabase as any)
     .from('associations')
     .select('id, name, address, city, state, use_enhanced_statement')
+    .eq('portfolio_id', me.portfolio?.id)
     .is('archived_at', null)
     .order('name');
 

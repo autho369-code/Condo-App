@@ -84,7 +84,6 @@ export default async function Print1099Page({
 
   // Fetch all paid bills for the tax year with vendor 1099 info
   const yearStart = `${taxYear}-01-01`;
-  const yearEnd = `${taxYear}-12-31`;
 
   let query = (supabase as any)
     .from('payable_bills')
@@ -99,7 +98,9 @@ export default async function Print1099Page({
     `)
     .eq('status', 'paid')
     .gte('paid_at', yearStart)
-    .lte('paid_at', yearEnd);
+    // paid_at is a timestamp: <= 'YYYY-12-31' stops at midnight and dropped
+    // December 31 payments (the list page already uses this bound).
+    .lt('paid_at', `${taxYear + 1}-01-01`);
 
   if (vendorFilter) {
     query = query.eq('vendor_id', vendorFilter);

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ export default async function PayPage({
   searchParams: Promise<{ error?: string; canceled?: string }>;
 }) {
   const sp = await searchParams;
-  const me = await requireAuth();
+  const me = await requireOwner();
   const supabase = await createClient();
   const onlinePayments = isStripeConfigured();
 
