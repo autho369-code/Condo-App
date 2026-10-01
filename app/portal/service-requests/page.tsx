@@ -12,6 +12,7 @@ import { date } from '@/lib/utils';
 import { currentWorkOrder } from '@/lib/maintenance/intake';
 import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
+import { ownerTenureCutoffs, withinTenure } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,13 @@ export default async function ServiceRequestsList({
     .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
     .is('archived_at', null)
     .order('created_at', { ascending: false });
-  const rows = (unitRows ?? []) as any[];
+  // A buyer must not see the previous owner's requests: keep rows naming this
+  // owner, or (when no owner is recorded) created on/after this owner's move-in.
+  const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const rows = ((unitRows ?? []) as any[]).filter((r) =>
+    r.homeowner_id || r.owner_id
+      ? Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id)
+      : withinTenure(tenure, r.unit_id, r.created_at));
   const files = await loadRequestAttachmentsByRequest((rows ?? []).map((r: any) => r.id));
   const isMine = (r: any) => Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id);
   const justSubmitted = submitted ? (rows ?? []).find((r: any) => r.id === submitted && isMine(r)) : null;

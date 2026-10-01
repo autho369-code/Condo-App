@@ -7,7 +7,7 @@ import { Shield, FileText } from 'lucide-react'
 import { AddInsurancePolicyForm } from '@/components/insurance/add-policy-form'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { todayInZone } from '@/lib/time/zoned'
-import { associationZone } from '../_lib/zone'
+import { associationZone } from '../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 

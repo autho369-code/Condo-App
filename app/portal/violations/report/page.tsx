@@ -6,7 +6,7 @@ import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { revalidatePath } from 'next/cache'
 import { SUBMISSION_FIELD, newSubmissionToken, claimSubmission, releaseSubmission } from '@/lib/forms/submission'
 import { todayInZone } from '@/lib/time/zoned'
-import { associationZone } from '../../_lib/zone'
+import { associationZone } from '../../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
