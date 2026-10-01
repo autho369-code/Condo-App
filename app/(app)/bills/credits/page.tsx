@@ -24,12 +24,21 @@ export default async function VendorCreditsPage({
   const today = new Date().toISOString().slice(0, 10);
 
   const cols = 'id, credit_date, amount, applied_amount, reference, memo, vendor_id, association_id, vendors(name), associations(name), gl_accounts(number, name)';
+  // The Data API returns at most 1,000 rows per request, so page through every active vendor.
+  const pageAll = async (query: () => any) => {
+    const all: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data } = await query().range(from, from + 999);
+      all.push(...(data ?? []));
+      if (!data || data.length < 1000) return { data: all };
+    }
+  };
   const [{ data: openCredits }, { data: history }, { data: associations }, { data: vendors }, { data: gls }] = await Promise.all([
     // Every credit with a balance left, so recent history can never crowd one out.
-    db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }),
+    pageAll(() => db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }).order('id')),
     db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name').limit(1000),
+    pageAll(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
     db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
   ]);
   const open = (openCredits ?? []) as any[];

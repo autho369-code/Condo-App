@@ -89,7 +89,7 @@ export default async function Print1099Page({
   let query = (supabase as any)
     .from('payable_bills')
     .select(`
-      id, amount, paid_at, bill_date, status, association_id,
+      id, amount, credit_applied, paid_at, bill_date, status, association_id,
       association:association_id(id, name, legal_name, address, city, state, zip, tax_id),
       vendor:vendor_id(
         id, name, vendor_type, send_1099,
@@ -136,7 +136,8 @@ export default async function Print1099Page({
       });
     }
     const entry = vendorMap.get(vid)!;
-    entry.total_paid += bill.amount ?? 0;
+    // Cash actually paid: vendor credits applied to the bill are not payments.
+    entry.total_paid += Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0);
     entry.bill_count += 1;
   }
 
