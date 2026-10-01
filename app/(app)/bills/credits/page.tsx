@@ -124,6 +124,8 @@ export default async function VendorCreditsPage({
                     <TD>
                       {left <= 0.005 ? (
                         <span className="text-xs text-gray-500">Fully applied</span>
+                      ) : c.credit_date > today ? (
+                        <span className="text-xs text-gray-500">Can be applied from {date(c.credit_date)}</span>
                       ) : candidates.length === 0 ? (
                         <span className="text-xs text-gray-500">No approved unpaid bills from this vendor for this association</span>
                       ) : (
