@@ -7,6 +7,7 @@ import { Surface, SectionTitle } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
+import { receivableAgingBuckets, receivableSummary, unpaidBillsTotal } from '@/lib/finance/totals';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,12 +23,8 @@ export default async function AccountingPage() {
     .is('archived_at', null)
     .eq('status', 'pending_approval');
 
-  // Total unpaid balance: bills not paid or voided
-  const unpaidQuery = db
-    .from('payable_bills')
-    .select('amount, credit_applied')
-    .is('archived_at', null)
-    .not('status', 'in', '("paid","void")');
+  // Totals are summed in the database (row lists stop at 1,000 rows).
+  const unpaidQuery = unpaidBillsTotal(db);
 
   // Upcoming check run: approved bills ready for payment
   const approvedQuery = db
@@ -36,10 +33,8 @@ export default async function AccountingPage() {
     .is('archived_at', null)
     .eq('status', 'approved');
 
-  // AR aging: outstanding receivables
-  const arAgingQuery = db
-    .from('aged_receivables')
-    .select('balance_due, aging_bucket');
+  // AR: total, and "overdue" = more than 30 days past due.
+  const arAgingQuery = receivableSummary(db, null, new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
 
   // Bank accounts count
   const bankAccountsQuery = db
@@ -54,9 +49,10 @@ export default async function AccountingPage() {
 
   const [
     { count: openBills },
-    { data: unpaidBills },
+    unpaid,
     { count: approvedBills },
-    { data: arAgingRows },
+    receivables,
+    agingBuckets,
     { count: bankAccounts },
     { count: glAccounts },
   ] = await Promise.all([
@@ -64,36 +60,14 @@ export default async function AccountingPage() {
     unpaidQuery,
     approvedQuery,
     arAgingQuery,
+    receivableAgingBuckets(db),
     bankAccountsQuery,
     glAccountsQuery,
   ]);
 
-  const totalUnpaid = (unpaidBills ?? []).reduce(
-    (sum: number, b: any) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
-    0
-  );
-
-  // AR aging summary
-  const agingBuckets = (arAgingRows ?? []).reduce(
-    (acc: Record<string, number>, row: any) => {
-      const bucket = row.aging_bucket ?? 'unknown';
-      acc[bucket] = (acc[bucket] ?? 0) + Number(row.balance_due ?? 0);
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
-  const totalAR = (
-    (agingBuckets['current'] ?? 0) +
-    (agingBuckets['1_30'] ?? 0) +
-    (agingBuckets['31_60'] ?? 0) +
-    (agingBuckets['61_90'] ?? 0) +
-    (agingBuckets['90_plus'] ?? 0)
-  );
-  const overdueAR =
-    (agingBuckets['31_60'] ?? 0) +
-    (agingBuckets['61_90'] ?? 0) +
-    (agingBuckets['90_plus'] ?? 0);
+  const totalUnpaid = unpaid.total;
+  const totalAR = receivables.arTotal;
+  const overdueAR = receivables.overdueTotal;
 
   const metrics = [
     {

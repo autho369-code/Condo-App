@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -58,12 +59,16 @@ export default async function AccountingPeriodsPage({
       .eq('portfolio_id', portfolioId)
       .eq('fiscal_year', selectedYear)
       .order('period_month'),
-    (supabase as any)
+    // Only drafts are counted. Every charge and receipt posts an entry, so the
+    // whole year's entries passed the 1,000-row cap and hid drafts.
+    fetchAllRows<any>(() => (supabase as any)
       .from('journal_entries')
       .select('id, entry_date, posted')
       .eq('portfolio_id', portfolioId)
+      .eq('posted', false)
       .gte('entry_date', yearStart)
-      .lt('entry_date', nextYearStart),
+      .lt('entry_date', nextYearStart)
+      .order('id')).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
     (supabase as any)
       .from('bank_accounts')
       .select('id, name, last_reconciliation_date')

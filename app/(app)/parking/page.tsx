@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { Car } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
@@ -37,7 +38,8 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
       .select('id, parking_space_id, unit_id, tenant_id, occupant_name, start_date, monthly_fee, deposit_amount, deposit_paid, deposit_returned, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, insurance_policy_number, units(unit_number), tenants(first_name, last_name), owners(full_name)')
       .eq('portfolio_id', me.portfolio?.id).eq('status', 'active'),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number'),
+    // Every unit (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id)').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
     db.from('tenants').select('id, first_name, last_name, unit_id').eq('status', 'active').is('archived_at', null),
   ]);
 

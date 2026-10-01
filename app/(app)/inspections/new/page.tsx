@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -19,7 +20,8 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
   const db = supabase as any;
   const [{ data: associations }, { data: units }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number'),
+    // Every unit (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   async function createInspection(formData: FormData) {

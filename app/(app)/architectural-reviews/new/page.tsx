@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
@@ -45,12 +46,13 @@ export default async function NewArchitecturalRequestForOwner({
   // Current occupancies = the live owner↔unit roster, RLS-scoped to this
   // staffer's associations. One row = one (owner, unit) pairing, so picking a
   // row picks the association, unit, AND owner in a single consistent choice.
-  const { data: occRows } = await db
+  // Every page (.limit(2000) was still capped at 1,000 rows by PostgREST).
+  const { rows: occRows } = await fetchAllRows<any>(() => db
     .from('occupancies')
     .select('id, unit_id, owner_id, association_id, units!occupancies_unit_id_fkey(unit_number), owners!occupancies_owner_id_fkey(full_name), associations!occupancies_association_id_fkey(name)')
     .eq('status', 'current')
     .not('owner_id', 'is', null)
-    .limit(2000);
+    .order('id'));
 
   const occupancies = ((occRows ?? []) as OccRow[]).sort((a, b) => {
     const assoc = (a.associations?.name ?? '').localeCompare(b.associations?.name ?? '');

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export async function POST(request: NextRequest) {
   // Staff-only: server actions/route handlers are callable endpoints, so the
@@ -43,19 +44,43 @@ export async function POST(request: NextRequest) {
     return back('Bank account has no linked GL account. Link a GL account first.');
   }
 
-  // Calculate ending book balance from journal_lines for this GL account
-  const { data: journalLines } = await db
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(statementDate)) return back('Enter a valid statement date');
+
+  // Book balance as of the statement date, summed in the database (a list of
+  // lines stopped at 1,000 rows, and entries after the statement date were
+  // counted too).
+  const { data: balRows, error: balError } = await db.rpc('journal_line_totals', {
+    p_gl_account_ids: [bankAccount.gl_account_id],
+    p_to: statementDate,
+  });
+  if (balError) return back(`Could not compute the book balance: ${balError.message}`);
+  const totalBookBalance = ((balRows ?? []) as any[]).reduce(
+    (sum: number, r: any) => sum + Number(r.debit_total ?? 0) - Number(r.credit_total ?? 0),
+    0,
+  );
+
+  // Lines to reconcile: every posted line through the statement date that was
+  // not already cleared on a completed reconciliation of this account.
+  const { rows: lineRows, truncated, error: linesError } = await fetchAllRows<any>(() => db
     .from('journal_lines')
     .select('id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)')
     .eq('gl_account_id', bankAccount.gl_account_id)
     .eq('journal_entries.posted', true)
-    .order('id');
-
-  const lines = (journalLines ?? []) as any[];
-  const totalBookBalance = lines.reduce(
-    (sum: number, line: any) => sum + ((line.debit_amount ?? 0) - (line.credit_amount ?? 0)),
-    0
-  );
+    .lte('journal_entries.entry_date', statementDate)
+    .order('id'));
+  if (linesError) return back(`Could not load ledger lines: ${linesError}`);
+  if (truncated) return back('This account has too many unreconciled lines to load at once. Reconcile an earlier statement first.');
+  const { rows: clearedRows, error: clearedError } = await fetchAllRows<any>(() => db
+    .from('bank_reconciliation_items')
+    .select('journal_line_id, bank_reconciliations!inner(bank_account_id, status)')
+    .eq('bank_reconciliations.bank_account_id', bankAccountId)
+    .eq('bank_reconciliations.status', 'completed')
+    .eq('is_cleared', true)
+    .not('journal_line_id', 'is', null)
+    .order('journal_line_id'));
+  if (clearedError) return back(`Could not load earlier reconciliations: ${clearedError}`);
+  const alreadyCleared = new Set(clearedRows.map((r: any) => r.journal_line_id));
+  const lines = lineRows.filter((line: any) => !alreadyCleared.has(line.id));
 
   // Create the reconciliation
   const { data: reconciliation, error: reconError } = await db
@@ -89,13 +114,18 @@ export async function POST(request: NextRequest) {
       sort_order: index,
     }));
 
-    const { error: itemsError } = await db
-      .from('bank_reconciliation_items')
-      .insert(items);
-
-    if (itemsError) {
-      console.error('Failed to insert reconciliation items:', itemsError);
-      // Don't fail — the reconciliation was created, just missing items
+    // Insert in chunks; a reconciliation with missing lines is worse than
+    // none, so roll it back on failure.
+    for (let i = 0; i < items.length; i += 500) {
+      const { error: itemsError } = await db
+        .from('bank_reconciliation_items')
+        .insert(items.slice(i, i + 500));
+      if (itemsError) {
+        console.error('Failed to insert reconciliation items:', itemsError);
+        await db.from('bank_reconciliation_items').delete().eq('reconciliation_id', reconciliation.id);
+        await db.from('bank_reconciliations').delete().eq('id', reconciliation.id);
+        return back(`Could not add the ledger lines to the reconciliation: ${itemsError.message}`);
+      }
     }
   }
 

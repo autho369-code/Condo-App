@@ -1,3 +1,5 @@
+import { glDebitBalances, journalLineTotals, ledgerTotalsByAccount } from '@/lib/finance/totals';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -186,25 +188,13 @@ async function TrialBalanceView({
 
   // A trial balance is an as-of report. Limiting it to period activity makes a
   // new month look empty even when every account has a real opening balance.
-  let lineQuery = db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
-    .eq('journal_entries.posted', true);
-
-  if (selectedAssociation) {
-    lineQuery = lineQuery.eq('association_id', selectedAssociation);
-  }
-  lineQuery = lineQuery.lte('journal_entries.entry_date', period.to);
-
-  const { data: lines } = await lineQuery;
-  const journalLines = (lines ?? []) as any[];
-
-  // Aggregate debits/credits per gl_account
-  const totals: Record<string, { debit: number; credit: number }> = {};
-  for (const acc of accounts) {
-    totals[acc.id] = { debit: 0, credit: 0 };
-  }
-  for (const line of journalLines) addLedgerLine(totals, line.gl_account_id, line.debit_amount, line.credit_amount);
+  // Summed in the database: fetching lines stopped at 1,000 rows and
+  // silently truncated the statement.
+  const totals = await ledgerTotalsByAccount(db, {
+    associationIds: selectedAssociation ? [selectedAssociation] : null,
+    to: period.to,
+  });
+  for (const acc of accounts) totals[acc.id] ??= { debit: 0, credit: 0 };
 
   // Compute balance: Assets/Expenses = debit-positive; Liabilities/Equity/Income = credit-positive
   const getBalance = (acc: any) => {
@@ -313,23 +303,12 @@ async function BalanceSheetView({
 
   const accounts = (glAccounts ?? []) as any[];
 
-  // Fetch all journal_lines up to period.to (As Of date)
-  let lineQuery = db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
-    .eq('journal_entries.posted', true)
-    .lte('journal_entries.entry_date', period.to);
-
-  if (selectedAssociation) {
-    lineQuery = lineQuery.eq('association_id', selectedAssociation);
-  }
-
-  const { data: lines } = await lineQuery;
-  const journalLines = (lines ?? []) as any[];
-
-  // Aggregate posted entries through the as-of date.
-  const totals: Record<string, { debit: number; credit: number }> = {};
-  for (const line of journalLines) addLedgerLine(totals, line.gl_account_id, line.debit_amount, line.credit_amount);
+  // Posted totals through the as-of date, summed in the database (a list of
+  // lines stopped at 1,000 rows).
+  const totals = await ledgerTotalsByAccount(db, {
+    associationIds: selectedAssociation ? [selectedAssociation] : null,
+    to: period.to,
+  });
 
   // Chart-of-accounts type is authoritative. Account-number bands vary by
   // association and must never decide whether a balance is an asset or debt.
@@ -343,17 +322,11 @@ async function BalanceSheetView({
   // Roll current-year net income (revenue − expenses, cumulative through the as-of
   // date) into equity as retained earnings — otherwise the sheet doesn't balance.
   const currentYearStart = `${period.to.slice(0, 4)}-01-01`;
-  const currentYearTotals: Record<string, { debit: number; credit: number }> = {};
-  for (const line of journalLines) {
-    if (line.journal_entries?.entry_date >= currentYearStart) {
-      addLedgerLine(
-        currentYearTotals,
-        line.gl_account_id,
-        line.debit_amount,
-        line.credit_amount,
-      );
-    }
-  }
+  const currentYearTotals = await ledgerTotalsByAccount(db, {
+    associationIds: selectedAssociation ? [selectedAssociation] : null,
+    from: currentYearStart,
+    to: period.to,
+  });
   const netIncome = calculateNetIncome(accounts, currentYearTotals);
   totals['__ni__'] = { debit: netIncome < 0 ? -netIncome : 0, credit: netIncome > 0 ? netIncome : 0 };
   const equityDisplay = [...equity, { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' }];
@@ -469,28 +442,12 @@ async function IncomeStatementView({
 
   const allAccounts = (glAccounts ?? []) as any[];
 
-  // Fetch journal lines for the period
-  let lineQuery = db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, gl_account_id, entry_id, journal_entries!inner(entry_date, posted)')
-    .eq('journal_entries.posted', true)
-    .gte('journal_entries.entry_date', period.from)
-    .lte('journal_entries.entry_date', period.to);
-
-  if (selectedAssociation) {
-    lineQuery = lineQuery.eq('association_id', selectedAssociation);
-  }
-
-  const { data: lines } = await lineQuery;
-  const journalLines = (lines ?? []) as any[];
-
-  const totals: Record<string, { debit: number; credit: number }> = {};
-  for (const line of journalLines) {
-    const accId = line.gl_account_id;
-    if (!totals[accId]) totals[accId] = { debit: 0, credit: 0 };
-    totals[accId].debit  += Number(line.debit_amount ?? 0);
-    totals[accId].credit += Number(line.credit_amount ?? 0);
-  }
+  // Period totals summed in the database (a list of lines stopped at 1,000 rows).
+  const totals = await ledgerTotalsByAccount(db, {
+    associationIds: selectedAssociation ? [selectedAssociation] : null,
+    from: period.from,
+    to: period.to,
+  });
 
   // For income: net = credit - debit (revenue goes to credit)
   // For expense: net = debit - credit (expense goes to debit)
@@ -650,53 +607,24 @@ async function CashFlowView({
   const { data: transfers } = await transferQuery;
   const bankTransfers = (transfers ?? []) as any[];
 
-  // Cash journal lines in period
-  let cashLineQuery = db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, gl_account_id, association_id, journal_entries!inner(entry_date, posted, memo, description)')
-    .eq('journal_entries.posted', true)
-    .gte('journal_entries.entry_date', period.from)
-    .lte('journal_entries.entry_date', period.to);
-
-  if (selectedAssociation) {
-    cashLineQuery = cashLineQuery.eq('association_id', selectedAssociation);
-  }
-
-  const { data: cashLines } = await cashLineQuery;
-  const cashJournalLines = (cashLines ?? []) as any[];
-
-  // TRUE cash accounts only (account_type = 'cash' — not the whole 1000–1999 range,
-  // which also contains A/R and prepaids).
-  const { data: cashAccounts } = await db
-    .from('gl_accounts')
-    .select('id, number, name')
-    .eq('account_type', 'cash')
-    .eq('active', true);
-
-  const cashAccountIds = new Set(((cashAccounts ?? []) as any[]).map((a: any) => a.id));
-  const cashActivity = cashJournalLines.filter((l: any) => cashAccountIds.has(l.gl_account_id));
-
+  // Cash in/out for the period, summed in the database over TRUE cash
+  // accounts only (account_type = 'cash' — not the whole 1000–1999 range,
+  // which also contains A/R and prepaids). Fetching every line in the period
+  // and filtering in the app stopped at 1,000 rows.
   // A debit to a cash account increases cash (inflow); a credit decreases it (outflow).
-  const operatingInflows  = cashActivity.reduce((s: number, l: any) => s + Number(l.debit_amount ?? 0), 0);
-  const operatingOutflows = cashActivity.reduce((s: number, l: any) => s + Number(l.credit_amount ?? 0), 0);
+  const cashTotals = await journalLineTotals(db, {
+    accountTypes: ['cash'],
+    associationIds: selectedAssociation ? [selectedAssociation] : null,
+    from: period.from,
+    to: period.to,
+  });
+  const operatingInflows  = cashTotals.reduce((s, r) => s + r.debit_total, 0);
+  const operatingOutflows = cashTotals.reduce((s, r) => s + r.credit_total, 0);
   const netCashFlow = operatingInflows - operatingOutflows;
 
   // Ending balance per bank account = net of its GL account's posted lines through the as-of date.
   const bankGlIds = bAccounts.map((a: any) => a.gl_account_id).filter(Boolean);
-  const balByGl: Record<string, number> = {};
-  if (bankGlIds.length > 0) {
-    let balQuery = db
-      .from('journal_lines')
-      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted, entry_date)')
-      .in('gl_account_id', bankGlIds)
-      .eq('journal_entries.posted', true)
-      .lte('journal_entries.entry_date', period.to);
-    if (selectedAssociation) balQuery = balQuery.eq('association_id', selectedAssociation);
-    const { data: balLines } = await balQuery;
-    for (const l of (balLines ?? []) as any[]) {
-      balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
-    }
-  }
+  const balByGl = await bankGlBalances(db, bankGlIds, period.to, selectedAssociation || undefined);
 
   // Transfer totals
   const totalTransfers = bankTransfers.reduce((s: number, t: any) => s + Number(t.amount ?? 0), 0);
@@ -848,49 +776,35 @@ async function GeneralLedgerView({
 
   const accounts = (glAccounts ?? []) as any[];
 
-  // Fetch journal_lines with entry info
-  let lineQuery = db
-    .from('journal_lines')
-    .select(`id, debit_amount, credit_amount, memo, gl_account_id, entry_id,
-      journal_entries!inner(id, entry_date, description, memo, reference_number, posted)`)
-    .eq('journal_entries.posted', true)
-    .gte('journal_entries.entry_date', period.from)
-    .lte('journal_entries.entry_date', period.to)
-    .order('sort_order');
-
-  if (selectedAssociation) {
-    lineQuery = lineQuery.eq('association_id', selectedAssociation);
-  }
-  if (selectedAccount) {
-    lineQuery = lineQuery.eq('gl_account_id', selectedAccount);
-  }
-
-  const { data: lines } = await lineQuery;
-  const journalLines = (lines ?? []) as any[];
+  // Fetch journal_lines with entry info — every page of them (one request
+  // stops at 1,000 rows, which silently cut the ledger short).
+  const buildLineQuery = () => {
+    let lineQuery = db
+      .from('journal_lines')
+      .select(`id, debit_amount, credit_amount, memo, gl_account_id, entry_id, sort_order,
+        journal_entries!inner(id, entry_date, description, memo, reference_number, posted)`)
+      .eq('journal_entries.posted', true)
+      .gte('journal_entries.entry_date', period.from)
+      .lte('journal_entries.entry_date', period.to)
+      .order('sort_order')
+      .order('id');
+    if (selectedAssociation) lineQuery = lineQuery.eq('association_id', selectedAssociation);
+    if (selectedAccount) lineQuery = lineQuery.eq('gl_account_id', selectedAccount);
+    return lineQuery;
+  };
+  const { rows: journalLines } = await fetchAllRows<any>(buildLineQuery);
 
   // A general ledger needs the balance brought forward before the selected
   // period. Without it, the report cannot provide an accurate running balance.
-  const openingTotals: Record<string, { debit: number; credit: number }> = {};
-  if (accounts.length > 0) {
-    let openingQuery = db
-      .from('journal_lines')
-      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
-      .in('gl_account_id', accounts.map((account: any) => account.id))
-      .eq('journal_entries.posted', true)
-      .lt('journal_entries.entry_date', period.from);
-    if (selectedAssociation) {
-      openingQuery = openingQuery.eq('association_id', selectedAssociation);
-    }
-    const { data: openingLines } = await openingQuery;
-    for (const line of openingLines ?? []) {
-      addLedgerLine(
-        openingTotals,
-        line.gl_account_id,
-        line.debit_amount,
-        line.credit_amount,
-      );
-    }
-  }
+  // Summed in the database through the day before the period starts.
+  const dayBeforeFrom = new Date(Date.parse(`${period.from}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  const openingTotals: Record<string, { debit: number; credit: number }> = accounts.length > 0
+    ? await ledgerTotalsByAccount(db, {
+        glAccountIds: accounts.map((account: any) => account.id),
+        associationIds: selectedAssociation ? [selectedAssociation] : null,
+        to: dayBeforeFrom,
+      })
+    : {};
 
   // Group lines by gl_account_id
   const grouped = new Map<string, any[]>();
@@ -1424,20 +1338,12 @@ async function VehicleInfoView({
 }
 
 // Shared: derived balance per bank account GL through a date
+/** Debit-minus-credit balance per bank GL account through `toDate`, summed in the database. */
 async function bankGlBalances(db: any, glIds: string[], toDate: string, associationId?: string) {
   const balByGl: Record<string, number> = {};
   if (glIds.length === 0) return balByGl;
-  let q = db
-    .from('journal_lines')
-    .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted, entry_date)')
-    .in('gl_account_id', glIds)
-    .eq('journal_entries.posted', true)
-    .lte('journal_entries.entry_date', toDate);
-  if (associationId) q = q.eq('association_id', associationId);
-  const { data } = await q;
-  for (const l of (data ?? []) as any[]) {
-    balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
-  }
+  const map = await glDebitBalances(db, { glAccountIds: glIds, associationIds: associationId ? [associationId] : null, to: toDate });
+  for (const [id, bal] of map) balByGl[id] = bal;
   return balByGl;
 }
 
@@ -1681,16 +1587,20 @@ async function TrustDetailView(ctx: ReportContext) {
 
   let lines: any[] = [];
   if (glIds.length > 0) {
-    let lq = db
-      .from('journal_lines')
-      .select('id, gl_account_id, debit_amount, credit_amount, association_id, journal_entries!inner(entry_date, posted, memo, description)')
-      .in('gl_account_id', glIds)
-      .eq('journal_entries.posted', true)
-      .gte('journal_entries.entry_date', ctx.period.from)
-      .lte('journal_entries.entry_date', ctx.period.to);
-    if (ctx.selectedAssociation) lq = lq.eq('association_id', ctx.selectedAssociation);
-    const { data } = await lq;
-    lines = ((data ?? []) as any[]).sort((a, b) => String(b.journal_entries?.entry_date).localeCompare(String(a.journal_entries?.entry_date)));
+    // Every page of trust activity (one request stops at 1,000 rows).
+    const { rows: data } = await fetchAllRows<any>(() => {
+      let lq = db
+        .from('journal_lines')
+        .select('id, gl_account_id, debit_amount, credit_amount, association_id, journal_entries!inner(entry_date, posted, memo, description)')
+        .in('gl_account_id', glIds)
+        .eq('journal_entries.posted', true)
+        .gte('journal_entries.entry_date', ctx.period.from)
+        .lte('journal_entries.entry_date', ctx.period.to)
+        .order('id');
+      if (ctx.selectedAssociation) lq = lq.eq('association_id', ctx.selectedAssociation);
+      return lq;
+    });
+    lines = (data as any[]).sort((a, b) => String(b.journal_entries?.entry_date).localeCompare(String(a.journal_entries?.entry_date)));
   }
   const inflows = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
   const outflows = lines.reduce((s, l) => s + Number(l.credit_amount ?? 0), 0);

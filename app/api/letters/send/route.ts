@@ -40,11 +40,14 @@ export async function POST(request: NextRequest) {
       .from('document_templates')
       .select('id, portfolio_id, active, archived_at')
       .eq('id', templateId)
-      .eq('active', true)
       .is('archived_at', null)
       .maybeSingle();
     if (templateError || !template || (!me.is_platform_operator && template.portfolio_id !== me.portfolio?.id)) {
       return NextResponse.json({ error: 'Template not found or unavailable.' }, { status: 404 });
+    }
+    // New letters are saved as drafts (inactive). Say so instead of a 404.
+    if (!template.active) {
+      return NextResponse.json({ error: 'This letter is still a draft. Open Edit and mark it Active before emailing it.' }, { status: 409 });
     }
 
     let scopedAssociationId: string | null = null;

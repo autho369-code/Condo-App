@@ -47,9 +47,14 @@ export default async function ArchitecturalReviewQueue({
   if (filters.status === 'open') reviewsQuery = reviewsQuery.in('status', OPEN_STATUSES);
   reviewsQuery = reviewsQuery.order('created_at', { ascending: false }).limit(500);
 
-  const [{ data: associations }, { data: rows }] = await Promise.all([
+  // Tiles are counted in the database so the queue view (which narrows the
+  // list to open requests) does not zero out the monthly decision counts.
+  const [{ data: associations }, { data: rows }, { count: awaitingCount }, { count: approvedCount }, { count: deniedCount }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     reviewsQuery,
+    db.from('architectural_requests').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES),
+    db.from('architectural_requests').select('id', { count: 'exact', head: true }).eq('status', 'approved').gte('decided_at', monthStart),
+    db.from('architectural_requests').select('id', { count: 'exact', head: true }).eq('status', 'denied').gte('decided_at', monthStart),
   ]);
 
   const all = (rows ?? []) as any[];
@@ -69,9 +74,9 @@ export default async function ArchitecturalReviewQueue({
       (r.owners?.full_name ?? '').toLowerCase().includes(ql));
   }
 
-  const awaiting = all.filter((r) => OPEN_STATUSES.includes(r.status)).length;
-  const approvedThisMonth = all.filter((r) => r.status === 'approved' && r.decided_at && r.decided_at >= monthStart).length;
-  const deniedThisMonth = all.filter((r) => r.status === 'denied' && r.decided_at && r.decided_at >= monthStart).length;
+  const awaiting = awaitingCount ?? 0;
+  const approvedThisMonth = approvedCount ?? 0;
+  const deniedThisMonth = deniedCount ?? 0;
 
   const metrics: Metric[] = [
     { label: 'Awaiting Review', value: awaiting, sublabel: <Link href="/architectural-reviews?status=open" className="font-medium text-gray-500 transition-colors hover:text-gray-900">View queue</Link> },

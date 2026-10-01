@@ -35,12 +35,13 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
   return (
     <div className="flex flex-wrap gap-1">
       {expirations.map((e) => {
-        const d = new Date(e.date);
-        const expired = d < now;
-        const expiring = d <= soon && !expired;
+        // Date-only compare: coverage ending today is still valid today.
+        const ymd = String(e.date).slice(0, 10);
+        const expired = ymd < now.toISOString().slice(0, 10);
+        const expiring = ymd <= soon.toISOString().slice(0, 10) && !expired;
         return (
           <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
-            {e.label}: {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {e.label}: {new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
           </span>
         );
       })}

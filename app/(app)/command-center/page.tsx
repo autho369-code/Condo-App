@@ -1,3 +1,4 @@
+import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals, receivableSummary } from '@/lib/finance/totals'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -70,29 +71,26 @@ export default async function FinancialCommandCenterPage() {
   const [
     { data: paymentsToday },
     { data: intents },
-    { data: aging },
-    { data: chargesMonth },
-    { data: paymentsMonth },
-    { data: paymentsLastMonthSame },
+    receivables,
+    monthTotals,
+    lastMonthTotals,
     { data: bankTxns },
     { data: payouts },
     { data: bankAccounts },
-    { data: bankLines },
-    { data: pnlLines },
+    ytd,
     { count: totalUnits },
     { data: latePayers },
   ] = await Promise.all([
     db.from('payments').select('amount').neq('method', 'credit').eq('payment_date', todayDate),
     db.from('payment_intents').select('id, amount, status, method, failure_reason, processor_fee_cents, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
-    db.from('aged_receivables').select('balance_due, due_date, unit_number'),
-    db.from('charges').select('amount').gte('due_date', monthStart).lte('due_date', todayDate),
-    db.from('payments').select('amount').neq('method', 'credit').gte('payment_date', monthStart),
-    db.from('payments').select('amount').neq('method', 'credit').gte('payment_date', lastMonthStart).lte('payment_date', lastMonthSameDay),
+    // Totals are summed in the database: row lists stop at 1,000 rows.
+    receivableSummary(db),
+    billingCollectionTotals(db, monthStart, todayDate),
+    billingCollectionTotals(db, lastMonthStart, lastMonthSameDay),
     db.from('bank_transactions').select('id, amount, date, name, matched_at').gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
     db.from('payout_batches').select('id, processor_payout_id, amount, expected_amount, arrival_date, status, match_method, notes, created_at').order('created_at', { ascending: false }).limit(25),
     db.from('bank_accounts').select('gl_account_id, purpose, fund_type').is('archived_at', null),
-    db.from('journal_lines').select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)').eq('journal_entries.posted', true),
-    db.from('journal_lines').select('debit_amount, credit_amount, gl_accounts!inner(account_type), journal_entries!inner(posted, entry_date)').eq('journal_entries.posted', true).in('gl_accounts.account_type', ['expense', 'other_expense']).gte('journal_entries.entry_date', `${new Date().getFullYear()}-01-01`),
+    incomeExpenseTotals(db, { from: `${new Date().getFullYear()}-01-01` }),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('occupancies').select('owner_id, late_count, owners(full_name)').eq('status', 'current').gte('late_count', 2),
   ])
@@ -104,10 +102,10 @@ export default async function FinancialCommandCenterPage() {
   const returned = (intents ?? []).filter((i: any) => ['returned', 'failed'].includes(i.status))
   const chargebacks = (intents ?? []).filter((i: any) => i.status === 'chargeback')
   const refunded = (intents ?? []).filter((i: any) => i.status === 'refunded')
-  const arTotal = (aging ?? []).reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
+  const arTotal = receivables.arTotal
 
-  const billedMonth = (chargesMonth ?? []).reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0)
-  const collectedMonth = (paymentsMonth ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
+  const billedMonth = monthTotals.charges
+  const collectedMonth = monthTotals.payments
   const collectionRate = billedMonth > 0 ? Math.min(100, Math.round((collectedMonth / billedMonth) * 100)) : null
 
   const txns = bankTxns ?? []
@@ -129,25 +127,16 @@ export default async function FinancialCommandCenterPage() {
   const achRate = successRate(byMethod('ach'))
   const cardRate = successRate(byMethod('card'))
   const feesTotal = (intents ?? []).reduce((s: number, i: any) => s + (i.processor_fee_cents ?? 0), 0) / 100
-  const delinquentUnitNumbers = new Set((aging ?? []).map((r: any) => r.unit_number))
-  const delinquencyPct = (totalUnits ?? 0) > 0 ? Math.round((delinquentUnitNumbers.size / (totalUnits ?? 1)) * 100) : 0
-  const avgDaysOutstanding = (() => {
-    const rows = (aging ?? []).filter((r: any) => r.due_date)
-    const totalBal = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
-    if (totalBal <= 0) return null
-    const weighted = rows.reduce((s: number, r: any) => {
-      const days = Math.max(0, (Date.now() - new Date(r.due_date).getTime()) / 86400000)
-      return s + days * Number(r.balance_due ?? 0)
-    }, 0)
-    return Math.round(weighted / totalBal)
-  })()
+  const delinquentUnitCount = receivables.delinquentUnits
+  const delinquencyPct = (totalUnits ?? 0) > 0 ? Math.round((delinquentUnitCount / (totalUnits ?? 1)) * 100) : 0
+  const avgDaysOutstanding = receivables.weightedDays === null ? null : Math.round(receivables.weightedDays)
 
   // ── AI Financial Health (deterministic rules on live data) ───
-  const collectedLastMonthSame = (paymentsLastMonthSame ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
+  const collectedLastMonthSame = lastMonthTotals.payments
   const collectionsTrendPct = collectedLastMonthSame > 0
     ? Math.round(((collectedMonth - collectedLastMonthSame) / collectedLastMonthSame) * 1000) / 10
     : null
-  const ytdExpenses = (pnlLines ?? []).reduce((s: number, l: any) => s + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0), 0)
+  const ytdExpenses = ytd.expense
   const monthsElapsed = new Date().getMonth() + 1
   const monthlyBurn = monthsElapsed > 0 ? ytdExpenses / monthsElapsed : 0
   const healthStatements: string[] = []
@@ -168,10 +157,9 @@ export default async function FinancialCommandCenterPage() {
   }
 
   // Operating / reserve balances from posted ledger (same rollup as board financials).
-  const balByGl = new Map<string, number>()
-  for (const l of bankLines ?? []) {
-    balByGl.set(l.gl_account_id, (balByGl.get(l.gl_account_id) ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0))
-  }
+  const balByGl = await glDebitBalances(db, {
+    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+  })
   let operating = 0
   let reserve = 0
   for (const b of bankAccounts ?? []) {
@@ -253,7 +241,7 @@ export default async function FinancialCommandCenterPage() {
       {/* ── Metric grid ───────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <Tile label="Outstanding Receivables" value={money(arTotal)} icon={TrendingUp} tone={arTotal > 0 ? 'warning' : undefined} />
-        <Tile label="Delinquency" value={`${delinquencyPct}%`} sub={`${delinquentUnitNumbers.size} of ${totalUnits ?? 0} units carry a balance`} icon={AlertTriangle} tone={delinquencyPct > 10 ? 'danger' : delinquencyPct > 0 ? 'warning' : undefined} />
+        <Tile label="Delinquency" value={`${delinquencyPct}%`} sub={`${delinquentUnitCount} of ${totalUnits ?? 0} units carry a balance`} icon={AlertTriangle} tone={delinquencyPct > 10 ? 'danger' : delinquencyPct > 0 ? 'warning' : undefined} />
         <Tile label="ACH Success Rate" value={achRate === null ? '—' : `${achRate}%`} icon={CreditCard} />
         <Tile label="Card Success Rate" value={cardRate === null ? '—' : `${cardRate}%`} icon={CreditCard} />
         <Tile label="Returned / Failed (30d)" value={returned.length} icon={Undo2} tone={returned.length > 0 ? 'danger' : undefined} />

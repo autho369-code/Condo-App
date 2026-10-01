@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { OpenViolationForm } from '@/components/violations/open-violation-form';
@@ -22,7 +23,8 @@ export default async function NewViolationPage({
 
   const [{ data: associations }, { data: units }, { data: rules }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('units').select('id, unit_number, buildings!inner(association_id, name)').is('archived_at', null).order('unit_number').limit(5000),
+    // Every unit (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, name)').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
     db.from('house_rules')
       .select('id, association_id, rule_number, title, description, action_to_resolve, default_violation_type')
       .is('archived_at', null)

@@ -25,7 +25,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 export default async function ScheduledReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ran?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -67,6 +67,11 @@ export default async function ScheduledReportsPage({
       }
     >
       <div className="space-y-6">
+        {sp.ran && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+            Report run started. It appears under Report runs when it finishes.
+          </div>
+        )}
         {sp.error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             <span className="font-semibold">Could not save schedule:</span> {sp.error}

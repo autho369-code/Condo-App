@@ -19,14 +19,18 @@ export default async function GlPermissionsPage({
   const me = await requirePortfolioAdmin();
   const sp = await searchParams;
   const db = (await createClient()) as any;
-  const [{ data: roles }, { data: accounts }, { data: permissionRows }] = await Promise.all([
+  const [{ data: roles }, { data: accounts }] = await Promise.all([
     db.from('user_roles').select('id, name, description, is_system').eq('portfolio_id', me.portfolio?.id).order('name'),
     db.from('gl_accounts').select('id, number, name, account_type, active').eq('portfolio_id', me.portfolio?.id).order('number'),
-    db.from('gl_account_role_permissions').select('gl_account_id, role_id, permission'),
   ]);
   const selectedRoleId = (roles ?? []).some((role: any) => role.id === sp.role_id) ? sp.role_id : roles?.[0]?.id;
   const selectedRole = (roles ?? []).find((role: any) => role.id === selectedRoleId);
-  const permissions = new Map((permissionRows ?? []).filter((row: any) => row.role_id === selectedRoleId).map((row: any) => [row.gl_account_id, row.permission]));
+  // Only the selected role's rows: the whole roles × accounts table passed the
+  // 1,000-row cap and saved permissions then displayed as "None".
+  const { data: permissionRows } = selectedRoleId
+    ? await db.from('gl_account_role_permissions').select('gl_account_id, permission').eq('role_id', selectedRoleId)
+    : { data: [] };
+  const permissions = new Map((permissionRows ?? []).map((row: any) => [row.gl_account_id, row.permission]));
 
   return <DataWorkspace title="GL Role Permissions" description="Control which chart-of-account lines each custom staff role can report on or use in postings." actions={<Link href="/gl-accounts"><Button variant="secondary">Back to GL accounts</Button></Link>}>
     <div className="space-y-5">

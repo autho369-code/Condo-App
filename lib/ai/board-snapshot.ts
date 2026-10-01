@@ -9,6 +9,7 @@
  *
  * Keep the output small (a few KB) — summaries and short lists only.
  */
+import { glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
 import 'server-only';
 import { requireBoard } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -59,9 +60,8 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
 
   const [
     { data: assocs },
-    { data: pnlLines },
+    ytd,
     { data: bankAccounts },
-    { data: bankLines },
     { data: balances },
     { data: bills },
     { data: openWOs },
@@ -72,17 +72,9 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
     { data: occupancies },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
-    db.from('journal_lines')
-      .select('debit_amount, credit_amount, gl_accounts!inner(account_type), journal_entries!inner(entry_date, posted)')
-      .in('association_id', ids)
-      .in('gl_accounts.account_type', ['income', 'other_income', 'expense', 'other_expense'])
-      .eq('journal_entries.posted', true)
-      .gte('journal_entries.entry_date', yearStart),
-    db.from('bank_accounts').select('gl_account_id, purpose').in('association_id', ids).is('archived_at', null),
-    db.from('journal_lines')
-      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)')
-      .in('association_id', ids)
-      .eq('journal_entries.posted', true),
+    // Summed in the database (lists of journal lines stop at 1,000 rows).
+    incomeExpenseTotals(db, { associationIds: ids, from: yearStart }),
+    db.from('bank_accounts').select('gl_account_id, purpose, fund_type').in('association_id', ids).is('archived_at', null),
     db.from('unit_balances').select('unit_id, unit_number, balance').in('association_id', ids),
     db.from('payable_bills').select('amount, credit_applied, status, due_date, vendors(name)').in('association_id', ids).is('archived_at', null).not('status', 'in', '("paid","void")'),
     db.from('work_orders').select('title, status, priority, scheduled_date, created_at').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('created_at', { ascending: false }),
@@ -93,25 +85,18 @@ export async function buildBoardSnapshot(associationId: string): Promise<BoardSn
     db.from('occupancies').select('unit_id, owners(full_name)').in('association_id', ids).eq('status', 'current'),
   ]);
 
-  let ytdIncome = 0;
-  let ytdExpenses = 0;
-  for (const l of pnlLines ?? []) {
-    const t = l.gl_accounts?.account_type;
-    const debit = Number(l.debit_amount ?? 0);
-    const credit = Number(l.credit_amount ?? 0);
-    if (t === 'income' || t === 'other_income') ytdIncome += credit - debit;
-    else ytdExpenses += debit - credit;
-  }
+  const ytdIncome = ytd.income;
+  const ytdExpenses = ytd.expense;
 
-  const balByGl = new Map<string, number>();
-  for (const l of bankLines ?? []) {
-    balByGl.set(l.gl_account_id, (balByGl.get(l.gl_account_id) ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0));
-  }
+  const balByGl = await glDebitBalances(db, {
+    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+    associationIds: ids,
+  });
   let operatingBalance = 0;
   let reserveBalance = 0;
   for (const b of bankAccounts ?? []) {
     const bal = b.gl_account_id ? (balByGl.get(b.gl_account_id) ?? 0) : 0;
-    if ((b.purpose ?? '').toLowerCase().includes('reserve')) reserveBalance += bal;
+    if (b.fund_type === 'reserve' || (b.purpose ?? '').toLowerCase().includes('reserve')) reserveBalance += bal;
     else operatingBalance += bal;
   }
 

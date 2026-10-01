@@ -52,3 +52,21 @@ export function wallDateTimeToIso(value: string | null | undefined, timeZone: st
   if (!m) return null;
   return zonedWallTimeToUtc(m[1], m[2] ?? '00:00', timeZone)?.toISOString() ?? null;
 }
+
+/** Zone used when no association zone applies (every association today is Central). */
+export const DEFAULT_TIME_ZONE = 'America/Chicago';
+
+/**
+ * Format an instant for a server-rendered page. Server code runs in UTC, so
+ * toLocaleString() without a zone showed UTC times; this pins the zone and
+ * labels it (e.g. "Oct 1, 9:00 AM CDT").
+ */
+export function formatInZone(
+  value: string | number | Date,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+  timeZone: string = DEFAULT_TIME_ZONE,
+): string {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-US', { ...options, timeZone, timeZoneName: 'short' });
+}

@@ -1,3 +1,4 @@
+import { glDebitBalances } from '@/lib/finance/totals'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
@@ -85,7 +86,6 @@ export default async function BoardDashboardPage() {
     { data: viols },
     { data: balances },
     { data: bankAccounts },
-    { data: bankLines },
     { data: meetings },
     { data: vendorVisits },
     { data: approvalRows },
@@ -96,8 +96,7 @@ export default async function BoardDashboardPage() {
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
     db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('unit_balances').select('balance').in('association_id', ids),
-    db.from('bank_accounts').select('id, gl_account_id, purpose, association_id').in('association_id', ids).is('archived_at', null),
-    db.from('journal_lines').select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)').in('association_id', ids).eq('journal_entries.posted', true),
+    db.from('bank_accounts').select('id, gl_account_id, purpose, fund_type, association_id').in('association_id', ids).is('archived_at', null),
     db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).gte('start_time', today.toISOString()).order('start_time').limit(5),
     db.from('calendar_events').select('id, title, start_datetime, vendors(name)').in('association_id', ids).not('vendor_id', 'is', null).is('archived_at', null).gte('start_datetime', today.toISOString()).lte('start_datetime', in30).order('start_datetime').limit(5),
     // Include my decisions so requests I already voted on don't count as awaiting my vote.
@@ -128,15 +127,16 @@ export default async function BoardDashboardPage() {
   const arTotal = (balances ?? []).reduce((s: number, b: any) => s + Math.max(0, Number(b.balance ?? 0)), 0)
 
   // Bank balances: roll posted journal lines up onto each bank account's GL account.
-  const balByGl = new Map<string, number>()
-  for (const l of bankLines ?? []) {
-    balByGl.set(l.gl_account_id, (balByGl.get(l.gl_account_id) ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0))
-  }
+  // Summed in the database: a list of journal lines stops at 1,000 rows.
+  const balByGl = await glDebitBalances(db, {
+    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+    associationIds: ids,
+  })
   let operating = 0
   let reserve = 0
   for (const b of bankAccounts ?? []) {
     const bal = b.gl_account_id ? (balByGl.get(b.gl_account_id) ?? 0) : 0
-    if ((b.purpose ?? '').toLowerCase().includes('reserve')) reserve += bal
+    if (b.fund_type === 'reserve' || (b.purpose ?? '').toLowerCase().includes('reserve')) reserve += bal
     else operating += bal
   }
 

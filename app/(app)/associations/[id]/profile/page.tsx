@@ -7,7 +7,6 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspac
 import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
-import { updateAssociation } from '@/lib/rpcs/entities';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Textarea } from '@/components/ui/input';
 import { date } from '@/lib/utils';
@@ -69,12 +68,34 @@ export default async function AssociationProfileTab({
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
 
-  // Automatic late-fee policy — persisted through the shared updateAssociation
-  // action (lib/rpcs/entities.ts), which whitelists the late_fee_* fields and
-  // re-checks authorization inside the action body.
+  // Automatic late-fee policy.
+  // Saved here rather than through updateAssociation: that action needs a
+  // portfolio admin (managers were bounced to /dashboard with no message),
+  // sent its errors to a page that dropped them, and skipped blank fields so
+  // an amount or grace period could never be cleared.
   async function saveLateFees(formData: FormData) {
     'use server';
-    await updateAssociation(id, formData);
+    await requireStaff();
+    const sb = await createClient();
+    const fail = (msg: string): never => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
+    const enabled = formData.get('late_fee_enabled') === 'true';
+    const isPercent = formData.get('late_fee_is_percent') === 'true';
+    const amountRaw = String(formData.get('late_fee_amount') ?? '').replace(/[$,%\s]/g, '');
+    const graceRaw = String(formData.get('late_fee_grace_days') ?? '').trim();
+    const amount = amountRaw ? Number(amountRaw) : null;
+    const grace = graceRaw ? Number(graceRaw) : null;
+    if (amount !== null && (!Number.isFinite(amount) || amount < 0)) fail('Enter a late fee amount of zero or more.');
+    if (isPercent && amount !== null && amount > 100) fail('A percentage late fee cannot be more than 100%.');
+    if (grace !== null && (!Number.isInteger(grace) || grace < 0 || grace > 365)) fail('Enter a grace period in whole days (0–365).');
+    if (enabled && !(amount && amount > 0)) fail('Enter a late fee amount to turn automatic late fees on.');
+    const { data: saved, error } = await (sb as any)
+      .from('associations')
+      .update({ late_fee_enabled: enabled, late_fee_is_percent: isPercent, late_fee_amount: amount, late_fee_grace_days: grace })
+      .eq('id', id)
+      .select('id');
+    if (error) fail(error.message);
+    if (!saved || saved.length === 0) fail('Association not found or you do not have access to change it.');
+    revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }
 
@@ -124,18 +145,28 @@ export default async function AssociationProfileTab({
     const fail = (msg: string) => redirect(`/associations/${assocParam}/profile?error=${encodeURIComponent(msg)}`);
     const amountRaw = ((formData.get('fee_amount') as string) || '').replace(/[$,%\s]/g, '');
     if (!amountRaw) fail('Enter a fee amount.');
+    const amount = Number(amountRaw);
+    if (!Number.isFinite(amount) || amount < 0) fail('Enter a valid fee amount.');
     const today = new Date().toISOString().slice(0, 10);
-    // End the current open policy, then start the new one (history preserved)
-    await (sb as any).from('management_fee_policies').update({ effective_to: today }).eq('association_id', id).is('effective_to', null);
-    const { error } = await (sb as any).from('management_fee_policies').insert({
+    const effectiveFrom = ((formData.get('effective_from') as string) || '').trim() || today;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) fail('Enter a valid effective date.');
+    // Start the new policy first, then end the previous open one(s), so a
+    // failed insert never leaves the association with no active fee.
+    const { data: created, error } = await (sb as any).from('management_fee_policies').insert({
       association_id: id,
       fee_type: ((formData.get('fee_type') as string) || 'per_door'),
-      amount: Number(amountRaw),
-      effective_from: ((formData.get('effective_from') as string) || '').trim() || today,
+      amount,
+      effective_from: effectiveFrom,
       notes: ((formData.get('fee_notes') as string) || '').trim() || null,
       created_by: (me2 as any).auth_user_id,
-    });
-    if (error) fail(error.message);
+    }).select('id').single();
+    if (error || !created) fail(error?.message ?? 'Could not save the management fee.');
+    const { error: closeError } = await (sb as any).from('management_fee_policies')
+      .update({ effective_to: today })
+      .eq('association_id', id)
+      .is('effective_to', null)
+      .neq('id', created.id);
+    if (closeError) fail(`New fee saved, but the previous fee could not be ended: ${closeError.message}`);
     revalidatePath(`/associations/${assocParam}/profile`);
     redirect(`/associations/${assocParam}/profile?saved=1`);
   }

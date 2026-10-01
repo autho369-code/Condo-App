@@ -22,6 +22,7 @@ export const PUBLIC_PATHS = [
   '/api/piper',
   '/api/maintenance/send-reminders',
   '/api/insurance/send-reminders',
+  '/api/calendar/send-reminders',
   '/api/payments/reconcile',
   '/api/payments/autopay-run',
   '/api/stripe/webhook',

@@ -29,7 +29,8 @@ function formatLabel(s: string): string {
 }
 
 function deriveStatus(r: any): { label: string; tone: Tone } {
-  if (r.end_date && new Date(r.end_date) < new Date()) {
+  // Date-only compare: a plan is still running on its last day.
+  if (r.end_date && r.end_date < new Date().toISOString().slice(0, 10)) {
     return { label: 'Ended', tone: 'neutral' };
   }
   if (r.auto_generate) {
@@ -78,15 +79,16 @@ export default async function RecurringWorkOrdersPage({
   }
   if (frequency) filtered = filtered.filter((r: any) => r.frequency === frequency);
   if (association_id) filtered = filtered.filter((r: any) => r.association_id === association_id);
-  if (status === 'active') filtered = filtered.filter((r: any) => r.auto_generate && (!r.end_date || new Date(r.end_date) >= new Date()));
-  if (status === 'paused') filtered = filtered.filter((r: any) => !r.auto_generate && (!r.end_date || new Date(r.end_date) >= new Date()));
-  if (status === 'ended') filtered = filtered.filter((r: any) => r.end_date && new Date(r.end_date) < new Date());
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  if (status === 'active') filtered = filtered.filter((r: any) => r.auto_generate && (!r.end_date || r.end_date >= todayYmd));
+  if (status === 'paused') filtered = filtered.filter((r: any) => !r.auto_generate && (!r.end_date || r.end_date >= todayYmd));
+  if (status === 'ended') filtered = filtered.filter((r: any) => r.end_date && r.end_date < todayYmd);
 
   // ── Metrics ──
   const now = new Date();
-  const activeCount = all.filter((r: any) => r.auto_generate && (!r.end_date || new Date(r.end_date) >= now)).length;
-  const pausedCount = all.filter((r: any) => !r.auto_generate && (!r.end_date || new Date(r.end_date) >= now)).length;
-  const endedCount = all.filter((r: any) => r.end_date && new Date(r.end_date) < now).length;
+  const activeCount = all.filter((r: any) => r.auto_generate && (!r.end_date || r.end_date >= todayYmd)).length;
+  const pausedCount = all.filter((r: any) => !r.auto_generate && (!r.end_date || r.end_date >= todayYmd)).length;
+  const endedCount = all.filter((r: any) => r.end_date && r.end_date < todayYmd).length;
   const dueNowCount = all.filter(
     (r: any) => r.next_due_date && new Date(r.next_due_date) <= now && (!r.end_date || new Date(r.end_date) >= now),
   ).length;
