@@ -26,4 +26,9 @@ describe('automation retry safety', () => {
   it('deduplicates retried automation emails by run, action, and recipient', () => {
     expect(route).toContain('idempotencyKey: `automation:${deliveryKey}:');
   });
+
+  it('drops already-handled subjects before applying the per-run cap', () => {
+    expect(route).not.toContain('.limit(SUBJECT_CAP)');
+    expect(route).toContain('claimable.slice(0, SUBJECT_CAP)');
+  });
 });
