@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { deleteProjectBudgetLine, saveProjectBudgetLine } from '@/lib/rpcs/project-budget';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,19 @@ export default async function ProjectDetailPage({
 
   const linkedIds = new Set((links ?? []).map((link: any) => link.work_order_id));
   const availableWorkOrders = (allWorkOrders ?? []).filter((wo: any) => wo.association_id === project.association_id && !linkedIds.has(wo.id));
-  const { data: financials } = await db.from('capital_project_financials').select('committed_spend').eq('project_id', id).maybeSingle();
+  const [{ data: financials }, { data: costLines }, { data: costGls }] = await Promise.all([
+    db.from('capital_project_financials').select('committed_spend').eq('project_id', id).maybeSingle(),
+    db.rpc('project_budget_vs_actual', { p_project_id: id }),
+    me.is_finance_staff || me.is_platform_operator
+      ? db.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', project.portfolio_id).eq('active', true)
+          .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold', 'fixed_asset', 'asset']).order('number')
+      : Promise.resolve({ data: [] }),
+  ]);
+  const categories = (costLines ?? []) as any[];
+  const categoryGls = ((costGls ?? []) as any[]).filter((g) => !g.association_id || g.association_id === project.association_id);
+  const canEditCosts = Boolean(me.is_finance_staff || me.is_platform_operator);
+  const categoryBudget = categories.reduce((s, c) => s + Number(c.budget_amount ?? 0), 0);
+  const categoryActual = categories.reduce((s, c) => s + Number(c.actual_amount ?? 0), 0);
   const spent = Number(financials?.committed_spend ?? 0);
   const budget = Number(project.approved_budget_amount ?? project.budget_amount ?? 0);
 
@@ -176,6 +189,61 @@ export default async function ProjectDetailPage({
             <form action={addMilestone} className="mt-5 grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
               <input type="hidden" name="project_id" value={id} /><Input name="title" required placeholder="New milestone" /><Input name="due_date" type="date" /><Button type="submit">Add</Button><Textarea name="notes" placeholder="Acceptance criteria or dependency" className="sm:col-span-3" />
             </form>
+          </Section>
+
+          <Section title="Budget by cost category" subtitle="Each category is tied to a GL account. Actual = approved and paid bills on the linked work orders coded to that account.">
+            {categories.length ? (
+              <Table>
+                <THead><TR><TH>Category</TH><TH>Account</TH><TH className="text-right">Budget</TH><TH className="text-right">Actual</TH><TH className="text-right">Remaining</TH>{canEditCosts && <TH className="w-20"><span className="sr-only">Actions</span></TH>}</TR></THead>
+                <tbody>
+                  {categories.map((c) => {
+                    const remaining = Number(c.budget_amount ?? 0) - Number(c.actual_amount ?? 0);
+                    return (
+                      <TR key={c.line_id ?? 'other'}>
+                        <TD className="font-medium text-gray-900">{c.category}{!c.line_id && <span className="block text-xs font-normal text-gray-500">Spend on accounts with no category</span>}</TD>
+                        <TD className="text-gray-600">{c.gl_label ?? '—'}</TD>
+                        <TD className="text-right tabular-nums">{c.line_id ? currency(c.budget_amount) : '—'}</TD>
+                        <TD className="text-right tabular-nums">{currency(c.actual_amount)}</TD>
+                        <TD className={`text-right tabular-nums ${remaining < 0 ? 'font-medium text-red-700' : ''}`}>{c.line_id ? currency(remaining) : '—'}</TD>
+                        {canEditCosts && (
+                          <TD>
+                            {c.line_id && (
+                              <form action={deleteProjectBudgetLine}>
+                                <input type="hidden" name="project_id" value={id} />
+                                <input type="hidden" name="line_id" value={c.line_id} />
+                                <Button type="submit" variant="ghost" size="sm">Remove</Button>
+                              </form>
+                            )}
+                          </TD>
+                        )}
+                      </TR>
+                    );
+                  })}
+                  <TR>
+                    <TD className="font-semibold text-gray-950">Total</TD>
+                    <TD />
+                    <TD className="text-right font-semibold tabular-nums">{currency(categoryBudget)}</TD>
+                    <TD className="text-right font-semibold tabular-nums">{currency(categoryActual)}</TD>
+                    <TD className="text-right font-semibold tabular-nums">{currency(categoryBudget - categoryActual)}</TD>
+                    {canEditCosts && <TD />}
+                  </TR>
+                </tbody>
+              </Table>
+            ) : (
+              <p className="px-5 py-4 text-sm text-gray-500">No cost categories yet.</p>
+            )}
+            {canEditCosts && (
+              <form action={saveProjectBudgetLine} className="grid gap-3 border-t border-gray-100 px-5 py-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_140px_auto]">
+                <input type="hidden" name="project_id" value={id} />
+                <Input name="category" required maxLength={120} placeholder="Category, e.g. Roofing labor" aria-label="Category" />
+                <Select name="gl_account_id" required defaultValue="" aria-label="GL account">
+                  <option value="">GL account</option>
+                  {categoryGls.map((g) => <option key={g.id} value={g.id}>{g.number} {g.name}</option>)}
+                </Select>
+                <Input name="budget_amount" type="number" min="0" step="0.01" required placeholder="Budget" aria-label="Budget amount" />
+                <Button type="submit">Add</Button>
+              </form>
+            )}
           </Section>
 
           <Section title="Linked work orders" subtitle="Project spend is derived from approved and paid bills on these work orders." padded>
