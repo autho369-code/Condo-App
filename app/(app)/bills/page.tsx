@@ -84,7 +84,7 @@ export default async function BillsPage({
     billsQuery,
     // Payments tab: paid bills
     db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')
+      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')
       .eq('status', 'paid')
       .order('paid_at', { ascending: false, nullsFirst: false })
       .limit(500),
@@ -206,7 +206,7 @@ export default async function BillsPage({
             { header: 'For' },
             { header: 'GL Account' },
             { header: 'Due Date' },
-            { header: 'Amount', align: 'right' },
+            { header: 'Amount owed', align: 'right' },
             { header: 'Status' },
             { header: 'Cash Account' },
           ],
@@ -217,7 +217,7 @@ export default async function BillsPage({
             b.associations?.name ?? '—',
             b.gl_accounts ? `${b.gl_accounts.number}: ${b.gl_accounts.name}` : '—',
             date(b.due_date),
-            money(b.amount),
+            money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0)),
             billStatusLabel(b.status),
             b.bank_accounts?.name ?? '—',
           ]),
@@ -229,7 +229,7 @@ export default async function BillsPage({
             { header: 'Payee' },
             { header: 'For' },
             { header: 'Memo' },
-            { header: 'Amount', align: 'right' },
+            { header: 'Cash paid', align: 'right' },
             { header: 'Bill Date' },
             { header: 'Paid' },
           ],
@@ -237,7 +237,7 @@ export default async function BillsPage({
             b.vendors?.name ?? '—',
             b.associations?.name ?? '—',
             b.memo ?? '—',
-            money(b.amount),
+            money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0)),
             date(b.bill_date),
             date(b.paid_at),
           ]),
@@ -417,7 +417,10 @@ export default async function BillsPage({
                         {date(b.due_date)}
                       </TD>
                       <TD className="text-right tabular-nums font-medium text-gray-900">
-                        {money(b.amount)}
+                        {money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}
+                        {Number(b.credit_applied ?? 0) > 0 && (
+                          <span className="block text-xs font-normal text-gray-500">of {money(b.amount)} after {money(b.credit_applied)} credit</span>
+                        )}
                       </TD>
                       <TD>
                         <BillStatusChip status={b.status} />
@@ -477,7 +480,10 @@ export default async function BillsPage({
                         {b.memo ?? '—'}
                       </TD>
                       <TD className="text-right tabular-nums font-medium text-gray-900">
-                        {money(b.amount)}
+                        {money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}
+                        {Number(b.credit_applied ?? 0) > 0 && (
+                          <span className="block text-xs font-normal text-gray-500">+ {money(b.credit_applied)} vendor credit</span>
+                        )}
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">
                         {date(b.bill_date)}
