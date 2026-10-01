@@ -50,19 +50,17 @@ export default async function LedgerPage() {
   }));
   const totalBalance = exportCharges.reduce((s, c) => s + c.balance, 0);
 
-  // Active payment plan for the owner's unit, if any (RLS: their own units).
-  const { data: plan } = await (supabase as any)
+  // Active payment plans for the owner's units (RLS: their own units; one per unit).
+  const { data: activePlans } = await (supabase as any)
     .from('payment_plans')
-    .select('id, total_amount, installment_count, frequency')
+    .select('id, total_amount, installment_count, frequency, units(unit_number)')
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const { data: planSchedule } = plan
-    ? await (supabase as any).rpc('payment_plan_schedule', { p_plan_id: plan.id })
-    : { data: [] };
-  const planRows = (planSchedule ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];
-  const planPaid = planRows.reduce((s, r) => s + Number(r.covered), 0);
+    .order('created_at', { ascending: false });
+  const plans = await Promise.all(((activePlans ?? []) as any[]).map(async (plan) => {
+    const { data: sched } = await (supabase as any).rpc('payment_plan_schedule', { p_plan_id: plan.id });
+    const rows = (sched ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];
+    return { plan, rows, paid: rows.reduce((s, r) => s + Number(r.covered), 0) };
+  }));
 
   return (
     <div className="space-y-8">
@@ -78,9 +76,11 @@ export default async function LedgerPage() {
         />
       </div>
 
-      {plan && (
-        <section>
-          <h2 className="mb-1 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Your payment plan</h2>
+      {plans.map(({ plan, rows: planRows, paid: planPaid }) => (
+        <section key={plan.id}>
+          <h2 className="mb-1 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+            Your payment plan{plans.length > 1 && plan.units?.unit_number ? ` · Unit ${plan.units.unit_number}` : ''}
+          </h2>
           <p className="mb-3 text-sm text-gray-500">
             {money(plan.total_amount)} in {plan.installment_count} installments · {money(planPaid)} paid · {money(Math.max(Number(plan.total_amount) - planPaid, 0))} remaining.
             Your payments count toward the plan automatically.
@@ -102,7 +102,7 @@ export default async function LedgerPage() {
             </tbody>
           </Table>
         </section>
-      )}
+      ))}
 
       <section>
         <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Charges</h2>

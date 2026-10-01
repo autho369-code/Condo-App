@@ -43,7 +43,7 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
     const paid = s.reduce((sum, i) => sum + Number(i.covered), 0);
     const next = s.find((i) => i.status !== 'paid');
     const status = p.status === 'cancelled' ? 'Cancelled'
-      : !next ? 'Paid off'
+      : p.status === 'completed' || !next ? 'Paid off'
       : s.some((i) => i.status === 'behind') ? 'Behind' : 'Current';
     return { paid, nextDue: next?.due_date ?? null, status };
   }));

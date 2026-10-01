@@ -46,7 +46,7 @@ export default async function PaymentPlanPage({
   const paid = rows.reduce((s, r) => s + Number(r.covered), 0);
   const next = rows.find((r) => r.status !== 'paid');
   const behind = rows.some((r) => r.status === 'behind');
-  const overall = plan.status === 'cancelled' ? 'Cancelled' : !next ? 'Paid off' : behind ? 'Behind' : 'Current';
+  const overall = plan.status === 'cancelled' ? 'Cancelled' : plan.status === 'completed' || !next ? 'Paid off' : behind ? 'Behind' : 'Current';
   const frequencyLabel = plan.frequency === 'biweekly' ? 'every two weeks' : plan.frequency;
 
   return (
@@ -114,7 +114,11 @@ export default async function PaymentPlanPage({
           </Surface>
         )}
 
-        {plan.status === 'cancelled' ? (
+        {plan.status === 'completed' ? (
+          <Surface>
+            <SectionTitle title="Paid off" description="Every installment is covered. Any collections hold the plan placed was released." />
+          </Surface>
+        ) : plan.status === 'cancelled' ? (
           <Surface>
             <SectionTitle title="Cancelled" description={plan.cancelled_at ? date(plan.cancelled_at) : undefined} />
             <p className="text-sm text-gray-700">{plan.cancel_reason}</p>
