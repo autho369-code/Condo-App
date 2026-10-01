@@ -5,7 +5,9 @@ import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
+import { findMisplacedAssociationDocuments } from '@/lib/documents/misplaced';
+import { repairMisplacedAssociationDocuments } from '@/lib/rpcs/document-repair';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -46,10 +48,12 @@ function noticeStatusDisplay(status: string): { label: string; tone: Tone } {
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; type?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; type?: string; repaired?: string; error?: string }>;
 }) {
-  await requireStaff();
-  const { tab: tabParam, q = '', type = '' } = await searchParams;
+  const me = await requireStaff();
+  const { tab: tabParam, q = '', type = '', repaired, error: pageError } = await searchParams;
+  // Files stored outside associations/<id>/ are hidden by RLS; offer a fix.
+  const misplaced = me.portfolio?.id ? await findMisplacedAssociationDocuments(me.portfolio.id) : [];
   const tab = parseTab(tabParam);
 
   const supabase = await createClient();
@@ -161,6 +165,18 @@ export default async function DocumentsPage({
       }
     >
       <div className="space-y-6">
+        {pageError && <Alert tone="danger" title="Some files were not fixed.">{pageError}</Alert>}
+        {repaired && !pageError && <Alert tone="success" title="File locations fixed.">{repaired} document{repaired === '1' ? ' is' : 's are'} visible again.</Alert>}
+        {misplaced.length > 0 && (
+          <Alert tone="warning" title={`${misplaced.length} document${misplaced.length === 1 ? ' is' : 's are'} hidden by a storage problem.`}>
+            <span className="block">
+              {misplaced.map((d) => d.file_name ?? d.file_url).join(', ')} {misplaced.length === 1 ? 'is' : 'are'} stored outside the association&apos;s folder, so staff and owners can&apos;t open {misplaced.length === 1 ? 'it' : 'them'}.
+            </span>
+            <form action={repairMisplacedAssociationDocuments} className="mt-2">
+              <Button type="submit" size="sm">Fix file locations</Button>
+            </form>
+          </Alert>
+        )}
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
