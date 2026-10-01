@@ -966,9 +966,12 @@ async function ARAgingView({
 }: ReportContext) {
   const supabase = await createClient();
 
-  let q = (supabase as any).from('aged_receivables').select('*').order('due_date');
-  if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
-  const { data: rows } = await q;
+  // Every open charge (one request stopped at 1,000 rows and understated A/R).
+  const { rows } = await fetchAllRows<any>(() => {
+    let q = (supabase as any).from('aged_receivables').select('*').order('due_date').order('charge_id');
+    if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
+    return q;
+  });
   const assocs = associations;
 
   // aged_receivables emits underscore bucket keys: current, 1_30, 31_60, 61_90, 90_plus

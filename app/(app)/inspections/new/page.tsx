@@ -30,10 +30,19 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
     const supabase = await createClient();
     const associationId = (formData.get('association_id') as string) || null;
     if (!associationId) redirect('/inspections/new?error=' + encodeURIComponent('Select an association.'));
+    const unitId = (formData.get('unit_id') as string) || null;
+    if (unitId) {
+      // The unit list spans every association; the unit must be in the chosen one
+      // (its residents can read the inspection by unit).
+      const { data: unit } = await (supabase as any).from('units').select('id, buildings!inner(association_id)').eq('id', unitId).maybeSingle();
+      if (!unit || unit.buildings?.association_id !== associationId) {
+        redirect('/inspections/new?error=' + encodeURIComponent('That unit is not in the selected association.'));
+      }
+    }
     const { error } = await (supabase as any).from('inspections').insert({
       portfolio_id: me.portfolio?.id,
       association_id: associationId,
-      unit_id: (formData.get('unit_id') as string) || null,
+      unit_id: unitId,
       inspection_type: (formData.get('inspection_type') as string)?.trim() || null,
       scheduled_date: (formData.get('scheduled_date') as string) || null,
       status: (formData.get('status') as string) || 'scheduled',
