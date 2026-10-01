@@ -44,9 +44,14 @@ export default async function BankAccountsPage({
       title={filter === 'unreconciled' ? 'Unreconciled bank accounts' : 'Bank accounts'}
       description="Operating, reserve, and trust accounts with reconciliation, deposits, bank feed, and reporting entry points."
       actions={
-        <Link href="/bank-accounts/new">
-          <Button><Plus className="h-4 w-4" /> New bank account</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/credit-cards">
+            <Button variant="secondary">Credit card accounts</Button>
+          </Link>
+          <Link href="/bank-accounts/new">
+            <Button><Plus className="h-4 w-4" /> New bank account</Button>
+          </Link>
+        </div>
       }
     >
       <div className="space-y-6">
