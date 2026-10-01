@@ -4,6 +4,7 @@ import {
   createOffSessionPaymentIntent,
   createSetupCheckoutSession,
   expectedStripeLivemode,
+  findPaymentIntentByMetadata,
   isIndeterminateStripeError,
   isStripeConfigured,
 } from '@/lib/payments/stripe';
@@ -47,6 +48,20 @@ describe('Stripe Connect direct-charge requests', () => {
     expect(headers['Idempotency-Key']).toBe('checkout-f7f79522-827b-4ea1-a06d-4eb199956196');
     expect(String(init.body)).not.toContain('transfer_data');
     expect(String(init.body)).not.toContain('destination');
+  });
+
+  it('looks up an earlier AutoPay attempt by run id on the association account', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(stripeResponse({ data: [{ id: 'pi_test_1', status: 'succeeded', amount: 12_345 }] }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const found = await findPaymentIntentByMetadata('acct_Association123', 'autopay_run_id', 'f7f79522-827b-4ea1-a06d-4eb199956196');
+
+    expect(found?.id).toBe('pi_test_1');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(decodeURIComponent(url)).toContain("/payment_intents/search?query=metadata['autopay_run_id']:'f7f79522-827b-4ea1-a06d-4eb199956196'");
+    expect(init.method).toBe('GET');
+    expect((init.headers as Record<string, string>)['Stripe-Account']).toBe('acct_Association123');
+    await expect(findPaymentIntentByMetadata('acct_Association123', 'autopay_run_id', "x' OR '1")).rejects.toThrow();
   });
 
   it('fails configuration closed when the explicit mode and secret key disagree', () => {

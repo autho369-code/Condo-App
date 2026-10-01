@@ -16,6 +16,7 @@ import {
   Clock,
   ShieldAlert,
 } from 'lucide-react'
+import { displayTimeZone } from '@/lib/time/display-zone'
 
 export const dynamic = 'force-dynamic'
 
@@ -704,6 +705,7 @@ export default async function PlatformOperatorOverviewPage() {
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
+                              timeZone: displayTimeZone(),
                             })
                           : '—'}
                       </td>
@@ -766,6 +768,7 @@ export default async function PlatformOperatorOverviewPage() {
                             ? new Date(row.trial_ends_at).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
+                                timeZone: displayTimeZone(),
                               })
                             : '—'}
                         </td>

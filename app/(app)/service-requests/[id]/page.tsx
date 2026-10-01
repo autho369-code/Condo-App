@@ -18,6 +18,7 @@ import {
   acknowledgeServiceRequest, clearDuplicateFlag, mergeServiceRequest, reclassifyServiceRequest,
   resolveServiceRequest, triageServiceRequest,
 } from '../actions';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,7 +140,7 @@ export default async function ServiceRequestDetail({
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Response time</div>
             <dl className="space-y-1.5">
               <div className="flex justify-between gap-3"><dt className="text-gray-500">Submitted</dt><dd>{date(sr.created_at)}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-gray-500">Reply due</dt><dd>{sr.first_response_due_at ? new Date(sr.first_response_due_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-gray-500">Reply due</dt><dd>{sr.first_response_due_at ? new Date(sr.first_response_due_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-gray-500">Responded</dt><dd>{sr.acknowledged_at ? date(sr.acknowledged_at) : 'Not yet'}</dd></div>
             </dl>
           </div>

@@ -3,6 +3,7 @@ import { requirePlatformOperator } from '@/lib/auth/me';
 import { Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Mail, MessageSquare, AlertTriangle } from 'lucide-react';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,7 +232,7 @@ export default async function CommunicationsPage() {
                 {monthComms.slice(0, 50).map((c: any) => (
                   <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-gray-500">
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <StatusChip tone={channelTone(c.channel)}>{c.channel ?? 'unknown'}</StatusChip>

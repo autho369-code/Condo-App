@@ -21,6 +21,7 @@ import {
   saveMeetingNotes,
   updateMeetingActionStatus,
 } from './actions';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,8 +118,8 @@ export default async function MeetingDetailPage({
         {saved && <Alert tone="success" title={saved} />}
 
         <Surface className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div><span className="text-gray-500">Date</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleDateString() : '—'}</p></div>
-          <div><span className="text-gray-500">Time</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</p></div>
+          <div><span className="text-gray-500">Date</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-US', { timeZone: displayTimeZone(), month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</p></div>
+          <div><span className="text-gray-500">Time</span><p className="font-medium text-gray-900">{meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}</p></div>
           <div><span className="text-gray-500">Location</span><p className="font-medium text-gray-900">{meeting.location || '—'}</p></div>
           <div><span className="text-gray-500">Status</span><p className="font-medium capitalize text-gray-900">{meeting.status?.replace(/_/g, ' ') || '—'}</p></div>
         </Surface>
@@ -256,7 +257,7 @@ export default async function MeetingDetailPage({
                         <span className="font-medium text-gray-900">{attendee.attendee_name}</span>
                         {attendee.attendee_role && <span className="ml-2 text-xs capitalize text-gray-500">{attendee.attendee_role}</span>}
                         {attendee.voting_eligible && <span className="ml-2 text-[11px] font-medium text-blue-700">Voting</span>}
-                        <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—'}</div>
+                        <div className="text-xs text-gray-400">{attendee.check_in_time ? `Checked in ${new Date(attendee.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() })}` : '—'}</div>
                       </div>
                       <form action={removeMeetingAttendee.bind(null, id, attendee.id)}><Button type="submit" variant="ghost" size="sm">Remove</Button></form>
                     </li>

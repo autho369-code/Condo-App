@@ -6,6 +6,7 @@ import { PrintButton } from '@/components/ui/print-button';
 import { Button } from '@/components/ui/button';
 import { receiptMethodLabel } from '@/lib/payments/methods';
 import { money } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +89,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
         {p.notes && <p className="mt-2 text-sm text-gray-600">Note: {p.notes}</p>}
 
         <p className="mt-8 border-t border-gray-200 pt-4 text-xs text-gray-400">
-          Recorded {new Date(p.created_at).toLocaleString('en-US')}. Keep this receipt for your records.
+          Recorded {new Date(p.created_at).toLocaleString('en-US', { timeZone: displayTimeZone(), dateStyle: 'medium', timeStyle: 'short' })}. Keep this receipt for your records.
           {assoc?.portfolios?.support_email ? ` Questions: ${assoc.portfolios.support_email}` : ''}
         </p>
       </div>

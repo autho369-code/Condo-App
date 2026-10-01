@@ -29,7 +29,7 @@ export function CsvUploadForm({
     <form action={formAction} className="space-y-4">
       {result && (
         <Alert tone={result.ok ? 'success' : 'danger'} title={result.message}>
-          {result.ok && result.href && <Link href={result.href} className="font-medium underline">View them</Link>}
+          {result.href && <Link href={result.href} className="font-medium underline">{result.ok ? 'View them' : 'Open it'}</Link>}
           {!result.ok && result.errors && result.errors.length > 0 && (
             <ul className="mt-1 list-disc space-y-0.5 pl-5">
               {result.errors.map((e, i) => <li key={i}>{e}</li>)}

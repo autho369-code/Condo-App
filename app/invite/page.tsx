@@ -8,6 +8,7 @@ import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,17 @@ const ROLE_LABELS: Record<string, string> = {
   tenant: 'Tenant',
   vendor: 'Vendor',
 };
+
+/** Whether the invited email already has a Portier369 sign-in. */
+async function hasExistingAccount(svc: any, email: string): Promise<boolean> {
+  const candidates = [...new Set([email, email.toLowerCase()])];
+  const { data } = await svc.from('profiles').select('id').in('email', candidates).limit(1);
+  return (data ?? []).length > 0;
+}
+
+function signInToAcceptHref(token: string): string {
+  return `/login?next=${encodeURIComponent(`/accept-invitation?token=${encodeURIComponent(token)}`)}`;
+}
 
 async function acceptInvite(formData: FormData) {
   'use server';
@@ -59,6 +71,10 @@ async function acceptInvite(formData: FormData) {
     failTo('This invitation belongs to a different company workspace.');
   }
 
+  // An existing account signs in and confirms instead of creating a second
+  // identity (generateLink would fail with a raw "already registered" error).
+  if (await hasExistingAccount(svc, invite.email)) redirect(signInToAcceptHref(token));
+
   const callbackUrl = tenant
     ? resolvedTenantUrl(tenant, '/api/auth/callback')
     : tenantWorkspaceUrl(invite.portfolios?.slug, '/api/auth/callback');
@@ -77,6 +93,7 @@ async function acceptInvite(formData: FormData) {
       },
     },
   });
+  if (createErr && /already (been )?registered|already exists/i.test(createErr.message ?? '')) redirect(signInToAcceptHref(token));
   if (createErr || !linkData?.properties?.action_link || !linkData.user?.id) failTo(createErr?.message ?? 'Could not create the verification link.');
 
   const queued = await queueEmails(svc, [{
@@ -168,7 +185,7 @@ export default async function InvitePage({
     return (
       <Shell title="Invitation expired">
         <p className="mt-2 text-sm leading-6 text-gray-500">
-          This invitation expired on {new Date(invite.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. Contact your administrator for a new invitation.
+          This invitation expired on {new Date(invite.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: displayTimeZone() })}. Contact your administrator for a new invitation.
         </p>
       </Shell>
     );
@@ -176,6 +193,23 @@ export default async function InvitePage({
 
   const companyName = invite.portfolios?.company_name;
   const roleLabel = ROLE_LABELS[invite.hoa_role] ?? invite.hoa_role ?? 'staff';
+
+  if (await hasExistingAccount(svc, invite.email)) {
+    return (
+      <Shell title="Accept your invitation">
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          You&apos;ve been invited to join{companyName ? <> <strong className="text-gray-900">{companyName}</strong></> : null} as <strong className="text-gray-900">{roleLabel}</strong>.
+        </p>
+        <p className="mt-1 text-sm leading-6 text-gray-500">
+          <strong className="text-gray-900">{invite.email}</strong> already has a Portier369 account. Sign in with it to accept.
+        </p>
+        <a href={signInToAcceptHref(token)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-[14px] font-medium text-white hover:bg-gray-800">
+          Sign in to accept
+        </a>
+        <a href="/forgot-password" className="mt-3 block text-center text-sm text-gray-500 underline-offset-4 hover:underline">Forgot your password?</a>
+      </Shell>
+    );
+  }
 
   return (
     <Shell title="Accept your invitation">

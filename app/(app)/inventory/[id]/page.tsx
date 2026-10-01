@@ -11,6 +11,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { archiveInventoryItem, recordInventoryMovement, updateInventoryItem } from '@/lib/rpcs/inventory';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,7 +179,7 @@ export default async function InventoryItemPage({
                 <TR><TD colSpan={7} className="py-8 text-center text-gray-500">No stock movements yet.</TD></TR>
               ) : (movements ?? []).map((m: any) => (
                 <TR key={m.id}>
-                  <TD className="whitespace-nowrap text-gray-700">{new Date(m.created_at).toLocaleDateString('en-US')}</TD>
+                  <TD className="whitespace-nowrap text-gray-700">{new Date(m.created_at).toLocaleDateString('en-US', { timeZone: displayTimeZone(), month: 'short', day: 'numeric', year: 'numeric' })}</TD>
                   <TD>
                     <StatusChip tone={m.kind === 'used' ? 'warning' : m.kind === 'received' ? 'success' : 'neutral'}>
                       {KIND_LABEL[m.kind] ?? m.kind}

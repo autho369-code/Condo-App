@@ -20,7 +20,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export default async function ReceiptsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; range?: string; assoc?: string; method?: string; q?: string; credits?: string; posted?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; range?: string; assoc?: string; method?: string; q?: string; credits?: string; posted?: string; notice?: string }>;
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
@@ -109,6 +109,11 @@ export default async function ReceiptsPage({
       }
     >
       <div className="space-y-4">
+        {sp.notice === 'receipt_in_progress' && (
+          <Alert tone="warning" title="That receipt was already submitted.">
+            It is being saved from your first click. Check the list below before entering it again.
+          </Alert>
+        )}
         {posted && (
           <Alert tone="success" title="Receipt recorded.">
             {money(posted.amount)} from Unit {posted.units?.unit_number ?? '—'} was applied and posted to the ledger.{' '}

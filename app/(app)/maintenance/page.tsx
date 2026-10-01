@@ -164,10 +164,12 @@ async function completeTask(formData: FormData) {'use server';
     // instead of overflowing into the next month.
     const freq = task.frequency; const cd = Number(task.custom_interval_days) || 0;
     const due = String(task.next_due_date).slice(0, 10);
+    // Anchor on the task's start day so Jan 30 -> Feb 28 -> Mar 30.
+    const anchorDay = Number(String(task.start_date ?? '').slice(8, 10)) || null;
     const monthSteps: Record<string, number> = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 };
     const nd = (freq === 'weekly' ? nextRecurringDate(due, 'weekly', 1)
       : freq === 'custom' && cd > 0 ? nextRecurringDate(due, 'daily', cd)
-      : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq])
+      : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq], anchorDay)
       : null) ?? due;
     const { error: nextError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,

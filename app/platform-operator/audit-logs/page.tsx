@@ -3,6 +3,7 @@ import { requirePlatformOperator } from '@/lib/auth/me';
 import { Badge } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { FileSearch, Filter, Calendar, Building2, User } from 'lucide-react';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,7 +157,7 @@ export default async function AuditLogsPage({
                       <td className="whitespace-nowrap px-4 py-3 text-[13px] tabular-nums text-gray-700">
                         {date(row.created_at)}{' '}
                         <span className="text-xs text-gray-400">
-                          {row.created_at ? new Date(row.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
+                          {row.created_at ? new Date(row.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: displayTimeZone() }) : ''}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-[13px] text-gray-700">

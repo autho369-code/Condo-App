@@ -321,6 +321,25 @@ export async function createOffSessionPaymentIntent(params: {
 }
 
 /**
+ * Find a PaymentIntent on a connected account by one metadata value (Stripe
+ * Search). Used before re-submitting an AutoPay run whose earlier attempt had
+ * no definitive answer: Stripe only replays idempotent requests for 24 hours,
+ * so a retry the next day could otherwise charge the owner twice.
+ */
+export async function findPaymentIntentByMetadata(stripeAccount: string, key: string, value: string) {
+  if (!/^[a-z_]+$/.test(key) || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    throw new Error('Invalid Stripe metadata search');
+  }
+  const query = encodeURIComponent(`metadata['${key}']:'${value}'`);
+  const res = await stripeRequest<{ data?: Array<{ id: string; status: string; amount: number }> }>(
+    `/payment_intents/search?query=${query}&limit=10`,
+    undefined,
+    { stripeAccount },
+  );
+  return (res.data ?? [])[0] ?? null;
+}
+
+/**
  * Verify a Stripe webhook signature (Stripe-Signature header: t=...,v1=...).
  * Manual HMAC-SHA256 of `${t}.${rawBody}` with the endpoint secret.
  */
