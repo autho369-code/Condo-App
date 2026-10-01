@@ -27,14 +27,16 @@ const MOVED_LABEL: Record<string, string> = {
   adjusted: 'Stock adjusted.',
 };
 
-const OPEN_WORK_ORDER_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress', 'done', 'completed'];
+// Jobs still in progress; any other work order can be entered by number.
+const OPEN_WORK_ORDER_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
+const PAGE_SIZE = 100;
 
 export default async function InventoryItemPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string; moved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; moved?: string; page?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
@@ -49,19 +51,21 @@ export default async function InventoryItemPage({
     .is('archived_at', null)
     .maybeSingle();
   if (!item) notFound();
+  const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
 
-  const [{ data: movements }, { data: workOrders }] = await Promise.all([
+  const [{ data: movements, count: movementCount }, { data: workOrders }] = await Promise.all([
     db.from('inventory_movements')
-      .select('id, kind, quantity_change, quantity_after, unit_cost, note, created_at, work_order_id, created_by, work_orders(number, title), associations(name)')
+      .select('id, kind, quantity_change, quantity_after, unit_cost, note, created_at, work_order_id, created_by, work_orders(number, title), associations(name)', { count: 'exact' })
       .eq('item_id', id)
       .order('created_at', { ascending: false })
-      .limit(200),
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
     db.from('work_orders')
       .select('id, number, title, associations(name)')
       .in('status', OPEN_WORK_ORDER_STATUSES)
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(1000),
   ]);
+  const totalPages = Math.max(1, Math.ceil((movementCount ?? 0) / PAGE_SIZE));
 
   // created_by references auth.users, so names come from profiles separately.
   const userIds = [...new Set(((movements ?? []) as any[]).map((m) => m.created_by).filter(Boolean))];
@@ -107,7 +111,7 @@ export default async function InventoryItemPage({
               </Select>
             </Field>
             <Field label={`Quantity${unit ? ` (${unit})` : ''}`} htmlFor="quantity">
-              <Input id="quantity" name="quantity" type="number" min="0.01" step="any" required />
+              <Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" required />
             </Field>
             <Field label="Correction direction" htmlFor="direction" hint="Only for count corrections.">
               <Select id="direction" name="direction" defaultValue="">
@@ -116,7 +120,7 @@ export default async function InventoryItemPage({
                 <option value="remove">Remove from stock</option>
               </Select>
             </Field>
-            <Field label="Work order (optional)" htmlFor="work_order_id" hint="For stock used on a job.">
+            <Field label="Open work order (optional)" htmlFor="work_order_id" hint="For stock used on a job.">
               <Select id="work_order_id" name="work_order_id" defaultValue="">
                 <option value="">None</option>
                 {(workOrders ?? []).map((w: any) => (
@@ -125,6 +129,9 @@ export default async function InventoryItemPage({
                   </option>
                 ))}
               </Select>
+            </Field>
+            <Field label="Or work order # (optional)" htmlFor="work_order_number" hint="Any work order, e.g. 2671-1.">
+              <Input id="work_order_number" name="work_order_number" placeholder="2671-1" />
             </Field>
             <Field label="Unit cost (optional)" htmlFor="unit_cost" hint="For stock received.">
               <Input id="unit_cost" name="unit_cost" type="number" min="0" step="0.01" />
@@ -139,8 +146,15 @@ export default async function InventoryItemPage({
         </Surface>
 
         <Surface padded={false}>
-          <div className="px-5 pt-5">
-            <SectionTitle title="History" />
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5">
+            <SectionTitle title="History" description={`${movementCount ?? 0} movement${movementCount === 1 ? '' : 's'}`} />
+            {totalPages > 1 && (
+              <div className="flex items-center gap-3 text-sm">
+                {page > 1 ? <Link href={`/inventory/${item.id}?page=${page - 1}`} className="text-gray-900 underline underline-offset-4">Newer</Link> : <span className="text-gray-300">Newer</span>}
+                <span className="text-gray-500">Page {page} of {totalPages}</span>
+                {page < totalPages ? <Link href={`/inventory/${item.id}?page=${page + 1}`} className="text-gray-900 underline underline-offset-4">Older</Link> : <span className="text-gray-300">Older</span>}
+              </div>
+            )}
           </div>
           <Table>
             <THead>

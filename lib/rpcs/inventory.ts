@@ -50,8 +50,15 @@ export async function recordInventoryMovement(formData: FormData) {
   await requireStaff();
   const { id, back } = itemPath(formData);
   const kind = text(formData, 'kind');
-  const workOrder = text(formData, 'work_order_id');
+  let workOrder = text(formData, 'work_order_id');
+  const workOrderNumber = text(formData, 'work_order_number').replace(/^#/, '');
   const db = (await createClient()) as any;
+  if (kind === 'used' && !UUID.test(workOrder) && workOrderNumber) {
+    // RLS limits the lookup to work orders this staffer can see.
+    const { data: wo } = await db.from('work_orders').select('id').eq('number', workOrderNumber).limit(1).maybeSingle();
+    if (!wo) redirect(`${back}?error=${encodeURIComponent(`Work order #${workOrderNumber} not found.`)}`);
+    workOrder = wo.id;
+  }
   const { error } = await db.rpc('record_inventory_movement', {
     p_item_id: id,
     p_kind: kind,
