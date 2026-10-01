@@ -1,3 +1,4 @@
+import { vendor1099Rows } from '@/lib/finance/totals';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { PrintControls } from './print-controls';
@@ -82,38 +83,13 @@ export default async function Print1099Page({
     : { data: null };
 
 
-  // Fetch all paid bills for the tax year with vendor 1099 info
-  const yearStart = `${taxYear}-01-01`;
-
-  let query = (supabase as any)
-    .from('payable_bills')
-    .select(`
-      id, amount, credit_applied, paid_at, bill_date, status, association_id,
-      association:association_id(id, name, legal_name, address, city, state, zip, tax_id),
-      vendor:vendor_id(
-        id, name, vendor_type, send_1099,
-        taxpayer_name, vendor_financial_details(taxpayer_id, tax_account_number),
-        address_street, address_city, address_state, address_zip
-      )
-    `)
-    .eq('status', 'paid')
-    .gte('paid_at', yearStart)
-    // paid_at is a timestamp: <= 'YYYY-12-31' stops at midnight and dropped
-    // December 31 payments (the list page already uses this bound).
-    .lt('paid_at', `${taxYear + 1}-01-01`);
-
-  if (vendorFilter) {
-    query = query.eq('vendor_id', vendorFilter);
-  }
-  if (associationFilter) {
-    query = query.eq('association_id', associationFilter);
-  }
-
-  const { data: bills } = await query.order('paid_at', { ascending: true });
+  // Paid bills per payer + vendor, summed in the database (a list of bills
+  // stopped at 1,000 rows and understated the printed 1099 amounts).
+  const bills = await vendor1099Rows(supabase as any, taxYear, { vendorId: vendorFilter ?? null, associationId: associationFilter ?? null });
 
   // Aggregate by vendor
   const vendorMap = new Map<string, Vendor1099Detail>();
-  for (const bill of (bills ?? []) as any[]) {
+  for (const bill of bills as any[]) {
     const v = bill.vendor;
     if (!v || typeof v !== 'object' || !v.send_1099) continue;
 
@@ -139,7 +115,7 @@ export default async function Print1099Page({
     const entry = vendorMap.get(vid)!;
     // Cash actually paid: vendor credits applied to the bill are not payments.
     entry.total_paid += Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0);
-    entry.bill_count += 1;
+    entry.bill_count += bill.bill_count ?? 1;
   }
 
   const vendors = Array.from(vendorMap.values())

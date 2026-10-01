@@ -11,19 +11,24 @@ export const dynamic = 'force-dynamic';
 export default async function CompliancePage() {
   await requireStaff();
   const supabase = await createClient();
-  const { data: rows } = await (supabase as any)
-    .from('violations')
-    .select('id, title, violation_type, status, date_observed, due_date, fine_amount, associations(name), units(unit_number), owners(full_name)')
-    .is('archived_at', null)
-    .order('date_observed', { ascending: false })
-    .limit(200);
+  // The list shows the latest 200; the totals are counted in the database.
+  const [{ data: rows }, { count: totalCount }, { count: openCount }] = await Promise.all([
+    (supabase as any)
+      .from('violations')
+      .select('id, title, violation_type, status, date_observed, due_date, fine_amount, associations(name), units(unit_number), owners(full_name)')
+      .is('archived_at', null)
+      .order('date_observed', { ascending: false })
+      .limit(200),
+    (supabase as any).from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    (supabase as any).from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'),
+  ]);
 
-  const open = (rows ?? []).filter((v: any) => v.status !== 'closed' && v.status !== 'cured').length;
+  const open = openCount ?? 0;
 
   return (
     <DataWorkspace
       title="Compliance / Violations"
-      description={`${open} open · ${(rows ?? []).length} total violations tracked.`}
+      description={`${open} open · ${totalCount ?? (rows ?? []).length} total violations tracked.${(totalCount ?? 0) > (rows ?? []).length ? ` Showing the latest ${(rows ?? []).length}.` : ''}`}
     >
       {rows && rows.length > 0 ? (
         <Table>

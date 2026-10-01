@@ -75,7 +75,7 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
     const { error: postErr } = await db.from('journal_entries').update({ posted: true }).eq('id', entry.id);
     if (postErr) fail(`Saved as draft, but posting failed: ${postErr.message}`);
 
-    redirect('/journal-entries');
+    redirect('/journal-entries?saved=1');
   }
 
   return (

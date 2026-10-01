@@ -1,3 +1,4 @@
+import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals, receivableSummary } from '@/lib/finance/totals';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -112,21 +113,22 @@ export default async function MetricsPage() {
     { count: associationCount },
     { count: openWorkOrders },
     { count: openViolations },
-    { data: arData },
+    receivables,
     { data: billsAwaiting },
     { count: unitCount },
-    { data: currentOccupancies },
+    { count: occupiedUnitCount },
   ] = await Promise.all([
     db.from('v_portfolio_health').select('*').eq('portfolio_id', portfolioId).maybeSingle(),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portfolio_id', portfolioId),
     db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")'),
     db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'),
-    db.from('unit_balances').select('balance').gt('balance', 0),
+    receivableSummary(db),
     db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved'),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     // Occupied = units with a current occupancy (occupancies is the source of
     // truth; unit_owners is a legacy link table and can be empty)
-    db.from('occupancies').select('unit_id').eq('status', 'current'),
+    // Counted in the database (a row list stops at 1,000).
+    db.from('units').select('id, occupancies!inner(status)', { count: 'exact', head: true }).is('archived_at', null).eq('occupancies.status', 'current'),
   ]);
 
   // Revenue/expenses MTD + portal activation are computed here —
@@ -135,43 +137,28 @@ export default async function MetricsPage() {
   const monthStart = new Date();
   monthStart.setDate(1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
-  const [{ data: mtdLines }, { data: incomeExpenseAccounts }, { data: ownerFlags }, { data: cashBanks }] = await Promise.all([
-    db.from('journal_lines')
-      .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
-      .eq('journal_entries.posted', true)
-      .gte('journal_entries.entry_date', monthStartStr),
-    db.from('gl_accounts').select('id, account_type').in('account_type', ['income', 'other_income', 'expense', 'other_expense']),
-    db.from('owners').select('portal_activated').is('archived_at', null),
+  // Totals and counts come from the database: row lists stop at 1,000 rows.
+  const [mtd, { count: ownerTotal }, { count: ownerActivated }, { data: cashBanks }] = await Promise.all([
+    incomeExpenseTotals(db, { portfolioId, from: monthStartStr }),
+    db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portal_activated', true),
     db.from('bank_accounts').select('gl_account_id').is('archived_at', null),
   ]);
-  const typeByGl = new Map(((incomeExpenseAccounts ?? []) as any[]).map((a: any) => [a.id, a.account_type]));
-  let revenueMtd = 0;
-  let expensesMtd = 0;
-  for (const l of (mtdLines ?? []) as any[]) {
-    const t = typeByGl.get(l.gl_account_id);
-    if (t === 'income' || t === 'other_income') revenueMtd += Number(l.credit_amount ?? 0) - Number(l.debit_amount ?? 0);
-    if (t === 'expense' || t === 'other_expense') expensesMtd += Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0);
-  }
-  const ownersAll = (ownerFlags ?? []) as any[];
-  const portalActivatedCount = ownersAll.filter((o: any) => o.portal_activated).length;
-  const portalActivationPct = ownersAll.length > 0 ? (portalActivatedCount / ownersAll.length) * 100 : 0;
-  const portalNotActivated = ownersAll.length - portalActivatedCount;
+  const revenueMtd = mtd.income;
+  const expensesMtd = mtd.expense;
+  const ownersCount = ownerTotal ?? 0;
+  const portalActivatedCount = ownerActivated ?? 0;
+  const portalActivationPct = ownersCount > 0 ? (portalActivatedCount / ownersCount) * 100 : 0;
+  const portalNotActivated = ownersCount - portalActivatedCount;
 
   // Cash position (bank GL balances) + MTD collection rate — also never
   // present on the health view.
   const bankGlIds = ((cashBanks ?? []) as any[]).map((b: any) => b.gl_account_id).filter(Boolean);
-  const [{ data: bankLines }, { data: chargesMtd }, { data: paymentsMtd }] = await Promise.all([
-    bankGlIds.length > 0
-      ? db.from('journal_lines')
-          .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)')
-          .in('gl_account_id', bankGlIds)
-          .eq('journal_entries.posted', true)
-      : Promise.resolve({ data: [] }),
-    db.from('charges').select('amount').gte('created_at', monthStartStr),
-    db.from('payments').select('amount').neq('method', 'credit').gte('created_at', monthStartStr),
+  const [cashByGl, mtdBilling] = await Promise.all([
+    glDebitBalances(db, { glAccountIds: bankGlIds }),
+    billingCollectionTotals(db, monthStartStr, new Date().toISOString().slice(0, 10)),
   ]);
-  const cashPosition = ((bankLines ?? []) as any[]).reduce(
-    (s: number, l: any) => s + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0), 0);
+  const cashPosition = [...cashByGl.values()].reduce((s, v) => s + v, 0);
 
   // Operations + delinquency tiles (also unbacked by the health view)
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -190,14 +177,14 @@ export default async function MetricsPage() {
   const delinq0_30 = delinq.filter((r) => (r.days_past_due ?? 0) <= 30).length;
   const delinq31_60 = delinq.filter((r) => (r.days_past_due ?? 0) > 30 && (r.days_past_due ?? 0) <= 60).length;
   const delinq61Plus = delinq.filter((r) => (r.days_past_due ?? 0) > 60).length;
-  const chargesMtdTotal = ((chargesMtd ?? []) as any[]).reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0);
-  const paymentsMtdTotal = ((paymentsMtd ?? []) as any[]).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+  const chargesMtdTotal = mtdBilling.charges;
+  const paymentsMtdTotal = mtdBilling.payments;
   const collectionRatePct = chargesMtdTotal > 0 ? Math.min(100, (paymentsMtdTotal / chargesMtdTotal) * 100) : (paymentsMtdTotal > 0 ? 100 : 0);
 
-  const arBalance = (arData ?? []).reduce((sum: number, r: any) => sum + (r.balance ?? 0), 0);
+  const arBalance = receivables.arTotal;
   const billsAwaitingTotal = (billsAwaiting ?? []).reduce((sum: number, r: any) => sum + Number(r.amount ?? 0) - Number(r.credit_applied ?? 0), 0);
   const totalUnits = unitCount ?? 0;
-  const occupiedUnits = new Set(((currentOccupancies ?? []) as any[]).map((o: any) => o.unit_id).filter(Boolean)).size;
+  const occupiedUnits = occupiedUnitCount ?? 0;
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
 
   // ── Build top KPI strip ──

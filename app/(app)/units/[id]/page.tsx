@@ -36,7 +36,8 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     (supabase as any).from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
     (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
     (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
-    (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('sort_order'),
+    // Active, unarchived categories (association-specific ones are filtered to this unit's association below).
+    (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type, association_id').eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
   const { data: creditAccounts } = me.is_finance_staff || me.is_company_admin || me.is_platform_operator
     ? await (supabase as any).from('gl_accounts').select('id, number, name, account_type, association_id')
@@ -47,6 +48,8 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
   if (!unit) notFound();
   const meta = await loadRecordMeta(supabase, 'unit', unitId);
   const associationId = (unit.buildings as any)?.association_id;
+  // Portfolio-wide categories plus this association's own.
+  const unitCategories = ((categories ?? []) as any[]).filter((c) => !c.association_id || c.association_id === associationId);
   const { data: bankAccounts } = associationId
     ? await (supabase as any).from('bank_accounts').select('id, name, fund_type, gl_account_id').eq('association_id', associationId).is('archived_at', null).order('name')
     : { data: [] };
@@ -140,7 +143,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               <select id="charge_category_id" name="charge_category_id" required
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Choose a category…</option>
-                {(categories ?? []).map((c: any) => (
+                {unitCategories.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name} ({money(c.default_amount)} / {c.default_frequency})</option>
                 ))}
               </select>
@@ -207,7 +210,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
               <select id="adhoc_cat" name="charge_category_id" required
                 className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                 <option value="">Choose…</option>
-                {(categories ?? []).map((c: any) => (
+                {unitCategories.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

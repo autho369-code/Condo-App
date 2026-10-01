@@ -50,7 +50,8 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
     .order('expiration_date', { ascending: true });
 
   const rows = policies ?? [];
-  const expiring30 = rows.filter((r: any) => r.days_remaining <= 30 && r.days_remaining > 0).length;
+  // A policy ending today (0 days left) is still in force: count it as expiring.
+  const expiring30 = rows.filter((r: any) => r.days_remaining <= 30 && r.days_remaining >= 0).length;
   const expired = rows.filter((r: any) => r.days_remaining < 0).length;
   const active = rows.filter((r: any) => r.days_remaining > 30).length;
 

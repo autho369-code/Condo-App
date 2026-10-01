@@ -1,3 +1,4 @@
+import { formatInZone } from '@/lib/time/zoned';
 import Link from 'next/link';
 import { Inbox, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -134,7 +135,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     <TD><div className="font-medium text-gray-900">{who.name}</div><div className="text-xs text-gray-500">{who.role}</div></TD>
                     <TD><div className="text-gray-900">{one<any>(t.associations)?.name ?? '—'}</div><div className="text-xs text-gray-500">{one<any>(t.units)?.unit_number ? `Unit ${one<any>(t.units).unit_number}` : ''}</div></TD>
                     <TD className="text-sm text-gray-700">{assignee ? (assignee.full_name ?? assignee.email) : <span className="text-gray-400">—</span>}</TD>
-                    <TD className="whitespace-nowrap text-sm text-gray-600">{new Date(t.last_message_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-600">{formatInZone(t.last_message_at)}</TD>
                   </TR>
                 );
               })}

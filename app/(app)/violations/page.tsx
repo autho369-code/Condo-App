@@ -109,9 +109,20 @@ export default async function ViolationsPage({
     .limit(500);
 
   // ── Fetch violations + reference lists ──
-  const [{ data: associations }, { data: rows }] = await Promise.all([
+  // The tiles are counted in the database so they are the same whichever
+  // view is open (the overdue view narrows the list query) and are not capped
+  // by the 500-row list.
+  const openFilter = '("cured","closed")';
+  const [{ data: associations }, { data: rows }, { count: openCount }, { count: overdueCount }, { count: followUpCount }, { count: resolvedCount }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     violationsQuery,
+    db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', openFilter),
+    db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', openFilter)
+      .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`),
+    db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', openFilter)
+      .lte('next_followup_on', todayDate),
+    db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['cured', 'closed'])
+      .or(`closed_at.gte.${monthStart},cured_at.gte.${monthStart}`),
   ]);
 
   const all = (rows ?? []) as any[];
@@ -125,7 +136,8 @@ export default async function ViolationsPage({
     if (filters.status === 'all_open') {
       filtered = filtered.filter((v: any) => !isResolvedStatus(v.status));
     } else if (filters.status === 'overdue') {
-      filtered = filtered.filter((v: any) => v.cure_deadline && v.cure_deadline < todayDate && !isResolvedStatus(v.status));
+      // Same rule as the Overdue count (cure deadline, else due date).
+      filtered = filtered.filter((v: any) => isOverdue(v, todayDate));
     } else if (filters.status === 'followup_due') {
       filtered = filtered.filter((v: any) => isFollowUpDue(v, todayDate));
     } else {
@@ -146,14 +158,10 @@ export default async function ViolationsPage({
   }
 
   // ── Metrics ──
-  const openCases = all.filter((v: any) => !isResolvedStatus(v.status)).length;
-  const overdue = all.filter((v: any) => isOverdue(v, todayDate)).length;
-  const followUpDue = all.filter((v: any) => isFollowUpDue(v, todayDate)).length;
-  const resolvedThisMonth = all.filter(
-    (v: any) =>
-      isResolvedStatus(v.status) &&
-      ((v.closed_at && v.closed_at >= monthStart) || (v.cured_at && v.cured_at >= monthStart)),
-  ).length;
+  const openCases = openCount ?? 0;
+  const overdue = overdueCount ?? 0;
+  const followUpDue = followUpCount ?? 0;
+  const resolvedThisMonth = resolvedCount ?? 0;
 
   const metrics: Metric[] = [
     {

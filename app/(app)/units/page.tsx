@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { Building, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -18,10 +19,14 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
   const tagOptions = await tagsInUse(supabase, 'unit');
   const tagged = tag ? new Set(await recordIdsWithTag(supabase, 'unit', tag)) : null;
 
-  let q = (supabase as any).from('v_unit_account_summary').select('*');
-  if (assoc) q = q.eq('association_id', assoc);
-  const { data: rows, error: unitsError } = await q.order('association_name').order('unit_number');
-  if (unitsError) throw new Error(`Could not load unit account summaries: ${unitsError.message}`);
+  // Every unit (one request stops at 1,000 rows, which also undercounted the
+  // outstanding totals on this page).
+  const { rows, error: unitsError } = await fetchAllRows<any>(() => {
+    let q = (supabase as any).from('v_unit_account_summary').select('*');
+    if (assoc) q = q.eq('association_id', assoc);
+    return q.order('association_name').order('unit_number').order('unit_id');
+  });
+  if (unitsError) throw new Error(`Could not load unit account summaries: ${unitsError}`);
 
   const all = ((rows ?? []) as any[]).filter((u) => !tagged || tagged.has(u.unit_id));
   const filtered = filter === 'balance' ? all.filter((u) => Number(u.outstanding_balance ?? 0) > 0)

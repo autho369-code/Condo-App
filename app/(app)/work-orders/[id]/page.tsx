@@ -77,6 +77,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
+      associations(name, portfolio_id),
       units(unit_number, buildings(association_id, associations(name, portfolio_id))),
       service_requests(id, number, description, priority, source, status, homeowner_id, owners:homeowner_id(full_name, email, phone))
     `).eq('id', id).maybeSingle(),
@@ -102,7 +103,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
   const approvedEstimate = (estimates ?? []).find((e: any) => e.approved_at);
   const staff = (staffRows ?? []) as Array<{ id: string; name: string }>;
 
-  const assoc = (wo.units as any)?.buildings?.associations;
+  // Common-area work orders have no unit; take the association from the work order itself.
+  const assoc = (wo.units as any)?.buildings?.associations ?? (wo as any).associations;
   const sr = wo.service_requests as any;
   const vendor = wo.vendors as any;
 

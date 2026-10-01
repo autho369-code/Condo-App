@@ -187,11 +187,21 @@ export async function setUnitGroupMembers(formData: FormData) {
   const unitIds = formData.getAll('unit_ids').map(String).filter(Boolean);
   const db = (await createClient()) as any;
   // RLS verifies the group and every unit belong to the same association.
-  const { error: delError } = await db.from('unit_group_members').delete().eq('group_id', groupId);
-  if (delError) go(to, 'error', delError.message);
-  if (unitIds.length) {
-    const { error } = await db.from('unit_group_members').insert(unitIds.map((unit_id) => ({ group_id: groupId, unit_id })));
+  // Add the new members first and only then remove the ones no longer
+  // selected, so a failure never leaves the group empty.
+  const { data: current, error: readError } = await db.from('unit_group_members').select('unit_id').eq('group_id', groupId);
+  if (readError) go(to, 'error', readError.message);
+  const existing = new Set(((current ?? []) as { unit_id: string }[]).map((m) => m.unit_id));
+  const wanted = new Set(unitIds);
+  const toAdd = unitIds.filter((u) => !existing.has(u));
+  const toRemove = [...existing].filter((u) => !wanted.has(u));
+  if (toAdd.length) {
+    const { error } = await db.from('unit_group_members').insert(toAdd.map((unit_id) => ({ group_id: groupId, unit_id })));
     if (error) go(to, 'error', error.message);
+  }
+  if (toRemove.length) {
+    const { error: delError } = await db.from('unit_group_members').delete().eq('group_id', groupId).in('unit_id', toRemove);
+    if (delError) go(to, 'error', `New members were added, but some could not be removed: ${delError.message}`);
   }
   go(to, 'saved', `Group now has ${unitIds.length} unit${unitIds.length === 1 ? '' : 's'}.`);
 }

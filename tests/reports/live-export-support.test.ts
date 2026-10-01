@@ -98,7 +98,10 @@ describe('audited live report exports', () => {
       resolve(process.cwd(), 'lib/reports/live-export.ts'),
       'utf8',
     );
-    expect(page).toContain("lt('journal_entries.entry_date', period.from)");
+    // Opening balance = posted totals through the day before the period,
+    // summed in the database (a list of lines stopped at 1,000 rows).
+    expect(page).toContain('to: dayBeforeFrom');
+    expect(page).toContain('ledgerTotalsByAccount(db');
     expect(page).toContain('Running Balance');
     expect(exporter).toContain("'Opening balance': opening");
     expect(exporter).toContain("'Running balance': running");

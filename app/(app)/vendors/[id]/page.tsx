@@ -32,11 +32,12 @@ const COMPLIANCE_FIELDS: Array<{ key: string; label: string }> = [
 
 function expirationTone(value: string | null): { tone: Tone; label: string } {
   if (!value) return { tone: 'neutral', label: 'Not on file' };
-  const d = new Date(value);
+  // Date-only compare: coverage ending today is still valid today.
+  const ymd = String(value).slice(0, 10);
   const now = new Date();
-  const soon = new Date(now.getTime() + 30 * 86400000);
-  if (d < now) return { tone: 'danger', label: `Expired ${date(value)}` };
-  if (d <= soon) return { tone: 'warning', label: `Expires ${date(value)}` };
+  const soon = new Date(now.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+  if (ymd < now.toISOString().slice(0, 10)) return { tone: 'danger', label: `Expired ${date(value)}` };
+  if (ymd <= soon) return { tone: 'warning', label: `Expires ${date(value)}` };
   return { tone: 'success', label: `Valid to ${date(value)}` };
 }
 

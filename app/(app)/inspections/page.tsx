@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { ClipboardCheck, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -103,7 +104,9 @@ export default async function InspectionsPage({
       .order('created_at', { ascending: false })
       .limit(500),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('inspection_items').select('id, inspection_id, severity').order('created_at'),
+    // Every finding (one request stops at 1,000 rows, so newer inspections'
+    // scores went missing).
+    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity').order('created_at').order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   const all = (rows ?? []) as any[];
@@ -148,7 +151,8 @@ export default async function InspectionsPage({
   const completedCount = scored.filter((insp: any) => insp.status === 'completed').length;
   const now = new Date();
   const overdueCount = scored.filter(
-    (insp: any) => insp.scheduled_date && new Date(insp.scheduled_date) < now && insp.status === 'scheduled',
+    // Date-only compare: an inspection scheduled today is not overdue.
+    (insp: any) => insp.scheduled_date && String(insp.scheduled_date).slice(0, 10) < now.toISOString().slice(0, 10) && insp.status === 'scheduled',
   ).length;
 
   const avgScore = (() => {

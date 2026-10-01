@@ -1,3 +1,4 @@
+import { glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
@@ -82,22 +83,12 @@ export default async function BoardFinancialsPage() {
   // income accounts: credit increases; expense accounts: debit increases
   let ytdIncome = 0
   let ytdExpenses = 0
-  try {
-    const { data: pnlLines } = await db
-      .from('journal_lines')
-      .select('debit_amount, credit_amount, gl_accounts!inner(account_type), journal_entries!inner(entry_date, posted)')
-      .in('association_id', boardAssocIds)
-      .in('gl_accounts.account_type', ['income', 'other_income', 'expense', 'other_expense'])
-      .eq('journal_entries.posted', true)
-      .gte('journal_entries.entry_date', yearStart)
-    for (const l of pnlLines ?? []) {
-      const t = l.gl_accounts?.account_type
-      const debit = Number(l.debit_amount ?? 0)
-      const credit = Number(l.credit_amount ?? 0)
-      if (t === 'income' || t === 'other_income') ytdIncome += credit - debit
-      else ytdExpenses += debit - credit
-    }
-  } catch { /* may not exist */ }
+  {
+    // Summed in the database (a list of journal lines stops at 1,000 rows).
+    const ytd = await incomeExpenseTotals(db, { associationIds: boardAssocIds, from: yearStart })
+    ytdIncome = ytd.income
+    ytdExpenses = ytd.expense
+  }
 
   const netOperatingIncome = ytdIncome - ytdExpenses
 
@@ -113,18 +104,9 @@ export default async function BoardFinancialsPage() {
       .is('archived_at', null)
     const glIds = (accounts ?? []).map((a: any) => a.gl_account_id).filter(Boolean)
     if (glIds.length > 0) {
-      const { data: cashLines } = await db
-        .from('journal_lines')
-        .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)')
-        .in('gl_account_id', glIds)
-        .in('association_id', boardAssocIds)
-        .eq('journal_entries.posted', true)
-      const balByGl: Record<string, number> = {}
-      for (const l of cashLines ?? []) {
-        balByGl[l.gl_account_id] = (balByGl[l.gl_account_id] ?? 0) + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0)
-      }
+      const balByGl = await glDebitBalances(db, { glAccountIds: glIds, associationIds: boardAssocIds })
       for (const a of accounts ?? []) {
-        const bal = balByGl[a.gl_account_id] ?? 0
+        const bal = balByGl.get(a.gl_account_id) ?? 0
         bankBalance += bal
         if (a.fund_type === 'reserve' || (a.purpose ?? '').toLowerCase().includes('reserve')) reserveBalance += bal
       }

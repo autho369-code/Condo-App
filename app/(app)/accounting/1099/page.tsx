@@ -1,3 +1,4 @@
+import { vendor1099Rows } from '@/lib/finance/totals';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -52,30 +53,13 @@ export default async function Tax1099Page({
 
   const supabase = await createClient();
 
-  // Fetch all paid bills for the tax year with vendor 1099 info
-  const yearStart = `${taxYear}-01-01`;
-
-  const { data: bills } = await (supabase as any)
-    .from('payable_bills')
-    .select(`
-      id, amount, credit_applied, paid_at, bill_date, status, association_id,
-      association:association_id(name),
-      vendor:vendor_id(
-        id, name, vendor_type, send_1099, 
-        taxpayer_name, vendor_financial_details(taxpayer_id, tax_account_number),
-        address_street, address_city, address_state, address_zip
-      )
-    `)
-    .eq('status', 'paid')
-    .gte('paid_at', yearStart)
-    // paid_at is a timestamp: <= 'YYYY-12-31' stopped at midnight and dropped
-    // December 31 payments.
-    .lt('paid_at', `${taxYear + 1}-01-01`)
-    .order('paid_at', { ascending: false });
+  // Paid bills per payer + vendor, summed in the database (a list of bills
+  // stopped at 1,000 rows and understated 1099 totals).
+  const bills = await vendor1099Rows(supabase as any, taxYear);
 
   // Aggregate by vendor — only include vendors with send_1099=true
   const vendorMap = new Map<string, Vendor1099Summary>();
-  for (const bill of (bills ?? []) as any[]) {
+  for (const bill of bills as any[]) {
     const v = bill.vendor;
     if (!v || typeof v !== 'object' || !v.send_1099) continue;
 
@@ -102,7 +86,7 @@ export default async function Tax1099Page({
     const entry = vendorMap.get(vid)!;
     // Cash actually paid: vendor credits applied to the bill are not payments.
     entry.total_paid += Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0);
-    entry.bill_count += 1;
+    entry.bill_count += bill.bill_count ?? 1;
   }
 
   // Determine threshold and form type

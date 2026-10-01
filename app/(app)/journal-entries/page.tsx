@@ -1,8 +1,10 @@
+import { sanitizeSearchTerm } from '@/lib/search/global';
 import Link from 'next/link';
 import { BookText, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { Alert } from '@/components/ui/shell';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -35,7 +37,7 @@ function parseTab(value: string | undefined): JournalTab {
 export default async function JournalEntriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string; saved?: string }>;
 }) {
   await requireStaff();
   const {
@@ -46,6 +48,7 @@ export default async function JournalEntriesPage({
     ref_number = '',
     date_from = '',
     date_to = '',
+    saved = '',
   } = await searchParams;
   const tab = parseTab(tabParam);
   const supabase = await createClient();
@@ -60,10 +63,21 @@ export default async function JournalEntriesPage({
     { data: glAccounts },
   ] = await Promise.all([
     // Journal entries with their lines for History tab
-    db.from('journal_entries')
-      .select('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))')
-      .order('entry_date', { ascending: false })
-      .limit(500),
+    // Filters run in the query: applied in the app they only searched the
+    // newest 500 entries, so older entries could never be found. A second,
+    // aliased inner join filters by line without hiding the entry's other lines.
+    (() => {
+      const lineFilter = association_id || gl_account_id;
+      let jq = db.from('journal_entries')
+        .select(`id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))${lineFilter ? ', match:journal_lines!inner(id)' : ''}`);
+      if (association_id) jq = jq.eq('match.association_id', association_id);
+      if (gl_account_id) jq = jq.eq('match.gl_account_id', gl_account_id);
+      if (date_from) jq = jq.gte('entry_date', date_from);
+      if (date_to) jq = jq.lte('entry_date', date_to);
+      const safeRef = sanitizeSearchTerm(ref_number);
+      if (safeRef) jq = jq.ilike('reference_number', `%${safeRef}%`);
+      return jq.order('entry_date', { ascending: false }).limit(500);
+    })(),
     // Recurring journal entries
     db.from('recurring_journal_entries')
       .select('id, name, memo, frequency, interval_count, next_post_date, auto_generate, last_generated_at, last_error, created_at')
@@ -217,6 +231,7 @@ export default async function JournalEntriesPage({
       }
     >
       <div className="space-y-6">
+        {saved && <Alert tone="success" title={tab === 'recurring' ? 'Recurring entry saved' : 'Journal entry saved'} />}
         <MetricStrip metrics={metrics} />
 
         {/* ── MAIN TABS ── */}

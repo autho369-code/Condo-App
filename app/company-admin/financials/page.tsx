@@ -1,3 +1,4 @@
+import { glDebitBalances, incomeExpenseTotals, receivableAgingBuckets } from '@/lib/finance/totals'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
@@ -58,20 +59,18 @@ export default async function FinancialOversightPage() {
   const yearStart = `${year}-01-01`
 
   const [
-    { data: journalLines },
-    { data: aging },
+    ytdTotals,
+    monthTotals,
+    agingBuckets,
     { data: bills },
     { data: lateFees },
     { data: bankAccounts },
     { data: assocs },
   ] = await Promise.all([
-    // Posted journal activity YTD with account type + entry date for income/expense rollups.
-    db.from('journal_lines')
-      .select('debit_amount, credit_amount, gl_account_id, journal_entries!inner(entry_date, posted, portfolio_id), gl_accounts!inner(account_type, name, number)')
-      .eq('journal_entries.portfolio_id', portfolioId)
-      .eq('journal_entries.posted', true)
-      .gte('journal_entries.entry_date', yearStart),
-    db.from('aged_receivables').select('balance_due, aging_bucket'),
+    // Summed in the database (lists of journal lines stop at 1,000 rows).
+    incomeExpenseTotals(db, { portfolioId, from: yearStart }),
+    incomeExpenseTotals(db, { portfolioId, from: monthStart }),
+    receivableAgingBuckets(db),
     db.from('payable_bills').select('amount, credit_applied, status, due_date, vendor_id, vendors(name)').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('charges').select('amount, due_date').eq('charge_type', 'late_fee').gte('due_date', yearStart),
     db.from('bank_accounts').select('id, name, bank_name, account_type, purpose, gl_account_id, last_reconciliation_date, auto_reconciliation').eq('portfolio_id', portfolioId).is('archived_at', null),
@@ -79,29 +78,19 @@ export default async function FinancialOversightPage() {
   ])
 
   // ── Income / expense rollups from the posted ledger ──────────
-  let ytdIncome = 0, ytdExpense = 0, moIncome = 0, moExpense = 0
-  const balanceByGl = new Map<string, number>()
-  for (const l of journalLines ?? []) {
-    const debit = Number(l.debit_amount ?? 0)
-    const credit = Number(l.credit_amount ?? 0)
-    const type = l.gl_accounts?.account_type
-    const entryDate = l.journal_entries?.entry_date ?? ''
-    const inMonth = entryDate >= monthStart
-    if (type === 'income') {
-      ytdIncome += credit - debit
-      if (inMonth) moIncome += credit - debit
-    } else if (type === 'expense') {
-      ytdExpense += debit - credit
-      if (inMonth) moExpense += debit - credit
-    }
-    balanceByGl.set(l.gl_account_id, (balanceByGl.get(l.gl_account_id) ?? 0) + debit - credit)
-  }
+  const ytdIncome = ytdTotals.income
+  const ytdExpense = ytdTotals.expense
+  const moIncome = monthTotals.income
+  const moExpense = monthTotals.expense
+  // Bank balances are all-time (they were YTD-only, dropping opening balances).
+  const balanceByGl = await glDebitBalances(db, {
+    portfolioId,
+    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+  })
 
   // ── Receivables ──────────────────────────────────────────────
-  const arTotal = (aging ?? []).reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
-  const delinquent = (aging ?? [])
-    .filter((r: any) => ['31_60', '61_90', '90_plus'].includes(r.aging_bucket))
-    .reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
+  const arTotal = Object.values(agingBuckets).reduce((s, v) => s + v, 0)
+  const delinquent = ['31_60', '61_90', '90_plus'].reduce((s, k) => s + (agingBuckets[k] ?? 0), 0)
   const collectionPct = arTotal > 0 ? Math.round(((arTotal - delinquent) / arTotal) * 100) : 100
 
   // ── Payables ─────────────────────────────────────────────────

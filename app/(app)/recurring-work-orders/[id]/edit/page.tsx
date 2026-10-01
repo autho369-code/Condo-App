@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -30,7 +31,8 @@ export default async function EditRecurringWorkOrderPage({
   const [{ data: row }, { data: associations }, { data: units }, { data: vendors }] = await Promise.all([
     db.from('recurring_work_orders').select('*').eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number'),
+    // Every unit (one request stops at 1,000 rows).
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('unit_number').order('id')).then((r) => ({ data: r.rows })),
     db.from('vendors').select('id, name').is('archived_at', null).order('name'),
   ]);
 

@@ -192,11 +192,16 @@ export default async function ChargesPage({
   const scopedDelinquent = ownerScopedDelinquent;
   const scopedViolations = violations ?? [];
   const totalReceipts = scopedReceipts.reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
-  const totalOutstanding = scopedCharges.reduce((s: number, c: any) => s + Number(c.balance_due ?? 0), 0);
+  // Summed in the database: the lists above stop at 500 rows.
+  const { data: unitTotalsRows } = await db.rpc('receivable_unit_totals', {
+    p_unit_ids: owner ? (ownerUnitIdList.length ? ownerUnitIdList : [noUnitMatch]) : null,
+  });
+  const unitTotals = (Array.isArray(unitTotalsRows) ? unitTotalsRows[0] : unitTotalsRows) ?? null;
+  const totalOutstanding = unitTotals ? Number(unitTotals.outstanding_total ?? 0) : scopedCharges.reduce((s: number, c: any) => s + Number(c.balance_due ?? 0), 0);
   const receiptsCount = scopedReceipts.length;
   const depositsCount = (lockboxBatches ?? []).length;
-  const delinquentCount = scopedDelinquent.length;
-  const overdueBalance = scopedDelinquent.reduce((s: number, u: any) => s + Number(u.balance ?? 0), 0);
+  const delinquentCount = unitTotals ? Number(unitTotals.delinquent_count ?? 0) : scopedDelinquent.length;
+  const overdueBalance = unitTotals ? Number(unitTotals.delinquent_balance ?? 0) : scopedDelinquent.reduce((s: number, u: any) => s + Number(u.balance ?? 0), 0);
   const chargebackCount = scopedViolations.length;
 
   // Charges by category outstanding
@@ -696,16 +701,17 @@ export default async function ChargesPage({
                         <TD>
                           <StatusChip
                             tone={
-                              v.status === 'resolved'
+                              // violation_status: open, notice_sent, hearing_pending, cured, fined, closed
+                              v.status === 'cured' || v.status === 'closed'
                                 ? 'success'
-                                : v.status === 'open'
-                                ? 'warning'
-                                : v.status === 'escalated'
+                                : v.status === 'fined' || v.status === 'hearing_pending'
                                 ? 'danger'
+                                : v.status === 'open' || v.status === 'notice_sent'
+                                ? 'warning'
                                 : 'neutral'
                             }
                           >
-                            {v.status ?? '—'}
+                            {v.status ? String(v.status).replace(/_/g, ' ') : '—'}
                           </StatusChip>
                         </TD>
                         <TD className="text-right tabular-nums font-medium text-gray-900">

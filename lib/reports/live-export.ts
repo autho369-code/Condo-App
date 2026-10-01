@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
   addLedgerLine,
   financialSection,
@@ -84,19 +85,17 @@ async function loadLedgerTotals(
   for (const accountId of accountIds) totals[accountId] = { debit: 0, credit: 0 };
   if (accountIds.length === 0) return totals;
 
-  let query = db
-    .from('journal_lines')
-    .select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(entry_date, posted)')
-    .in('gl_account_id', accountIds)
-    .eq('journal_entries.posted', true)
-    .lte('journal_entries.entry_date', dateTo);
-  if (dateFrom) query = query.gte('journal_entries.entry_date', dateFrom);
-  if (associationId) query = query.eq('association_id', associationId);
-
-  const { data, error } = await query;
+  // Summed in the database: fetched lines stop at 1,000 rows, which
+  // truncated exported statements.
+  const { data, error } = await db.rpc('journal_line_totals', {
+    p_gl_account_ids: accountIds,
+    p_association_ids: associationId ? [associationId] : null,
+    p_from: dateFrom,
+    p_to: dateTo,
+  });
   if (error) throw error;
-  for (const line of data ?? []) {
-    addLedgerLine(totals, line.gl_account_id, line.debit_amount, line.credit_amount);
+  for (const row of (data ?? []) as any[]) {
+    addLedgerLine(totals, row.gl_account_id, row.debit_total, row.credit_total);
   }
   return totals;
 }
@@ -254,17 +253,21 @@ async function generalLedgerRows(
   const accountIds: string[] = accounts.map((account: any) => String(account.id));
   if (accountIds.length === 0) return [];
 
-  let query = db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, memo, gl_account_id, entry_id, sort_order, journal_entries!inner(entry_date, description, memo, reference_number, posted)')
-    .in('gl_account_id', accountIds)
-    .eq('journal_entries.posted', true)
-    .gte('journal_entries.entry_date', dateFrom)
-    .lte('journal_entries.entry_date', dateTo)
-    .order('sort_order');
-  if (associationId) query = query.eq('association_id', associationId);
-  const { data, error } = await query;
-  if (error) throw error;
+  // Every page of lines: one request stops at 1,000 rows.
+  const { rows: data, error } = await fetchAllRows<any>(() => {
+    let query = db
+      .from('journal_lines')
+      .select('id, debit_amount, credit_amount, memo, gl_account_id, entry_id, sort_order, journal_entries!inner(entry_date, description, memo, reference_number, posted)')
+      .in('gl_account_id', accountIds)
+      .eq('journal_entries.posted', true)
+      .gte('journal_entries.entry_date', dateFrom)
+      .lte('journal_entries.entry_date', dateTo)
+      .order('sort_order')
+      .order('id');
+    if (associationId) query = query.eq('association_id', associationId);
+    return query;
+  });
+  if (error) throw new Error(error);
 
   const openingDate = new Date(`${dateFrom}T00:00:00.000Z`);
   openingDate.setUTCDate(openingDate.getUTCDate() - 1);

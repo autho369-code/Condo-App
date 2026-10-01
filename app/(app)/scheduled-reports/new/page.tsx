@@ -13,7 +13,9 @@ export const dynamic = 'force-dynamic';
 const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'];
 // Only formats processReportRun can produce; xlsx/html runs always failed.
 const FORMATS = SUPPORTED_REPORT_OUTPUT_FORMATS;
-const CHANNELS = ['email', 'portal', 'webhook', 'download_only'];
+// Only channels the runner delivers: email, or keep the file under Report runs.
+// (Portal and webhook were offered but never delivered; there is no webhook URL field.)
+const CHANNELS = ['email', 'download_only'];
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
 export default async function NewScheduledReportPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -41,7 +43,7 @@ export default async function NewScheduledReportPage({ searchParams }: { searchP
       name,
       frequency: (formData.get('frequency') as string) || 'monthly',
       output_format: (formData.get('output_format') as string) || 'pdf',
-      delivery_channel: (formData.get('delivery_channel') as string) || 'email',
+      delivery_channel: CHANNELS.includes(formData.get('delivery_channel') as string) ? (formData.get('delivery_channel') as string) : 'email',
       delivery_targets: targets,
       parameters: {},
       next_run_at: new Date(Date.now() + 86400000).toISOString(),

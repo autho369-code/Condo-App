@@ -1,22 +1,45 @@
+import { formatInZone } from '@/lib/time/zoned';
 import Link from 'next/link';
 import { BellRing, ListChecks, Plus, Workflow } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
-import { Badge, EmptyState, SectionTitle } from '@/components/ui/shell';
+import { Alert, Badge, EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 function formatDate(value: string | null) {
   if (!value) return '—';
-  return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return formatInZone(value, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default async function AutomationCenterPage() {
+// Follow-up tasks had no way to be completed, so "Completed tasks" was always 0.
+async function completeTask(formData: FormData) {
+  'use server';
+  const me = await requireStaff();
+  const id = String(formData.get('task_id') ?? '');
+  const supabase = await createClient();
+  const { data: done, error } = await (supabase as any)
+    .from('automation_tasks')
+    .update({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('portfolio_id', me.portfolio?.id)
+    .eq('status', 'open')
+    .select('id');
+  if (error) redirect(`/automation-center?error=${encodeURIComponent(error.message)}`);
+  if (!done || done.length === 0) redirect(`/automation-center?error=${encodeURIComponent('That task is already done or is not in your portfolio.')}`);
+  revalidatePath('/automation-center');
+  redirect('/automation-center?completed=1');
+}
+
+export default async function AutomationCenterPage({ searchParams }: { searchParams: Promise<{ error?: string; completed?: string }> }) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date().toISOString();
@@ -58,6 +81,8 @@ export default async function AutomationCenterPage() {
       }
     >
       <div className="space-y-6">
+        {sp.error && <Alert tone="danger" title="Could not update the task">{sp.error}</Alert>}
+        {sp.completed && <Alert tone="success" title="Task marked done" />}
         <MetricStrip
           metrics={[
             { label: 'Scheduled reminders', value: reminderRows.length },
@@ -118,6 +143,7 @@ export default async function AutomationCenterPage() {
                     <TH>Task</TH>
                     <TH>Association</TH>
                     <TH>Status</TH>
+                    <TH className="w-28" />
                   </TR>
                 </THead>
                 <tbody>
@@ -130,6 +156,14 @@ export default async function AutomationCenterPage() {
                       </TD>
                       <TD>{task.associations?.name ?? 'Portfolio-wide'}</TD>
                       <TD><Badge status={task.status} /></TD>
+                      <TD>
+                        {task.status === 'open' && (
+                          <form action={completeTask}>
+                            <input type="hidden" name="task_id" value={task.id} />
+                            <Button type="submit" size="sm" variant="secondary">Mark done</Button>
+                          </form>
+                        )}
+                      </TD>
                     </TR>
                   ))}
                 </tbody>

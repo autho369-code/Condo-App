@@ -116,10 +116,12 @@ export async function runScheduleNow(formData: FormData) {
   // otherwise let any staff trigger the global enqueue pipeline.
   const { data: owned } = await (supabase as any)
     .from('scheduled_reports')
-    .select('id')
+    .select('id, active')
     .eq('id', id)
     .maybeSingle();
   if (!owned) redirect(`/scheduled-reports?error=${encodeURIComponent('Schedule not found in your portfolio.')}`);
+  // The enqueuer skips paused schedules, so "Run now" did nothing yet reported success.
+  if (owned.active === false) redirect(`/scheduled-reports?error=${encodeURIComponent('This schedule is paused. Resume it, then use Run now.')}`);
 
   // Force next_run_at to now so the enqueuer picks it up...
   const { error } = await (supabase as any)
@@ -141,12 +143,14 @@ export async function runScheduleNow(formData: FormData) {
     .eq('scheduled_report_id', id)
     .order('created_at', { ascending: true })
     .limit(3);
+  if (!runs || runs.length === 0) redirect(`/scheduled-reports?error=${encodeURIComponent('No run was queued for this schedule. Check its recipients and report, then try again.')}`);
   for (const run of runs ?? []) {
     try { await processReportRun(run.id); } catch { /* run row records its own failure */ }
   }
 
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports/runs');
+  redirect('/scheduled-reports?ran=1');
 }
 
 export async function createSchedule(formData: FormData) {

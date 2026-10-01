@@ -1,3 +1,4 @@
+import { formatInZone } from '@/lib/time/zoned';
 import Link from 'next/link';
 import { MessageSquare } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 function formatDate(value: string | null) {
   if (!value) return '—';
-  return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return formatInZone(value);
 }
 
 export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string; status?: string }> }) {
