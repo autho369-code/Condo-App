@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import {
   subscribeUnitToCharge, unsubscribeUnit,
-  postAdHocCharge, recordReceipt,
+  postAdHocCharge, recordReceipt, unapplyPayment,
 } from '@/lib/rpcs/charges';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
@@ -299,7 +299,12 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
                   <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
                   <TD className="text-right text-green-600">{money(p.amount)}</TD>
                   <TD className="text-right">
-                    <Link href={`/payments/${p.id}/receipt`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Receipt</Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link href={`/payments/${p.id}/receipt`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Receipt</Link>
+                      <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
+                        <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
+                      </form>
+                    </div>
                   </TD>
                 </TR>
               ))}
@@ -338,7 +343,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest) and stays applied — check the amount and date before recording.</p>
+              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest) Unapply above to redirect.</p>
             </div>
           </form>
         </CardBody>

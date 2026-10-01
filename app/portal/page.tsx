@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button'
 import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
-import { ownerTenureCutoffs, tenureFilter } from './_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,12 +72,10 @@ export default async function OwnerDashboard() {
     } catch {}
   }
 
-  // Recent payments on the owner's units — only from their own move-in on, so
-  // a buyer never sees the seller's payments.
+  // Recent payments on the owner's units.
   let recentPayments: any[] = []
-  const paymentScope = tenureFilter(await ownerTenureCutoffs(db, ownerId), 'payment_date', unitIds)
-  if (paymentScope) {
-    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(5)
+  if (unitIds.length > 0) {
+    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').in('unit_id', unitIds).order('payment_date', { ascending: false }).limit(5)
     recentPayments = pays ?? []
   }
 

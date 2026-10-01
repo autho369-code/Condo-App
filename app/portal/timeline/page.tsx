@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, AlertTriangle, Shield, MessageSquare, Calendar } from 'lucide-react'
-import { ownerTenureCutoffs, tenureFilter } from '../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,14 +17,12 @@ export default async function OwnerTimelinePage() {
   // silently empty when unit_owners and occupancies disagree.
   const { data: myUnits } = await db.from('occupancies').select('unit_id').eq('owner_id', ownerId).eq('status', 'current')
   const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
-  // Payments only from the owner's own move-in on (a buyer must not see the seller's).
-  const paymentScope = tenureFilter(await ownerTenureCutoffs(db, ownerId), 'payment_date', unitIds)
 
   const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([
     // By the owner's current units, like the ledger: the view's owner_id comes
     // from unit_owners, which often disagrees with occupancies.
-    paymentScope
-      ? db.from('receivable_payments_ledger').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
+    unitIds.length > 0
+      ? db.from('receivable_payments_ledger').select('amount, payment_date, method').in('unit_id', unitIds).order('payment_date', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     unitIds.length > 0
       ? db.from('work_orders').select('id, title, status, created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
