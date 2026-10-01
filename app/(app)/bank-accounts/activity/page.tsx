@@ -1,7 +1,7 @@
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Landmark } from 'lucide-react';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
@@ -39,12 +39,14 @@ export default async function BankActivityPage({
 
   let sourceRows: BankActivitySourceRow[] = [];
   let openingBalance = 0;
+  let tooMany = false;
+  let loadError: string | null = null;
 
   if (selectedAccount?.gl_account_id) {
     // Every posted line in the period for this bank's association (several
     // associations' banks can share one cash GL account), paged past the
     // 1,000-row cap; the totals and running balance cover all of them.
-    const { rows: lines } = await fetchAllRows<any>(() => {
+    const { rows: lines, truncated, error: linesError } = await fetchAllRows<any>(() => {
       let q = db
         .from('journal_lines')
         .select(
@@ -58,6 +60,10 @@ export default async function BankActivityPage({
       if (to) q = q.lte('journal_entries.entry_date', to);
       return q.order('id');
     }, { maxRows: 20000 });
+    // A partial set (cut off in id order, not by date) would give wrong
+    // totals and balances, so ask for a narrower range instead.
+    tooMany = truncated;
+    loadError = linesError;
 
     // Balance before the period, so running balances are real balances.
     if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) {
@@ -71,7 +77,7 @@ export default async function BankActivityPage({
       openingBalance = totals.reduce((sum, t) => sum + t.debit_total - t.credit_total, 0);
     }
 
-    sourceRows = ((lines ?? []) as any[]).map((line) => {
+    sourceRows = (tooMany ? [] : (lines ?? []) as any[]).map((line) => {
       const debit = Number(line.debit_amount ?? 0);
       const credit = Number(line.credit_amount ?? 0);
       const je = line.journal_entries;
@@ -115,6 +121,13 @@ export default async function BankActivityPage({
           { label: 'Cash out', value: money(rows.reduce((sum, row) => sum + row.cashOut, 0)) },
           { label: 'Net change (period)', value: money(rows.reduce((sum, row) => sum + row.cashIn - row.cashOut, 0)) },
         ]} />
+
+        {loadError && <Alert title="Could not load account activity.">{loadError}</Alert>}
+        {tooMany && (
+          <Alert title="Too many transactions to show.">
+            This account has more than 20,000 ledger lines in the selected period. Choose a shorter date range.
+          </Alert>
+        )}
 
         <FilterBar action="/bank-accounts/activity" searchDefault={search} searchPlaceholder="Search payee or memo">
           <FilterSelect label="Account" name="bank_account_id" defaultValue={selectedAccount?.id ?? bank_account_id}>

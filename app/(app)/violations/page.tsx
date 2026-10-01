@@ -58,6 +58,10 @@ function formatCaseNumber(id: string): string {
   return id.slice(0, 8).toUpperCase();
 }
 
+function uuidFromHex(h: string) {
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+}
+
 function isResolvedStatus(status: string | null | undefined): boolean {
   return status === 'cured' || status === 'closed';
 }
@@ -120,8 +124,14 @@ export default async function ViolationsPage({
     if (term) {
       const { data: assocMatches } = await db.from('associations').select('id').ilike('name', `%${term}%`).limit(200);
       const ids = ((assocMatches ?? []) as { id: string }[]).map((a) => a.id);
+      // A case number is the first 8 hex digits of the id: match it as an id
+      // range (uuid columns cannot be pattern-matched through the API).
+      const hex = term.replace(/^#/, '').toLowerCase();
+      const caseRange = /^[0-9a-f]{4,8}$/.test(hex)
+        ? `and(id.gte.${uuidFromHex(hex.padEnd(32, '0'))},id.lte.${uuidFromHex(hex.padEnd(32, 'f'))})`
+        : null;
       violationsQuery = violationsQuery.or(
-        [`title.ilike.*${term}*`, ids.length ? `association_id.in.(${ids.join(',')})` : null].filter(Boolean).join(','),
+        [`title.ilike.*${term}*`, ids.length ? `association_id.in.(${ids.join(',')})` : null, caseRange].filter(Boolean).join(','),
       );
     }
   }
@@ -174,7 +184,7 @@ export default async function ViolationsPage({
     filtered = filtered.filter(
       (v: any) =>
         (v.title ?? '').toLowerCase().includes(ql) ||
-        String(v.id).toLowerCase().includes(ql) ||
+        String(v.id).toLowerCase().startsWith(ql.replace(/^#/, '')) ||
         (v.associations?.name ?? '').toLowerCase().includes(ql),
     );
   }

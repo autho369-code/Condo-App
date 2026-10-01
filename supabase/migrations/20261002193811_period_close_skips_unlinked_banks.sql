@@ -10,9 +10,12 @@ declare
   v_new text;
 begin
   select pg_get_functiondef(p.oid) into v_def from pg_proc p where p.proname = 'set_accounting_period_status' and p.pronamespace = 'public'::regnamespace;
+  -- The live definition was saved with CRLF line endings, a fresh database's
+  -- with LF; normalise so the match works on both.
+  v_def := replace(v_def, E'\r\n', E'\n');
   v_new := replace(v_def,
-    E'where portfolio_id = period_row.portfolio_id\r\n      and archived_at is null\r\n      and (last_reconciliation_date is null or last_reconciliation_date < end_date);',
-    E'where portfolio_id = period_row.portfolio_id\r\n      and archived_at is null\r\n      and gl_account_id is not null\r\n      and (last_reconciliation_date is null or last_reconciliation_date < end_date);');
+    E'where portfolio_id = period_row.portfolio_id\n      and archived_at is null\n      and (last_reconciliation_date is null or last_reconciliation_date < end_date);',
+    E'where portfolio_id = period_row.portfolio_id\n      and archived_at is null\n      and gl_account_id is not null\n      and (last_reconciliation_date is null or last_reconciliation_date < end_date);');
   if v_new = v_def then
     raise exception 'set_accounting_period_status did not match the expected bank check';
   end if;
