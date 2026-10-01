@@ -82,9 +82,12 @@ export default async function PurchaseOrdersPage({
       title="Purchase Orders"
       description="Commit spend before work starts. Orders over an association's threshold go to its board for a vote."
       actions={
-        <Link href="/purchase-orders/new">
-          <Button><Plus className="h-4 w-4" /> New PO</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/purchase-orders/recurring"><Button variant="secondary">Recurring POs</Button></Link>
+          <Link href="/purchase-orders/new">
+            <Button><Plus className="h-4 w-4" /> New PO</Button>
+          </Link>
+        </div>
       }
     >
       <div className="space-y-6">
