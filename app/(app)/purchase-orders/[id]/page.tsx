@@ -8,6 +8,7 @@ import { Field, Input, Select } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { billPurchaseOrder, cancelPurchaseOrder, submitPurchaseOrder } from '@/lib/rpcs/purchase-orders';
+import { saveRecurringPurchaseOrder } from '@/lib/rpcs/recurring-purchase-orders';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { ApprovalStatusChip, OrderStatusChip } from '../status-chips';
@@ -288,6 +289,31 @@ export default async function PurchaseOrderDetailPage({
               ))}
             </ol>
           </Section>
+
+          {po.vendor_id && (lines ?? []).length > 0 && (
+            <Section title="Repeat this order" padded>
+              <form action={saveRecurringPurchaseOrder} className="space-y-3">
+                <input type="hidden" name="purchase_order_id" value={id} />
+                <p className="text-[13px] text-gray-500">Creates a draft copy of this order on a schedule for you to review and submit.</p>
+                <Field label="Name"><Input name="name" required maxLength={200} defaultValue={po.description ?? `${po.vendors?.name ?? 'Vendor'} order`} /></Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Repeats">
+                    <Select name="frequency" required defaultValue="monthly">
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annually">Annually</option>
+                    </Select>
+                  </Field>
+                  <Field label="Every"><Input name="interval_count" type="number" min="1" max="60" defaultValue="1" /></Field>
+                  <Field label="First order"><Input name="start_date" type="date" required defaultValue={today} /></Field>
+                  <Field label="End (optional)"><Input name="end_date" type="date" /></Field>
+                </div>
+                <Field label="Needed by (days after order)"><Input name="needed_by_days" type="number" min="0" max="365" defaultValue="0" /></Field>
+                <Button type="submit" variant="secondary" className="w-full">Save as recurring</Button>
+              </form>
+            </Section>
+          )}
 
           {cancellable && (
             <Section title="Cancel purchase order" padded>
