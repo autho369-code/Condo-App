@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { saveInspectionChecklist } from '@/lib/rpcs/inspection-templates';
 import { OfflineInspectionCapture } from './offline-inspection-capture';
 
 export const dynamic = 'force-dynamic';
@@ -28,10 +29,13 @@ export default async function InspectionDetailPage({
   const { id } = await params;
   const sp = await searchParams;
   const db = (await createClient()) as any;
-  const [{ data: inspection }, { data: findings }] = await Promise.all([
+  const [{ data: inspection }, { data: findings }, { data: checklist }] = await Promise.all([
     db.from('inspections').select('*, associations(name), units(unit_number), vendors:inspector_vendor_id(name)').eq('id', id).maybeSingle(),
     db.from('inspection_items').select('*, work_orders(id, number, title, status)').eq('inspection_id', id).order('sort_order').order('created_at'),
+    db.from('inspection_checklist_items').select('id, area, item, condition, note').eq('inspection_id', id).order('sort_order'),
   ]);
+  const checklistRows = (checklist ?? []) as any[];
+  const rated = checklistRows.filter((r) => r.condition).length;
   if (!inspection) notFound();
   const findingIds = (findings ?? []).map((finding: any) => finding.id);
   const { data: findingEvents } = findingIds.length
@@ -140,6 +144,45 @@ export default async function InspectionDetailPage({
         <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Unresolved</div><div className="mt-1 text-2xl font-semibold tabular-nums">{unresolved.length}</div></div>
         <div className="rounded-2xl border border-gray-200/70 bg-white p-4"><div className="text-xs text-gray-500">Major / critical</div><div className="mt-1 text-2xl font-semibold tabular-nums">{critical.length}</div></div>
       </div>
+
+      {checklistRows.length > 0 && (
+        <div className="mt-6">
+          <Section title="Checklist" subtitle={`${rated} of ${checklistRows.length} items rated. Record anything that needs follow-up as a finding below.`}>
+            <form action={saveInspectionChecklist}>
+              <input type="hidden" name="inspection_id" value={id} />
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Area</TH>
+                    <TH>Item</TH>
+                    <TH>Condition</TH>
+                    <TH>Note</TH>
+                  </TR>
+                </THead>
+                <tbody>
+                  {checklistRows.map((r) => (
+                    <TR key={r.id}>
+                      <TD className="whitespace-nowrap text-gray-600">{r.area ?? '—'}<input type="hidden" name="row_id" value={r.id} /></TD>
+                      <TD className="text-gray-900">{r.item}</TD>
+                      <TD>
+                        <Select name={`condition_${r.id}`} defaultValue={r.condition ?? ''} aria-label={`Condition of ${r.item}`} className="h-9 w-32">
+                          <option value="">Not rated</option>
+                          <option value="good">Good</option>
+                          <option value="fair">Fair</option>
+                          <option value="poor">Poor</option>
+                          <option value="na">N/A</option>
+                        </Select>
+                      </TD>
+                      <TD><Input name={`note_${r.id}`} defaultValue={r.note ?? ''} maxLength={1000} aria-label={`Note for ${r.item}`} className="h-9 min-w-[12rem]" /></TD>
+                    </TR>
+                  ))}
+                </tbody>
+              </Table>
+              <div className="border-t border-gray-100 px-5 py-4"><Button type="submit">Save checklist</Button></div>
+            </form>
+          </Section>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <Section title="Findings and remediation" subtitle="Every issue can be resolved in place or promoted into a linked work order." padded>

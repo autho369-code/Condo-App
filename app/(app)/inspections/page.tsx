@@ -7,7 +7,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 
@@ -81,12 +81,13 @@ function computeScore(items: any[]): number | null {
 export default async function InspectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string; scheduled?: string }>;
 }) {
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
-  const { tab: tabParam, q = '', status = '', type = '', association_id = '' } = await searchParams;
+  const { tab: tabParam, q = '', status = '', type = '', association_id = '', scheduled: scheduledRaw } = await searchParams;
+  const scheduled = scheduledRaw && /^\d+$/.test(scheduledRaw) && scheduledRaw !== '0' ? scheduledRaw : null;
   const tab = parseTab(tabParam);
 
   // ── Fetch inspections + reference lists ──
@@ -172,12 +173,17 @@ export default async function InspectionsPage({
       title="Inspections"
       description="Schedule, track, and score property inspections across associations and units."
       actions={
-        <Link href="/inspections/new">
-          <Button><Plus className="h-4 w-4" /> New inspection</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/inspections/templates"><Button variant="secondary">Templates</Button></Link>
+          <Link href="/inspections/bulk"><Button variant="secondary">Schedule from template</Button></Link>
+          <Link href="/inspections/new">
+            <Button><Plus className="h-4 w-4" /> New inspection</Button>
+          </Link>
+        </div>
       }
     >
       <div className="space-y-6">
+        {scheduled && <Alert tone="success" title={`${scheduled} inspection${scheduled === '1' ? '' : 's'} scheduled from the template`} />}
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
