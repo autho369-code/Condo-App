@@ -246,6 +246,37 @@ export async function updateBankCheckSettings(formData: FormData) {
   redirect(`/bank-accounts/${id}?check_settings_saved=1`);
 }
 
+/**
+ * Link a bank account that has no GL account yet to a cash/asset GL account,
+ * so it can carry ledger cash and be reconciled. Changing an existing link is
+ * not allowed here: the account's posted history lives on the old GL account.
+ */
+export async function linkBankGlAccount(formData: FormData) {
+  const me = await requireFinanceOrPortfolioAdmin();
+  const id = req(formData, 'bank_account_id');
+  const glId = req(formData, 'gl_account_id');
+  const fail = (msg: string): never => redirect(`/bank-accounts/${id}?error=${encodeURIComponent(msg)}`);
+  const supabase = await createClient();
+  const db = supabase as any;
+  // RLS scopes both reads to the caller's company.
+  const { data: bank } = await db.from('bank_accounts')
+    .select('id, portfolio_id, association_id, gl_account_id').eq('id', id).is('archived_at', null).maybeSingle();
+  if (!bank || bank.portfolio_id !== me.portfolio?.id) fail('Bank account not found.');
+  if (bank.gl_account_id) fail('This bank account is already linked to a GL account.');
+  const { data: gl } = await db.from('gl_accounts')
+    .select('id, portfolio_id, association_id, account_type, active').eq('id', glId).maybeSingle();
+  if (!gl || gl.portfolio_id !== bank.portfolio_id || !gl.active) fail('Choose an active GL account in this company.');
+  if (!['cash', 'asset'].includes(String(gl.account_type))) fail('Choose a cash or asset GL account.');
+  if (gl.association_id && gl.association_id !== bank.association_id) fail('That GL account belongs to a different association.');
+  const { data: updated, error } = await db.from('bank_accounts')
+    .update({ gl_account_id: glId, updated_at: new Date().toISOString() })
+    .eq('id', id).is('gl_account_id', null).select('id').maybeSingle();
+  if (error || !updated) fail(error?.message ?? 'The bank account could not be linked.');
+  revalidatePath(`/bank-accounts/${id}`);
+  revalidatePath('/bank-accounts');
+  redirect(`/bank-accounts/${id}?gl_linked=1`);
+}
+
 // ============================================================================
 // BUILDINGS
 // ============================================================================
