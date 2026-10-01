@@ -93,7 +93,7 @@ export default async function OwnerLeasePage({ searchParams }: { searchParams: P
                 <div><dt className="text-gray-500">Phone</dt><dd className="text-gray-900">{t.phone || '—'}</dd></div>
                 <div><dt className="text-gray-500">Lease start</dt><dd className="text-gray-900">{date(t.lease_start)}</dd></div>
                 <div><dt className="text-gray-500">Lease end</dt><dd className="text-gray-900">{t.lease_end ? date(t.lease_end) : 'Month to month'}</dd></div>
-                <div><dt className="text-gray-500">Renter's insurance expires</dt><dd className="text-gray-900">{date(t.insurance_expiration)}</dd></div>
+                <div><dt className="text-gray-500">Renter&apos;s insurance expires</dt><dd className="text-gray-900">{date(t.insurance_expiration)}</dd></div>
               </dl>
               <form action={updateTenantLease} className="mt-5 border-t border-gray-100 pt-5">
                 <input type="hidden" name="tenant_id" value={t.id} />
