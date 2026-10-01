@@ -135,7 +135,7 @@ export function BulkCommsForm({
     if (tpl) {
       if (tpl.subject) setSubject(tpl.subject);
       if (tpl.body) setBody(tpl.body);
-      if (tpl.channel === 'email' || tpl.channel === 'sms') setChannel(tpl.channel);
+      if (tpl.channel === 'email') setChannel(tpl.channel);
     }
   }
 
@@ -318,8 +318,6 @@ export function BulkCommsForm({
         <div className="flex gap-3">
           {([
             { value: 'email', label: 'Email' },
-            { value: 'sms', label: 'SMS' },
-            { value: 'both', label: 'Email + SMS' },
           ]).map((opt) => (
             <label
               key={opt.value}

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     });
   }
   const db = createServiceClient() as any;
-  const { data: claimed, error } = await db.rpc('claim_physical_mail', { p_limit: 10 });
+  const { data: claimed, error } = await db.rpc('claim_physical_mail', { p_limit: 3 }); // 3 x 15s Lob timeout fits the 60s limit
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   let submitted = 0;
   let failed = 0;
