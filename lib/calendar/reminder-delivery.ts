@@ -1,6 +1,7 @@
 import 'server-only';
 import { queueEmails, type QueuedEmail } from '@/lib/email/queue';
 import { firstVendorEmail } from '@/lib/vendors/document-requests';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 // Delivers calendar_event_reminders that are due. Reminders were created with
 // every calendar event but nothing ever sent them, so they piled up as
@@ -12,11 +13,31 @@ import { firstVendorEmail } from '@/lib/vendors/document-requests';
 //   vendor              → the event's vendor
 //   affected_residents  → owners currently in the association (or the event's unit)
 // Residents receive only the public notice text; everyone else also gets the
-// internal details. Reminders whose event has already started are marked
-// expired instead of sent (no stale "reminders" after the fact).
+// internal details. Only groups whose "Notify …" action was ticked are emailed.
+// Reminders whose event started more than 30 minutes ago are marked expired
+// instead of sent (no stale "reminders" after the fact).
 
 const DEFAULT_TZ = 'America/Chicago';
 const BATCH = 100;
+// A reminder exactly at the start (0-minute offset) becomes due at the start;
+// with a 15-minute cron it is picked up a few minutes later. Still send it.
+const START_GRACE_MS = 30 * 60_000;
+
+// A reminder row only emails its group when the matching "Notify …" action
+// was ticked on the event. Other actions (email draft, follow-up task,
+// posting notice) do not send anything.
+const NOTIFY_ACTION_FOR_GROUP: Record<string, string> = {
+  management_office: 'notify_management_office',
+  board: 'notify_board',
+  vendor: 'notify_vendor',
+  affected_residents: 'notify_affected_residents',
+};
+
+export function reminderSendsEmail(group: string, action: string | null | undefined): boolean {
+  const required = NOTIFY_ACTION_FOR_GROUP[group];
+  if (!required) return false;
+  return String(action ?? '').split(',').map((a) => a.trim()).includes(required);
+}
 
 type Svc = any;
 
@@ -46,10 +67,14 @@ async function recipientsFor(svc: Svc, group: string, event: any): Promise<Array
   }
   if (group === 'affected_residents') {
     if (!event.association_id) return [];
-    let q = svc.from('occupancies').select('owners!occupancies_owner_id_fkey(full_name, email)').eq('association_id', event.association_id).eq('status', 'current');
-    if (event.unit_id) q = q.eq('unit_id', event.unit_id);
-    const { data } = await q;
-    return ((data ?? []) as any[]).flatMap((o) => splitEmails(o.owners?.email).map((email) => ({ email, name: o.owners?.full_name ?? null })));
+    // Every page of residents: one request stops at 1,000 rows.
+    const { rows, error } = await fetchAllRows<any>(() => {
+      let q = svc.from('occupancies').select('id, owners!occupancies_owner_id_fkey(full_name, email)').eq('association_id', event.association_id).eq('status', 'current');
+      if (event.unit_id) q = q.eq('unit_id', event.unit_id);
+      return q.order('id');
+    });
+    if (error) throw new Error(`resident lookup failed: ${error}`);
+    return rows.flatMap((o) => splitEmails(o.owners?.email).map((email) => ({ email, name: o.owners?.full_name ?? null })));
   }
   // management_office (default)
   if (event.portfolios?.support_email) return splitEmails(event.portfolios.support_email).map((email) => ({ email, name: null }));
@@ -74,7 +99,7 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
   const nowIso = now.toISOString();
   const { data: due, error } = await svc
     .from('calendar_event_reminders')
-    .select('id, recipient_group, calendar_event_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
+    .select('id, recipient_group, action, calendar_event_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
     .eq('status', 'scheduled')
     .lte('remind_at', nowIso)
     .order('remind_at')
@@ -90,11 +115,21 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
     if (!event || event.archived_at || ['canceled', 'cancelled'].includes(event.operations_status ?? '')) {
       await setStatus('skipped'); summary.skipped++; continue;
     }
-    if (!event.start_datetime || new Date(event.start_datetime) <= now) {
+    if (!event.start_datetime || new Date(event.start_datetime).getTime() < now.getTime() - START_GRACE_MS) {
       await setStatus('expired'); summary.expired++; continue;
     }
+    if (!reminderSendsEmail(r.recipient_group, r.action)) {
+      await setStatus('skipped'); summary.skipped++; continue;
+    }
 
-    const recipients = await recipientsFor(svc, r.recipient_group, event);
+    let recipients: Array<{ email: string; name: string | null }>;
+    try {
+      recipients = await recipientsFor(svc, r.recipient_group, event);
+    } catch (e) {
+      console.error(`[calendar-reminders] ${r.id}:`, e);
+      summary.failed++;
+      continue; // stays scheduled; retried next run
+    }
     const unique = [...new Map(recipients.map((x) => [x.email, x])).values()];
     if (unique.length === 0) { await setStatus('skipped'); summary.skipped++; continue; }
 

@@ -17,6 +17,7 @@ function fakeDb(tables: Record<string, any[]>) {
     let patch: any = null;
     const q: any = {
       select: () => q, order: () => q, limit: () => q, lte: () => q, is: () => q, in: () => q,
+      range: async () => ({ data: tables[table] ?? [], error: null }),
       eq: (col: string, val: any) => { filters.push([col, val]); return q; },
       update: (p: any) => { patch = p; return q; },
       maybeSingle: async () => ({ data: (tables[table] ?? [])[0] ?? null, error: null }),
@@ -32,6 +33,7 @@ function fakeDb(tables: Record<string, any[]>) {
 
 const future = new Date(Date.now() + 2 * 86400000).toISOString();
 const past = new Date(Date.now() - 3600000).toISOString();
+const justStarted = new Date(Date.now() - 5 * 60000).toISOString();
 const event = (over: any = {}) => ({
   id: 'e1', title: 'Water shutoff', event_type: 'water_shutoff', start_datetime: future, all_day: false,
   location: 'Building A', description: 'Internal: plumber key in office', maintenance_instructions: null,
@@ -47,8 +49,8 @@ describe('deliverDueCalendarReminders', () => {
   it('emails the office and residents; residents only see the public notice', async () => {
     const { db, updates } = fakeDb({
       calendar_event_reminders: [
-        { id: 'r1', recipient_group: 'management_office', calendar_events: event() },
-        { id: 'r2', recipient_group: 'affected_residents', calendar_events: event() },
+        { id: 'r1', recipient_group: 'management_office', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
+        { id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office,notify_affected_residents', calendar_events: event() },
       ],
       occupancies: [{ owners: { full_name: 'Liam', email: 'liam@example.test' } }],
     });
@@ -66,8 +68,8 @@ describe('deliverDueCalendarReminders', () => {
   it('expires reminders for events that already started and skips cancelled events', async () => {
     const { db, updates } = fakeDb({
       calendar_event_reminders: [
-        { id: 'r1', recipient_group: 'management_office', calendar_events: event({ start_datetime: past }) },
-        { id: 'r2', recipient_group: 'management_office', calendar_events: event({ operations_status: 'canceled' }) },
+        { id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ start_datetime: past }) },
+        { id: 'r2', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ operations_status: 'canceled' }) },
       ],
     });
     const summary = await deliverDueCalendarReminders(db);
@@ -78,12 +80,34 @@ describe('deliverDueCalendarReminders', () => {
 
   it('sends vendor reminders to the vendor email', async () => {
     const { db } = fakeDb({
-      calendar_event_reminders: [{ id: 'r1', recipient_group: 'vendor', calendar_events: event() }],
+      calendar_event_reminders: [{ id: 'r1', recipient_group: 'vendor', action: 'notify_vendor', calendar_events: event() }],
       vendors: [{ name: 'Plumbing Co', emails: ['dispatch@plumb.test'] }],
     });
     await deliverDueCalendarReminders(db);
     expect(queued.map((e) => e.to)).toEqual(['dispatch@plumb.test']);
     expect(queued[0].subject).toMatch(/^Reminder: Water shutoff — /);
     expect(queued[0].subject).toMatch(/CDT|CST/);
+  });
+
+  it('does not email a group unless its Notify action was ticked', async () => {
+    const { db, updates } = fakeDb({
+      calendar_event_reminders: [
+        { id: 'r1', recipient_group: 'management_office', action: 'create_email_draft,create_follow_up_task', calendar_events: event() },
+        { id: 'r2', recipient_group: 'affected_residents', action: 'notify_management_office', calendar_events: event() },
+      ],
+      occupancies: [{ id: 'o1', owners: { full_name: 'Liam', email: 'liam@example.test' } }],
+    });
+    const summary = await deliverDueCalendarReminders(db);
+    expect(summary).toEqual({ sent: 0, expired: 0, skipped: 2, failed: 0 });
+    expect(queued).toHaveLength(0);
+    expect(updates.map((u) => u.patch.status)).toEqual(['skipped', 'skipped']);
+  });
+
+  it('still sends a zero-offset reminder picked up just after the start', async () => {
+    const { db } = fakeDb({
+      calendar_event_reminders: [{ id: 'r1', recipient_group: 'management_office', action: 'notify_management_office', calendar_events: event({ start_datetime: justStarted }) }],
+    });
+    const summary = await deliverDueCalendarReminders(db);
+    expect(summary.sent).toBe(1);
   });
 });
