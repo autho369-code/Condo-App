@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { UserCheck, Key, UserX, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -18,27 +19,36 @@ export default async function OwnersPage({
   const portfolioId = me.portfolio?.id
   const sp = await searchParams
 
-  // Fetch owners
-  const { data: owners } = await db
+  // Fetch associations (filter list + occupancy scope)
+  const { data: associations } = await db
+    .from('associations')
+    .select('id, name')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
+    .order('name')
+  const assocIds = ((associations ?? []) as { id: string }[]).map((a) => a.id)
+
+  // Fetch owners (paged past the 1,000-row cap)
+  const { rows: owners } = await fetchAllRows(() => db
     .from('owners')
     .select('id, full_name, email, phone, portal_activated, portal_login_last_at')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('full_name', { ascending: true, nullsFirst: false })
+    .order('id'))
 
-  const ownerIds = (owners ?? []).map((o: any) => o.id)
-
-  // Fetch occupancies with unit + association joins for these owners
-  let occQuery = db
-    .from('occupancies')
-    .select(`id, owner_id, unit_id, association_id, units!occupancies_unit_id_fkey(unit_number, building_id), associations!occupancies_association_id_fkey(id, name)`)
-    .in('owner_id', ownerIds.length > 0 ? ownerIds : ['none'])
-
-  if (sp.association) {
-    occQuery = occQuery.eq('association_id', sp.association)
-  }
-
-  const { data: occupancies } = await occQuery
+  // Current occupancies in this company's associations. Scoped by association
+  // (a handful of ids) rather than by every owner id, which overflowed the URL.
+  const { rows: occupancies } = await fetchAllRows(() => {
+    let q = db
+      .from('occupancies')
+      .select(`id, owner_id, unit_id, association_id, units!occupancies_unit_id_fkey(unit_number, building_id), associations!occupancies_association_id_fkey(id, name)`)
+      .eq('status', 'current')
+      .in('association_id', assocIds.length > 0 ? assocIds : ['00000000-0000-0000-0000-000000000000'])
+      .order('id')
+    if (sp.association) q = q.eq('association_id', sp.association)
+    return q
+  })
 
   // Build owner → units & associations map
   const ownerMap = new Map<string, { units: string[]; associations: Map<string, string> }>()
@@ -50,14 +60,6 @@ export default async function OwnersPage({
     if (occ.units?.unit_number) entry.units.push(occ.units.unit_number)
     if (occ.associations?.name) entry.associations.set(occ.associations.id, occ.associations.name)
   }
-
-  // Fetch associations for filter
-  const { data: associations } = await db
-    .from('associations')
-    .select('id, name')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
-    .order('name')
 
   // Filter owners by association if selected
   let filteredOwners = owners ?? []
