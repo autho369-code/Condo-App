@@ -27,7 +27,7 @@ export default async function VendorDashboard() {
       .limit(100),
     db.from('vendor_compliance').select('*').eq('vendor_id', me.vendor_id).maybeSingle(),
     db.from('payable_bills')
-      .select('amount, status')
+      .select('amount, credit_applied, status')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
       .not('status', 'in', '("paid","void")'),
@@ -41,7 +41,7 @@ export default async function VendorDashboard() {
   const inProgress = open.filter((w: any) => (w.status ?? '').toLowerCase() === 'in_progress');
   const newAssignments = open.filter((w: any) => ['new', 'assigned'].includes((w.status ?? '').toLowerCase()));
   const completed = wos.filter((w: any) => ['done', 'completed', 'billed', 'closed'].includes((w.status ?? '').toLowerCase()));
-  const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0), 0);
+  const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
   // Compliance expirations within 30 days or past
   const soon = Date.now() + 30 * 86400000;

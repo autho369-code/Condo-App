@@ -347,7 +347,7 @@ async function apAgingRows(
 
   const { data, error } = await db
     .from('payable_bills')
-    .select('id, bill_number, bill_date, due_date, amount, memo, status, association_id, vendors(name), associations(name)')
+    .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, association_id, vendors(name), associations(name)')
     .in('association_id', associationIds)
     .not('status', 'in', '("paid","void")')
     .lte('bill_date', asOf)
@@ -363,7 +363,8 @@ async function apAgingRows(
     Memo: bill.memo ?? '',
     Status: bill.status,
     'Aging bucket': agingBucket(bill.due_date, asOf),
-    'Balance due': Number(bill.amount ?? 0),
+    // Vendor credits applied to the bill reduce what is still owed.
+    'Balance due': Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0),
     'Bill ID': bill.id,
     'As of': asOf,
   }));
