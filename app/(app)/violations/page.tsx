@@ -13,6 +13,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,9 +89,9 @@ export default async function ViolationsPage({
   const me = await requireStaff();
 
   const filters = await searchParams;
-  const todayDate = new Date().toISOString().slice(0, 10);
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  // "Today" in the association's time zone (UTC rolled over at 7 PM Central).
+  const todayDate = todayInZone();
+  const monthStart = `${todayDate.slice(0, 8)}01`;
 
   const supabase = await createClient();
   const db = supabase as any;
@@ -98,10 +99,31 @@ export default async function ViolationsPage({
   let violationsQuery = db.from('violations')
     .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, fines_total, next_followup_on, current_step, hearing_requested_at, closed_at, cured_at, associations(name)')
     .is('archived_at', null);
+  // Filters run in the query, so the 500-row window holds matching cases
+  // (filtering 500 newest rows afterwards dropped older open cases).
+  if (filters.association) violationsQuery = violationsQuery.eq('association_id', filters.association);
+  if (filters.severity) violationsQuery = violationsQuery.eq('violation_type', filters.severity);
   if (filters.status === 'overdue') {
     violationsQuery = violationsQuery
       .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
       .not('status', 'in', '("cured","closed")');
+  } else if (filters.status === 'all_open') {
+    violationsQuery = violationsQuery.not('status', 'in', '("cured","closed")');
+  } else if (filters.status === 'followup_due') {
+    violationsQuery = violationsQuery.not('status', 'in', '("cured","closed")').lte('next_followup_on', todayDate);
+  } else if (filters.status) {
+    violationsQuery = violationsQuery.eq('status', filters.status);
+  }
+  if (filters.q) {
+    // Title or association name (the association list is small).
+    const term = filters.q.replace(/[%_,()*"\\]/g, ' ').trim();
+    if (term) {
+      const { data: assocMatches } = await db.from('associations').select('id').ilike('name', `%${term}%`).limit(200);
+      const ids = ((assocMatches ?? []) as { id: string }[]).map((a) => a.id);
+      violationsQuery = violationsQuery.or(
+        [`title.ilike.*${term}*`, ids.length ? `association_id.in.(${ids.join(',')})` : null].filter(Boolean).join(','),
+      );
+    }
   }
   violationsQuery = violationsQuery
     .order('reported_date', { ascending: false, nullsFirst: false })

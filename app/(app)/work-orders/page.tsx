@@ -14,6 +14,7 @@ import { bulkWorkOrderAction } from '@/lib/rpcs/work-order-bulk';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,55 +96,75 @@ export default async function WorkOrdersPage({
   // In-house assignee filter: a staff id, or "me".
   const assignee = sp.assignee === 'me' ? (me.auth_user_id ?? '') : (sp.assignee ?? '');
   const tab = parseTab(tabParam);
-  const todayDate = new Date().toISOString().slice(0, 10);
+  const todayDate = todayInZone();
   const supabase = await createClient();
   const db = supabase as any;
 
+  const FINISHED = '("done","completed","billed","closed","cancelled")';
+  // Count queries share the assignee filter; counts are exact (no row cap).
+  const countBase = () => {
+    let q = db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null);
+    if (assignee) q = q.eq('assignee_id', assignee);
+    return q;
+  };
+  const applyTab = (q: any, t: Tab) => {
+    switch (t) {
+      case 'open':       return q.not('status', 'in', FINISHED);
+      case 'emergency':  return q.eq('priority', 'emergency').not('status', 'in', FINISHED);
+      case 'scheduled':  return q.eq('status', 'scheduled');
+      case 'unassigned': return q.is('vendor_id', null).is('assignee_id', null).not('status', 'in', FINISHED);
+      case 'completed':  return q.in('status', ['done', 'completed', 'billed', 'closed']);
+      case 'all':        return q;
+    }
+  };
+
+  // The list applies every filter in the query, so its 500 rows are the
+  // matching ones (filtering 500 fetched rows afterwards hid older jobs).
   let workOrdersQuery = db.from('work_orders')
     .select('id, number, title, description, status, priority, scheduled_date, vendor_id, assignee_id, assigned_to, trade, association_id, unit_id, created_at, vendors(name, trade), units(unit_number), associations(name)')
     .is('archived_at', null);
   if (assignee) workOrdersQuery = workOrdersQuery.eq('assignee_id', assignee);
   if (status === 'overdue') {
-    workOrdersQuery = workOrdersQuery
-      .lt('scheduled_date', todayDate)
-      .not('status', 'in', '("done","completed","billed","closed","cancelled")');
+    workOrdersQuery = workOrdersQuery.lt('scheduled_date', todayDate).not('status', 'in', FINISHED);
+  } else {
+    workOrdersQuery = applyTab(workOrdersQuery, tab);
+    if (status) workOrdersQuery = workOrdersQuery.eq('status', status);
   }
+  if (priority) workOrdersQuery = workOrdersQuery.eq('priority', priority);
+  if (association_id) workOrdersQuery = workOrdersQuery.eq('association_id', association_id);
+  if (vendor_id) workOrdersQuery = workOrdersQuery.eq('vendor_id', vendor_id);
   workOrdersQuery = workOrdersQuery
     .order('priority', { ascending: false })
     .order('scheduled_date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(500);
-  const aggregateRowsQuery = status === 'overdue'
-    ? (assignee
-        ? db.from('work_orders').select('id, status, priority, scheduled_date, vendor_id, assignee_id').is('archived_at', null).eq('assignee_id', assignee)
-        : db.from('work_orders').select('id, status, priority, scheduled_date, vendor_id, assignee_id').is('archived_at', null))
-        .order('created_at', { ascending: false })
-        .limit(500)
-    : Promise.resolve({ data: null });
 
-  // ── Fetch work orders + reference lists ──
+  // ── Fetch work orders, counts and reference lists ──
   const [
     { data: rows },
     { data: associations },
     { data: vendors },
-    { data: aggregateRows },
     { data: staff },
+    tabCountResults,
+    { count: inProgressCount },
+    { count: overdueCount },
   ] = await Promise.all([
     workOrdersQuery,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('vendors').select('id, name').is('archived_at', null).order('name'),
-    aggregateRowsQuery,
     db.rpc('mentionable_staff'),
+    Promise.all(TABS.map((t) => applyTab(countBase(), t.key))),
+    countBase().eq('status', 'in_progress'),
+    countBase().lt('scheduled_date', todayDate).not('status', 'in', FINISHED),
   ]);
 
   const all = (rows ?? []) as any[];
-  const aggregateAll = status === 'overdue' ? ((aggregateRows ?? []) as any[]) : all;
 
   // ── Tab counts ──
-  const tabCounts = Object.fromEntries(TABS.map((t) => [t.key, aggregateAll.filter(tabFilter(t.key)).length]));
+  const tabCounts = Object.fromEntries(TABS.map((t, i) => [t.key, Number(tabCountResults[i]?.count ?? 0)]));
 
-  // ── Filter ──
-  let filtered = all.filter(tabFilter(status === 'overdue' ? 'all' : tab));
+  // ── Search (within the matching rows) ──
+  let filtered = all;
   if (q) {
     const ql = q.toLowerCase();
     filtered = filtered.filter(
@@ -157,34 +178,15 @@ export default async function WorkOrdersPage({
         (w.units?.unit_number ?? '').toLowerCase().includes(ql),
     );
   }
-  if (status === 'overdue') {
-    filtered = filtered.filter((w: any) => (
-      w.scheduled_date
-      && w.scheduled_date < todayDate
-      && !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(w.status)
-    ));
-  } else if (status) {
-    filtered = filtered.filter((w: any) => w.status === status);
-  }
-  if (priority) filtered = filtered.filter((w: any) => w.priority === priority);
-  if (association_id) filtered = filtered.filter((w: any) => w.association_id === association_id);
-  if (vendor_id) filtered = filtered.filter((w: any) => w.vendor_id === vendor_id);
-  if (assignee) filtered = filtered.filter((w: any) => w.assignee_id === assignee);
 
   // ── Metrics ──
-  const openCount = aggregateAll.filter((w: any) => !FINISHED_WO.includes(w.status)).length;
-  const inProgressCount = aggregateAll.filter((w: any) => w.status === 'in_progress').length;
-  const overdueCount = aggregateAll.filter(
-    (w: any) => w.scheduled_date && w.scheduled_date < todayDate && !['done','completed','billed','closed','cancelled'].includes(w.status),
-  ).length;
-  const completedMonthCount = aggregateAll.filter(
-    (w: any) => ['done', 'completed', 'billed', 'closed'].includes(w.status),
-  ).length; // simplified
+  const openCount = tabCounts['open'];
+  const completedMonthCount = tabCounts['completed'];
 
   const metrics = [
     { label: 'Open', value: openCount, sublabel: `${tabCounts['emergency']} emergencies` },
-    { label: 'In Progress', value: inProgressCount, sublabel: 'Active work' },
-    { label: 'Overdue', value: overdueCount, sublabel: 'Past scheduled date' },
+    { label: 'In Progress', value: inProgressCount ?? 0, sublabel: 'Active work' },
+    { label: 'Overdue', value: overdueCount ?? 0, sublabel: 'Past scheduled date' },
     { label: 'Completed', value: completedMonthCount, sublabel: 'All time' },
   ];
 
