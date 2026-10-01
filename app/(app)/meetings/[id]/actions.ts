@@ -63,12 +63,54 @@ function refresh(meetingId: string) {
 export async function saveMeetingNotes(meetingId: string, formData: FormData) {
   const { supabase } = await editableMeeting(meetingId);
   const { error } = await (supabase as any).from('meetings').update({
-    minutes: text(formData, 'minutes', 100_000) || null,
     agenda: text(formData, 'agenda', 50_000) || null,
   }).eq('id', meetingId);
   if (error) back(meetingId, '?error=Meeting%20notes%20could%20not%20be%20saved.');
+  // Minutes are a draft (staff and board only) until published.
+  const { error: draftError } = await (supabase as any).from('meeting_private').upsert({
+    meeting_id: meetingId,
+    minutes_draft: text(formData, 'minutes', 100_000) || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'meeting_id' });
+  if (draftError) back(meetingId, `?error=${encodeURIComponent(`The draft minutes could not be saved: ${draftError.message}`)}`);
   refresh(meetingId);
   back(meetingId, '?saved=notes');
+}
+
+/** Publish the draft minutes to owners and mark the meeting completed. */
+export async function publishMeetingMinutes(meetingId: string) {
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'cancelled') back(meetingId, '?error=A%20cancelled%20meeting%20has%20no%20minutes%20to%20publish.');
+  const { data: draft, error: draftError } = await (supabase as any)
+    .from('meeting_private').select('minutes_draft').eq('meeting_id', meetingId).maybeSingle();
+  if (draftError) back(meetingId, `?error=${encodeURIComponent(draftError.message)}`);
+  const minutes = String(draft?.minutes_draft ?? '').trim();
+  if (!minutes) back(meetingId, '?error=Write%20and%20save%20the%20minutes%20before%20publishing%20them.');
+  const { data: updated, error } = await (supabase as any).from('meetings')
+    .update({ minutes, status: 'completed' })
+    .eq('id', meetingId)
+    .neq('status', 'cancelled')
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) back(meetingId, `?error=${encodeURIComponent(error?.message ?? 'The minutes could not be published.')}`);
+  refresh(meetingId);
+  revalidatePath('/portal/meetings');
+  back(meetingId, '?saved=published');
+}
+
+/** Cancel a meeting that will not take place. */
+export async function cancelMeeting(meetingId: string) {
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'completed') back(meetingId, '?error=A%20completed%20meeting%20cannot%20be%20cancelled.');
+  const { data: updated, error } = await (supabase as any).from('meetings')
+    .update({ status: 'cancelled' })
+    .eq('id', meetingId)
+    .in('status', ['scheduled', 'in_progress'])
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) back(meetingId, `?error=${encodeURIComponent(error?.message ?? 'The meeting could not be cancelled.')}`);
+  refresh(meetingId);
+  back(meetingId, '?saved=cancelled');
 }
 
 export async function addMeetingAttendee(meetingId: string, formData: FormData) {
