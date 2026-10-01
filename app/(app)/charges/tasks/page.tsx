@@ -25,11 +25,10 @@ export default async function ReceivablesTasksPage({
   const sp = await searchParams;
   const db = (await createClient()) as any;
 
-  const [{ data: associations }, { data: unapplied }] = await Promise.all([
-    db.from('associations').select('id, name, late_fee_enabled, late_fee_amount, late_fee_is_percent, late_fee_grace_days').is('archived_at', null).order('name'),
-    db.from('v_unapplied_credits').select('unit_id, unapplied_amount').gt('unapplied_amount', 0.005).limit(1000),
-  ]);
-  const unappliedTotal = ((unapplied ?? []) as any[]).reduce((s, r) => s + Number(r.unapplied_amount), 0);
+  // Only associations this user can act on, with full totals (computed in the database).
+  const { data: rows } = await db.rpc('receivables_task_associations');
+  const associations = ((rows ?? []) as any[]).map((a) => ({ ...a, id: a.association_id }));
+  const unappliedTotal = associations.reduce((s, a) => s + Number(a.unapplied ?? 0), 0);
   const applied = sp.applied ? split(sp.applied) : null;
   const fees = sp.fees ? split(sp.fees) : null;
 
@@ -61,7 +60,7 @@ export default async function ReceivablesTasksPage({
             <Field label="Association" htmlFor="apply_association" className="min-w-[260px] flex-1">
               <Select id="apply_association" name="association_id" required defaultValue="">
                 <option value="">Choose an association</option>
-                {((associations ?? []) as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {associations.map((a) => <option key={a.id} value={a.id}>{a.name}{Number(a.unapplied) > 0 ? ` — ${money(a.unapplied)} unapplied` : ''}</option>)}
               </Select>
             </Field>
             <Button type="submit">Apply credits</Button>
@@ -77,7 +76,7 @@ export default async function ReceivablesTasksPage({
             <Field label="Association" htmlFor="fee_association" className="min-w-[260px] flex-1">
               <Select id="fee_association" name="association_id" required defaultValue="">
                 <option value="">Choose an association</option>
-                {((associations ?? []) as any[]).filter((a) => a.late_fee_enabled).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {associations.filter((a) => a.late_fee_enabled).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
             </Field>
             <Button type="submit">Charge late fees</Button>
@@ -88,11 +87,11 @@ export default async function ReceivablesTasksPage({
                 <tr><TH>Association</TH><TH>Late fee</TH><TH>Grace days</TH></tr>
               </THead>
               <tbody>
-                {((associations ?? []) as any[]).map((a) => (
+                {associations.map((a) => (
                   <TR key={a.id}>
                     <TD className="text-sm text-gray-900">{a.name}</TD>
                     <TD className="text-sm text-gray-700">
-                      {a.late_fee_enabled && Number(a.late_fee_amount) > 0
+                      {a.late_fee_enabled
                         ? (a.late_fee_is_percent ? `${a.late_fee_amount}% of the balance` : money(a.late_fee_amount))
                         : <span className="text-gray-400">Off</span>}
                     </TD>
