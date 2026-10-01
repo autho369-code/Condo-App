@@ -55,6 +55,8 @@ export default async function ProjectDetailPage({
   const canEditCosts = Boolean((me.is_finance_staff || me.is_platform_operator) && !project.archived_at);
   const categoryBudget = categories.reduce((s, c) => s + Number(c.budget_amount ?? 0), 0);
   const categoryActual = categories.reduce((s, c) => s + Number(c.actual_amount ?? 0), 0);
+  // The RPC refuses projects outside the caller's association scope: treat as not found.
+  if (costError?.code === '42501') notFound();
   if (costError) throw new Error(`Could not load project spend: ${costError.message}`);
   // Committed spend = approved + paid bills on the linked work orders, from the same authorized
   // aggregate as the category table (categorized + Other), so the two always reconcile.
@@ -200,13 +202,14 @@ export default async function ProjectDetailPage({
                 <tbody>
                   {categories.map((c) => {
                     const remaining = Number(c.budget_amount ?? 0) - Number(c.actual_amount ?? 0);
+                    const hasBudget = Boolean(c.line_id) || c.category === 'Restricted accounts';
                     return (
-                      <TR key={c.line_id ?? 'other'}>
-                        <TD className="font-medium text-gray-900">{c.category}{!c.line_id && <span className="block text-xs font-normal text-gray-500">Spend on accounts with no category</span>}</TD>
+                      <TR key={c.line_id ?? c.category}>
+                        <TD className="font-medium text-gray-900">{c.category}{!c.line_id && <span className="block text-xs font-normal text-gray-500">{c.category === 'Other' ? 'Spend on accounts with no category' : 'Accounts your role cannot view'}</span>}</TD>
                         <TD className="text-gray-600">{c.gl_label ?? '—'}</TD>
-                        <TD className="text-right tabular-nums">{c.line_id ? currency(c.budget_amount) : '—'}</TD>
+                        <TD className="text-right tabular-nums">{hasBudget ? currency(c.budget_amount) : '—'}</TD>
                         <TD className="text-right tabular-nums">{currency(c.actual_amount)}</TD>
-                        <TD className={`text-right tabular-nums ${remaining < 0 ? 'font-medium text-red-700' : ''}`}>{c.line_id ? currency(remaining) : '—'}</TD>
+                        <TD className={`text-right tabular-nums ${remaining < 0 ? 'font-medium text-red-700' : ''}`}>{hasBudget ? currency(remaining) : '—'}</TD>
                         {canEditCosts && (
                           <TD>
                             {c.line_id && (
