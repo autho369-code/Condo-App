@@ -62,6 +62,7 @@ export async function scheduleInspectionsFromTemplate(formData: FormData) {
   const back = '/inspections/bulk';
   const scheduled = text(formData, 'scheduled_date');
   const scope = text(formData, 'scope');
+  if (!DATE.test(scheduled)) redirect(`${back}?error=${encodeURIComponent('Choose the date to schedule the inspections for.')}`);
   const db = (await createClient()) as any;
   const { data, error } = await db.rpc('create_inspections_from_template', {
     p_template_id: uuid(formData, 'template_id'),

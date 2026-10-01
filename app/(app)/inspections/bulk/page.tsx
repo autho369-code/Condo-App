@@ -65,7 +65,7 @@ export default async function ScheduleFromTemplatePage({
                   <option value="units">Every unit (one inspection per unit)</option>
                 </Select>
               </Field>
-              <Field label="Scheduled date" htmlFor="scheduled_date"><Input id="scheduled_date" name="scheduled_date" type="date" defaultValue={today} /></Field>
+              <Field label="Scheduled date" htmlFor="scheduled_date"><Input id="scheduled_date" name="scheduled_date" type="date" required defaultValue={today} /></Field>
               <Field label="Inspection type (optional)" htmlFor="inspection_type" className="sm:col-span-2"><Input id="inspection_type" name="inspection_type" maxLength={100} placeholder="Defaults to the template's type" /></Field>
               <Field label="Notes (optional)" htmlFor="notes" className="sm:col-span-2"><Textarea id="notes" name="notes" rows={3} /></Field>
               <div className="sm:col-span-2"><Button type="submit">Schedule inspections</Button></div>
