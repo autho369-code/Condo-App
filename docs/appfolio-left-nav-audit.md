@@ -25,7 +25,7 @@ corporate books — skipped by Mirsad 2026-10-01)
 | Accounting → Journal Entries | Tabs History · Recurring · Batches; filter by association, GL, reference, dates | New JE, Recurring JE, Upload JE Batch, View Batches, Manually Post | /journal-entries | ✅ |
 | Accounting → Bank Transfers | Incomplete / Completed transfers; transfer individually or as group | — | /bank-transfers | ✅ |
 | Accounting → GL Accounts | Chart of accounts (account, type) | New GL Account, GL Account Map, Manage GL Account Permissions, Recalculate Balances | /gl-accounts | ✅ |
-| Accounting → Diagnostics | 9 checks (see below) | — | /diagnostics | 🟡 compare checks |
+| Accounting → Diagnostics | 9 checks (see below) | — | /diagnostics | ✅ (unapplied-credit check added) |
 | Maintenance → Work Orders | KPI strip (unassigned resident requests, unassigned internal, ready to bill), filters, bulk actions, saved filters | New Recurring WO, New PO; reports Association WO, Labor Summary, Billable Detail | /work-orders, /service-requests | ✅ |
 | Maintenance → Recurring Work Orders | Vendor, properties, repeats, description | New Service Request, New Recurring WO | /recurring-work-orders | ✅ |
 | Maintenance → Inspections | List with status, flags, bulk Mark Done | New Inspection, Inspection Template, Bulk Copy | /inspections | ✅ |
