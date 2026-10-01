@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { csvCell } from '@/lib/csv/cell';
 
 export const SUPPORTED_REPORT_OUTPUT_FORMATS = ['csv', 'json', 'pdf'] as const;
 export type SupportedReportOutputFormat = (typeof SUPPORTED_REPORT_OUTPUT_FORMATS)[number];
@@ -31,12 +32,8 @@ export function supportedReportOutputFormats(values: unknown): SupportedReportOu
 export function rowsToCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return 'No data\n';
   const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const escape = (value: unknown) => {
-    if (value == null) return '';
-    const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
-    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  };
-  return [headers.join(','), ...rows.map((row) => headers.map((header) => escape(row[header])).join(','))].join('\n') + '\n';
+  const escape = csvCell;
+  return [headers.map(csvCell).join(','), ...rows.map((row) => headers.map((header) => escape(row[header])).join(','))].join('\n') + '\n';
 }
 
 function humanizeHeader(value: string): string {

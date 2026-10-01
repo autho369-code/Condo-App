@@ -1,10 +1,13 @@
 import { glDebitBalances, journalLineTotals, ledgerTotalsByAccount } from '@/lib/finance/totals';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/workspace';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
+import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
 import { queueReport } from '@/lib/rpcs/reports';
 import { money, date } from '@/lib/utils';
 import { supportedReportOutputFormats } from '@/lib/reports/output';
@@ -51,7 +54,7 @@ export default async function ReportView({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string; account?: string }>;
+  searchParams: Promise<{ preset?: string; from?: string; to?: string; association?: string; scope?: string; account?: string; saved?: string }>;
 }) {
   const { slug } = await params;
   // Preserve the legacy public alias while resolving the canonical catalog row.
@@ -63,6 +66,19 @@ export default async function ReportView({
   const catalogSlug = REPORT_ALIASES[slug] ?? slug;
   const sp = await searchParams;
   const supabase = await createClient();
+
+  // Saved report link (/reports/{slug}?saved={id}): apply its stored
+  // parameters, unless the URL already carries explicit filters.
+  const hasFilters = ['preset', 'from', 'to', 'association', 'scope', 'account'].some((k) => (sp as any)[k]);
+  if (sp.saved && UUID_RE.test(sp.saved) && !hasFilters) {
+    const { data: saved } = await (supabase as any)
+      .from('saved_reports')
+      .select('parameters')
+      .eq('id', sp.saved)
+      .maybeSingle();
+    const qs = savedParamsToSearch(saved?.parameters);
+    if (qs.toString()) redirect(`/reports/${encodeURIComponent(slug)}?${qs.toString()}`);
+  }
 
   const { data: def } = await (supabase as any)
     .from('report_definitions')
@@ -106,6 +122,39 @@ export default async function ReportView({
     return <LiveReportView {...ctx} slug={def.slug as LiveReportSlug} />;
   }
   return <QueuedReportView {...ctx} />;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PRESETS = ['this_month', 'last_month', 'this_quarter', 'last_quarter', 'ytd', 'last_year', 'custom'];
+
+/**
+ * Map saved_reports.parameters (stored from the run form's param_* fields:
+ * scope, association_id, date_from, date_to …) onto the search params this
+ * page understands. Unknown keys and malformed values are dropped.
+ */
+function savedParamsToSearch(raw: unknown): URLSearchParams {
+  const qs = new URLSearchParams();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return qs;
+  const p = raw as Record<string, unknown>;
+  const str = (...keys: string[]) => {
+    for (const k of keys) if (typeof p[k] === 'string' && p[k]) return p[k] as string;
+    return '';
+  };
+  const from = str('from', 'date_from');
+  const to = str('to', 'date_to');
+  const preset = str('preset');
+  const association = str('association', 'association_id');
+  const scope = str('scope');
+  const account = str('account', 'gl_account_id');
+  if (PRESETS.includes(preset)) qs.set('preset', preset);
+  if (DATE_RE.test(from)) qs.set('from', from);
+  if (DATE_RE.test(to)) qs.set('to', to);
+  if ((qs.has('from') || qs.has('to')) && !qs.has('preset')) qs.set('preset', 'custom');
+  if (UUID_RE.test(association)) qs.set('association', association);
+  if (/^[a-z_]{1,40}$/.test(scope)) qs.set('scope', scope);
+  if (UUID_RE.test(account)) qs.set('account', account);
+  return qs;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -175,16 +224,16 @@ async function TrialBalanceView({
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Fetch active GL accounts with their journal line totals
+  // Fetch every GL account (inactive ones can still carry a balance; dropping
+  // them made the trial balance not balance) with their journal line totals.
   let q = db
     .from('gl_accounts')
     .select('id, number, name, account_type, active')
-    .eq('active', true)
     .order('number');
   if (selectedAssociation) q = q.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
 
   const { data: glAccounts } = await q;
-  const accounts = (glAccounts ?? []) as any[];
+  const allAccounts = (glAccounts ?? []) as any[];
 
   // A trial balance is an as-of report. Limiting it to period activity makes a
   // new month look empty even when every account has a real opening balance.
@@ -194,7 +243,9 @@ async function TrialBalanceView({
     associationIds: selectedAssociation ? [selectedAssociation] : null,
     to: period.to,
   });
-  for (const acc of accounts) totals[acc.id] ??= { debit: 0, credit: 0 };
+  for (const acc of allAccounts) totals[acc.id] ??= { debit: 0, credit: 0 };
+  // Hide inactive accounts only when they have no ledger activity.
+  const accounts = allAccounts.filter((a) => a.active !== false || totals[a.id].debit !== 0 || totals[a.id].credit !== 0);
 
   // Compute balance: Assets/Expenses = debit-positive; Liabilities/Equity/Income = credit-positive
   const getBalance = (acc: any) => {
@@ -292,16 +343,13 @@ async function BalanceSheetView({
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Fetch active GL accounts
+  // Fetch every GL account (an inactive account can still carry a balance)
   let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type, active')
-    .eq('active', true)
     .order('number');
   if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
   const { data: glAccounts } = await glAccountQuery;
-
-  const accounts = (glAccounts ?? []) as any[];
 
   // Posted totals through the as-of date, summed in the database (a list of
   // lines stopped at 1,000 rows).
@@ -309,6 +357,9 @@ async function BalanceSheetView({
     associationIds: selectedAssociation ? [selectedAssociation] : null,
     to: period.to,
   });
+  // Hide inactive accounts only when they have no ledger activity.
+  const accounts = ((glAccounts ?? []) as any[]).filter((a) =>
+    a.active !== false || (totals[a.id] && (totals[a.id].debit !== 0 || totals[a.id].credit !== 0)));
 
   // Chart-of-accounts type is authoritative. Account-number bands vary by
   // association and must never decide whether a balance is an asset or debt.
@@ -444,12 +495,11 @@ async function IncomeStatementView({
   let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type, active')
-    .eq('active', true)
+    // All accounts (an inactive account can still have period activity);
+    // idle inactive accounts are hidden once totals are known.
     .order('number');
   if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
   const { data: glAccounts } = await glAccountQuery;
-
-  const allAccounts = (glAccounts ?? []) as any[];
 
   // Period totals summed in the database (a list of lines stopped at 1,000 rows).
   const totals = await ledgerTotalsByAccount(db, {
@@ -457,6 +507,9 @@ async function IncomeStatementView({
     from: period.from,
     to: period.to,
   });
+  // Hide inactive accounts only when they have no activity in the period.
+  const allAccounts = ((glAccounts ?? []) as any[]).filter((a) =>
+    a.active !== false || (totals[a.id] && (totals[a.id].debit !== 0 || totals[a.id].credit !== 0)));
 
   // For income: net = credit - debit (revenue goes to credit)
   // For expense: net = debit - credit (expense goes to debit)
@@ -599,20 +652,29 @@ async function CashFlowView({
   const db = supabase as any;
 
   // Bank accounts (no stored balance column — balances are derived from GL lines below)
-  const { data: bankAccounts } = await db
+  let bankQuery = db
     .from('bank_accounts')
     .select('id, name, bank_name, account_type, gl_account_id')
     .is('archived_at', null)
     .order('name');
+  if (selectedAssociation) bankQuery = bankQuery.eq('association_id', selectedAssociation);
+  const { data: bankAccounts } = await bankQuery;
   const bAccounts = (bankAccounts ?? []) as any[];
 
-  // Fetch bank transfers in period
+  // Fetch bank transfers in period. bank_transfers has no association_id, so
+  // scope to transfers touching one of the association's bank accounts.
   let transferQuery = db
     .from('bank_transfers')
     .select('id, amount, transfer_date, reference_number, memo, journal_entry_id, from_bank_account_id, to_bank_account_id')
     .gte('transfer_date', period.from)
     .lte('transfer_date', period.to)
     .order('transfer_date', { ascending: false });
+  if (selectedAssociation) {
+    const bankIds = bAccounts.map((a: any) => a.id).join(',');
+    transferQuery = bAccounts.length
+      ? transferQuery.or(`from_bank_account_id.in.(${bankIds}),to_bank_account_id.in.(${bankIds})`)
+      : transferQuery.in('id', []);
+  }
 
   const { data: transfers } = await transferQuery;
   const bankTransfers = (transfers ?? []) as any[];
@@ -778,7 +840,8 @@ async function GeneralLedgerView({
   let glAccountQuery = db
     .from('gl_accounts')
     .select('id, number, name, account_type')
-    .eq('active', true)
+    // All accounts, not only active ones: an inactive account can still have
+    // posted lines. Accounts without activity are hidden below.
     .order('number');
   if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
   if (selectedAccount) glAccountQuery = glAccountQuery.eq('id', selectedAccount);
@@ -1108,19 +1171,33 @@ async function Owner1099View({
   const flagged = (finRows ?? []) as any[];
   const flaggedIds = flagged.map((r: any) => r.owner_id);
 
+  // 1099 amounts are reported by the year the money was PAID, so filter on
+  // paid_at (timestamptz) using the period's day bounds in the display zone.
   let payables: any[] = [];
+  let payTruncated = false;
+  let payError: string | null = null;
   if (flaggedIds.length > 0) {
-    let payQ = db
-      .from('owner_payables')
-      .select('id, owner_id, association_id, amount, memo, payable_type, payable_date, paid_at, status, associations(name)')
-      .in('owner_id', flaggedIds)
-      .eq('status', 'paid')
-      .gte('payable_date', period.from)
-      .lte('payable_date', period.to)
-      .order('payable_date', { ascending: false });
-    if (selectedAssociation) payQ = payQ.eq('association_id', selectedAssociation);
-    const { data } = await payQ;
-    payables = (data ?? []) as any[];
+    const zone = displayTimeZone();
+    const paidFrom = wallDateTimeToIso(period.from, zone) ?? `${period.from}T00:00:00Z`;
+    const paidBefore = wallDateTimeToIso(addDays(period.to, 1), zone) ?? `${addDays(period.to, 1)}T00:00:00Z`;
+    const buildPayQ = () => {
+      let payQ = db
+        .from('owner_payables')
+        .select('id, owner_id, association_id, amount, memo, payable_type, payable_date, paid_at, status, associations(name)')
+        .in('owner_id', flaggedIds)
+        .eq('status', 'paid')
+        .is('archived_at', null)
+        .gte('paid_at', paidFrom)
+        .lt('paid_at', paidBefore)
+        .order('paid_at', { ascending: false })
+        .order('id');
+      if (selectedAssociation) payQ = payQ.eq('association_id', selectedAssociation);
+      return payQ;
+    };
+    const res = await fetchAllRows<any>(buildPayQ);
+    payables = res.rows;
+    payTruncated = res.truncated;
+    payError = res.error;
   }
 
   const paidByOwner = new Map<string, { total: number; count: number }>();
@@ -1154,6 +1231,8 @@ async function Owner1099View({
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
+        {payError && <Alert tone="danger" title="Could not load owner payables.">{payError}</Alert>}
+        {payTruncated && <Alert tone="warning" title="Results truncated.">Only the first {payables.length.toLocaleString()} paid payables are included; narrow the period or association.</Alert>}
         <div className="grid grid-cols-3 gap-3">
           <Tile label="Owners flagged for 1099" value={flagged.length} tone="neutral" sub="Send 1099? = Yes" />
           <Tile label="Paid this period" value={money(totalPaid)} tone="positive" sub={`${payables.length} payables`} />
@@ -1186,7 +1265,7 @@ async function Owner1099View({
                     const fin = flagged.find((f: any) => f.owner_id === p.owner_id);
                     return (
                       <tr key={p.id}>
-                        <td className="px-5 py-2 tabular-nums">{date(p.payable_date)}</td>
+                        <td className="px-5 py-2 tabular-nums">{date(p.paid_at ?? p.payable_date)}</td>
                         <td className="px-4 py-2 font-medium text-gray-900">{fin?.owners?.full_name ?? '—'}</td>
                         <td className="px-4 py-2 text-gray-600">{p.associations?.name ?? '—'}</td>
                         <td className="px-4 py-2 capitalize text-gray-600">{String(p.payable_type ?? '').replace(/_/g, ' ')}</td>
@@ -1864,11 +1943,12 @@ async function ReportRightRail({
   // Owner / unit pickers (RLS-scoped) instead of raw-UUID text boxes.
   const unitRequired = def.slug === 'owner_ledger';
   const pickerDb = (await createClient()) as any;
-  const [{ data: pickerUnits }, { data: pickerOwners }] = isLive
-    ? [{ data: [] }, { data: [] }]
+  // PostgREST caps a request at 1,000 rows (.limit(2000) did not lift it), so page through.
+  const [{ rows: pickerUnits }, { rows: pickerOwners }] = isLive
+    ? [{ rows: [] as any[] }, { rows: [] as any[] }]
     : await Promise.all([
-        pickerDb.from('units').select('id, unit_number, buildings(associations(name))').is('archived_at', null).order('unit_number').limit(2000),
-        pickerDb.from('owners').select('id, full_name').is('archived_at', null).order('full_name').limit(2000),
+        fetchAllRows<any>(() => pickerDb.from('units').select('id, unit_number, buildings(associations(name))').is('archived_at', null).order('unit_number').order('id'), { maxRows: 20000 }),
+        fetchAllRows<any>(() => pickerDb.from('owners').select('id, full_name').is('archived_at', null).order('full_name').order('id'), { maxRows: 20000 }),
       ]);
   const unitLabel = (u: any) => `${u.buildings?.associations?.name ?? 'Association'} · Unit ${u.unit_number}`;
   const sortedUnits = [...(pickerUnits ?? [])].sort((a: any, b: any) =>
@@ -2100,38 +2180,47 @@ function RunPill({ status }: { status: string }) {
 type Period = { from: string; to: string; label: string };
 
 function computePeriod(preset: string, customFrom?: string, customTo?: string): Period {
-  const today = new Date();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const firstOfMonth = (y: number, m: number) => new Date(y, m, 1);
-  const lastOfMonth  = (y: number, m: number) => new Date(y, m + 1, 0);
+  // "Today" is the calendar day in the request's display zone, not UTC (late
+  // evening in the US was already "tomorrow" and could jump a month/year).
+  const [ty, tm, td] = todayInZone().split('-').map(Number);
+  const today = { y: ty, m: tm - 1, d: td };
+  const ymd = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
+  const todayStr = ymd(today.y, today.m, today.d);
+  const firstOfMonth = (y: number, m: number) => ymd(y, m, 1);
+  const lastOfMonth  = (y: number, m: number) => ymd(y, m + 1, 0);
 
   if (preset === 'custom') {
     return {
-      from:  customFrom ?? fmt(firstOfMonth(today.getFullYear(), today.getMonth())),
-      to:    customTo   ?? fmt(today),
+      from:  customFrom ?? firstOfMonth(today.y, today.m),
+      to:    customTo   ?? todayStr,
       label: 'Custom',
     };
   }
   if (preset === 'last_month') {
-    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    return { from: fmt(firstOfMonth(d.getFullYear(), d.getMonth())), to: fmt(lastOfMonth(d.getFullYear(), d.getMonth())), label: 'Last month' };
+    const d = new Date(Date.UTC(today.y, today.m - 1, 1));
+    return { from: firstOfMonth(d.getUTCFullYear(), d.getUTCMonth()), to: lastOfMonth(d.getUTCFullYear(), d.getUTCMonth()), label: 'Last month' };
   }
   if (preset === 'this_quarter') {
-    const q = Math.floor(today.getMonth() / 3) * 3;
-    return { from: fmt(firstOfMonth(today.getFullYear(), q)), to: fmt(today), label: 'This quarter' };
+    const q = Math.floor(today.m / 3) * 3;
+    return { from: firstOfMonth(today.y, q), to: todayStr, label: 'This quarter' };
   }
   if (preset === 'last_quarter') {
-    const q = Math.floor(today.getMonth() / 3) * 3 - 3;
-    const y = q < 0 ? today.getFullYear() - 1 : today.getFullYear();
+    const q = Math.floor(today.m / 3) * 3 - 3;
+    const y = q < 0 ? today.y - 1 : today.y;
     const m = (q + 12) % 12;
-    return { from: fmt(firstOfMonth(y, m)), to: fmt(lastOfMonth(y, m + 2)), label: 'Last quarter' };
+    return { from: firstOfMonth(y, m), to: lastOfMonth(y, m + 2), label: 'Last quarter' };
   }
   if (preset === 'ytd') {
-    return { from: fmt(new Date(today.getFullYear(), 0, 1)), to: fmt(today), label: 'Year to date' };
+    return { from: ymd(today.y, 0, 1), to: todayStr, label: 'Year to date' };
   }
   if (preset === 'last_year') {
-    return { from: fmt(new Date(today.getFullYear() - 1, 0, 1)), to: fmt(new Date(today.getFullYear() - 1, 11, 31)), label: 'Last year' };
+    return { from: ymd(today.y - 1, 0, 1), to: ymd(today.y - 1, 11, 31), label: 'Last year' };
   }
   // default: this_month
-  return { from: fmt(firstOfMonth(today.getFullYear(), today.getMonth())), to: fmt(today), label: 'This month' };
+  return { from: firstOfMonth(today.y, today.m), to: todayStr, label: 'This month' };
+}
+
+/** YYYY-MM-DD shifted by `days` calendar days. */
+function addDays(day: string, days: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 }
