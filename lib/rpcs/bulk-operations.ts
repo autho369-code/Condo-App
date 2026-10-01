@@ -155,10 +155,64 @@ export async function sendOwnerStatements(formData: FormData) {
   });
 
   if (error) return { error: error.message };
+  const batchId = data as string;
+
+  // Deliver. generate_owner_statements only records the statements; nothing
+  // ever emailed them, so "Generate & Send" sent nothing.
+  let sent = 0;
+  let skipped = 0;
+  if (deliveryChannel === 'email') {
+    const { data: statements, error: loadError } = await db
+      .from('owner_statements')
+      .select('id, owner_id, period_start, period_end, amount_due, amount_past_due, amount_prepaid, total_due, owners(full_name, email), units(unit_number), associations(name)')
+      .eq('batch_id', batchId);
+    if (loadError) return { error: `Statements were generated but could not be loaded for sending: ${loadError.message}` };
+
+    const { queueEmails } = await import('@/lib/email/queue');
+    const { tenantWorkspaceUrl } = await import('@/lib/tenant/host');
+    const ledgerUrl = tenantWorkspaceUrl(me.portfolio?.slug, '/portal/ledger');
+    const fmt = (n: unknown) => Number(n ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const sendable = (statements ?? []).filter((s: any) => s.owners?.email);
+    const failedIds = (statements ?? []).filter((s: any) => !s.owners?.email).map((s: any) => s.id);
+    const queued = await queueEmails(db, sendable.map((s: any) => ({
+      to: s.owners.email,
+      toName: s.owners.full_name,
+      subject: `Your ${s.associations?.name ?? 'association'} statement — Unit ${s.units?.unit_number ?? ''}`.trim(),
+      text: [
+        `Hello ${s.owners.full_name},`,
+        '',
+        `Here is your statement for Unit ${s.units?.unit_number ?? ''} at ${s.associations?.name ?? 'your association'}, ${s.period_start} to ${s.period_end}.`,
+        '',
+        `Past due: ${fmt(s.amount_past_due)}`,
+        `Current charges due: ${fmt(s.amount_due)}`,
+        `Total due: ${fmt(s.total_due)}`,
+        ...(Number(s.amount_prepaid) > 0 ? [`Credit on account: ${fmt(s.amount_prepaid)}`] : []),
+        '',
+        `See every charge and payment, and pay online, in your owner portal: ${ledgerUrl}`,
+        '',
+        `${me.portfolio?.company_name ?? 'Your management office'}`,
+      ].join('\n'),
+      portfolioId: me.portfolio?.id,
+      associationId,
+      fromName: me.portfolio?.company_name ?? null,
+      sentBy: me.auth_user_id,
+      ownerId: s.owner_id,
+      idempotencyKey: `owner-statement:${s.id}`,
+    })));
+    if (queued.error) return { error: `Statements were generated but could not be queued for email: ${queued.error}` };
+    const { error: markError } = await db.rpc('mark_owner_statement_delivery', {
+      p_batch_id: batchId,
+      p_sent_statement_ids: sendable.map((s: any) => s.id),
+      p_failed_statement_ids: failedIds,
+    });
+    if (markError) return { error: `Statements were emailed but their delivery status was not saved: ${markError.message}` };
+    sent = sendable.length;
+    skipped = failedIds.length;
+  }
 
   revalidatePath('/statements/send');
   revalidatePath('/reports');
-  return { success: true, batch_id: data };
+  return { success: true, batch_id: batchId, sent, skipped };
 }
 
 /* ================================================================

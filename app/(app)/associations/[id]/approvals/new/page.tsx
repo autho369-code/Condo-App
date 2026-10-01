@@ -6,6 +6,7 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,14 @@ type VotingScheme = Database['public']['Enums']['voting_scheme'];
 
 export default async function NewApprovalPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
+  const sp = await searchParams;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
@@ -56,6 +60,9 @@ export default async function NewApprovalPage({
     'use server';
     await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
+    // Fail loudly back on the form (CLAUDE.md rule 3), not via the error page.
+    const failTo = (message: string): never =>
+      redirect(`/associations/${id}/approvals/new?error=${encodeURIComponent(message)}`);
 
     const name = String(formData.get('name') ?? '').trim();
     const description = String(formData.get('description') ?? '').trim();
@@ -65,7 +72,7 @@ export default async function NewApprovalPage({
     const boardMemberIds = formData.getAll('board_member_ids').map(String);
 
     if (!name || !description || !dueDate) {
-      throw new Error('Name, Description, and Due Date are required.');
+      failTo('Name, Description, and Due Date are required.');
     }
 
     let requiredVotes: number;
@@ -82,11 +89,11 @@ export default async function NewApprovalPage({
     const files = formData.getAll('attachments').filter((f): f is File => f instanceof File && f.size > 0);
     const uploaded: { name: string; path: string }[] = [];
     for (const file of files) {
-      if (file.size > 25 * 1024 * 1024) throw new Error(`${file.name} is over the 25 MB attachment limit.`);
+      if (file.size > 25 * 1024 * 1024) failTo(`${file.name} is over the 25 MB attachment limit.`);
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `approvals/${id}/${Date.now()}-${safeName}`;
       const { error: upErr } = await svc.storage.from('association-documents').upload(path, file, { contentType: file.type || undefined });
-      if (upErr) throw new Error(`Could not upload ${file.name}: ${upErr.message}`);
+      if (upErr) failTo(`Could not upload ${file.name}: ${upErr.message}`);
       uploaded.push({ name: file.name, path });
     }
 
@@ -104,10 +111,10 @@ export default async function NewApprovalPage({
       required_votes: requiredVotes,
       status: 'pending',
       requested_at: new Date().toISOString(),
-      attachments: uploaded.length > 0 ? uploaded : null,
+      attachments: uploaded, // NOT NULL default '[]' — null always failed
     });
 
-    if (error) throw new Error(`Could not create approval: ${error.message}`);
+    if (error) failTo(`Could not create approval: ${error.message}`);
     redirect(`/associations/${id}/approvals`);
   }
 
@@ -123,6 +130,7 @@ export default async function NewApprovalPage({
       }
       rail={rail}
     >
+      {sp.error && <Alert tone="danger" title="Approval not created." className="mb-4 max-w-3xl">{sp.error}</Alert>}
       <form action={createApproval as any} className="max-w-3xl space-y-5">
         <Section title="Details" padded>
           <FormRow label="Name" required>

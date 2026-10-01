@@ -106,23 +106,8 @@ export async function sendEmail(formData: FormData) {
   const fullBody = cc ? body + `\n\n---\nCc: ${cc}` : body;
   const fromName = me.portfolio?.company_name ?? 'Portier369';
 
-  // 1) Operations log — one communication_messages row per recipient (status queued).
-  const communicationRows = unique.map((r) => ({
-    portfolio_id:    me.portfolio?.id,
-    association_id:  associationId,
-    channel:         'email',
-    status:          'queued',
-    recipient_group: recipientType,
-    recipient_name:  r.name,
-    recipient_email: r.email,
-    subject,
-    body:            fullBody,
-    created_by:      me.auth_user_id,
-  }));
-
-  const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
-  if (communicationError) { failTo(communicationError.message); return; }
-
+  // Publish the resident announcement FIRST: if it fails nothing else has been
+  // written (previously the per-recipient rows were left 'queued' forever).
   // Publish one durable portal announcement for resident audiences. Portal
   // feeds read this ledger rather than recipient-level email rows so private
   // addresses and delivery metadata are never exposed.
@@ -141,6 +126,23 @@ export async function sendEmail(formData: FormData) {
     });
     if (announcementError) { failTo(`Could not publish the resident announcement: ${announcementError.message}`); return; }
   }
+
+  // 1) Operations log — one communication_messages row per recipient (status queued).
+  const communicationRows = unique.map((r) => ({
+    portfolio_id:    me.portfolio?.id,
+    association_id:  associationId,
+    channel:         'email',
+    status:          'queued',
+    recipient_group: recipientType,
+    recipient_name:  r.name,
+    recipient_email: r.email,
+    subject,
+    body:            fullBody,
+    created_by:      me.auth_user_id,
+  }));
+
+  const { error: communicationError, count } = await db.from('communication_messages').insert(communicationRows, { count: 'exact' });
+  if (communicationError) { failTo(communicationError.message); return; }
 
   // 2) Association notices ledger (legacy/reporting).
   const rows = unique.map((r) => ({
@@ -177,5 +179,6 @@ export async function sendEmail(formData: FormData) {
   revalidatePath('/calendar');
   revalidatePath('/communication-center');
   if (returnTo) redirect(returnTo);
-  redirect(`/associations/${associationId}?emailed=${count ?? rows.length}`);
+  // /associations/[id] redirects on to /units and dropped the confirmation.
+  redirect(`/communication-center?queued=${count ?? rows.length}`);
 }

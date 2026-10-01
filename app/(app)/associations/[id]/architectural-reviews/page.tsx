@@ -1,10 +1,12 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import type { Database } from '@/lib/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -13,11 +15,14 @@ type VotingScheme = Database['public']['Enums']['voting_scheme'];
 
 export default async function ArchitecturalReviewsTab({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   await requireStaff();
   const { id: assocParam } = await params;
+  const sp = await searchParams;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
   const id = association.id;
@@ -45,7 +50,7 @@ export default async function ArchitecturalReviewsTab({
     await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
     const supabase = await createClient();
 
-    await (supabase as any).from('architectural_review_settings').upsert({
+    const { error } = await (supabase as any).from('architectural_review_settings').upsert({
       association_id: id,
       online_requests_disabled: formData.get('online_requests_disabled') === 'on',
       default_committee_id: (formData.get('default_committee_id') as string) || null,
@@ -56,6 +61,10 @@ export default async function ArchitecturalReviewsTab({
       document_upload_html: (formData.get('document_upload_html') as string) || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'association_id' });
+    const base = `/associations/${id}/architectural-reviews`;
+    if (error) redirect(`${base}?error=${encodeURIComponent(error.message)}`);
+    revalidatePath(base);
+    redirect(`${base}?saved=1`);
   }
 
   const rail = null;
@@ -70,6 +79,8 @@ export default async function ArchitecturalReviewsTab({
       }
       rail={rail}
     >
+      {sp.error && <Alert tone="danger" title="Settings not saved." className="mb-4 max-w-3xl">{sp.error}</Alert>}
+      {sp.saved && <Alert tone="success" title="Settings saved." className="mb-4 max-w-3xl" />}
       <form action={saveSettings as any} className="max-w-3xl space-y-5">
         <Section padded>
           <label className="flex items-center gap-2 text-sm">

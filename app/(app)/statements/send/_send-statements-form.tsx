@@ -51,10 +51,14 @@ export function SendStatementsForm({ associations }: { associations: Association
     return (
       <div className="max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl text-emerald-600">&#10003;</div>
-        <h3 className="text-[15px] font-semibold text-gray-950">Statements generated</h3>
+        <h3 className="text-[15px] font-semibold text-gray-950">{result.sent > 0 ? 'Statements sent' : 'Statements generated'}</h3>
         <p className="mt-1 text-sm text-gray-500">
           Statement batch created for {associations.find((a) => a.id === assocId)?.name}.
+          {deliveryChannel === 'email' && ` ${result.sent ?? 0} emailed to homeowners.`}
         </p>
+        {result.skipped > 0 && (
+          <p className="mt-2 text-sm text-amber-700">{result.skipped} homeowner{result.skipped === 1 ? ' has' : 's have'} no email address on file and {result.skipped === 1 ? 'was' : 'were'} not sent a statement.</p>
+        )}
         <p className="mt-1 text-xs text-gray-400">Batch ID: {result.batch_id}</p>
         <p className="mt-1 text-xs text-gray-400">Period: {periodStart} to {periodEnd}</p>
         <div className="mt-6 flex justify-center gap-2">

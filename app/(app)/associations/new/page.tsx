@@ -6,6 +6,7 @@ import { getMe, requireStaff } from '@/lib/auth/me';
 import { BankAccountsSection } from '@/components/associations/bank-accounts-section';
 import { Section } from '@/components/workspace/shell';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,14 @@ const US_STATES = [
   'VA','WA','WV','WI','WY','DC',
 ];
 
-export default async function NewPropertyPage() {
+// Server actions fail loudly back on the form (CLAUDE.md rule 3).
+function newPropertyFail(message: string): never {
+  redirect('/associations/new?error=' + encodeURIComponent(message));
+}
+
+export default async function NewPropertyPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -57,10 +64,10 @@ export default async function NewPropertyPage() {
     const city = requiredString(formData, 'city', 'City');
     const state = requiredString(formData, 'state', 'State');
     const zip = requiredString(formData, 'zip', 'Zip');
-    if (!name) throw new Error('Property Name is required.');
-    if (!address) throw new Error('Address is required.');
-    if (!m?.portfolio?.id) throw new Error('Could not determine portfolio.');
-    if (!m.auth_user_id) throw new Error('Could not determine current user.');
+    if (!name) newPropertyFail('Property Name is required.');
+    if (!address) newPropertyFail('Address is required.');
+    if (!m?.portfolio?.id) newPropertyFail('Could not determine portfolio.');
+    if (!m.auth_user_id) newPropertyFail('Could not determine current user.');
 
     const { data: assoc, error: aErr } = await (supabase as any)
       .from('associations')
@@ -111,14 +118,15 @@ export default async function NewPropertyPage() {
       .select('id')
       .single();
 
-    if (aErr) throw new Error(`Could not create property: ${aErr.message}`);
+    if (aErr) newPropertyFail(`Could not create property: ${aErr.message}`);
     const newId = assoc!.id;
 
     // Insert bank accounts from the multi-account form
+    const failedBanks: string[] = [];
     for (let i = 0; i < 20; i++) {
       const name = (formData.get(`bank_name_${i}`) as string)?.trim();
       if (!name) continue;
-      await (supabase as any).from('bank_accounts').insert({
+      const { error: bankError } = await (supabase as any).from('bank_accounts').insert({
         association_id: newId,
         portfolio_id: m.portfolio.id,
         name,
@@ -127,9 +135,15 @@ export default async function NewPropertyPage() {
         account_number: (formData.get(`bank_account_number_${i}`) as string) || null,
         routing_number: (formData.get(`bank_routing_number_${i}`) as string) || null,
       });
+      if (bankError) failedBanks.push(`${name} (${bankError.message})`);
     }
 
     revalidatePath('/associations');
+    if (failedBanks.length > 0) {
+      redirect('/bank-accounts?error=' + encodeURIComponent(
+        `The property was created, but these bank accounts were not: ${failedBanks.join('; ')}. Add them here.`,
+      ));
+    }
     redirect(`/associations/${newId}/units`);
   }
 
@@ -137,6 +151,7 @@ export default async function NewPropertyPage() {
     <div className="mx-auto h-full max-w-4xl overflow-y-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">New Property</h1>
 
+      {sp.error && <Alert tone="danger" title="Property not created." className="mt-4">{sp.error}</Alert>}
       <form action={createProperty as any} className="mt-6 space-y-5">
 
         <Section title="Property Name and Address" padded>
@@ -271,7 +286,7 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
 
 function requiredString(formData: FormData, key: string, label: string): string {
   const value = String(formData.get(key) ?? '').trim();
-  if (!value) throw new Error(`${label} is required.`);
+  if (!value) newPropertyFail(`${label} is required.`);
   return value;
 }
 

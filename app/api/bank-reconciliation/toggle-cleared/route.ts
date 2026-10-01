@@ -18,9 +18,13 @@ export async function POST(request: NextRequest) {
   const reconciliationId = formData.get('reconciliation_id') as string;
   const accountId = formData.get('account_id') as string;
   const tab = formData.get('tab') as string;
+  const back = (message: string) => NextResponse.redirect(new URL(
+    `/bank-accounts/reconcile?${accountId ? `account_id=${encodeURIComponent(accountId)}&` : ''}error=${encodeURIComponent(message)}`,
+    request.url,
+  ), 303);
 
   if (!itemId || !reconciliationId) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    return back('Missing required fields');
   }
 
   // Get current state
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!item) {
-    return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    return back('Item not found');
   }
 
   // Toggle cleared state
@@ -45,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error('Failed to toggle cleared:', error);
-    return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
+    return back('Failed to update item');
   }
 
   // Redirect back
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
   const queryString = params.toString();
 
   return NextResponse.redirect(
-    new URL(`/bank-accounts/reconcile${queryString ? `?${queryString}` : ''}`, request.url)
+    new URL(`/bank-accounts/reconcile${queryString ? `?${queryString}` : ''}`, request.url),
+    303,
   );
 }

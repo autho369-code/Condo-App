@@ -70,6 +70,8 @@ export default async function BankAccountDetailPage({
         'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description)',
       )
       .eq('gl_account_id', account.gl_account_id)
+      // "Recent activity": newest first (it was an arbitrary 50 lines).
+      .order('journal_entries(entry_date)', { ascending: false })
       .limit(50);
 
     sourceRows = ((lines ?? []) as any[]).map((line) => {

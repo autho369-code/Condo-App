@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
-import { PageShell, PageHeader, Breadcrumb, Surface, SectionTitle } from '@/components/ui/shell';
+import { Alert, PageShell, PageHeader, Breadcrumb, Surface, SectionTitle } from '@/components/ui/shell';
 import { Input, Field, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -44,6 +44,15 @@ export default async function CheckRunPage({
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Could not write checks:</span> {sp.error}
         </div>
+      )}
+
+      {(banks ?? []).length > 0 && !defaultBank && (
+        <Alert tone="warning" title="No bank account is set up to print checks." className="mb-6">
+          Add an authorized check signer on a bank account first —{' '}
+          {(banks ?? []).map((bank: any, i: number) => (
+            <span key={bank.id}>{i > 0 && ', '}<Link href={`/bank-accounts/${bank.id}`} className="font-medium underline">{bank.name}</Link></span>
+          ))}.
+        </Alert>
       )}
 
       <form action={writeChecks as any} className="space-y-6">

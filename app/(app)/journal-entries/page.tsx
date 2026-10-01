@@ -98,7 +98,8 @@ export default async function JournalEntriesPage({
         (l: any) =>
           (l.associations?.name ?? '').toLowerCase().includes(ql) ||
           (l.gl_accounts?.name ?? '').toLowerCase().includes(ql) ||
-          (l.gl_accounts?.number ?? '').toLowerCase().includes(ql),
+          // number is an integer column; .toLowerCase() on it crashed search.
+          String(l.gl_accounts?.number ?? '').toLowerCase().includes(ql),
       );
       return (
         (je.reference_number ?? '').toLowerCase().includes(ql) ||

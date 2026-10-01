@@ -286,13 +286,13 @@ export default async function VendorAchPage({
             <div className="mb-3 text-xs font-semibold uppercase text-gray-500">Actions</div>
             <div className="flex flex-wrap gap-3">
               {canVerify && (
-                <form action={async (fd: FormData) => { await verifyVendorAch(fd); }}>
+                <form action={verifyVendorAch}>
                   <input type="hidden" name="vendor_id" value={focusVendor.id} />
                   <Button type="submit" size="lg">Verify Bank Account</Button>
                 </form>
               )}
               {canActivate && (
-                <form action={async (fd: FormData) => { await activateVendorAch(fd); }}>
+                <form action={activateVendorAch}>
                   <input type="hidden" name="vendor_id" value={focusVendor.id} />
                   <Button type="submit" size="lg" variant="secondary">Activate ACH Payments</Button>
                 </form>

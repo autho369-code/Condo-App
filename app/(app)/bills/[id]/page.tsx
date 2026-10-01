@@ -138,6 +138,13 @@ export default async function BillDetailPage({ params, searchParams }: { params:
             <Button type="submit">Submit for approval</Button>
           </form>
         )}
+        {/* A bill can reach pending_approval needing board approval without a
+            request ever being opened; give it a way forward. */}
+        {b.status === 'pending_approval' && b.approval_required && !b.approval_request_id && (
+          <form action={async () => { 'use server'; await submitBillForApproval(id); }}>
+            <Button type="submit">Request board approval</Button>
+          </form>
+        )}
         {b.status === 'pending_approval' && (!b.approval_required || approvalRequest?.status === 'approved') && (
           <form action={async () => { 'use server'; await approveBill(id); }}>
             <Button type="submit">{b.approval_required ? 'Post approved bill' : 'Approve'}</Button>

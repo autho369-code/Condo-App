@@ -39,12 +39,14 @@ export default async function GLAccountsPage({
     .select('id, number, name, account_type, fund_account, active, include_on_cash_flow, subject_to_management_fees')
     .order('number');
 
-  if (q) {
-    query = query.or(`name.ilike.%${q}%,number::text.ilike.%${q}%`);
-  }
-
-  const { data: rows } = await query;
-  const accounts = (rows ?? []) as any[];
+  // PostgREST can't cast in filters (number::text), so that search errored
+  // and showed an empty chart. Match name/number in memory instead.
+  const { data: rows, error: glError } = await query;
+  if (glError) throw new Error(`Could not load GL accounts: ${glError.message}`);
+  const needle = q.trim().toLowerCase();
+  const accounts = ((rows ?? []) as any[]).filter((a: any) => !needle
+    || String(a.name ?? '').toLowerCase().includes(needle)
+    || String(a.number ?? '').includes(needle));
 
   const activeCount = accounts.filter((a: any) => a.active).length;
   const inactiveCount = accounts.filter((a: any) => !a.active).length;

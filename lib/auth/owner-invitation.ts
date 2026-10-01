@@ -19,6 +19,9 @@ export async function queueOwnerPortalInvitation(db: any, input: {
       invited_by: input.invitedBy,
       expires_at: expiresAt,
       message: 'Activate your owner portal account.',
+      // We queue the email ourselves below; stop queue_invitation_email
+      // from sending a duplicate.
+      metadata: { email_delivery: 'application' },
     })
     .select('id, token')
     .single();

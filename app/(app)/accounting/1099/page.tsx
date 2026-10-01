@@ -51,7 +51,6 @@ export default async function Tax1099Page({
 
   // Fetch all paid bills for the tax year with vendor 1099 info
   const yearStart = `${taxYear}-01-01`;
-  const yearEnd = `${taxYear}-12-31`;
 
   const { data: bills } = await (supabase as any)
     .from('payable_bills')
@@ -65,7 +64,9 @@ export default async function Tax1099Page({
     `)
     .eq('status', 'paid')
     .gte('paid_at', yearStart)
-    .lte('paid_at', yearEnd)
+    // paid_at is a timestamp: <= 'YYYY-12-31' stopped at midnight and dropped
+    // December 31 payments.
+    .lt('paid_at', `${taxYear + 1}-01-01`)
     .order('paid_at', { ascending: false });
 
   // Aggregate by vendor — only include vendors with send_1099=true
