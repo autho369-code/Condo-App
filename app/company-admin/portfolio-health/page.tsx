@@ -55,7 +55,7 @@ export default async function PortfolioHealthPage() {
     .select('association_id, id, status, scheduled_date')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
 
   const { data: allViolations } = await db
     .from('violations')

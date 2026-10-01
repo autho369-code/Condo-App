@@ -60,7 +60,7 @@ export default async function CompanyAdminManagersPage({
     .select('assignee_id, status, scheduled_date')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
     .in('assignee_id', managerIds)
 
   const woByManager = new Map<string, { open: number; overdue: number }>()

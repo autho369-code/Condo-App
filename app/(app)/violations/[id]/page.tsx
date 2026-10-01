@@ -8,7 +8,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { ViolationLetterDrafter } from '@/components/ai/violation-letter-drafter';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
@@ -30,7 +30,7 @@ export default async function ViolationDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  await requireStaff();
+  await requireWorkspaceStaff(); // company admins land here from their portal
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();

@@ -38,7 +38,7 @@ export default async function CompanyAdminAssociationsPage({
     .select('association_id, id, status, scheduled_date')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .not('status', 'in', '("completed","closed","cancelled")')
+    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
 
   const today = new Date().toISOString().slice(0, 10)
   const woByAssoc = new Map<string, { open: number; overdue: number }>()

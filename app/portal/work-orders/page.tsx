@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { Badge } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
@@ -9,14 +10,16 @@ import { Plus } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 export default async function OwnerWorkOrdersPage() {
-  await requireOwner()
+  const me = await requireOwner()
   const supabase = await createClient()
   const db = supabase as any
 
-  // work_orders has no owner_id column; the portal-resident RLS policy already
-  // scopes rows to the owner's unit(s), so we don't filter by owner here.
+  // Scope to the owner's own units explicitly; RLS also admits board members
+  // to every work order in the association.
+  const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
   const { data: wos } = await db.from('work_orders')
     .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')
+    .in('unit_id', myUnits)
     .is('archived_at', null)
     .order('created_at', { ascending: false }).limit(100)
 

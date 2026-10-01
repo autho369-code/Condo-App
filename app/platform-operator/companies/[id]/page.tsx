@@ -89,7 +89,7 @@ const BANNERS: Record<string, string> = {
   cancelled: 'Invitation cancelled.',
   regenerated: 'A new invitation link was generated and emailed.',
   reset_sent: 'Password reset email queued.',
-  reset_forced: 'The user must reset their password on next login.',
+  reset_forced: 'Password reset. The user has been emailed a link to choose a new one; their old password no longer works.',
   unlocked: 'Account unlocked.',
   login_disabled: 'Login disabled for the selected user.',
   suspended: 'Company suspended.',

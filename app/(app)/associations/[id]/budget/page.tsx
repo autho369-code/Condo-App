@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
@@ -25,7 +25,7 @@ export default async function BudgetTab({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ fiscal_year?: string; error?: string; saved?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireWorkspaceStaff(); // company admins land here from their portal
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();

@@ -166,9 +166,9 @@ export function BulkRecurringForm({
               <Select value={frequency} onChange={(e) => setFrequency(e.target.value)}>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-                <option value="semi_annual">Semi-Annual</option>
-                <option value="one_time">One-Time</option>
+                {/* recurring_frequency allows daily/weekly/monthly/quarterly/annually;
+                    "annual", "semi_annual" and "one_time" were always rejected. */}
+                <option value="annually">Annual</option>
               </Select>
             </Field>
             <Field label="Start date">

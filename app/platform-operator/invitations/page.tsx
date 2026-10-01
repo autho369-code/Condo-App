@@ -105,8 +105,9 @@ export default async function InvitationsPage({
             </div>
             <div>
               <Label htmlFor="portfolio_id">Company</Label>
-              <select id="portfolio_id" name="portfolio_id" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
-                <option value="">No company</option>
+              <select id="portfolio_id" name="portfolio_id" required defaultValue="" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
+                {/* Every invitation belongs to a company (portfolio_id is NOT NULL). */}
+                <option value="" disabled>Select a company</option>
                 {(portfolios ?? []).map((p: any) => (
                   <option key={p.id} value={p.id}>{p.company_name}</option>
                 ))}

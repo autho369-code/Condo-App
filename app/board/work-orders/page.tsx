@@ -14,16 +14,16 @@ export default async function BoardWorkOrdersPage() {
 
   const { data: wos } = await db
     .from('work_orders')
-    .select('id, title, category, priority, status, created_at, scheduled_date, vendor_id, units!inner(unit_number), vendors(name)')
+    .select('id, title, category, priority, status, created_at, scheduled_date, vendor_id, units(unit_number), vendors(name)') // common-area work orders have no unit
     .in('association_id', ids)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(200)
 
   const all = wos ?? []
-  const open = all.filter((w: any) => !['completed', 'closed', 'cancelled'].includes(w.status))
+  const open = all.filter((w: any) => !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(w.status))
   const inProgress = all.filter((w: any) => w.status === 'in_progress')
-  const done = all.filter((w: any) => w.status === 'completed')
+  const done = all.filter((w: any) => ['done', 'completed', 'billed', 'closed'].includes(w.status))
   const overdue = open.filter((w: any) => w.scheduled_date && new Date(w.scheduled_date) < new Date())
 
   const priorityTone = (p: string): Tone => {

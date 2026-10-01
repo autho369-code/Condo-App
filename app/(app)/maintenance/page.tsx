@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireStaff, requireWorkspaceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
@@ -230,7 +230,7 @@ async function cloneGroup(formData: FormData) {'use server';
 }
 
 export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ assoc?: string; tab?: string; edit?: string; add?: string; error?: string }> }) {
-  await requireStaff();
+  await requireWorkspaceStaff(); // company admins land here from their portal
   const supabase = await createClient(); const db = supabase as any;
   const sp = await searchParams;
 

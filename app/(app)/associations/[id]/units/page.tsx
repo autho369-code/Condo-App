@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Workspace, WorkspaceHeader } from '@/components/workspace/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
 import { resolveAssociation } from '@/lib/associations/resolve';
@@ -26,7 +26,7 @@ export default async function AssociationUnitsTab({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ page?: string; items_per_page?: string }>;
 }) {
-  await requireStaff();
+  await requireWorkspaceStaff(); // company admins land here from their portal
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { requireBoard } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
@@ -141,6 +142,19 @@ export default async function BoardViolationDetailPage({
         ? JSON.parse(violation.attachments)
         : []
   } catch { attachments = [] }
+  // Attachments are { name, path } in a private bucket; sign the ones inside
+  // this violation's own folder. Raw paths were used as links and 404'd.
+  const attachmentUrl = new Map<string, string>()
+  const attachmentPaths = attachments
+    .map((att: any) => (typeof att === 'string' ? att : att?.path))
+    .filter((p: unknown): p is string => isScopedStoragePath(p, 'violations', violation.id))
+  if (attachmentPaths.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+        .createSignedUrls(attachmentPaths, 3600)
+      for (const x of signed ?? []) if (x?.signedUrl) attachmentUrl.set(x.path, x.signedUrl)
+    } catch {}
+  }
 
   // Parse communication log
   let communicationLog: any[] = []
@@ -291,9 +305,10 @@ export default async function BoardViolationDetailPage({
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {attachments.map((att: any, idx: number) => {
-                  const url = typeof att === 'string' ? att : att?.url ?? att?.path ?? ''
-                  const label = typeof att === 'string' ? `File ${idx + 1}` : att?.label ?? `File ${idx + 1}`
-                  const isImage = url && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
+                  const path = typeof att === 'string' ? att : att?.path ?? ''
+                  const url = attachmentUrl.get(path) ?? ''
+                  const label = typeof att === 'string' ? `File ${idx + 1}` : att?.name ?? att?.label ?? `File ${idx + 1}`
+                  const isImage = url && /\.(jpg|jpeg|png|gif|webp)$/i.test(path)
                   return (
                     <div key={idx} className="overflow-hidden rounded-xl border border-gray-200/70 bg-gray-50/60">
                       {isImage ? (
@@ -301,10 +316,10 @@ export default async function BoardViolationDetailPage({
                           <img src={url} alt={label} className="h-24 w-full object-cover transition-opacity hover:opacity-80" />
                         </a>
                       ) : (
-                        <div className="flex items-center gap-2 px-3 py-2">
+                        <a href={url || undefined} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100">
                           <FileText className="h-4 w-4 text-gray-400" />
                           <span className="truncate text-xs text-gray-600">{label}</span>
-                        </div>
+                        </a>
                       )}
                       {isImage && <div className="truncate px-2 py-1 text-xs text-gray-500">{label}</div>}
                     </div>

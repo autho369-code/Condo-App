@@ -1,11 +1,11 @@
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { PortfolioAssistant } from '@/components/ai/portfolio-assistant';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AssistantPage() {
-  await requireStaff();
+  await requireWorkspaceStaff(); // company admins land here from their portal
 
   return (
     <DataWorkspace

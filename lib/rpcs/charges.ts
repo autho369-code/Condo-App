@@ -82,7 +82,9 @@ export async function subscribeUnitToCharge(formData: FormData) {
   const frequency          = (formData.get('frequency') as any) || null;
   const start_date         = (formData.get('start_date') as string) || undefined;
   const memo               = (formData.get('memo') as string) || undefined;
-  const identifier         = (formData.get('identifier') as string) || undefined;
+  // Always send p_identifier: with it omitted, the 6- and 7-argument versions
+  // of subscribe_unit_to_charge both matched and the call failed as ambiguous.
+  const identifier         = (formData.get('identifier') as string) || null;
 
   const { error } = await (supabase as any).rpc('subscribe_unit_to_charge', {
     p_unit_id:            unit_id,

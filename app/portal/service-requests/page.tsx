@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -38,6 +39,7 @@ export default async function ServiceRequestsList({
       units(unit_number, buildings(associations(name))),
       work_orders(id, status, created_at)
     `)
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
     .is('archived_at', null)
     .order('created_at', { ascending: false });
   const files = await loadRequestAttachmentsByRequest((rows ?? []).map((r: any) => r.id));
