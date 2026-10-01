@@ -9,8 +9,6 @@ import { ApprovalRulesForm } from '@/components/associations/approval-rules-form
 import { BoardReportsSection } from '@/components/associations/board-reports-section';
 import { Alert } from '@/components/ui/shell';
 import { saveBoardApprovalSettings } from '@/lib/rpcs/purchase-orders';
-import { OfficerPermissionsForm } from '@/components/associations/officer-permissions-form';
-import { saveOfficerPermissions } from '@/lib/rpcs/board-permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +17,7 @@ export default async function BoardTab({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string; report_error?: string; report_saved?: string; perm_error?: string; perm_saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; report_error?: string; report_saved?: string }>;
 }) {
   const me = await requireStaff();
   const { id: assocParam } = await params;
@@ -54,11 +52,6 @@ export default async function BoardTab({
     .select('signatures_required, default_board_member_ids, default_voting_scheme, default_percentage_required, sends_bills_to_board, bills_threshold, sends_pos_to_board, pos_threshold')
     .eq('association_id', id)
     .maybeSingle();
-
-  const { data: officerPermissions } = await (supabase as any)
-    .from('board_role_permissions')
-    .select('role, permission, allowed')
-    .eq('association_id', id);
 
   const defaultIds = settings?.default_board_member_ids ?? [];
   const defaultMembersLabel = defaultIds.length === 0 ? 'All' : `${defaultIds.length} selected`;
@@ -161,28 +154,6 @@ export default async function BoardTab({
           canEdit={me.is_full_access_staff || me.is_platform_operator}
         />
       </Section>
-
-      <div id="officer-permissions">
-        <Section
-          title="Officer permissions"
-          subtitle="Decide what each board role can do in the board portal. Unchecked means that role can't vote, see that data, or comment — the database enforces it."
-          padded
-        >
-          {sp.perm_error && <Alert tone="danger" title="Could not save officer permissions:" className="mb-4">{sp.perm_error}</Alert>}
-          {sp.perm_saved && (
-            <Alert tone="success" className="mb-4">
-              {sp.perm_saved === 'recommended' ? 'Recommended officer split applied.' : 'Officer permissions saved.'}
-            </Alert>
-          )}
-          <OfficerPermissionsForm
-            associationId={id}
-            saved={officerPermissions ?? []}
-            rolesSeated={new Set(current.map((m: any) => String(m.role)))}
-            action={saveOfficerPermissions}
-            canEdit
-          />
-        </Section>
-      </div>
     </Workspace>
   );
 }

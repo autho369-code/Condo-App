@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { getBoardPermissions } from '@/lib/board/permissions'
-import { BoardPermissionNotice } from '@/components/board/permission-notice'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { date, money } from '@/lib/utils'
@@ -53,11 +51,7 @@ export default async function BoardDelinquenciesPage() {
   const me = await requireBoard()
   const supabase = await createClient()
   const db = supabase as any
-  const permissions = await getBoardPermissions(db)
-  if ((me.board_association_ids ?? []).length > 0 && !permissions.any('view_delinquency')) {
-    return <BoardPermissionNotice title="Delinquencies" permission="view_delinquency" />
-  }
-  const boardAssocIds = permissions.associationsWith('view_delinquency')
+  const boardAssocIds = me.board_association_ids ?? []
 
   if (boardAssocIds.length === 0) {
     return (

@@ -4,7 +4,6 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { signSignaturePaths } from '@/lib/board/signature'
 import { date } from '@/lib/utils'
 import { castApproval } from './actions'
-import { getBoardPermissions } from '@/lib/board/permissions'
 import {
   CheckCircle2,
   XCircle,
@@ -160,7 +159,6 @@ export default async function BoardApprovalsPage({
   const allDecisions = Array.from(decisionsByRequest.values()).flat()
   const sigUrlByRef = await signSignaturePaths(allDecisions.map((d) => d.board_members?.signature_url))
 
-  const permissions = await getBoardPermissions(db)
   const pending = requests.filter((r) => r.status === 'pending')
   const decided = requests.filter((r) => r.status !== 'pending')
 
@@ -185,7 +183,7 @@ export default async function BoardApprovalsPage({
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">{permissions.any('vote_approvals') ? 'Awaiting your sign-off' : 'Pending board decisions'}</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Awaiting your sign-off</h2>
           <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">
             {pending.length}
           </span>
@@ -201,7 +199,6 @@ export default async function BoardApprovalsPage({
               myDecision={myDecisionByRequest.get(r.id)}
               sigUrlByRef={sigUrlByRef}
               showForm
-              canVote={permissions.can(r.association_id, 'vote_approvals')}
             />
           ))
         )}
@@ -272,14 +269,12 @@ function RequestCard({
   myDecision,
   sigUrlByRef,
   showForm,
-  canVote = true,
 }: {
   request: ApprovalRequest
   decisions: Decision[]
   myDecision?: Decision
   sigUrlByRef: Map<string, string>
   showForm?: boolean
-  canVote?: boolean
 }) {
   const eligible = eligibleCount(r)
   const elig = eligible ?? '—'
@@ -363,12 +358,7 @@ function RequestCard({
       )}
 
       {/* Sign-off form */}
-      {showForm && canVote && <SignOffForm request={r} myDecision={myDecision} />}
-      {showForm && !canVote && (
-        <p className="mt-4 rounded-xl border border-gray-200 bg-gray-50/40 px-4 py-3 text-sm text-gray-600">
-          Your board role doesn&rsquo;t vote on approvals for this association — you can follow the decision here.
-        </p>
-      )}
+      {showForm && <SignOffForm request={r} myDecision={myDecision} />}
     </div>
   )
 }

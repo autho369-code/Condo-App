@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { getBoardPermissions } from '@/lib/board/permissions'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread'
 import { postArchitecturalMessage } from '@/lib/rpcs/architectural'
@@ -89,7 +88,7 @@ export default async function BoardArchitecturalDetail({
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <h2 className="mb-4 text-sm font-semibold text-gray-900">Discussion</h2>
-        <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} canPost={(await getBoardPermissions(db)).can(req.association_id, 'comment_cases')} placeholder="Add the board's comments for management and the homeowner…" />
+        <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} placeholder="Add the board's comments for management and the homeowner…" />
       </div>
     </div>
   )

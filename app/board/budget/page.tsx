@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { getBoardPermissions } from '@/lib/board/permissions'
-import { BoardPermissionNotice } from '@/components/board/permission-notice'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { money } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
@@ -15,11 +13,7 @@ export default async function BoardBudgetPage() {
   const me = await requireBoard()
   const supabase = await createClient()
   const db = supabase as any
-  const permissions = await getBoardPermissions(db)
-  if ((me.board_association_ids ?? []).length > 0 && !permissions.any('view_financials')) {
-    return <BoardPermissionNotice title="Budget vs Actual" permission="view_financials" />
-  }
-  const ids = permissions.associationsWith('view_financials')
+  const ids = me.board_association_ids ?? []
 
   if (ids.length === 0) {
     return (
