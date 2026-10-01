@@ -12,6 +12,7 @@ import { Alert, Badge } from '@/components/ui/shell';
 import { adoptBudget, reopenBudget } from '@/lib/rpcs/budget-worksheet';
 import { fiscalMonthLabels, fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { money } from '@/lib/utils';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,7 +119,7 @@ export default async function BudgetTab({
 
         {adopted && (
           <Alert tone="info">
-            Adopted {headerRes.data?.adopted_at ? new Date(headerRes.data.adopted_at).toLocaleDateString('en-US') : ''}
+            Adopted {headerRes.data?.adopted_at ? new Date(headerRes.data.adopted_at).toLocaleDateString('en-US', { timeZone: displayTimeZone(), month: 'short', day: 'numeric', year: 'numeric' }) : ''}
             {headerRes.data?.adoption_note ? ` — ${headerRes.data.adoption_note}` : ''}. The lines are locked; reopen the budget to change them.
           </Alert>
         )}

@@ -13,6 +13,7 @@ import { applyAssessmentUpdate } from '@/lib/rpcs/budget-worksheet';
 import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { money } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -236,7 +237,7 @@ export default async function UpdateAssessmentsPage({ params, searchParams }: { 
                     <TD><div className="font-medium text-gray-900">{h.name}</div>{h.notes && <div className="text-[12px] text-gray-500">{h.notes}</div>}</TD>
                     <TD className="tabular-nums">{h.effective_date}</TD>
                     <TD className="text-right tabular-nums">{h.dues_increase_lines?.[0]?.count ?? 0}</TD>
-                    <TD className="tabular-nums">{h.posted_at ? new Date(h.posted_at).toLocaleDateString('en-US') : '—'}</TD>
+                    <TD className="tabular-nums">{h.posted_at ? new Date(h.posted_at).toLocaleDateString('en-US', { timeZone: displayTimeZone(), month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</TD>
                   </TR>
                 ))}
               </tbody>

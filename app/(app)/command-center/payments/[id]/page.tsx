@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { money } from '@/lib/utils'
 import { ArrowLeft, CheckCircle2, Circle, XCircle } from 'lucide-react'
+import { displayTimeZone } from '@/lib/time/display-zone'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,7 +95,7 @@ export default async function PaymentTimelinePage({
                   </span>
                   <div className="text-sm font-medium text-gray-950">{STEP_LABELS[e.event] ?? e.event}</div>
                   {e.detail && <div className="mt-0.5 text-[13px] leading-5 text-gray-500">{e.detail}</div>}
-                  <div className="mt-0.5 text-xs tabular-nums text-gray-400">{new Date(e.created_at).toLocaleString('en-US')}</div>
+                  <div className="mt-0.5 text-xs tabular-nums text-gray-400">{new Date(e.created_at).toLocaleString('en-US', { timeZone: displayTimeZone(), dateStyle: 'medium', timeStyle: 'short' })}</div>
                 </li>
               )
             })}

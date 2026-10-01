@@ -240,7 +240,7 @@ export default async function CommunicationsPage() {
                 {monthComms.slice(0, 50).map((c: any) => (
                   <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <Td className="whitespace-nowrap tabular-nums text-gray-700">
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: displayTimeZone() }) : '—'}
                     </Td>
                     <Td>
                       <StatusChip tone={c.channel === 'email' ? 'info' : c.channel === 'sms' ? 'success' : 'neutral'}>

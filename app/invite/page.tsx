@@ -8,6 +8,7 @@ import { queueEmails } from '@/lib/email/queue';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { resolvedTenantUrl, tenantWorkspaceUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -184,7 +185,7 @@ export default async function InvitePage({
     return (
       <Shell title="Invitation expired">
         <p className="mt-2 text-sm leading-6 text-gray-500">
-          This invitation expired on {new Date(invite.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. Contact your administrator for a new invitation.
+          This invitation expired on {new Date(invite.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: displayTimeZone() })}. Contact your administrator for a new invitation.
         </p>
       </Shell>
     );

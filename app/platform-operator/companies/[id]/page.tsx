@@ -33,6 +33,7 @@ import {
   updateCompanyDetails,
   voidInvoice,
 } from '../actions';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -649,7 +650,7 @@ export default async function CompanyDetailPage({
                 (auditRows ?? []).map((row: any) => (
                   <TR key={row.id}>
                     <TD className="whitespace-nowrap text-xs tabular-nums text-gray-700">
-                      {new Date(row.created_at).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      {new Date(row.created_at).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimeZone() })}
                     </TD>
                     <TD className="text-xs text-gray-700">{row.actor_email ?? '—'}</TD>
                     <TD className="text-sm font-medium text-gray-950">{ACTION_LABELS[row.action] ?? row.action}</TD>
