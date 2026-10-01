@@ -33,7 +33,7 @@ export async function updateInventoryItem(formData: FormData) {
   const reorderPoint = num(formData, 'reorder_point');
   if (reorderPoint != null && reorderPoint < 0) redirect(`${back}?error=${encodeURIComponent('The reorder point cannot be negative.')}`);
   const db = (await createClient()) as any;
-  const { error } = await db.from('inventory_items').update({
+  const { data, error } = await db.from('inventory_items').update({
     name,
     sku: text(formData, 'sku') || null,
     category: text(formData, 'category') || null,
@@ -42,6 +42,7 @@ export async function updateInventoryItem(formData: FormData) {
     reorder_point: reorderPoint,
   }).eq('id', id).select('id').maybeSingle();
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (!data) redirect(`${back}?error=${encodeURIComponent('You cannot edit this item.')}`);
   revalidatePath(back);
   revalidatePath('/inventory');
   redirect(`${back}?saved=1`);
@@ -81,8 +82,9 @@ export async function archiveInventoryItem(formData: FormData) {
   await requireStaff();
   const { id, back } = itemPath(formData);
   const db = (await createClient()) as any;
-  const { error } = await db.from('inventory_items').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  const { data, error } = await db.from('inventory_items').update({ archived_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle();
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (!data) redirect(`${back}?error=${encodeURIComponent('You cannot remove this item.')}`);
   revalidatePath('/inventory');
   redirect('/inventory?archived=1');
 }

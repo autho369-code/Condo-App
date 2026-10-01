@@ -38,7 +38,9 @@ export default async function InventoryItemPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string; moved?: string; page?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
+  // Platform operators can look at a company's inventory but not change it.
+  const canEdit = me.is_staff;
   const { id } = await params;
   const sp = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -95,11 +97,11 @@ export default async function InventoryItemPage({
             { label: 'On hand', value: `${qty}${unit ? ` ${unit}` : ''}`, sublabel: status },
             { label: 'Reorder point', value: reorder ?? '—' },
             { label: 'Unit cost', value: item.unit_cost != null ? money(item.unit_cost) : '—' },
-            { label: 'Value on hand', value: money(qty * Number(item.unit_cost ?? 0)) },
+            { label: 'Value on hand', value: item.unit_cost != null ? money(qty * Number(item.unit_cost)) : '—' },
           ]}
         />
 
-        <Surface>
+        {canEdit && <Surface>
           <SectionTitle title="Update stock" description="Receive new stock, record what was used (optionally on a work order), or correct the count." />
           <form action={recordInventoryMovement} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <input type="hidden" name="item_id" value={item.id} />
@@ -143,7 +145,7 @@ export default async function InventoryItemPage({
               <Button type="submit">Record</Button>
             </div>
           </form>
-        </Surface>
+        </Surface>}
 
         <Surface padded={false}>
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5">
@@ -197,7 +199,7 @@ export default async function InventoryItemPage({
           </Table>
         </Surface>
 
-        <Surface>
+        {canEdit && <Surface>
           <SectionTitle title="Item details" description="The quantity changes only through stock movements, so the history always adds up." />
           <form action={updateInventoryItem} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <input type="hidden" name="item_id" value={item.id} />
@@ -216,7 +218,7 @@ export default async function InventoryItemPage({
             <Button type="submit" variant="secondary">Remove from inventory</Button>
             <span className="ml-3 text-xs text-gray-500">Its history stays in the Inventory Usage report.</span>
           </form>
-        </Surface>
+        </Surface>}
       </div>
     </DataWorkspace>
   );
