@@ -23,17 +23,17 @@ export default async function VendorCreditsPage({
   const db = (await createClient()) as any;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: credits }, { data: associations }, { data: vendors }, { data: gls }] = await Promise.all([
-    db.from('vendor_credits')
-      .select('id, credit_date, amount, applied_amount, reference, memo, vendor_id, association_id, vendors(name), associations(name), gl_accounts(number, name)')
-      .order('credit_date', { ascending: false })
-      .limit(300),
+  const cols = 'id, credit_date, amount, applied_amount, reference, memo, vendor_id, association_id, vendors(name), associations(name), gl_accounts(number, name)';
+  const [{ data: openCredits }, { data: history }, { data: associations }, { data: vendors }, { data: gls }] = await Promise.all([
+    // Every credit with a balance left, so recent history can never crowd one out.
+    db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }),
+    db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('vendors').select('id, name').is('archived_at', null).order('name').limit(1000),
     db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
   ]);
-  const rows = (credits ?? []) as any[];
-  const open = rows.filter((c) => Number(c.amount) - Number(c.applied_amount) > 0.005);
+  const open = (openCredits ?? []) as any[];
+  const rows = [...open, ...((history ?? []) as any[])];
 
   // Approved, unpaid bills for the vendors/associations that have open credits.
   const vendorIds = [...new Set(open.map((c) => c.vendor_id))];
