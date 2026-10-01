@@ -79,13 +79,13 @@ export async function addMeetingAttendee(meetingId: string, formData: FormData) 
   const { error } = await (supabase as any).from('meeting_attendees').insert({
     meeting_id: meetingId,
     attendee_name: attendeeName,
-    attendee_role: text(formData, 'attendee_role', 100) || null,
+    attendee_role: attendeeRole(text(formData, 'attendee_role', 100)),
     owner_id: ownerId,
     present: true,
     voting_eligible: formData.get('voting_eligible') === 'on',
     check_in_time: new Date().toISOString(),
   });
-  if (error) back(meetingId, '?error=The%20attendee%20could%20not%20be%20signed%20in.');
+  if (error) back(meetingId, `?error=${encodeURIComponent(`The attendee could not be signed in: ${error.message}`)}`);
   refresh(meetingId);
   back(meetingId, '?saved=attendee');
 }
@@ -253,4 +253,14 @@ export async function removeMeetingActionItem(meetingId: string, actionItemId: s
   if (error) back(meetingId, '?error=The%20follow-up%20action%20could%20not%20be%20removed.');
   refresh(meetingId);
   back(meetingId, '?saved=action');
+}
+
+// meeting_attendees accepts only these roles (validate_meeting_attendee_tenant_scope).
+const ATTENDEE_ROLES = ['board_member', 'owner', 'manager', 'guest'] as const;
+function attendeeRole(value: string): (typeof ATTENDEE_ROLES)[number] {
+  const v = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if ((ATTENDEE_ROLES as readonly string[]).includes(v)) return v as (typeof ATTENDEE_ROLES)[number];
+  if (['board', 'president', 'vice_president', 'secretary', 'treasurer', 'director', 'member_at_large'].includes(v)) return 'board_member';
+  if (['homeowner', 'resident'].includes(v)) return 'owner';
+  return 'guest';
 }

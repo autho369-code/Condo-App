@@ -18,7 +18,7 @@ export default async function CompliancePage() {
     .order('date_observed', { ascending: false })
     .limit(200);
 
-  const open = (rows ?? []).filter((v: any) => v.status !== 'closed' && v.status !== 'resolved').length;
+  const open = (rows ?? []).filter((v: any) => v.status !== 'closed' && v.status !== 'cured').length;
 
   return (
     <DataWorkspace

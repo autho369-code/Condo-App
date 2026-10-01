@@ -7,7 +7,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
@@ -42,10 +42,10 @@ function deriveStatus(r: any): { label: string; tone: Tone } {
 export default async function RecurringWorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; frequency?: string; association_id?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; frequency?: string; association_id?: string; status?: string; error?: string; generated?: string; paused?: string; resumed?: string }>;
 }) {
   await requireStaff();
-  const { q = '', frequency = '', association_id = '', status = '' } = await searchParams;
+  const { q = '', frequency = '', association_id = '', status = '', error: actionError, generated, paused, resumed } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -110,6 +110,10 @@ export default async function RecurringWorkOrdersPage({
       }
     >
       <div className="space-y-6">
+        {actionError && <Alert tone="danger" title="That didn't work.">{actionError}</Alert>}
+        {generated && <Alert tone="success" title="Work order generated.">It&apos;s now in the work order queue.</Alert>}
+        {paused && <Alert tone="success" title="Paused.">No new work orders will be generated until you resume it.</Alert>}
+        {resumed && <Alert tone="success" title="Resumed.">Work orders will generate on schedule again.</Alert>}
         <MetricStrip metrics={metrics} />
 
         {/* ── FILTER BAR ── */}

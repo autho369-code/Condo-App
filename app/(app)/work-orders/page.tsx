@@ -175,14 +175,14 @@ export default async function WorkOrdersPage({
     (w: any) => w.scheduled_date && w.scheduled_date < todayDate && !['done','completed','billed','closed','cancelled'].includes(w.status),
   ).length;
   const completedMonthCount = aggregateAll.filter(
-    (w: any) => (w.status === 'completed' || w.status === 'closed'),
+    (w: any) => ['done', 'completed', 'billed', 'closed'].includes(w.status),
   ).length; // simplified
 
   const metrics = [
     { label: 'Open', value: openCount, sublabel: `${tabCounts['emergency']} emergencies` },
     { label: 'In Progress', value: inProgressCount, sublabel: 'Active work' },
     { label: 'Overdue', value: overdueCount, sublabel: 'Past scheduled date' },
-    { label: 'Completed this month', value: completedMonthCount, sublabel: 'All time' },
+    { label: 'Completed', value: completedMonthCount, sublabel: 'All time' },
   ];
 
   // ── Export (mirrors the on-screen table, same tab + filters) ──

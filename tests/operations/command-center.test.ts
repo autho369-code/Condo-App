@@ -20,7 +20,7 @@ describe('buildCommandMetrics', () => {
       'Reports due',
       'Open work orders',
     ]);
-    expect(metrics[0].href).toBe('/violations?status=open');
+    expect(metrics[0].href).toBe('/violations?status=all_open');
     expect(metrics[2].href).toBe('/bills?status=pending_approval');
     expect(metrics[3].href).toBe('/bank-accounts?filter=unreconciled');
     expect(metrics[5].href).toBe('/work-orders?tab=open');

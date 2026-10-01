@@ -229,13 +229,13 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         work('Account actions', [
           { label: 'Post charge', href: '/charges/new', description: 'Add an owner charge.', primary: true },
           { label: 'View receivables', href: `/charges?owner=${ownerId}`, description: 'Review this owner account.' },
-          { label: 'Send statement', href: `/owners/${ownerId}?view=statements`, description: 'Review and deliver a statement.' },
+          { label: 'Send statement', href: `/owners/${ownerId}#statements`, description: 'Review and deliver a statement.' },
           { label: 'Owner payable / refund', href: '/bills/owner-payable/new', description: 'Record an approved reimbursement.', access: 'finance' },
           { label: 'Manage portal access', href: `/owners/${ownerId}#portal-access`, description: 'Review activation and access.' },
           { label: 'Send email', href: '/send-email', description: 'Compose a direct message.' },
         ]),
         reports('Owner reporting', [
-          { label: 'Owner ledger', href: '/reports/homeowner_ledger', description: 'Charges, payments, and running balance.' },
+          { label: 'Owner ledger', href: '/reports/owner_ledger', description: 'Charges, payments, and running balance.' },
           { label: 'Delinquency summary', href: '/reports/delinquency', description: 'Aging and collection position.' },
         ]),
         help('Guidance', [{ label: 'Owner statements', href: '/help/owner-statements' }]),

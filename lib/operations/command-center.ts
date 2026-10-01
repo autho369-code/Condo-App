@@ -9,7 +9,7 @@ export type CommandCounts = {
 
 export function buildCommandMetrics(counts: CommandCounts) {
   return [
-    { label: 'Open violations', value: counts.openViolations, href: '/violations?status=open' },
+    { label: 'Open violations', value: counts.openViolations, href: '/violations?status=all_open' },
     { label: 'Overdue violations', value: counts.overdueViolations, href: '/violations?status=overdue' },
     { label: 'Pending bills', value: counts.pendingBills, href: '/bills?status=pending_approval' },
     { label: 'Unreconciled accounts', value: counts.unreconciledBankAccounts, href: '/bank-accounts?filter=unreconciled' },

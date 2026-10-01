@@ -4,10 +4,11 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
-import { EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { Wrench } from 'lucide-react';
 import type { CalendarEventType } from '@/lib/operations/calendar';
 
@@ -26,6 +27,11 @@ const CATEGORY_EVENT_TYPE: Record<string, CalendarEventType> = {
   Operations: 'custom_event', Other: 'custom_event',
 };
 
+// Server actions must fail loudly: redirect back with ?error= (CLAUDE.md rule 3).
+function maintenanceFail(message: string, tab = 'tasks'): never {
+  redirect(`/maintenance?tab=${tab}&error=${encodeURIComponent(message)}`);
+}
+
 async function syncCalendarEvent(
   db: any, portfolioId: string, taskId: string, assocId: string | null, vendorId: string | null,
   title: string, category: string, dueDate: string, endDate: string | null,
@@ -34,7 +40,7 @@ async function syncCalendarEvent(
   const eventType = CATEGORY_EVENT_TYPE[category] || 'custom_event';
   const start = dueDate ? `${dueDate}T09:00:00` : new Date().toISOString();
   const end = endDate ? `${endDate}T17:00:00` : null;
-  await db.from('calendar_events').insert({
+  const { error } = await db.from('calendar_events').insert({
     portfolio_id: portfolioId,
     association_id: assocId, vendor_id: vendorId,
     maintenance_task_id: taskId,
@@ -47,13 +53,14 @@ async function syncCalendarEvent(
     reminder_rules: [{ minutes_before: 10080, actions: ['notify_management_office'] }],
     created_by: createdBy,
   });
+  if (error) maintenanceFail(`The task was saved, but its calendar event could not be created: ${error.message}`);
 }
 
 async function addTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const me = await requireStaff();
   const freq = formData.get('frequency') as string;
-  const { data: task } = await db.from('maintenance_tasks').insert({
+  const { data: task, error: taskError } = await db.from('maintenance_tasks').insert({
     association_id: formData.get('association_id'), task_name: formData.get('task_name'),
     category: formData.get('category'), frequency: freq,
     custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,
@@ -64,6 +71,7 @@ async function addTask(formData: FormData) {'use server';
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
     next_due_date: formData.get('start_date'), notes: (formData.get('notes') as string)||null,
   }).select('id').single();
+  if (taskError || !task) maintenanceFail(`Task not added: ${taskError?.message ?? 'unknown error'}`);
 
   if (task && me.portfolio?.id) {
     await syncCalendarEvent(
@@ -87,7 +95,7 @@ async function updateTask(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const freq = formData.get('frequency') as string;
   const id = formData.get('id') as string;
-  await db.from('maintenance_tasks').update({
+  const { error: updateError } = await db.from('maintenance_tasks').update({
     task_name: formData.get('task_name'), category: formData.get('category'),
     frequency: freq, custom_interval_days: freq==='custom' ? parseInt(formData.get('custom_days') as string)||null : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
@@ -97,17 +105,19 @@ async function updateTask(formData: FormData) {'use server';
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
     notes: (formData.get('notes') as string)||null,
   }).eq('id', id);
+  if (updateError) maintenanceFail(`Task not updated: ${updateError.message}`);
   // Update linked calendar event
   const eventType = CATEGORY_EVENT_TYPE[formData.get('category') as string] || 'custom_event';
   const start = formData.get('start_date') as string;
-  await db.from('calendar_events').update({
+  const { error: eventError } = await db.from('calendar_events').update({
     title: `🔧 ${formData.get('task_name')}`,
     event_type: eventType,
     start_datetime: start ? `${start}T09:00:00` : undefined,
     end_datetime: formData.get('end_date') ? `${formData.get('end_date')}T17:00:00` : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
     description: (formData.get('notes') as string)?.slice(0,200)||null,
-  }).eq('maintenance_task_id', id).is('archived_at', null).is('operations_status', 'scheduled');
+  }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
+  if (eventError) maintenanceFail(`Task updated, but its calendar event was not: ${eventError.message}`);
   revalidatePath('/maintenance');
   revalidatePath('/calendar');
 }
@@ -116,9 +126,11 @@ async function deleteTask(formData: FormData) {'use server';
   await (await import('@/lib/auth/me')).requireStaff();  // in-action guard
   const supabase = await createClient();
   const id = formData.get('id') as string;
-  await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  const { error: archiveError } = await (supabase as any).from('maintenance_tasks').update({ archived_at: new Date().toISOString() }).eq('id', id);
+  if (archiveError) maintenanceFail(`Task not removed: ${archiveError.message}`);
   // Cancel linked calendar events
-  await (supabase as any).from('calendar_events').update({ operations_status: 'canceled' }).eq('maintenance_task_id', id).is('archived_at', null);
+  const { error: cancelError } = await (supabase as any).from('calendar_events').update({ operations_status: 'canceled' }).eq('maintenance_task_id', id).is('archived_at', null);
+  if (cancelError) maintenanceFail(`Task removed, but its calendar events were not cancelled: ${cancelError.message}`);
   revalidatePath('/maintenance');
   revalidatePath('/calendar');
 }
@@ -128,20 +140,22 @@ async function completeTask(formData: FormData) {'use server';
   const me = await requireStaff();
   const id = formData.get('id') as string;
   const { data: task } = await db.from('maintenance_tasks').select('*').eq('id',id).single();
-  if(!task) { revalidatePath('/maintenance'); return; }
+  if(!task) maintenanceFail('That task was not found.');
 
   const now = new Date().toISOString();
   // Record completion in history
-  await db.from('maintenance_task_history').insert({
+  const { error: historyError } = await db.from('maintenance_task_history').insert({
     task_id: id,
     completed_at: now,
     completed_by: me.auth_user_id,
     notes: task.notes,
     vendor_id: task.vendor_id,
   });
+  if (historyError) maintenanceFail(`Completion not recorded: ${historyError.message}`);
 
   // Mark existing calendar event as completed
-  await db.from('calendar_events').update({ operations_status: 'completed' }).eq('maintenance_task_id', id).is('archived_at', null).is('operations_status', 'scheduled');
+  const { error: doneError } = await db.from('calendar_events').update({ operations_status: 'completed' }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
+  if (doneError) maintenanceFail(`Completion recorded, but the calendar event was not closed: ${doneError.message}`);
 
   // Calculate next due date for auto-recurring
   if(task.next_due_date && task.frequency){
@@ -155,11 +169,12 @@ async function completeTask(formData: FormData) {'use server';
     else if(freq==='annual') d.setFullYear(d.getFullYear()+1);
     else if(freq==='custom'&&cd) d.setDate(d.getDate()+cd);
     const nd = d.toISOString().slice(0,10);
-    await db.from('maintenance_tasks').update({
+    const { error: nextError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,
       next_due_date: nd,
       status: 'active',
     }).eq('id',id);
+    if (nextError) maintenanceFail(`Completion recorded, but the next due date was not set: ${nextError.message}`);
 
     // Create calendar event for the next occurrence
     if (me.portfolio?.id) {
@@ -171,10 +186,11 @@ async function completeTask(formData: FormData) {'use server';
     }
   } else {
     // No frequency — mark task completed
-    await db.from('maintenance_tasks').update({
+    const { error: closeError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,
       status: 'completed',
     }).eq('id',id);
+    if (closeError) maintenanceFail(`Completion recorded, but the task was not closed: ${closeError.message}`);
   }
   revalidatePath('/maintenance');
   revalidatePath('/calendar');
@@ -184,7 +200,9 @@ async function cloneGroup(formData: FormData) {'use server';
   const supabase = await createClient(); const db = supabase as any;
   const me = await requireStaff();
   const assocId = formData.get('association_id') as string;
-  const { data: templates } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string);
+  if (!assocId) maintenanceFail('Choose the association to add these tasks to.', 'templates');
+  const { data: templates, error: templatesError } = await db.from('maintenance_templates').select('*').eq('group_id', formData.get('group_id') as string);
+  if (templatesError) maintenanceFail(`Templates could not be loaded: ${templatesError.message}`, 'templates');
   if(templates){
     const today = new Date().toISOString().slice(0,10);
     const tasks = templates.map((t:any)=>({
@@ -194,7 +212,8 @@ async function cloneGroup(formData: FormData) {'use server';
       priority: 'normal',
       start_date: today, next_due_date: today, notes: t.description,
     }));
-    const { data: created } = await db.from('maintenance_tasks').insert(tasks).select('id,category,task_name,notes');
+    const { data: created, error: cloneError } = await db.from('maintenance_tasks').insert(tasks).select('id,category,task_name,notes');
+    if (cloneError) maintenanceFail(`Tasks not added: ${cloneError.message}`, 'templates');
     // Create calendar events for each cloned task
     if (created && me.portfolio?.id) {
       for (const t of created) {
@@ -210,7 +229,7 @@ async function cloneGroup(formData: FormData) {'use server';
   revalidatePath('/calendar');
 }
 
-export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ assoc?: string; tab?: string; edit?: string; add?: string }> }) {
+export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ assoc?: string; tab?: string; edit?: string; add?: string; error?: string }> }) {
   await requireStaff();
   const supabase = await createClient(); const db = supabase as any;
   const sp = await searchParams;
@@ -236,6 +255,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
       description="Template-driven. Fully editable. Auto-recurring."
     >
       <div className="space-y-6">
+        {sp.error && <Alert tone="danger" title="That didn't save.">{sp.error}</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <a
             href="/maintenance?tab=tasks"

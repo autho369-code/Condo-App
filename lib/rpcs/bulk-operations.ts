@@ -116,10 +116,20 @@ export async function queueBulkReports(formData: FormData) {
 
   if (error) return { error: error.message };
 
+  // bulk_queue_reports returns a set: PostgREST hands back [{ queued_count, run_ids }].
+  const row = (Array.isArray(data) ? data[0] : data) as { queued_count?: number; run_ids?: string[] } | null;
+  const runIds = row?.run_ids ?? [];
+  // These runs have no scheduled_report_id, so the cron never picks them up;
+  // process them now (as queueReport does) instead of leaving them "queued".
+  const { processReportRun } = await import('@/lib/reports/process');
+  for (const id of runIds) {
+    try { await processReportRun(id); } catch { /* the run row records its own failure */ }
+  }
+
   revalidatePath('/reports');
   revalidatePath('/reports/bulk-association');
   revalidatePath('/reports/runs');
-  return { success: true, count: (data as any)?.queued_count ?? 0, run_ids: (data as any)?.run_ids ?? [] };
+  return { success: true, count: row?.queued_count ?? runIds.length, run_ids: runIds };
 }
 
 /* ================================================================

@@ -2,14 +2,15 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
-import { Surface } from '@/components/ui/shell';
+import { Alert, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewMeetingPage() {
+export default async function NewMeetingPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireWorkspaceStaff();
+  const sp = await searchParams;
   const supabase = await createClient();
   const { data: associations } = await (supabase as any).from('associations').select('id, name').order('name');
 
@@ -17,6 +18,12 @@ export default async function NewMeetingPage() {
     'use server';
     const actionMe = await (await import('@/lib/auth/me')).requireWorkspaceStaff();
     const supabase = await createClient();
+    if (!String(formData.get('association_id') ?? '')) {
+      redirect(`/meetings/new?error=${encodeURIComponent('Choose the association this meeting belongs to.')}`);
+    }
+    if (!String(formData.get('title') ?? '').trim()) {
+      redirect(`/meetings/new?error=${encodeURIComponent('Enter a meeting title.')}`);
+    }
     const { error } = await (supabase as any).from('meetings').insert({
       title: formData.get('title'),
       meeting_type: formData.get('meeting_type') || 'board_meeting',
@@ -39,6 +46,7 @@ export default async function NewMeetingPage() {
       title="New meeting"
       description="Schedule a board meeting, committee session, or association event."
     >
+      {sp.error && <Alert tone="danger" title="Meeting not created." className="mb-4 max-w-3xl">{sp.error}</Alert>}
       <Surface className="max-w-3xl">
         <form action={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -54,8 +62,8 @@ export default async function NewMeetingPage() {
                 <option value="executive_session">Executive Session</option>
               </Select>
             </Field>
-            <Field label="Association">
-              <Select name="association_id">
+            <Field label="Association" required>
+              <Select name="association_id" required>
                 <option value="">Select association</option>
                 {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
