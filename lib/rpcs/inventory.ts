@@ -30,6 +30,8 @@ export async function updateInventoryItem(formData: FormData) {
   const { id, back } = itemPath(formData);
   const name = text(formData, 'name');
   if (!name) redirect(`${back}?error=${encodeURIComponent('Item name is required.')}`);
+  const reorderPoint = num(formData, 'reorder_point');
+  if (reorderPoint != null && reorderPoint < 0) redirect(`${back}?error=${encodeURIComponent('The reorder point cannot be negative.')}`);
   const db = (await createClient()) as any;
   const { error } = await db.from('inventory_items').update({
     name,
@@ -37,7 +39,7 @@ export async function updateInventoryItem(formData: FormData) {
     category: text(formData, 'category') || null,
     location: text(formData, 'location') || null,
     unit_of_measure: text(formData, 'unit_of_measure') || null,
-    reorder_point: num(formData, 'reorder_point'),
+    reorder_point: reorderPoint,
   }).eq('id', id).select('id').maybeSingle();
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   revalidatePath(back);
