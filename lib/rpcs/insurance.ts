@@ -65,6 +65,9 @@ export async function saveInsurancePolicy(input: {
     .from('occupancies')
     .select('association_id')
     .eq('owner_id', me.owner_id)
+    // The insert policy requires a current occupancy in this association.
+    .eq('status', 'current')
+    .order('is_primary', { ascending: false })
     .limit(1)
     .maybeSingle();
 

@@ -119,6 +119,18 @@ export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeR
     await supabase.auth.signOut();
     redirect('/login?error=account_disabled');
   }
+  // A suspended company's members lose data access in RLS (me().portfolio
+  // comes back empty); sign them out with an explanation instead of showing
+  // empty pages.
+  const profilePortfolioId = (me?.profile as any)?.portfolio_id as string | undefined;
+  if (me?.auth_user_id && !me.is_platform_operator && profilePortfolioId && !me.portfolio) {
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const { data: pf } = await (createServiceClient() as any).from('portfolios').select('suspended_at').eq('id', profilePortfolioId).maybeSingle();
+    if (pf?.suspended_at) {
+      await supabase.auth.signOut();
+      redirect('/login?error=company_suspended');
+    }
+  }
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
   if (options.enforceMfa !== false) await enforceConfiguredMfa(me, supabase);
   return me;
@@ -153,6 +165,25 @@ export async function requireMatchingTenantWorkspace(me: MeResult) {
 export async function requirePlatformOperator(): Promise<MeResult> {
   const me = await requireAuth();
   if (!me.is_platform_operator) redirect('/dashboard');
+  return me;
+}
+
+/**
+ * Platform operators come in admin / support / readonly roles, but
+ * is_platform_operator() only checks `active`. Mutations (creating companies,
+ * invitations, ownership transfer, suspension, billing) need role = 'admin'.
+ */
+export async function requirePlatformAdmin(): Promise<MeResult> {
+  const me = await requirePlatformOperator();
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const { data: operator } = await (createServiceClient() as any)
+    .from('platform_operators')
+    .select('role, active')
+    .eq('auth_user_id', me.auth_user_id)
+    .maybeSingle();
+  if (!operator?.active || operator.role !== 'admin') {
+    redirect('/platform-operator?error=' + encodeURIComponent('Platform administrator access is required for this action.'));
+  }
   return me;
 }
 

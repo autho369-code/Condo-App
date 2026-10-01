@@ -11,7 +11,7 @@ export default async function OwnerAccountPage() {
   const ownerId = me.owner_id
 
   const { data: owner } = await db.from('owners').select('*').eq('id', ownerId).maybeSingle()
-  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').eq('owner_id', ownerId).limit(10)
+  const { data: occs } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct, occupancy_type, status').eq('owner_id', ownerId).eq('status', 'current').limit(10)
   const o = owner ?? {}
   const occ = occs?.[0] ?? {}
 
@@ -43,7 +43,8 @@ export default async function OwnerAccountPage() {
           {[
             ['Name', (o.full_name ?? `${o.first_name ?? ''} ${o.last_name ?? ''}`.trim()) || '—'],
             ['Email', o.email ?? me.email ?? '—'],
-            ['Phone', Array.isArray(o.phone_numbers) ? o.phone_numbers[0] : o.phone ?? '—'],
+            // phone is what the profile page saves; phone_numbers is [] for every owner.
+            ['Phone', o.phone || (Array.isArray(o.phone_numbers) ? (typeof o.phone_numbers[0] === 'string' ? o.phone_numbers[0] : o.phone_numbers[0]?.number) : null) || '—'],
             ['Mailing Address', address],
           ].map(([l, v]) => (
             <div key={l as string}>

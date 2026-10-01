@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { loginWithPassword } from '@/lib/auth/actions';
 import { getLoginModeConfig, getVisibleLoginModes, safeInternalNext, type LoginModeId } from '@/lib/auth/login-modes';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
-import { loginErrorMessage } from '@/lib/auth/login-errors';
+import { loginErrorMessage, loginNoticeMessage } from '@/lib/auth/login-errors';
 import { platformLoginUrl } from '@/lib/tenant/host';
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; mode?: LoginModeId }>;
+  searchParams: Promise<{ next?: string; error?: string; notice?: string; mode?: LoginModeId }>;
 }) {
   const params = await searchParams;
   const mode = getLoginModeConfig(params.mode);
@@ -29,6 +29,7 @@ export default async function LoginPage({
   const h = await headers();
   const tenant = tenantFromHeaders(h);
   const errorMessage = loginErrorMessage(params.error);
+  const noticeMessage = errorMessage ? null : loginNoticeMessage(params.notice);
   const platformLoginHref = platformLoginUrl(h.get('host'));
   if (h.get('x-tenant-state') === 'not-found') {
     return (
@@ -145,6 +146,11 @@ export default async function LoginPage({
             />
           </div>
 
+          {noticeMessage && (
+            <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] leading-5 text-emerald-800">
+              {noticeMessage}
+            </p>
+          )}
           {errorMessage && (
             <p
               role="alert"

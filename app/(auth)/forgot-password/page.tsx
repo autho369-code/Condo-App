@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { headers } from 'next/headers';
 import { consumePublicRateLimit, consumeScopedRateLimit } from '@/lib/server/rate-limit';
 import { siteUrl } from '@/lib/url/site-url';
+import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { resolvedTenantUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 
@@ -36,14 +37,13 @@ async function requestPasswordReset(formData: FormData) {
     // role. Vendors have no profiles row, so a profiles-based lookup would
     // silently exclude them; profile/owner/vendor lookups below are only
     // best-effort metadata for the email.
+    const resetRedirect = tenant
+      ? resolvedTenantUrl(tenant, '/api/auth/callback?next=/reset-password')
+      : `${siteUrl()}/api/auth/callback?next=/reset-password`;
     const { data: linkData, error } = await svc.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: {
-        redirectTo: tenant
-          ? resolvedTenantUrl(tenant, '/api/auth/callback?next=/reset-password')
-          : `${siteUrl()}/api/auth/callback?next=/reset-password`,
-      },
+      options: { redirectTo: resetRedirect },
     });
     if (error || !linkData?.properties?.action_link) done();
 
@@ -79,7 +79,7 @@ async function requestPasswordReset(formData: FormData) {
       to_email: email,
       to_name: toName,
       subject: 'Reset your Portier369 password',
-      body: `<p>Hello${toName ? ` ${toName}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${linkData.properties.action_link}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      body: `<p>Hello${toName ? ` ${toName}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
       from_name: FROM_NAME,

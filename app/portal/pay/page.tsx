@@ -89,8 +89,11 @@ export default async function PayPage({
 
       {unitOptions.map((unit) => {
         const assoc = unit.association_id ? assocById.get(unit.association_id) : undefined;
-        const balance = Number(unit.outstanding_balance ?? 0);
+        const outstanding = Number(unit.outstanding_balance ?? 0);
         const credit = Number(unit.unapplied_credit ?? 0);
+        // What the owner actually owes: open charges less credit already on
+        // file (pre-filling the gross amount asked them to overpay).
+        const balance = Math.max(0, Math.round((outstanding - credit) * 100) / 100);
         const hasInstructions = !!(assoc?.remit_payee || assoc?.remit_address || assoc?.payment_instructions);
         return (
           <Card key={unit.unit_id ?? Math.random()}>
@@ -99,9 +102,9 @@ export default async function PayPage({
               <p className="text-sm text-gray-500">
                 Current balance
                 <span className={`ml-1 font-semibold tabular-nums ${balance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-                  {money(unit.outstanding_balance ?? 0)}
+                  {money(balance)}
                 </span>
-                {credit > 0 && <span className="ml-2 text-xs text-emerald-700">(plus {money(unit.unapplied_credit)} credit on file)</span>}
+                {credit > 0 && <span className="ml-2 text-xs text-emerald-700">(after {money(unit.unapplied_credit)} credit on file)</span>}
               </p>
             </CardHeader>
             <CardBody>

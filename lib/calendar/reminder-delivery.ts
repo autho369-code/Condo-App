@@ -99,7 +99,7 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
   const nowIso = now.toISOString();
   const { data: due, error } = await svc
     .from('calendar_event_reminders')
-    .select('id, recipient_group, action, calendar_event_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
+    .select('id, recipient_group, action, offset_minutes, calendar_event_id, calendar_events(id, title, event_type, start_datetime, all_day, location, description, maintenance_instructions, public_notice_text, association_id, unit_id, vendor_id, portfolio_id, created_by, archived_at, operations_status, associations(name, timezone), portfolios(company_name, support_email))')
     .eq('status', 'scheduled')
     .lte('remind_at', nowIso)
     .order('remind_at')
@@ -115,7 +115,13 @@ export async function deliverDueCalendarReminders(svc: Svc, now = new Date()) {
     if (!event || event.archived_at || ['canceled', 'cancelled'].includes(event.operations_status ?? '')) {
       await setStatus('skipped'); summary.skipped++; continue;
     }
-    if (!event.start_datetime || new Date(event.start_datetime).getTime() < now.getTime() - START_GRACE_MS) {
+    // After the start, only a reminder set FOR the start (0-minute offset)
+    // may still go out, within the grace window; an earlier notice (8 hours,
+    // 7 days) that ran late is expired rather than sent after the fact.
+    const startMs = event.start_datetime ? new Date(event.start_datetime).getTime() : NaN;
+    const started = !Number.isFinite(startMs) || startMs <= now.getTime();
+    const zeroOffsetInGrace = Number(r.offset_minutes ?? -1) === 0 && Number.isFinite(startMs) && startMs >= now.getTime() - START_GRACE_MS;
+    if (started && !zeroOffsetInGrace) {
       await setStatus('expired'); summary.expired++; continue;
     }
     if (!reminderSendsEmail(r.recipient_group, r.action)) {

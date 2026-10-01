@@ -43,7 +43,7 @@ export default async function NewApprovalPage({
 
   const { data: settings } = await (supabase as any)
     .from('board_approval_settings')
-    .select('default_board_member_ids, default_voting_scheme, signatures_required')
+    .select('default_board_member_ids, default_voting_scheme, signatures_required, default_percentage_required')
     .eq('association_id', id)
     .maybeSingle();
 
@@ -75,8 +75,19 @@ export default async function NewApprovalPage({
       failTo('Name, Description, and Due Date are required.');
     }
 
+    // A percentage vote needs its percentage: without it the tally fell back
+    // to required_votes (e.g. 3) and read it as "3 percent", so the first
+    // Approve carried the vote.
+    let percentageRequired: number | null = null;
+    if (votingScheme === 'percentage_required') {
+      const pct = Number(String(formData.get('percentage_required') ?? '').trim());
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) failTo('Enter the approval percentage (1–100) for a percentage vote.');
+      percentageRequired = Math.round(pct); // whole percent (smallint column)
+    }
+
     let requiredVotes: number;
     switch (votingScheme) {
+      case 'percentage_required':         requiredVotes = Math.max(1, Math.ceil(boardMemberIds.length * (percentageRequired ?? 100) / 100)); break;
       case 'unanimous_approval_required': requiredVotes = boardMemberIds.length; break;
       case 'any_one_approver':            requiredVotes = 1; break;
       case 'majority_approval_required':
@@ -109,6 +120,7 @@ export default async function NewApprovalPage({
       board_member_ids: boardMemberIds,
       signatures_required: settings?.signatures_required ?? true,
       required_votes: requiredVotes,
+      percentage_required: percentageRequired,
       status: 'pending',
       requested_at: new Date().toISOString(),
       attachments: uploaded, // NOT NULL default '[]' — null always failed
@@ -179,6 +191,19 @@ export default async function NewApprovalPage({
               <option value="any_one_approver">Any One Approver</option>
               <option value="percentage_required">Percentage Required</option>
             </select>
+          </FormRow>
+
+          <FormRow label="Approval %">
+            <input
+              name="percentage_required"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              defaultValue={settings?.default_percentage_required ?? 67}
+              className="w-32 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+            <span className="ml-2 text-xs text-gray-500">Used only for Percentage Required votes.</span>
           </FormRow>
 
           <div className="my-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] leading-5 text-blue-800">

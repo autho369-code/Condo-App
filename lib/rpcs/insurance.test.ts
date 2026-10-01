@@ -36,6 +36,7 @@ function sessionDb() {
   const occupancy = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({ data: { association_id: 'association-a' }, error: null }),
   };

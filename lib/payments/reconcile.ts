@@ -12,6 +12,7 @@
  * MULTIPLE ambiguous candidates is flagged 'needs_review' for the exception
  * queue rather than guessed at.
  */
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -21,22 +22,33 @@ export interface ReconcileSummary {
   needsReview: number;
 }
 
+const SETTLEMENT_ACCOUNT_NOTE = 'Select this association\'s Stripe settlement bank account before automatic reconciliation.';
+
 export async function reconcilePayouts(svc: SupabaseClient): Promise<ReconcileSummary> {
   const db = svc as any;
   const summary: ReconcileSummary = { examined: 0, reconciled: 0, needsReview: 0 };
 
-  const { data: payouts } = await db
-    .from('payout_batches')
-    .select('id, portfolio_id, association_id, processor_account_id, settlement_bank_account_id, processor_payout_id, amount, arrival_date, status')
-    .in('status', ['pending', 'paid', 'needs_review'])
-    .is('bank_transaction_id', null);
+  // Only payouts Stripe has actually paid are matched to deposits. A
+  // needs_review payout is re-examined only when this job flagged it for a
+  // missing settlement account; reviews flagged by the webhook (net amount
+  // mismatch, unmapped or double-claimed charges) are left for a person.
+  // Paged and ordered: unmatched payouts must not crowd out newer ones.
+  const columns = 'id, portfolio_id, association_id, processor_account_id, settlement_bank_account_id, processor_payout_id, amount, arrival_date, status';
+  const [paid, awaitingAccount] = await Promise.all([
+    fetchAllRows<any>(() => db.from('payout_batches').select(columns)
+      .eq('status', 'paid').is('bank_transaction_id', null).order('arrival_date', { ascending: false }).order('id')),
+    fetchAllRows<any>(() => db.from('payout_batches').select(columns)
+      .eq('status', 'needs_review').is('bank_transaction_id', null).like('notes', `${SETTLEMENT_ACCOUNT_NOTE.slice(0, 40)}%`).order('id')),
+  ]);
+  if (paid.error || awaitingAccount.error) throw new Error(`payout lookup failed: ${paid.error ?? awaitingAccount.error}`);
+  const payouts = [...paid.rows, ...awaitingAccount.rows];
 
   for (const payout of payouts ?? []) {
     summary.examined++;
     if (!payout.association_id || !payout.processor_account_id || !payout.settlement_bank_account_id) {
       await db.from('payout_batches').update({
         status: 'needs_review',
-        notes: 'Select this association\'s Stripe settlement bank account before automatic reconciliation.',
+        notes: SETTLEMENT_ACCOUNT_NOTE,
         updated_at: new Date().toISOString(),
       }).eq('id', payout.id);
       summary.needsReview++;
