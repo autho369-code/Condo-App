@@ -13,6 +13,7 @@ import { bulkBillAction } from '@/lib/rpcs/bills';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,10 +67,17 @@ export default async function BillsPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  let billsQuery = db.from('payable_bills')
-    .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)');
-  if (statusFilter === 'pending_approval') billsQuery = billsQuery.eq('status', 'pending_approval');
-  billsQuery = billsQuery.order('due_date', { ascending: true, nullsFirst: false }).limit(500);
+  // Bills tab: every open (not paid/void), non-archived bill. Paid bills are on
+  // the Payments tab. A 500-row window ordered by due date filled up with old
+  // paid/void bills and dropped new open ones from the list and the metrics.
+  const billsQuery = fetchAllRows(() => {
+    let q = db.from('payable_bills')
+      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)')
+      .is('archived_at', null)
+      .not('status', 'in', '("paid","void")');
+    if (statusFilter === 'pending_approval') q = q.eq('status', 'pending_approval');
+    return q.order('due_date', { ascending: true, nullsFirst: false }).order('id');
+  }).then((r) => ({ data: r.rows, error: r.error }));
 
   // ── PARALLEL: fetch all tab data ──
   const [
@@ -86,6 +94,7 @@ export default async function BillsPage({
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')
       .eq('status', 'paid')
+      .is('archived_at', null)
       .order('paid_at', { ascending: false, nullsFirst: false })
       .limit(500),
     // Vendors for filter
@@ -186,7 +195,7 @@ export default async function BillsPage({
   );
 
   const metrics: Metric[] = [
-    { label: 'Open bills', value: openCount, sublabel: `${(allBills ?? []).length} total` },
+    { label: 'Open bills', value: openCount, sublabel: 'Not yet paid' },
     { label: 'Pending approval', value: pendingApprovalCount, sublabel: `${money(pendingApprovalTotal)}` },
     { label: 'Approved', value: approvedCount, sublabel: `${money(approvedTotal)}` },
     { label: 'Overdue', value: overdueCount, sublabel: `${money(overdueTotal)}` },

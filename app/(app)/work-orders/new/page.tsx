@@ -44,6 +44,15 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       }
     }
 
+    // The vendor must be one of this company's vendors: assigning a vendor
+    // gives it access to the work order, unit and association.
+    const vendorId = (formData.get('vendor_id') as string) || null;
+    if (vendorId) {
+      const { data: vendor } = await (supabase as any).from('vendors').select('id')
+        .eq('id', vendorId).eq('portfolio_id', me.portfolio?.id).is('archived_at', null).maybeSingle();
+      if (!vendor) redirect(`/work-orders/new?association=${associationId}&error=` + encodeURIComponent('That vendor is not in your company.'));
+    }
+
     const { data: wo, error } = await (supabase as any).from('work_orders').insert({
       portfolio_id: me.portfolio?.id,
       association_id: associationId,
@@ -52,8 +61,8 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       description: (formData.get('description') as string)?.trim() || null,
       category: (formData.get('category') as string) || 'other',
       priority: (formData.get('priority') as string) || 'normal',
-      status: 'new',
-      vendor_id: (formData.get('vendor_id') as string) || null,
+      status: vendorId ? 'assigned' : 'new',
+      vendor_id: vendorId,
       scheduled_date: (formData.get('scheduled_date') as string) || null,
       requested_by: (formData.get('requested_by') as string)?.trim() || null,
       internal_notes: (formData.get('internal_notes') as string)?.trim() || null,

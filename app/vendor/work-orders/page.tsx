@@ -37,7 +37,7 @@ export default async function VendorWorkOrders({
   const rows = all.filter((w: any) => {
     const s = (w.status ?? '').toLowerCase();
     if (filter === 'open') return OPEN_STATUSES.includes(s);
-    if (filter === 'done') return !OPEN_STATUSES.includes(s);
+    if (filter === 'done') return !OPEN_STATUSES.includes(s) && s !== 'cancelled';
     return true;
   });
 

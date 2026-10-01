@@ -37,6 +37,7 @@ export default async function VendorSchedulePage() {
       .select('id, task_name, next_due_date, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
+      .eq('status', 'active')
       .not('next_due_date', 'is', null)
       .lte('next_due_date', in60.slice(0, 10))
       .order('next_due_date'),

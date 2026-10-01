@@ -42,10 +42,19 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
     // Operating <-> reserve moves need explicit authorization
     // (guard_cross_fund_transfer); the form never collected it, so every such
     // transfer failed.
-    const { data: banks } = await db.from('bank_accounts').select('id, name, gl_account_id, fund_type').in('id', [from, to]);
+    const { data: banks } = await db.from('bank_accounts').select('id, name, gl_account_id, fund_type, association_id').in('id', [from, to]);
     const fromBank = (banks ?? []).find((b: any) => b.id === from);
     const toBank = (banks ?? []).find((b: any) => b.id === to);
     if (!fromBank || !toBank) fail('One of those bank accounts was not found.');
+    // Each association's money stays its own: a transfer between two
+    // associations' accounts would commingle funds.
+    if (fromBank.association_id && toBank.association_id && fromBank.association_id !== toBank.association_id) {
+      fail('Those accounts belong to different associations. Transfers move money within one association.');
+    }
+    if (!fromBank.gl_account_id || !toBank.gl_account_id) {
+      fail('Link both bank accounts to GL accounts before recording a transfer, so it posts to the ledger.');
+    }
+    const associationId = fromBank.association_id ?? toBank.association_id ?? null;
     const crossFund = (fromBank.fund_type ?? null) !== (toBank.fund_type ?? null);
     const authorized = formData.get('authorize_cross_fund') === 'on';
     const authorizationNote = (formData.get('authorization_note') as string)?.trim() || '';
@@ -69,7 +78,10 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
     // Post the transfer to the GL (debit destination, credit source) so it
     // affects balances instead of sitting "Incomplete" forever. Requires both
     // bank accounts to be linked to GL accounts.
-    if (fromBank?.gl_account_id && toBank?.gl_account_id && fromBank.gl_account_id !== toBank.gl_account_id) {
+    // Lines carry the association so association reports, budgets and cash
+    // balances see the transfer. (Two banks sharing one GL account still get
+    // an entry, so the transfer is complete rather than silently skipped.)
+    {
       const { data: entry, error: entryErr } = await db.from('journal_entries').insert({
         portfolio_id: me.portfolio?.id,
         entry_date: transferDate,
@@ -82,8 +94,8 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
       if (entryErr || !entry) fail(`Transfer recorded, but its journal entry could not be created: ${entryErr?.message ?? 'unknown error'}. It is listed under Incomplete.`);
       {
         const { error: linesErr } = await db.from('journal_lines').insert([
-          { entry_id: entry.id, gl_account_id: toBank.gl_account_id, debit_amount: amount, credit_amount: 0, memo, sort_order: 0 },
-          { entry_id: entry.id, gl_account_id: fromBank.gl_account_id, debit_amount: 0, credit_amount: amount, memo, sort_order: 1 },
+          { entry_id: entry.id, gl_account_id: toBank.gl_account_id, association_id: toBank.association_id ?? associationId, debit_amount: amount, credit_amount: 0, memo, sort_order: 0 },
+          { entry_id: entry.id, gl_account_id: fromBank.gl_account_id, association_id: fromBank.association_id ?? associationId, debit_amount: 0, credit_amount: amount, memo, sort_order: 1 },
         ]);
         if (linesErr) {
           await db.from('journal_entries').delete().eq('id', entry.id); // roll back the orphan draft

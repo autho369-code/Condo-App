@@ -5,6 +5,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { DEFAULT_TIME_ZONE, wallDateTimeToIso } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +25,22 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     if (!String(formData.get('title') ?? '').trim()) {
       redirect(`/meetings/new?error=${encodeURIComponent('Enter a meeting title.')}`);
     }
+    // datetime-local values are wall-clock times in the association's zone
+    // (stored raw they were read as UTC: a 7 PM meeting showed as 2 PM).
+    const { data: assoc } = await (supabase as any).from('associations')
+      .select('timezone').eq('id', String(formData.get('association_id'))).maybeSingle();
+    if (!assoc) redirect(`/meetings/new?error=${encodeURIComponent('That association was not found in your workspace.')}`);
+    const zone = assoc?.timezone || DEFAULT_TIME_ZONE;
+    const startTime = wallDateTimeToIso(String(formData.get('start_time') ?? ''), zone);
+    const endTime = wallDateTimeToIso(String(formData.get('end_time') ?? ''), zone);
+    if (formData.get('start_time') && !startTime) redirect(`/meetings/new?error=${encodeURIComponent('Enter a valid start date and time.')}`);
+    if (startTime && endTime && endTime < startTime) redirect(`/meetings/new?error=${encodeURIComponent('The meeting must end after it starts.')}`);
     const { error } = await (supabase as any).from('meetings').insert({
       title: formData.get('title'),
       meeting_type: formData.get('meeting_type') || 'board_meeting',
       association_id: formData.get('association_id') || null,
-      start_time: formData.get('start_time') || null,
-      end_time: formData.get('end_time') || null,
+      start_time: startTime,
+      end_time: endTime,
       location: formData.get('location') || '',
       agenda: formData.get('agenda') || '',
       status: 'scheduled',

@@ -18,7 +18,6 @@ const FIELDS = [
   { key: 'auto_insurance_expiration', label: 'Auto insurance' },
   { key: 'epa_certification_expiration', label: 'EPA certification' },
   { key: 'state_license_expiration', label: 'State license' },
-  { key: 'contract_expiration', label: 'Contract' },
 ] as const;
 
 function statusFor(d: string | null): { tone: 'complete' | 'pending' | 'danger' | 'inactive'; label: string } {
@@ -85,7 +84,7 @@ export default async function VendorCompliance({
     <div>
       <PageHeader
         title="Compliance"
-        description="Insurance and license expiration dates. Management companies see these when assigning work."
+        description="Insurance and license expiration dates. Upload the certificate for each one: management reviews it before the date counts toward your compliance."
       />
 
       {sp.error && <Alert tone="danger" title="Could not save:" className="mb-5">{sp.error}</Alert>}

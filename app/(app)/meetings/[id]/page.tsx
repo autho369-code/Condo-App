@@ -19,6 +19,8 @@ import {
   removeMeetingAttendee,
   removeMeetingDocument,
   saveMeetingNotes,
+  publishMeetingMinutes,
+  cancelMeeting,
   updateMeetingActionStatus,
 } from './actions';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -53,7 +55,9 @@ const ACTION_TONES: Record<string, Tone> = {
 };
 
 function successMessage(value?: string) {
-  if (value === 'notes') return 'Meeting notes saved.';
+  if (value === 'notes') return 'Meeting notes saved. Minutes stay a draft until you publish them.';
+  if (value === 'published') return 'Minutes published to owners; the meeting is marked completed.';
+  if (value === 'cancelled') return 'Meeting cancelled.';
   if (value === 'attendee') return 'Attendance updated.';
   if (value === 'agenda') return 'Structured agenda updated.';
   if (value === 'document') return 'Meeting documents updated.';
@@ -80,12 +84,14 @@ export default async function MeetingDetailPage({
     { data: documents },
     { data: agendaItems },
     { data: actionItems },
+    { data: privateRow },
   ] = await Promise.all([
     db.from('meetings').select('*, associations(id, name)').eq('id', id).single(),
     db.from('meeting_attendees').select('*').eq('meeting_id', id).order('created_at'),
     db.from('meeting_documents').select('*').eq('meeting_id', id).order('uploaded_at', { ascending: false }),
     db.from('agenda_items').select('*').eq('meeting_id', id).order('sort_order').order('created_at'),
     db.from('meeting_action_items').select('*').eq('meeting_id', id).order('status').order('due_date', { nullsFirst: false }),
+    db.from('meeting_private').select('minutes_draft, updated_at').eq('meeting_id', id).maybeSingle(),
   ]);
 
   if (!meeting) notFound();
@@ -107,7 +113,6 @@ export default async function MeetingDetailPage({
       description={`${meeting.meeting_type?.replace(/_/g, ' ') || 'Meeting'} · ${meeting.associations?.name || 'No association'}`}
       actions={
         <div className="flex items-center gap-2">
-          <Link href={`/board/meetings/${id}`}><Button variant="secondary" size="sm">Preview board packet</Button></Link>
           <Link href="/reports/monthly-package"><Button variant="secondary" size="sm">Financial package</Button></Link>
           <Link href="/meetings"><Button variant="secondary" size="sm">Back to meetings</Button></Link>
         </div>
@@ -234,9 +239,30 @@ export default async function MeetingDetailPage({
                 <Field label="Agenda summary" hint="Optional narrative summary; structured agenda items remain the board packet source.">
                   <Textarea id="agenda" name="agenda" rows={4} defaultValue={meeting.agenda ?? ''} placeholder="Call to order, key decisions, executive session…" />
                 </Field>
-                <Field label="Minutes"><Textarea id="minutes" name="minutes" rows={8} defaultValue={meeting.minutes ?? ''} placeholder="Record motions, votes, decisions, recusals, and action items…" /></Field>
+                <Field
+                  label="Minutes"
+                  hint={meeting.minutes
+                    ? 'Published to owners. Saving here updates the draft; publish again to replace the published minutes.'
+                    : 'Draft: visible to staff and the board only until you publish.'}
+                >
+                  <Textarea id="minutes" name="minutes" rows={8} defaultValue={privateRow?.minutes_draft ?? meeting.minutes ?? ''} placeholder="Record motions, votes, decisions, recusals, and action items…" />
+                </Field>
                 <div className="flex justify-end"><Button type="submit">Save notes</Button></div>
               </form>
+              {meeting.status !== 'cancelled' && (
+                <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-4">
+                  {meeting.status !== 'completed' && (
+                    <form action={cancelMeeting.bind(null, id)}>
+                      <Button type="submit" variant="secondary" size="sm">Cancel meeting</Button>
+                    </form>
+                  )}
+                  <form action={publishMeetingMinutes.bind(null, id)}>
+                    <Button type="submit" size="sm" disabled={!privateRow?.minutes_draft}>
+                      {meeting.minutes ? 'Republish minutes' : 'Publish minutes & complete meeting'}
+                    </Button>
+                  </form>
+                </div>
+              )}
             </Surface>
           </div>
 

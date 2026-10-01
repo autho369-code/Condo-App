@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -18,9 +20,8 @@ const req = (f: FormData, k: string) => {
 
 /**
  * Queue emails to owners, tenants, or both — scoped to one association.
- * One `notices` row per recipient so individual delivery status is tracked.
- * Actual send goes through whichever edge function is wired to notices.status='draft'
- * (see FINAL_INTEGRATION.md §1 Email sender).
+ * One communication_messages row per recipient tracks delivery; email_queue
+ * rows (idempotent per form submission and address) carry the actual send.
  */
 export async function sendEmail(formData: FormData) {
   const me = await requireStaff();
@@ -40,41 +41,51 @@ export async function sendEmail(formData: FormData) {
   const additional    = str(formData, 'additional_recipients'); // comma-sep extra emails
   const fromOverride  = formData.get('from_donotreply') === 'on';
 
-  // Resolve recipient email addresses based on the type picker
+  // Resolve recipient email addresses based on the type picker. Paged past
+  // PostgREST's 1,000-row cap; a failed read stops the send rather than
+  // emailing a partial list.
   const recipients: Array<{ email: string; name: string; source: string }> = [];
+  const readAll = async (label: string, build: () => any) => {
+    const { rows, error } = await fetchAllRows(build);
+    if (error) failTo(`Could not load ${label}: ${error}`);
+    return rows as any[];
+  };
 
   if (recipientType === 'owners' || recipientType === 'both') {
-    const { data: occs } = await (supabase as any)
+    const occs = await readAll('owners', () => db
       .from('occupancies')
-      .select('owners!owner_id(id, email, full_name)')
+      .select('id, owners!owner_id(id, email, full_name, archived_at)')
       .eq('association_id', associationId)
       .eq('occupancy_type', 'owner')
-      .eq('status', 'current');
-    (occs ?? []).forEach((o: any) => {
-      if (o.owners?.email) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner' });
+      .eq('status', 'current')
+      .order('id'));
+    occs.forEach((o: any) => {
+      if (o.owners?.email && !o.owners.archived_at) recipients.push({ email: o.owners.email, name: o.owners.full_name ?? '', source: 'owner' });
     });
   }
 
   if (recipientType === 'tenants' || recipientType === 'both') {
     // Tenants live in the dedicated tenants table (not occupancies).
-    const { data: ten } = await (supabase as any)
+    const ten = await readAll('tenants', () => db
       .from('tenants')
-      .select('email, first_name, last_name')
+      .select('id, email, first_name, last_name')
       .eq('association_id', associationId)
       .eq('status', 'active')
-      .is('archived_at', null);
-    (ten ?? []).forEach((t: any) => {
+      .is('archived_at', null)
+      .order('id'));
+    ten.forEach((t: any) => {
       if (t.email) recipients.push({ email: t.email, name: `${t.first_name ?? ''} ${t.last_name ?? ''}`.trim(), source: 'tenant' });
     });
   }
 
   if (recipientType === 'board') {
-    const { data: bm } = await (supabase as any)
+    const bm = await readAll('board members', () => db
       .from('board_members')
-      .select('email, full_name')
+      .select('id, email, full_name')
       .eq('association_id', associationId)
-      .eq('active', true);
-    (bm ?? []).forEach((b: any) => {
+      .eq('active', true)
+      .order('id'));
+    bm.forEach((b: any) => {
       if (b.email) recipients.push({ email: b.email, name: b.full_name ?? '', source: 'board' });
     });
   }
@@ -116,7 +127,13 @@ export async function sendEmail(formData: FormData) {
   // Publish one durable portal announcement for resident audiences. Portal
   // feeds read this ledger rather than recipient-level email rows so private
   // addresses and delivery metadata are never exposed.
-  if (recipientType === 'tenants' || recipientType === 'both') {
+  // A double click or re-sent form must not email everyone twice.
+  const claim = await claimSubmission(db, formData, 'mass_email');
+  if (claim.status === 'error') { failTo(claim.message); return; }
+  if (claim.status === 'duplicate') { redirect('/communication-center?notice=already_sent'); return; }
+  const submissionToken = (claim as { token: string }).token;
+
+  if (recipientType === 'owners' || recipientType === 'tenants' || recipientType === 'both') {
     const { error: announcementError } = await db.from('communications_log').insert({
       portfolio_id: me.portfolio?.id,
       association_id: associationId,
@@ -129,7 +146,11 @@ export async function sendEmail(formData: FormData) {
       subject,
       body: fullBody,
     });
-    if (announcementError) { failTo(`Could not publish the resident announcement: ${announcementError.message}`); return; }
+    if (announcementError) {
+      await releaseSubmission(db, submissionToken);
+      failTo(`Could not publish the resident announcement: ${announcementError.message}`);
+      return;
+    }
   }
 
   // 1) Operations log — one communication_messages row per recipient (status queued).
@@ -147,7 +168,7 @@ export async function sendEmail(formData: FormData) {
   }));
 
   const { data: insertedMessages, error: communicationError } = await db.from('communication_messages').insert(communicationRows).select('id, recipient_email');
-  if (communicationError) { failTo(communicationError.message); return; }
+  if (communicationError) { await releaseSubmission(db, submissionToken); failTo(communicationError.message); return; }
   const count = (insertedMessages ?? []).length;
   // Each email_queue row must carry its communication_message_id: delivery
   // updates the message status through it (otherwise "Queued" forever).
@@ -155,18 +176,8 @@ export async function sendEmail(formData: FormData) {
     (insertedMessages ?? []).map((m: { id: string; recipient_email: string }) => [String(m.recipient_email).toLowerCase(), m.id]),
   );
 
-  // 2) Association notices ledger (legacy/reporting).
-  const rows = unique.map((r) => ({
-    association_id: associationId,
-    notice_type:    'general',
-    status:         'sent',
-    channel:        'email',
-    subject,
-    body:           fullBody,
-    send_to:        r.email,
-    created_by:     me.auth_user_id,
-  }));
-  await db.from('notices').insert(rows);
+  // (No per-recipient `notices` rows: residents can read association notices,
+  // so those rows exposed every recipient's email address.)
 
   // 3) Actually deliver — enqueue to email_queue (drained by the process-email-queue
   //    cron → Resend). Without this, composed emails were created but never sent.
@@ -182,6 +193,7 @@ export async function sendEmail(formData: FormData) {
     fromAddress: fromOverride ? 'noreply@portier369.com' : 'hello@portier369.com',
     fromName,
     sentBy: me.auth_user_id,
+    idempotencyKey: `mass-email:${submissionToken}:${r.email.toLowerCase()}`,
   }));
   const { error: queueError } = await db.from('email_queue').insert(queueRows);
   if (queueError) { failTo(`Logged but could not queue for delivery: ${queueError.message}`); return; }
@@ -192,5 +204,5 @@ export async function sendEmail(formData: FormData) {
   revalidatePath('/communication-center');
   if (returnTo) redirect(returnTo);
   // /associations/[id] redirects on to /units and dropped the confirmation.
-  redirect(`/communication-center?queued=${count ?? rows.length}`);
+  redirect(`/communication-center?queued=${count}`);
 }

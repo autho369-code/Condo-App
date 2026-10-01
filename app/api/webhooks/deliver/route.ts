@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     });
   }
   const db = createServiceClient() as any;
-  const { data: claimed, error } = await db.rpc('claim_webhook_deliveries', { p_limit: 20 });
+  const { data: claimed, error } = await db.rpc('claim_webhook_deliveries', { p_limit: 5 }); // 5 x 10s timeout fits the 60s limit
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   let succeeded = 0;
   let failed = 0;

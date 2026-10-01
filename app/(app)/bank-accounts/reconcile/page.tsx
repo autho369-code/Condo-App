@@ -10,6 +10,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,25 +91,16 @@ export default async function BankReconciliationPage({
 
     // Fetch journal lines for the bank account's GL account
     if (selectedAccount.gl_account_id && recentReconciliation) {
-      const { data: items } = await db
+      // Every item, with its ledger line embedded (paged past 1,000 rows; a
+      // separate .in(lineIds) lookup overflowed the URL on big statements).
+      const { rows: items } = await fetchAllRows<any>(() => db
         .from('bank_reconciliation_items')
-        .select('id, journal_line_id, description, amount, type, is_cleared, sort_order')
+        .select('id, journal_line_id, description, amount, type, is_cleared, sort_order, journal_lines(id, debit_amount, credit_amount, memo, journal_entries(entry_date, reference_number, description))')
         .eq('reconciliation_id', recentReconciliation.id)
-        .order('sort_order');
-      reconciliationItems = items ?? [];
-
-      const lineIds = reconciliationItems
-        .filter((i: any) => i.journal_line_id)
-        .map((i: any) => i.journal_line_id);
-
-      if (lineIds.length > 0) {
-        const { data: lines } = await db
-          .from('journal_lines')
-          .select('id, entry_id, gl_account_id, debit_amount, credit_amount, memo, journal_entries(entry_date, reference_number, description)')
-          .in('id', lineIds)
-          .order('id');
-        journalLines = lines ?? [];
-      }
+        .order('sort_order')
+        .order('id'));
+      reconciliationItems = items;
+      journalLines = items.map((i: any) => i.journal_lines).filter(Boolean);
     }
   }
 
@@ -144,9 +136,12 @@ export default async function BankReconciliationPage({
     .filter((i: any) => !i.isCleared)
     .reduce((sum: number, i: any) => sum + (i.amount ?? 0), 0);
 
-  const totalBookAmount = displayItems.reduce((sum: number, i: any) => sum + (i.amount ?? 0), 0);
-  const statementBalance = recentReconciliation?.statement_balance ?? 0;
-  const adjustedBookBalance = totalBookAmount - outstandingAmount;
+  const statementBalance = Number(recentReconciliation?.statement_balance ?? 0);
+  // Book balance at the statement date (all history, saved when the
+  // reconciliation was started) less items that have not cleared the bank.
+  // This month's items alone ignored everything cleared in earlier months.
+  const bookBalance = Number(recentReconciliation?.ending_book_balance ?? 0);
+  const adjustedBookBalance = bookBalance - outstandingAmount;
 
   return (
     <DataWorkspace
@@ -199,8 +194,8 @@ export default async function BankReconciliationPage({
                 },
                 {
                   label: 'Book Balance (GL)',
-                  value: money(totalBookAmount),
-                  sublabel: `${totalBookItems} journal entries`,
+                  value: money(bookBalance),
+                  sublabel: `As of the statement date · ${totalBookItems} items to clear`,
                 },
                 {
                   label: 'Cleared',
@@ -210,7 +205,7 @@ export default async function BankReconciliationPage({
                 {
                   label: 'Difference',
                   value: money(adjustedBookBalance - statementBalance),
-                  sublabel: adjustedBookBalance === statementBalance ? 'RECONCILED' : 'Out of balance',
+                  sublabel: Math.abs(adjustedBookBalance - statementBalance) < 0.01 ? 'RECONCILED' : 'Out of balance',
                 },
               ]}
             />
@@ -348,7 +343,12 @@ export default async function BankReconciliationPage({
                           <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
                           <input type="hidden" name="account_id" value={selectedAccount.id} />
                           <input type="hidden" name="tab" value={activeTab} />
-                          <button type="submit" className="flex h-6 w-6 items-center justify-center">
+                          <button
+                            type="submit"
+                            disabled={recentReconciliation.status !== 'in_progress'}
+                            title={recentReconciliation.status !== 'in_progress' ? 'Completed reconciliations are locked' : undefined}
+                            className="flex h-6 w-6 items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
+                          >
                             {item.isCleared ? (
                               <svg className="h-5 w-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path
@@ -413,8 +413,8 @@ export default async function BankReconciliationPage({
                     <div className="font-medium tabular-nums">{money(statementBalance)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Total book items</div>
-                    <div className="font-medium tabular-nums">{money(totalBookAmount)}</div>
+                    <div className="text-xs text-gray-500">Book balance</div>
+                    <div className="font-medium tabular-nums">{money(bookBalance)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500">Less: outstanding</div>

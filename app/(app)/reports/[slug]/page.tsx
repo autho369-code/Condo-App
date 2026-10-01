@@ -329,7 +329,16 @@ async function BalanceSheetView({
   });
   const netIncome = calculateNetIncome(accounts, currentYearTotals);
   totals['__ni__'] = { debit: netIncome < 0 ? -netIncome : 0, credit: netIncome > 0 ? netIncome : 0 };
-  const equityDisplay = [...equity, { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' }];
+  // No closing entries are posted, so earlier years' income and expense never
+  // reach an equity account: carry them as accumulated surplus or the sheet
+  // stops balancing on January 1.
+  const priorYearsSurplus = calculateNetIncome(accounts, totals) - netIncome;
+  totals['__prior__'] = { debit: priorYearsSurplus < 0 ? -priorYearsSurplus : 0, credit: priorYearsSurplus > 0 ? priorYearsSurplus : 0 };
+  const equityDisplay = [
+    ...equity,
+    ...(Math.abs(priorYearsSurplus) >= 0.005 ? [{ id: '__prior__', number: 3640, name: 'Accumulated Surplus – Prior Years', account_type: 'equity' }] : []),
+    { id: '__ni__', number: 3650, name: 'Current Year Net Income', account_type: 'equity' },
+  ];
 
   const totalAssets      = sumBalance(assets);
   const totalLiabilities = sumBalance(liabilities);
@@ -488,8 +497,9 @@ async function IncomeStatementView({
   const netIncome = totalRevenue - totalExpenses;
 
   const renderISSection = (label: string, items: any[], showValues = true) => {
+    // Signed totals: a credit balance on an expense account (e.g. a vendor
+    // credit) reduces expenses; summing absolute values overstated them.
     const total = items.reduce((s, a) => s + getISBalance(a), 0);
-    const absTotal = items.reduce((s, a) => s + Math.abs(getISBalance(a)), 0);
     return (
       <Section key={label} title={label} subtitle={`${items.length} accounts`}>
         <div className="overflow-x-auto">
@@ -510,16 +520,16 @@ async function IncomeStatementView({
                       <span className="font-mono text-xs text-gray-500 mr-2">{a.number}</span>
                       <span className="font-medium text-gray-900"><DrillLink href={glDrillHref(a.id, { period, selectedAssociation })}>{a.name}</DrillLink></span>
                     </td>
-                    <td className="px-5 py-2 text-right tabular-nums font-medium text-gray-900">
-                      {money(Math.abs(bal))}
+                    <td className={`px-5 py-2 text-right tabular-nums font-medium ${bal < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                      {bal < 0 ? `(${money(-bal)})` : money(bal)}
                     </td>
                   </tr>
                 );
               })}
               <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
                 <td className="px-5 py-2">Total {label}</td>
-                <td className="px-5 py-2 text-right tabular-nums text-gray-900">
-                  {money(absTotal > 0 ? absTotal : Math.abs(total))}
+                <td className={`px-5 py-2 text-right tabular-nums ${total < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                  {total < 0 ? `(${money(-total)})` : money(total)}
                 </td>
               </tr>
             </tbody>
@@ -956,9 +966,12 @@ async function ARAgingView({
 }: ReportContext) {
   const supabase = await createClient();
 
-  let q = (supabase as any).from('aged_receivables').select('*').order('due_date');
-  if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
-  const { data: rows } = await q;
+  // Every open charge (one request stopped at 1,000 rows and understated A/R).
+  const { rows } = await fetchAllRows<any>(() => {
+    let q = (supabase as any).from('aged_receivables').select('*').order('due_date').order('charge_id');
+    if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
+    return q;
+  });
   const assocs = associations;
 
   // aged_receivables emits underscore bucket keys: current, 1_30, 31_60, 61_90, 90_plus

@@ -16,6 +16,7 @@ import { EscalationPanel } from '@/components/violations/escalation-panel';
 import { ViolationLettersList } from '@/components/violations/letters-list';
 import { markViolationLetterMailed, sendCurrentStepLetter } from '@/lib/rpcs/violation-rules';
 import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links';
+import { formatInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,7 +137,7 @@ export default async function ViolationDetailPage({
           <div className="mt-4 grid gap-4 text-sm md:grid-cols-2">
             <Info label="Type" value={formatStatus(violation.violation_type)} />
             <Info label="Reported" value={date(violation.reported_date)} />
-            <Info label="Hearing" value={date(violation.hearing_date)} />
+            <Info label="Hearing" value={violation.hearing_at ? formatInZone(violation.hearing_at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : date(violation.hearing_date)} />
             <Info label="Fine assessed" value={date(violation.fine_assessed_at)} />
             {hasGps && (
               <Info

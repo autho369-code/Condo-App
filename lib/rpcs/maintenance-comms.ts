@@ -149,8 +149,14 @@ export async function sendBulkComms(formData: FormData) {
   }
 
   const now = new Date().toISOString();
-  const sendEmail = channel === 'email' || channel === 'both';
-  const sendSms = channel === 'sms' || channel === 'both';
+  // Bulk SMS was logged as "queued" but never reached the SMS sender (which
+  // needs each vendor's consent and a conversation). Refuse it plainly until
+  // it is wired up; single texts go through /sms.
+  if (channel === 'sms' || channel === 'both') {
+    return { success: false, error: 'Bulk text messages are not available here yet. Send this by email, or text vendors one at a time from SMS (which checks their consent).' };
+  }
+  const sendEmail = channel === 'email';
+  const sendSms = false;
 
   let queued = 0;
   let emailCount = 0;

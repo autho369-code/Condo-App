@@ -32,9 +32,22 @@ export default async function VendorProfile({
     const supabase2 = await createClient();
     const phoneVal = ((formData.get('phone') as string) || '').trim();
     const emailVal = ((formData.get('email') as string) || '').trim();
+    // The form edits the first phone and email only; keep every other
+    // number and address management has on file.
+    const { data: current, error: loadError } = await (supabase2 as any)
+      .from('vendors').select('phone_numbers, emails').eq('id', me2.vendor_id).maybeSingle();
+    if (loadError || !current) redirect(`/vendor/profile?error=${encodeURIComponent(loadError?.message ?? 'Your vendor record was not found.')}`);
+    const phones = Array.isArray(current.phone_numbers) ? [...current.phone_numbers] : [];
+    const emails = Array.isArray(current.emails) ? [...current.emails] : [];
+    if (phoneVal) phones[0] = { ...(typeof phones[0] === 'object' && phones[0] ? phones[0] : {}), type: phones[0]?.type ?? 'work', number: phoneVal };
+    else phones.splice(0, 1);
+    if (emailVal) emails[0] = typeof emails[0] === 'object' && emails[0] ? { ...emails[0], address: emailVal } : emailVal;
+    else if (emails.length > 1) emails.splice(0, 1);
+    // Keep at least one email: sign-in can fall back to matching it.
+    if (!emailVal && emails.length <= 1) redirect(`/vendor/profile?error=${encodeURIComponent('Keep an email address on file.')}`);
     const patch = {
-      phone_numbers: phoneVal ? [{ type: 'work', number: phoneVal }] : [],
-      emails: emailVal ? [emailVal] : [],
+      phone_numbers: phones,
+      emails,
       address_street: ((formData.get('address_street') as string) || '').trim() || null,
       address_city: ((formData.get('address_city') as string) || '').trim() || null,
       address_state: ((formData.get('address_state') as string) || '').trim() || null,

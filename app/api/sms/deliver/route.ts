@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     });
   }
   const db = createServiceClient() as any;
-  const { data: claimed, error } = await db.rpc('claim_sms_messages', { p_limit: 20 });
+  const { data: claimed, error } = await db.rpc('claim_sms_messages', { p_limit: 4 }); // 4 x 12s Twilio timeout fits the 60s limit (a killed run re-sends after the lock expires)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   let sent = 0;
   let failed = 0;

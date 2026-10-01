@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { generateCheckRunPdf, type PrintableCheck } from '@/lib/payments/check-pdf';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .maybeSingle();
   if (!seed) return NextResponse.json({ error: 'Check run not found.' }, { status: 404 });
 
-  const { data: checks, error } = await (supabase as any)
+  // Every check in the run: all of its bills were paid, so all must print.
+  const { rows: checks, error: checksError } = await fetchAllRows<any>(() => (supabase as any)
     .from('payable_checks')
     .select(`
       id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
@@ -27,8 +29,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     `)
     .eq('run_transaction_id', seed.run_transaction_id)
     .order('check_number')
-    .limit(100);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    .order('id'));
+  if (checksError) return NextResponse.json({ error: checksError }, { status: 500 });
   if (!checks?.length) return NextResponse.json({ error: 'Check run is empty.' }, { status: 404 });
 
   const pdf = generateCheckRunPdf(checks as PrintableCheck[]);

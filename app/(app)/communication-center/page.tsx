@@ -18,7 +18,7 @@ function formatDate(value: string | null) {
   return formatInZone(value);
 }
 
-export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string; status?: string }> }) {
+export default async function CommunicationCenterPage({ searchParams }: { searchParams: Promise<{ queued?: string; error?: string; status?: string; notice?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
@@ -48,6 +48,7 @@ export default async function CommunicationCenterPage({ searchParams }: { search
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not send">{sp.error}</Alert>}
+        {sp.notice === 'already_sent' && <Alert tone="warning" title="Already sent.">That message was already submitted; it was not sent a second time.</Alert>}
         {sp.queued && <Alert tone="success" title="Message queued">{`Queued for delivery to ${sp.queued} recipient${sp.queued === '1' ? '' : 's'} via email.`}</Alert>}
         {sp.status === 'failed' && (
           <Alert tone="warning" title="Showing failed communications">

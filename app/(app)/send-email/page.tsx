@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { sendEmail } from '@/lib/rpcs/notifications';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, Surface } from '@/components/ui/shell';
@@ -77,6 +78,7 @@ export default async function SendEmailPage({
         </div>
 
         <form action={sendEmail as any} className="space-y-5 px-6 py-5">
+          <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
           {sp.error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
               <span className="font-semibold">Could not send email:</span> {sp.error}

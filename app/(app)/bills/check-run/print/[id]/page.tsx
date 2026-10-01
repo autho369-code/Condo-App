@@ -28,6 +28,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { PrintButton } from '@/components/ui/print-button';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +67,8 @@ export default async function PrintChecksPage({
     .eq('id', seedCheckId)
     .maybeSingle();
 
-  const { data: checks } = await (supabase as any)
+  // Every check in the run: all of its bills were paid, so all must print.
+  const { rows: checks } = await fetchAllRows<any>(() => (supabase as any)
     .from('payable_checks')
     .select(`
       id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
@@ -77,7 +79,7 @@ export default async function PrintChecksPage({
     `)
     .eq('run_transaction_id', seed?.run_transaction_id ?? '-1')
     .order('check_number')
-    .limit(100);
+    .order('id'));
 
   return (
     <div className="space-y-4">
