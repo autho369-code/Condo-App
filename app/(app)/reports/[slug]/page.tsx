@@ -54,7 +54,11 @@ export default async function ReportView({
   const { slug } = await params;
   // Preserve the legacy public alias while resolving the canonical catalog row.
   // Without this mapping the route was listed as live in code but returned 404.
-  const catalogSlug = slug === 'homeowner_vehicle_info' ? 'owner_vehicle_info' : slug;
+  const REPORT_ALIASES: Record<string, string> = {
+    homeowner_vehicle_info: 'owner_vehicle_info',
+    homeowner_ledger: 'owner_ledger', // homeowner_ledger is inactive; owner_ledger is the live row
+  };
+  const catalogSlug = REPORT_ALIASES[slug] ?? slug;
   const sp = await searchParams;
   const supabase = await createClient();
 
