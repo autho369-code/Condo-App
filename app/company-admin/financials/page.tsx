@@ -1,4 +1,6 @@
-import { glDebitBalances, incomeExpenseTotals, receivableAgingBuckets } from '@/lib/finance/totals'
+import { glDebitBalances, incomeExpenseTotals, receivableAgingBuckets, unpaidBillsTotal } from '@/lib/finance/totals'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
@@ -62,8 +64,11 @@ export default async function FinancialOversightPage() {
     ytdTotals,
     monthTotals,
     agingBuckets,
+    apTotals,
     { data: bills },
-    { data: lateFees },
+    { count: pendingApprovalCount },
+    { count: approvedUnpaidCount },
+    { rows: lateFees },
     { data: bankAccounts },
     { data: assocs },
   ] = await Promise.all([
@@ -71,10 +76,15 @@ export default async function FinancialOversightPage() {
     incomeExpenseTotals(db, { portfolioId, from: yearStart }),
     incomeExpenseTotals(db, { portfolioId, from: monthStart }),
     receivableAgingBuckets(db),
-    db.from('payable_bills').select('amount, credit_applied, status, due_date, vendor_id, vendors(name)').eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('charges').select('amount, due_date').eq('charge_type', 'late_fee').gte('due_date', yearStart),
+    // Open-bill total and counts come from the database; the table shows the
+    // 100 bills due soonest.
+    unpaidBillsTotal(db, portfolioId),
+    db.from('payable_bills').select('id, amount, credit_applied, status, due_date, vendor_id, vendors(name)').eq('portfolio_id', portfolioId).is('archived_at', null).not('status', 'in', '("paid","void")').order('due_date', { ascending: true, nullsFirst: false }).limit(100),
+    db.from('payable_bills').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).is('archived_at', null).eq('status', 'pending_approval'),
+    db.from('payable_bills').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).is('archived_at', null).eq('status', 'approved'),
+    fetchAllRows(() => db.from('charges').select('id, amount, due_date').eq('charge_type', 'late_fee').gte('due_date', yearStart).order('id')),
     db.from('bank_accounts').select('id, name, bank_name, account_type, purpose, gl_account_id, last_reconciliation_date, auto_reconciliation').eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
+    db.from('associations').select('id, name, slug, fiscal_year_start').eq('portfolio_id', portfolioId).is('archived_at', null).order('name'),
   ])
 
   // ── Income / expense rollups from the posted ledger ──────────
@@ -94,30 +104,28 @@ export default async function FinancialOversightPage() {
   const collectionPct = arTotal > 0 ? Math.round(((arTotal - delinquent) / arTotal) * 100) : 100
 
   // ── Payables ─────────────────────────────────────────────────
-  const openBills = (bills ?? []).filter((b: any) => !['paid', 'void'].includes(b.status))
-  const apTotal = openBills.reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0)
-  const pendingApproval = (bills ?? []).filter((b: any) => b.status === 'pending_approval')
-  const approvedUnpaid = (bills ?? []).filter((b: any) => b.status === 'approved')
+  const openBills = bills ?? []
+  const apTotal = apTotals.total
 
   // ── Late fees YTD ────────────────────────────────────────────
-  const lateFeeTotal = (lateFees ?? []).reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0)
+  const lateFeeTotal = lateFees.reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0)
 
-  // ── Budget performance (portfolio-wide, current fiscal year) ──
-  const currentMonth = today.getMonth() + 1
+  // ── Budget performance (each association's current fiscal year) ──
   const budgetReports = await Promise.all(
     (assocs ?? []).map(async (a: any) => {
-      const { data } = await db.rpc('get_budget_vs_actuals', { p_association_id: a.id, p_fiscal_year: year })
-      return { assoc: a, rows: (data ?? []) as any[] }
+      const fy = fiscalYearFor(today, a.fiscal_year_start)
+      const { data } = await db.rpc('get_budget_vs_actuals', { p_association_id: a.id, p_fiscal_year: fy })
+      return { assoc: a, rows: (data ?? []) as any[], elapsed: fiscalMonthsElapsed(fy, a.fiscal_year_start, today) }
     }),
   )
-  const ytd = (rows: any[], category: string, key: 'monthly_budget' | 'monthly_actuals') =>
+  const ytd = (rows: any[], category: string, key: 'monthly_budget' | 'monthly_actuals', elapsed: number) =>
     rows.filter((r) => r.category === category).reduce(
-      (s, r) => s + (r[key] ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0), 0)
-  const budgetRows = budgetReports.map(({ assoc, rows }) => {
-    const incomeBudget = ytd(rows, 'income', 'monthly_budget')
-    const incomeActual = ytd(rows, 'income', 'monthly_actuals')
-    const expenseBudget = ytd(rows, 'expense', 'monthly_budget')
-    const expenseActual = ytd(rows, 'expense', 'monthly_actuals')
+      (s, r) => s + (r[key] ?? []).slice(0, elapsed).reduce((a: number, b: number) => a + Number(b ?? 0), 0), 0)
+  const budgetRows = budgetReports.map(({ assoc, rows, elapsed }) => {
+    const incomeBudget = ytd(rows, 'income', 'monthly_budget', elapsed)
+    const incomeActual = ytd(rows, 'income', 'monthly_actuals', elapsed)
+    const expenseBudget = ytd(rows, 'expense', 'monthly_budget', elapsed)
+    const expenseActual = ytd(rows, 'expense', 'monthly_actuals', elapsed)
     const overBudget = expenseBudget > 0 && expenseActual > expenseBudget
     return { assoc, incomeBudget, incomeActual, expenseBudget, expenseActual, overBudget }
   })
@@ -139,7 +147,7 @@ export default async function FinancialOversightPage() {
         <StatCard label="Accounts Receivable" value={money(arTotal)} icon={Banknote} tone={arTotal > 0 ? 'warning' : undefined} />
         <StatCard label="Delinquencies (31d+)" value={money(delinquent)} icon={AlertTriangle} tone={delinquent > 0 ? 'danger' : undefined} />
         <StatCard label="Collection Progress" value={`${collectionPct}%`} sub="Share of A/R not yet 31+ days late" icon={TrendingUp} />
-        <StatCard label="Accounts Payable" value={money(apTotal)} sub={`${pendingApproval.length} awaiting approval · ${approvedUnpaid.length} approved`} icon={Receipt} />
+        <StatCard label="Accounts Payable" value={money(apTotal)} sub={`${pendingApprovalCount ?? 0} awaiting approval · ${approvedUnpaidCount ?? 0} approved`} icon={Receipt} />
         <StatCard label="Late Fees (YTD)" value={money(lateFeeTotal)} icon={DollarSign} />
       </div>
 
@@ -148,7 +156,10 @@ export default async function FinancialOversightPage() {
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-gray-950">Open Vendor Bills</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Bills awaiting approval or payment across the portfolio</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Bills awaiting approval or payment across the portfolio
+              {apTotals.count > openBills.length ? ` — showing the ${openBills.length} due soonest of ${apTotals.count}` : ''}
+            </p>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -166,7 +177,7 @@ export default async function FinancialOversightPage() {
                 <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">No open vendor bills.</td></tr>
               ) : (
                 openBills.map((b: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                  <tr key={b.id ?? i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-5 py-3 font-medium text-gray-900">{b.vendors?.name ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.due_date ?? '—'}</td>
                     <td className="px-5 py-3"><StatusChip tone={b.status === 'pending_approval' ? 'warning' : 'info'}>{b.status === 'pending_approval' ? 'Pending approval' : 'Approved'}</StatusChip></td>
@@ -221,7 +232,7 @@ export default async function FinancialOversightPage() {
       <div className={card}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-950">Budget Performance — FY{year}</h2>
+            <h2 className="text-sm font-semibold text-gray-950">Budget Performance — Current Fiscal Year</h2>
             <p className="mt-0.5 text-xs text-gray-500">Year-to-date budget vs actual per association</p>
           </div>
           <Link href="/budget-vs-actuals" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">

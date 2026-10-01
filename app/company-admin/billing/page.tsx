@@ -43,8 +43,10 @@ export default async function BillingPage() {
   const tierName = (s.tier ?? 'free').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
   const status = s.status ?? 'inactive'
   const monthlyPrice = s.price_monthly_cents ? s.price_monthly_cents / 100 : 0
-  const activeDoors = metrics?.doors_used ?? metrics?.total_doors ?? 0
-  const doorsLimit = metrics?.doors_limit ?? s.units_limit ?? s.associations_limit ?? 0
+  // The view reports 0 (not null) when no billing_usage row exists, so fall
+  // back on falsy values: live door count, then the plan's unit limit.
+  const activeDoors = Number(metrics?.doors_used || metrics?.total_doors || 0)
+  const doorsLimit = Number(metrics?.doors_limit || s.units_limit || 0)
   const doorUsagePct = doorsLimit > 0 ? Math.min(100, Math.round((activeDoors / doorsLimit) * 100)) : 0
   const isOverLimit = doorsLimit > 0 && activeDoors > doorsLimit
   const overageDoors = isOverLimit ? activeDoors - doorsLimit : 0
@@ -243,7 +245,7 @@ export default async function BillingPage() {
                         : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-950">
-                      {money(inv.total_cents)}
+                      {money(Number(inv.total_cents ?? 0) / 100)}
                     </td>
                     <td className="px-4 py-3"><Badge status={inv.status ?? '—'} /></td>
                   </tr>

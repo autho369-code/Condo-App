@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { nextRecurringDate } from '@/lib/time/recurrence';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
-
-// Advance a date by one interval of the given frequency.
-function advance(from: Date, frequency: string, interval: number): Date {
-  const d = new Date(from);
-  const n = Number.isFinite(interval) && interval > 0 ? interval : 1;
-  switch (frequency) {
-    case 'daily': d.setDate(d.getDate() + n); break;
-    case 'weekly': d.setDate(d.getDate() + 7 * n); break;
-    case 'monthly': d.setMonth(d.getMonth() + n); break;
-    case 'quarterly': d.setMonth(d.getMonth() + 3 * n); break;
-    case 'annually': d.setFullYear(d.getFullYear() + n); break;
-    default: d.setMonth(d.getMonth() + n); break;
-  }
-  return d;
-}
 
 /**
  * "Generate now" — create a real work_order from a recurring template and
@@ -58,19 +45,22 @@ export async function POST(req: NextRequest) {
     trade: tpl.trade,
     // Without a date the job never shows as Scheduled or Overdue; with a
     // vendor on the plan it is already assigned.
-    scheduled_date: tpl.next_due_date ?? new Date().toISOString().slice(0, 10),
+    scheduled_date: tpl.next_due_date ?? todayInZone(),
     status: tpl.vendor_id ? 'assigned' : 'new',
     created_by: me.auth_user_id,
   });
   if (insErr) return back('?error=' + encodeURIComponent(insErr.message));
 
-  const base = tpl.next_due_date ? new Date(tpl.next_due_date) : new Date();
-  const next = advance(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1);
+  // Same schedule rule as the nightly generator (anchored on the start day).
+  const base = tpl.next_due_date ?? todayInZone();
+  const anchorDay = Number(String(tpl.start_date ?? base).slice(8, 10)) || null;
+  const next = nextRecurringDate(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1, anchorDay);
+  if (!next) return back('?error=' + encodeURIComponent('Work order created, but this plan has an unknown frequency.'));
   const { error: advanceErr } = await db
     .from('recurring_work_orders')
     .update({
       last_generated_at: new Date().toISOString(),
-      next_due_date: next.toISOString().slice(0, 10),
+      next_due_date: next,
     })
     .eq('id', id);
   if (advanceErr) {

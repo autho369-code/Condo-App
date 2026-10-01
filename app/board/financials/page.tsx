@@ -5,6 +5,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { date, money } from '@/lib/utils'
+import { fiscalMonthsElapsed, fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal'
 import {
   DollarSign,
   TrendingUp,
@@ -77,17 +78,30 @@ export default async function BoardFinancialsPage() {
 
   const today = new Date()
   const currentYear = today.getFullYear()
-  const yearStart = `${currentYear}-01-01`
 
-  // ── YTD Income & Expenses from posted journal lines ──
+  // Each association's current fiscal year (fiscal_year_start month).
+  const { data: fiscalRows } = await db
+    .from('associations')
+    .select('id, fiscal_year_start')
+    .in('id', boardAssocIds)
+  const fiscal = ((fiscalRows ?? []) as { id: string; fiscal_year_start: number | null }[]).map((a) => {
+    const fy = fiscalYearFor(today, a.fiscal_year_start)
+    return { id: a.id, fy, start: fiscalWindow(fy, a.fiscal_year_start).start, elapsed: fiscalMonthsElapsed(fy, a.fiscal_year_start, today) }
+  })
+  const fiscalYears = [...new Set(fiscal.map((f) => f.fy))]
+  const fyLabel = fiscalYears.length === 1 ? `FY${fiscalYears[0]}` : 'fiscal'
+
+  // ── Fiscal YTD Income & Expenses from posted journal lines ──
   // income accounts: credit increases; expense accounts: debit increases
   let ytdIncome = 0
   let ytdExpenses = 0
   {
     // Summed in the database (a list of journal lines stops at 1,000 rows).
-    const ytd = await incomeExpenseTotals(db, { associationIds: boardAssocIds, from: yearStart })
-    ytdIncome = ytd.income
-    ytdExpenses = ytd.expense
+    const totals = await Promise.all(fiscal.map((f) => incomeExpenseTotals(db, { associationIds: [f.id], from: f.start })))
+    for (const t of totals) {
+      ytdIncome += t.income
+      ytdExpenses += t.expense
+    }
   }
 
   const netOperatingIncome = ytdIncome - ytdExpenses
@@ -113,23 +127,25 @@ export default async function BoardFinancialsPage() {
     }
   } catch { /* may not exist */ }
 
-  // ── Budget Variance: budget_lines (expense) vs YTD actual expenses ──
+  // ── Budget Variance: fiscal-YTD expense budget vs actual, per association ──
   let budgetVariancePct = 0
-  try {
-    const { data: budgetLines } = await db
-      .from('budget_lines')
-      .select('annual_total, category')
-      .in('association_id', boardAssocIds)
-      .eq('fiscal_year', currentYear)
-      .eq('category', 'expense')
-    const totalBudgeted = (budgetLines ?? []).reduce((sum: number, b: any) => sum + Number(b.annual_total ?? 0), 0)
-    // Pro-rate annual budget to elapsed months so YTD vs YTD is fair
-    const elapsedMonths = today.getMonth() + 1
-    const budgetToDate = totalBudgeted * (elapsedMonths / 12)
-    if (budgetToDate > 0) {
-      budgetVariancePct = Math.round(((ytdExpenses - budgetToDate) / budgetToDate) * 100)
+  {
+    let budgetToDate = 0
+    let actualToDate = 0
+    const reports = await Promise.all(fiscal.map(async (f) => {
+      const { data } = await db.rpc('get_budget_vs_actuals', { p_association_id: f.id, p_fiscal_year: f.fy })
+      return { rows: (data ?? []) as any[], elapsed: f.elapsed }
+    }))
+    for (const { rows, elapsed } of reports) {
+      for (const r of rows.filter((x) => x.category === 'expense')) {
+        budgetToDate += (r.monthly_budget ?? []).slice(0, elapsed).reduce((t: number, v: any) => t + Number(v ?? 0), 0)
+        actualToDate += (r.monthly_actuals ?? []).slice(0, elapsed).reduce((t: number, v: any) => t + Number(v ?? 0), 0)
+      }
     }
-  } catch { /* may not exist */ }
+    if (budgetToDate > 0) {
+      budgetVariancePct = Math.round(((actualToDate - budgetToDate) / budgetToDate) * 100)
+    }
+  }
 
   // ── Recent Transactions: latest posted journal lines ──
   let recentTransactions: any[] = []
@@ -171,7 +187,7 @@ export default async function BoardFinancialsPage() {
   const exportDate = `${currentYear}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const exportTables: ExportTable[] = [
     {
-      title: `Financial Summary (${currentYear} YTD)`,
+      title: `Financial Summary (${fyLabel} YTD)`,
       columns: [{ header: 'Metric' }, { header: 'Value', align: 'right' }],
       rows: [
         ['YTD Income', money(ytdIncome)],
@@ -217,7 +233,7 @@ export default async function BoardFinancialsPage() {
           companyName={me.portfolio?.company_name ?? associationNames}
           filename={`financials-${exportDate}`}
           tables={exportTables}
-          footerLine={`Net operating income (${currentYear} YTD): ${money(netOperatingIncome)}`}
+          footerLine={`Net operating income (${fyLabel} YTD): ${money(netOperatingIncome)}`}
         />
       </div>
 
@@ -252,7 +268,7 @@ export default async function BoardFinancialsPage() {
         <StatCard
           label="Net Operating Income"
           value={money(netOperatingIncome)}
-          sub={`${currentYear} year-to-date`}
+          sub={`${fyLabel} year-to-date`}
           icon={DollarSign}
           valueClass={netOperatingIncome >= 0 ? 'text-emerald-700' : 'text-red-700'}
         />
@@ -271,7 +287,7 @@ export default async function BoardFinancialsPage() {
         <StatCard
           label="Budget Variance"
           value={`${budgetVariancePct >= 0 ? '+' : ''}${budgetVariancePct}%`}
-          sub={`vs. ${currentYear} budget`}
+          sub={`vs. ${fyLabel} budget to date`}
           icon={AlertTriangle}
           valueClass={Math.abs(budgetVariancePct) <= 5 ? 'text-emerald-700' : Math.abs(budgetVariancePct) <= 15 ? 'text-amber-700' : 'text-red-700'}
         />

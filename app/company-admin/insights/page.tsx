@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { receivableAgingBuckets } from '@/lib/finance/totals'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { date, money } from '@/lib/utils'
 import {
@@ -43,17 +45,18 @@ export default async function AICommandCenterPage() {
     { data: openWOs },
     { data: viols },
     { data: vendors },
-    { data: aging },
+    agingBuckets,
     { data: recentBills },
     { data: policies },
     { data: workload },
   ] = await Promise.all([
     db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('work_orders').select('association_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('violations').select('association_id, created_at, status, archived_at'),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
+    // Only the last 60 days feed the trend; paged past 1,000 rows.
+    fetchAllRows(() => db.from('violations').select('id, association_id, created_at, status, archived_at').gte('created_at', d60).order('id')).then((r) => ({ data: r.rows })),
     db.from('vendors').select('id, name, contract_expiration, general_liability_expiration, state_license_expiration').eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('aged_receivables').select('balance_due, aging_bucket'),
-    db.from('payable_bills').select('amount, created_at').eq('portfolio_id', portfolioId).is('archived_at', null).gte('created_at', d60),
+    receivableAgingBuckets(db),
+    fetchAllRows(() => db.from('payable_bills').select('id, amount, created_at').eq('portfolio_id', portfolioId).is('archived_at', null).gte('created_at', d60).order('id')).then((r) => ({ data: r.rows })),
     db.from('insurance_policies').select('id, expiration_date, owners(full_name)').is('archived_at', null).in('status', ['active', 'expiring_soon']).lte('expiration_date', in60).gte('expiration_date', today),
     db.from('v_manager_workload').select('*'),
   ])
@@ -156,8 +159,8 @@ export default async function AICommandCenterPage() {
   }
 
   // ── Delinquency ──────────────────────────────────────────────
-  const arTotal = (aging ?? []).reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
-  const seriouslyLate = (aging ?? []).filter((r: any) => ['61_90', '90_plus'].includes(r.aging_bucket)).reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0)
+  const arTotal = Object.values(agingBuckets).reduce((s, v) => s + v, 0)
+  const seriouslyLate = (agingBuckets['61_90'] ?? 0) + (agingBuckets['90_plus'] ?? 0)
   if (seriouslyLate > 0) {
     insights.push({
       severity: seriouslyLate > arTotal * 0.4 ? 'critical' : 'warning', icon: TrendingDown,

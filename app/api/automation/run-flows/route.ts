@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { resolveUnitOwnerId } from '@/lib/notifications/status-change';
 import {
   actionAllowedForTrigger,
@@ -30,6 +31,17 @@ import {
 export const dynamic = 'force-dynamic';
 
 const SUBJECT_CAP = 200;
+// Candidates read per flow before filtering out subjects that already ran.
+const CANDIDATE_CAP = 10000;
+const NO_RETRY_ATTEMPTS = 5;
+const RETRY_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** Page a candidate query past PostgREST's 1,000-row cap. */
+async function candidates(build: () => any, label: string): Promise<any[]> {
+  const { rows, error } = await fetchAllRows(build, { maxRows: CANDIDATE_CAP });
+  if (error) throw new Error(`${label} query failed — ${error}`);
+  return rows;
+}
 const DAY_MS = 86400000;
 
 function isoDateDaysAgo(n: number): string {
@@ -134,9 +146,26 @@ async function runFlow(svc: any, flow: any) {
   if (assocIds.length === 0) return result; // association outside portfolio or empty portfolio
 
   // ── Evaluate the trigger ──────────────────────────────────────────────────
-  const subjects = await evaluateTrigger(svc, trigger, days, assocIds);
+  // Drop subjects that cannot be claimed (already succeeded, out of retries,
+  // or in cooldown) BEFORE applying the per-run cap; capping first kept
+  // re-reading the same 200 finished subjects and never reached the rest.
+  const matched = await evaluateTrigger(svc, trigger, days, assocIds);
+  const priorRuns = await candidates(() => svc
+    .from('automation_flow_runs')
+    .select('id, subject_type, subject_id, status, attempt_count, last_attempt_at')
+    .eq('flow_id', flow.id)
+    .order('id'), 'automation_flow_runs');
+  const now = Date.now();
+  const unclaimable = new Set(priorRuns
+    .filter((r: any) => r.status === 'success'
+      || Number(r.attempt_count ?? 0) >= NO_RETRY_ATTEMPTS
+      || (r.last_attempt_at && now - new Date(r.last_attempt_at).getTime() < RETRY_COOLDOWN_MS))
+    .map((r: any) => `${r.subject_type}:${r.subject_id}`));
+  const claimable = matched.filter((m) => !unclaimable.has(`${m.subjectType}:${m.subjectId}`));
+  result.skippedExisting += matched.length - claimable.length;
+  const subjects = claimable.slice(0, SUBJECT_CAP);
   result.candidates = subjects.length;
-  if (subjects.length >= SUBJECT_CAP) {
+  if (claimable.length > SUBJECT_CAP) {
     result.capped = true;
     console.log(`[run-flows] flow ${flow.id} (${flow.name}) hit the ${SUBJECT_CAP}-subject cap`);
   }
@@ -235,25 +264,31 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
   if (trigger === 'charge_overdue') {
     // Resolve the portfolio/association's units first (v_charge_balances has
     // no association column), exactly like /api/billing/assess-late-fees.
-    const { data: units, error: unitsErr } = await svc
+    const units = await candidates(() => svc
       .from('units')
       .select('id, buildings!inner(association_id)')
-      .in('buildings.association_id', assocIds);
-    if (unitsErr) throw new Error(`units query failed — ${unitsErr.message}`);
-    const assocByUnit = new Map<string, string>((units ?? []).map((u: any) => [u.id, u.buildings.association_id]));
+      .in('buildings.association_id', assocIds)
+      .order('id'), 'units');
+    const assocByUnit = new Map<string, string>(units.map((u: any) => [u.id, u.buildings.association_id]));
     const unitIds = Array.from(assocByUnit.keys());
     if (unitIds.length === 0) return [];
 
-    const { data: rows, error } = await svc
-      .from('v_charge_balances')
-      .select('charge_id, unit_id, balance_due, due_date, description')
-      .in('unit_id', unitIds)
-      .eq('charge_type', 'assessment')
-      .gt('balance_due', 0)
-      .lt('due_date', isoDateDaysAgo(days))
-      .limit(SUBJECT_CAP);
-    if (error) throw new Error(`v_charge_balances query failed — ${error.message}`);
-    return (rows ?? []).map((c: any) => ({
+    // Chunk unit ids so the request URL stays short.
+    const rows: any[] = [];
+    for (let i = 0; i < unitIds.length; i += 150) {
+      const chunk = unitIds.slice(i, i + 150);
+      rows.push(...await candidates(() => svc
+        .from('v_charge_balances')
+        .select('charge_id, unit_id, balance_due, due_date, description')
+        .in('unit_id', chunk)
+        .eq('charge_type', 'assessment')
+        .gt('balance_due', 0)
+        .lt('due_date', isoDateDaysAgo(days))
+        .order('due_date')
+        .order('charge_id'), 'v_charge_balances'));
+      if (rows.length >= CANDIDATE_CAP) break;
+    }
+    return rows.map((c: any) => ({
       subjectType: 'charge',
       subjectId: c.charge_id,
       associationId: assocByUnit.get(c.unit_id) ?? null,
@@ -268,16 +303,15 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
   if (trigger === 'work_order_stale') {
     // Open-ish statuses per the work_order_status enum: everything before
     // done/completed/billed/closed/cancelled.
-    const { data: rows, error } = await svc
+    const rows = await candidates(() => svc
       .from('work_orders')
       .select('id, title, unit_id, association_id, updated_at')
       .in('association_id', assocIds)
       .in('status', ['new', 'assigned', 'scheduled', 'in_progress'])
       .is('archived_at', null)
       .lt('updated_at', isoDaysAgoTs(days))
-      .limit(SUBJECT_CAP);
-    if (error) throw new Error(`work_orders query failed — ${error.message}`);
-    return (rows ?? []).map((w: any) => ({
+      .order('id'), 'work_orders');
+    return rows.map((w: any) => ({
       subjectType: 'work_order',
       subjectId: w.id,
       associationId: w.association_id ?? null,
@@ -290,16 +324,15 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
   }
 
   if (trigger === 'violation_stale') {
-    const { data: rows, error } = await svc
+    const rows = await candidates(() => svc
       .from('violations')
       .select('id, title, owner_id, association_id, updated_at')
       .in('association_id', assocIds)
       .eq('status', 'open')
       .is('archived_at', null)
       .lt('updated_at', isoDaysAgoTs(days))
-      .limit(SUBJECT_CAP);
-    if (error) throw new Error(`violations query failed — ${error.message}`);
-    return (rows ?? []).map((v: any) => ({
+      .order('id'), 'violations');
+    return rows.map((v: any) => ({
       subjectType: 'violation',
       subjectId: v.id,
       associationId: v.association_id ?? null,
@@ -313,7 +346,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
 
   if (trigger === 'insurance_expiring') {
     const today = isoDateDaysAgo(0);
-    const { data: rows, error } = await svc
+    const rows = await candidates(() => svc
       .from('insurance_policies')
       .select('id, policy_number, insurance_company, expiration_date, owner_id, association_id')
       .in('association_id', assocIds)
@@ -321,9 +354,8 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       .in('status', ['active', 'expiring_soon'])
       .gte('expiration_date', today)
       .lte('expiration_date', isoDateDaysFromNow(days))
-      .limit(SUBJECT_CAP);
-    if (error) throw new Error(`insurance_policies query failed — ${error.message}`);
-    return (rows ?? []).map((p: any) => ({
+      .order('id'), 'insurance_policies');
+    return rows.map((p: any) => ({
       subjectType: 'insurance_policy',
       subjectId: p.id,
       associationId: p.association_id ?? null,
@@ -337,15 +369,14 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
   }
 
   // arc_pending
-  const { data: rows, error } = await svc
+  const rows = await candidates(() => svc
     .from('architectural_requests')
     .select('id, title, owner_id, association_id, created_at')
     .in('association_id', assocIds)
     .in('status', ['submitted', 'under_review'])
     .lt('created_at', isoDaysAgoTs(days))
-    .limit(SUBJECT_CAP);
-  if (error) throw new Error(`architectural_requests query failed — ${error.message}`);
-  return (rows ?? []).map((r: any) => ({
+    .order('id'), 'architectural_requests');
+  return rows.map((r: any) => ({
     subjectType: 'architectural_request',
     subjectId: r.id,
     associationId: r.association_id ?? null,

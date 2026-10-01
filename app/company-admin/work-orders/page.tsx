@@ -4,9 +4,12 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Wrench, Clock, AlertOctagon, ArrowUp, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+
+const FINISHED_WO_STATUSES = ['done', 'completed', 'billed', 'closed', 'cancelled']
 
 const priorityTone = (p: string | null): Tone => {
   const m: Record<string, Tone> = { emergency: 'danger', high: 'warning', medium: 'warning', low: 'info' }
@@ -38,21 +41,20 @@ export default async function WorkOrdersOversightPage({
     .is('archived_at', null)
     .order('created_at', { ascending: false })
 
-  // Fetch all for stats
-  const { data: allWOs } = await db
+  // Fetch all for stats (paged past the 1,000-row cap)
+  const { rows: wos } = await fetchAllRows(() => db
     .from('work_orders')
     .select('id, priority, status, scheduled_date, created_at')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
+    .order('id'))
 
-  const wos = allWOs ?? []
-  const openCount = wos.filter((wo: any) => !['completed', 'closed', 'cancelled'].includes(wo.status?.toLowerCase())).length
-  const overdueCount = wos.filter((wo: any) => {
-    if (['completed', 'closed', 'cancelled'].includes(wo.status?.toLowerCase())) return false
-    return wo.scheduled_date && wo.scheduled_date < today
-  }).length
-  const emergencyCount = wos.filter((wo: any) => wo.priority?.toLowerCase() === 'emergency').length
-  const highCount = wos.filter((wo: any) => wo.priority?.toLowerCase() === 'high').length
+  const isOpen = (wo: any) => !FINISHED_WO_STATUSES.includes(String(wo.status ?? '').toLowerCase())
+  const openWOs = wos.filter(isOpen)
+  const openCount = openWOs.length
+  const overdueCount = openWOs.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < today).length
+  const emergencyCount = openWOs.filter((wo: any) => wo.priority?.toLowerCase() === 'emergency').length
+  const highCount = openWOs.filter((wo: any) => wo.priority?.toLowerCase() === 'high').length
 
   // Fetch associations for filter
   const { data: associations } = await db
@@ -132,6 +134,7 @@ export default async function WorkOrdersOversightPage({
             <option value="assigned">Assigned</option>
             <option value="scheduled">Scheduled</option>
             <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
             <option value="completed">Completed</option>
             <option value="billed">Billed</option>
             <option value="closed">Closed</option>
@@ -162,7 +165,7 @@ export default async function WorkOrdersOversightPage({
               <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">No work orders found.</td></tr>
             ) : (
               (workOrders ?? []).map((wo: any) => {
-                const isOverdue = wo.scheduled_date && wo.scheduled_date < today && !['completed', 'closed', 'cancelled'].includes(wo.status?.toLowerCase())
+                const isOverdue = wo.scheduled_date && wo.scheduled_date < today && isOpen(wo)
                 const assocName = wo.associations?.name ?? '—'
                 return (
                   <tr key={wo.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

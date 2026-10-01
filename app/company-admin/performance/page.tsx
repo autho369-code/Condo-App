@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Trophy, Timer, Wrench, AlertTriangle, ClipboardCheck, ArrowRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +16,7 @@ type ManagerPerf = {
   id: string
   name: string
   email: string
+  isManager: boolean
   properties: number
   doors: number
   openRequests: number
@@ -46,12 +48,13 @@ export default async function ManagerPerformancePage() {
     { data: viols },
     { data: inspections },
   ] = await Promise.all([
-    db.from('profiles').select('id, full_name, email').eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
+    db.from('profiles').select('id, full_name, email, hoa_role').eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
     db.from('association_managers').select('user_id, association_id').is('ended_at', null),
     db.from('associations').select('id, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null),
-    db.from('work_orders').select('association_id, assignee_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('work_orders').select('association_id, assignee_id, created_at, completed_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', DONE_WO_STATUSES).gte('created_at', ninetyDaysAgo),
-    db.from('violations').select('association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
+    // "Closed in the last 90 days" is by completion date, not creation date.
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, created_at, completed_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', DONE_WO_STATUSES).gte('completed_date', ninetyDaysAgo.slice(0, 10)).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows })),
     db.from('inspections').select('association_id, status, completed_date').eq('portfolio_id', portfolioId).is('archived_at', null),
   ])
 
@@ -102,6 +105,7 @@ export default async function ManagerPerformancePage() {
     return {
       id: mgr.id,
       name: mgr.full_name ?? mgr.email ?? 'Unknown',
+      isManager: mgr.hoa_role === 'manager',
       email: mgr.email ?? '—',
       properties: myAssocs.size,
       doors: [...myAssocs].reduce((s, aid) => s + (unitCountByAssoc.get(aid) ?? 0), 0),
@@ -167,7 +171,9 @@ export default async function ManagerPerformancePage() {
             <div key={p.id} className={`${card} p-5`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <Link href={`/company-admin/managers/${p.id}`} className="text-[15px] font-semibold text-gray-950 hover:underline">{p.name}</Link>
+                  {p.isManager
+                    ? <Link href={`/company-admin/managers/${p.id}`} className="text-[15px] font-semibold text-gray-950 hover:underline">{p.name}</Link>
+                    : <span className="text-[15px] font-semibold text-gray-950">{p.name}</span>}
                   <div className="mt-0.5 text-xs text-gray-500">{p.email}</div>
                 </div>
                 <StatusChip tone={p.performance >= 80 ? 'success' : p.performance >= 50 ? 'warning' : 'danger'}>
@@ -254,7 +260,9 @@ export default async function ManagerPerformancePage() {
                 [...perfs].sort((a, b) => b.performance - a.performance).map((p) => (
                   <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-4 py-3">
-                      <Link href={`/company-admin/managers/${p.id}`} className="font-medium text-gray-900 hover:underline">{p.name}</Link>
+                      {p.isManager
+                        ? <Link href={`/company-admin/managers/${p.id}`} className="font-medium text-gray-900 hover:underline">{p.name}</Link>
+                        : <span className="font-medium text-gray-900">{p.name}</span>}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.properties}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-700">{p.doors.toLocaleString()}</td>

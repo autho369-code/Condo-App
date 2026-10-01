@@ -3,6 +3,8 @@ import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { date, money } from '@/lib/utils'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { todayInZone } from '@/lib/time/zoned'
 import {
   Clock,
   AlertTriangle,
@@ -40,11 +42,11 @@ function StatCard({
   )
 }
 
-function daysPastDue(paidThrough: string | null): number {
-  if (!paidThrough) return 0
-  const d = new Date(paidThrough)
-  const today = new Date()
-  return Math.floor((today.getTime() - d.getTime()) / 86400000)
+function daysPastDue(dueDate: string | null, todayDate: string): number {
+  if (!dueDate) return 0
+  // Both are calendar dates; compare them as UTC midnights.
+  const ms = Date.parse(`${todayDate}T00:00:00Z`) - Date.parse(`${dueDate.slice(0, 10)}T00:00:00Z`)
+  return Number.isFinite(ms) ? Math.max(0, Math.floor(ms / 86400000)) : 0
 }
 
 export default async function BoardDelinquenciesPage() {
@@ -71,55 +73,44 @@ export default async function BoardDelinquenciesPage() {
   const today = new Date()
   const currentMonth = today.getMonth() + 1
   const currentYear = today.getFullYear()
-  const currentMonthStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
 
-  // ── Fetch delinquent occupancies ──
-  // Delinquent if dues_paid_through is before current month start
+  // ── Delinquent units: a positive balance with a past-due charge ──
+  // Days past due count from the oldest charge that is still unpaid (the
+  // view's oldest_due includes charges that were paid long ago).
   let delinquentRows: any[] = []
   try {
-    // First try the delinquent_units view if it exists
-    const { data: delView } = await db
-      .from('delinquent_units')
-      .select('*')
-      .in('association_id', boardAssocIds)
-      .order('balance', { ascending: false })
+    const todayDate = todayInZone()
+    const [{ data: delView }, { rows: openCharges }] = await Promise.all([
+      db.from('delinquent_units')
+        .select('*')
+        .in('association_id', boardAssocIds)
+        .order('balance', { ascending: false }),
+      fetchAllRows(() => db.from('aged_receivables')
+        .select('charge_id, unit_id, due_date, balance_due')
+        .in('association_id', boardAssocIds)
+        .gt('balance_due', 0)
+        .lt('due_date', todayDate)
+        .order('charge_id')),
+    ])
+    const oldestOpenByUnit = new Map<string, string>()
+    for (const c of openCharges as any[]) {
+      const prev = oldestOpenByUnit.get(c.unit_id)
+      if (c.due_date && (!prev || c.due_date < prev)) oldestOpenByUnit.set(c.unit_id, c.due_date)
+    }
 
-    if (delView && delView.length > 0) {
-      // Map to common format
-      delinquentRows = delView.map((d: any) => ({
+    delinquentRows = (delView ?? []).map((d: any) => {
+      const oldestOpen = oldestOpenByUnit.get(d.unit_id) ?? null
+      return {
         unit_id: d.unit_id,
         unit_number: d.unit_number,
-        owner_name: '—', // We'll need to look this up
-        amount_due: d.balance ?? 0,
-        days_past_due: d.oldest_due ? daysPastDue(d.oldest_due) : 0,
+        owner_name: '—',
+        amount_due: Number(d.balance ?? 0),
+        days_past_due: oldestOpen ? daysPastDue(oldestOpen, todayDate) : 0,
         last_payment_date: null,
         association_id: d.association_id,
         owner_id: null,
-      }))
-    } else {
-      // Fall back to occupancies table
-      const { data: occs } = await db
-        .from('occupancies')
-        .select(`id, unit_id, owner_id, dues_amount, dues_paid_through, association_id, units!occupancies_unit_id_fkey(unit_number), owners!occupancies_owner_id_fkey(full_name, email)`)
-        .in('association_id', boardAssocIds)
-        .eq('status', 'current')
-        .lt('dues_paid_through', currentMonthStart)
-        .order('dues_paid_through', { ascending: true })
-
-      delinquentRows = (occs ?? []).map((o: any) => ({
-        unit_id: o.unit_id,
-        unit_number: o.units?.unit_number ?? '—',
-        owner_name: o.owners?.full_name ?? 'Unknown',
-        owner_email: o.owners?.email ?? null,
-        amount_due: o.dues_amount ?? 0,
-        days_past_due: daysPastDue(o.dues_paid_through),
-        last_payment_date: null,
-        association_id: o.association_id,
-        owner_id: o.owner_id,
-        occupancy_id: o.id,
-        paid_through: o.dues_paid_through,
-      }))
-    }
+      }
+    })
   } catch {
     delinquentRows = []
   }

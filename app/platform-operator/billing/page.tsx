@@ -182,7 +182,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">
                       {inv.period_start ? `${date(inv.period_start)} – ${date(inv.period_end)}` : '—'}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(inv.total_cents)}</td>
+                    <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(Number(inv.total_cents ?? 0) / 100)}</td>
                     <td className="px-4 py-3"><Badge status={inv.status ?? 'open'} /></td>
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
                     <td className="px-4 py-3 text-right">

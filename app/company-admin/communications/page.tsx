@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
-import { Mail, MessageSquare, AlertTriangle, Phone } from 'lucide-react'
+import { Mail, MessageSquare, AlertTriangle, Megaphone } from 'lucide-react'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { displayTimeZone } from '@/lib/time/display-zone'
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,30 +51,24 @@ export default async function CommunicationsPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  // Month-to-date in the company's time zone.
+  const zone = displayTimeZone()
+  const monthStart = (zonedWallTimeToUtc(`${todayInZone(zone).slice(0, 7)}-01`, '00:00', zone) ?? new Date()).toISOString()
 
-  // ── Fetch communications log ────────────────────────
-  let commRows: any[] = []
-  try {
-    const { data } = await db
-      .from('communications_log')
-      .select('*')
-      .eq('portfolio_id', portfolioId)
-      .order('created_at', { ascending: false })
-      .limit(1000)
-    commRows = data ?? []
-  } catch {
-    commRows = []
-  }
-
-  // Current month only
-  const monthComms = commRows.filter((c: any) => c.created_at && c.created_at >= monthStart)
+  // ── Fetch this month's communications (paged past 1,000 rows) ──
+  const { rows: monthComms } = await fetchAllRows(() => db
+    .from('communications_log')
+    .select('*')
+    .eq('portfolio_id', portfolioId)
+    .gte('created_at', monthStart)
+    .order('created_at', { ascending: false })
+    .order('id'))
 
   // Stats by channel
   const emailsSent = monthComms.filter((c: any) => c.channel === 'email').length
   const smsSent = monthComms.filter((c: any) => c.channel === 'sms').length
-  const phoneCalls = monthComms.filter((c: any) => c.channel === 'phone').length
+  // The log has no phone channel; the third channel is announcements.
+  const announcementsSent = monthComms.filter((c: any) => c.channel === 'announcement').length
   const failedEmails = monthComms.filter((c: any) => c.channel === 'email' && c.status === 'failed').length
   const failedSms = monthComms.filter((c: any) => c.channel === 'sms' && c.status === 'failed').length
   const totalRecipients = monthComms.reduce((sum: number, c: any) => sum + (c.recipient_count ?? 0), 0)
@@ -93,7 +90,7 @@ export default async function CommunicationsPage() {
     if (!entry) continue
     if (c.channel === 'email') entry.emails++
     else if (c.channel === 'sms') entry.sms++
-    else if (c.channel === 'phone') entry.phone++
+    else if (c.channel === 'announcement') entry.phone++
     entry.total++
   }
   const assocCommList = Array.from(assocCommMap.values()).sort((a, b) => b.total - a.total)
@@ -110,7 +107,7 @@ export default async function CommunicationsPage() {
     if (!entry) continue
     if (c.channel === 'email') entry.emails++
     else if (c.channel === 'sms') entry.sms++
-    else if (c.channel === 'phone') entry.phone++
+    else if (c.channel === 'announcement') entry.phone++
     entry.total++
   }
   const mgrCommList = Array.from(mgrCommMap.values()).sort((a, b) => b.total - a.total)
@@ -135,7 +132,7 @@ export default async function CommunicationsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Emails Sent (MTD)" value={emailsSent} sub={`${totalRecipients} total recipients`} icon={Mail} />
         <StatCard label="SMS Sent (MTD)" value={smsSent} icon={MessageSquare} />
-        <StatCard label="Phone Calls (MTD)" value={phoneCalls} icon={Phone} />
+        <StatCard label="Announcements (MTD)" value={announcementsSent} icon={Megaphone} />
         <StatCard label="Failed Emails" value={failedEmails} sub={emailsSent > 0 ? `${((failedEmails / emailsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} />
         <StatCard label="Failed SMS" value={failedSms} sub={smsSent > 0 ? `${((failedSms / smsSent) * 100).toFixed(1)}% failure` : '0%'} icon={AlertTriangle} />
       </div>
@@ -154,7 +151,7 @@ export default async function CommunicationsPage() {
                   <Th>Association</Th>
                   <Th>Emails</Th>
                   <Th>SMS</Th>
-                  <Th>Phone</Th>
+                  <Th>Announcements</Th>
                   <Th>Total</Th>
                 </tr>
               </thead>
@@ -193,7 +190,7 @@ export default async function CommunicationsPage() {
                   <Th>Manager</Th>
                   <Th>Emails</Th>
                   <Th>SMS</Th>
-                  <Th>Phone</Th>
+                  <Th>Announcements</Th>
                   <Th>Total</Th>
                 </tr>
               </thead>

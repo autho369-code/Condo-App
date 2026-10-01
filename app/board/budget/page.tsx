@@ -7,7 +7,6 @@ import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/bud
 
 export const dynamic = 'force-dynamic'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export default async function BoardBudgetPage() {
   const me = await requireBoard()
@@ -51,18 +50,9 @@ export default async function BoardBudgetPage() {
     })
   )
 
-  // Also try management_fees as fallback for income tracking
-  const { data: fees } = await db
-    .from('management_fees')
-    .select('month, fee_amount_cents, collected_cents, delinquent_cents')
-    .in('association_id', ids)
-    .order('month', { ascending: false })
-    .limit(12)
-
   const currentMonth = new Date().getMonth() + 1
 
   // ── Export setup: mirror the rendered tables with pre-rendered strings.
-  //    Built BEFORE the JSX below (which reverses `fees` in place). ──
   const associationNames = allReports.map((r) => r.associationName).join(', ')
   const exportDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
   const exportTables: ExportTable[] = allReports
@@ -86,28 +76,6 @@ export default async function BoardBudgetPage() {
         `${row.annual_variance_pct}%`,
       ]),
     }))
-  if (fees && fees.length > 0) {
-    exportTables.push({
-      title: 'Management Fee Collection History',
-      columns: [
-        { header: 'Month' },
-        { header: 'Collected', align: 'right' },
-        { header: 'Budget', align: 'right' },
-        { header: 'Variance %', align: 'right' },
-      ],
-      rows: [...fees].reverse().map((m: any) => {
-        const budget = (m.fee_amount_cents ?? 0) / 100
-        const actual = (m.collected_cents ?? 0) / 100
-        return [
-          MONTHS[new Date(m.month).getMonth()],
-          money(actual),
-          money(budget),
-          budget > 0 ? `${(((actual - budget) / budget) * 100).toFixed(0)}%` : '—',
-        ]
-      }),
-    })
-  }
-
   const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
   return (
@@ -280,52 +248,6 @@ export default async function BoardBudgetPage() {
               </div>
             )}
 
-            {/* Management Fees Summary (historical tracking) */}
-            {fees && fees.length > 0 && (
-              <div className={card}>
-                <div className="border-b border-gray-100 px-5 py-3">
-                  <h3 className="text-sm font-semibold text-gray-950">Management Fee Collection History</h3>
-                </div>
-                <div className="p-5">
-                  <div className="space-y-3">
-                    {/* copy before reversing — in-place reverse() flipped order on alternating associations */}
-                    {[...(fees ?? [])].reverse().map((m: any) => {
-                      const mn = new Date(m.month).getMonth()
-                      // _cents columns are integer cents — convert to dollars
-                      // before money() (which formats, but does not divide).
-                      const budget = (m.fee_amount_cents ?? 0) / 100
-                      const actual = (m.collected_cents ?? 0) / 100
-                      const maxVal = Math.max(budget, actual, 1)
-                      return (
-                        <div key={m.month} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="w-12 font-medium text-gray-500">{MONTHS[mn]}</span>
-                            <span className="w-24 text-right tabular-nums text-gray-900">{money(actual)}</span>
-                            <span className="w-24 text-right tabular-nums text-gray-500">{money(budget)}</span>
-                            <span className={`w-16 text-right text-xs tabular-nums ${actual >= budget ? 'text-emerald-700' : 'text-amber-700'}`}>
-                              {budget > 0 ? `${((actual - budget) / budget * 100).toFixed(0)}%` : '—'}
-                            </span>
-                          </div>
-                          <div className="flex h-2 gap-0.5">
-                            <div className="relative flex-1 overflow-hidden rounded-sm bg-gray-100">
-                              <div className="absolute inset-y-0 left-0 rounded-sm bg-emerald-500/50" style={{ width: `${Math.min((actual / maxVal) * 100, 100)}%` }} />
-                            </div>
-                            <div className="w-0.5 rounded bg-gray-300" title="Budget target" />
-                            <div className="relative flex-1 overflow-hidden rounded-sm bg-gray-100">
-                              <div className="absolute inset-y-0 left-0 rounded-sm bg-gray-300" style={{ width: `${Math.min((budget / maxVal) * 100, 100)}%` }} />
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    <div className="flex items-center gap-6 pt-2 text-xs text-gray-500">
-                      <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-500/50" /> Collected</span>
-                      <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-gray-300" /> Budget</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )
       })}

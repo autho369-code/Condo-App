@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { displayTimeZone } from '@/lib/time/display-zone'
+import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
@@ -130,11 +132,18 @@ export default async function BoardViolationsPage({
   if (typeFilter) {
     baseQuery = baseQuery.eq('violation_type', typeFilter)
   }
-  if (fromDate) {
-    baseQuery = baseQuery.gte('created_at', fromDate)
+  // From/To are calendar days in the association's zone; "to" includes the
+  // whole day (lte on a bare date stopped at midnight, dropping that day).
+  const zone = displayTimeZone()
+  const dayStart = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? zonedWallTimeToUtc(d, '00:00', zone) : null
+  const fromStart = fromDate ? dayStart(fromDate) : null
+  if (fromStart) {
+    baseQuery = baseQuery.gte('created_at', fromStart.toISOString())
   }
-  if (toDate) {
-    baseQuery = baseQuery.lte('created_at', toDate)
+  if (toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+    const [y, m, d] = toDate.split('-').map(Number)
+    const nextDay = dayStart(new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10))
+    if (nextDay) baseQuery = baseQuery.lt('created_at', nextDay.toISOString())
   }
   if (finedOnly) {
     baseQuery = baseQuery.not('fine_amount', 'is', null)

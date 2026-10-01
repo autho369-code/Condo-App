@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
@@ -9,12 +10,10 @@ export function money(cents: number | string | null | undefined): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
 
-// Every association today is on Central time (associations.timezone). Server
-// components render in UTC, so timestamps need an explicit zone or an evening
-// event shows as the next day.
-const DISPLAY_TIME_ZONE = 'America/Chicago';
-
-export function date(d: string | Date | null | undefined, fmt: 'short' | 'long' = 'short', timeZone: string = DISPLAY_TIME_ZONE): string {
+// Server components render in UTC, so timestamps need an explicit zone or an
+// evening event shows as the next day. Without one, use the viewer's
+// association zone for this request (see lib/time/display-zone.ts).
+export function date(d: string | Date | null | undefined, fmt: 'short' | 'long' = 'short', timeZone: string = displayTimeZone()): string {
   if (!d) return '—';
   const opts: Intl.DateTimeFormatOptions = fmt === 'long'
     ? { year: 'numeric', month: 'long', day: 'numeric' }
