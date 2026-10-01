@@ -122,7 +122,7 @@ export default async function MetricsPage() {
     db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("completed","closed","cancelled")'),
     db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'),
     db.from('unit_balances').select('balance').gt('balance', 0),
-    db.from('payable_bills').select('id, amount').is('archived_at', null).eq('status', 'approved'),
+    db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved'),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     // Occupied = units with a current occupancy (occupancies is the source of
     // truth; unit_owners is a legacy link table and can be empty)
@@ -195,7 +195,7 @@ export default async function MetricsPage() {
   const collectionRatePct = chargesMtdTotal > 0 ? Math.min(100, (paymentsMtdTotal / chargesMtdTotal) * 100) : (paymentsMtdTotal > 0 ? 100 : 0);
 
   const arBalance = (arData ?? []).reduce((sum: number, r: any) => sum + (r.balance ?? 0), 0);
-  const billsAwaitingTotal = (billsAwaiting ?? []).reduce((sum: number, r: any) => sum + (r.amount ?? 0), 0);
+  const billsAwaitingTotal = (billsAwaiting ?? []).reduce((sum: number, r: any) => sum + Number(r.amount ?? 0) - Number(r.credit_applied ?? 0), 0);
   const totalUnits = unitCount ?? 0;
   const occupiedUnits = new Set(((currentOccupancies ?? []) as any[]).map((o: any) => o.unit_id).filter(Boolean)).size;
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;

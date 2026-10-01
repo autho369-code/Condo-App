@@ -25,7 +25,7 @@ export default async function AccountingPage() {
   // Total unpaid balance: bills not paid or voided
   const unpaidQuery = db
     .from('payable_bills')
-    .select('amount')
+    .select('amount, credit_applied')
     .is('archived_at', null)
     .not('status', 'in', '("paid","void")');
 
@@ -69,7 +69,7 @@ export default async function AccountingPage() {
   ]);
 
   const totalUnpaid = (unpaidBills ?? []).reduce(
-    (sum: number, b: any) => sum + Number(b.amount ?? 0),
+    (sum: number, b: any) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
     0
   );
 

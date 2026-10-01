@@ -102,7 +102,7 @@ export default async function DashboardPage({
   // 3. Bills awaiting payment: payable_bills approved but not paid
   const awaitingPaymentQuery = db
     .from('payable_bills')
-    .select('id, amount', { count: 'exact', head: false })
+    .select('id, amount, credit_applied', { count: 'exact', head: false })
     .is('archived_at', null)
     .eq('status', 'approved');
 
@@ -316,7 +316,7 @@ export default async function DashboardPage({
     0,
   );
   const billsAwaitingTotal = (awaitingPaymentBills ?? []).reduce(
-    (sum: number, row: any) => sum + (row.amount ?? 0),
+    (sum: number, row: any) => sum + Number(row.amount ?? 0) - Number(row.credit_applied ?? 0),
     0,
   );
 
