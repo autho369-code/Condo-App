@@ -134,7 +134,7 @@ export default async function DelinquenciesPage({ searchParams }: { searchParams
   const readinessByCase = new Map<string, any>(readinessEntries);
   const overdueTotal = openCases.reduce((sum: number, record: any) => sum + Number(record.balance_snapshot ?? 0), 0);
 
-  return <DataWorkspace title="Owner Delinquency Ladder" description="Stateful collection cases with policy deadlines, holds, evidence, and a mandatory human gate before counsel referral." actions={<form action={syncCases}><Button type="submit">Sync owner balances</Button></form>}>
+  return <DataWorkspace title="Owner Delinquency Ladder" description="Stateful collection cases with policy deadlines, holds, evidence, and a mandatory human gate before counsel referral." actions={<div className="flex flex-wrap gap-2"><Link href="/payment-plans"><Button variant="secondary">Payment plans</Button></Link><form action={syncCases}><Button type="submit">Sync owner balances</Button></form></div>}>
     <div className="space-y-5">
       {sp.error && <Alert title="Collection workflow blocked">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success">{sp.saved}</Alert>}

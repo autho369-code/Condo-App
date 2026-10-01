@@ -50,6 +50,18 @@ export default async function LedgerPage() {
   }));
   const totalBalance = exportCharges.reduce((s, c) => s + c.balance, 0);
 
+  // Active payment plans for the owner's units (RLS: their own units; one per unit).
+  const { data: activePlans } = await (supabase as any)
+    .from('payment_plans')
+    .select('id, total_amount, installment_count, frequency, units(unit_number)')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+  const plans = await Promise.all(((activePlans ?? []) as any[]).map(async (plan) => {
+    const { data: sched } = await (supabase as any).rpc('payment_plan_schedule', { p_plan_id: plan.id });
+    const rows = (sched ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];
+    return { plan, rows, paid: rows.reduce((s, r) => s + Number(r.covered), 0) };
+  }));
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -63,6 +75,34 @@ export default async function LedgerPage() {
           totalBalance={totalBalance}
         />
       </div>
+
+      {plans.map(({ plan, rows: planRows, paid: planPaid }) => (
+        <section key={plan.id}>
+          <h2 className="mb-1 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">
+            Your payment plan{plans.length > 1 && plan.units?.unit_number ? ` · Unit ${plan.units.unit_number}` : ''}
+          </h2>
+          <p className="mb-3 text-sm text-gray-500">
+            {money(plan.total_amount)} in {plan.installment_count} installments · {money(planPaid)} paid · {money(Math.max(Number(plan.total_amount) - planPaid, 0))} remaining.
+            Your payments count toward the plan automatically.
+          </p>
+          <Table>
+            <THead><TR>
+              <TH>#</TH><TH>Due</TH><TH className="text-right">Amount</TH><TH className="text-right">Paid</TH><TH>Status</TH>
+            </TR></THead>
+            <tbody>
+              {planRows.map((r) => (
+                <TR key={r.installment_number}>
+                  <TD>{r.installment_number}</TD>
+                  <TD>{date(r.due_date)}</TD>
+                  <TD className="text-right">{money(r.amount)}</TD>
+                  <TD className="text-right">{money(r.covered)}</TD>
+                  <TD><Badge status={r.status === 'paid' ? 'paid' : r.status === 'behind' ? 'overdue' : 'pending'}>{r.status === 'paid' ? 'Paid' : r.status === 'behind' ? 'Past due' : r.status === 'due' ? 'Due soon' : 'Upcoming'}</Badge></TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </section>
+      ))}
 
       <section>
         <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Charges</h2>
