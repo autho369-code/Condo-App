@@ -1,3 +1,6 @@
+import { DEFAULT_TIME_ZONE, displayTimeZone } from '@/lib/time/display-zone';
+
+export { DEFAULT_TIME_ZONE };
 /**
  * Convert a wall-clock date + time in an IANA time zone to a UTC Date.
  * Server code runs in UTC, so `new Date('2026-10-01T18:00')` would read an
@@ -53,8 +56,6 @@ export function wallDateTimeToIso(value: string | null | undefined, timeZone: st
   return zonedWallTimeToUtc(m[1], m[2] ?? '00:00', timeZone)?.toISOString() ?? null;
 }
 
-/** Zone used when no association zone applies (every association today is Central). */
-export const DEFAULT_TIME_ZONE = 'America/Chicago';
 
 /**
  * Format an instant for a server-rendered page. Server code runs in UTC, so
@@ -64,7 +65,7 @@ export const DEFAULT_TIME_ZONE = 'America/Chicago';
 export function formatInZone(
   value: string | number | Date,
   options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
-  timeZone: string = DEFAULT_TIME_ZONE,
+  timeZone: string = displayTimeZone(),
 ): string {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return '—';

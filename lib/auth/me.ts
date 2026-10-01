@@ -8,6 +8,8 @@ import { tenantAccessDecision } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
 import { requiresMfa } from '@/lib/auth/mfa-policy';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { cache } from 'react';
+import { predominantTimeZone, setDisplayTimeZone } from '@/lib/time/display-zone';
 
 export interface MeResult {
   auth_user_id: string | null;
@@ -107,6 +109,18 @@ async function enforceConfiguredMfa(me: MeResult, supabase: Awaited<ReturnType<t
   redirect(`/mfa?${query.toString()}`);
 }
 
+// Format timestamps in the viewer's association zone for the rest of this
+// request (RLS limits the read to associations they can see). Once per request.
+const primeDisplayTimeZone = cache(async (): Promise<void> => {
+  try {
+    const supabase = await createClient();
+    const { data } = await (supabase as any).from('associations').select('timezone').limit(1000);
+    setDisplayTimeZone(predominantTimeZone(((data ?? []) as Array<{ timezone: string | null }>).map((a) => a.timezone)));
+  } catch {
+    // Keep the default zone.
+  }
+});
+
 export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeResult> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('me');
@@ -133,6 +147,7 @@ export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeR
   }
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
   if (options.enforceMfa !== false) await enforceConfiguredMfa(me, supabase);
+  if (me?.auth_user_id) await primeDisplayTimeZone();
   return me;
 }
 
