@@ -351,13 +351,18 @@ async function apAgingRows(
   // asOf shows as a negative row (it already reduced A/P in the ledger), so aging
   // matches the A/P balance for that date.
   const asOfEnd = `${asOf}T23:59:59.999Z`;
+  // An application counts once both it was made and its credit is dated on or before asOf
+  // (a future-dated credit has not reduced A/P in the ledger yet).
   const appliedBy = (apps: any[] | null | undefined) =>
-    (apps ?? []).filter((a) => Date.parse(String(a.applied_at)) <= Date.parse(asOfEnd)).reduce((s, a) => s + Number(a.amount ?? 0), 0);
+    (apps ?? [])
+      .filter((a) => Date.parse(String(a.applied_at)) <= Date.parse(asOfEnd)
+        && String(a.vendor_credits?.credit_date ?? '9999-12-31') <= asOf)
+      .reduce((s, a) => s + Number(a.amount ?? 0), 0);
   const data: any[] = [];
   for (let from = 0; ; from += 1000) {
     const { data: page, error } = await db
       .from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, association_id, vendors(name), associations(name), vendor_credit_applications(amount, applied_at)')
+      .select('id, bill_number, bill_date, due_date, amount, memo, status, paid_at, association_id, vendors(name), associations(name), vendor_credit_applications(amount, applied_at, vendor_credits(credit_date))')
       .in('association_id', associationIds)
       .neq('status', 'void')
       .or(`status.neq.paid,paid_at.gt."${asOfEnd}"`)
@@ -373,7 +378,7 @@ async function apAgingRows(
   for (let from = 0; ; from += 1000) {
     const { data: page, error: creditsError } = await db
       .from('vendor_credits')
-      .select('id, credit_date, reference, memo, amount, vendors(name), associations(name), vendor_credit_applications(amount, applied_at)')
+      .select('id, credit_date, reference, memo, amount, vendors(name), associations(name), vendor_credit_applications(amount, applied_at, vendor_credits(credit_date))')
       .in('association_id', associationIds)
       .lte('credit_date', asOf)
       .order('credit_date', { ascending: true })
