@@ -241,7 +241,7 @@ export default async function PlatformOperatorOverviewPage() {
   const overduePaymentsQuery = db
     .from('invoices')
     .select('id', { count: 'exact', head: true })
-    .eq('status', 'past_due')
+    .eq('status', 'overdue')
 
   const openRequestsQuery = db
     .from('platform_requests')

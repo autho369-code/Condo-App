@@ -56,7 +56,7 @@ export default async function PlatformOperatorOverview() {
     db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('subscriptions').select('price_monthly_cents').in('status', ['active', 'trialing']),
-    db.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'past_due'),
+    db.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue'),
   ]);
 
   const mrr = (activeSubsRes.data ?? []).reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;

@@ -16,7 +16,7 @@ export default async function BoardProjectsPage() {
     .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')
     .in('association_id', ids)
     .is('archived_at', null)
-    .or('category.eq.project,category.eq.major_repair,title.ilike.%project%')
+    .ilike('title', '%project%')
     .order('created_at', { ascending: false })
     .limit(100)
 

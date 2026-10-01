@@ -5,7 +5,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
-import { EmptyState, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -20,14 +20,20 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export default async function ReceiptsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; assoc?: string; method?: string; q?: string; credits?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; range?: string; assoc?: string; method?: string; q?: string; credits?: string; posted?: string }>;
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const from = ISO.test(sp.from ?? '') ? sp.from! : monthStart;
-  const to = ISO.test(sp.to ?? '') ? sp.to! : now.toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
+  // Quick ranges. The default is the last 12 months: "month to date" opened
+  // the register empty on the 1st of every month.
+  const presets = receiptRangePresets(now);
+  const preset = presets.find((p) => p.key === sp.range);
+  const from = preset ? preset.from : ISO.test(sp.from ?? '') ? sp.from! : presets.find((p) => p.key === '12m')!.from;
+  const toInput = preset ? preset.to : ISO.test(sp.to ?? '') ? sp.to! : today;
+  const to = toInput < from ? from : toInput;
+  const activeRange = preset?.key ?? (!sp.from && !sp.to ? '12m' : '');
   const assoc = UUID.test(sp.assoc ?? '') ? sp.assoc! : '';
   const method = sp.method === 'credit' || RECEIPT_METHODS.some((m) => m.value === sp.method) ? sp.method! : '';
   const includeCredits = sp.credits === '1' || method === 'credit';
@@ -61,6 +67,21 @@ export default async function ReceiptsPage({
     if ((data ?? []).length < PAGE) break;
   }
   const truncated = fetched.length >= MAX_ROWS;
+  const postedId = UUID.test(sp.posted ?? '') ? sp.posted! : '';
+  const posted = postedId
+    ? (await db.from('payments').select('id, amount, units(unit_number)').eq('id', postedId).maybeSingle()).data
+    : null;
+  const keep = (extra: Record<string, string>) => {
+    const qs = new URLSearchParams();
+    if (assoc) qs.set('assoc', assoc);
+    if (method) qs.set('method', method);
+    if (includeCredits) qs.set('credits', '1');
+    if (sp.q) qs.set('q', sp.q);
+    for (const [k, v] of Object.entries(extra)) qs.set(k, v);
+    return qs.toString();
+  };
+  const rangeQuery = (key: string) => keep({ range: key });
+  const exportQuery = keep({ from, to });
   const { data: associations } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
 
   let rows = fetched;
@@ -81,12 +102,37 @@ export default async function ReceiptsPage({
       description="Every homeowner payment received, across all associations."
       actions={
         <div className="flex flex-wrap gap-2">
+          <a href={`/receipts/export?${exportQuery}`}><Button variant="secondary">Export CSV</Button></a>
           <Link href="/receipts/other"><Button variant="secondary">Other receipts</Button></Link>
-          <Link href="/units"><Button>Record homeowner receipt</Button></Link>
+          <Link href="/receipts/new"><Button>Homeowner receipt</Button></Link>
         </div>
       }
     >
       <div className="space-y-4">
+        {posted && (
+          <Alert tone="success" title="Receipt recorded.">
+            {money(posted.amount)} from Unit {posted.units?.unit_number ?? '—'} was applied and posted to the ledger.{' '}
+            <Link href={`/payments/${posted.id}/receipt`} className="font-medium underline">Print receipt</Link>
+            {' · '}
+            <Link href="/receipts/new" className="font-medium underline">Enter another</Link>
+          </Alert>
+        )}
+
+        <nav aria-label="Date range" className="flex flex-wrap gap-2">
+          {presets.map((p) => (
+            <Link
+              key={p.key}
+              href={`/receipts?${rangeQuery(p.key)}`}
+              aria-current={activeRange === p.key ? 'true' : undefined}
+              className={`inline-flex min-h-10 items-center rounded-lg border px-3 text-[13px] font-medium transition-colors ${
+                activeRange === p.key ? 'border-gray-950 bg-gray-950 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {p.label}
+            </Link>
+          ))}
+        </nav>
+
         <MetricStrip
           metrics={[
             { label: 'Received', value: money(total), sublabel: `${cash.length} receipt${cash.length === 1 ? '' : 's'}` },
@@ -124,7 +170,17 @@ export default async function ReceiptsPage({
         {rows.length > 500 && <p className="text-xs text-gray-500">Showing the newest 500 of {rows.length.toLocaleString()} receipts; totals include all of them.</p>}
         {rows.length === 0 ? (
           <Surface padded={false}>
-            <EmptyState icon={Receipt} title="No receipts in this range" description="Change the dates or filters." />
+            <EmptyState
+              icon={Receipt}
+              title="No receipts in this range"
+              description={`Nothing received between ${date(from)} and ${date(to)} with these filters.`}
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link href={`/receipts?${rangeQuery('all')}`}><Button variant="secondary">Show all dates</Button></Link>
+                  <Link href="/receipts/new"><Button>Record a homeowner receipt</Button></Link>
+                </div>
+              }
+            />
           </Surface>
         ) : (
           <Table>
@@ -164,4 +220,20 @@ export default async function ReceiptsPage({
       </div>
     </DataWorkspace>
   );
+}
+
+function receiptRangePresets(now: Date) {
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const daysAgo = (n: number) => iso(new Date(now.getTime() - n * 86400000));
+  const y = now.getFullYear();
+  const today = iso(now);
+  return [
+    { key: 'mtd', label: 'This month', from: iso(new Date(Date.UTC(y, now.getMonth(), 1))), to: today },
+    { key: '30d', label: 'Last 30 days', from: daysAgo(30), to: today },
+    { key: '90d', label: 'Last 90 days', from: daysAgo(90), to: today },
+    { key: 'ytd', label: 'Year to date', from: `${y}-01-01`, to: today },
+    { key: '12m', label: 'Last 12 months', from: daysAgo(365), to: today },
+    { key: 'ly', label: 'Last year', from: `${y - 1}-01-01`, to: `${y - 1}-12-31` },
+    { key: 'all', label: 'All dates', from: '1900-01-01', to: '2999-12-31' },
+  ];
 }

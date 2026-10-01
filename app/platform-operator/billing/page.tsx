@@ -75,7 +75,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const { count: pastDue } = await db
     .from('invoices')
     .select('id', { count: 'exact', head: true })
-    .eq('status', 'past_due');
+    .eq('status', 'overdue');
 
   // Invoices with company name
   const { data: invoices } = await db
