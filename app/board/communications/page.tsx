@@ -13,8 +13,10 @@ export default async function BoardCommunicationsPage() {
 
   const { data, error } = await db
     .from('communications_log')
-    .select('*')
+    // Outbound only: owners' private messages to management are not board data.
+    .select('id, created_at, channel, status, subject, recipient_count, direction')
     .in('association_id', ids)
+    .eq('direction', 'outbound')
     .order('created_at', { ascending: false })
     .limit(100)
   if (error) throw new Error(`Unable to load board communications: ${error.message}`)
