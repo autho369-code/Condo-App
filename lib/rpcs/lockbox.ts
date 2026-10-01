@@ -5,6 +5,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { parseImportCsv } from '@/lib/imports/csv';
 import type { ImportResult } from '@/lib/rpcs/imports';
+import { claimSubmission, completeSubmission, contentSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
@@ -19,20 +20,36 @@ export async function importLockbox(_prev: ImportResult | null, formData: FormDa
   const file = formData.get('file');
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose the lockbox CSV file.' };
   if (file.size > 2 * 1024 * 1024) return { ok: false, message: 'The file is larger than 2 MB.' };
-  const { rows, error } = parseImportCsv(await file.text());
+  const text = await file.text();
+  const { rows, error } = parseImportCsv(text);
   if (error || !rows) return { ok: false, message: error ?? 'Could not read the file.' };
 
   const db = (await createClient()) as any;
+  // The same file for the same account and date is one deposit: a double
+  // click or a second upload must not create a second batch of receipts.
+  const tokenData = new FormData();
+  tokenData.set(SUBMISSION_FIELD, await contentSubmissionToken('lockbox', bank, date, text));
+  const claim = await claimSubmission(db, tokenData, 'lockbox_import');
+  if (claim.status === 'error') return { ok: false, message: claim.message };
+  if (claim.status === 'duplicate') {
+    return claim.resultId
+      ? { ok: false, message: 'This file was already imported for that account and date.', href: `/bank-accounts/lockbox/${claim.resultId}` }
+      : { ok: false, message: 'This file is already being imported. Check the batches list before uploading again.' };
+  }
+  const token = claim.token;
+
   const { data, error: rpcError } = await db.rpc('import_lockbox_batch', {
     p_bank_account_id: bank,
     p_batch_date: date,
     p_reference: s(formData, 'reference') || null,
     p_rows: rows,
   });
+  if (rpcError || !data?.ok) await releaseSubmission(db, token);
   if (rpcError) return { ok: false, message: rpcError.message };
   if (!data?.ok) {
     return { ok: false, message: `Nothing was imported — fix ${data?.error_count ?? 'the'} problem${data?.error_count === 1 ? '' : 's'} and upload again.`, errors: data?.errors ?? [], errorCount: data?.error_count };
   }
+  await completeSubmission(db, token, data.batch_id);
   revalidatePath('/bank-accounts/lockbox');
   return {
     ok: true,

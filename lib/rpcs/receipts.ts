@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { isReceiptMethod } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -41,6 +42,14 @@ export async function recordHomeownerReceipt(formData: FormData) {
     if (!bank) back('The deposit account must belong to this unit’s association.');
   }
 
+  // A double click or re-sent form must not record the payment twice.
+  const claim = await claimSubmission(db, formData, 'homeowner_receipt');
+  if (claim.status === 'error') back(claim.message);
+  if (claim.status === 'duplicate') {
+    redirect(claim.resultId ? `/receipts?posted=${claim.resultId}&from=${paymentDate}` : '/receipts?notice=receipt_in_progress');
+  }
+  const token = (claim as { token: string }).token;
+
   // auto_apply_new_payment applies it oldest-charge-first; post_payment_to_gl
   // posts Dr bank / Cr A/R.
   const { data, error } = await db.from('payments').insert({
@@ -53,7 +62,11 @@ export async function recordHomeownerReceipt(formData: FormData) {
     bank_account_id: bankAccountId || null,
     created_by: me.auth_user_id,
   }).select('id').single();
-  if (error || !data) back(error?.message ?? 'The receipt could not be saved.');
+  if (error || !data) {
+    await releaseSubmission(db, token);
+    back(error?.message ?? 'The receipt could not be saved.');
+  }
+  await completeSubmission(db, token, data.id);
 
   revalidatePath('/receipts');
   revalidatePath(`/units/${unitId}`);

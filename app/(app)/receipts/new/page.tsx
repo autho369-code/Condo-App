@@ -7,6 +7,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { RECEIPT_METHODS } from '@/lib/payments/methods';
 import { recordHomeownerReceipt } from '@/lib/rpcs/receipts';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 
@@ -143,6 +144,7 @@ export default async function NewHomeownerReceiptPage({
 
             <form action={recordHomeownerReceipt}>
               <input type="hidden" name="unit_id" value={selected.id} />
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <Surface>
                 <SectionTitle title="2. Payment details" />
                 <div className="grid gap-4 sm:grid-cols-2">
