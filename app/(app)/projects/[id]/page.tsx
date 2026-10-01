@@ -43,8 +43,7 @@ export default async function ProjectDetailPage({
 
   const linkedIds = new Set((links ?? []).map((link: any) => link.work_order_id));
   const availableWorkOrders = (allWorkOrders ?? []).filter((wo: any) => wo.association_id === project.association_id && !linkedIds.has(wo.id));
-  const [{ data: financials }, { data: costLines }, { data: costGls }] = await Promise.all([
-    db.from('capital_project_financials').select('committed_spend').eq('project_id', id).maybeSingle(),
+  const [{ data: costLines, error: costError }, { data: costGls }] = await Promise.all([
     db.rpc('project_budget_vs_actual', { p_project_id: id }),
     me.is_finance_staff || me.is_platform_operator
       ? db.from('gl_accounts').select('id, number, name, association_id').eq('portfolio_id', project.portfolio_id).eq('active', true)
@@ -56,7 +55,10 @@ export default async function ProjectDetailPage({
   const canEditCosts = Boolean((me.is_finance_staff || me.is_platform_operator) && !project.archived_at);
   const categoryBudget = categories.reduce((s, c) => s + Number(c.budget_amount ?? 0), 0);
   const categoryActual = categories.reduce((s, c) => s + Number(c.actual_amount ?? 0), 0);
-  const spent = Number(financials?.committed_spend ?? 0);
+  if (costError) throw new Error(`Could not load project spend: ${costError.message}`);
+  // Committed spend = approved + paid bills on the linked work orders, from the same authorized
+  // aggregate as the category table (categorized + Other), so the two always reconcile.
+  const spent = categoryActual;
   const budget = Number(project.approved_budget_amount ?? project.budget_amount ?? 0);
 
   async function updateProject(formData: FormData) {
