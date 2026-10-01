@@ -23,7 +23,7 @@ import { tenantWorkspaceUrl } from '@/lib/tenant/host';
 
 
 export interface StatusChangeParams {
-  kind: 'work_order' | 'service_request';
+  kind: 'work_order' | 'service_request' | 'architectural_request';
   id: string;
   newStatus: string;
   /** Optional note from staff, quoted in the email (e.g. the answer to a question). */
@@ -101,6 +101,20 @@ export async function notifyOwnerOfStatusChange({ kind, id, newStatus, message }
       itemNumber = wo.number ?? null;
       noun = 'work order';
       linkPath = `/portal/work-orders/${wo.id}`;
+    } else if (kind === 'architectural_request') {
+      const { data: ar, error } = await svc
+        .from('architectural_requests')
+        .select('id, title, owner_id, association_id, associations(name, portfolio_id)')
+        .eq('id', id)
+        .maybeSingle();
+      if (error || !ar) return;
+      ownerId = ar.owner_id ?? null;
+      associationId = ar.association_id ?? null;
+      portfolioId = ar.associations?.portfolio_id ?? null;
+      associationName = ar.associations?.name ?? null;
+      itemTitle = ar.title ?? 'Architectural request';
+      noun = 'architectural request';
+      linkPath = `/portal/architectural/${ar.id}`;
     } else {
       const { data: sr, error } = await svc
         .from('service_requests')
