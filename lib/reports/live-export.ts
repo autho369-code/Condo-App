@@ -347,23 +347,33 @@ async function apAgingRows(
 
   const { data, error } = await db
     .from('payable_bills')
-    .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, association_id, vendors(name), associations(name)')
+    .select('id, bill_number, bill_date, due_date, amount, memo, status, association_id, vendors(name), associations(name), vendor_credit_applications(amount, applied_at)')
     .in('association_id', associationIds)
     .not('status', 'in', '("paid","void")')
     .lte('bill_date', asOf)
     .order('due_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
 
-  // Credits not yet applied to a bill already reduced A/P in the ledger, so they
-  // appear as negative rows and the aging total matches the A/P balance.
-  const { data: credits, error: creditsError } = await db
-    .from('vendor_credits')
-    .select('id, credit_date, reference, memo, remaining_amount, vendors(name), associations(name)')
-    .in('association_id', associationIds)
-    .gt('remaining_amount', 0)
-    .lte('credit_date', asOf)
-    .order('credit_date', { ascending: true });
-  if (creditsError) throw creditsError;
+  // Vendor credits are reconstructed as of the report date: only applications made
+  // on or before asOf reduce a bill, and a credit's unapplied remainder at asOf shows
+  // as a negative row (it already reduced A/P in the ledger), so aging matches A/P.
+  const asOfEnd = `${asOf}T23:59:59.999Z`;
+  const appliedBy = (apps: any[] | null | undefined) =>
+    (apps ?? []).filter((a) => String(a.applied_at) <= asOfEnd).reduce((s, a) => s + Number(a.amount ?? 0), 0);
+  const credits: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error: creditsError } = await db
+      .from('vendor_credits')
+      .select('id, credit_date, reference, memo, amount, vendors(name), associations(name), vendor_credit_applications(amount, applied_at)')
+      .in('association_id', associationIds)
+      .lte('credit_date', asOf)
+      .order('credit_date', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + 999);
+    if (creditsError) throw creditsError;
+    credits.push(...(page ?? []));
+    if (!page || page.length < 1000) break;
+  }
 
   return [
     ...(data ?? []).map((bill: any) => ({
@@ -376,11 +386,14 @@ async function apAgingRows(
       Status: bill.status,
       'Aging bucket': agingBucket(bill.due_date, asOf),
       // Vendor credits applied to the bill reduce what is still owed.
-      'Balance due': Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0),
+      'Balance due': Number(bill.amount ?? 0) - appliedBy(bill.vendor_credit_applications),
       'Bill ID': bill.id,
       'As of': asOf,
     })),
-    ...(credits ?? []).map((credit: any) => ({
+    ...credits
+      .map((credit: any) => ({ credit, left: Number(credit.amount ?? 0) - appliedBy(credit.vendor_credit_applications) }))
+      .filter(({ left }) => left > 0.005)
+      .map(({ credit, left }) => ({
       Association: credit.associations?.name ?? '',
       Vendor: credit.vendors?.name ?? '',
       'Bill #': credit.reference ?? '',
@@ -389,7 +402,7 @@ async function apAgingRows(
       Memo: credit.memo ?? '',
       Status: 'unapplied vendor credit',
       'Aging bucket': 'Current',
-      'Balance due': -Number(credit.remaining_amount ?? 0),
+      'Balance due': -left,
       'Bill ID': credit.id,
       'As of': asOf,
     })),
