@@ -40,7 +40,7 @@ function formatMoney(cents: number | null): string {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; view?: string; archived?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -57,6 +57,7 @@ export default async function InventoryPage({
     const { data, error } = await (supabase as any)
       .from('inventory_items')
       .select('id, name, sku, category, quantity_on_hand, reorder_point, unit_of_measure, location, unit_cost')
+      .is('archived_at', null)
       .order('name');
 
     if (error) {
@@ -104,6 +105,7 @@ export default async function InventoryPage({
       actions={<Link href="/inventory/new"><Button>New Inventory Item</Button></Link>}
     >
       <div className="space-y-4">
+        {sp.archived && <Alert tone="success">Item removed from inventory. Its history stays in the Inventory Usage report.</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link
             href="/inventory"
@@ -118,10 +120,16 @@ export default async function InventoryPage({
             Categories
           </Link>
           <Link
-            href="/reports"
+            href="/reports/inventory_status"
             className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
           >
-            Reports
+            Inventory Status report
+          </Link>
+          <Link
+            href="/reports/inventory_usage"
+            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+          >
+            Inventory Usage report
           </Link>
         </nav>
 
@@ -160,10 +168,7 @@ export default async function InventoryPage({
         </FilterBar>
 
         {queryError ? (
-          <Alert tone="warning" title="Inventory table not available.">
-            The inventory_items table has not been created yet in Supabase. Run the migration to
-            enable inventory management. ({queryError})
-          </Alert>
+          <Alert tone="danger" title="Could not load inventory.">{queryError}</Alert>
         ) : view === 'categories' ? (
           <Table>
             <THead>
@@ -228,7 +233,7 @@ export default async function InventoryPage({
                 rows.map((row) => (
                   <TR key={row.id} className="hover:bg-gray-50">
                     <TD>
-                      <div className="font-medium text-gray-950">{row.name}</div>
+                      <Link href={`/inventory/${row.id}`} className="font-medium text-gray-950 hover:underline">{row.name}</Link>
                     </TD>
                     <TD>
                       <span className="font-mono text-xs text-gray-600">
