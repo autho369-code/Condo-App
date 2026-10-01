@@ -28,6 +28,7 @@ export const PUBLIC_PATHS = [
   '/api/reports/run-scheduled',
   '/api/billing/assess-late-fees',
   '/api/billing/assess-interest',
+  '/api/billing/run-management-fees',
   '/api/reports/publish-board-packages',
   '/api/automation/run-flows',
   '/api/email/process-queue',
