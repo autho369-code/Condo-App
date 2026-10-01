@@ -29,7 +29,7 @@ export default async function NewHomeownerReceiptPage({
   const [{ data: units }, { data: summaries }, { data: occupants }] = await Promise.all([
     db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).limit(5000),
     db.from('v_unit_account_summary').select('unit_id, outstanding_balance, unapplied_credit').limit(5000),
-    db.from('occupancies').select('unit_id, is_primary, owners(full_name)').eq('status', 'current').limit(10000),
+    db.from('occupancies').select('unit_id, is_primary, owners(full_name)').eq('status', 'current').eq('occupancy_type', 'owner').limit(10000),
   ]);
   const balanceByUnit = new Map<string, any>((summaries ?? []).map((s: any) => [s.unit_id, s]));
   const ownerByUnit = new Map<string, string>();

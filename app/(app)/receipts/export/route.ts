@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
   const methodParam = sp.get('method') ?? '';
   const method = methodParam === 'credit' || RECEIPT_METHODS.some((m) => m.value === methodParam) ? methodParam : '';
   const includeCredits = sp.get('credits') === '1' || method === 'credit';
+  const q = (sp.get('q') ?? '').trim().toLowerCase();
 
   const db = (await createClient()) as any;
   const unitSelect = assoc
@@ -49,7 +50,13 @@ export async function GET(request: NextRequest) {
   }
 
   const lines = [['Date', 'Association', 'Unit', 'Method', 'Reference', 'Deposited to', 'Amount', 'Memo'].join(',')];
-  for (const r of rows) {
+  // Same text search as the register, so the export matches what is on screen.
+  const visible = q
+    ? rows.filter((r) =>
+        [r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
+          .some((v) => String(v ?? '').toLowerCase().includes(q)))
+    : rows;
+  for (const r of visible) {
     lines.push([
       r.payment_date,
       r.units?.buildings?.associations?.name,

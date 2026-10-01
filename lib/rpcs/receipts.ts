@@ -10,7 +10,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Homeowner receipt entered from the Receipts register (not a unit page). */
 export async function recordHomeownerReceipt(formData: FormData) {
-  await requireFinanceStaff(); // in-action guard: server actions are callable endpoints
+  const me = await requireFinanceStaff(); // in-action guard: server actions are callable endpoints
   const unitId = String(formData.get('unit_id') ?? '');
   const back = (msg: string): never =>
     redirect(`/receipts/new${UUID.test(unitId) ? `?unit=${unitId}&` : '?'}error=${encodeURIComponent(msg)}`);
@@ -51,6 +51,7 @@ export async function recordHomeownerReceipt(formData: FormData) {
     reference,
     notes,
     bank_account_id: bankAccountId || null,
+    created_by: me.auth_user_id,
   }).select('id').single();
   if (error || !data) back(error?.message ?? 'The receipt could not be saved.');
 
