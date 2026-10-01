@@ -11,6 +11,7 @@ import {
   validateArchitecturalAttachmentFile,
 } from '@/lib/security/tenant-boundaries';
 import { revalidatePath } from 'next/cache';
+import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { redirect } from 'next/navigation';
 
 const CATEGORIES = [
@@ -523,9 +524,10 @@ export async function decideArchitecturalRequest(
   basePath: string,
   formData: FormData,
 ) {
+  const isBoardPath = basePath === '/board/architectural-reviews';
   const me = basePath === '/architectural-reviews'
     ? await requireStaff()
-    : basePath === '/board/architectural-reviews'
+    : isBoardPath
       ? await requireBoard()
       : null;
   if (!me) { redirect('/?error=' + encodeURIComponent('Invalid architectural decision path')); return; }
@@ -550,19 +552,44 @@ export async function decideArchitecturalRequest(
   if (!status) { redirect(`${back}?error=${encodeURIComponent('Invalid decision')}`); return; }
 
   const supabase = await createClient();
-  const patch: Record<string, unknown> = { status };
-  if (status === 'approved' || status === 'denied') {
-    patch.decided_by = me.auth_user_id;
-    patch.decided_at = new Date().toISOString();
-    patch.decision_notes = notes;
-  } else if (notes) {
-    patch.decision_notes = notes;
+  if (isBoardPath) {
+    // Boards have read-only RLS on architectural_requests; this function checks
+    // board seat, open status and no self-approval, then posts the decision to
+    // the discussion thread.
+    const { error } = await (supabase as any).rpc('board_decide_architectural_request', {
+      p_request_id: requestId,
+      p_decision: decision,
+      p_notes: notes,
+    });
+    if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
+  } else {
+    const patch: Record<string, unknown> = { status };
+    if (status === 'approved' || status === 'denied') {
+      patch.decided_by = me.auth_user_id;
+      patch.decided_at = new Date().toISOString();
+      patch.decision_notes = notes;
+    } else if (notes) {
+      patch.decision_notes = notes;
+    }
+
+    const { data: updated, error } = await (supabase as any)
+      .from('architectural_requests')
+      .update(patch)
+      .eq('id', requestId)
+      .in('status', OPEN_STATUSES)
+      .select('id');
+    if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
+    if (!updated || updated.length === 0) {
+      redirect(`${back}?error=${encodeURIComponent('This request is no longer open, or you do not have access to it.')}`);
+      return;
+    }
   }
 
-  const { error } = await (supabase as any)
-    .from('architectural_requests')
-    .update(patch)
-    .eq('id', requestId);
-  if (error) { redirect(`${back}?error=${encodeURIComponent(error.message)}`); return; }
+  // Tell the homeowner (never fails the decision).
+  if (status !== 'under_review') {
+    await notifyOwnerOfStatusChange({ kind: 'architectural_request', id: requestId, newStatus: status, message: notes });
+  }
   revalidatePath(back);
+  revalidatePath(basePath);
+  redirect(`${back}?decided=${status}`);
 }

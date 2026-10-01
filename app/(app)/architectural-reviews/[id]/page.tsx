@@ -29,11 +29,11 @@ export default async function ManagerArchitecturalDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; decided?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, decided: decidedStatus } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -64,6 +64,11 @@ export default async function ManagerArchitecturalDetail({
           <ArrowLeft className="h-4 w-4" /> Back to queue
         </Link>
 
+        {decidedStatus && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+            Decision recorded: {label(decidedStatus)}.{decidedStatus !== 'under_review' ? ' The homeowner has been emailed.' : ''}
+          </div>
+        )}
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             <span className="font-semibold">Something went wrong:</span> {error}

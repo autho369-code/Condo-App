@@ -35,7 +35,7 @@ export default async function BoardArchitecturalReviewsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Architectural Reviews</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Homeowner modification requests for your association. Open a request to discuss with management and the homeowner.</p>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Homeowner modification requests for your association. Open a request to approve, deny or ask for more information, or to discuss it with management and the homeowner.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

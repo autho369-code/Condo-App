@@ -90,6 +90,7 @@ export default async function BoardDashboardPage() {
     { data: vendorVisits },
     { data: approvalRows },
     { data: projectRows },
+    { data: archRows },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
@@ -102,7 +103,10 @@ export default async function BoardDashboardPage() {
     // Include my decisions so requests I already voted on don't count as awaiting my vote.
     db.from('approval_requests').select('id, title, status, approval_decisions(decided_by)').in('association_id', ids).eq('status', 'pending').limit(25),
     db.from('capital_projects').select('id, status').in('association_id', ids).is('archived_at', null),
+    db.from('architectural_requests').select('id, title, owner_id').in('association_id', ids).in('status', ['submitted', 'under_review']).order('created_at').limit(25),
   ])
+  // Open architectural requests the board can decide (not this member's own).
+  const archAwaiting = (archRows ?? []).filter((r: any) => !me.owner_id || r.owner_id !== me.owner_id)
   const approvals = (approvalRows ?? []).filter((a: any) =>
     !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id))
 
@@ -177,6 +181,23 @@ export default async function BoardDashboardPage() {
               </div>
               <p className="mt-0.5 text-[13px] text-blue-800">
                 {(approvals ?? []).slice(0, 3).map((a: any) => a.title).join(' · ')}
+              </p>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* ── Architectural requests awaiting a decision ── */}
+      {archAwaiting.length > 0 && (
+        <Link href={archAwaiting.length === 1 ? `/board/architectural-reviews/${archAwaiting[0].id}` : '/board/architectural-reviews'} className="block rounded-2xl border border-blue-200 bg-blue-50/70 p-4 transition-colors hover:bg-blue-50">
+          <div className="flex items-start gap-3">
+            <Vote className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+            <div>
+              <div className="text-sm font-semibold text-blue-900">
+                {archAwaiting.length} architectural request{archAwaiting.length === 1 ? '' : 's'} awaiting a board decision
+              </div>
+              <p className="mt-0.5 text-[13px] text-blue-800">
+                {archAwaiting.slice(0, 3).map((a: any) => a.title).join(' · ')}
               </p>
             </div>
           </div>
