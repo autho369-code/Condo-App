@@ -118,33 +118,40 @@ export async function createFieldViolation(
   const lat = Number.isFinite(input.location_lat) ? input.location_lat : null;
   const lng = Number.isFinite(input.location_lng) ? input.location_lng : null;
 
-  const { data: row, error } = await db
-    .from('violations')
-    .insert({
-      association_id: associationId,
-      unit_id: unitId,
-      violation_type: violationType,
-      title,
-      description: input.description?.trim() || null,
-      date_observed: observedDate(input.observed_on),
-      status: 'open',
-      created_by: me.auth_user_id,
-      client_mutation_id: clientMutationId,
-      location_lat: lat,
-      location_lng: lng,
-      location_accuracy_m: lat !== null && lng !== null && Number.isFinite(input.location_accuracy_m)
-        ? input.location_accuracy_m
-        : null,
-    })
-    .select('id')
-    .single();
+  // Open the case through open_violation, like the desk form: it resolves the
+  // unit's current owner, cure deadline, due date and first follow-up, and
+  // logs the opening. A raw insert left those empty, so no letter reached
+  // the owner, no hearing could be requested and the case never came due.
+  const { data: openedId, error } = await db.rpc('open_violation', {
+    p_association_id: associationId,
+    p_unit_id: unitId,
+    p_house_rule_id: null,
+    p_title: title,
+    p_description: input.description?.trim() || null,
+    // open_violation refuses a date after the server's today (a device
+    // ahead of UTC may report tomorrow).
+    p_date_observed: [observedDate(input.observed_on), new Date().toISOString().slice(0, 10)].sort()[0],
+    p_violation_type: violationType,
+  });
+  if (error || !openedId) return { error: error?.message ?? 'Failed to create violation' };
 
-  if (error?.code === '23505') {
-    // Two syncs of the same capture raced; the other one created it.
+  // Attach the offline-capture reference and location.
+  const { error: captureError } = await db.from('violations').update({
+    client_mutation_id: clientMutationId,
+    location_lat: lat,
+    location_lng: lng,
+    location_accuracy_m: lat !== null && lng !== null && Number.isFinite(input.location_accuracy_m)
+      ? input.location_accuracy_m
+      : null,
+  }).eq('id', openedId);
+  if (captureError?.code === '23505') {
+    // Two syncs of the same capture raced; keep the other one's case.
     const raced = await findSynced();
+    await db.from('violations').delete().eq('id', openedId);
     if (raced) return { id: raced };
   }
-  if (error || !row) return { error: error?.message ?? 'Failed to create violation' };
+  if (captureError) return { error: `The violation was opened, but its capture details were not saved: ${captureError.message}` };
+  const row = { id: openedId as string };
   revalidatePath('/violations');
   return { id: row.id as string };
 }

@@ -6,15 +6,17 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { maskBankNumber } from '@/lib/banking/bank-format';
 import { toActivityRows, type BankActivitySourceRow } from '@/lib/banking/activity';
 import { createClient } from '@/lib/supabase/server';
-import { updateBankCheckSettings } from '@/lib/rpcs/entities';
-import { Input } from '@/components/ui/input';
+import { linkBankGlAccount, updateBankCheckSettings } from '@/lib/rpcs/entities';
+import { Field, Input, Select } from '@/components/ui/input';
 import { date, money } from '@/lib/utils';
+import { journalLineTotals } from '@/lib/finance/totals';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +24,7 @@ export default async function BankAccountDetailPage({
   params, searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; check_settings_saved?: string }>;
+  searchParams: Promise<{ error?: string; check_settings_saved?: string; gl_linked?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
@@ -33,7 +35,7 @@ export default async function BankAccountDetailPage({
   const { data: account } = await db
     .from('bank_accounts')
     .select(
-      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
+      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, association_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
     )
     .eq('id', id)
     .is('archived_at', null)
@@ -52,6 +54,15 @@ export default async function BankAccountDetailPage({
     glAccount = gl;
   }
 
+  // Cash/asset GL accounts this bank can be linked to (only when unlinked).
+  const { data: cashAccounts } = account.gl_account_id
+    ? { data: [] as any[] }
+    : await (account.association_id
+        ? db.from('gl_accounts').select('id, number, name').eq('active', true).in('account_type', ['cash', 'asset'])
+            .or(`association_id.is.null,association_id.eq.${account.association_id}`).order('number')
+        : db.from('gl_accounts').select('id, number, name').eq('active', true).in('account_type', ['cash', 'asset'])
+            .is('association_id', null).order('number'));
+
   // Most recent reconciliation for status display.
   const { data: lastRecon } = await db
     .from('bank_reconciliations')
@@ -63,14 +74,19 @@ export default async function BankAccountDetailPage({
 
   // Recent ledger activity from journal lines posting to the bank account's GL account.
   let sourceRows: BankActivitySourceRow[] = [];
+  let openingBalance = 0;
   if (account.gl_account_id) {
-    const { data: lines } = await db
+    // Lines of this bank's association only: several associations' banks can
+    // share one cash GL account.
+    let linesQuery = db
       .from('journal_lines')
       .select(
         'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)',
       )
       .eq('gl_account_id', account.gl_account_id)
-      .eq('journal_entries.posted', true)
+      .eq('journal_entries.posted', true);
+    if (account.association_id) linesQuery = linesQuery.eq('association_id', account.association_id);
+    const { data: lines } = await linesQuery
       // "Recent activity": newest first (it was an arbitrary 50 lines).
       .order('journal_entries(entry_date)', { ascending: false })
       .limit(50);
@@ -93,7 +109,18 @@ export default async function BankAccountDetailPage({
     });
   }
 
-  const activity = toActivityRows(sourceRows, 0);
+  if (account.gl_account_id) {
+    // Running balances start from the balance before the oldest line shown:
+    // the account's current balance less the lines listed (it started at $0).
+    const totals = await journalLineTotals(db, {
+      glAccountIds: [account.gl_account_id],
+      associationIds: account.association_id ? [account.association_id] : null,
+    });
+    const current = totals.reduce((sum, t) => sum + t.debit_total - t.credit_total, 0);
+    const shown = sourceRows.reduce((sum, r) => sum + r.cashIn - r.cashOut, 0);
+    openingBalance = current - shown;
+  }
+  const activity = toActivityRows(sourceRows, openingBalance);
   const reconStatus = lastRecon?.status === 'completed'
     ? 'Reconciled'
     : lastRecon?.status === 'in_progress'
@@ -117,6 +144,7 @@ export default async function BankAccountDetailPage({
     >
       <div className="space-y-6">
         {sp.error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>}
+        {sp.gl_linked && <Alert tone="success" title="GL account linked.">This bank account now carries ledger cash and can be reconciled.</Alert>}
         {sp.check_settings_saved && <div role="status" className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">Check authorization settings saved.</div>}
         <MetricStrip
           metrics={[
@@ -166,6 +194,18 @@ export default async function BankAccountDetailPage({
               label="GL account"
               value={glAccount ? `${glAccount.number} — ${glAccount.name}` : 'Not linked'}
             />
+            {!glAccount && (
+              <form action={linkBankGlAccount as unknown as (formData: FormData) => Promise<void>} className="sm:col-span-2 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <input type="hidden" name="bank_account_id" value={account.id} />
+                <Field label="Link a GL account" htmlFor="gl_account_id" hint="Needed to track this account's cash and reconcile it." className="flex-1">
+                  <Select id="gl_account_id" name="gl_account_id" required defaultValue="">
+                    <option value="">Choose a cash account</option>
+                    {(cashAccounts ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.number} — {g.name}</option>)}
+                  </Select>
+                </Field>
+                <Button type="submit">Link</Button>
+              </form>
+            )}
             <Detail label="Association" value={account.associations?.name ?? 'Portfolio-wide'} />
             {account.description && (
               <div className="sm:col-span-2">

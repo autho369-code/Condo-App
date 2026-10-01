@@ -19,7 +19,7 @@ export async function associationZone(db: any, assocId: string | null): Promise<
 
 export async function syncMaintenanceCalendarEvent(
   db: any, portfolioId: string, taskId: string, assocId: string | null, vendorId: string | null,
-  title: string, category: string, dueDate: string, endDate: string | null,
+  title: string, category: string, dueDate: string, _recurrenceEndDate: string | null,
   notes: string | null, createdBy: string | null
 ) {
   const eventType = MAINTENANCE_CATEGORY_EVENT_TYPE[category] || 'custom_event';
@@ -27,7 +27,9 @@ export async function syncMaintenanceCalendarEvent(
   // as UTC: 4 AM Central).
   const zone = await associationZone(db, assocId);
   const start = (dueDate ? wallDateTimeToIso(`${dueDate}T09:00`, zone) : null) ?? new Date().toISOString();
-  const end = endDate ? wallDateTimeToIso(`${endDate}T17:00`, zone) : null;
+  // Each occurrence ends the same day at 5 PM. The task's end date is only
+  // the last day the recurrence runs, not this event's end.
+  const end = dueDate ? wallDateTimeToIso(`${dueDate}T17:00`, zone) : null;
   const { error } = await db.from('calendar_events').insert({
     portfolio_id: portfolioId,
     association_id: assocId, vendor_id: vendorId,

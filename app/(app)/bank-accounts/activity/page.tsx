@@ -8,6 +8,8 @@ import { requireStaff } from '@/lib/auth/me';
 import { toActivityRows, type BankActivitySourceRow } from '@/lib/banking/activity';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { journalLineTotals } from '@/lib/finance/totals';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +25,7 @@ export default async function BankActivityPage({
 
   const { data: accounts } = await db
     .from('bank_accounts')
-    .select('id, name, bank_name, gl_account_id')
+    .select('id, name, bank_name, gl_account_id, association_id')
     .is('archived_at', null)
     .order('name');
 
@@ -36,26 +38,38 @@ export default async function BankActivityPage({
     : accountList.find((a) => a.gl_account_id) ?? accountList[0];
 
   let sourceRows: BankActivitySourceRow[] = [];
+  let openingBalance = 0;
 
   if (selectedAccount?.gl_account_id) {
-    let q = db
-      .from('journal_lines')
-      .select(
-        'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)',
-      )
-      .eq('gl_account_id', selectedAccount.gl_account_id)
-      // Drafts are not cash movements (the reports filter posted too).
-      .eq('journal_entries.posted', true);
+    // Every posted line in the period for this bank's association (several
+    // associations' banks can share one cash GL account), paged past the
+    // 1,000-row cap; the totals and running balance cover all of them.
+    const { rows: lines } = await fetchAllRows<any>(() => {
+      let q = db
+        .from('journal_lines')
+        .select(
+          'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)',
+        )
+        .eq('gl_account_id', selectedAccount.gl_account_id)
+        // Drafts are not cash movements (the reports filter posted too).
+        .eq('journal_entries.posted', true);
+      if (selectedAccount.association_id) q = q.eq('association_id', selectedAccount.association_id);
+      if (from) q = q.gte('journal_entries.entry_date', from);
+      if (to) q = q.lte('journal_entries.entry_date', to);
+      return q.order('id');
+    }, { maxRows: 20000 });
 
-    if (from) q = q.gte('journal_entries.entry_date', from);
-    if (to) q = q.lte('journal_entries.entry_date', to);
-
-    // Newest first, so the 500-line window is the most recent activity rather
-    // than an arbitrary slice.
-    const { data: lines } = await q
-      .order('journal_entries(entry_date)', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(500);
+    // Balance before the period, so running balances are real balances.
+    if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) {
+      const [y, m, d] = from.split('-').map(Number);
+      const dayBefore = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+      const totals = await journalLineTotals(db, {
+        glAccountIds: [selectedAccount.gl_account_id],
+        associationIds: selectedAccount.association_id ? [selectedAccount.association_id] : null,
+        to: dayBefore,
+      });
+      openingBalance = totals.reduce((sum, t) => sum + t.debit_total - t.credit_total, 0);
+    }
 
     sourceRows = ((lines ?? []) as any[]).map((line) => {
       const debit = Number(line.debit_amount ?? 0);
@@ -83,7 +97,11 @@ export default async function BankActivityPage({
       [r.payee, r.description, r.reference].some((v) => v?.toLowerCase().includes(needle)),
     );
   }
-  const rows = toActivityRows(sourceRows, 0);
+  // With a search the rows are a subset, so balances are shown from the
+  // opening balance over the matching lines only.
+  const rows = toActivityRows(sourceRows, openingBalance);
+  // The table shows the latest 1,000 lines; totals above cover the whole period.
+  const shownRows = rows.slice(-1000);
 
   return (
     <DataWorkspace
@@ -95,9 +113,7 @@ export default async function BankActivityPage({
           { label: 'Transactions', value: rows.length, sublabel: selectedAccount?.name ?? 'No account selected' },
           { label: 'Cash in', value: money(rows.reduce((sum, row) => sum + row.cashIn, 0)) },
           { label: 'Cash out', value: money(rows.reduce((sum, row) => sum + row.cashOut, 0)) },
-          // Running balance starts from 0 for the shown period, so this is the
-          // period's net movement — not the account's true ending balance.
-          { label: 'Net change (period)', value: money(rows.at(-1)?.runningBalance ?? 0) },
+          { label: 'Net change (period)', value: money(rows.reduce((sum, row) => sum + row.cashIn - row.cashOut, 0)) },
         ]} />
 
         <FilterBar action="/bank-accounts/activity" searchDefault={search} searchPlaceholder="Search payee or memo">
@@ -129,7 +145,7 @@ export default async function BankActivityPage({
           <Table>
             <THead><TR><TH>Date</TH><TH>Payee</TH><TH>Type</TH><TH>Reference</TH><TH className="text-right">Cash in</TH><TH className="text-right">Cash out</TH><TH className="text-right">Balance</TH></TR></THead>
             <tbody>
-              {rows.map((row) => (
+              {shownRows.map((row) => (
                 <TR key={row.id}>
                   <TD>{date(row.date)}</TD>
                   <TD>{row.payee ?? row.description}</TD>

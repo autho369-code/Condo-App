@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   // Get bank account info
   const { data: bankAccount } = await db
     .from('bank_accounts')
-    .select('id, portfolio_id, gl_account_id, name')
+    .select('id, portfolio_id, gl_account_id, name, association_id')
     .eq('id', bankAccountId)
     .single();
 
@@ -49,8 +49,11 @@ export async function POST(request: NextRequest) {
   // Book balance as of the statement date, summed in the database (a list of
   // lines stopped at 1,000 rows, and entries after the statement date were
   // counted too).
+  // Only this bank's association: several associations' banks can share one
+  // cash GL account.
   const { data: balRows, error: balError } = await db.rpc('journal_line_totals', {
     p_gl_account_ids: [bankAccount.gl_account_id],
+    p_association_ids: bankAccount.association_id ? [bankAccount.association_id] : null,
     p_to: statementDate,
   });
   if (balError) return back(`Could not compute the book balance: ${balError.message}`);
@@ -61,13 +64,16 @@ export async function POST(request: NextRequest) {
 
   // Lines to reconcile: every posted line through the statement date that was
   // not already cleared on a completed reconciliation of this account.
-  const { rows: lineRows, truncated, error: linesError } = await fetchAllRows<any>(() => db
-    .from('journal_lines')
-    .select('id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)')
-    .eq('gl_account_id', bankAccount.gl_account_id)
-    .eq('journal_entries.posted', true)
-    .lte('journal_entries.entry_date', statementDate)
-    .order('id'));
+  const { rows: lineRows, truncated, error: linesError } = await fetchAllRows<any>(() => {
+    let q = db
+      .from('journal_lines')
+      .select('id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)')
+      .eq('gl_account_id', bankAccount.gl_account_id)
+      .eq('journal_entries.posted', true)
+      .lte('journal_entries.entry_date', statementDate);
+    if (bankAccount.association_id) q = q.eq('association_id', bankAccount.association_id);
+    return q.order('id');
+  });
   if (linesError) return back(`Could not load ledger lines: ${linesError}`);
   if (truncated) return back('This account has too many unreconciled lines to load at once. Reconcile an earlier statement first.');
   const { rows: clearedRows, error: clearedError } = await fetchAllRows<any>(() => db

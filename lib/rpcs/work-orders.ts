@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { workOrderStaff } from '@/lib/maintenance/staff';
+import { todayInZone } from '@/lib/time/zoned';
 
 async function accessibleWorkOrder(db: any, workOrderId: string) {
   return db
@@ -22,7 +23,7 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
   };
   const patch: Record<string, unknown> = { status: newStatus };
   if (newStatus === 'completed' || newStatus === 'closed') {
-    patch.completed_date = new Date().toISOString().slice(0, 10);
+    patch.completed_date = todayInZone();
   } else if (newStatus === 'cancelled') {
     patch.completed_date = null;
   }
@@ -196,7 +197,7 @@ export async function addLaborEntry(workOrderId: string, formData: FormData) {
   }
   if (!techName) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('Pick a team member or type a name')}`); return; }
   const dateWorked = String(formData.get('date_worked') ?? '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateWorked) || dateWorked > new Date().toISOString().slice(0, 10)) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateWorked) || dateWorked > todayInZone()) {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent('Pick the day the work was done (not a future date)')}`); return;
   }
   const { error } = await (supabase as any).from('work_order_labor_entries').insert({

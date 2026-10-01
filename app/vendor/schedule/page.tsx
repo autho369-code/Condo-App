@@ -4,6 +4,7 @@ import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, Badge, EmptyState } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { CalendarDays, Wrench, AlertTriangle } from 'lucide-react';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export default async function VendorSchedulePage() {
   const me = await requireVendor();
   const supabase = await createClient();
   const db = supabase as any;
-  const todayDate = new Date().toISOString().slice(0, 10);
+  const todayDate = todayInZone();
   const in60 = new Date(Date.now() + 60 * 86400000).toISOString();
 
   const [{ data: wos }, { data: events }, { data: tasks }] = await Promise.all([
@@ -28,6 +29,9 @@ export default async function VendorSchedulePage() {
       .select('id, title, start_datetime, location, operations_status, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
+      // Maintenance tasks are listed from maintenance_tasks below; their
+      // calendar events would show the same visit twice.
+      .is('maintenance_task_id', null)
       // Upcoming, plus past visits still marked scheduled (they're overdue,
       // not finished; they used to vanish from the schedule).
       .or(`start_datetime.gte.${new Date().toISOString()},operations_status.eq.scheduled`)
@@ -58,11 +62,12 @@ export default async function VendorSchedulePage() {
     })),
     ...(events ?? []).map((e: any): Item => ({
       key: `e-${e.id}`,
-      when: (e.start_datetime ?? '').slice(0, 10),
+      // Local calendar day of the visit (the UTC date put evening visits on the next day).
+      when: e.start_datetime ? todayInZone(undefined, new Date(e.start_datetime)) : '',
       title: e.title ?? 'Appointment',
       detail: `${e.associations?.name ?? '—'}${e.location ? ` · ${e.location}` : ''}`,
       kind: 'event',
-      overdue: (e.start_datetime ?? '').slice(0, 10) < todayDate && e.operations_status === 'scheduled',
+      overdue: !!e.start_datetime && todayInZone(undefined, new Date(e.start_datetime)) < todayDate && e.operations_status === 'scheduled',
     })),
     ...(tasks ?? []).map((t: any): Item => ({
       key: `t-${t.id}`,
