@@ -339,6 +339,9 @@ export default async function ChargesPage({
           <Link href="/charges/new">
             <Button><Plus className="h-4 w-4" /> New charge</Button>
           </Link>
+          <Link href="/charges/tasks">
+            <Button variant="secondary">Apply credits · Late fees</Button>
+          </Link>
           <Link href="/reports/ar-aging">
             <Button variant="secondary">AR aging report</Button>
           </Link>
