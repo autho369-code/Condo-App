@@ -1,94 +1,116 @@
-import { createClient } from '@/lib/supabase/server'
-import { requireOwner } from '@/lib/auth/me'
-import { date } from '@/lib/utils'
+import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Key } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { requireOwner } from '@/lib/auth/me'
+import { date } from '@/lib/utils'
+import { Alert, Badge, EmptyState, PageHeader, SectionTitle, Surface } from '@/components/ui/shell'
+import { Field, Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const DAY = /^\d{4}-\d{2}-\d{2}$/
+
+type TenantRow = {
+  id: string
+  unit_id: string
+  unit_number: string | null
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  phone: string | null
+  lease_start: string | null
+  lease_end: string | null
+  status: string | null
+  insurance_expiration: string | null
+}
+
+// Lease dates for a tenant on one of the owner's own units. The RPC re-checks
+// that the tenant's unit is currently owned by the signed-in owner.
+async function updateTenantLease(formData: FormData) {
+  'use server'
+  await requireOwner()
+  const fail = (msg: string): never => redirect(`/portal/lease?error=${encodeURIComponent(msg)}`)
+  const tenantId = String(formData.get('tenant_id') ?? '')
+  const start = String(formData.get('lease_start') ?? '')
+  const end = String(formData.get('lease_end') ?? '')
+  if (!UUID.test(tenantId)) fail('Choose a tenant.')
+  if (!DAY.test(start)) fail('Enter the lease start date.')
+  if (end && !DAY.test(end)) fail('Enter a valid lease end date.')
+  const db = (await createClient()) as any
+  const { error } = await db.rpc('owner_update_tenant_lease', {
+    p_tenant_id: tenantId,
+    p_lease_start: start,
+    p_lease_end: end || null,
+  })
+  if (error) fail(error.message)
+  revalidatePath('/portal/lease')
+  redirect('/portal/lease?saved=1')
+}
+
 export default async function OwnerLeasePage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
   const banner = await searchParams
-  const me = await requireOwner()
-  const supabase = await createClient()
-  const db = supabase as any
-
-  // Check if any occupancy is a rental. Join units for the human-readable unit number.
-  const { data: occs } = await db.from('occupancies').select('id, unit_id, occupancy_type, status, move_in_date, move_out_date, units(unit_number)').eq('owner_id', me.owner_id).limit(5)
-  const rentals = (occs ?? []).filter((o: any) => o.occupancy_type === 'tenant' || o.occupancy_type === 'renter')
-  const hasRental = rentals.length > 0
-
-  async function updateLease(formData: FormData) {
-    'use server'
-    const supabase2 = await createClient()
-    const me2 = await requireOwner()
-    const occId = formData.get('occupancy_id') as string
-    const { error } = await (supabase2 as any).from('occupancies').update({
-      move_in_date: formData.get('start_date') as string,
-      move_out_date: formData.get('end_date') as string || null,
-    }).eq('id', occId).eq('owner_id', me2.owner_id)
-    if (error) redirect('/portal/lease?error=' + encodeURIComponent(error.message))
-    revalidatePath('/portal/lease')
-    redirect('/portal/lease?saved=1')
-  }
+  await requireOwner()
+  const db = (await createClient()) as any
+  const { data, error } = await db.rpc('owner_unit_tenants')
+  const tenants = (data ?? []) as TenantRow[]
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Lease Information</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage tenant and lease details for your unit</p>
-      </div>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader
+        title="Lease Information"
+        description="Tenants renting your unit and their lease dates. Keep these current so the association can reach residents."
+      />
 
-      {banner.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
-      )}
-      {banner.saved === '1' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Lease dates updated.</div>
-      )}
+      {banner.error && <Alert title="Not saved.">{banner.error}</Alert>}
+      {banner.saved === '1' && <Alert tone="success" title="Lease dates updated." />}
+      {error && <Alert title="Could not load your tenants.">{error.message}</Alert>}
 
-      {!hasRental && (occs ?? []).length === 0 ? (
-        <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <Key className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-          <p className="text-sm font-semibold text-gray-900">No rental units found on your account.</p>
-          <p className="mt-1 text-sm text-gray-500">If you are renting your unit, contact management to set up lease tracking.</p>
-        </div>
+      {tenants.length === 0 ? (
+        <Surface padded={false}>
+          <EmptyState
+            icon={Key}
+            title="No tenants on file for your units"
+            description="If you rent out your unit, send management the tenant's name, contact details and lease dates so they can add them."
+            action={<Link href="/portal/messages?compose=1" className="text-sm font-medium text-gray-900 underline underline-offset-4">Message management</Link>}
+          />
+        </Surface>
       ) : (
-        <div className="space-y-4">
-          {rentals.map((r: any) => (
-            <div key={r.id} className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-200/70">
-                  <Key className="h-5 w-5 text-gray-400" />
+        tenants.map((t) => {
+          const name = [t.first_name, t.last_name].filter(Boolean).join(' ') || 'Tenant'
+          return (
+            <Surface key={t.id}>
+              <SectionTitle
+                title={name}
+                description={`Unit ${t.unit_number ?? '—'}`}
+                actions={t.status ? <Badge status={t.status}>{t.status.replace(/_/g, ' ')}</Badge> : undefined}
+              />
+              <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-gray-500">Email</dt><dd className="break-words text-gray-900">{t.email || '—'}</dd></div>
+                <div><dt className="text-gray-500">Phone</dt><dd className="text-gray-900">{t.phone || '—'}</dd></div>
+                <div><dt className="text-gray-500">Lease start</dt><dd className="text-gray-900">{date(t.lease_start)}</dd></div>
+                <div><dt className="text-gray-500">Lease end</dt><dd className="text-gray-900">{t.lease_end ? date(t.lease_end) : 'Month to month'}</dd></div>
+                <div><dt className="text-gray-500">Renter's insurance expires</dt><dd className="text-gray-900">{date(t.insurance_expiration)}</dd></div>
+              </dl>
+              <form action={updateTenantLease} className="mt-5 border-t border-gray-100 pt-5">
+                <input type="hidden" name="tenant_id" value={t.id} />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Lease start" htmlFor={`start-${t.id}`} required>
+                    <Input id={`start-${t.id}`} type="date" name="lease_start" required defaultValue={t.lease_start ?? ''} />
+                  </Field>
+                  <Field label="Lease end" htmlFor={`end-${t.id}`} hint="Leave blank for month to month.">
+                    <Input id={`end-${t.id}`} type="date" name="lease_end" defaultValue={t.lease_end ?? ''} />
+                  </Field>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Unit {r.units?.unit_number ?? '—'}</div>
-                  <div className="text-sm text-gray-500 capitalize">{r.occupancy_type?.replace('_',' ')} — {r.status?.replace('_',' ')}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-500">Move In:</span> <span className="text-gray-900">{r.move_in_date ? date(r.move_in_date) : '—'}</span></div>
-                <div><span className="text-gray-500">Move Out:</span> <span className="text-gray-900">{r.move_out_date ? date(r.move_out_date) : '—'}</span></div>
-              </div>
-              <form action={updateLease} className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                <input type="hidden" name="occupancy_id" value={r.id} />
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease Start</span><input type="date" name="start_date" defaultValue={r.move_in_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
-                  <label className="block"><span className="text-xs font-medium text-gray-600">Lease End</span><input type="date" name="end_date" defaultValue={r.move_out_date?.split('T')[0] ?? ''} className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15" /></label>
-                </div>
-                <button type="submit" className="rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800">Update Lease Dates</button>
+                <Button type="submit" className="mt-4">Update lease dates</Button>
               </form>
-            </div>
-          ))}
-        </div>
+            </Surface>
+          )
+        })
       )}
-
-      {(occs ?? []).filter((o: any) => o.occupancy_type !== 'tenant' && o.occupancy_type !== 'renter').map((o: any) => (
-        <div key={o.id} className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <Key className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-          <p className="text-sm font-semibold text-gray-900">Unit {o.units?.unit_number ?? '—'} is owner-occupied.</p>
-          <p className="mt-1 text-sm text-gray-500">Lease management is only available for rented units.</p>
-        </div>
-      ))}
     </div>
   )
 }
