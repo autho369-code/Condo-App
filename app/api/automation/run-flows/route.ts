@@ -16,7 +16,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
-import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { resolveUnitOwnerId } from '@/lib/notifications/status-change';
 import {
   actionAllowedForTrigger,
@@ -31,17 +30,35 @@ import {
 export const dynamic = 'force-dynamic';
 
 const SUBJECT_CAP = 200;
-// Candidates read per flow before filtering out subjects that already ran.
-const CANDIDATE_CAP = 10000;
 const NO_RETRY_ATTEMPTS = 5;
 const RETRY_COOLDOWN_MS = 10 * 60 * 1000;
+const PAGE_SIZE = 1000;
+// Enough claimable subjects to fill the cap and know it was exceeded.
+const WANT = SUBJECT_CAP + 1;
 
-/** Page a candidate query past PostgREST's 1,000-row cap. */
-async function candidates(build: () => any, label: string): Promise<any[]> {
-  const { rows, error } = await fetchAllRows(build, { maxRows: CANDIDATE_CAP });
-  if (error) throw new Error(`${label} query failed — ${error}`);
-  return rows;
+/**
+ * Page a query past PostgREST's 1,000-row cap. With `keep`, rows that fail
+ * it are skipped and paging stops once `want` rows were kept, so already-
+ * handled subjects never crowd out the rest however many there are.
+ */
+async function candidates(
+  build: () => any,
+  label: string,
+  keep?: (row: any) => boolean,
+  want = Number.POSITIVE_INFINITY,
+): Promise<any[]> {
+  const kept: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`${label} query failed — ${error.message ?? String(error)}`);
+    const page = (data ?? []) as any[];
+    for (const row of page) if (!keep || keep(row)) kept.push(row);
+    if (kept.length >= want || page.length < PAGE_SIZE) return kept;
+  }
 }
+
+type Accept = (subjectType: string, subjectId: string) => boolean;
+
 const DAY_MS = 86400000;
 
 function isoDateDaysAgo(n: number): string {
@@ -149,7 +166,6 @@ async function runFlow(svc: any, flow: any) {
   // Drop subjects that cannot be claimed (already succeeded, out of retries,
   // or in cooldown) BEFORE applying the per-run cap; capping first kept
   // re-reading the same 200 finished subjects and never reached the rest.
-  const matched = await evaluateTrigger(svc, trigger, days, assocIds);
   const priorRuns = await candidates(() => svc
     .from('automation_flow_runs')
     .select('id, subject_type, subject_id, status, attempt_count, last_attempt_at')
@@ -161,8 +177,8 @@ async function runFlow(svc: any, flow: any) {
       || Number(r.attempt_count ?? 0) >= NO_RETRY_ATTEMPTS
       || (r.last_attempt_at && now - new Date(r.last_attempt_at).getTime() < RETRY_COOLDOWN_MS))
     .map((r: any) => `${r.subject_type}:${r.subject_id}`));
-  const claimable = matched.filter((m) => !unclaimable.has(`${m.subjectType}:${m.subjectId}`));
-  result.skippedExisting += matched.length - claimable.length;
+  const accept: Accept = (type, id) => !unclaimable.has(`${type}:${id}`);
+  const claimable = await evaluateTrigger(svc, trigger, days, assocIds, accept);
   const subjects = claimable.slice(0, SUBJECT_CAP);
   result.candidates = subjects.length;
   if (claimable.length > SUBJECT_CAP) {
@@ -260,7 +276,7 @@ async function runFlow(svc: any, flow: any) {
 }
 
 /** Trigger evaluation — every query scopes to the flow's association ids. */
-async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, assocIds: string[]): Promise<Subject[]> {
+async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, assocIds: string[], accept: Accept): Promise<Subject[]> {
   if (trigger === 'charge_overdue') {
     // Resolve the portfolio/association's units first (v_charge_balances has
     // no association column), exactly like /api/billing/assess-late-fees.
@@ -285,8 +301,8 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
         .gt('balance_due', 0)
         .lt('due_date', isoDateDaysAgo(days))
         .order('due_date')
-        .order('charge_id'), 'v_charge_balances'));
-      if (rows.length >= CANDIDATE_CAP) break;
+        .order('charge_id'), 'v_charge_balances', (c) => accept('charge', c.charge_id), WANT - rows.length));
+      if (rows.length >= WANT) break;
     }
     return rows.map((c: any) => ({
       subjectType: 'charge',
@@ -310,7 +326,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       .in('status', ['new', 'assigned', 'scheduled', 'in_progress'])
       .is('archived_at', null)
       .lt('updated_at', isoDaysAgoTs(days))
-      .order('id'), 'work_orders');
+      .order('id'), 'work_orders', (r) => accept('work_order', r.id), WANT);
     return rows.map((w: any) => ({
       subjectType: 'work_order',
       subjectId: w.id,
@@ -331,7 +347,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       .eq('status', 'open')
       .is('archived_at', null)
       .lt('updated_at', isoDaysAgoTs(days))
-      .order('id'), 'violations');
+      .order('id'), 'violations', (r) => accept('violation', r.id), WANT);
     return rows.map((v: any) => ({
       subjectType: 'violation',
       subjectId: v.id,
@@ -354,7 +370,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
       .in('status', ['active', 'expiring_soon'])
       .gte('expiration_date', today)
       .lte('expiration_date', isoDateDaysFromNow(days))
-      .order('id'), 'insurance_policies');
+      .order('id'), 'insurance_policies', (r) => accept('insurance_policy', r.id), WANT);
     return rows.map((p: any) => ({
       subjectType: 'insurance_policy',
       subjectId: p.id,
@@ -375,7 +391,7 @@ async function evaluateTrigger(svc: any, trigger: TriggerType, days: number, ass
     .in('association_id', assocIds)
     .in('status', ['submitted', 'under_review'])
     .lt('created_at', isoDaysAgoTs(days))
-    .order('id'), 'architectural_requests');
+    .order('id'), 'architectural_requests', (r) => accept('architectural_request', r.id), WANT);
   return rows.map((r: any) => ({
     subjectType: 'architectural_request',
     subjectId: r.id,

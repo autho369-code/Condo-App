@@ -30,5 +30,8 @@ describe('automation retry safety', () => {
   it('drops already-handled subjects before applying the per-run cap', () => {
     expect(route).not.toContain('.limit(SUBJECT_CAP)');
     expect(route).toContain('claimable.slice(0, SUBJECT_CAP)');
+    // Paging continues until enough claimable subjects are found (no fixed ceiling).
+    expect(route).toContain('if (kept.length >= want || page.length < PAGE_SIZE) return kept;');
+    expect(route).not.toContain('CANDIDATE_CAP');
   });
 });
