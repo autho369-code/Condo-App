@@ -19,6 +19,7 @@ import {
   expectedStripeLivemode,
   createOffSessionPaymentIntent,
   isIndeterminateStripeError,
+  findPaymentIntentByMetadata,
 } from '@/lib/payments/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -29,21 +30,47 @@ import { assertStripeId } from '@/lib/payments/stripe-invariants';
 export const dynamic = 'force-dynamic';
 
 /** Sum of open balances on a unit's charges of the given classes. */
-async function outstandingByClass(svc: any, unitId: string, classes: string[]): Promise<number> {
-  const { data: open } = await svc
+/**
+ * Open balance on charges due on or before `asOf`, optionally limited to some
+ * charge types. Read errors throw: treating a failed read as "nothing due"
+ * would skip the run and advance the schedule without charging.
+ */
+async function openBalanceDue(svc: any, unitId: string, asOf: string, classes?: string[]): Promise<number> {
+  const { data: open, error } = await svc
     .from('aged_receivables')
-    .select('charge_id, balance_due')
-    .eq('unit_id', unitId);
-  const chargeIds = (open ?? []).map((r: any) => r.charge_id).filter(Boolean);
+    .select('charge_id, balance_due, due_date')
+    .eq('unit_id', unitId)
+    .gt('balance_due', 0)
+    .lte('due_date', asOf);
+  if (error) throw new Error(`open charges could not be read: ${error.message}`);
+  const rows = (open ?? []) as Array<{ charge_id: string; balance_due: number }>;
+  if (!classes) return rows.reduce((s, r) => s + Number(r.balance_due ?? 0), 0);
+  const chargeIds = rows.map((r) => r.charge_id).filter(Boolean);
   if (chargeIds.length === 0) return 0;
-  const { data: charges } = await svc
+  const { data: charges, error: chargesError } = await svc
     .from('charges')
     .select('id, charge_type')
     .in('id', chargeIds);
+  if (chargesError) throw new Error(`charge types could not be read: ${chargesError.message}`);
   const typeById = new Map<string, string>((charges ?? []).map((c: any) => [c.id, String(c.charge_type)]));
-  return (open ?? [])
-    .filter((r: any) => classes.includes(typeById.get(r.charge_id) ?? 'other'))
-    .reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
+  return rows
+    .filter((r) => classes.includes(typeById.get(r.charge_id) ?? 'other'))
+    .reduce((s, r) => s + Number(r.balance_due ?? 0), 0);
+}
+
+/** Unapplied credit on the unit (payments not yet applied to a charge). */
+async function unitCredit(svc: any, unitId: string): Promise<number> {
+  const { data, error } = await svc.from('unit_balances').select('balance').eq('unit_id', unitId).maybeSingle();
+  if (error) throw new Error(`unit balance could not be read: ${error.message}`);
+  const { data: open, error: openError } = await svc
+    .from('aged_receivables')
+    .select('balance_due')
+    .eq('unit_id', unitId)
+    .gt('balance_due', 0);
+  if (openError) throw new Error(`open charges could not be read: ${openError.message}`);
+  const openTotal = (open ?? []).reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
+  // balance = open charges - unapplied credit
+  return Math.max(0, openTotal - Number(data?.balance ?? 0));
 }
 
 async function claimRun(svc: any, mandateId: string, scheduledFor: string) {
@@ -152,19 +179,20 @@ export async function GET(request: NextRequest) {
     try {
       if (m.mode === 'fixed') {
         amountCents = m.fixed_amount_cents ?? 0;
-      } else if (m.mode === 'minimum') {
-        amountCents = m.minimum_amount_cents ?? 0;
       } else if (m.mode === 'recurring_only' || m.mode === 'special_only') {
         const wanted = m.mode === 'recurring_only' ? ['assessment'] : ['special_assessment'];
         const classes = m.include_late_fees ? [...wanted, 'late_fee', 'nsf_fee', 'fine'] : wanted;
-        amountCents = Math.round((await outstandingByClass(svc, m.unit_id, classes)) * 100);
-      } else { // current_balance
-        const { data: bal } = await svc.from('unit_balances').select('balance').eq('unit_id', m.unit_id).maybeSingle();
-        amountCents = Math.round(Math.max(0, Number(bal?.balance ?? 0)) * 100);
-        if (!m.include_late_fees) {
-          const feeBal = await outstandingByClass(svc, m.unit_id, ['late_fee', 'nsf_fee', 'fine']);
-          amountCents -= Math.round(feeBal * 100);
-        }
+        amountCents = Math.round((await openBalanceDue(svc, m.unit_id, today, classes)) * 100);
+      } else {
+        // current_balance / minimum: what is due today (charges dated later
+        // are not owed yet), less any unapplied credit, optionally without
+        // late/NSF/fine charges.
+        let due = await openBalanceDue(svc, m.unit_id, today);
+        if (!m.include_late_fees) due -= await openBalanceDue(svc, m.unit_id, today, ['late_fee', 'nsf_fee', 'fine']);
+        due -= await unitCredit(svc, m.unit_id);
+        const dueCents = Math.max(0, Math.round(due * 100));
+        // Minimum: the owner's minimum, but never more than is due.
+        amountCents = m.mode === 'minimum' ? Math.min(m.minimum_amount_cents ?? 0, dueCents) : dueCents;
       }
     } catch (err: any) {
       summary.failed++;
@@ -223,6 +251,9 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
+    // A pre-existing local intent means an earlier attempt of this run may
+    // already have reached Stripe.
+    const reclaimed = !!intent;
     if (intent) {
       const persistedCents = Math.round(Number(intent.amount) * 100);
       const scopeMatches = intent.portfolio_id === m.portfolio_id
@@ -330,7 +361,38 @@ export async function GET(request: NextRequest) {
 
     let submittedToStripe = false;
     try {
-      const pi = await createOffSessionPaymentIntent({
+      // Stripe replays an idempotency key for only 24 hours, so before
+      // re-submitting a reclaimed run look for the charge the earlier attempt
+      // may have created. If Stripe cannot answer, stop: never risk a double
+      // charge (the run stays retryable with the same key).
+      let existing: { id: string; status: string; amount: number } | null = null;
+      if (reclaimed) {
+        try {
+          existing = await findPaymentIntentByMetadata(m.associations.stripe_account_id, 'autopay_run_id', run.id);
+        } catch (searchErr: any) {
+          await updateRun(svc, run.id, {
+            status: 'intent_created',
+            failure_reason: 'Could not confirm with Stripe whether an earlier attempt charged; retrying later',
+          }).catch(() => undefined);
+          summary.failed++;
+          summary.details.push(`mandate ${m.id}: Stripe lookup for an earlier attempt failed — ${searchErr?.message ?? 'unknown error'}`);
+          continue;
+        }
+        // A declined/canceled earlier attempt is not a charge: retry normally.
+        if (existing && !['succeeded', 'processing', 'requires_capture', 'requires_action'].includes(existing.status)) {
+          existing = null;
+        }
+        if (existing && existing.amount !== amountCents) {
+          await updateRun(svc, run.id, {
+            status: 'failed',
+            failure_reason: `Stripe already has a charge for this run in a different amount (${existing.amount} cents); needs review`,
+          }).catch(() => undefined);
+          summary.failed++;
+          summary.details.push(`mandate ${m.id}: earlier Stripe charge ${existing.id} does not match the run amount`);
+          continue;
+        }
+      }
+      const pi = existing ?? await createOffSessionPaymentIntent({
         amountCents,
         customer: m.payment_methods.processor_customer_id,
         paymentMethod: m.payment_methods.processor_token,
