@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Wrench } from 'lucide-react';
 import type { CalendarEventType } from '@/lib/operations/calendar';
+import { nextRecurringDate } from '@/lib/time/recurrence';
 
 export const dynamic = 'force-dynamic';
 
@@ -159,16 +160,15 @@ async function completeTask(formData: FormData) {'use server';
 
   // Calculate next due date for auto-recurring
   if(task.next_due_date && task.frequency){
-    const d = new Date(task.next_due_date);
-    const freq = task.frequency; const cd = task.custom_interval_days;
-    if(freq==='weekly') d.setDate(d.getDate()+7);
-    else if(freq==='monthly') d.setMonth(d.getMonth()+1);
-    else if(freq==='bimonthly') d.setMonth(d.getMonth()+2);
-    else if(freq==='quarterly') d.setMonth(d.getMonth()+3);
-    else if(freq==='semiannual') d.setMonth(d.getMonth()+6);
-    else if(freq==='annual') d.setFullYear(d.getFullYear()+1);
-    else if(freq==='custom'&&cd) d.setDate(d.getDate()+cd);
-    const nd = d.toISOString().slice(0,10);
+    // Month steps clamp to the month's length (Jan 31 -> Feb 28 -> Mar 31)
+    // instead of overflowing into the next month.
+    const freq = task.frequency; const cd = Number(task.custom_interval_days) || 0;
+    const due = String(task.next_due_date).slice(0, 10);
+    const monthSteps: Record<string, number> = { monthly: 1, bimonthly: 2, quarterly: 3, semiannual: 6, annual: 12 };
+    const nd = (freq === 'weekly' ? nextRecurringDate(due, 'weekly', 1)
+      : freq === 'custom' && cd > 0 ? nextRecurringDate(due, 'daily', cd)
+      : monthSteps[freq] ? nextRecurringDate(due, 'monthly', monthSteps[freq])
+      : null) ?? due;
     const { error: nextError } = await db.from('maintenance_tasks').update({
       last_completed_at: now,
       next_due_date: nd,
