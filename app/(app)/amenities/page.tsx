@@ -17,7 +17,7 @@ type Reservation = {
   reserved_for_name: string | null
   notes: string | null
   association_amenities: { name: string | null } | null
-  associations: { name: string | null } | null
+  associations: { name: string | null; timezone: string | null } | null
   units: { unit_number: string | null } | null
 }
 
@@ -28,12 +28,13 @@ type Amenity = {
   associations: { name: string | null } | null
 }
 
-function fmtRange(startIso: string, endIso: string): string {
+// Server components render in UTC; show the time in the community's own zone.
+function fmtRange(startIso: string, endIso: string, timeZone: string): string {
   const start = new Date(startIso)
   const end = new Date(endIso)
-  const datePart = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-  const t = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-  return `${datePart}, ${t(start)} – ${t(end)}`
+  const datePart = start.toLocaleDateString('en-US', { timeZone, weekday: 'short', month: 'short', day: 'numeric' })
+  const t = (d: Date, zone = false) => d.toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit', ...(zone ? { timeZoneName: 'short' as const } : {}) })
+  return `${datePart}, ${t(start)} – ${t(end, true)}`
 }
 
 // ── Approve / deny a reservation ─────────────────────────────────────────────
@@ -51,12 +52,17 @@ async function setStatus(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
   // RLS (amenity_res_staff_all) scopes this to associations the manager can access.
-  const { error } = await db
+  // Only pending requests can be decided: a reservation the resident
+  // cancelled (or one already decided) must not flip back to approved.
+  const { data: decided, error } = await db
     .from('amenity_reservations')
     .update({ status: next })
     .eq('id', id)
+    .eq('status', 'pending')
+    .select('id')
 
   if (error) { failTo(error.message || 'Could not update the reservation'); return }
+  if (!decided || decided.length === 0) { failTo('That reservation is no longer pending (it may have been cancelled). Refresh to see its current status.'); return }
   revalidatePath('/amenities')
   redirect('/amenities?updated=1')
 }
@@ -74,12 +80,14 @@ async function toggleBookable(formData: FormData) {
 
   const supabase = await createClient()
   const db = supabase as any
-  const { error } = await db
+  const { data: toggled, error } = await db
     .from('association_amenities')
     .update({ allow_reservations: next })
     .eq('id', id)
+    .select('id')
 
   if (error) { failTo(error.message || 'Could not update the amenity'); return }
+  if (!toggled || toggled.length === 0) { failTo('Amenity not found or you do not have access to it.'); return }
   revalidatePath('/amenities')
   redirect('/amenities?updated=1')
 }
@@ -94,12 +102,15 @@ export default async function ManagerAmenitiesPage({
   const supabase = await createClient()
   const db = supabase as any
 
-  // Reservations across the manager's portfolio (RLS-scoped). Newest first.
+  // Reservations across the manager's portfolio (RLS-scoped): everything
+  // pending plus anything not yet over, soonest first. (Ordering all history
+  // oldest-first with a cap let new requests fall off the page.)
   const { data: resRows } = await db
     .from('amenity_reservations')
-    .select('id, status, start_time, end_time, party_size, reserved_for_name, notes, association_amenities(name), associations:association_id(name), units(unit_number)')
+    .select('id, status, start_time, end_time, party_size, reserved_for_name, notes, association_amenities(name), associations:association_id(name, timezone), units(unit_number)')
+    .or(`status.eq.pending,end_time.gte.${new Date().toISOString()}`)
     .order('start_time', { ascending: true })
-    .limit(300)
+    .limit(500)
   const reservations = (resRows ?? []) as Reservation[]
 
   const now = Date.now()
@@ -229,7 +240,7 @@ function ReservationTable({
                 {r.party_size ? <div className="text-[12px] text-gray-400">Party of {r.party_size}</div> : null}
                 {r.notes ? <div className="mt-0.5 max-w-xs text-[12px] text-gray-500">{r.notes}</div> : null}
               </td>
-              <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{fmtRange(r.start_time, r.end_time)}</td>
+              <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{fmtRange(r.start_time, r.end_time, r.associations?.timezone || 'America/Chicago')}</td>
               <td className="px-5 py-3 text-center"><Badge status={r.status} /></td>
               <td className="px-5 py-3 text-right">
                 {mode === 'pending' ? (

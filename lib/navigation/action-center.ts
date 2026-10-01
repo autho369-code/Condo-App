@@ -205,7 +205,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'New recurring work', href: '/recurring-work-orders/new', description: 'Schedule preventive maintenance.' },
         { label: 'New inspection', href: '/inspections/new', description: 'Start a field-ready inspection.' },
         { label: 'New project', href: '/projects/new', description: 'Track scope, budget, and approvals.' },
-        { label: 'New purchase order', href: '/purchase-orders/new', description: 'Authorize vendor work and spend.' },
+        { label: 'New purchase order', href: '/purchase-orders/new', description: 'Authorize vendor work and spend.', access: 'finance' },
         { label: 'New inventory item', href: '/inventory/new', description: 'Track supplies and parts.' },
         { label: 'New fixed asset', href: '/fixed-assets/new', description: 'Track lifecycle and replacement planning.' },
       ]),
@@ -270,7 +270,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Compliance center', href: '/vendors/compliance', description: 'Review insurance and credential gaps.' },
         { label: 'W-9 collection', href: '/vendors/w9', description: 'Track tax documentation.' },
         { label: 'ACH settings', href: '/vendors/ach', description: 'Review vendor payment preferences.', access: 'finance' },
-        { label: 'New purchase order', href: '/purchase-orders/new', description: 'Authorize work and spend.' },
+        { label: 'New purchase order', href: '/purchase-orders/new', description: 'Authorize work and spend.', access: 'finance' },
         { label: 'New bill', href: '/bills/new', description: 'Enter a vendor invoice.', access: 'finance' },
       ]),
       reports('Vendor reporting', [

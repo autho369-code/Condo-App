@@ -35,18 +35,21 @@ const STATUSES: WoStatus[] = ['new', 'assigned', 'scheduled', 'in_progress', 'do
 const PRIORITIES: Priority[] = ['low', 'normal', 'high', 'emergency'];
 
 // ── Helpers ──
+// work_order_status values that mean the job is finished.
+const FINISHED_WO = ['done', 'completed', 'billed', 'closed', 'cancelled'];
+
 function parseTab(value: string | undefined): Tab {
   return (TABS.find((t) => t.key === value)?.key as Tab) ?? 'open';
 }
 
 function tabFilter(tab: Tab): (r: any) => boolean {
   switch (tab) {
-    case 'open':       return (r) => !['completed','closed','cancelled'].includes(r.status);
-    case 'emergency':  return (r) => r.priority === 'emergency' && !['completed','closed','cancelled'].includes(r.status);
+    case 'open':       return (r) => !FINISHED_WO.includes(r.status);
+    case 'emergency':  return (r) => r.priority === 'emergency' && !FINISHED_WO.includes(r.status);
     case 'scheduled':  return (r) => r.status === 'scheduled';
     // Same finished set as the team scoreboard's "nobody on it" count.
     case 'unassigned': return (r) => !r.vendor_id && !r.assignee_id && !['done','completed','billed','closed','cancelled'].includes(r.status);
-    case 'completed':  return (r) => r.status === 'completed' || r.status === 'closed';
+    case 'completed':  return (r) => ['done', 'completed', 'billed', 'closed'].includes(r.status);
     case 'all':        return () => true;
   }
 }
@@ -169,7 +172,7 @@ export default async function WorkOrdersPage({
   if (assignee) filtered = filtered.filter((w: any) => w.assignee_id === assignee);
 
   // ── Metrics ──
-  const openCount = aggregateAll.filter((w: any) => !['completed','closed','cancelled'].includes(w.status)).length;
+  const openCount = aggregateAll.filter((w: any) => !FINISHED_WO.includes(w.status)).length;
   const inProgressCount = aggregateAll.filter((w: any) => w.status === 'in_progress').length;
   const overdueCount = aggregateAll.filter(
     (w: any) => w.scheduled_date && w.scheduled_date < todayDate && !['done','completed','billed','closed','cancelled'].includes(w.status),

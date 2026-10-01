@@ -18,7 +18,10 @@ const IRS_1099_MISC_THRESHOLD = 600;
 const CURRENT_YEAR = new Date().getFullYear();
 
 type Vendor1099Summary = {
+  key: string;
   vendor_id: string;
+  association_id: string | null;
+  association_name: string | null;
   vendor_name: string;
   taxpayer_name: string;
   taxpayer_id: string;
@@ -55,7 +58,8 @@ export default async function Tax1099Page({
   const { data: bills } = await (supabase as any)
     .from('payable_bills')
     .select(`
-      id, amount, credit_applied, paid_at, bill_date, status,
+      id, amount, credit_applied, paid_at, bill_date, status, association_id,
+      association:association_id(name),
       vendor:vendor_id(
         id, name, vendor_type, send_1099, 
         taxpayer_name, vendor_financial_details(taxpayer_id, tax_account_number),
@@ -75,10 +79,15 @@ export default async function Tax1099Page({
     const v = bill.vendor;
     if (!v || typeof v !== 'object' || !v.send_1099) continue;
 
-    const vid = v.id;
+    // Each association is a separate payer: one 1099 per association + vendor,
+    // with the $600 threshold applied per payer (matches the print page).
+    const vid = `${bill.association_id ?? 'none'}:${v.id}`;
     if (!vendorMap.has(vid)) {
       vendorMap.set(vid, {
-        vendor_id: vid,
+        key: vid,
+        vendor_id: v.id,
+        association_id: bill.association_id ?? null,
+        association_name: bill.association?.name ?? null,
         vendor_name: v.name ?? 'Unknown',
         taxpayer_name: v.taxpayer_name ?? v.name ?? 'Unknown',
         taxpayer_id: v.vendor_financial_details?.taxpayer_id ?? '',
@@ -187,7 +196,7 @@ export default async function Tax1099Page({
                 {vendors
                   .filter((v) => v.is_over_threshold)
                   .map((v: Vendor1099Summary) => (
-                    <TR key={v.vendor_id}>
+                    <TR key={v.key}>
                       <TD>
                         <Link
                           href={`/vendors/${v.vendor_id}`}
@@ -195,6 +204,7 @@ export default async function Tax1099Page({
                         >
                           {v.vendor_name}
                         </Link>
+                        {v.association_name && <div className="text-xs text-gray-500">Payer: {v.association_name}</div>}
                       </TD>
                       <TD>{v.taxpayer_name}</TD>
                       <TD className="font-mono text-xs">{maskTIN(v.taxpayer_id)}</TD>
@@ -212,7 +222,7 @@ export default async function Tax1099Page({
                       </TD>
                       <TD className="text-right">
                         <Link
-                          href={`/accounting/1099/print?year=${taxYear}&vendor=${v.vendor_id}`}
+                          href={`/accounting/1099/print?year=${taxYear}&vendor=${v.vendor_id}${v.association_id ? `&association=${v.association_id}` : ''}`}
                         >
                           <Button variant="secondary" size="sm">
                             Print
@@ -249,7 +259,7 @@ export default async function Tax1099Page({
                 {vendors
                   .filter((v) => !v.is_over_threshold)
                   .map((v: Vendor1099Summary) => (
-                    <TR key={v.vendor_id}>
+                    <TR key={v.key}>
                       <TD>
                         <Link
                           href={`/vendors/${v.vendor_id}`}
@@ -257,6 +267,7 @@ export default async function Tax1099Page({
                         >
                           {v.vendor_name}
                         </Link>
+                        {v.association_name && <div className="text-xs text-gray-500">Payer: {v.association_name}</div>}
                       </TD>
                       <TD>{v.taxpayer_name}</TD>
                       <TD className="font-mono text-xs">{maskTIN(v.taxpayer_id)}</TD>

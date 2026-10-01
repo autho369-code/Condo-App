@@ -12,6 +12,9 @@ import {
 } from '@/lib/operations/calendar';
 import { createClient } from '@/lib/supabase/server';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
+import { wallDateTimeToIso } from '@/lib/time/zoned';
+
+const DEFAULT_TIME_ZONE = 'America/Chicago';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -34,6 +37,12 @@ const actionNames = [
   'create_follow_up_task',
 ];
 
+async function associationTimeZone(db: any, associationId: string | null | undefined): Promise<string> {
+  if (!associationId) return DEFAULT_TIME_ZONE;
+  const { data } = await db.from('associations').select('timezone').eq('id', associationId).maybeSingle();
+  return data?.timezone || DEFAULT_TIME_ZONE;
+}
+
 export async function createCalendarEvent(formData: FormData) {
   const me = await requireStaff();
   const supabase = await createClient();
@@ -50,12 +59,19 @@ export async function createCalendarEvent(formData: FormData) {
 
   const eventType = (str(formData, 'event_type') ?? 'custom_event') as CalendarEventType;
   const title = req(formData, 'title');
-  const start = req(formData, 'start_datetime');
-  const end = str(formData, 'end_datetime');
   const location = str(formData, 'location');
   const assocId = str(formData, 'association_id');
+  // datetime-local values carry no zone; the server runs in UTC, so "9:00"
+  // was stored as 9:00 UTC (4–5 AM in the US). Read them in the community's zone.
+  const timeZone = await associationTimeZone(db, assocId);
+  const start = wallDateTimeToIso(req(formData, 'start_datetime'), timeZone);
+  if (!start) { failTo('Enter a valid start date and time.'); return; }
+  const endRaw = str(formData, 'end_datetime');
+  const end = endRaw ? wallDateTimeToIso(endRaw, timeZone) : null;
+  if (endRaw && !end) { failTo('Enter a valid end date and time.'); return; }
+  if (end && end < start) { failTo('The end time must be after the start time.'); return; }
   const scope = str(formData, 'calendar_scope') === 'annual' ? 'annual' : 'daily';
-  const publicNotice = str(formData, 'public_notice_text') ?? defaultPublicNotice(eventType, title, start, location);
+  const publicNotice = str(formData, 'public_notice_text') ?? defaultPublicNotice(eventType, title, start, location, timeZone);
   const reminderActions = actionNames.filter((action) => formData.get(action) === 'on');
   const recipientGroups = [
     formData.get('recipient_management') === 'on' ? 'management_office' : null,
@@ -67,7 +83,11 @@ export async function createCalendarEvent(formData: FormData) {
   const selectedReminderMinutes = (formData.getAll('reminder_minutes') as string[])
     .map((value) => parseInt(value, 10))
     .filter((value) => Number.isFinite(value) && value >= 0);
-  const reminderMinutes = selectedReminderMinutes.length ? selectedReminderMinutes : DEFAULT_REMINDERS[eventType] ?? [];
+  // Defaults apply only when the form did not offer reminder choices; if the
+  // user unticked every box they asked for no reminders.
+  const reminderMinutes = formData.get('reminders_submitted') === '1'
+    ? selectedReminderMinutes
+    : selectedReminderMinutes.length ? selectedReminderMinutes : DEFAULT_REMINDERS[eventType] ?? [];
   const reminderRules = reminderMinutes.map((minutes) => ({ minutes_before: minutes, actions: reminderActions }));
 
   const { data: event, error } = await db.from('calendar_events').insert({
@@ -149,7 +169,7 @@ export async function createCalendarEvent(formData: FormData) {
       status: 'draft',
       recipient_group: 'vendor',
       subject: `Please confirm: ${title}`,
-      body: defaultVendorConfirmation(eventType, title, start, location),
+      body: defaultVendorConfirmation(eventType, title, start, location, timeZone),
       created_by: me.auth_user_id,
     });
   }
@@ -198,15 +218,24 @@ export async function updateCalendarEventDates(
   await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
-  const { error } = await db.from('calendar_events')
+  const { data: existing } = await db.from('calendar_events').select('id, association_id').eq('id', eventId).maybeSingle();
+  if (!existing) return { error: 'Event not found or you do not have access to it.' };
+  // All-day drops arrive as bare dates; anchor them to the community's midnight.
+  const timeZone = await associationTimeZone(db, existing.association_id);
+  const startIso = wallDateTimeToIso(start, timeZone);
+  if (!startIso) return { error: 'Invalid start date.' };
+  const endIso = end ? wallDateTimeToIso(end, timeZone) : null;
+  const { data: moved, error } = await db.from('calendar_events')
     .update({
-      start_datetime: start,
-      end_datetime: end,
+      start_datetime: startIso,
+      end_datetime: endIso,
       all_day: allDay,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', eventId);
+    .eq('id', eventId)
+    .select('id');
   if (error) return { error: error.message };
+  if (!moved || moved.length === 0) return { error: 'Event not found or you do not have access to it.' };
   revalidatePath('/calendar');
 }
 
@@ -276,8 +305,12 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
     body,
     created_by: me.auth_user_id,
   }));
-  const { error: commErr } = await db.from('communication_messages').insert(commRows);
+  const { data: insertedMessages, error: commErr } = await db.from('communication_messages').insert(commRows).select('id, recipient_email');
   if (commErr) return { error: commErr.message };
+  // Link each queue row to its message so delivery updates its status.
+  const messageIdByEmail = new Map<string, string>(
+    (insertedMessages ?? []).map((m: { id: string; recipient_email: string }) => [String(m.recipient_email).toLowerCase(), m.id]),
+  );
 
   const queueRows = recipients.map((r: any) => emailQueueRow({
     to: r.email,
@@ -286,6 +319,7 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
     html,
     portfolioId: me.portfolio?.id,
     associationId,
+    communicationMessageId: messageIdByEmail.get(String(r.email).toLowerCase()) ?? null,
     fromName,
     sentBy: me.auth_user_id,
   }));

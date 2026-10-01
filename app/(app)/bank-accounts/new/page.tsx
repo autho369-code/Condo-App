@@ -54,7 +54,6 @@ export default async function NewBankAccountPage({
                 <option value="checking">Checking</option>
                 <option value="savings">Savings</option>
                 <option value="money_market">Money Market</option>
-                <option value="trust">Trust</option>
               </Select>
             </Field>
           </div>

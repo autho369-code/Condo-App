@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
     category: tpl.category ?? 'other',
     priority: tpl.priority ?? 'normal',
     trade: tpl.trade,
-    status: 'new',
+    // Without a date the job never shows as Scheduled or Overdue; with a
+    // vendor on the plan it is already assigned.
+    scheduled_date: tpl.next_due_date ?? new Date().toISOString().slice(0, 10),
+    status: tpl.vendor_id ? 'assigned' : 'new',
     created_by: me.auth_user_id,
   });
   if (insErr) return back('?error=' + encodeURIComponent(insErr.message));

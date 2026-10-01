@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/me';
+import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Badge } from '@/components/ui/shell';
@@ -9,7 +9,7 @@ import { LedgerActions, type LedgerChargeRow, type LedgerPaymentRow } from '@/co
 export const dynamic = 'force-dynamic';
 
 export default async function LedgerPage() {
-  const me = await requireAuth();
+  const me = await requireOwner();
   const supabase = await createClient();
 
   // Filter to the owner's own units explicitly: RLS also admits board members

@@ -87,7 +87,7 @@ export default async function OnboardPage({
     { key: '2', label: 'Add buildings + units',      done: (unitCount ?? 0) > 0 },
     { key: '3', label: 'Import owners',          done: (ownerCount ?? 0) > 0 },
     { key: '4', label: 'Upload operating documents',  done: operatingDocsDone },
-    { key: '5', label: 'Invite your team',           done: (staffCount ?? 0) > 1 },
+    { key: '5', label: 'Invite your team',           done: (staffCount ?? 0) >= 1 },
     { key: '6', label: 'Set up payment instructions + finish', done: false },
   ];
   const progress = Math.round(steps.filter((s) => s.done).length / steps.length * 100);

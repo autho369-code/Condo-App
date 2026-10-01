@@ -18,7 +18,11 @@ async function saveReminderSettings(formData: FormData) {
     portfolio_id: me.portfolio?.id,
     alert_type: t.key,
     enabled: formData.get(`enabled_${t.key}`) === 'on',
-    lead_days: Math.max(0, parseInt(formData.get(`lead_${t.key}`) as string, 10) || t.defaultLeadDays),
+    // 0 is a valid lead time ("on the day"); only a blank/invalid entry falls back.
+    lead_days: (() => {
+      const n = parseInt(formData.get(`lead_${t.key}`) as string, 10);
+      return Number.isNaN(n) ? t.defaultLeadDays : Math.max(0, n);
+    })(),
     updated_at: new Date().toISOString(),
   }));
   const { error } = await (supabase as any).from('reminder_settings').upsert(rows, { onConflict: 'portfolio_id,alert_type' });

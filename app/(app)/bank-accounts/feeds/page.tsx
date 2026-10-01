@@ -1,3 +1,4 @@
+import { sanitizeSearchTerm } from '@/lib/search/global';
 // Bank Feed page — imported transactions with auto-match review
 // /bank-accounts/feeds
 
@@ -55,7 +56,10 @@ export default async function BankFeedsPage({
   if (filter === 'unmatched') query = query.is('gl_account_id', null);
   if (filter === 'pending') query = query.eq('pending', true);
   if (bank_account_id) query = query.eq('bank_account_id', bank_account_id);
-  if (q) query = query.or(`name.ilike.%${q}%,merchant_name.ilike.%${q}%`);
+  // Strip characters that are syntax in a PostgREST or() filter, so a search
+  // like "Smith, Inc" works and cannot add filter terms.
+  const safeQ = sanitizeSearchTerm(q);
+  if (safeQ) query = query.or(`name.ilike.%${safeQ}%,merchant_name.ilike.%${safeQ}%`);
 
   const { data: transactions } = await query;
   const txns = transactions || [];

@@ -253,6 +253,9 @@ function ProgressCard({
 function ReportSection({ title, income = false, rows, months }: { title: string; income?: boolean; rows: any[]; months: string[] }) {
   const MONTHS = months;
   const barCls = income ? 'bg-emerald-500/40' : 'bg-amber-500/40';
+  // variance = actual − budget. Over budget is good for income, bad for expenses.
+  const favorable = (variance: number) => (income ? variance >= 0 : variance <= 0);
+  const tone = (variance: number) => (favorable(variance) ? 'text-emerald-700' : 'text-red-700');
 
   return (
     <>
@@ -276,19 +279,19 @@ function ReportSection({ title, income = false, rows, months }: { title: string;
               </div>
               <div className="text-right">
                 <div className="text-xs text-gray-500">Actual</div>
-                <div className={`font-medium ${row.annual_actual >= row.annual_budget ? 'text-emerald-700' : 'text-red-700'}`}>
+                <div className={`font-medium ${tone(row.annual_actual - row.annual_budget)}`}>
                   {money(row.annual_actual)}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-gray-500">Variance</div>
-                <div className={`font-medium ${row.annual_variance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                <div className={`font-medium ${tone(row.annual_variance)}`}>
                   {money(row.annual_variance)}
                 </div>
               </div>
               <div className="w-16 text-right">
                 <div className="text-xs text-gray-500">%</div>
-                <div className={`font-medium ${row.annual_variance_pct >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                <div className={`font-medium ${tone(row.annual_variance_pct)}`}>
                   {row.annual_variance_pct}%
                 </div>
               </div>

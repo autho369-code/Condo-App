@@ -74,8 +74,10 @@ export function reminderLabel(minutes: number) {
   return `${Math.round(minutes / 1440)} days before`;
 }
 
-export function defaultPublicNotice(eventType: string, title: string, starts: string, location?: string | null) {
+export function defaultPublicNotice(eventType: string, title: string, starts: string, location?: string | null, timeZone?: string) {
   const when = starts ? new Date(starts).toLocaleString('en-US', {
+    timeZone,
+    timeZoneName: timeZone ? 'short' : undefined,
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -101,8 +103,10 @@ export function defaultPublicNotice(eventType: string, title: string, starts: st
   }
 }
 
-export function defaultVendorConfirmation(eventType: string, title: string, starts: string, location?: string | null) {
+export function defaultVendorConfirmation(eventType: string, title: string, starts: string, location?: string | null, timeZone?: string) {
   const when = starts ? new Date(starts).toLocaleString('en-US', {
+    timeZone,
+    timeZoneName: timeZone ? 'short' : undefined,
     weekday: 'long',
     month: 'long',
     day: 'numeric',

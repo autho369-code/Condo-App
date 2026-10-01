@@ -40,10 +40,11 @@ async function addBoardComment(formData: FormData) {
   const supabase = await createClient()
   const violationId = formData.get('violation_id') as string
   const comment = formData.get('comment') as string
-  if (!violationId || !comment?.trim()) return
+  if (!violationId) redirect('/board/violations')
+  if (!comment?.trim()) redirect(`/board/violations/${violationId}?error=${encodeURIComponent('Write a comment before posting.')}`)
 
   const { data: { user } } = await (supabase as any).auth.getUser()
-  if (!user) return
+  if (!user) redirect('/login')
 
   const { data: profile } = await (supabase as any)
     .from('profiles')

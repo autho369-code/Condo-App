@@ -100,7 +100,9 @@ const ALLOCATION_CLASSES = [
 
 async function saveAllocationOrder(formData: FormData) {
   'use server';
-  const { requireStaff: req } = await import('@/lib/auth/me');
+  // Allocation order decides which charges a payment pays off first — a
+  // finance decision, like the Stripe settings on this page.
+  const { requireFinanceOrPortfolioAdmin: req } = await import('@/lib/auth/me');
   await req();
   const associationId = formData.get('association_id') as string;
   const slug = (formData.get('slug') as string) || associationId;
@@ -119,11 +121,13 @@ async function saveAllocationOrder(formData: FormData) {
 
   const { createClient: cc } = await import('@/lib/supabase/server');
   const supabase = await cc();
-  const { error } = await (supabase as any)
+  const { data: saved, error } = await (supabase as any)
     .from('associations')
     .update({ payment_allocation_order: unique })
-    .eq('id', associationId);
+    .eq('id', associationId)
+    .select('id');
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (!saved || saved.length === 0) redirect(`${back}?error=${encodeURIComponent('Association not found or you do not have access to change it.')}`);
   redirect(`${back}?allocation_saved=1`);
 }
 
@@ -348,7 +352,9 @@ export default async function AssociationPaymentsTab({
               );
             })}
             <div className="pt-2">
-              <Button type="submit">Save allocation order</Button>
+              {canManageStripe
+                ? <Button type="submit">Save allocation order</Button>
+                : <p className="text-[12px] text-gray-500">Only finance staff or company admins can change the allocation order.</p>}
             </div>
           </form>
         </div>

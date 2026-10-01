@@ -14,7 +14,7 @@ import { OfflineInspectionCapture } from './offline-inspection-capture';
 
 export const dynamic = 'force-dynamic';
 
-function bounce(id: string, key: 'error' | 'saved', message: string) {
+function bounce(id: string, key: 'error' | 'saved', message: string): never {
   redirect(`/inspections/${id}?${key}=${encodeURIComponent(message)}`);
 }
 
@@ -54,12 +54,16 @@ export default async function InspectionDetailPage({
     const supabase = await createClient();
     const inspectionId = String(formData.get('inspection_id') ?? '');
     const status = String(formData.get('status') ?? 'scheduled');
-    const { error } = await (supabase as any).from('inspections').update({
-      status,
-      completed_date: status === 'completed' ? new Date().toISOString().slice(0, 10) : null,
-      notes: String(formData.get('notes') ?? '').trim() || null,
-    }).eq('id', inspectionId);
+    const { data: current } = await (supabase as any).from('inspections').select('status, completed_date').eq('id', inspectionId).maybeSingle();
+    if (!current) bounce(inspectionId, 'error', 'Inspection not found or you do not have access to it.');
+    const patch: Record<string, unknown> = { status, notes: String(formData.get('notes') ?? '').trim() || null };
+    // Stamp the completion date only when the inspection becomes completed;
+    // re-saving notes must not move the real completion date.
+    if (status === 'completed' && current.status !== 'completed') patch.completed_date = new Date().toISOString().slice(0, 10);
+    if (status !== 'completed') patch.completed_date = null;
+    const { data: updated, error } = await (supabase as any).from('inspections').update(patch).eq('id', inspectionId).select('id');
     if (error) bounce(inspectionId, 'error', error.message);
+    if (!updated || updated.length === 0) bounce(inspectionId, 'error', 'Inspection not found or you do not have access to it.');
     revalidatePath(`/inspections/${inspectionId}`);
     bounce(inspectionId, 'saved', 'Inspection status updated.');
   }
@@ -91,12 +95,13 @@ export default async function InspectionDetailPage({
     const inspectionId = String(formData.get('inspection_id') ?? '');
     const findingId = String(formData.get('finding_id') ?? '');
     const resolved = formData.get('resolved') === 'true';
-    const { error } = await (supabase as any).from('inspection_items').update({
+    const { data: resolvedRows, error } = await (supabase as any).from('inspection_items').update({
       resolved,
       resolved_at: resolved ? new Date().toISOString() : null,
       resolution_notes: String(formData.get('resolution_notes') ?? '').trim() || null,
-    }).eq('id', findingId).eq('inspection_id', inspectionId);
+    }).eq('id', findingId).eq('inspection_id', inspectionId).select('id');
     if (error) bounce(inspectionId, 'error', error.message);
+    if (!resolvedRows || resolvedRows.length === 0) bounce(inspectionId, 'error', 'Finding not found or you do not have access to it.');
     revalidatePath(`/inspections/${inspectionId}`);
     redirect(`/inspections/${inspectionId}`);
   }

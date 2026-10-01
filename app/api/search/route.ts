@@ -24,6 +24,6 @@ export async function GET(request: NextRequest) {
 
   const q = request.nextUrl.searchParams.get('q') ?? '';
   const supabase = await createClient();
-  const results = await searchEverything(supabase as any, q, { finance: me.is_finance_staff || me.is_platform_operator });
+  const results = await searchEverything(supabase as any, q, { finance: me.is_finance_staff || me.is_platform_operator, staff: me.is_staff || me.is_platform_operator });
   return NextResponse.json({ results }, { headers: { 'Cache-Control': 'no-store' } });
 }

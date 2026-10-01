@@ -264,11 +264,12 @@ export async function createBuilding(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
-  const failTo = (msg: string) => {
-    redirect(`/buildings/new?error=${encodeURIComponent(msg)}`);
-  };
-
   const associationId = req(formData, 'association_id');
+  // /buildings/new bounces to /associations without ?association=, which
+  // swallowed every error message.
+  const failTo = (msg: string) => {
+    redirect(`/buildings/new?association=${encodeURIComponent(associationId)}&error=${encodeURIComponent(msg)}`);
+  };
 
   // Parse amenities as comma-separated → jsonb array
   const amenitiesCsv = str(formData, 'amenities');
@@ -325,6 +326,13 @@ export async function createBuilding(formData: FormData) {
 
   const { data: b, error } = await (supabase as any).from('buildings').insert(payload).select('id').single();
   if (error || !b) { failTo(error?.message ?? 'Failed to create building'); return; }
+
+  // The form offers a property group; it lives on the association.
+  const propertyGroupId = str(formData, 'property_group_id');
+  if (propertyGroupId) {
+    const { error: groupErr } = await (supabase as any).from('associations').update({ property_group_id: propertyGroupId }).eq('id', associationId);
+    if (groupErr) redirect(`/associations/${associationId}?error=${encodeURIComponent(`Building created, but the property group was not saved: ${groupErr.message}`)}`);
+  }
 
   revalidatePath(`/associations/${associationId}`);
   revalidatePath('/buildings');
@@ -780,8 +788,13 @@ export async function revokeVendorAch(formData: FormData): Promise<void> {
  * Fields match the AppFolio form exactly.
  */
 export async function updateBulkStatementSettings(formData: FormData) {
-  await requirePortfolioAdmin();
+  const me = await requirePortfolioAdmin();
   const supabase = await createClient();
+  // Platform operators pass requirePortfolioAdmin and can_access_portfolio()
+  // is true for every company, so RLS alone would let one submit rewrite all
+  // tenants' associations. Always pin the update to the caller's portfolio.
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) redirect(`/bulk-statement-settings/new?error=${encodeURIComponent('No company selected for your account.')}`);
 
   const failTo = (msg: string) => {
     redirect(`/bulk-statement-settings/new?error=${encodeURIComponent(msg)}`);
@@ -806,7 +819,7 @@ export async function updateBulkStatementSettings(formData: FormData) {
     include_payment_coupon_on_statement:          formData.get('include_payment_coupon_on_statement') === 'on',
   };
 
-  let query = (supabase as any).from('associations').update(patch).is('archived_at', null);
+  let query = (supabase as any).from('associations').update(patch).eq('portfolio_id', portfolioId).is('archived_at', null);
   if (associationIds.length > 0) query = query.in('id', associationIds);
 
   const { error, count } = await (query as any).select('id', { count: 'exact' });

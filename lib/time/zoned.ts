@@ -33,3 +33,22 @@ function offsetMs(utcMs: number, timeZone: string): number {
   const local = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
   return local - Math.floor(utcMs / 1000) * 1000;
 }
+
+/**
+ * Normalize a form/calendar date-time to an ISO instant.
+ * - Values with an explicit offset or Z are kept as that instant.
+ * - `YYYY-MM-DDTHH:MM[:SS]` (a datetime-local input) is read in `timeZone`.
+ * - `YYYY-MM-DD` (an all-day date) becomes local midnight in `timeZone`.
+ * Returns null for anything else.
+ */
+export function wallDateTimeToIso(value: string | null | undefined, timeZone: string): string | null {
+  const v = (value ?? '').trim();
+  if (!v) return null;
+  if (/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(v) && v.includes('T')) {
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?)?$/.exec(v);
+  if (!m) return null;
+  return zonedWallTimeToUtc(m[1], m[2] ?? '00:00', timeZone)?.toISOString() ?? null;
+}

@@ -184,7 +184,7 @@ export default async function CompanyAdminManagersPage({
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/company-admin/managers/${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="View Profile"><Eye className="h-4 w-4" /></Link>
-                      <Link href="/settings?tab=managers" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="Reset Password"><KeyRound className="h-4 w-4" /></Link>
+                      <Link href={`/settings#staff-${row.id}`} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-950" title="Reset Password"><KeyRound className="h-4 w-4" /></Link>
                     </div>
                   </td>
                 </tr>

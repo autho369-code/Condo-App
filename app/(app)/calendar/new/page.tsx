@@ -161,6 +161,8 @@ export default async function NewCalendarEventPage({
           <section className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <h2 className="text-sm font-semibold text-gray-900">Default reminders</h2>
             <div className="mt-3 space-y-2">
+              {/* Tells the action the reminder choices were shown, so unticking them all means "none". */}
+              {reminders.length > 0 && <input type="hidden" name="reminders_submitted" value="1" />}
               {reminders.length ? reminders.map((minutes) => (
                 <label key={minutes} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm">
                   <input type="checkbox" name="reminder_minutes" value={minutes} defaultChecked />

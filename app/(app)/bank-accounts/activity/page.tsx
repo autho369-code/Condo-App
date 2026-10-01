@@ -41,14 +41,21 @@ export default async function BankActivityPage({
     let q = db
       .from('journal_lines')
       .select(
-        'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description)',
+        'id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)',
       )
-      .eq('gl_account_id', selectedAccount.gl_account_id);
+      .eq('gl_account_id', selectedAccount.gl_account_id)
+      // Drafts are not cash movements (the reports filter posted too).
+      .eq('journal_entries.posted', true);
 
     if (from) q = q.gte('journal_entries.entry_date', from);
     if (to) q = q.lte('journal_entries.entry_date', to);
 
-    const { data: lines } = await q.limit(500);
+    // Newest first, so the 500-line window is the most recent activity rather
+    // than an arbitrary slice.
+    const { data: lines } = await q
+      .order('journal_entries(entry_date)', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     sourceRows = ((lines ?? []) as any[]).map((line) => {
       const debit = Number(line.debit_amount ?? 0);

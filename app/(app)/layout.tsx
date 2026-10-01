@@ -26,22 +26,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // managers must not see the link — it would silently bounce to /dashboard.
   const adminAccess = hasPortfolioAdminAccess(me);
   const financeAccess = me.is_finance_staff || me.is_platform_operator;
-  const financeOnlyNavigation = new Set(['/bills', '/bills/check-run']);
   const isCompanyAdminOnly = me.is_company_admin && !me.is_staff && !me.is_platform_operator;
+  // Pages with a guard narrower than "staff". Hiding them keeps people from
+  // clicking a link that silently bounces them to their home page.
+  const NAV_ACCESS: Record<string, 'finance' | 'finance_or_admin' | 'admin'> = {
+    '/bills': 'finance', '/bills/check-run': 'finance', '/bills/recurring': 'finance',
+    '/receipts': 'finance', '/receipts/other': 'finance',
+    '/accounting/loans': 'finance', '/accounting/management-fees': 'finance',
+    '/bank-accounts/lockbox': 'finance', '/purchase-orders': 'finance',
+    '/accounting-periods': 'finance_or_admin', '/accounting/year-end': 'finance_or_admin',
+    '/vendors/ach': 'finance_or_admin',
+    '/settings': 'admin', '/settings/ai': 'admin', '/settings/branding': 'admin', '/settings/developer': 'admin',
+  };
+  const canSee = (href: string) => {
+    const access = NAV_ACCESS[href.split('?')[0]];
+    if (!access) return true;
+    if (access === 'finance') return financeAccess;
+    if (access === 'finance_or_admin') return financeAccess || adminAccess;
+    return adminAccess;
+  };
   const baseModules = isCompanyAdminOnly ? companyAdminModules : appModules;
   const modules = baseModules
-    .filter((module) => adminAccess || module.href !== '/settings')
-    .map((module) => (
-      module.href === '/accounting'
-        ? {
-            ...module,
-            children: module.children?.filter((child) => (
-              (financeAccess || !financeOnlyNavigation.has(child.href))
-              && (financeAccess || adminAccess || child.href !== '/accounting-periods')
-            )),
-          }
-        : module
-    ));
+    .filter((module) => canSee(module.href))
+    .map((module) => (module.children ? { ...module, children: module.children.filter((child) => canSee(child.href)) } : module));
   // Command palette (Ctrl/Cmd+K): every visible nav destination plus common
   // create actions. Record search is served by /api/search under RLS.
   const pages: PaletteLink[] = modules.flatMap((module) => [
@@ -50,7 +57,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .filter((child) => child.href !== module.href)
       .map((child) => ({ label: child.label, href: child.href, section: module.label })),
   ]);
-  const paletteActions: PaletteLink[] = [
+  const allPaletteActions: PaletteLink[] = [
     { label: 'New work order', href: '/work-orders/new', section: 'Maintenance' },
     { label: 'New violation', href: '/violations/new', section: 'Compliance' },
     { label: 'Post owner charge', href: '/charges/new', section: 'Receivables' },
@@ -63,6 +70,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { label: 'New letter', href: '/letters/new', section: 'Communication' },
     ...(financeAccess ? [{ label: 'New journal entry', href: '/journal-entries/new', section: 'Accounting' }] : []),
   ];
+  // Company admins (not managers) can only open these create pages; the rest
+  // are requireStaff and would bounce them to /company-admin/overview.
+  const COMPANY_ADMIN_ACTIONS = new Set(['/meetings/new', '/letters/new']);
+  const paletteActions = isCompanyAdminOnly
+    ? allPaletteActions.filter((action) => COMPANY_ADMIN_ACTIONS.has(action.href))
+    : allPaletteActions;
   const actionCenterProps = {
     isStaff: me.is_staff || me.is_platform_operator,
     isFinanceStaff: financeAccess,
@@ -71,7 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar portfolioName={displayName} logoUrl={logoUrl} brandColor={brandColor} userEmail={me.email ?? undefined} modules={modules} />
+      <Sidebar portfolioName={displayName} logoUrl={logoUrl} brandColor={brandColor} userEmail={me.email ?? undefined} modules={modules} showRecordSearch />
       <main className="h-screen min-w-0 flex-1 overflow-y-auto pt-12 lg:pt-0">
         {children}
       </main>
