@@ -134,10 +134,11 @@ async function removeStaffMember(formData: FormData) {
   // RLS scopes the caller's client; the SECURITY DEFINER RPC re-validates the
   // caller's authority over the target profile in Postgres.
   const supabase = await (await import('@/lib/supabase/server')).createClient();
-  await (supabase as any).rpc('remove_staff_member', {
+  const { error } = await (supabase as any).rpc('remove_staff_member', {
     p_profile_id: formData.get('profile_id') as string,
     p_reason: 'Removed by admin',
   });
+  if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
   revalidatePath('/settings');
 }
 

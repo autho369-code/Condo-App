@@ -100,7 +100,7 @@ export default async function ViolationsPage({
     .is('archived_at', null);
   if (filters.status === 'overdue') {
     violationsQuery = violationsQuery
-      .lt('cure_deadline', todayDate)
+      .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
       .not('status', 'in', '("cured","closed")');
   }
   violationsQuery = violationsQuery

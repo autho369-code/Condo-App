@@ -63,13 +63,16 @@ export async function POST(req: NextRequest) {
 
   const base = tpl.next_due_date ? new Date(tpl.next_due_date) : new Date();
   const next = advance(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1);
-  await db
+  const { error: advanceErr } = await db
     .from('recurring_work_orders')
     .update({
       last_generated_at: new Date().toISOString(),
       next_due_date: next.toISOString().slice(0, 10),
     })
     .eq('id', id);
+  if (advanceErr) {
+    return back('?error=' + encodeURIComponent(`Work order created, but the next due date was not advanced: ${advanceErr.message}`));
+  }
 
   return back('?generated=1');
 }

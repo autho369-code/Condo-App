@@ -554,6 +554,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         </Section>
 
         {/* ── Owner Statements ── */}
+        <div id="statements" className="scroll-mt-4" />
         <Section
           title="Owner Statements"
           right={<span className="text-xs text-gray-500">{currentYear} YTD</span>}

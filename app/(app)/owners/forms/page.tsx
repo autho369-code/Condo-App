@@ -87,6 +87,41 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     if (error) {
       redirect(`/owners/forms?error=${encodeURIComponent(error.message)}`);
     }
+
+    // The request row alone reached nobody (owners have no portal view of
+    // document_requests), so actually email the owner when email is chosen.
+    if (delivery === 'email') {
+      const { data: recipient } = await (supabase as any)
+        .from('owners').select('full_name, email').eq('id', ownerId).maybeSingle();
+      if (!recipient?.email) {
+        redirect(`/owners/forms?error=${encodeURIComponent('The request was recorded, but this owner has no email on file, so nothing was sent. Add an email or choose another delivery method.')}`);
+      }
+      const { queueEmails } = await import('@/lib/email/queue');
+      const company = me.portfolio?.company_name ?? 'Your management office';
+      const queued = await queueEmails(supabase, [{
+        to: recipient.email,
+        toName: recipient.full_name,
+        subject,
+        text: [
+          `Hello ${recipient.full_name},`,
+          '',
+          ...(message ? [message, ''] : []),
+          ...(dueDate ? [`Please return this by ${dueDate}.`, ''] : []),
+          `Reply to this email with the completed form or document, or contact ${company} with any questions.`,
+          '',
+          company,
+        ].join('\n'),
+        portfolioId: me.portfolio?.id,
+        fromName: company,
+        replyTo: me.portfolio?.support_email ?? me.portfolio?.brand_email ?? null,
+        sentBy: me.auth_user_id,
+        ownerId,
+      }]);
+      if (queued.error) {
+        redirect(`/owners/forms?error=${encodeURIComponent(`The request was recorded but the email could not be queued: ${queued.error}`)}`);
+      }
+      redirect('/owners/forms?sent=email');
+    }
     redirect('/owners/forms?sent=1');
   }
 
@@ -98,7 +133,8 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
     >
       <div className="max-w-4xl space-y-4">
         {sp.error && <Alert tone="danger" title="Could not stage the form:">{sp.error}</Alert>}
-        {sp.sent === '1' && <Alert tone="success" title="Form request sent">The document request was created for the owner.</Alert>}
+        {sp.sent === 'email' && <Alert tone="success" title="Form request emailed.">The owner has been emailed and the request is tracked on their record.</Alert>}
+        {sp.sent === '1' && <Alert tone="success" title="Form request recorded.">Deliver it by the method you chose; it is tracked on the owner&apos;s record.</Alert>}
         <Surface>
           <form action={handleSubmit as any} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">

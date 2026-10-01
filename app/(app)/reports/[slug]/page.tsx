@@ -54,7 +54,11 @@ export default async function ReportView({
   const { slug } = await params;
   // Preserve the legacy public alias while resolving the canonical catalog row.
   // Without this mapping the route was listed as live in code but returned 404.
-  const catalogSlug = slug === 'homeowner_vehicle_info' ? 'owner_vehicle_info' : slug;
+  const REPORT_ALIASES: Record<string, string> = {
+    homeowner_vehicle_info: 'owner_vehicle_info',
+    homeowner_ledger: 'owner_ledger', // homeowner_ledger is inactive; owner_ledger is the live row
+  };
+  const catalogSlug = REPORT_ALIASES[slug] ?? slug;
   const sp = await searchParams;
   const supabase = await createClient();
 
@@ -79,7 +83,7 @@ export default async function ReportView({
       .order('name'),
   ]);
 
-  const period = computePeriod(sp.preset ?? 'this_month', sp.from, sp.to);
+  const period = computePeriod(sp.preset ?? 'ytd', sp.from, sp.to);
 
   const ctx = {
     def,
@@ -87,7 +91,7 @@ export default async function ReportView({
     associations: associations ?? [],
     period,
     selectedAssociation: sp.association ?? '',
-    selectedPreset: sp.preset ?? 'this_month',
+    selectedPreset: sp.preset ?? 'ytd',
     selectedScope: sp.scope ?? 'association',
     selectedAccount: /^[0-9a-f-]{36}$/i.test(sp.account ?? '') ? sp.account! : '',
   };
@@ -1928,12 +1932,24 @@ function QueuedReportView(ctx: ReportContext) {
 // ═══════════════════════════════════════════════════════════════
 // RIGHT RAIL — Run form + quick stats
 // ═══════════════════════════════════════════════════════════════
-function ReportRightRail({
+async function ReportRightRail({
   def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive, supportsLiveExport, isAsOfToday,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
   selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean; supportsLiveExport?: boolean; isAsOfToday?: boolean;
 }) {
+  // Owner / unit pickers (RLS-scoped) instead of raw-UUID text boxes.
+  const unitRequired = def.slug === 'owner_ledger';
+  const pickerDb = (await createClient()) as any;
+  const [{ data: pickerUnits }, { data: pickerOwners }] = isLive
+    ? [{ data: [] }, { data: [] }]
+    : await Promise.all([
+        pickerDb.from('units').select('id, unit_number, buildings(associations(name))').is('archived_at', null).order('unit_number').limit(2000),
+        pickerDb.from('owners').select('id, full_name').is('archived_at', null).order('full_name').limit(2000),
+      ]);
+  const unitLabel = (u: any) => `${u.buildings?.associations?.name ?? 'Association'} · Unit ${u.unit_number}`;
+  const sortedUnits = [...(pickerUnits ?? [])].sort((a: any, b: any) =>
+    unitLabel(a).localeCompare(unitLabel(b), undefined, { numeric: true }));
   const lastSuccess = runs.find((r: any) => r.status === 'succeeded');
   const inFlight = runs.find((r: any) => r.status === 'queued' || r.status === 'running');
   const exportEnabled = supportsLiveExport
@@ -1999,24 +2015,35 @@ function ReportRightRail({
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="mb-0.5 block text-[11px] text-gray-500">Owner ID</label>
-            <input
-              name="param_owner_id"
-              placeholder="Optional"
-              className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
+        {!isLive && (
+          <div className="grid grid-cols-1 gap-2">
+            {!unitRequired && (
+              <div>
+                <label className="mb-0.5 block text-[11px] text-gray-500">Homeowner</label>
+                <select
+                  name="param_owner_id"
+                  defaultValue=""
+                  className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">All homeowners</option>
+                  {(pickerOwners ?? []).map((o: any) => <option key={o.id} value={o.id}>{o.full_name}</option>)}
+                </select>
+              </div>
+            )}
+            <div>
+              <label className="mb-0.5 block text-[11px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
+              <select
+                name="param_unit_id"
+                defaultValue=""
+                required={unitRequired}
+                className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">{unitRequired ? 'Select a unit…' : 'All units'}</option>
+                {sortedUnits.map((u: any) => <option key={u.id} value={u.id}>{unitLabel(u)}</option>)}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="mb-0.5 block text-[11px] text-gray-500">Unit ID</label>
-            <input
-              name="param_unit_id"
-              placeholder="Optional"
-              className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-        </div>
+        )}
 
         {isAsOfToday ? (
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">

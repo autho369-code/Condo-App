@@ -81,7 +81,9 @@ export async function createCalendarEvent(formData: FormData) {
     event_type: eventType,
     calendar_scope: scope,
     reminder_days_before: reminderMinutes.find((minutes) => minutes > 0)
-      ? Math.max(1, Math.round(reminderMinutes.find((minutes) => minutes > 0)! / 1440))
+      // calendar_events_reminder_days_before_check allows 1–30 days; the
+      // insurance/contract defaults (60/90 days) used to violate it.
+      ? Math.min(30, Math.max(1, Math.round(reminderMinutes.find((minutes) => minutes > 0)! / 1440)))
       : null,
     start_datetime: start,
     end_datetime: end,

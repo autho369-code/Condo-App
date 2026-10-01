@@ -19,8 +19,6 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
     company_name:                     formData.get('company_name') as string,
     phone_number:                     (formData.get('phone_number') as string) || null,
     texting_phone_number:             (formData.get('texting_phone_number') as string) || null,
-    default_late_fee_amount:          parseFloat(formData.get('late_fee_amount') as string) || 0,
-    default_late_fee_grace_days:      parseInt(formData.get('late_fee_grace_days') as string) || 10,
     default_nsf_fee_amount:           parseFloat(formData.get('nsf_fee_amount') as string) || 0,
     default_payment_reminder_days:    reminderDays,
     statement_generation_day:         parseInt(formData.get('statement_generation_day') as string) || 1,
@@ -29,6 +27,14 @@ export async function updatePortfolioPolicy(portfolioId: string, formData: FormD
     require_mfa_for_staff:            formData.get('require_mfa_for_staff') === 'on',
     convenience_fee_mode:             formData.get('convenience_fee_mode') as any,
     convenience_fee_card_pct:         parseFloat(formData.get('convenience_fee_card_pct') as string) || 0,
+    // The settings form has no late-fee inputs; only write them when posted,
+    // otherwise every save silently reset the default late fee to $0.
+    ...(formData.has('late_fee_amount')
+      ? { default_late_fee_amount: parseFloat(formData.get('late_fee_amount') as string) || 0 }
+      : {}),
+    ...(formData.has('late_fee_grace_days')
+      ? { default_late_fee_grace_days: parseInt(formData.get('late_fee_grace_days') as string) || 10 }
+      : {}),
   }).eq('id', portfolioId);
 
   if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);

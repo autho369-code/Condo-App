@@ -39,7 +39,7 @@ export default async function VendorW9Page({
   const latestByVendor = new Map<string, any>();
   for (const request of requests ?? []) {
     const vendorId = (request as any).vendor_id;
-    if (!latestByVendor.has(vendorId) && String((request as any).doc_type).toLowerCase().includes('w')) latestByVendor.set(vendorId, request);
+    if (!latestByVendor.has(vendorId) && String((request as any).doc_type).toLowerCase() === 'w9') latestByVendor.set(vendorId, request);
   }
 
   let rows: any[] = (vendors ?? []).map((vendor: any) => ({ vendor, latest: latestByVendor.get(vendor.id) }));

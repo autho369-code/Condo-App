@@ -18,9 +18,14 @@ export async function POST(request: NextRequest) {
   const statementDate = formData.get('statement_date') as string;
   const statementBalance = parseFloat(formData.get('statement_balance') as string);
   const notes = formData.get('notes') as string;
+  // Errors go back to the page as an Alert instead of a raw JSON screen.
+  const back = (message: string) => NextResponse.redirect(new URL(
+    `/bank-accounts/reconcile?${bankAccountId ? `account_id=${encodeURIComponent(bankAccountId)}&` : ''}error=${encodeURIComponent(message)}`,
+    request.url,
+  ), 303);
 
   if (!bankAccountId || !statementDate || isNaN(statementBalance)) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    return back('Missing required fields');
   }
 
   // Get bank account info
@@ -31,11 +36,11 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!bankAccount) {
-    return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
+    return back('Bank account not found');
   }
 
   if (!bankAccount.gl_account_id) {
-    return NextResponse.json({ error: 'Bank account has no linked GL account. Link a GL account first.' }, { status: 400 });
+    return back('Bank account has no linked GL account. Link a GL account first.');
   }
 
   // Calculate ending book balance from journal_lines for this GL account
@@ -70,7 +75,7 @@ export async function POST(request: NextRequest) {
 
   if (reconError || !reconciliation) {
     console.error('Failed to create reconciliation:', reconError);
-    return NextResponse.json({ error: 'Failed to create reconciliation' }, { status: 500 });
+    return back('Failed to create reconciliation');
   }
 
   // Populate reconciliation items from journal_lines
@@ -96,5 +101,5 @@ export async function POST(request: NextRequest) {
 
   // Redirect to the reconcile page
   const redirectUrl = `/bank-accounts/reconcile?account_id=${encodeURIComponent(bankAccountId)}&tab=unreconciled`;
-  return NextResponse.redirect(new URL(redirectUrl, request.url));
+  return NextResponse.redirect(new URL(redirectUrl, request.url), 303);
 }

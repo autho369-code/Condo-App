@@ -337,7 +337,9 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
     invited_by: me.auth_user_id,
     expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
     message: 'Activate your resident portal account.',
-    metadata: { tenant_id: tenant.id, owner_id: ownerId, access: 'resident_nonfinancial' },
+    // The app queues its own invite email below; tell queue_invitation_email
+    // not to send a second one.
+    metadata: { tenant_id: tenant.id, owner_id: ownerId, access: 'resident_nonfinancial', email_delivery: 'application' },
   }).select('id, token').single();
   if (inviteError || !invitation?.token) fail(ownerId, inviteError?.message ?? 'Could not create the resident invitation.');
 

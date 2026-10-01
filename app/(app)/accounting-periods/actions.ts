@@ -39,5 +39,8 @@ export async function changeAccountingPeriodStatus(periodId: string, nextStatus:
   });
   if (error) fail(error.message);
   revalidatePath('/accounting-periods');
-  redirect('/accounting-periods?updated=1');
+  // Stay on the fiscal year that was being edited.
+  const { data: period } = await (supabase as any)
+    .from('accounting_periods').select('fiscal_year').eq('id', periodId).maybeSingle();
+  redirect(`/accounting-periods?updated=1${period?.fiscal_year ? `&year=${period.fiscal_year}` : ''}`);
 }

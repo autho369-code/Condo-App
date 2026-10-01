@@ -270,7 +270,7 @@ export default async function MeetingDetailPage({
                     {(boardMembers ?? []).filter((member: any) => !signedInIds.has(member.owner_id)).map((member: any) => (
                       <form key={member.id} action={addMeetingAttendee.bind(null, id)}>
                         <input type="hidden" name="attendee_name" value={member.full_name} />
-                        <input type="hidden" name="attendee_role" value={member.role ?? 'board'} />
+                        <input type="hidden" name="attendee_role" value="board_member" />
                         <input type="hidden" name="owner_id" value={member.owner_id ?? ''} />
                         <input type="hidden" name="voting_eligible" value="on" />
                         <Button type="submit" variant="secondary" size="sm">+ {member.full_name}</Button>
@@ -281,7 +281,14 @@ export default async function MeetingDetailPage({
               )}
               <form action={addMeetingAttendee.bind(null, id)} className="space-y-3 border-t border-gray-100 pt-4">
                 <Field label="Attendee name" required><Input name="attendee_name" required placeholder="Name" /></Field>
-                <Field label="Role"><Input name="attendee_role" placeholder="Owner, guest, counsel…" /></Field>
+                <Field label="Role">
+                  <Select name="attendee_role" defaultValue="owner">
+                    <option value="owner">Homeowner</option>
+                    <option value="board_member">Board member</option>
+                    <option value="manager">Manager</option>
+                    <option value="guest">Guest (counsel, vendor, visitor)</option>
+                  </Select>
+                </Field>
                 <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="voting_eligible" className="h-4 w-4 rounded border-gray-300" /> Voting eligible</label>
                 <Button type="submit" variant="secondary" size="sm">Sign in</Button>
               </form>

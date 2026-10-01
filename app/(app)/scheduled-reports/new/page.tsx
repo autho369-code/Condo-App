@@ -6,11 +6,13 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { SUPPORTED_REPORT_OUTPUT_FORMATS } from '@/lib/reports/output';
 
 export const dynamic = 'force-dynamic';
 
 const FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'];
-const FORMATS = ['pdf', 'xlsx', 'csv', 'json', 'html'];
+// Only formats processReportRun can produce; xlsx/html runs always failed.
+const FORMATS = SUPPORTED_REPORT_OUTPUT_FORMATS;
 const CHANNELS = ['email', 'portal', 'webhook', 'download_only'];
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 

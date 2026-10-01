@@ -26,10 +26,10 @@ export async function loadActionCenterAttention(
 
   const untriagedServiceRequests = db
     .from('service_requests')
-    .select('id, work_orders!left(id)', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
     .in('status', ['open', 'waiting'])
-    .is('work_orders.id', null) as CountQuery;
+    .eq('has_open_work_order', false) as CountQuery;
 
   const overdueReplies = db
     .from('service_requests')

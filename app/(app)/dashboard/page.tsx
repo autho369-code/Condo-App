@@ -66,7 +66,8 @@ export default async function DashboardPage({
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
     .not('status', 'in', '("closed","cured")')
-    .lt('due_date', todayDate);
+    // Legacy cases may only have due_date; fall back like the violations list.
+    .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`);
   const pendingBillsQuery = db
     .from('payable_bills')
     .select('id', { count: 'exact', head: true })
@@ -358,7 +359,7 @@ export default async function DashboardPage({
     ...(focusViolations ?? []).map((item: any) => ({
       key: `violation-${item.id}`,
       label: item.title,
-      detail: `${item.associations?.name ?? 'Association'} - due ${date(item.due_date)}`,
+      detail: `${item.associations?.name ?? 'Association'} - cure by ${date(item.cure_deadline ?? item.due_date)}`,
       href: '/violations?status=overdue',
       tone: 'red' as const,
       type: 'Violation',
@@ -572,10 +573,11 @@ export default async function DashboardPage({
 function buildViolationQueue(db: any, assocFilter: string, todayDate: string) {
   let query = db
     .from('violations')
-    .select('id, title, status, due_date, associations(name)')
+    .select('id, title, status, cure_deadline, due_date, associations(name)')
     .is('archived_at', null)
     .not('status', 'in', '("closed","cured")')
-    .lt('due_date', todayDate)
+    .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
+    .order('cure_deadline', { ascending: true, nullsFirst: false })
     .order('due_date', { ascending: true, nullsFirst: false })
     .limit(4);
   if (assocFilter) query = query.eq('association_id', assocFilter);

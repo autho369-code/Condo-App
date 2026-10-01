@@ -16,9 +16,13 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const reconciliationId = formData.get('reconciliation_id') as string;
   const bankAccountId = formData.get('bank_account_id') as string;
+  const back = (message: string, accountId = bankAccountId) => NextResponse.redirect(new URL(
+    `/bank-accounts/reconcile?${accountId ? `account_id=${encodeURIComponent(accountId)}&` : ''}error=${encodeURIComponent(message)}`,
+    request.url,
+  ), 303);
 
   if (!reconciliationId) {
-    return NextResponse.json({ error: 'Missing reconciliation_id' }, { status: 400 });
+    return back('Missing reconciliation_id');
   }
 
   // Verify the user can manage finance for this reconciliation
@@ -29,7 +33,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!recon) {
-    return NextResponse.json({ error: 'Reconciliation not found' }, { status: 404 });
+    return back('Reconciliation not found');
   }
 
   // Calculate totals from items
@@ -56,13 +60,15 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error('Failed to complete reconciliation:', error);
-    return NextResponse.json({ error: 'Failed to complete reconciliation' }, { status: 500 });
+    return back('Failed to complete reconciliation');
   }
 
   // Redirect back to the reconcile page
-  const redirectUrl = bankAccountId
-    ? `/bank-accounts/reconcile?account_id=${encodeURIComponent(bankAccountId)}&tab=reconciled`
+  // Fall back to the reconciliation's own account so the user lands on it.
+  const accountForRedirect = bankAccountId || recon.bank_account_id;
+  const redirectUrl = accountForRedirect
+    ? `/bank-accounts/reconcile?account_id=${encodeURIComponent(accountForRedirect)}&tab=reconciled`
     : '/bank-accounts/reconcile';
 
-  return NextResponse.redirect(new URL(redirectUrl, request.url));
+  return NextResponse.redirect(new URL(redirectUrl, request.url), 303);
 }

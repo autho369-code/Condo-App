@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewManagementAgreementPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function NewManagementAgreementPage({ searchParams }: { searchParams: Promise<{ error?: string; owner?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
   const supabase = await createClient();
@@ -64,7 +64,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="owner_id">Owner</Label>
-            <select id="owner_id" name="owner_id" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+            <select id="owner_id" name="owner_id" defaultValue={sp.owner ?? ''} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
               <option value="">Select owner</option>
               {(owners ?? []).map((owner: any) => <option key={owner.id} value={owner.id}>{owner.full_name}</option>)}
             </select>

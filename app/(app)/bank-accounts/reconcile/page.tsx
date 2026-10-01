@@ -5,7 +5,7 @@ import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { Field, Select } from '@/components/ui/input';
-import { EmptyState, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -23,10 +23,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 export default async function BankReconciliationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; tab?: string }>;
+  searchParams: Promise<{ account_id?: string; tab?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { account_id = '', tab = 'unreconciled' } = await searchParams;
+  const { account_id = '', tab = 'unreconciled', error: pageError } = await searchParams;
   const activeTab: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'unreconciled';
 
   const supabase = await createClient();
@@ -42,9 +42,11 @@ export default async function BankReconciliationPage({
   const accounts = (bankAccounts ?? []) as any[];
 
   // Find the selected account
+  // Default to an account that can actually be reconciled (has a GL link);
+  // accounts[0] was often an unlinked one, and starting failed.
   const selectedAccount = account_id
     ? accounts.find((a: any) => a.id === account_id)
-    : accounts[0] ?? null;
+    : accounts.find((a: any) => a.gl_account_id) ?? accounts[0] ?? null;
 
   // Fetch existing reconciliations for the selected account
   let reconciliations: any[] = [];
@@ -152,6 +154,12 @@ export default async function BankReconciliationPage({
       description="Match bank statement transactions against your general ledger. Clear items, track outstanding checks and deposits, and reconcile differences."
     >
       <div className="space-y-6">
+        {pageError && <Alert tone="danger" title="Reconciliation not updated.">{pageError}</Alert>}
+        {selectedAccount && !selectedAccount.gl_account_id && (
+          <Alert tone="warning" title="This bank account isn't linked to a GL account.">
+            Link one before reconciling — <Link href={`/bank-accounts/${selectedAccount.id}`} className="font-medium underline">open bank account settings</Link>.
+          </Alert>
+        )}
         {/* Bank account selector */}
         <Surface padded={false} className="p-4">
           <form method="get" action="/bank-accounts/reconcile" className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -287,6 +295,7 @@ export default async function BankReconciliationPage({
                         method="post"
                       >
                         <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
+                        <input type="hidden" name="bank_account_id" value={selectedAccount.id} />
                         <Button type="submit">Complete reconciliation</Button>
                       </form>
                     )}

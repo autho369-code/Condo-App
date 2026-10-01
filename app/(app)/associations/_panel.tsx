@@ -41,9 +41,11 @@ export function AssociationsPanel() {
           {associationId && <PanelLink href={`/associations/${associationId}/approvals/new`}>New Approval</PanelLink>}
           <PanelLink href="/send-email">Email Board Members</PanelLink>
         </PanelSection>
-        <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=approval-history">Approval History</PanelLink>
-        </PanelSection>
+        {associationId && (
+          <PanelSection title="Reports">
+            <PanelLink href={`/associations/${associationId}/approvals`}>Approval History</PanelLink>
+          </PanelSection>
+        )}
         <PanelSection title="Help Topics">
           <PanelLink href="/help/creating-approvals">Creating Approvals</PanelLink>
           <PanelLink href="/help/voting-schemes">Voting Schemes</PanelLink>
@@ -87,11 +89,9 @@ export function AssociationsPanel() {
           <PanelLink href="/charges">Update Assessments</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=annual-budget-comparison">Annual Budget Comparison</PanelLink>
-          <PanelLink href="/reports?slug=annual-budget-approved">Annual Budget — Approved</PanelLink>
-          <PanelLink href="/reports?slug=budget-detail">Budget Detail</PanelLink>
-          <PanelLink href="/reports?slug=budget-components">Budget — Components</PanelLink>
-          <PanelLink href="/reports?slug=budget-property-comparison">Budget — Property Comparison</PanelLink>
+          <PanelLink href="/reports/annual_budget_comparative">Annual Budget Comparison</PanelLink>
+          <PanelLink href="/reports/budget_detail">Budget Detail</PanelLink>
+          <PanelLink href="/reports/budget_association_comparison">Budget — Property Comparison</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/add-property-budget">Add a Property Budget</PanelLink>
@@ -124,12 +124,12 @@ export function AssociationsPanel() {
           <PanelLink href="/owners/import">Import Owners &amp; Units (CSV)</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-          <PanelLink href="/reports?slug=homeowner-directory">Owner Directory</PanelLink>
-          <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
-          <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
-          <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
-          <PanelLink href="/reports?slug=activities-summary">Activities Summary</PanelLink>
+          <PanelLink href="/reports/unit_directory">Unit Directory</PanelLink>
+          <PanelLink href="/reports/owner_directory">Owner Directory</PanelLink>
+          <PanelLink href="/reports/resident_directory">Renter Directory</PanelLink>
+          <PanelLink href="/reports/dues_roll">Dues Roll</PanelLink>
+          <PanelLink href="/reports/general_ledger">General Ledger</PanelLink>
+          <PanelLink href="/reports/activities_summary">Activities Summary</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
@@ -146,7 +146,7 @@ export function AssociationsPanel() {
           <PanelLink href="/units/new">New Unit</PanelLink>
         </PanelSection>
         <PanelSection title="Reports">
-          <PanelLink href="/reports?slug=association-summary">Association Summary</PanelLink>
+          <PanelLink href="/reports/association_directory">Association Summary</PanelLink>
         </PanelSection>
         <PanelSection title="Help Topics">
           <PanelLink href="/help/managing-hoas">Managing HOAs</PanelLink>
@@ -185,11 +185,11 @@ export function AssociationsPanel() {
         <PanelLink href="/reports/bulk-association">Bulk Update Board Reports</PanelLink>
       </PanelSection>
       <PanelSection title="Reports">
-        <PanelLink href="/reports?slug=homeowner-directory">Owner Directory</PanelLink>
-        <PanelLink href="/reports?slug=unit-directory">Unit Directory</PanelLink>
-        <PanelLink href="/reports?slug=renter-directory">Renter Directory</PanelLink>
-        <PanelLink href="/reports?slug=dues-roll">Dues Roll</PanelLink>
-        <PanelLink href="/reports?slug=general-ledger">General Ledger</PanelLink>
+        <PanelLink href="/reports/owner_directory">Owner Directory</PanelLink>
+        <PanelLink href="/reports/unit_directory">Unit Directory</PanelLink>
+        <PanelLink href="/reports/resident_directory">Renter Directory</PanelLink>
+        <PanelLink href="/reports/dues_roll">Dues Roll</PanelLink>
+        <PanelLink href="/reports/general_ledger">General Ledger</PanelLink>
       </PanelSection>
       <PanelSection title="Statements">
         <PanelLink href="/bulk-statement-settings/new">Bulk Update Statement Settings</PanelLink>

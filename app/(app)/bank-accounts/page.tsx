@@ -5,7 +5,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { DataTable } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { maskBankNumber } from '@/lib/banking/bank-format';
@@ -17,10 +17,10 @@ export const dynamic = 'force-dynamic';
 export default async function BankAccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string; bank?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; bank?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { filter = '', q = '', bank = '' } = await searchParams;
+  const { filter = '', q = '', bank = '', error: pageError } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -55,6 +55,7 @@ export default async function BankAccountsPage({
       }
     >
       <div className="space-y-6">
+        {pageError && <Alert tone="warning" title="Needs attention.">{pageError}</Alert>}
         <MetricStrip
           metrics={[
             { label: 'Total accounts', value: accounts.length, sublabel: 'Visible in current view' },

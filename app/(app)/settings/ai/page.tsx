@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 const PROVIDERS = [
   { value: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
   { value: 'deepseek', label: 'DeepSeek', models: ['deepseek-chat', 'deepseek-reasoner'] },
-  { value: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-3-5-haiku'] },
+  { value: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-4-5-20251001', 'claude-sonnet-4-20250514'] },
 ] as const;
 
 async function saveAIProvider(formData: FormData) {
@@ -115,11 +115,19 @@ export default async function AISettingsPage({
 
             <div className="sm:col-span-2">
               <Label htmlFor="ai_model">Model</Label>
+              {/* Every provider's models, grouped, so switching provider and
+                  model works in one save (the list used to show only the
+                  saved provider's models). The action re-checks the pair. */}
               <Select id="ai_model" name="ai_model" defaultValue={p.ai_model ?? currentProvider.models[0]}>
-                {currentProvider.models.map(m => (
-                  <option key={m} value={m}>{m}</option>
+                {PROVIDERS.map(pr => (
+                  <optgroup key={pr.value} label={pr.label}>
+                    {pr.models.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </Select>
+              <p className="mt-1 text-xs text-gray-400">Pick a model from the same provider selected above.</p>
             </div>
           </div>
         </Section>

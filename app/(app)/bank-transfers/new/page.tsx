@@ -19,7 +19,7 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
 
   const { data: accounts } = await db
     .from('bank_accounts')
-    .select('id, name, bank_name, associations:association_id(name)')
+    .select('id, name, bank_name, fund_type, associations:association_id(name)')
     .eq('portfolio_id', me.portfolio?.id).is('archived_at', null).order('name');
 
   async function createTransfer(formData: FormData) {
@@ -37,6 +37,21 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
     const transferDate = (formData.get('transfer_date') as string) || new Date().toISOString().slice(0, 10);
     const memo = (formData.get('memo') as string)?.trim() || null;
     const reference = (formData.get('reference_number') as string)?.trim() || null;
+    const fail = (message: string): never => redirect('/bank-transfers/new?error=' + encodeURIComponent(message));
+
+    // Operating <-> reserve moves need explicit authorization
+    // (guard_cross_fund_transfer); the form never collected it, so every such
+    // transfer failed.
+    const { data: banks } = await db.from('bank_accounts').select('id, name, gl_account_id, fund_type').in('id', [from, to]);
+    const fromBank = (banks ?? []).find((b: any) => b.id === from);
+    const toBank = (banks ?? []).find((b: any) => b.id === to);
+    if (!fromBank || !toBank) fail('One of those bank accounts was not found.');
+    const crossFund = (fromBank.fund_type ?? null) !== (toBank.fund_type ?? null);
+    const authorized = formData.get('authorize_cross_fund') === 'on';
+    const authorizationNote = (formData.get('authorization_note') as string)?.trim() || '';
+    if (crossFund && (!authorized || !authorizationNote)) {
+      fail(`Moving money from a ${fromBank.fund_type ?? 'unclassified'} account to a ${toBank.fund_type ?? 'unclassified'} account needs authorization: tick the box and note the board approval or reason.`);
+    }
 
     const { data: transfer, error } = await db.from('bank_transfers').insert({
       portfolio_id: me.portfolio?.id,
@@ -47,17 +62,15 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
       reference_number: reference,
       memo,
       created_by: me.auth_user_id,
+      ...(crossFund ? { authorized_by: me.auth_user_id, authorization_note: authorizationNote.slice(0, 1000) } : {}),
     }).select('id').single();
-    if (error || !transfer) redirect('/bank-transfers/new?error=' + encodeURIComponent(error?.message ?? 'Could not record transfer.'));
+    if (error || !transfer) fail(error?.message ?? 'Could not record transfer.');
 
     // Post the transfer to the GL (debit destination, credit source) so it
     // affects balances instead of sitting "Incomplete" forever. Requires both
     // bank accounts to be linked to GL accounts.
-    const { data: banks } = await db.from('bank_accounts').select('id, name, gl_account_id').in('id', [from, to]);
-    const fromBank = (banks ?? []).find((b: any) => b.id === from);
-    const toBank = (banks ?? []).find((b: any) => b.id === to);
     if (fromBank?.gl_account_id && toBank?.gl_account_id && fromBank.gl_account_id !== toBank.gl_account_id) {
-      const { data: entry } = await db.from('journal_entries').insert({
+      const { data: entry, error: entryErr } = await db.from('journal_entries').insert({
         portfolio_id: me.portfolio?.id,
         entry_date: transferDate,
         description: `Bank transfer — ${fromBank.name} → ${toBank.name}`,
@@ -66,25 +79,26 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
         posted: false,
         created_by: me.auth_user_id,
       }).select('id').single();
-      if (entry) {
+      if (entryErr || !entry) fail(`Transfer recorded, but its journal entry could not be created: ${entryErr?.message ?? 'unknown error'}. It is listed under Incomplete.`);
+      {
         const { error: linesErr } = await db.from('journal_lines').insert([
           { entry_id: entry.id, gl_account_id: toBank.gl_account_id, debit_amount: amount, credit_amount: 0, memo, sort_order: 0 },
           { entry_id: entry.id, gl_account_id: fromBank.gl_account_id, debit_amount: 0, credit_amount: amount, memo, sort_order: 1 },
         ]);
-        if (!linesErr) {
-          const { error: postErr } = await db.from('journal_entries').update({ posted: true }).eq('id', entry.id);
-          if (!postErr) {
-            await db.from('bank_transfers').update({ journal_entry_id: entry.id }).eq('id', transfer.id);
-          }
-        } else {
+        if (linesErr) {
           await db.from('journal_entries').delete().eq('id', entry.id); // roll back the orphan draft
+          fail(`Transfer recorded, but it could not be posted to the ledger: ${linesErr.message}. It is listed under Incomplete.`);
         }
+        const { error: postErr } = await db.from('journal_entries').update({ posted: true }).eq('id', entry.id);
+        if (postErr) fail(`Transfer recorded, but posting failed: ${postErr.message}. It is listed under Incomplete.`);
+        const { error: linkErr } = await db.from('bank_transfers').update({ journal_entry_id: entry.id }).eq('id', transfer.id);
+        if (linkErr) fail(`Transfer posted, but could not be marked complete: ${linkErr.message}.`);
       }
     }
-    redirect('/bank-transfers');
+    redirect('/bank-transfers?tab=activity');
   }
 
-  const acctLabel = (a: any) => `${a.name}${a.bank_name ? ` (${a.bank_name})` : ''}${a.associations?.name ? ` · ${a.associations.name}` : ''}`;
+  const acctLabel = (a: any) => `${a.name}${a.fund_type ? ` [${a.fund_type}]` : ''}${a.bank_name ? ` (${a.bank_name})` : ''}${a.associations?.name ? ` · ${a.associations.name}` : ''}`;
 
   return (
     <DataWorkspace
@@ -131,6 +145,20 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
           <div>
             <Label htmlFor="memo">Memo</Label>
             <Input id="memo" name="memo" placeholder="Optional" />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <label className="flex items-start gap-2 text-sm text-gray-800">
+            <input type="checkbox" name="authorize_cross_fund" className="mt-0.5 h-4 w-4 rounded border-gray-300" />
+            <span>
+              <span className="font-medium">Authorize a cross-fund transfer</span>
+              <span className="block text-xs text-gray-500">Required only when moving money between operating and reserve funds. You are recorded as the authorizer.</span>
+            </span>
+          </label>
+          <div className="mt-3">
+            <Label htmlFor="authorization_note">Authorization note</Label>
+            <Input id="authorization_note" name="authorization_note" maxLength={1000} placeholder="e.g. Board approved reserve contribution on 9/15" />
           </div>
         </div>
 
