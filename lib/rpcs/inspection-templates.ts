@@ -18,6 +18,13 @@ function uuid(formData: FormData, key: string) {
 }
 
 /** One checklist item per line; "Area: item" puts it under an area. */
+/** Templates belong to a management company; operator-only accounts have none. */
+async function requireCompanyStaff(back: string) {
+  const me = await requireStaff();
+  if (!me.is_staff) redirect(`${back}?error=${encodeURIComponent('Open inspection templates from a management company account.')}`);
+  return me;
+}
+
 function parseItems(raw: string) {
   return raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
     const i = line.indexOf(':');
@@ -26,7 +33,7 @@ function parseItems(raw: string) {
 }
 
 export async function saveInspectionTemplate(formData: FormData) {
-  await requireStaff();
+  await requireCompanyStaff(TEMPLATES);
   const id = uuid(formData, 'id');
   const db = (await createClient()) as any;
   const { error } = await db.rpc('save_inspection_template', {
@@ -41,7 +48,7 @@ export async function saveInspectionTemplate(formData: FormData) {
 }
 
 export async function archiveInspectionTemplate(formData: FormData) {
-  await requireStaff();
+  await requireCompanyStaff(TEMPLATES);
   const db = (await createClient()) as any;
   const { error } = await db.rpc('archive_inspection_template', { p_id: uuid(formData, 'id') });
   if (error) redirect(`${TEMPLATES}?error=${encodeURIComponent(error.message)}`);
@@ -51,7 +58,7 @@ export async function archiveInspectionTemplate(formData: FormData) {
 
 /** Schedule a property-wide inspection or one per unit from a template. */
 export async function scheduleInspectionsFromTemplate(formData: FormData) {
-  await requireStaff();
+  await requireCompanyStaff('/inspections/bulk');
   const back = '/inspections/bulk';
   const scheduled = text(formData, 'scheduled_date');
   const scope = text(formData, 'scope');

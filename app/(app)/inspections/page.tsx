@@ -174,8 +174,8 @@ export default async function InspectionsPage({
       description="Schedule, track, and score property inspections across associations and units."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/inspections/templates"><Button variant="secondary">Templates</Button></Link>
-          <Link href="/inspections/bulk"><Button variant="secondary">Schedule from template</Button></Link>
+          {me.is_staff && <Link href="/inspections/templates"><Button variant="secondary">Templates</Button></Link>}
+          {me.is_staff && <Link href="/inspections/bulk"><Button variant="secondary">Schedule from template</Button></Link>}
           <Link href="/inspections/new">
             <Button><Plus className="h-4 w-4" /> New inspection</Button>
           </Link>

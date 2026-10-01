@@ -14,7 +14,15 @@ export default async function ScheduleFromTemplatePage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireStaff();
+  const me = await requireStaff();
+  if (!me.is_staff) {
+    // Templates belong to a management company; platform-operator accounts have none.
+    return (
+      <DataWorkspace title="Schedule from a template" description="Inspection templates are managed inside a management company's workspace.">
+        <Alert tone="info" title="Open this from a company account">Platform operator accounts are not tied to a management company, so they have no inspection templates.</Alert>
+      </DataWorkspace>
+    );
+  }
   const sp = await searchParams;
   const db = (await createClient()) as any;
   const [{ data: associations }, { data: templates }] = await Promise.all([
