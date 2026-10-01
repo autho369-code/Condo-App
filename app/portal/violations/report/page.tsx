@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { revalidatePath } from 'next/cache'
+import { SUBMISSION_FIELD, newSubmissionToken, claimSubmission, releaseSubmission } from '@/lib/forms/submission'
+import { todayInZone } from '@/lib/time/zoned'
+import { associationZone } from '../../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,14 +63,29 @@ async function reportConcern(formData: FormData) {
 
   const supabase = await createClient()
 
+  // The unit must be one of the reporter's own current units (RLS alone
+  // admits board members to every unit in the association).
+  const myUnitIds = await ownPortalUnitIds(supabase, me.owner_id)
+  if (!myUnitIds.includes(unitId)) { failTo('Unit not found or you no longer have access to it'); return }
+
   // Resolve association from the reporter's own unit — never trust the client.
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
-    .select('id, buildings!inner(association_id)')
+    .select('id, buildings!inner(association_id, associations(timezone))')
     .eq('id', unitId)
     .maybeSingle()
   if (unitErr || !unit) { failTo('Unit not found or you no longer have access to it'); return }
   const associationId = (unit.buildings as any).association_id
+  // "Today" in the community's own zone — the server runs in UTC.
+  const today = todayInZone(associationZone((unit.buildings as any).associations?.timezone))
+
+  // A double click or re-sent form must not file the same concern twice.
+  const claim = await claimSubmission(supabase, formData, 'portal_concern_report')
+  if (claim.status === 'error') { failTo(claim.message); return }
+  if (claim.status === 'duplicate') {
+    redirect('/portal/violations?reported=1&notice=already_submitted')
+  }
+  const token = (claim as { token: string }).token
 
   const { error } = await (supabase as any)
     .from('violations')
@@ -77,14 +95,20 @@ async function reportConcern(formData: FormData) {
       status: 'open',
       title,
       description: details,
-      date_observed: new Date().toISOString().slice(0, 10),
-      reported_date: new Date().toISOString().slice(0, 10),
+      date_observed: today,
+      reported_date: today,
       fine_amount: null,
       created_by: me.auth_user_id,
     })
   // No .select() here: reported rows carry no owner_id, so the reporter can't
   // read the row back and RETURNING failed every submit with an RLS error.
-  if (error) { failTo(error.message); return }
+  if (error) {
+    await releaseSubmission(supabase, token)
+    failTo(error.message)
+    return
+  }
+  // No completeSubmission: the reporter can't read the new row's id back (see
+  // above), so a repeat simply lands on the list with a notice.
 
   revalidatePath('/portal/violations')
   redirect('/portal/violations?reported=1')
@@ -134,6 +158,7 @@ export default async function ReportConcernPage({
       ) : (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <form action={reportConcern} className="space-y-5">
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <span className="text-sm font-medium text-gray-700">Unit</span>
               {unitOptions.length === 1 ? (

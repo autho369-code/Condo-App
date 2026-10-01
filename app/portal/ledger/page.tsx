@@ -5,6 +5,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Badge } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
 import { LedgerActions, type LedgerChargeRow, type LedgerPaymentRow } from '@/components/portal/ledger-actions';
+import { ownerTenureCutoffs, tenureFilter, withinTenure } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,11 +22,27 @@ export default async function LedgerPage() {
     .in('unit_id', myUnits)
     .order('due_date', { ascending: false });
 
-  const { data: payments } = await (supabase as any)
-    .from('payments')
-    .select('id, amount, payment_date, method, reference, notes')
-    .in('unit_id', myUnits)
-    .order('payment_date', { ascending: false });
+  // Charges show the unit's full open balance (the debt is real), but payment
+  // details only from the owner's own move-in on — a buyer must not see the
+  // seller's payments, references or notes.
+  const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
+  const { data: payments } = paymentScope
+    ? await (supabase as any)
+        .from('payments')
+        .select('id, amount, payment_date, method, reference, notes')
+        .or(paymentScope)
+        .order('payment_date', { ascending: false })
+    : { data: [] };
+
+  // Unapplied credit (payments not yet matched to a charge) reduces what is owed,
+  // so the total agrees with the dashboard and the pay page.
+  const { data: summaries } = await (supabase as any)
+    .from('v_unit_account_summary')
+    .select('unit_id, unapplied_credit')
+    .in('unit_id', myUnits);
+  const unappliedCredit = ((summaries ?? []) as { unapplied_credit: number | string | null }[])
+    .reduce((s, u) => s + Number(u.unapplied_credit ?? 0), 0);
 
   // Association name for the export header (owner's first current occupancy)
   let associationName = 'Association';
@@ -34,6 +51,8 @@ export default async function LedgerPage() {
       .from('occupancies')
       .select('units(buildings(associations(name)))')
       .eq('owner_id', me.owner_id)
+      .eq('status', 'current')
+      .order('is_primary', { ascending: false })
       .limit(1)
       .maybeSingle();
     associationName = occ?.units?.buildings?.associations?.name ?? associationName;
@@ -53,16 +72,20 @@ export default async function LedgerPage() {
     reference: p.reference ?? p.notes ?? '',
     amount: Number(p.amount ?? 0),
   }));
-  const totalBalance = exportCharges.reduce((s, c) => s + c.balance, 0);
+  const totalBalance = Math.round((exportCharges.reduce((s, c) => s + c.balance, 0) - unappliedCredit) * 100) / 100;
 
   // Active payment plans for the owner's units (RLS: their own units; one per unit).
+  // A plan made with a previous owner is theirs, not the buyer's: keep plans
+  // naming this owner, or (unnamed) created during this owner's tenure.
   const { data: activePlans } = await (supabase as any)
     .from('payment_plans')
-    .select('id, total_amount, installment_count, frequency, units(unit_number)')
+    .select('id, unit_id, owner_id, created_at, total_amount, installment_count, frequency, units(unit_number)')
     .in('unit_id', myUnits)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
-  const plans = await Promise.all(((activePlans ?? []) as any[]).map(async (plan) => {
+  const myPlans = ((activePlans ?? []) as any[]).filter((plan) =>
+    plan.owner_id ? plan.owner_id === me.owner_id : withinTenure(tenure, plan.unit_id, plan.created_at));
+  const plans = await Promise.all(myPlans.map(async (plan) => {
     const { data: sched } = await (supabase as any).rpc('payment_plan_schedule', { p_plan_id: plan.id });
     const rows = (sched ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];
     return { plan, rows, paid: rows.reduce((s, r) => s + Number(r.covered), 0) };

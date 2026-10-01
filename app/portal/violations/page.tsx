@@ -6,7 +6,7 @@ import { money, date } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OwnerViolationsPage({ searchParams }: { searchParams: Promise<{ reported?: string }> }) {
+export default async function OwnerViolationsPage({ searchParams }: { searchParams: Promise<{ reported?: string; notice?: string }> }) {
   const banner = await searchParams
   const me = await requireOwner()
   const supabase = await createClient()
@@ -33,7 +33,9 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
 
       {banner.reported === '1' && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Thanks — your concern was sent to management for review.
+          {banner.notice === 'already_submitted'
+            ? 'That concern was already sent — we didn’t send a second copy.'
+            : 'Thanks — your concern was sent to management for review.'}
         </div>
       )}
 

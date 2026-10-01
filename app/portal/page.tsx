@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button'
 import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
+import { ownerTenureCutoffs, tenureFilter } from './_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +21,14 @@ export default async function OwnerDashboard() {
   const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(5)
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
-  const nextDue = occs[0]?.dues_paid_through
-    ? new Date(`${String(occs[0].dues_paid_through).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
-    : 'Not set'
+  // Next Due = the earliest open charge's due date on the owner's units.
+  let nextDue = 'Nothing due'
+  if (unitIds.length > 0) {
+    const { data: openCharge } = await db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
+    if (openCharge?.due_date) {
+      nextDue = new Date(`${String(openCharge.due_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
+    }
+  }
   const assocId = occs[0]?.association_id
 
   // Current balance = outstanding A/R (charges − payments) across the owner's units
@@ -38,11 +44,18 @@ export default async function OwnerDashboard() {
     const { data: wos } = await db.from('work_orders').select('id,title,status,created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
     workOrders = wos ?? []
   }
-  const openWO = workOrders.filter((w: any) => !['done','completed','billed','closed','cancelled'].includes(w.status))
+  // Counts come from their own head queries — the lists above/below are capped at 5.
+  let openWOCount = 0
+  if (unitIds.length > 0) {
+    const { count } = await db.from('work_orders').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")')
+    openWOCount = count ?? 0
+  }
 
   // Violations
   const { data: viols } = await db.from('violations').select('id,title,status,date_observed').eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
   const violations = viols ?? []
+  const { count: openViolationCount } = await db.from('violations').select('id', { count: 'exact', head: true }).eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")')
+  const openViolations = openViolationCount ?? 0
 
   // Calendar
   let events: any[] = []
@@ -60,18 +73,22 @@ export default async function OwnerDashboard() {
     } catch {}
   }
 
-  // Recent payments on the owner's units
+  // Recent payments on the owner's units — only from their own move-in on, so
+  // a buyer never sees the seller's payments.
   let recentPayments: any[] = []
-  if (unitIds.length > 0) {
-    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').in('unit_id', unitIds).order('payment_date', { ascending: false }).limit(5)
+  const paymentScope = tenureFilter(await ownerTenureCutoffs(db, ownerId), 'payment_date', unitIds)
+  if (paymentScope) {
+    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(5)
     recentPayments = pays ?? []
   }
 
-  // Emergency notice: any open emergency-priority work order in the community
-  let emergencies: any[] = []
-  if (assocId) {
-    const { data: em } = await db.from('work_orders').select('id, title').eq('association_id', assocId).eq('priority', 'emergency').is('archived_at', null).in('status', ['new', 'assigned', 'scheduled', 'in_progress']).limit(3)
-    emergencies = em ?? []
+  // Emergency notice: open emergency-priority work orders in the owner's
+  // communities. Residents can't read those rows via RLS, so a SECURITY
+  // DEFINER RPC returns just the title + created_at.
+  let emergencies: { title: string; created_at: string }[] = []
+  if (occs.length > 0) {
+    const { data: em } = await db.rpc('owner_open_emergencies')
+    emergencies = ((em ?? []) as { title: string; created_at: string }[]).slice(0, 3)
   }
 
   // Management contact — public branding fields only, resolved server-side.
@@ -113,7 +130,7 @@ export default async function OwnerDashboard() {
             <Siren className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
             <div>
               <div className="text-sm font-semibold text-red-800">Emergency work in progress in your community</div>
-              <p className="mt-0.5 text-[13px] text-red-700">{emergencies.map((e: any) => e.title).join(' · ')}</p>
+              <p className="mt-0.5 text-[13px] text-red-700">{emergencies.map((e) => e.title).join(' · ')}</p>
             </div>
           </div>
         </div>
@@ -123,8 +140,8 @@ export default async function OwnerDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: 'Current Balance', value: money(totalDue), color: totalDue > 0 ? 'text-red-700' : 'text-emerald-700', href: '/portal/ledger', hint: 'View ledger' },
-          { label: 'Open Work Orders', value: openWO.length, color: 'text-gray-950' },
-          { label: 'Open Violations', value: violations.length, color: violations.length > 0 ? 'text-amber-700' : 'text-gray-950' },
+          { label: 'Open Work Orders', value: openWOCount, color: 'text-gray-950' },
+          { label: 'Open Violations', value: openViolations, color: openViolations > 0 ? 'text-amber-700' : 'text-gray-950' },
           { label: 'Next Due', value: occs.length > 0 ? nextDue : '—', color: 'text-gray-950' },
         ].map(s => {
           const inner = (

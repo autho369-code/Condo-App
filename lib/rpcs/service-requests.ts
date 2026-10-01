@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import type { Database } from '@/lib/types/database';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { ownPortalUnitIds } from '@/lib/portal/own-units';
 
 type ServiceRequestPriority = Database['public']['Enums']['service_request_priority'];
 
@@ -35,6 +37,11 @@ export async function submitServiceRequest(formData: FormData) {
 
   const supabase = await createClient();
 
+  // The unit must be one of the caller's own current units (RLS alone admits
+  // board members to every unit in the association).
+  const myUnitIds = await ownPortalUnitIds(supabase, me.owner_id);
+  if (!myUnitIds.includes(unitId)) { failTo('Unit not found or you no longer have access to it'); return; }
+
   // Resolve association + portfolio from the unit — never trust the client for these
   const { data: unit, error: unitErr } = await (supabase as any)
     .from('units')
@@ -46,6 +53,16 @@ export async function submitServiceRequest(formData: FormData) {
   const portfolioId   = (unit.buildings as any).associations.portfolio_id;
 
   const fullDescription = access ? `${description}\n\nAccess notes: ${access}` : description;
+
+  // A double click or re-sent form must not file the same request twice.
+  const claim = await claimSubmission(supabase, formData, 'portal_service_request');
+  if (claim.status === 'error') { failTo(claim.message); return; }
+  if (claim.status === 'duplicate') {
+    redirect(claim.resultId
+      ? `/portal/service-requests?submitted=${claim.resultId}&notice=already_submitted`
+      : '/portal/service-requests?notice=already_submitted');
+  }
+  const token = (claim as { token: string }).token;
 
   const { data: sr, error } = await (supabase as any).from('service_requests').insert({
     portfolio_id:          portfolioId,
@@ -61,7 +78,12 @@ export async function submitServiceRequest(formData: FormData) {
     created_by:            me.auth_user_id,
   }).select('id').single();
 
-  if (error || !sr) { failTo(error?.message ?? 'Failed to submit request'); return; }
+  if (error || !sr) {
+    await releaseSubmission(supabase, token);
+    failTo(error?.message ?? 'Failed to submit request');
+    return;
+  }
+  await completeSubmission(supabase, token, sr.id);
 
   revalidatePath('/portal/service-requests');
   revalidatePath('/portal');

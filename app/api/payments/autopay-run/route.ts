@@ -73,6 +73,24 @@ async function unitCredit(svc: any, unitId: string): Promise<number> {
   return Math.max(0, openTotal - Number(data?.balance ?? 0));
 }
 
+// Online payments for the unit that have started but are not yet on the
+// ledger (ACH in flight, card awaiting the webhook, a checkout opened in the
+// last day). Without this AutoPay charged the same balance again, and a
+// co-owner's mandate charged what the first mandate had just collected.
+async function inFlightAmount(svc: any, unitId: string): Promise<number> {
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data, error } = await svc
+    .from('payment_intents')
+    .select('amount, status, created_at')
+    .eq('unit_id', unitId)
+    .is('payment_id', null)
+    .in('status', ['pending', 'processing', 'succeeded']);
+  if (error) throw new Error(`pending payments could not be read: ${error.message}`);
+  return ((data ?? []) as Array<{ amount: number; status: string; created_at: string }>)
+    .filter((i) => i.status !== 'pending' || i.created_at >= since)
+    .reduce((s, i) => s + Number(i.amount ?? 0), 0);
+}
+
 async function claimRun(svc: any, mandateId: string, scheduledFor: string) {
   const { data, error } = await svc.rpc('claim_stripe_autopay_run', {
     p_mandate_id: mandateId,
@@ -133,6 +151,29 @@ export async function GET(request: NextRequest) {
       summary.details.push(`mandate ${m.id}: association not Stripe-enabled`);
       continue; // do not advance — charge as soon as the association goes live
     }
+    // A mandate belongs to the owner of the unit; once they no longer own it
+    // (sold), cancel it rather than charge them for the buyer's balance.
+    const { data: stillOwner, error: ownerError } = await svc
+      .from('occupancies')
+      .select('id')
+      .eq('unit_id', m.unit_id)
+      .eq('owner_id', m.owner_id)
+      .eq('status', 'current')
+      .limit(1);
+    if (ownerError) {
+      summary.failed++;
+      summary.details.push(`mandate ${m.id}: ownership check failed - ${ownerError.message}`);
+      continue;
+    }
+    if (!stillOwner?.length) {
+      await svc.from('autopay_mandates')
+        .update({ status: 'canceled', canceled_at: runAt, updated_at: runAt })
+        .eq('id', m.id)
+        .eq('status', 'active');
+      summary.skipped++;
+      summary.details.push(`mandate ${m.id}: owner no longer owns this unit; AutoPay canceled`);
+      continue;
+    }
     const { data: blocked } = await svc.from('occupancies').select('id').eq('unit_id', m.unit_id).eq('status', 'current').eq('allow_online_payments', false).limit(1);
     if (blocked?.length) {
       summary.skipped++;
@@ -177,12 +218,13 @@ export async function GET(request: NextRequest) {
     // ── Amount per mode ─────────────────────────────────────────
     let amountCents = 0;
     try {
+      const pending = m.mode === 'fixed' ? 0 : await inFlightAmount(svc, m.unit_id);
       if (m.mode === 'fixed') {
         amountCents = m.fixed_amount_cents ?? 0;
       } else if (m.mode === 'recurring_only' || m.mode === 'special_only') {
         const wanted = m.mode === 'recurring_only' ? ['assessment'] : ['special_assessment'];
         const classes = m.include_late_fees ? [...wanted, 'late_fee', 'nsf_fee', 'fine'] : wanted;
-        amountCents = Math.round((await openBalanceDue(svc, m.unit_id, today, classes)) * 100);
+        amountCents = Math.max(0, Math.round(((await openBalanceDue(svc, m.unit_id, today, classes)) - pending) * 100));
       } else {
         // current_balance / minimum: what is due today (charges dated later
         // are not owed yet), less any unapplied credit, optionally without
@@ -190,6 +232,7 @@ export async function GET(request: NextRequest) {
         let due = await openBalanceDue(svc, m.unit_id, today);
         if (!m.include_late_fees) due -= await openBalanceDue(svc, m.unit_id, today, ['late_fee', 'nsf_fee', 'fine']);
         due -= await unitCredit(svc, m.unit_id);
+        due -= pending;
         const dueCents = Math.max(0, Math.round(due * 100));
         // Minimum: the owner's minimum, but never more than is due.
         amountCents = m.mode === 'minimum' ? Math.min(m.minimum_amount_cents ?? 0, dueCents) : dueCents;
