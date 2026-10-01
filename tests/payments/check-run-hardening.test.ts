@@ -30,7 +30,9 @@ describe('check-run accounting boundary', () => {
     expect(printPage).toContain(".select('run_transaction_id')");
     expect(printPage).toContain(".eq('run_transaction_id', seed?.run_transaction_id");
     expect(printPage).toContain("c.status === 'stop_payment' ? 'STOP PAYMENT' : 'VOID'");
-    expect(printPage).toContain('.limit(100)');
+    // Every check in the run prints (paged), not just the first 100.
+    expect(printPage).toContain('fetchAllRows<any>(() => (supabase as any)');
+    expect(printPage).not.toContain('.limit(100)');
   });
 
   it('posts idempotent balanced accrual, payment, and void journal entries', () => {
