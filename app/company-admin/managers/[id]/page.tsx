@@ -87,12 +87,20 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
     openViolations = count ?? 0
   }
 
-  const { data: recentActivity } = await db
-    .from('activity')
-    .select('action, details, created_at')
-    .eq('user_id', id)
+  // The audit trail records what this manager changed (the `activity` table is
+  // an internal agent log and never has rows for people).
+  const { data: auditRows } = await db
+    .from('audit_logs')
+    .select('action, entity_type, created_at')
+    .eq('actor_id', id)
+    .eq('portfolio_id', me.portfolio?.id)
     .order('created_at', { ascending: false })
     .limit(15)
+  const recentActivity = (auditRows ?? []).map((r: any) => ({
+    action: String(r.action ?? '').replace(/_/g, ' ').replace(/:/g, ' · ').replace(/^\w/, (c: string) => c.toUpperCase()),
+    details: r.entity_type ? String(r.entity_type).replace(/_/g, ' ') : null,
+    created_at: r.created_at,
+  }))
 
   const totalDoorsManaged = assignedAssocs.reduce((sum: number, a: any) => sum + a.unitCount, 0)
   const workloadRatio = openWorkOrders.length > 0 ? Math.round((1 - overdueWorkOrders.length / openWorkOrders.length) * 100) : 100

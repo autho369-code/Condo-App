@@ -76,20 +76,34 @@ export default async function AssociationHealthPage() {
         db.from('work_orders').select('association_id')
           .in('association_id', assocIds)
           .is('archived_at', null)
-          .not('status', 'in', '("completed","closed","cancelled")'),
+          .not('status', 'in', '("done","completed","billed","closed","cancelled")'),
         db.from('work_orders').select('association_id')
           .in('association_id', assocIds)
           .is('archived_at', null)
-          .not('status', 'in', '("completed","closed","cancelled")')
+          .not('status', 'in', '("done","completed","billed","closed","cancelled")')
           .lt('scheduled_date', todayDate),
         db.from('violations').select('association_id')
           .in('association_id', assocIds)
           .is('archived_at', null)
           .not('status', 'in', '("closed","cured")'),
-        db.from('activity').select('user_id, created_at')
-          .gte('created_at', sevenDaysAgo)
-          .limit(500),
+        db.from('association_managers').select('association_id, user_id')
+          .in('association_id', assocIds)
+          .is('ended_at', null),
       ]);
+
+      // Assigned managers who signed in during the last 7 days
+      // (last_login_at is stamped by record_login_attempt).
+      const managerIds = [...new Set((managerActivity.data ?? []).map((m: any) => m.user_id).filter(Boolean))];
+      const { data: recentLogins } = managerIds.length > 0
+        ? await db.from('profiles').select('id').in('id', managerIds).gte('last_login_at', sevenDaysAgo)
+        : { data: [] };
+      const activeIds = new Set((recentLogins ?? []).map((p: any) => p.id));
+      const activeAssocs = new Set<string>();
+      const managedAssocs = new Set<string>();
+      for (const m of managerActivity.data ?? []) {
+        managedAssocs.add(m.association_id);
+        if (activeIds.has(m.user_id)) activeAssocs.add(m.association_id);
+      }
 
       const openWOMap = new Map<string, number>();
       const overdueWOMap = new Map<string, number>();
@@ -105,7 +119,7 @@ export default async function AssociationHealthPage() {
         let health = 'healthy';
         if (overdue > 3 || open > 10) health = 'critical';
         else if (overdue > 0 || open > 5) health = 'warning';
-        const hasManagerActivity = (managerActivity.data ?? []).some((act: any) => act.user_id);
+
         return {
           portfolio_id: a.portfolio_id,
           company_name: a.portfolios?.company_name ?? '—',
@@ -116,7 +130,7 @@ export default async function AssociationHealthPage() {
           open_work_orders: open,
           overdue_work_orders: overdue,
           open_violations: viols,
-          last_manager_activity: hasManagerActivity ? 'Recently' : '>7 days',
+          last_manager_activity: !managedAssocs.has(a.id) ? 'No manager assigned' : activeAssocs.has(a.id) ? 'Within 7 days' : '>7 days',
         };
       });
     }

@@ -68,12 +68,14 @@ export default async function PortfolioHealthPage() {
     .select('association_id, user_id')
     .is('ended_at', null)
 
-  const { data: recentActivity } = await db
-    .from('activity')
-    .select('user_id, created_at')
-    .gte('created_at', sevenDaysAgo)
+  // `activity` is an internal agent log, not user sign-ins; last_login_at is
+  // stamped by record_login_attempt on every successful login.
+  const assignedManagerIds = [...new Set((assocManagers ?? []).map((am: any) => am.user_id).filter(Boolean))]
+  const { data: recentLogins } = assignedManagerIds.length > 0
+    ? await db.from('profiles').select('id').in('id', assignedManagerIds).gte('last_login_at', sevenDaysAgo)
+    : { data: [] }
 
-  const activeManagerIds = new Set((recentActivity ?? []).map((a: any) => a.user_id))
+  const activeManagerIds = new Set((recentLogins ?? []).map((p: any) => p.id))
   const managerByAssoc = new Map<string, string[]>()
   for (const am of assocManagers ?? []) {
     if (!managerByAssoc.has(am.association_id)) managerByAssoc.set(am.association_id, [])
