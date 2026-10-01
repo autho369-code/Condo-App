@@ -175,6 +175,9 @@ export async function inviteAdmin(formData: FormData) {
       invited_by: me.auth_user_id,
       expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
       message: `You have been invited to administer ${portfolio.company_name}.`,
+      // We queue our own branded email below; stop queue_invitation_email
+      // from sending a second one.
+      metadata: { email_delivery: 'application' },
     })
     .select('id, token, expires_at')
     .single();
@@ -262,7 +265,7 @@ export async function regenerateInvitation(formData: FormData) {
   const svc = createServiceClient() as any;
   const { data: old } = await svc
     .from('user_invitations')
-    .select('email, full_name, hoa_role, role_id, portfolio_id, message')
+    .select('email, full_name, hoa_role, role_id, portfolio_id, message, metadata')
     .eq('id', invitationId)
     .maybeSingle();
   if (!old) fail(returnTo, 'Invitation not found.');
@@ -280,6 +283,7 @@ export async function regenerateInvitation(formData: FormData) {
       message: old.message,
       invited_by: me.auth_user_id,
       expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+      metadata: { ...(old.metadata ?? {}), email_delivery: 'application' }, // app sends the email below
     })
     .select('id, token, expires_at')
     .single();
@@ -304,6 +308,24 @@ export async function regenerateInvitation(formData: FormData) {
   await audit(svc, me, 'invitation_regenerated', old.portfolio_id, { email: old.email, old_invitation_id: invitationId, new_invitation_id: fresh.id });
   revalidatePath(returnTo);
   ok(returnTo, 'regenerated');
+}
+
+// Account-state changes need a platform *admin* (support/readonly operators may
+// not lock people out), can't target yourself or another operator, and must
+// keep profiles.disabled_at in step with the auth ban — that flag is what
+// isActiveProfile enforces and what /platform-operator/users shows.
+async function requireAccountAdministrator(returnTo: string, profileId: string) {
+  const me = await requirePlatformOperator();
+  const svc = createServiceClient() as any;
+  const { data: operator } = await svc.from('platform_operators')
+    .select('role, active').eq('auth_user_id', me.auth_user_id).maybeSingle();
+  if (!operator?.active || operator.role !== 'admin') fail(returnTo, 'Platform administrator access is required to change account access.');
+  if (!profileId || profileId === me.auth_user_id) fail(returnTo, 'You cannot change your own account here.');
+  const { data: targetOperator } = await svc.from('platform_operators').select('id').eq('auth_user_id', profileId).maybeSingle();
+  if (targetOperator) fail(returnTo, 'Platform operator accounts are managed from the Operators area.');
+  const { data: profile } = await svc.from('profiles').select('id, email, full_name, portfolio_id, disabled_at').eq('id', profileId).maybeSingle();
+  if (!profile) fail(returnTo, 'User not found.');
+  return { me, svc, profile };
 }
 
 // ── Password management ───────────────────────────────────────────────────
@@ -343,18 +365,41 @@ export async function sendPasswordReset(formData: FormData) {
 }
 
 export async function forcePasswordReset(formData: FormData) {
-  const me = await requirePlatformOperator();
-  const profileId = formData.get('profile_id') as string;
   const returnTo = returnPath(formData, COMPANIES);
+  const profileId = formData.get('profile_id') as string;
+  const { me, svc, profile } = await requireAccountAdministrator(returnTo, profileId);
+  if (!profile.email) fail(returnTo, 'This user has no email address to send a reset link to.');
 
-  const svc = createServiceClient() as any;
-  const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
-  if (!profile) fail(returnTo, 'User not found.');
-
+  // Actually force it: replace the password with an unguessable one (the old
+  // password stops working) and email a reset link. Previously this only set a
+  // metadata flag that nothing read.
+  const { randomBytes } = await import('node:crypto');
   const { error } = await svc.auth.admin.updateUserById(profileId, {
+    password: randomBytes(32).toString('base64url'),
     user_metadata: { force_password_reset: true, force_password_reset_at: new Date().toISOString() },
   });
-  if (error) fail(returnTo, `Could not flag the account: ${error.message}`);
+  if (error) fail(returnTo, `Could not reset the password: ${error.message}`);
+
+  const { data: portfolio } = profile.portfolio_id
+    ? await svc.from('portfolios').select('slug').eq('id', profile.portfolio_id).maybeSingle()
+    : { data: null };
+  const { data: linkData, error: linkError } = await svc.auth.admin.generateLink({
+    type: 'recovery',
+    email: profile.email,
+    options: { redirectTo: tenantWorkspaceUrl(portfolio?.slug, '/api/auth/callback?next=/reset-password') },
+  });
+  if (linkError) fail(returnTo, `Password was reset, but the reset link could not be generated: ${linkError.message}. Use "Send reset email".`);
+  const { error: queueError } = await svc.from('email_queue').insert({
+    to_email: profile.email,
+    to_name: profile.full_name,
+    subject: 'Set a new Portier369 password',
+    body: `<p>Hello,</p><p>The platform team has reset your password. Choose a new one to sign in again.</p><p><a href="${linkData.properties.action_link}">Set a new password</a></p><p>If you did not expect this, contact support.</p>`,
+    status: 'pending',
+    from_address: FROM_ADDRESS,
+    from_name: FROM_NAME,
+    portfolio_id: profile.portfolio_id,
+  });
+  if (queueError) fail(returnTo, `Password was reset, but the email could not be queued: ${queueError.message}. Use "Send reset email".`);
 
   await audit(svc, me, 'password_reset_forced', profile.portfolio_id, { email: profile.email, user_id: profileId });
   revalidatePath(returnTo);
@@ -493,39 +538,34 @@ export async function voidInvoice(formData: FormData) {
   ok(returnTo, 'invoice_voided');
 }
 
-export async function unlockAccount(formData: FormData) {
-  const me = await requirePlatformOperator();
-  const profileId = formData.get('profile_id') as string;
+async function setLoginDisabled(formData: FormData, disable: boolean) {
   const returnTo = returnPath(formData, COMPANIES);
+  const profileId = formData.get('profile_id') as string;
+  const { me, svc, profile } = await requireAccountAdministrator(returnTo, profileId);
 
-  const svc = createServiceClient() as any;
-  const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
-  if (!profile) fail(returnTo, 'User not found.');
+  const { error } = await svc.auth.admin.updateUserById(profileId, { ban_duration: disable ? '876000h' : 'none' });
+  if (error) fail(returnTo, `Could not ${disable ? 'disable' : 'unlock'} the login: ${error.message}`);
+  const { error: profileError } = await svc.from('profiles')
+    .update({ disabled_at: disable ? (profile.disabled_at ?? new Date().toISOString()) : null })
+    .eq('id', profileId);
+  if (profileError) {
+    // Keep the login and the profile flag consistent.
+    await svc.auth.admin.updateUserById(profileId, { ban_duration: disable ? 'none' : '876000h' });
+    fail(returnTo, `Could not update the user profile: ${profileError.message}`);
+  }
 
-  const { error } = await svc.auth.admin.updateUserById(profileId, { ban_duration: 'none' });
-  if (error) fail(returnTo, `Could not unlock the account: ${error.message}`);
-
-  await audit(svc, me, 'account_unlocked', profile.portfolio_id, { email: profile.email, user_id: profileId });
+  await audit(svc, me, disable ? 'login_disabled' : 'account_unlocked', profile.portfolio_id, { email: profile.email, user_id: profileId });
   revalidatePath(returnTo);
-  ok(returnTo, 'unlocked');
+  revalidatePath('/platform-operator/users');
+  ok(returnTo, disable ? 'login_disabled' : 'unlocked');
+}
+
+export async function unlockAccount(formData: FormData) {
+  await setLoginDisabled(formData, false);
 }
 
 export async function disableLogin(formData: FormData) {
-  const me = await requirePlatformOperator();
-  const profileId = formData.get('profile_id') as string;
-  const returnTo = returnPath(formData, COMPANIES);
-
-  const svc = createServiceClient() as any;
-  const { data: profile } = await svc.from('profiles').select('id, email, portfolio_id').eq('id', profileId).maybeSingle();
-  if (!profile) fail(returnTo, 'User not found.');
-
-  // 100-year ban = login disabled until explicitly unlocked
-  const { error } = await svc.auth.admin.updateUserById(profileId, { ban_duration: '876000h' });
-  if (error) fail(returnTo, `Could not disable login: ${error.message}`);
-
-  await audit(svc, me, 'login_disabled', profile.portfolio_id, { email: profile.email, user_id: profileId });
-  revalidatePath(returnTo);
-  ok(returnTo, 'login_disabled');
+  await setLoginDisabled(formData, true);
 }
 
 // ── Edit company details ──────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
@@ -68,7 +69,7 @@ async function reportConcern(formData: FormData) {
   if (unitErr || !unit) { failTo('Unit not found or you no longer have access to it'); return }
   const associationId = (unit.buildings as any).association_id
 
-  const { data: row, error } = await (supabase as any)
+  const { error } = await (supabase as any)
     .from('violations')
     .insert({
       association_id: associationId,
@@ -81,10 +82,9 @@ async function reportConcern(formData: FormData) {
       fine_amount: null,
       created_by: me.auth_user_id,
     })
-    .select('id')
-    .single()
-
-  if (error || !row) { failTo(error?.message ?? 'Failed to submit your report'); return }
+  // No .select() here: reported rows carry no owner_id, so the reporter can't
+  // read the row back and RETURNING failed every submit with an RLS error.
+  if (error) { failTo(error.message); return }
 
   revalidatePath('/portal/violations')
   redirect('/portal/violations?reported=1')
@@ -96,13 +96,14 @@ export default async function ReportConcernPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const sp = await searchParams
-  await requireOwner()
+  const me = await requireOwner()
   const supabase = await createClient()
 
-  // The owner's units (RLS scopes this view to units they belong to).
+  // Only the owner's own units (RLS also admits board members to every unit).
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_id')
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
   const unitOptions = (units ?? []) as UnitOption[]
 
   return (

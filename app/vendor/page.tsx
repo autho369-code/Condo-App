@@ -25,7 +25,7 @@ export default async function VendorDashboard() {
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(100),
-    db.from('vendor_compliance').select('*').eq('vendor_id', me.vendor_id).maybeSingle(),
+    db.from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(), // same dates management sees
     db.from('payable_bills')
       .select('amount, credit_applied, status')
       .eq('vendor_id', me.vendor_id)

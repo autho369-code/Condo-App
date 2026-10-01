@@ -73,7 +73,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
     .is('archived_at', null)
     .eq('assignee_id', id)
 
-  const openWorkOrders = (allWorkOrders ?? []).filter((wo: any) => !['completed', 'closed', 'cancelled'].includes(wo.status))
+  const openWorkOrders = (allWorkOrders ?? []).filter((wo: any) => !['done', 'completed', 'billed', 'closed', 'cancelled'].includes(wo.status))
   const overdueWorkOrders = openWorkOrders.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < today)
 
   let openViolations = 0

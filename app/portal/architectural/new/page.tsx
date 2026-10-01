@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { NewArchitecturalRequestForm, type UnitOption } from '@/components/architectural/new-request-form';
 
@@ -22,7 +23,8 @@ export default async function NewArchitecturalRequest() {
   // RLS on v_unit_account_summary filters to the units this owner belongs to.
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
-    .select('unit_id, unit_number, association_id');
+    .select('unit_id, unit_number, association_id')
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)));
 
   const unitRows = (units ?? []) as UnitRow[];
   const associationIds = Array.from(

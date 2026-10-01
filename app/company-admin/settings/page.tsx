@@ -110,7 +110,7 @@ export default async function SettingsPage({
             </div>
             <Field label="Logo URL" name="logo_url" defaultValue={ps.logo_url} placeholder="https://..." />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Support Email" name="support_email" defaultValue={ps.support_email} placeholder="support@company.com" />
+              <Field label="Support Email" name="support_email" defaultValue={p.support_email} placeholder="support@company.com" />
               <Field label="Billing Email" name="billing_email" defaultValue={ps.billing_email} placeholder="billing@company.com" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -225,10 +225,10 @@ export default async function SettingsPage({
                 <input
                   type="color"
                   name="brand_color"
-                  defaultValue={ps.branding_color ?? '#10B981'}
+                  defaultValue={p.brand_color ?? '#10B981'}
                   className="h-10 w-16 cursor-pointer rounded-xl border border-gray-200 bg-white"
                 />
-                <span className="text-sm text-gray-500">{ps.branding_color ?? '#10B981'}</span>
+                <span className="text-sm text-gray-500">{p.brand_color ?? '#10B981'}</span>
               </div>
             </label>
           </div>

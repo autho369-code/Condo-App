@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date, money } from '@/lib/utils'
@@ -18,7 +19,7 @@ export default async function BoardInsurancePage() {
   const [{ data: docs }, { data: policies }] = await Promise.all([
     // Association-level insurance documents (master policy, certificates, ...)
     db.from('documents')
-      .select('id, doc_type, file_name, file_url, expires_at, uploaded_at')
+      .select('id, entity_id, doc_type, file_name, file_url, expires_at, uploaded_at')
       .eq('entity_type', 'association')
       .in('entity_id', ids)
       .order('uploaded_at', { ascending: false }),
@@ -30,6 +31,18 @@ export default async function BoardInsurancePage() {
   ])
 
   const insuranceDocs = (docs ?? []).filter((d: any) => /insurance|policy|coi|certificate/i.test(`${d.doc_type} ${d.file_name}`))
+  // file_url is a private storage path; link a short-lived signed URL (a raw
+  // path resolved to /board/associations/... and 404'd).
+  const docLinks = new Map<string, string>()
+  const toSign = insuranceDocs.filter((d: any) => isScopedStoragePath(d.file_url, 'associations', d.entity_id))
+  if (toSign.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+        .createSignedUrls(toSign.map((d: any) => d.file_url), 3600)
+      const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
+      for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
+    } catch {}
+  }
   const current = (policies ?? []).filter((p: any) => p.expiration_date && p.expiration_date >= today)
   const expired = (policies ?? []).filter((p: any) => !p.expiration_date || p.expiration_date < today)
 
@@ -86,8 +99,8 @@ export default async function BoardInsurancePage() {
                 insuranceDocs.map((d: any) => (
                   <tr key={d.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                     <td className="px-5 py-3">
-                      {d.file_url ? (
-                        <a href={d.file_url} target="_blank" rel="noreferrer" className="font-medium text-gray-900 hover:underline">{d.file_name ?? 'Document'}</a>
+                      {docLinks.get(d.id) ? (
+                        <a href={docLinks.get(d.id)} target="_blank" rel="noreferrer" className="font-medium text-gray-900 hover:underline">{d.file_name ?? 'Document'}</a>
                       ) : (
                         <span className="font-medium text-gray-900">{d.file_name ?? 'Document'}</span>
                       )}

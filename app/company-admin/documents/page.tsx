@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
@@ -33,6 +34,19 @@ export default async function GlobalDocumentsPage() {
   ])
 
   const assocName = new Map<string, string>((assocs ?? []).map((a: any) => [a.id, a.name]))
+
+  // file_url is a private storage path; a raw href resolved under
+  // /company-admin/... and 404'd. Sign paths that sit in their entity's folder.
+  const docLinks = new Map<string, string>()
+  const toSign = (docs ?? []).filter((d: any) => isEntityDocumentStoragePath(d.file_url, d.entity_type, d.entity_id))
+  if (toSign.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+        .createSignedUrls(toSign.map((d: any) => d.file_url), 3600)
+      const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
+      for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
+    } catch {}
+  }
 
   // Group by document category.
   const groups = new Map<string, any[]>()
@@ -100,8 +114,8 @@ export default async function GlobalDocumentsPage() {
                   {items.map((d: any) => (
                     <tr key={d.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                       <td className="px-5 py-3">
-                        {d.file_url ? (
-                          <a href={d.file_url} target="_blank" rel="noreferrer" className="font-medium text-gray-900 hover:underline">{d.file_name ?? 'Document'}</a>
+                        {docLinks.get(d.id) ? (
+                          <a href={docLinks.get(d.id)} target="_blank" rel="noreferrer" className="font-medium text-gray-900 hover:underline">{d.file_name ?? 'Document'}</a>
                         ) : (
                           <span className="font-medium text-gray-900">{d.file_name ?? 'Document'}</span>
                         )}

@@ -38,7 +38,9 @@ export default async function VendorCompliance({
   const sp = await searchParams;
   const supabase = await createClient();
   const [complianceResult, documentResult, requestResult] = await Promise.all([
-    (supabase as any).from('vendor_compliance').select('*').eq('vendor_id', me.vendor_id).maybeSingle(),
+    // Read the vendor record: that is what management sees (vendor saves are
+    // synced onto it by trg_vendor_compliance_sync).
+    (supabase as any).from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
     (supabase as any).from('documents')
       .select('id, doc_type, file_name, file_url, expires_at, uploaded_at')
       .eq('entity_type', 'vendor').eq('entity_id', me.vendor_id).order('uploaded_at', { ascending: false }),

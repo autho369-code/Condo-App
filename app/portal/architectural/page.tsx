@@ -28,13 +28,14 @@ export default async function OwnerArchitecturalList({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireOwner();
+  const me = await requireOwner();
   const { error } = await searchParams;
   const supabase = await createClient();
 
   const { data: rows } = await (supabase as any)
     .from('architectural_requests')
     .select('id, title, category, status, created_at, units(unit_number)')
+    .eq('owner_id', me.owner_id) // board members can read every request; show only mine
     .order('created_at', { ascending: false });
 
   return (

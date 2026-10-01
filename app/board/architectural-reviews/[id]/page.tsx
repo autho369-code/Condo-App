@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Alert } from '@/components/ui/shell'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -24,11 +25,14 @@ const label = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUp
 
 export default async function BoardArchitecturalDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const me = await requireBoard()
   const { id } = await params
+  const sp = await searchParams
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
@@ -55,6 +59,7 @@ export default async function BoardArchitecturalDetail({
       <Link href="/board/architectural-reviews" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">
         <ArrowLeft className="h-4 w-4" /> Back to architectural reviews
       </Link>
+      {sp.error && <Alert tone="danger" title="Your comment was not posted.">{sp.error}</Alert>}
 
       <div className="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="mb-4 flex items-start justify-between gap-3">

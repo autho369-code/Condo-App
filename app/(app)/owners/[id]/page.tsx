@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -29,7 +29,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
 }
 
 export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
-  const me = await requireStaff();
+  const me = await requireWorkspaceStaff(); // company admins land here from their portal
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const sp = await searchParams;
@@ -728,7 +728,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                   className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
-                  <option value="annual">Annual</option>
+                  <option value="annually">Annual</option>
                 </select>
               </div>
               <div>

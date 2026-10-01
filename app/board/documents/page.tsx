@@ -17,7 +17,7 @@ export default async function BoardDocumentsPage() {
   // Get violations with attachments
   const { data: violationDocs } = await db
     .from('violations')
-    .select('id, title, attachments, created_at, units!inner(unit_number)')
+    .select('id, title, attachments, created_at, units(unit_number)')
     .in('association_id', ids)
     .is('archived_at', null)
     .not('attachments', 'is', null)
@@ -29,7 +29,7 @@ export default async function BoardDocumentsPage() {
   try {
     const { data } = await db
       .from('work_orders')
-      .select('id, title, created_at, units!inner(unit_number)')
+      .select('id, title, created_at, units(unit_number)')
       .in('association_id', ids)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
@@ -63,14 +63,30 @@ export default async function BoardDocumentsPage() {
     { folder: 'Other', items: assocDocs.filter((d) => !d.folder) },
   ].filter((g) => g.items.length > 0)
 
-  // Build document list from attachments
+  // Build document list from attachments. Violation attachments are
+  // { name, path } objects in a private bucket: sign each path that sits in
+  // that violation's own folder (a raw path is not a usable link).
   const docs: any[] = []
+  const attachmentPaths: string[] = []
   for (const v of violationDocs ?? []) {
-    const atts = v.attachments
-    if (Array.isArray(atts)) {
-      for (const a of atts) {
-        docs.push({ name: typeof a === 'string' ? a.split('/').pop() : 'Attachment', url: typeof a === 'string' ? a : null, type: 'Violation', related: v.title, unit: v.units?.unit_number, date: v.created_at, id: v.id })
-      }
+    for (const a of Array.isArray(v.attachments) ? v.attachments : []) {
+      const path = typeof a === 'string' ? a : a?.path
+      if (isScopedStoragePath(path, 'violations', v.id)) attachmentPaths.push(path)
+    }
+  }
+  const signedAttachment = new Map<string, string>()
+  if (attachmentPaths.length) {
+    try {
+      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
+        .createSignedUrls(attachmentPaths, 3600)
+      for (const x of signed ?? []) if (x?.signedUrl) signedAttachment.set(x.path, x.signedUrl)
+    } catch {}
+  }
+  for (const v of violationDocs ?? []) {
+    for (const a of Array.isArray(v.attachments) ? v.attachments : []) {
+      const path = typeof a === 'string' ? a : a?.path
+      const name = (typeof a === 'string' ? undefined : a?.name) ?? (typeof path === 'string' ? path.split('/').pop() : 'Attachment')
+      docs.push({ name, url: path ? signedAttachment.get(path) ?? null : null, type: 'Violation', related: v.title, unit: v.units?.unit_number, date: v.created_at, id: v.id })
     }
   }
 

@@ -42,20 +42,21 @@ export async function updateCompanySettings(formData: FormData) {
     permissions: (formData.get('default_permissions') as string) || 'standard',
   }
 
-  // Update portfolios table
-  const portfolioUpdate: Record<string, any> = {
-    company_name: companyName,
-    phone_number: phoneNumber || null,
-    address_street: addressStreet || null,
-    address_city: addressCity || null,
-    address_state: addressState || null,
-    address_zip: addressZip || null,
-  }
-
-  const { error: portfolioError } = await db
-    .from('portfolios')
-    .update(portfolioUpdate)
-    .eq('id', portfolioId)
+  // Company profile goes through update_company_profile: a direct update on
+  // portfolios matched 0 rows for company admins (RLS), so saves were lost
+  // while the page said "Settings saved". Support email and brand color were
+  // never written at all.
+  const brandColor = (formData.get('brand_color') as string) || null
+  const { error: portfolioError } = await db.rpc('update_company_profile', {
+    p_company_name: companyName,
+    p_phone_number: phoneNumber || null,
+    p_address_street: addressStreet || null,
+    p_address_city: addressCity || null,
+    p_address_state: addressState || null,
+    p_address_zip: addressZip || null,
+    p_support_email: (formData.get('support_email') as string) || null,
+    p_brand_color: brandColor,
+  })
 
   if (portfolioError) failTo(`Failed to update company profile: ${portfolioError.message}`)
 

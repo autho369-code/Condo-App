@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Badge } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
@@ -11,15 +12,19 @@ export default async function LedgerPage() {
   const me = await requireAuth();
   const supabase = await createClient();
 
-  // RLS scopes charges + payments to the resident's own unit
+  // Filter to the owner's own units explicitly: RLS also admits board members
+  // to the whole association, which leaked every owner's ledger here.
+  const myUnits = unitFilter(await ownPortalUnitIds(supabase, me.owner_id));
   const { data: charges } = await (supabase as any)
     .from('v_charge_balances')
     .select('*')
+    .in('unit_id', myUnits)
     .order('due_date', { ascending: false });
 
   const { data: payments } = await (supabase as any)
     .from('payments')
     .select('id, amount, payment_date, method, reference, notes')
+    .in('unit_id', myUnits)
     .order('payment_date', { ascending: false });
 
   // Association name for the export header (owner's first current occupancy)
@@ -54,6 +59,7 @@ export default async function LedgerPage() {
   const { data: activePlans } = await (supabase as any)
     .from('payment_plans')
     .select('id, total_amount, installment_count, frequency, units(unit_number)')
+    .in('unit_id', myUnits)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
   const plans = await Promise.all(((activePlans ?? []) as any[]).map(async (plan) => {

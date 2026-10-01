@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/utils';
@@ -37,14 +38,16 @@ export default async function PayPage({
   searchParams: Promise<{ error?: string; canceled?: string }>;
 }) {
   const sp = await searchParams;
-  await requireAuth();
+  const me = await requireAuth();
   const supabase = await createClient();
   const onlinePayments = isStripeConfigured();
 
-  // The resident's unit summary(ies). RLS filters to their own unit(s).
+  // Only the owner's own units (RLS alone also admits board members to every unit).
+  const myUnits = unitFilter(await ownPortalUnitIds(supabase, me.owner_id));
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('*')
+    .in('unit_id', myUnits)
     .order('association_id');
 
   const unitOptions = (units ?? []) as UnitAccountSummary[];

@@ -88,7 +88,8 @@ export default async function BoardDashboardPage() {
     { data: bankLines },
     { data: meetings },
     { data: vendorVisits },
-    { data: approvals },
+    { data: approvalRows },
+    { data: projectRows },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
@@ -98,14 +99,19 @@ export default async function BoardDashboardPage() {
     db.from('journal_lines').select('gl_account_id, debit_amount, credit_amount, journal_entries!inner(posted)').in('association_id', ids).eq('journal_entries.posted', true),
     db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).gte('start_time', today.toISOString()).order('start_time').limit(5),
     db.from('calendar_events').select('id, title, start_datetime, vendors(name)').in('association_id', ids).not('vendor_id', 'is', null).is('archived_at', null).gte('start_datetime', today.toISOString()).lte('start_datetime', in30).order('start_datetime').limit(5),
-    db.from('approval_requests').select('id, title, status').in('association_id', ids).eq('status', 'pending').limit(10),
+    // Include my decisions so requests I already voted on don't count as awaiting my vote.
+    db.from('approval_requests').select('id, title, status, approval_decisions(decided_by)').in('association_id', ids).eq('status', 'pending').limit(25),
+    db.from('capital_projects').select('id, status').in('association_id', ids).is('archived_at', null),
   ])
+  const approvals = (approvalRows ?? []).filter((a: any) =>
+    !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id))
 
   const open = openWOs ?? []
   const overdue = open.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < todayDate).length
   const emergencies = open.filter((wo: any) => wo.priority === 'emergency')
-  const activeProjects = open.filter((wo: any) =>
-    wo.category === 'project' || wo.category === 'major_repair' || /project/i.test(wo.title ?? '')).length
+  // Same source as /board/projects (capital_projects), not work-order titles.
+  const activeProjects = (projectRows ?? []).filter((p: any) =>
+    ['board_review', 'approved', 'active', 'on_hold'].includes(p.status)).length
   const openViolations = (viols ?? []).length
   const delinquentUnits = (balances ?? []).filter((b: any) => Number(b.balance ?? 0) > 0).length
   const arTotal = (balances ?? []).reduce((s: number, b: any) => s + Math.max(0, Number(b.balance ?? 0)), 0)

@@ -25,10 +25,12 @@ export default async function VendorSchedulePage() {
       .not('scheduled_date', 'is', null)
       .order('scheduled_date'),
     db.from('calendar_events')
-      .select('id, title, start_datetime, location, associations(name)')
+      .select('id, title, start_datetime, location, operations_status, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
-      .gte('start_datetime', new Date().toISOString())
+      // Upcoming, plus past visits still marked scheduled (they're overdue,
+      // not finished; they used to vanish from the schedule).
+      .or(`start_datetime.gte.${new Date().toISOString()},operations_status.eq.scheduled`)
       .lte('start_datetime', in60)
       .order('start_datetime'),
     db.from('maintenance_tasks')
@@ -59,7 +61,7 @@ export default async function VendorSchedulePage() {
       title: e.title ?? 'Appointment',
       detail: `${e.associations?.name ?? '—'}${e.location ? ` · ${e.location}` : ''}`,
       kind: 'event',
-      overdue: false,
+      overdue: (e.start_datetime ?? '').slice(0, 10) < todayDate && e.operations_status === 'scheduled',
     })),
     ...(tasks ?? []).map((t: any): Item => ({
       key: `t-${t.id}`,

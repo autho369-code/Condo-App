@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/me';
+import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -48,7 +49,9 @@ export default async function NewServiceRequest({
   // RLS on v_unit_account_summary already filters to units the user belongs to.
   const { data: units } = await (supabase as any)
     .from('v_unit_account_summary')
-    .select('unit_id, unit_number, association_id');
+    .select('unit_id, unit_number, association_id')
+    // Only my units: RLS also admits board members to every unit.
+    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)));
 
   const unitOptions = (units ?? []) as UnitOption[];
   const associationIds: string[] = Array.from(

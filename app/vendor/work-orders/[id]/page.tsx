@@ -71,6 +71,24 @@ export default async function VendorWorkOrderDetail({
       redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent('Add a note or pick a status before posting.')}`);
     }
 
+    if (newStatus) {
+      const patch: Record<string, any> = { status: newStatus };
+      if (newStatus === 'done') patch.completed_date = new Date().toISOString().slice(0, 10);
+      const { data: updated, error: upErr } = await db2.from('work_orders').update(patch).eq('id', woId).eq('vendor_id', me2.vendor_id).select('id');
+      if (upErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(upErr.message)}`);
+      // The DB guard ignores changes once a job is completed/billed; say so
+      // instead of logging a "Status changed" entry that never happened.
+      if (!updated || updated.length === 0) {
+        redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent('That status change was not accepted — this job may already be completed or billed. Contact the manager.')}`);
+      }
+      // Auto keep homeowner informed — only when the update actually matched this
+      // vendor's work order. Helper never throws, so it can't fail the action.
+      if (updated && updated.length > 0) {
+        await notifyOwnerOfStatusChange({ kind: 'work_order', id: woId, newStatus });
+      }
+    }
+
+    // Log the note only after the status change actually applied.
     const { error: insErr } = await db2.from('work_order_updates').insert({
       work_order_id: woId,
       note: note || (newStatus ? `Status changed to ${newStatus.replace(/_/g, ' ')}` : ''),
@@ -78,18 +96,6 @@ export default async function VendorWorkOrderDetail({
       created_by: me2.auth_user_id,
     });
     if (insErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(insErr.message)}`);
-
-    if (newStatus) {
-      const patch: Record<string, any> = { status: newStatus };
-      if (newStatus === 'done') patch.completed_date = new Date().toISOString().slice(0, 10);
-      const { data: updated, error: upErr } = await db2.from('work_orders').update(patch).eq('id', woId).eq('vendor_id', me2.vendor_id).select('id');
-      if (upErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(upErr.message)}`);
-      // Auto keep homeowner informed — only when the update actually matched this
-      // vendor's work order. Helper never throws, so it can't fail the action.
-      if (updated && updated.length > 0) {
-        await notifyOwnerOfStatusChange({ kind: 'work_order', id: woId, newStatus });
-      }
-    }
 
     revalidatePath(`/vendor/work-orders/${woId}`);
     redirect(`/vendor/work-orders/${woId}?saved=1`);
