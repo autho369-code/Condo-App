@@ -37,9 +37,9 @@ export default async function VendorCreditsPage({
     // Every credit with a balance left, so recent history can never crowd one out.
     pageAll(() => db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }).order('id')),
     db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    pageAll(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
     pageAll(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
-    db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
+    pageAll(() => db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number').order('id')),
   ]);
   const open = (openCredits ?? []) as any[];
   const rows = [...open, ...((history ?? []) as any[])];

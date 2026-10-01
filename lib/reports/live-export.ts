@@ -354,20 +354,46 @@ async function apAgingRows(
     .order('due_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
 
-  return (data ?? []).map((bill: any) => ({
-    Association: bill.associations?.name ?? '',
-    Vendor: bill.vendors?.name ?? '',
-    'Bill #': bill.bill_number ?? '',
-    'Bill date': bill.bill_date,
-    'Due date': bill.due_date,
-    Memo: bill.memo ?? '',
-    Status: bill.status,
-    'Aging bucket': agingBucket(bill.due_date, asOf),
-    // Vendor credits applied to the bill reduce what is still owed.
-    'Balance due': Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0),
-    'Bill ID': bill.id,
-    'As of': asOf,
-  }));
+  // Credits not yet applied to a bill already reduced A/P in the ledger, so they
+  // appear as negative rows and the aging total matches the A/P balance.
+  const { data: credits, error: creditsError } = await db
+    .from('vendor_credits')
+    .select('id, credit_date, reference, memo, remaining_amount, vendors(name), associations(name)')
+    .in('association_id', associationIds)
+    .gt('remaining_amount', 0)
+    .lte('credit_date', asOf)
+    .order('credit_date', { ascending: true });
+  if (creditsError) throw creditsError;
+
+  return [
+    ...(data ?? []).map((bill: any) => ({
+      Association: bill.associations?.name ?? '',
+      Vendor: bill.vendors?.name ?? '',
+      'Bill #': bill.bill_number ?? '',
+      'Bill date': bill.bill_date,
+      'Due date': bill.due_date,
+      Memo: bill.memo ?? '',
+      Status: bill.status,
+      'Aging bucket': agingBucket(bill.due_date, asOf),
+      // Vendor credits applied to the bill reduce what is still owed.
+      'Balance due': Number(bill.amount ?? 0) - Number(bill.credit_applied ?? 0),
+      'Bill ID': bill.id,
+      'As of': asOf,
+    })),
+    ...(credits ?? []).map((credit: any) => ({
+      Association: credit.associations?.name ?? '',
+      Vendor: credit.vendors?.name ?? '',
+      'Bill #': credit.reference ?? '',
+      'Bill date': credit.credit_date,
+      'Due date': null,
+      Memo: credit.memo ?? '',
+      Status: 'unapplied vendor credit',
+      'Aging bucket': 'Current',
+      'Balance due': -Number(credit.remaining_amount ?? 0),
+      'Bill ID': credit.id,
+      'As of': asOf,
+    })),
+  ];
 }
 
 async function arAgingRows(
