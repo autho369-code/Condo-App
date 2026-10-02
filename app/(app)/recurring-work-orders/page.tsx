@@ -11,6 +11,8 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +30,9 @@ function formatLabel(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function deriveStatus(r: any): { label: string; tone: Tone } {
-  // Date-only compare: a plan is still running on its last day.
-  if (r.end_date && r.end_date < new Date().toISOString().slice(0, 10)) {
+function deriveStatus(r: any, todayYmd: string): { label: string; tone: Tone } {
+  // Date-only compare in local time: a plan is still running on its last day.
+  if (r.end_date && r.end_date < todayYmd) {
     return { label: 'Ended', tone: 'neutral' };
   }
   if (r.auto_generate) {
@@ -43,27 +45,30 @@ function deriveStatus(r: any): { label: string; tone: Tone } {
 export default async function RecurringWorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; frequency?: string; association_id?: string; status?: string; error?: string; generated?: string; paused?: string; resumed?: string }>;
+  searchParams: Promise<{ q?: string; frequency?: string; association_id?: string; vendor_id?: string; status?: string; error?: string; generated?: string; paused?: string; resumed?: string }>;
 }) {
   await requireStaff();
-  const { q = '', frequency = '', association_id = '', status = '', error: actionError, generated, paused, resumed } = await searchParams;
+  const { q = '', frequency = '', association_id = '', vendor_id = '', status = '', error: actionError, generated, paused, resumed } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
+  // Every plan, paged past PostgREST's 1,000-row cap.
   const [
-    { data: rows },
+    rowsRes,
     { data: associations },
+    { data: vendors },
   ] = await Promise.all([
-    db
+    fetchAllRows<any>(() => db
       .from('recurring_work_orders')
-      .select('id, title, trade, priority, frequency, interval_count, next_due_date, last_generated_at, auto_generate, start_date, end_date, association_id, unit_id, vendor_id, associations(name), units(unit_number), vendors(name)')
+      .select('id, title, description, trade, priority, frequency, interval_count, next_due_date, last_generated_at, auto_generate, start_date, end_date, association_id, unit_id, vendor_id, associations(name), units(unit_number), vendors(name)')
       .is('archived_at', null)
       .order('next_due_date', { ascending: true, nullsFirst: false })
-      .limit(500),
+      .order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
   ]);
 
-  const all = (rows ?? []) as any[];
+  const all = rowsRes.rows;
 
   // ── Filter ──
   let filtered = all;
@@ -72,6 +77,7 @@ export default async function RecurringWorkOrdersPage({
     filtered = filtered.filter(
       (r: any) =>
         (r.title ?? '').toLowerCase().includes(ql) ||
+        (r.description ?? '').toLowerCase().includes(ql) ||
         (r.vendors?.name ?? '').toLowerCase().includes(ql) ||
         (r.associations?.name ?? '').toLowerCase().includes(ql) ||
         (r.units?.unit_number ?? '').toLowerCase().includes(ql),
@@ -79,18 +85,19 @@ export default async function RecurringWorkOrdersPage({
   }
   if (frequency) filtered = filtered.filter((r: any) => r.frequency === frequency);
   if (association_id) filtered = filtered.filter((r: any) => r.association_id === association_id);
-  const todayYmd = new Date().toISOString().slice(0, 10);
+  if (vendor_id) filtered = filtered.filter((r: any) => r.vendor_id === vendor_id);
+  const todayYmd = todayInZone();
   if (status === 'active') filtered = filtered.filter((r: any) => r.auto_generate && (!r.end_date || r.end_date >= todayYmd));
   if (status === 'paused') filtered = filtered.filter((r: any) => !r.auto_generate && (!r.end_date || r.end_date >= todayYmd));
   if (status === 'ended') filtered = filtered.filter((r: any) => r.end_date && r.end_date < todayYmd);
 
   // ── Metrics ──
-  const now = new Date();
   const activeCount = all.filter((r: any) => r.auto_generate && (!r.end_date || r.end_date >= todayYmd)).length;
   const pausedCount = all.filter((r: any) => !r.auto_generate && (!r.end_date || r.end_date >= todayYmd)).length;
   const endedCount = all.filter((r: any) => r.end_date && r.end_date < todayYmd).length;
+  // Active plans whose next due date has arrived (paused plans don't generate).
   const dueNowCount = all.filter(
-    (r: any) => r.next_due_date && new Date(r.next_due_date) <= now && (!r.end_date || new Date(r.end_date) >= now),
+    (r: any) => r.auto_generate && r.next_due_date && String(r.next_due_date).slice(0, 10) <= todayYmd && (!r.end_date || r.end_date >= todayYmd),
   ).length;
 
   const metrics = [
@@ -106,9 +113,17 @@ export default async function RecurringWorkOrdersPage({
       title="Recurring Work Orders"
       description="Scheduled maintenance — landscaping, pool service, annual inspections. A nightly cron generates real work orders from these."
       actions={
-        <Link href="/recurring-work-orders/new">
-          <Button><Plus className="h-4 w-4" /> New recurring work order</Button>
-        </Link>
+        <>
+          <Link href="/reports/recurring_work_orders">
+            <Button variant="secondary">Recurring work orders report</Button>
+          </Link>
+          <Link href="/work-orders/new">
+            <Button variant="secondary">New work order</Button>
+          </Link>
+          <Link href="/recurring-work-orders/new">
+            <Button><Plus className="h-4 w-4" /> New recurring work order</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-6">
@@ -116,6 +131,8 @@ export default async function RecurringWorkOrdersPage({
         {generated && <Alert tone="success" title="Work order generated.">It&apos;s now in the work order queue.</Alert>}
         {paused && <Alert tone="success" title="Paused.">No new work orders will be generated until you resume it.</Alert>}
         {resumed && <Alert tone="success" title="Resumed.">Work orders will generate on schedule again.</Alert>}
+        {rowsRes.error && <Alert tone="danger" title="Could not load every recurring work order">{rowsRes.error}</Alert>}
+        {rowsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more recurring work orders than this page can load. Filter by association or vendor.</Alert>}
         <MetricStrip metrics={metrics} />
 
         {/* ── FILTER BAR ── */}
@@ -144,6 +161,13 @@ export default async function RecurringWorkOrdersPage({
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </FilterSelect>
+
+          <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor_id}>
+            <option value="">All vendors</option>
+            {(vendors ?? []).map((v: any) => (
+              <option key={v.id} value={v.id}>{v.name}</option>
+            ))}
+          </FilterSelect>
         </FilterBar>
 
         {/* ── TABLE ── */}
@@ -152,6 +176,7 @@ export default async function RecurringWorkOrdersPage({
             <THead>
               <TR>
                 <TH>Name</TH>
+                <TH>Vendor</TH>
                 <TH>Frequency</TH>
                 <TH>Association</TH>
                 <TH>Next Due</TH>
@@ -162,7 +187,7 @@ export default async function RecurringWorkOrdersPage({
             </THead>
             <tbody>
               {filtered.map((r: any) => {
-                const st = deriveStatus(r);
+                const st = deriveStatus(r, todayYmd);
                 return (
                   <TR key={r.id}>
                     <TD className="max-w-xs">
@@ -170,8 +195,15 @@ export default async function RecurringWorkOrdersPage({
                       {r.trade && (
                         <div className="text-xs text-gray-500">{tradeLabel(r.trade)}</div>
                       )}
-                      {r.vendors?.name && (
-                        <div className="text-xs text-gray-400">{r.vendors.name}</div>
+                      {r.description && (
+                        <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{r.description}</div>
+                      )}
+                    </TD>
+                    <TD className="text-sm text-gray-700">
+                      {r.vendor_id ? (
+                        <Link href={`/vendors/${r.vendor_id}`} className="hover:text-gray-950 hover:underline">{r.vendors?.name ?? 'Vendor'}</Link>
+                      ) : (
+                        <span className="text-gray-400">No vendor</span>
                       )}
                     </TD>
                     <TD className="whitespace-nowrap text-sm text-gray-700">
