@@ -12,6 +12,8 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { Alert } from '@/components/ui/shell';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,7 @@ type OwnerRow = {
   electronicConsent: boolean;
   associationName: string | null;
   associationAddress: string | null;
+  associationIds: string[];
   unitNumber: string | null;
   occupancyType: string | null;
   balance: number;
@@ -57,7 +60,7 @@ function assocAddress(association: any) {
 export default async function OwnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; letter?: string; q?: string; tag?: string }>;
+  searchParams: Promise<{ view?: string; letter?: string; q?: string; tag?: string; assoc?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
@@ -65,17 +68,20 @@ export default async function OwnersPage({
   const letter = sp.letter ?? 'all';
   const q = (sp.q ?? '').trim().toLowerCase();
   const tag = /^[0-9a-f-]{36}$/i.test(sp.tag ?? '') ? sp.tag! : '';
+  const assoc = /^[0-9a-f-]{36}$/i.test(sp.assoc ?? '') ? sp.assoc! : '';
 
   const supabase = await createClient();
   const tagOptions = await tagsInUse(supabase, 'owner');
 
-  const [{ data: owners }, { data: occupancies }, { data: tenants }] = await Promise.all([
-    (supabase as any)
+  // Every row, paged past PostgREST's 1,000-row cap.
+  const [ownersRes, occupanciesRes, { data: tenants }, { data: associationOptions }] = await Promise.all([
+    fetchAllRows<any>(() => (supabase as any)
       .from('owners')
       .select('id, full_name, first_name, last_name, email, phone, phone_numbers, preferred_comm, portal_activated, portal_login_last_at, electronic_consent, archived_at')
       .is('archived_at', null)
-      .order('last_name', { ascending: true }),
-    (supabase as any)
+      .order('last_name', { ascending: true })
+      .order('id')),
+    fetchAllRows<any>(() => (supabase as any)
       .from('occupancies')
       .select(`
         id,
@@ -83,31 +89,43 @@ export default async function OwnersPage({
         unit_id,
         occupancy_type,
         status,
+        is_primary,
         units(unit_number, buildings(associations(id, name, address, city, state, zip)))
       `)
-      .eq('status', 'current'),
+      .eq('status', 'current')
+      .order('id')),
     (supabase as any)
       .from('tenants')
-      .select('id, first_name, last_name, email, phone, lease_start, lease_end, status, unit_id, owner_id, units(unit_number, buildings(associations(name)))')
+      .select('id, first_name, last_name, email, phone, lease_start, lease_end, status, unit_id, owner_id, units(unit_number, buildings(associations(id, name)))')
       .is('archived_at', null)
       .eq('status', 'active')
       .order('last_name'),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
+  const owners = ownersRes.rows;
+  const occupancies = occupanciesRes.rows;
+  const loadError = ownersRes.error ?? occupanciesRes.error;
 
-  const occupancyByOwner = new Map<string, any>();
+  // All of an owner's current units (an owner can hold several), primary first.
+  const occupanciesByOwner = new Map<string, any[]>();
   for (const occupancy of occupancies ?? []) {
-    if (!occupancyByOwner.has((occupancy as any).owner_id)) {
-      occupancyByOwner.set((occupancy as any).owner_id, occupancy);
-    }
+    const list = occupanciesByOwner.get((occupancy as any).owner_id) ?? [];
+    list.push(occupancy);
+    occupanciesByOwner.set((occupancy as any).owner_id, list);
+  }
+  for (const list of occupanciesByOwner.values()) {
+    list.sort((x: any, y: any) => Number(Boolean(y.is_primary)) - Number(Boolean(x.is_primary)));
   }
 
   // Outstanding balance per owner (for the at-a-glance delinquency chip)
   const occUnitIds = [...new Set((occupancies ?? []).map((o: any) => o.unit_id).filter(Boolean))];
   const balanceByUnit = new Map<string, number>();
   if (occUnitIds.length > 0) {
-    const { data: balances } = await (supabase as any)
-      .from('unit_balances').select('unit_id, balance').in('unit_id', occUnitIds);
-    for (const b of balances ?? []) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
+    for (let i = 0; i < occUnitIds.length; i += 150) {
+      const { data: balances } = await (supabase as any)
+        .from('unit_balances').select('unit_id, balance').in('unit_id', occUnitIds.slice(i, i + 150));
+      for (const b of balances ?? []) balanceByUnit.set(b.unit_id, Number(b.balance ?? 0));
+    }
   }
   const balanceByOwner = new Map<string, number>();
   for (const occupancy of occupancies ?? []) {
@@ -117,8 +135,10 @@ export default async function OwnersPage({
   }
 
   let rows: OwnerRow[] = (owners ?? []).map((owner: any) => {
-    const occupancy = occupancyByOwner.get(owner.id);
+    const ownerOccupancies = occupanciesByOwner.get(owner.id) ?? [];
+    const occupancy = ownerOccupancies.find((o: any) => o.occupancy_type === 'owner') ?? ownerOccupancies[0];
     const association = occupancy?.units?.buildings?.associations;
+    const ownedHere = ownerOccupancies.filter((o: any) => o.occupancy_type === (occupancy?.occupancy_type ?? 'owner'));
     return {
       id: owner.id,
       name: formatName(owner.first_name, owner.last_name, owner.full_name),
@@ -129,15 +149,17 @@ export default async function OwnersPage({
       portalActivated: Boolean(owner.portal_activated),
       portalLastLogin: owner.portal_login_last_at,
       electronicConsent: Boolean(owner.electronic_consent),
-      associationName: association?.name ?? null,
+      associationName: [...new Set(ownedHere.map((o: any) => o.units?.buildings?.associations?.name).filter(Boolean))].join(', ') || null,
       associationAddress: assocAddress(association),
-      unitNumber: occupancy?.units?.unit_number ?? null,
+      associationIds: [...new Set(ownerOccupancies.map((o: any) => o.units?.buildings?.associations?.id).filter(Boolean))] as string[],
+      unitNumber: ownedHere.map((o: any) => o.units?.unit_number).filter(Boolean).join(', ') || null,
       occupancyType: occupancy?.occupancy_type ?? null,
       balance: balanceByOwner.get(owner.id) ?? 0,
     };
   });
 
   if (view === 'homeowners') rows = rows.filter((row) => row.occupancyType === 'owner');
+  if (assoc) rows = rows.filter((row) => row.associationIds.includes(assoc));
   if (letter !== 'all') rows = rows.filter((row) => row.lastInitial === letter);
   if (tag) {
     const tagged = new Set(await recordIdsWithTag(supabase, 'owner', tag));
@@ -159,9 +181,11 @@ export default async function OwnersPage({
   );
 
   // ── Occupancy mix: owner-occupied vs tenant-occupied units ──
-  const tenantRows = (tenants ?? []) as any[];
+  const tenantRows = ((tenants ?? []) as any[]).filter((t) => !assoc || t.units?.buildings?.associations?.id === assoc);
   const tenantUnitIds = new Set(tenantRows.map((t) => t.unit_id));
-  const occupiedUnitIds = new Set((occupancies ?? []).filter((o: any) => o.occupancy_type === 'owner').map((o: any) => o.unit_id));
+  const occupiedUnitIds = new Set((occupancies ?? [])
+    .filter((o: any) => o.occupancy_type === 'owner' && (!assoc || o.units?.buildings?.associations?.id === assoc))
+    .map((o: any) => o.unit_id));
   for (const unitId of tenantUnitIds) occupiedUnitIds.add(unitId);
   const tenantOccupied = tenantUnitIds.size;
   const ownerOccupied = occupiedUnitIds.size - tenantOccupied;
@@ -228,6 +252,8 @@ export default async function OwnersPage({
     const params = new URLSearchParams();
     if (view !== 'homeowners') params.set('view', view);
     if (q) params.set('q', q);
+    if (assoc) params.set('assoc', assoc);
+    if (tag) params.set('tag', tag);
     if (item !== 'all') params.set('letter', item);
     const query = params.toString();
     return `/owners${query ? `?${query}` : ''}`;
@@ -251,16 +277,26 @@ export default async function OwnersPage({
               <Button variant="secondary">Export leases (CSV)</Button>
             </a>
           )}
+          <Link href={`/send-email${assoc ? `?association=${assoc}` : ''}`}>
+            <Button variant="secondary">Email all homeowners</Button>
+          </Link>
           <Link href="/owners/forms">
             <Button variant="secondary">Send owner form</Button>
           </Link>
+          <Link href="/owners/change">
+            <Button variant="secondary">Change homeowner</Button>
+          </Link>
           <Link href="/owners/new">
-            <Button><Plus className="h-4 w-4" /> New owner</Button>
+            <Button><Plus className="h-4 w-4" /> Move in homeowner</Button>
           </Link>
         </>
       }
     >
       <div className="space-y-4">
+        {loadError && <Alert tone="danger" title="Could not load every homeowner">{loadError}</Alert>}
+        {(ownersRes.truncated || occupanciesRes.truncated) && (
+          <Alert tone="warning" title="List is incomplete">There are more records than this page can load. Filter by association or letter.</Alert>
+        )}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {tabs.map((tab) => (
             <Link
@@ -273,6 +309,14 @@ export default async function OwnersPage({
           ))}
         </nav>
 
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Reports</span>
+          <Link href="/reports/dues_roll" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Dues roll</Link>
+          <Link href="/reports/delinquency" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Delinquency</Link>
+          <Link href="/reports/owner_directory" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Homeowner directory</Link>
+          <Link href="/reports/owner_ledger" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Homeowner ledger</Link>
+        </div>
+
         <MetricStrip
           metrics={[
             { label: 'Owner-occupied units', value: ownerOccupied, sublabel: occupancyPct !== null ? `${occupancyPct}% of occupied units` : 'No occupancy links yet' },
@@ -284,6 +328,10 @@ export default async function OwnersPage({
 
         <FilterBar action="/owners" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner, association, unit, email, or phone">
           {view !== 'homeowners' && <input type="hidden" name="view" value={view} />}
+          <FilterSelect label="Association" name="assoc" defaultValue={assoc}>
+            <option value="">All associations</option>
+            {((associationOptions ?? []) as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
           {(tagOptions.length > 0 || tag) && (
             <FilterSelect label="Tag" name="tag" defaultValue={tag}>
               <option value="">All tags</option>
