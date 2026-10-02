@@ -1,241 +1,167 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip } from '@/components/operations/metric-strip';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Surface, SectionTitle } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { NewScheduleForm } from '@/components/reports/new-schedule-form';
+import { requireStaff } from '@/lib/auth/me';
+import { describeSchedule } from '@/lib/reports/schedule';
+import { archiveSchedule, setScheduleActive } from '@/lib/rpcs/scheduled-reports';
+import { runScheduleNow } from '@/lib/rpcs/reports';
 import { createClient } from '@/lib/supabase/server';
-import { toggleSchedule, deleteSchedule, runScheduleNow } from '@/lib/rpcs/reports';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { displayTimeZone } from '@/lib/time/display-zone';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-// ── Helpers ──
-const FREQUENCY_LABELS: Record<string, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  biweekly: 'Biweekly',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  annually: 'Annually',
+const SAVED_MESSAGES: Record<string, string> = {
+  created: 'Report scheduled.',
+  updated: 'Schedule saved.',
+  paused: 'Schedule paused.',
+  resumed: 'Schedule resumed.',
+  deleted: 'Schedule deleted. Its past runs stay in Report history.',
 };
 
 export default async function ScheduledReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ran?: string }>;
+  searchParams: Promise<{ error?: string; ran?: string; saved?: string; q?: string; status?: string }>;
 }) {
+  await requireStaff();
   const sp = await searchParams;
-  const supabase = await createClient();
+  const q = (sp.q ?? '').trim();
+  const status = sp.status === 'active' || sp.status === 'paused' ? sp.status : '';
+  const db = (await createClient()) as any;
+  const zone = displayTimeZone();
 
-  const [{ data: schedules }, { data: definitions }] = await Promise.all([
-    (supabase as any)
-      .from('scheduled_reports')
-      .select(`id, name, frequency, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_at, report_definitions(id, name, slug)`)
-      .is('archived_at', null)
-      .order('next_run_at', { ascending: true, nullsFirst: false }),
-    (supabase as any)
-      .from('report_definitions')
-      .select('id, name, slug')
-      .eq('active', true)
-      .order('name'),
-  ]);
+  const result = await fetchAllRows<any>(() => db
+    .from('scheduled_reports')
+    .select('id, name, frequency, day_of_week, day_of_month, hour_utc, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_by, saved_report_id, report_definitions(name), saved_reports(name)')
+    .is('archived_at', null)
+    .order('name')
+    .order('id'));
+  const rows = result.rows;
 
-  const rows = (schedules ?? []) as any[];
-  const defs = (definitions ?? []) as { id: string; name: string; slug: string }[];
+  // created_by references auth.users, so names come from profiles separately.
+  const creatorIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))] as string[];
+  const { data: creators } = creatorIds.length
+    ? await db.from('profiles').select('id, full_name, email').in('id', creatorIds)
+    : { data: [] };
+  const creatorName = new Map<string, string>(((creators ?? []) as any[]).map((p) => [p.id, p.full_name ?? p.email ?? '—']));
 
-  const activeCount = rows.filter((r) => r.active).length;
-  const pausedCount = rows.length - activeCount;
+  const ql = q.toLowerCase();
+  const filtered = rows.filter((r) =>
+    (!status || (status === 'active' ? r.active : !r.active)) &&
+    (!ql || [r.name, r.report_definitions?.name, r.saved_reports?.name, ...(Array.isArray(r.delivery_targets) ? r.delivery_targets : [])]
+      .some((v) => String(v ?? '').toLowerCase().includes(ql))));
+
+  const when = (iso: string | null) => iso
+    ? new Date(iso).toLocaleString('en-US', { timeZone: zone, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '—';
 
   return (
     <DataWorkspace
       title="Scheduled Reports"
-      description="Configure reports to run automatically on a recurring schedule and email them to recipients."
+      description="Reports that run automatically on a schedule and are emailed to the people you choose."
       actions={
-        <form action="/scheduled-reports" method="get" className="flex min-w-80 items-center gap-2">
-          <input
-            type="search"
-            name="q"
-            placeholder="Search schedules"
-            aria-label="Search schedules"
-            className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
-          <Button type="submit" variant="secondary">Search</Button>
-        </form>
+        <>
+          <Link href="/reports/runs"><Button variant="secondary">Report history</Button></Link>
+          <Link href="/scheduled-reports/new"><Button><Plus className="h-4 w-4" /> New scheduled report</Button></Link>
+        </>
       }
     >
-      <div className="space-y-6">
-        {sp.ran && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
-            Report run started. It appears under Report runs when it finishes.
-          </div>
-        )}
-        {sp.error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            <span className="font-semibold">Could not save schedule:</span> {sp.error}
-          </div>
-        )}
+      <div className="space-y-4">
+        {sp.ran && <Alert tone="success">Report run started. It appears in Report history when it finishes.</Alert>}
+        {sp.saved && SAVED_MESSAGES[sp.saved] && <Alert tone="success">{SAVED_MESSAGES[sp.saved]}</Alert>}
+        {sp.error && <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>}
+        {result.error && <Alert tone="danger" title="Could not load scheduled reports">{result.error}</Alert>}
 
-        <MetricStrip
-          metrics={[
-            { label: 'Active schedules', value: activeCount, sublabel: 'Running on cadence' },
-            { label: 'Paused', value: pausedCount, sublabel: 'Inactive schedules' },
-            { label: 'Total schedules', value: rows.length, sublabel: `${defs.length} available report definitions` },
-            {
-              label: 'Next due',
-              value: rows.filter((r: any) => r.active && r.next_run_at).length,
-              sublabel: 'Schedules with upcoming run',
-            },
-          ]}
-        />
+        <FilterBar action="/scheduled-reports" searchDefault={q} searchPlaceholder="Search name, report or recipient...">
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+          </FilterSelect>
+        </FilterBar>
 
-        {/* ── Create new schedule ── */}
-        <Surface>
-          <SectionTitle title="New scheduled report" description="Pick a report definition and a cadence; delivery happens automatically." />
-          <div className="max-w-xl">
-            <NewScheduleForm definitions={defs} />
-          </div>
-        </Surface>
-
-        {/* ── Schedules table ── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-950">All schedules</h2>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {rows.length} schedule{rows.length !== 1 ? 's' : ''} configured
-              </p>
-            </div>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
-              {rows.length}
-            </span>
-          </div>
-
-          {rows.length > 0 ? (
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Report name</TH>
-                  <TH>Frequency</TH>
-                  <TH>Recipients</TH>
-                  <TH>Last run</TH>
-                  <TH>Next run</TH>
-                  <TH>Status</TH>
-                  <TH className="text-right">Actions</TH>
-                </TR>
-              </THead>
-              <tbody>
-                {rows.map((s: any) => (
+        {filtered.length > 0 ? (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Name</TH>
+                <TH>Schedule</TH>
+                <TH>Recipients</TH>
+                <TH>Format</TH>
+                <TH>Last run</TH>
+                <TH>Next run</TH>
+                <TH>Created by</TH>
+                <TH>Status</TH>
+                <TH className="text-right">Actions</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {filtered.map((s) => {
+                const targets: string[] = Array.isArray(s.delivery_targets) ? s.delivery_targets : [];
+                return (
                   <TR key={s.id}>
                     <TD className="font-medium text-gray-900">
-                      <div>{s.name}</div>
-                      <div className="text-xs text-gray-500">{s.report_definitions?.name}</div>
+                      <Link href={`/scheduled-reports/${s.id}`} className="underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{s.name}</Link>
+                      <div className="text-xs text-gray-500">
+                        {s.saved_report_id ? `Custom report: ${s.saved_reports?.name ?? 'removed'}` : s.report_definitions?.name}
+                      </div>
                     </TD>
-                    <TD className="text-sm capitalize text-gray-700">
-                      {FREQUENCY_LABELS[s.frequency] ?? s.frequency?.replace(/_/g, ' ')}
-                    </TD>
+                    <TD className="text-sm text-gray-700">{describeSchedule(s, zone)}</TD>
                     <TD className="text-sm text-gray-600">
-                      {Array.isArray(s.delivery_targets) && s.delivery_targets.length > 0
-                        ? s.delivery_targets.slice(0, 3).join(', ') + (s.delivery_targets.length > 3 ? ` +${s.delivery_targets.length - 3} more` : '')
-                        : s.delivery_channel
-                          ? `Via ${s.delivery_channel.replace(/_/g, ' ')}`
-                          : '\u2014'}
+                      {s.delivery_channel === 'download_only'
+                        ? 'Report history only'
+                        : targets.length > 0
+                          ? targets.slice(0, 3).join(', ') + (targets.length > 3 ? ` +${targets.length - 3} more` : '')
+                          : '—'}
                     </TD>
-                    <TD className="whitespace-nowrap text-sm text-gray-600">
-                      {s.last_run_at ? date(s.last_run_at) : '\u2014'}
-                    </TD>
-                    <TD className="whitespace-nowrap text-sm text-gray-900">
-                      {s.next_run_at ? date(s.next_run_at) : '\u2014'}
-                    </TD>
+                    <TD className="text-sm uppercase text-gray-600">{s.output_format}</TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-600">{s.last_run_at ? date(s.last_run_at) : '—'}</TD>
+                    <TD className="whitespace-nowrap text-sm text-gray-900">{s.active ? when(s.next_run_at) : '—'}</TD>
+                    <TD className="text-sm text-gray-600">{creatorName.get(s.created_by) ?? '—'}</TD>
                     <TD>
-                      <StatusChip tone={s.active ? 'success' : 'neutral'}>
-                        {s.active ? 'Active' : 'Paused'}
-                      </StatusChip>
+                      <StatusChip tone={s.active ? 'success' : 'neutral'}>{s.active ? 'Active' : 'Paused'}</StatusChip>
                     </TD>
                     <TD>
                       <div className="flex items-center justify-end gap-1">
-                        {/* Run Now */}
-                        <form action={runScheduleNow as any}>
+                        <Link href={`/scheduled-reports/${s.id}`}><Button variant="secondary" size="sm">Edit</Button></Link>
+                        {s.active && (
+                          <form action={runScheduleNow as any}>
+                            <input type="hidden" name="id" value={s.id} />
+                            <Button type="submit" variant="secondary" size="sm">Run now</Button>
+                          </form>
+                        )}
+                        <form action={setScheduleActive}>
                           <input type="hidden" name="id" value={s.id} />
-                          <button
-                            type="submit"
-                            className="rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                          >
-                            Run now
-                          </button>
+                          <input type="hidden" name="active" value={s.active ? '0' : '1'} />
+                          <Button type="submit" variant="secondary" size="sm">{s.active ? 'Pause' : 'Resume'}</Button>
                         </form>
-
-                        {/* Pause / Resume */}
-                        <form action={toggleSchedule as any}>
+                        <form action={archiveSchedule}>
                           <input type="hidden" name="id" value={s.id} />
-                          <input type="hidden" name="active" value={String(s.active)} />
-                          <button
-                            type="submit"
-                            className="rounded-lg px-2 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50"
-                          >
-                            {s.active ? 'Pause' : 'Resume'}
-                          </button>
-                        </form>
-
-                        {/* Delete */}
-                        <form action={deleteSchedule as any}>
-                          <input type="hidden" name="id" value={s.id} />
-                          <button
-                            type="submit"
-                            className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                          <Button type="submit" variant="secondary" size="sm">Delete</Button>
                         </form>
                       </div>
                     </TD>
                   </TR>
-                ))}
-              </tbody>
-            </Table>
-          ) : (
-            <div className="px-4 py-12 text-center">
-              <p className="text-sm text-gray-500">No scheduled reports yet.</p>
-              <p className="mt-1 text-xs text-gray-400">
-                Use the task panel to create a new scheduled report.
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* ── Metrics section ── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-950">Metrics</h2>
-              <p className="mt-0.5 text-xs text-gray-500">Schedule health and delivery stats</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricTile label="Active" value={activeCount} sub="Running schedules" />
-            <MetricTile label="Paused" value={pausedCount} sub="Inactive schedules" />
-            <MetricTile label="Definitions" value={defs.length} sub="Available reports" />
-            <MetricTile
-              label="Delivery"
-              value={rows.filter((r: any) => r.delivery_channel === 'email').length}
-              sub="Email-delivered"
+                );
+              })}
+            </tbody>
+          </Table>
+        ) : (
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              title={q || status ? 'No schedules match this filter' : 'No scheduled reports yet'}
+              description="Schedule a report, or a custom report with its saved filters, to run and email automatically."
             />
           </div>
-        </section>
+        )}
       </div>
     </DataWorkspace>
-  );
-}
-
-// ── Shared UI ──
-function MetricTile({ label, value, sub }: { label: string; value: number; sub: string }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-      <div className="mt-1 text-xl font-semibold tabular-nums text-gray-950">{value}</div>
-      <div className="mt-0.5 text-xs text-gray-500">{sub}</div>
-    </div>
   );
 }

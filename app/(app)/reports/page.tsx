@@ -302,6 +302,7 @@ function SavedReports({ rows, returnTo }: { rows: SavedReport[]; returnTo: strin
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <Link href={`/scheduled-reports/new?custom=${report.id}`}><Button variant="secondary" size="sm">Schedule</Button></Link>
               <form action={toggleSavedReportPin}>
                 <input type="hidden" name="saved_report_id" value={report.id} />
                 <input type="hidden" name="pinned" value={report.pinned ? '0' : '1'} />

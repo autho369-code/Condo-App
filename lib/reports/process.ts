@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { isSupportedReportOutputFormat, serializeReportOutput } from '@/lib/reports/output';
 import { generateLiveExportRows, supportsLiveExport } from '@/lib/reports/live-export';
+import { computePeriod, PERIOD_PRESETS } from '@/lib/reports/period';
 
 // The missing half of the reporting pipeline: executes a queued report_run.
 //
@@ -50,6 +51,14 @@ export async function processReportRun(runId: string): Promise<void> {
     if (accessCheckError || accessError) {
       await finish({ status: 'failed', error_message: accessCheckError?.message ?? String(accessError) });
       return;
+    }
+
+    // A schedule built from a custom report keeps a relative period ("last
+    // month"); resolve it to dates on the day the run happens.
+    const preset = typeof run.parameters?.preset === 'string' ? run.parameters.preset : '';
+    if (preset && preset !== 'custom' && PERIOD_PRESETS.includes(preset) && !run.parameters?.date_from) {
+      const period = computePeriod(preset);
+      run.parameters = { ...run.parameters, date_from: period.from, date_to: period.to };
     }
 
     const slug = run.report_definitions?.slug;
