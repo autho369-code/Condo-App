@@ -3,193 +3,168 @@ import { Boxes, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { EmptyState } from '@/components/ui/shell';
+import { ASSET_STATUSES, label } from '@/components/fixed-assets/asset-fields';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { money, date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function FixedAssetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; association?: string; type?: string; removed?: string }>;
 }) {
   await requireStaff();
-  const { status: statusParam, q = '' } = await searchParams;
-  const supabase = await createClient();
-  const db = supabase as any;
+  const sp = await searchParams;
+  const status = ASSET_STATUSES.includes(sp.status ?? '') ? sp.status! : 'all';
+  const association = UUID.test(sp.association ?? '') ? sp.association! : '';
+  const type = (sp.type ?? '').trim();
+  const q = (sp.q ?? '').trim();
+  const db = (await createClient()) as any;
 
-  // ── FETCH: fixed_assets with association name joined ──
-  const { data: assets } = await db
-    .from('fixed_assets')
-    .select(
-      'id, name, asset_type, status, purchase_date, purchase_price, accumulated_depreciation, salvage_value, depreciation_method, useful_life_years, description, created_at, association_id, associations(name)'
-    )
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(500);
+  const [assetResult, assocResult] = await Promise.all([
+    fetchAllRows<any>(() => db
+      .from('fixed_assets')
+      .select('id, name, asset_type, status, make, model, serial_number, placed_in_service_date, warranty_expiration_date, purchase_price, accumulated_depreciation, description, association_id, associations(name), units(unit_number)')
+      .is('archived_at', null)
+      .order('name')
+      .order('id'), { maxRows: 20000 }),
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
+  ]);
+  const rows = assetResult.rows;
+  const loadError = assetResult.error ?? assocResult.error;
 
-  const rows = (assets ?? []) as any[];
+  const types = [...new Set(rows.map((a) => (a.asset_type ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const ql = q.toLowerCase();
+  const filtered = rows.filter((a) =>
+    (status === 'all' || a.status === status) &&
+    (!association || a.association_id === association) &&
+    (!type || (a.asset_type ?? '').trim() === type) &&
+    (!ql || [a.name, a.asset_type, a.make, a.model, a.serial_number, a.description, a.associations?.name, a.units?.unit_number]
+      .some((v) => String(v ?? '').toLowerCase().includes(ql))));
 
-  // ── FILTER by status ──
-  let filtered = rows;
-  if (statusParam && statusParam !== 'all') {
-    filtered = filtered.filter((a: any) => a.status === statusParam);
-  }
-
-  // ── SEARCH ──
-  if (q) {
-    const ql = q.toLowerCase();
-    filtered = filtered.filter(
-      (a: any) =>
-        (a.name ?? '').toLowerCase().includes(ql) ||
-        (a.asset_type ?? '').toLowerCase().includes(ql) ||
-        (a.associations?.name ?? '').toLowerCase().includes(ql) ||
-        (a.description ?? '').toLowerCase().includes(ql)
-    );
-  }
-
-  // ── METRICS ──
-  const activeCount = rows.filter((a: any) => a.status === 'active').length;
-  const disposedCount = rows.filter((a: any) => a.status === 'disposed').length;
-  const soldCount = rows.filter((a: any) => a.status === 'sold').length;
-  const fullyDepCount = rows.filter((a: any) => a.status === 'fully_depreciated').length;
-
-  const totalPurchasePrice = rows.reduce(
-    (s: number, a: any) => s + Number(a.purchase_price ?? 0),
-    0
-  );
-  const totalCurrentValue = rows.reduce(
-    (s: number, a: any) =>
-      s + Number(a.purchase_price ?? 0) - Number(a.accumulated_depreciation ?? 0),
-    0
-  );
-
+  const today = todayInZone();
+  const in90 = (() => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 90);
+    return d.toISOString().slice(0, 10);
+  })();
+  const active = rows.filter((a) => a.status === 'active');
+  const expiringSoon = active.filter((a) => a.warranty_expiration_date && a.warranty_expiration_date >= today && a.warranty_expiration_date <= in90).length;
+  const cost = rows.reduce((s, a) => s + Number(a.purchase_price ?? 0), 0);
+  const book = rows.reduce((s, a) => s + Number(a.purchase_price ?? 0) - Number(a.accumulated_depreciation ?? 0), 0);
+  const partial = assetResult.truncated || !!assetResult.error;
   const metrics: Metric[] = [
-    { label: 'Active', value: activeCount },
-    { label: 'Disposed', value: disposedCount },
-    { label: 'Sold', value: soldCount },
-    { label: 'Fully depreciated', value: fullyDepCount },
-    { label: 'Total purchase', value: money(totalPurchasePrice) },
-    { label: 'Current value', value: money(totalCurrentValue) },
+    { label: 'Active', value: partial ? '—' : active.length },
+    { label: 'Warranties ending in 90 days', value: partial ? '—' : expiringSoon },
+    { label: 'Total cost', value: partial ? '—' : money(cost) },
+    { label: 'Book value', value: partial ? '—' : money(book) },
   ];
+
+  const statusHref = (value: string) => {
+    const p = new URLSearchParams();
+    if (value !== 'all') p.set('status', value);
+    if (association) p.set('association', association);
+    if (type) p.set('type', type);
+    if (q) p.set('q', q);
+    return p.toString() ? `/fixed-assets?${p}` : '/fixed-assets';
+  };
+  const filtering = status !== 'all' || association || type || q;
 
   return (
     <DataWorkspace
       title="Fixed Assets"
-      description="Track association property, equipment, and capital assets — purchase details, depreciation schedules, and disposal records."
+      description="Equipment, appliances and other capital assets at each association: where they are, warranty, and value."
       actions={
         <Link href="/fixed-assets/new">
-          <Button><Plus className="h-4 w-4" /> New asset</Button>
+          <Button><Plus className="h-4 w-4" /> Add fixed asset</Button>
         </Link>
       }
     >
-      <div className="space-y-6">
-        <MetricStrip metrics={metrics} />
+      <div className="space-y-4">
+        {loadError && <Alert tone="danger" title="Could not load fixed assets">{loadError}</Alert>}
+        {assetResult.truncated && <Alert tone="warning" title="List is incomplete">There are more fixed assets than this page can load.</Alert>}
+        {sp.removed && <Alert tone="success">Asset removed from fixed assets.</Alert>}
 
-        {/* ── STATUS FILTERS ── */}
-        <nav className="flex flex-wrap gap-1">
-          <StatusFilterLink
-            current={statusParam ?? 'all'}
-            value="all"
-            label="All"
-            q={q}
-          />
-          <StatusFilterLink
-            current={statusParam ?? 'all'}
-            value="active"
-            label="Active"
-            q={q}
-          />
-          <StatusFilterLink
-            current={statusParam ?? 'all'}
-            value="disposed"
-            label="Disposed"
-            q={q}
-          />
-          <StatusFilterLink
-            current={statusParam ?? 'all'}
-            value="sold"
-            label="Sold"
-            q={q}
-          />
-          <StatusFilterLink
-            current={statusParam ?? 'all'}
-            value="fully_depreciated"
-            label="Fully Depreciated"
-            q={q}
-          />
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
+          {['all', ...ASSET_STATUSES].map((s) => (
+            <Link
+              key={s}
+              href={statusHref(s)}
+              className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${status === s ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
+            >
+              {s === 'all' ? 'All' : label(s)}
+            </Link>
+          ))}
+          <Link
+            href="/reports/fixed_assets"
+            className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+          >
+            Fixed Assets report
+          </Link>
         </nav>
 
-        {/* ── SEARCH ── */}
-        <FilterBar action="/fixed-assets" searchDefault={q} searchPlaceholder="Search asset name, category, association...">
-          {statusParam && statusParam !== 'all' && (
-            <input type="hidden" name="status" value={statusParam} />
-          )}
+        <MetricStrip metrics={metrics} />
+
+        <FilterBar action="/fixed-assets" searchDefault={q} searchPlaceholder="Search name, make, model, serial number...">
+          {status !== 'all' && <input type="hidden" name="status" value={status} />}
+          <FilterSelect label="Association" name="association" defaultValue={association}>
+            <option value="">All associations</option>
+            {assocResult.rows.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
+          <FilterSelect label="Type" name="type" defaultValue={type}>
+            <option value="">All types</option>
+            {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          </FilterSelect>
         </FilterBar>
 
-        {/* ── FIXED ASSETS TABLE ── */}
         {filtered.length > 0 ? (
           <Table>
             <THead>
               <TR>
-                <TH>Asset Name</TH>
-                <TH>Category</TH>
+                <TH>Asset</TH>
+                <TH>Type</TH>
                 <TH>Association</TH>
-                <TH>Purchase Date</TH>
-                <TH className="text-right">Purchase Price</TH>
-                <TH className="text-right">Current Value</TH>
-                <TH>Depreciation</TH>
+                <TH>Unit</TH>
                 <TH>Status</TH>
+                <TH>Placed in service</TH>
+                <TH>Warranty expiration</TH>
+                <TH>Serial number</TH>
+                <TH className="text-right">Cost</TH>
+                <TH className="text-right">Book value</TH>
               </TR>
             </THead>
             <tbody>
-              {filtered.map((asset: any) => {
-                const currentValue =
-                  Number(asset.purchase_price ?? 0) -
-                  Number(asset.accumulated_depreciation ?? 0);
-
+              {filtered.map((a) => {
+                const expired = a.warranty_expiration_date && a.warranty_expiration_date < today;
                 return (
-                  <TR key={asset.id}>
+                  <TR key={a.id}>
                     <TD className="font-medium text-gray-900">
-                      {asset.name}
-                      {asset.description && (
-                        <div className="text-xs text-gray-500 mt-0.5 max-w-[260px] truncate">
-                          {asset.description}
-                        </div>
-                      )}
+                      <Link href={`/fixed-assets/${a.id}`} className="underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{a.name}</Link>
+                      {(a.make || a.model) && <div className="mt-0.5 text-xs text-gray-500">{[a.make, a.model].filter(Boolean).join(' ')}</div>}
                     </TD>
-                    <TD className="text-sm text-gray-700">
-                      {formatAssetType(asset.asset_type)}
-                    </TD>
-                    <TD className="text-sm text-gray-700">
-                      {asset.associations?.name ?? '—'}
-                    </TD>
+                    <TD className="text-sm text-gray-700">{a.asset_type ?? '—'}</TD>
+                    <TD className="text-sm text-gray-700">{a.associations?.name ?? '—'}</TD>
+                    <TD className="text-sm text-gray-700">{a.units?.unit_number ?? '—'}</TD>
+                    <TD><AssetStatusChip status={a.status} /></TD>
+                    <TD className="whitespace-nowrap text-sm tabular-nums text-gray-600">{date(a.placed_in_service_date)}</TD>
                     <TD className="whitespace-nowrap text-sm tabular-nums text-gray-600">
-                      {date(asset.purchase_date)}
+                      {date(a.warranty_expiration_date)}
+                      {expired && <span className="ml-2"><StatusChip tone="neutral">Expired</StatusChip></span>}
                     </TD>
-                    <TD className="text-right tabular-nums font-medium text-gray-900">
-                      {money(asset.purchase_price)}
-                    </TD>
-                    <TD className="text-right tabular-nums font-medium text-gray-900">
-                      {money(currentValue)}
-                    </TD>
-                    <TD className="text-sm text-gray-600">
-                      <span className="capitalize">
-                        {(asset.depreciation_method ?? 'none').replace(/_/g, ' ')}
-                      </span>
-                      {asset.useful_life_years && (
-                        <span className="text-xs text-gray-400 ml-1">
-                          ({asset.useful_life_years}y)
-                        </span>
-                      )}
-                    </TD>
-                    <TD>
-                      <AssetStatusChip status={asset.status} />
+                    <TD className="text-sm text-gray-600">{a.serial_number ?? '—'}</TD>
+                    <TD className="text-right tabular-nums text-gray-900">{a.purchase_price != null ? money(a.purchase_price) : '—'}</TD>
+                    <TD className="text-right tabular-nums text-gray-900">
+                      {a.purchase_price != null ? money(Number(a.purchase_price) - Number(a.accumulated_depreciation ?? 0)) : '—'}
                     </TD>
                   </TR>
                 );
@@ -200,12 +175,8 @@ export default async function FixedAssetsPage({
           <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={Boxes}
-              title={
-                q || (statusParam && statusParam !== 'all')
-                  ? 'No fixed assets match this filter'
-                  : 'No fixed assets recorded yet'
-              }
-              description="Track association property, equipment, and capital assets here."
+              title={filtering ? 'No fixed assets match this filter' : 'No fixed assets recorded yet'}
+              description="Add association equipment, appliances and other capital assets here."
             />
           </div>
         )}
@@ -214,59 +185,15 @@ export default async function FixedAssetsPage({
   );
 }
 
-// ── HELPERS ──
-
-function formatAssetType(assetType: string | null): string {
-  if (!assetType) return '—';
-  return assetType
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function AssetStatusChip({ status }: { status: string }) {
   switch (status) {
     case 'active':
       return <StatusChip tone="success">Active</StatusChip>;
-    case 'disposed':
-      return <StatusChip tone="neutral">Disposed</StatusChip>;
     case 'sold':
       return <StatusChip tone="info">Sold</StatusChip>;
     case 'fully_depreciated':
-      return <StatusChip tone="warning">Fully Depreciated</StatusChip>;
+      return <StatusChip tone="warning">Fully depreciated</StatusChip>;
     default:
-      return <StatusChip tone="neutral">{status}</StatusChip>;
+      return <StatusChip tone="neutral">{label(status)}</StatusChip>;
   }
-}
-
-function StatusFilterLink({
-  current,
-  value,
-  label,
-  q,
-}: {
-  current: string;
-  value: string;
-  label: string;
-  q: string;
-}) {
-  const active = current === value;
-  const params = new URLSearchParams();
-  if (value !== 'all') params.set('status', value);
-  if (q) params.set('q', q);
-  const href = params.toString()
-    ? `/fixed-assets?${params.toString()}`
-    : '/fixed-assets';
-
-  return (
-    <Link
-      href={href}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-        active
-          ? 'bg-gray-900 text-white'
-          : 'bg-white text-gray-600 ring-1 ring-gray-300 hover:bg-gray-100'
-      }`}
-    >
-      {label}
-    </Link>
-  );
 }
