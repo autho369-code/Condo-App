@@ -22,7 +22,7 @@ export default async function BankAccountsPage({
 }) {
   await requireStaff();
   const { filter = '', q = '', bank = '', association_id = '', error: pageError } = await searchParams;
-  const assoc = /^[0-9a-f-]{36}$/i.test(association_id) ? association_id : '';
+  const assoc = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(association_id) ? association_id : '';
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -37,7 +37,7 @@ export default async function BankAccountsPage({
   if (bank) query = query.ilike('bank_name', `%${bank}%`);
   if (assoc) query = query.eq('association_id', assoc);
 
-  const [{ data: rows }, { data: associations }] = await Promise.all([
+  const [{ data: rows, error: loadError }, { data: associations }] = await Promise.all([
     query,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
@@ -75,6 +75,7 @@ export default async function BankAccountsPage({
       <div className="space-y-6">
         <FinancialAccountTabs active="bank" />
         {pageError && <Alert tone="warning" title="Needs attention.">{pageError}</Alert>}
+        {loadError && <Alert title="Could not load bank accounts.">{loadError.message}</Alert>}
         <MetricStrip
           metrics={[
             { label: 'Total accounts', value: accounts.length, sublabel: 'Visible in current view' },
