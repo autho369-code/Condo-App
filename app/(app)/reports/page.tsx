@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
+import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { filterReports, groupReports, type ReportDefinition } from '@/lib/reports/catalog';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { filterReports, type ReportDefinition } from '@/lib/reports/catalog';
+import { deleteSavedReport, toggleReportFavorite, toggleSavedReportPin } from '@/lib/rpcs/reports';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -45,54 +48,54 @@ type SavedReport = {
   run_count: number | null;
   created_at: string;
   user_id: string | null;
+  parameters: Record<string, unknown> | null;
   report_definitions: { slug: string; name: string } | null;
   creator_name?: string | null;
 };
 
+const TABS = [
+  { key: 'all', label: 'All Reports' },
+  { key: 'favorites', label: 'Favorites' },
+  { key: 'custom', label: 'Custom Reports' },
+] as const;
+type TabKey = (typeof TABS)[number]['key'];
+
 export default async function ReportsIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; error?: string; tab?: string; saved_report?: string; deleted?: string }>;
 }) {
-  const { q = '', error } = await searchParams;
+  await requireStaff();
+  const sp = await searchParams;
+  const q = (sp.q ?? '').trim();
+  const tab: TabKey = (TABS.some((t) => t.key === sp.tab) ? sp.tab : 'all') as TabKey;
   const supabase = await createClient();
+  const db = supabase as any;
 
-  const [
-    { data: defs },
-    { data: saved },
-    { count: activeCount },
-    { count: scheduledCount },
-  ] = await Promise.all([
-    (supabase as any).from('report_definitions')
+  const [defsResult, savedResult, { data: favoriteRows, error: favoriteError }] = await Promise.all([
+    fetchAllRows<any>(() => db.from('report_definitions')
       .select('id, slug, name, description, category, active')
       .eq('active', true)
-      .order('name'),
-    (supabase as any).from('saved_reports')
-      .select(`
-        id, name, pinned, last_run_at, run_count, created_at, user_id,
-        report_definitions(slug, name)
-      `)
-      .order('pinned', { ascending: false })
-      .order('created_at', { ascending: false }),
-    (supabase as any).from('report_definitions')
-      .select('id', { count: 'exact', head: true })
-      .eq('active', true),
-    (supabase as any).from('scheduled_reports')
-      .select('id', { count: 'exact', head: true })
-      .is('archived_at', null)
-      .eq('active', true),
+      .order('name')
+      .order('id')),
+    fetchAllRows<any>(() => db.from('saved_reports')
+      .select('id, name, pinned, last_run_at, run_count, created_at, user_id, parameters, report_definitions(slug, name)')
+      .order('name')
+      .order('id')),
+    // RLS returns only the signed-in user's own favorites.
+    db.from('report_favorites').select('definition_id'),
   ]);
+  const loadError = defsResult.error ?? savedResult.error ?? favoriteError?.message ?? null;
 
-  const definitions = (defs ?? []) as ReportDefinition[];
-  const visibleDefinitions = filterReports(definitions, q);
-  const groups = groupReports(visibleDefinitions);
-  const savedRows = (saved ?? []) as unknown as SavedReport[];
+  const definitions = defsResult.rows as ReportDefinition[];
+  const savedRows = savedResult.rows as SavedReport[];
+  const favoriteIds = new Set<string>(((favoriteRows ?? []) as any[]).map((r) => r.definition_id));
 
   // saved_reports.user_id has no FK to profiles, so PostgREST can't embed it —
   // resolve creator names with a second lookup instead.
   const creatorIds = [...new Set(savedRows.map((r) => r.user_id).filter(Boolean))] as string[];
   if (creatorIds.length > 0) {
-    const { data: creators } = await (supabase as any)
+    const { data: creators } = await db
       .from('profiles')
       .select('id, full_name')
       .in('id', creatorIds);
@@ -104,154 +107,143 @@ export default async function ReportsIndex({
     }
   }
 
-  const favorites = savedRows.filter((report) => report.pinned);
-
-  // ── Build spec-category card grid ──
   // Enrich DB definitions with canonical names/descriptions when they match
-  const enrichedDefinitions = visibleDefinitions.map((d) => {
+  const enriched = definitions.map((d) => {
     const canonical = CANONICAL_REPORTS[d.slug];
     return {
       ...d,
       displayName: canonical?.name ?? d.name,
-      displayDescription: canonical?.description ?? d.description ?? 'Scoped report workspace',
+      displayDescription: canonical?.description ?? d.description ?? '',
       specCategory: canonical?.category ?? d.category,
     };
   });
+  const matches = new Set(filterReports(definitions, q).map((d) => d.id));
+  const ql = q.toLowerCase();
+  const visible = enriched.filter((d) => matches.has(d.id) || d.displayName.toLowerCase().includes(ql))
+    .filter((d) => tab !== 'favorites' || favoriteIds.has(d.id));
+  const visibleSaved = savedRows
+    .filter((r) => tab === 'custom' || (tab === 'favorites' && r.pinned))
+    .filter((r) => !ql || (r.name ?? '').toLowerCase().includes(ql) || (r.report_definitions?.name ?? '').toLowerCase().includes(ql));
 
-  // Group by spec category, respecting order
-  const groupedBySpec = new Map<string, typeof enrichedDefinitions>();
-  for (const def of enrichedDefinitions) {
-    const cat = def.specCategory;
-    if (!groupedBySpec.has(cat)) groupedBySpec.set(cat, []);
-    groupedBySpec.get(cat)!.push(def);
+  const groupedBySpec = new Map<string, typeof visible>();
+  for (const def of tab === 'custom' ? [] : visible) {
+    const list = groupedBySpec.get(def.specCategory) ?? [];
+    list.push(def);
+    groupedBySpec.set(def.specCategory, list);
   }
+  const sortedCategories = Array.from(groupedBySpec.entries())
+    .sort(([a], [b]) => (SPEC_CATEGORIES[a]?.order ?? 99) - (SPEC_CATEGORIES[b]?.order ?? 99) || a.localeCompare(b))
+    .map(([key, items]) => [key, items.sort((x, y) => x.displayName.localeCompare(y.displayName))] as const);
 
-  // Sort categories by spec order
-  const sortedCategories = Array.from(groupedBySpec.entries()).sort(([a], [b]) => {
-    const orderA = SPEC_CATEGORIES[a]?.order ?? 99;
-    const orderB = SPEC_CATEGORIES[b]?.order ?? 99;
-    return orderA - orderB;
-  });
+  const tabHref = (key: TabKey) => {
+    const p = new URLSearchParams();
+    if (key !== 'all') p.set('tab', key);
+    if (q) p.set('q', q);
+    return p.toString() ? `/reports?${p}` : '/reports';
+  };
+  const returnTo = tabHref(tab);
+  const pinnedCount = savedRows.filter((r) => r.pinned).length;
+  const counts: Record<TabKey, number> = {
+    all: definitions.length,
+    favorites: favoriteIds.size + pinnedCount,
+    custom: savedRows.length,
+  };
+  const nothing = sortedCategories.length === 0 && visibleSaved.length === 0;
 
   return (
     <DataWorkspace
       title="Reports"
-      description="Run accounting, association, maintenance, tax, and transaction reports from one workspace."
+      description="Find a report by name or category, star the ones you use most, and save reports with their filters as custom reports."
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/reports/runs"><Button variant="secondary">Report history</Button></Link>
           <Link href="/reports/monthly-package"><Button>Monthly package</Button></Link>
-          <form action="/reports" method="get" className="flex min-w-80 items-center gap-2">
-            <input
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Search reports"
-              aria-label="Search reports"
-              className="h-10 min-w-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-            <Button type="submit" variant="secondary">Search</Button>
-          </form>
         </div>
       }
     >
-      <div className="space-y-6">
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            <span className="font-semibold">Could not run report:</span> {error}
-          </div>
-        )}
+      <div className="space-y-4">
+        {sp.error && <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>}
+        {loadError && <Alert tone="danger" title="Could not load every report">{loadError}</Alert>}
+        {sp.saved_report && <Alert tone="success">Custom report saved.</Alert>}
+        {sp.deleted && <Alert tone="success">Custom report deleted.</Alert>}
 
-        <MetricStrip
-          metrics={[
-            { label: 'Active catalog', value: activeCount ?? definitions.length, sublabel: 'Available report definitions' },
-            { label: 'Visible results', value: enrichedDefinitions.length, sublabel: q ? `Filtered by "${q}"` : 'Current catalog view' },
-            { label: 'Saved reports', value: savedRows.length, sublabel: `${favorites.length} pinned favorites` },
-            { label: 'Scheduled runs', value: scheduledCount ?? 0, sublabel: <Link href="/reports/runs" className="font-medium text-gray-500 transition-colors hover:text-gray-900">View run history</Link> },
-          ]}
-        />
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
+          {TABS.map((t) => (
+            <Link
+              key={t.key}
+              href={tabHref(t.key)}
+              className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${tab === t.key ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
+            >
+              {t.label} <span className="ml-1 tabular-nums text-gray-400">{counts[t.key]}</span>
+            </Link>
+          ))}
+        </nav>
 
-        {/* Favorites strip */}
-        {favorites.length > 0 && (
-          <ReportSection title="Pinned saved reports" count={favorites.length}>
-            <SavedReports rows={favorites} />
+        <form action="/reports" method="get" className="flex flex-wrap items-center gap-2">
+          {tab !== 'all' && <input type="hidden" name="tab" value={tab} />}
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Find a report"
+            aria-label="Find a report"
+            className="h-10 min-w-0 flex-1 basis-64 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          />
+          <Button type="submit" variant="secondary">Search</Button>
+        </form>
+
+        {visibleSaved.length > 0 && (
+          <ReportSection title={tab === 'favorites' ? 'Pinned custom reports' : 'Custom reports'} count={visibleSaved.length}>
+            <SavedReports rows={visibleSaved} returnTo={returnTo} />
           </ReportSection>
         )}
 
-        {/* ── Card grid by spec category ── */}
-        {sortedCategories.map(([catKey, items]) => {
-          const catLabel = SPEC_CATEGORIES[catKey]?.label ?? catKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-          return (
-            <ReportSection key={catKey} title={catLabel} count={items.length}>
-              <div className="grid gap-2 p-4 md:grid-cols-2 xl:grid-cols-3">
-                {items.map((definition) => (
-                  <Link
-                    key={definition.id}
-                    href={`/reports/${definition.slug}`}
-                    className="rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-                  >
-                    <div className="font-medium text-gray-900">{definition.displayName}</div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-                      {definition.displayDescription}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            </ReportSection>
-          );
-        })}
-
-        {/* ── Scheduled Reports section ── */}
-        <ReportSection title="Scheduled Reports" subtitle="Automated, recurring report delivery" count={scheduledCount ?? 0}>
-          <div className="px-4 py-4">
-            {(scheduledCount ?? 0) > 0 ? (
-              <p className="text-sm text-gray-600">
-                {scheduledCount} report{(scheduledCount ?? 0) !== 1 ? 's' : ''} scheduled for automatic generation.
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500">No reports scheduled yet. Saved reports can be scheduled for recurring delivery.</p>
-            )}
-            <div className="mt-3">
-              <Link href="/reports/runs" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
-                View scheduled reports &rarr;
-              </Link>
-            </div>
-          </div>
-        </ReportSection>
-
-        {/* ── Metrics section (system-level report KPIs) ── */}
-        <ReportSection title="Metrics" subtitle="Report generation activity and performance" count={4}>
-          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricTile label="Catalog size" value={definitions.length} sub="Report definitions" />
-            <MetricTile label="Saved" value={savedRows.length} sub="User-saved reports" />
-            <MetricTile label="Scheduled" value={scheduledCount ?? 0} sub="Active schedules" />
-            <MetricTile label="Favorites" value={favorites.length} sub="Pinned reports" />
-          </div>
-        </ReportSection>
-
-        {/* ── Surveys section ── */}
-        <ReportSection title="Surveys" subtitle="Owner and community surveys" count={0}>
-          <div className="px-4 py-4">
-            <p className="text-sm text-gray-500">
-              Create and manage community surveys, polls, and feedback forms. Survey results integrate with association reports.
-            </p>
-            <div className="mt-3">
-              <Link href="/surveys" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950">
-                Manage surveys &rarr;
-              </Link>
-            </div>
-          </div>
-        </ReportSection>
-
-        {/* ── All saved reports ── */}
-        {savedRows.length > 0 && (
-          <ReportSection title="All saved reports" count={savedRows.length}>
-            <SavedReports rows={savedRows} />
+        {sortedCategories.map(([catKey, items]) => (
+          <ReportSection
+            key={catKey}
+            title={SPEC_CATEGORIES[catKey]?.label ?? `${catKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} Reports`}
+            count={items.length}
+          >
+            <ul className="divide-y divide-gray-100">
+              {items.map((definition) => {
+                const starred = favoriteIds.has(definition.id);
+                return (
+                  <li key={definition.id} className="flex items-start gap-2 px-2 py-1.5 sm:px-3">
+                    <form action={toggleReportFavorite}>
+                      <input type="hidden" name="definition_id" value={definition.id} />
+                      <input type="hidden" name="favorite" value={starred ? '0' : '1'} />
+                      <input type="hidden" name="return_to" value={returnTo} />
+                      <button
+                        type="submit"
+                        aria-label={starred ? `Remove ${definition.displayName} from favorites` : `Add ${definition.displayName} to favorites`}
+                        title={starred ? 'Remove from favorites' : 'Add to favorites'}
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg text-lg transition-colors hover:bg-gray-100 ${starred ? 'text-amber-500' : 'text-gray-300 hover:text-gray-500'}`}
+                      >
+                        {starred ? '\u2605' : '\u2606'}
+                      </button>
+                    </form>
+                    <Link href={`/reports/${definition.slug}`} className="min-w-0 flex-1 rounded-lg px-1 py-2 hover:bg-gray-50">
+                      <div className="text-sm font-medium text-gray-900">{definition.displayName}</div>
+                      {definition.displayDescription && (
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-gray-500">{definition.displayDescription}</p>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </ReportSection>
-        )}
+        ))}
 
-        {sortedCategories.length === 0 && favorites.length === 0 && (
+        {nothing && (
           <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center text-sm text-gray-500 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            No reports match &quot;{q}&quot;.
+            {q
+              ? <>No reports match &quot;{q}&quot;.</>
+              : tab === 'favorites'
+                ? 'No favorites yet. Star a report to keep it here.'
+                : tab === 'custom'
+                  ? 'No custom reports yet. Open a report, set its filters, and use Save as custom report.'
+                  : 'No reports available.'}
           </div>
         )}
       </div>
@@ -289,13 +281,13 @@ function ReportSection({
   );
 }
 
-function SavedReports({ rows }: { rows: SavedReport[] }) {
+function SavedReports({ rows, returnTo }: { rows: SavedReport[]; returnTo: string }) {
   return (
     <div className="divide-y divide-gray-100">
       {rows.map((report) => {
         const slug = report.report_definitions?.slug;
         return (
-          <div key={report.id} className="flex items-center justify-between gap-4 px-4 py-3">
+          <div key={report.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <Link
                 href={slug ? `/reports/${slug}?saved=${report.id}` : '/reports'}
@@ -304,34 +296,27 @@ function SavedReports({ rows }: { rows: SavedReport[] }) {
                 {report.name || report.report_definitions?.name || 'Untitled report'}
               </Link>
               <p className="mt-1 text-xs text-gray-500">
-                Created by {report.creator_name ?? 'Unknown'}
-                {report.last_run_at ? ` - last run ${date(report.last_run_at)}` : ''}
+                {report.report_definitions?.name ?? 'Report'}
+                {' · '}Created by {report.creator_name ?? 'Unknown'} on {date(report.created_at)}
+                {report.last_run_at ? ` · last run ${date(report.last_run_at)}` : ''}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              {report.run_count ?? 0} runs
-            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <form action={toggleSavedReportPin}>
+                <input type="hidden" name="saved_report_id" value={report.id} />
+                <input type="hidden" name="pinned" value={report.pinned ? '0' : '1'} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <Button type="submit" variant="secondary" size="sm">{report.pinned ? 'Unpin from favorites' : 'Pin to favorites'}</Button>
+              </form>
+              <form action={deleteSavedReport}>
+                <input type="hidden" name="saved_report_id" value={report.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <Button type="submit" variant="secondary" size="sm">Delete</Button>
+              </form>
+            </div>
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function MetricTile({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: number;
-  sub: string;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{label}</div>
-      <div className="mt-1 text-xl font-semibold tabular-nums text-gray-950">{value}</div>
-      <div className="mt-0.5 text-xs text-gray-500">{sub}</div>
     </div>
   );
 }
