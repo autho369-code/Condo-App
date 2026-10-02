@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
-import { updateCalendarEventDates } from '@/lib/rpcs/calendar';
-import { EVENT_TYPES, eventTypeLabel, type CalendarEventType } from '@/lib/operations/calendar';
+import type { EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
+import { listCalendarEvents, updateCalendarEventDates } from '@/lib/rpcs/calendar';
+import { EVENT_TYPES, type CalendarEventType } from '@/lib/operations/calendar';
 
 const EVENT_TYPE_COLORS: Record<CalendarEventType, { bg: string; text: string; border: string }> = {
   board_meeting: { bg: '#1E40AF', text: '#DBEAFE', border: '#3B82F6' },
@@ -30,32 +34,61 @@ function eventColor(type: string) { return EVENT_TYPE_COLORS[type as CalendarEve
 interface CalendarEvent {
   id: string; title: string; start_datetime: string; end_datetime: string | null;
   all_day: boolean; event_type: string; location: string | null;
-  operations_status: string; association_name?: string;
+  operations_status: string; association_name?: string | null;
 }
 
-export default function CalendarGrid({ events, associations, initialAssocId, initialType }: {
-  events: CalendarEvent[]; associations: { id: string; name: string }[]; initialAssocId: string; initialType: string;
+const toFcEvent = (e: CalendarEvent): EventInput => ({
+  id: e.id, title: e.association_name ? `${e.title} · ${e.association_name}` : e.title,
+  start: e.start_datetime, end: e.end_datetime ?? undefined, allDay: e.all_day,
+  extendedProps: { title: e.title, event_type: e.event_type, location: e.location, operations_status: e.operations_status, association_name: e.association_name },
+  backgroundColor: eventColor(e.event_type).bg, borderColor: eventColor(e.event_type).border, textColor: eventColor(e.event_type).text,
+});
+
+export default function CalendarGrid({ associations, initialAssocId, initialType }: {
+  associations: { id: string; name: string }[]; initialAssocId: string; initialType: string;
 }) {
+  const router = useRouter();
   const calendarRef = useRef<FullCalendar>(null);
   const [assocId, setAssocId] = useState(initialAssocId);
   const [typeFilter, setTypeFilter] = useState(initialType);
   const [viewMode, setViewMode] = useState<string>('dayGridMonth');
+  const [problem, setProblem] = useState<string | null>(null);
 
-  const fcEvents = events.map((e) => ({
-    id: e.id, title: e.title, start: e.start_datetime, end: e.end_datetime ?? undefined, allDay: e.all_day,
-    extendedProps: { event_type: e.event_type, location: e.location, operations_status: e.operations_status, association_name: e.association_name },
-    backgroundColor: eventColor(e.event_type).bg, borderColor: eventColor(e.event_type).border, textColor: eventColor(e.event_type).text,
-  }));
+  // Load whatever range is on screen, so any month (past or future) shows
+  // its events instead of a fixed window around today.
+  const loadEvents = useCallback(
+    (info: { startStr: string; endStr: string }, success: (events: EventInput[]) => void, failure: (error: Error) => void) => {
+      listCalendarEvents(info.startStr, info.endStr, initialAssocId, initialType)
+        .then((result) => {
+          if (result.error) { setProblem(`Could not load events: ${result.error}`); failure(new Error(result.error)); return; }
+          setProblem(result.truncated ? 'Too many events in this range to show them all. Filter by association or event type.' : null);
+          success(result.events.map(toFcEvent));
+        })
+        .catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : 'unknown error';
+          setProblem(`Could not load events: ${message}`);
+          failure(err instanceof Error ? err : new Error(message));
+        });
+    },
+    [initialAssocId, initialType],
+  );
 
-  const handleEventDrop = useCallback(async (dropInfo: EventDropArg) => {
-    const result = await updateCalendarEventDates(dropInfo.event.id, dropInfo.event.startStr, dropInfo.event.endStr || null, dropInfo.event.allDay);
-    if (result?.error) { dropInfo.revert(); }
+  const handleMove = useCallback(async (info: EventDropArg | EventResizeDoneArg) => {
+    const name = String(info.event.extendedProps.title ?? info.event.title);
+    try {
+      const result = await updateCalendarEventDates(info.event.id, info.event.startStr, info.event.endStr || null, info.event.allDay);
+      if (result?.error) { info.revert(); setProblem(`Could not move "${name}": ${result.error}`); return; }
+      setProblem(null);
+    } catch (err) {
+      info.revert();
+      setProblem(`Could not move "${name}": ${err instanceof Error ? err.message : 'unknown error'}`);
+    }
   }, []);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-    const p = clickInfo.event.extendedProps;
-    alert(`${clickInfo.event.title}\nType: ${eventTypeLabel(p.event_type)}\nStatus: ${p.operations_status}\n${p.association_name ? `Association: ${p.association_name}` : ''}\n${p.location ? `Location: ${p.location}` : ''}`);
-  }, []);
+    clickInfo.jsEvent.preventDefault();
+    router.push(`/calendar/${clickInfo.event.id}`);
+  }, [router]);
 
   const navigate = (a: string, t: string) => {
     const url = new URL(window.location.href);
@@ -72,8 +105,8 @@ export default function CalendarGrid({ events, associations, initialAssocId, ini
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-5 py-2.5">
         <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-          {[{ key: 'dayGridMonth', label: 'Month' }, { key: 'timeGridWeek', label: 'Week' }, { key: 'timeGridDay', label: 'Day' }].map((v) => (
-            <button key={v.key} onClick={() => switchView(v.key)}
+          {[{ key: 'dayGridMonth', label: 'Month' }, { key: 'timeGridWeek', label: 'Week' }, { key: 'timeGridDay', label: 'Day' }, { key: 'listMonth', label: 'Agenda' }].map((v) => (
+            <button key={v.key} type="button" onClick={() => switchView(v.key)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === v.key ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
               {v.label}
             </button>
@@ -90,7 +123,7 @@ export default function CalendarGrid({ events, associations, initialAssocId, ini
           <option value="">All event types</option>
           {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        {hasFilter && <a href="/calendar" className="text-xs text-gray-500 hover:text-gray-700">Clear filters</a>}
+        {hasFilter && <Link href="/calendar" className="text-xs text-gray-500 hover:text-gray-700">Clear filters</Link>}
       </div>
 
       {/* Legend */}
@@ -103,11 +136,16 @@ export default function CalendarGrid({ events, associations, initialAssocId, ini
         })}
       </div>
 
+      {problem && (
+        <div role="alert" className="border-b border-red-200 bg-red-50 px-5 py-2 text-[13px] text-red-800">{problem}</div>
+      )}
+
       {/* Calendar */}
       <div className="h-[calc(100vh-330px)] min-h-[560px] overflow-hidden bg-white p-3">
-        <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} initialView={viewMode}
-          events={fcEvents} editable={true} eventStartEditable={true} eventDurationEditable={true}
-          eventDrop={handleEventDrop} eventClick={handleEventClick}
+        <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]} initialView={viewMode}
+          events={loadEvents} editable={true} eventStartEditable={true} eventDurationEditable={true}
+          eventDrop={handleMove} eventResize={handleMove} eventClick={handleEventClick}
+          noEventsContent="No events in this period"
           headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
           height="100%"
           nowIndicator={true} dayMaxEvents={3} contentHeight="100%"

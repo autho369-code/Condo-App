@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import {
   DEFAULT_REMINDERS,
+  EVENT_TYPES,
   defaultPublicNotice,
   defaultVendorConfirmation,
   eventTypeLabel,
@@ -13,8 +14,10 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 const DEFAULT_TIME_ZONE = 'America/Chicago';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -202,11 +205,122 @@ export async function deleteCalendarEvent(eventId: string) {
   await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
-  const { error } = await db.from('calendar_events')
+  const { data: canceled, error } = await db.from('calendar_events')
     .update({ archived_at: new Date().toISOString(), operations_status: 'canceled' })
-    .eq('id', eventId);
+    .eq('id', eventId)
+    .select('id');
   if (error) return { error: error.message };
+  if (!canceled || canceled.length === 0) return { error: 'Event not found or you do not have access to it.' };
+  // Reminders for a canceled event must not fire.
+  await db.from('calendar_event_reminders').update({ status: 'canceled' }).eq('calendar_event_id', eventId).eq('status', 'scheduled');
   revalidatePath('/calendar');
+}
+
+/** Form action: cancel an event from its detail page. */
+export async function cancelCalendarEvent(formData: FormData) {
+  const eventId = str(formData, 'event_id');
+  if (!eventId || !UUID_RE.test(eventId)) redirect('/calendar?error=' + encodeURIComponent('Event not found.'));
+  const result = await deleteCalendarEvent(eventId!);
+  if (result?.error) redirect(`/calendar/${eventId}?error=${encodeURIComponent(result.error)}`);
+  redirect('/calendar');
+}
+
+/** Move scheduled (not yet sent) reminders along with the event's new start. */
+async function rescheduleReminders(db: any, eventId: string, startIso: string) {
+  const { data: reminders } = await db.from('calendar_event_reminders')
+    .select('id, offset_minutes').eq('calendar_event_id', eventId).eq('status', 'scheduled');
+  const start = new Date(startIso).getTime();
+  for (const r of reminders ?? []) {
+    await db.from('calendar_event_reminders')
+      .update({ remind_at: new Date(start - Number(r.offset_minutes ?? 0) * 60_000).toISOString() })
+      .eq('id', r.id);
+  }
+}
+
+/** Form action: edit an event's details from its detail page. */
+export async function updateCalendarEvent(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+  const eventId = str(formData, 'event_id');
+  if (!eventId || !UUID_RE.test(eventId)) redirect('/calendar?error=' + encodeURIComponent('Event not found.'));
+  const failTo = (msg: string): never => redirect(`/calendar/${eventId}?error=${encodeURIComponent(msg)}`);
+
+  const { data: existing } = await db.from('calendar_events')
+    .select('id, association_id, start_datetime').eq('id', eventId).is('archived_at', null).maybeSingle();
+  if (!existing) failTo('Event not found or you do not have access to it.');
+
+  const title = str(formData, 'title');
+  if (!title) failTo('Enter a title.');
+  const eventType = str(formData, 'event_type') as CalendarEventType | null;
+  if (!eventType || !EVENT_TYPES.some((t) => t.value === eventType)) failTo('Choose an event type.');
+  const allDay = formData.get('all_day') === 'on';
+  const timeZone = await associationTimeZone(db, existing.association_id);
+  const start = wallDateTimeToIso(str(formData, 'start_datetime'), timeZone);
+  if (!start) failTo('Enter a valid start date and time.');
+  const endRaw = str(formData, 'end_datetime');
+  const end = endRaw ? wallDateTimeToIso(endRaw, timeZone) : null;
+  if (endRaw && !end) failTo('Enter a valid end date and time.');
+  if (end && end < start!) failTo('The end time must be after the start time.');
+
+  const { data: updated, error } = await db.from('calendar_events')
+    .update({
+      title,
+      event_type: eventType,
+      start_datetime: start,
+      end_datetime: end,
+      all_day: allDay,
+      location: str(formData, 'location'),
+      description: str(formData, 'description'),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', eventId)
+    .select('id');
+  if (error) failTo(error.message);
+  if (!updated || updated.length === 0) failTo('Event not found or you do not have access to it.');
+  // Internal notes live in the staff-only calendar_event_private table; write
+  // the submitted value (including an empty one) there so clearing works.
+  const { error: notesError } = await db.from('calendar_event_private').upsert({
+    calendar_event_id: eventId,
+    internal_notes: str(formData, 'internal_notes'),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'calendar_event_id' });
+  if (notesError) failTo(`Event saved, but the internal notes could not be saved: ${notesError.message}`);
+  if (new Date(start!).getTime() !== new Date(existing.start_datetime).getTime()) {
+    await rescheduleReminders(db, eventId!, start!);
+  }
+  revalidatePath('/calendar');
+  redirect(`/calendar/${eventId}?saved=1`);
+}
+
+/** Events for the range the calendar is showing (any month, not a fixed window). */
+export async function listCalendarEvents(startIso: string, endIso: string, assocId: string, eventType: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const db = supabase as any;
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return { events: [], truncated: false, error: 'Invalid date range.' };
+  const result = await fetchAllRows<any>(() => {
+    let q = db.from('calendar_events')
+      .select('id, title, event_type, start_datetime, end_datetime, all_day, location, operations_status, associations(name)')
+      .is('archived_at', null)
+      // Overlaps the range: starts before its end and ends (or starts) after its start.
+      .lt('start_datetime', end.toISOString())
+      .or(`end_datetime.gte.${start.toISOString()},and(end_datetime.is.null,start_datetime.gte.${start.toISOString()})`);
+    if (assocId && UUID_RE.test(assocId)) q = q.eq('association_id', assocId);
+    if (eventType && EVENT_TYPES.some((t) => t.value === eventType)) q = q.eq('event_type', eventType);
+    return q.order('start_datetime').order('id');
+  }, { maxRows: 5000 });
+  return {
+    events: result.rows.map((e: any) => ({
+      id: e.id, title: e.title, start_datetime: e.start_datetime, end_datetime: e.end_datetime, all_day: e.all_day,
+      event_type: e.event_type, location: e.location, operations_status: e.operations_status,
+      association_name: e.associations?.name ?? null,
+    })),
+    truncated: result.truncated,
+    error: result.error,
+  };
 }
 
 export async function updateCalendarEventDates(
@@ -236,6 +350,7 @@ export async function updateCalendarEventDates(
     .select('id');
   if (error) return { error: error.message };
   if (!moved || moved.length === 0) return { error: 'Event not found or you do not have access to it.' };
+  await rescheduleReminders(db, eventId, startIso);
   revalidatePath('/calendar');
 }
 
