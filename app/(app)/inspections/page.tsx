@@ -11,6 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
+import { SelectAllCheckbox } from '@/components/ui/select-all';
+import { markInspectionsDone } from '@/lib/rpcs/inspections-bulk';
+import { todayInZone } from '@/lib/time/zoned';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,34 +86,40 @@ function computeScore(items: any[]): number | null {
 export default async function InspectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string; scheduled?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; type?: string; association_id?: string; scheduled?: string; marked?: string; skipped?: string; error?: string }>;
 }) {
   const me = await requireStaff();
   const supabase = await createClient();
   const db = supabase as any;
-  const { tab: tabParam, q = '', status = '', type = '', association_id = '', scheduled: scheduledRaw } = await searchParams;
+  const sp = await searchParams;
+  const { tab: tabParam, q = '', status = '', type = '', association_id = '', scheduled: scheduledRaw } = sp;
   const scheduled = scheduledRaw && /^\d+$/.test(scheduledRaw) && scheduledRaw !== '0' ? scheduledRaw : null;
   const tab = parseTab(tabParam);
 
   // ── Fetch inspections + reference lists ──
   const [
-    { data: rows },
+    rowsRes,
     { data: associations },
-    { data: items },
+    itemsRes,
   ] = await Promise.all([
-    db.from('inspections')
+    // Every inspection, paged past the old 500-row limit.
+    fetchAllRows<any>(() => db.from('inspections')
       .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, notes, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)')
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(500),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+      .order('id')),
+    db.from('associations').select('id, name, timezone').is('archived_at', null).order('name'),
     // Every finding (one request stops at 1,000 rows, so newer inspections'
     // scores went missing).
-    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity').order('created_at').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity, resolved').order('created_at').order('id')),
   ]);
 
-  const all = (rows ?? []) as any[];
+  const all = rowsRes.rows;
+  // Flags and scores are only shown when every finding loaded; a partial set
+  // would show undercounts that look exact.
+  const itemsComplete = !itemsRes.error && !itemsRes.truncated;
+  const items = itemsComplete ? itemsRes.rows : [];
 
   // ── Build score map from inspection_items ──
   const itemsByInspection = new Map<string, any[]>();
@@ -120,9 +130,11 @@ export default async function InspectionsPage({
   }
 
   // Attach score to each inspection row
+  // Flags: findings on the inspection that are not resolved yet.
   const scored = all.map((row: any) => ({
     ...row,
-    score: computeScore(itemsByInspection.get(row.id) ?? []),
+    score: itemsComplete ? computeScore(itemsByInspection.get(row.id) ?? []) : null,
+    flags: itemsComplete ? (itemsByInspection.get(row.id) ?? []).filter((item: any) => !item.resolved).length : null,
   }));
 
   // ── Tab counts ──
@@ -149,10 +161,14 @@ export default async function InspectionsPage({
   const scheduledCount = scored.filter((insp: any) => insp.status === 'scheduled').length;
   const inProgressCount = scored.filter((insp: any) => insp.status === 'in_progress').length;
   const completedCount = scored.filter((insp: any) => insp.status === 'completed').length;
-  const now = new Date();
+  // Each inspection is judged against today in its own association's time zone.
+  const zoneByAssociation = new Map<string, string>(
+    ((associations ?? []) as any[]).filter((a) => a.timezone && isValidTimeZone(a.timezone)).map((a) => [a.id, a.timezone]),
+  );
+  const todayFor = (associationId: string | null) => todayInZone(zoneByAssociation.get(associationId ?? '') ?? displayTimeZone());
   const overdueCount = scored.filter(
     // Date-only compare: an inspection scheduled today is not overdue.
-    (insp: any) => insp.scheduled_date && String(insp.scheduled_date).slice(0, 10) < now.toISOString().slice(0, 10) && insp.status === 'scheduled',
+    (insp: any) => insp.scheduled_date && insp.status === 'scheduled' && String(insp.scheduled_date).slice(0, 10) < todayFor(insp.association_id),
   ).length;
 
   const avgScore = (() => {
@@ -188,6 +204,15 @@ export default async function InspectionsPage({
     >
       <div className="space-y-6">
         {scheduled && <Alert tone="success" title={`${scheduled} inspection${scheduled === '1' ? '' : 's'} scheduled from the template`} />}
+        {sp.marked && (
+          <Alert tone="success" title={`${sp.marked} inspection${sp.marked === '1' ? '' : 's'} marked done`}>
+            {sp.skipped ? `${sp.skipped} skipped because they were already completed or cancelled.` : null}
+          </Alert>
+        )}
+        {sp.error && <Alert tone="danger" title="Could not mark inspections done">{sp.error}</Alert>}
+        {rowsRes.error && <Alert tone="danger" title="Could not load every inspection">{rowsRes.error}</Alert>}
+        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? 'There are too many findings to load, so flags and scores are hidden rather than shown from a partial set.'}</Alert>}
+        {rowsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more inspections than this page can load. Filter by association or type.</Alert>}
         <MetricStrip metrics={metrics} />
 
         {/* ── TABS ── */}
@@ -253,15 +278,22 @@ export default async function InspectionsPage({
 
         {/* ── TABLE ── */}
         {filtered.length > 0 ? (
+          <form action={markInspectionsDone} className="space-y-3">
+          <input type="hidden" name="return_to" value={`/inspections?${new URLSearchParams(Object.entries({ tab, q, status, type, association_id }).filter(([, v]) => v)).toString()}`} />
+          <div className="flex items-center justify-end">
+            <Button type="submit" variant="secondary" size="sm">Mark selected done</Button>
+          </div>
           <Table>
             <THead>
               <TR>
+                <TH className="w-10"><SelectAllCheckbox targetName="inspection_id" defaultChecked={false} /></TH>
                 <TH>Type</TH>
                 <TH>Association</TH>
                 <TH>Unit</TH>
                 <TH>Scheduled Date</TH>
                 <TH>Inspector</TH>
                 <TH>Status</TH>
+                <TH className="text-right">Flags</TH>
                 <TH className="text-right">Score</TH>
               </TR>
             </THead>
@@ -271,6 +303,11 @@ export default async function InspectionsPage({
                 const sb = scoreBadge(insp.score);
                 return (
                   <TR key={insp.id}>
+                    <TD>
+                      {['scheduled', 'in_progress'].includes(insp.status) && (
+                        <input type="checkbox" name="inspection_id" value={insp.id} aria-label="Select inspection" className="h-4 w-4 rounded border-gray-300" />
+                      )}
+                    </TD>
                     <TD className="font-medium text-gray-900">
                       <Link href={`/inspections/${insp.id}`} className="block text-gray-900 hover:text-blue-700">
                         {insp.inspection_type ?? 'Untitled'}
@@ -283,6 +320,9 @@ export default async function InspectionsPage({
                     <TD>
                       <StatusChip tone={sc.tone}>{sc.label}</StatusChip>
                     </TD>
+                    <TD className="text-right tabular-nums">
+                      {insp.flags === null ? <span className="text-gray-400">—</span> : insp.flags > 0 ? <StatusChip tone="warning">{insp.flags}</StatusChip> : <span className="text-gray-400">0</span>}
+                    </TD>
                     <TD className="text-right">
                       <StatusChip tone={sb.tone}>{sb.label}</StatusChip>
                     </TD>
@@ -291,6 +331,7 @@ export default async function InspectionsPage({
               })}
             </tbody>
           </Table>
+          </form>
         ) : (
           <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState

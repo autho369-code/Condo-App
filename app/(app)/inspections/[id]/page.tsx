@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { todayInZone } from '@/lib/time/zoned';
+import { isValidTimeZone } from '@/lib/time/display-zone';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
@@ -54,12 +56,16 @@ export default async function InspectionDetailPage({
     const supabase = await createClient();
     const inspectionId = String(formData.get('inspection_id') ?? '');
     const status = String(formData.get('status') ?? 'scheduled');
-    const { data: current } = await (supabase as any).from('inspections').select('status, completed_date').eq('id', inspectionId).maybeSingle();
+    const { data: current } = await (supabase as any).from('inspections').select('status, completed_date, associations(timezone)').eq('id', inspectionId).maybeSingle();
     if (!current) bounce(inspectionId, 'error', 'Inspection not found or you do not have access to it.');
     const patch: Record<string, unknown> = { status, notes: String(formData.get('notes') ?? '').trim() || null };
     // Stamp the completion date only when the inspection becomes completed;
     // re-saving notes must not move the real completion date.
-    if (status === 'completed' && current.status !== 'completed') patch.completed_date = new Date().toISOString().slice(0, 10);
+    if (status === 'completed' && current.status !== 'completed') {
+      // Today in the inspection's own association time zone.
+      const tz = current.associations?.timezone;
+      patch.completed_date = todayInZone(tz && isValidTimeZone(tz) ? tz : undefined);
+    }
     if (status !== 'completed') patch.completed_date = null;
     const { data: updated, error } = await (supabase as any).from('inspections').update(patch).eq('id', inspectionId).select('id');
     if (error) bounce(inspectionId, 'error', error.message);
