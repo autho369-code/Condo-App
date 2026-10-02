@@ -37,7 +37,7 @@ describe('placeholder safety', () => {
     expect(actionCenter).toContain('`/charges?owner=${ownerId}`');
     expect(chargesPage).toContain('owner?: string');
     expect(chargesPage).toContain(".eq('owner_id', owner)");
-    expect(chargesPage).toContain("chargesQuery = chargesQuery.in('unit_id', scopedUnitIds)");
+    expect(chargesPage).toContain("if (owner) c = c.in('unit_id', unitScope);");
     expect(chargesPage).toContain('end_date.is.null,end_date.gte.');
   });
 

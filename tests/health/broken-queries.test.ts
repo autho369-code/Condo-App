@@ -14,7 +14,7 @@ describe('queries fixed in the 2026-09-29 health check', () => {
   });
 
   it('reaches associations from units through buildings', () => {
-    expect(read('app/(app)/charges/page.tsx')).toContain('units(unit_number, buildings(associations(name)))');
+    expect(read('app/(app)/charges/page.tsx')).toContain('units!inner(unit_number, buildings!inner(association_id))');
     expect(read('app/api/bulk/units/route.ts')).toContain('buildings!inner(associations!inner(name))');
     expect(read('app/(app)/letters/[id]/preview/page.tsx')).toContain('units(unit_number, buildings(association_id))');
   });
