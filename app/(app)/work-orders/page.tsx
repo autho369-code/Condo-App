@@ -15,11 +15,13 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
 import { todayInZone } from '@/lib/time/zoned';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { sanitizeSearchTerm } from '@/lib/search/global';
 
 export const dynamic = 'force-dynamic';
 
 // ── Types ──
-type Tab = 'open' | 'emergency' | 'scheduled' | 'unassigned' | 'completed' | 'all';
+type Tab = 'open' | 'emergency' | 'scheduled' | 'unassigned' | 'ready_to_bill' | 'completed' | 'all';
 type Priority = 'low' | 'normal' | 'high' | 'emergency';
 type WoStatus = 'new' | 'assigned' | 'scheduled' | 'in_progress' | 'done' | 'completed' | 'billed' | 'closed' | 'cancelled';
 
@@ -28,6 +30,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'emergency',  label: 'Emergencies' },
   { key: 'scheduled',  label: 'Scheduled' },
   { key: 'unassigned', label: 'Unassigned' },
+  { key: 'ready_to_bill', label: 'Ready to bill' },
   { key: 'completed',  label: 'Completed' },
   { key: 'all',        label: 'All' },
 ];
@@ -50,6 +53,7 @@ function tabFilter(tab: Tab): (r: any) => boolean {
     case 'scheduled':  return (r) => r.status === 'scheduled';
     // Same finished set as the team scoreboard's "nobody on it" count.
     case 'unassigned': return (r) => !r.vendor_id && !r.assignee_id && !['done','completed','billed','closed','cancelled'].includes(r.status);
+    case 'ready_to_bill': return (r) => ['done', 'completed'].includes(r.status);
     case 'completed':  return (r) => ['done', 'completed', 'billed', 'closed'].includes(r.status);
     case 'all':        return () => true;
   }
@@ -88,7 +92,7 @@ function formatLabel(s: string): string {
 export default async function WorkOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; assignee?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; status?: string; priority?: string; association_id?: string; vendor_id?: string; assignee?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string; origin?: string }>;
 }) {
   const me = await requireStaff();
   const sp = await searchParams;
@@ -96,6 +100,8 @@ export default async function WorkOrdersPage({
   // In-house assignee filter: a staff id, or "me".
   const assignee = sp.assignee === 'me' ? (me.auth_user_id ?? '') : (sp.assignee ?? '');
   const tab = parseTab(tabParam);
+  // Unassigned split the way AppFolio counts it: from a resident request, or internal.
+  const origin = sp.origin === 'resident' || sp.origin === 'internal' ? sp.origin : '';
   const todayDate = todayInZone();
   const supabase = await createClient();
   const db = supabase as any;
@@ -113,10 +119,37 @@ export default async function WorkOrdersPage({
       case 'emergency':  return q.eq('priority', 'emergency').not('status', 'in', FINISHED);
       case 'scheduled':  return q.eq('status', 'scheduled');
       case 'unassigned': return q.is('vendor_id', null).is('assignee_id', null).not('status', 'in', FINISHED);
+      // Finished but not yet billed.
+      case 'ready_to_bill': return q.in('status', ['done', 'completed']);
       case 'completed':  return q.in('status', ['done', 'completed', 'billed', 'closed']);
       case 'all':        return q;
     }
   };
+  const applyOrigin = (q: any, o: string) =>
+    o === 'resident' ? q.not('service_request_id', 'is', null) : o === 'internal' ? q.is('service_request_id', null) : q;
+
+  // Search runs in the database (title, description, number, and vendor,
+  // association or unit names), so it covers every work order, not just the
+  // first 500 loaded.
+  const term = sanitizeSearchTerm(q);
+  const quoted = (v: string) => `"${v.replace(/"/g, '')}"`;
+  let searchClauses: string[] | null = null;
+  if (term) {
+    const [{ rows: vMatch }, { rows: aMatch }, { rows: uMatch }] = await Promise.all([
+      fetchAllRows<any>(() => db.from('vendors').select('id').ilike('name', `%${term}%`).order('id')),
+      fetchAllRows<any>(() => db.from('associations').select('id').ilike('name', `%${term}%`).order('id')),
+      fetchAllRows<any>(() => db.from('units').select('id').ilike('unit_number', `%${term}%`).order('id')),
+    ]);
+    searchClauses = [
+      `title.ilike.${quoted(`*${term}*`)}`,
+      `description.ilike.${quoted(`*${term}*`)}`,
+      `number.ilike.${quoted(`*${term}*`)}`,
+    ];
+    if (/^[0-9a-f-]{36}$/i.test(term)) searchClauses.push(`id.eq.${term}`);
+    if (vMatch.length) searchClauses.push(`vendor_id.in.(${vMatch.map((r: any) => r.id).join(',')})`);
+    if (aMatch.length) searchClauses.push(`association_id.in.(${aMatch.map((r: any) => r.id).join(',')})`);
+    if (uMatch.length) searchClauses.push(`unit_id.in.(${uMatch.map((r: any) => r.id).join(',')})`);
+  }
 
   // The list applies every filter in the query, so its 500 rows are the
   // matching ones (filtering 500 fetched rows afterwards hid older jobs).
@@ -128,8 +161,10 @@ export default async function WorkOrdersPage({
     workOrdersQuery = workOrdersQuery.lt('scheduled_date', todayDate).not('status', 'in', FINISHED);
   } else {
     workOrdersQuery = applyTab(workOrdersQuery, tab);
+    if (tab === 'unassigned') workOrdersQuery = applyOrigin(workOrdersQuery, origin);
     if (status) workOrdersQuery = workOrdersQuery.eq('status', status);
   }
+  if (searchClauses) workOrdersQuery = workOrdersQuery.or(searchClauses.join(','));
   if (priority) workOrdersQuery = workOrdersQuery.eq('priority', priority);
   if (association_id) workOrdersQuery = workOrdersQuery.eq('association_id', association_id);
   if (vendor_id) workOrdersQuery = workOrdersQuery.eq('vendor_id', vendor_id);
@@ -148,6 +183,8 @@ export default async function WorkOrdersPage({
     tabCountResults,
     { count: inProgressCount },
     { count: overdueCount },
+    { count: unassignedResidentCount },
+    { count: unassignedInternalCount },
   ] = await Promise.all([
     workOrdersQuery,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
@@ -156,6 +193,8 @@ export default async function WorkOrdersPage({
     Promise.all(TABS.map((t) => applyTab(countBase(), t.key))),
     countBase().eq('status', 'in_progress'),
     countBase().lt('scheduled_date', todayDate).not('status', 'in', FINISHED),
+    applyOrigin(applyTab(countBase(), 'unassigned'), 'resident'),
+    applyOrigin(applyTab(countBase(), 'unassigned'), 'internal'),
   ]);
 
   const all = (rows ?? []) as any[];
@@ -163,31 +202,21 @@ export default async function WorkOrdersPage({
   // ── Tab counts ──
   const tabCounts = Object.fromEntries(TABS.map((t, i) => [t.key, Number(tabCountResults[i]?.count ?? 0)]));
 
-  // ── Search (within the matching rows) ──
-  let filtered = all;
-  if (q) {
-    const ql = q.toLowerCase();
-    filtered = filtered.filter(
-      (w: any) =>
-        (w.title ?? '').toLowerCase().includes(ql) ||
-        (w.description ?? '').toLowerCase().includes(ql) ||
-        (w.number ?? '').toLowerCase().includes(ql) ||
-        String(w.id).toLowerCase().includes(ql) ||
-        (w.vendors?.name ?? '').toLowerCase().includes(ql) ||
-        (w.associations?.name ?? '').toLowerCase().includes(ql) ||
-        (w.units?.unit_number ?? '').toLowerCase().includes(ql),
-    );
-  }
+  const filtered = all;
+  const listCapped = all.length >= 500;
 
   // ── Metrics ──
   const openCount = tabCounts['open'];
-  const completedMonthCount = tabCounts['completed'];
 
+  const metricLink = (href: string, label: string) => (
+    <Link href={href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">{label}</Link>
+  );
   const metrics = [
-    { label: 'Open', value: openCount, sublabel: `${tabCounts['emergency']} emergencies` },
-    { label: 'In Progress', value: inProgressCount ?? 0, sublabel: 'Active work' },
+    { label: 'Unassigned resident requests', value: unassignedResidentCount ?? 0, sublabel: metricLink('/work-orders?tab=unassigned&origin=resident', 'View') },
+    { label: 'Unassigned internal', value: unassignedInternalCount ?? 0, sublabel: metricLink('/work-orders?tab=unassigned&origin=internal', 'View') },
+    { label: 'Ready to bill', value: tabCounts['ready_to_bill'], sublabel: metricLink('/work-orders?tab=ready_to_bill', 'View') },
+    { label: 'Open', value: openCount, sublabel: `${tabCounts['emergency']} emergencies · ${inProgressCount ?? 0} in progress` },
     { label: 'Overdue', value: overdueCount ?? 0, sublabel: 'Past scheduled date' },
-    { label: 'Completed', value: completedMonthCount, sublabel: 'All time' },
   ];
 
   // ── Export (mirrors the on-screen table, same tab + filters) ──
@@ -237,6 +266,12 @@ export default async function WorkOrdersPage({
             filename={`work-orders-${tab}-${exportStamp}`}
             tables={[exportTable]}
           />
+          <Link href="/recurring-work-orders/new">
+            <Button variant="secondary">New recurring work order</Button>
+          </Link>
+          <Link href="/purchase-orders/new">
+            <Button variant="secondary">New purchase order</Button>
+          </Link>
           <Link href="/work-orders/team">
             <Button variant="secondary"><Users className="h-4 w-4" /> Team</Button>
           </Link>
@@ -248,6 +283,22 @@ export default async function WorkOrdersPage({
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
+
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Reports</span>
+          <Link href="/reports/work_order_report" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Association work orders</Link>
+          <Link href="/reports/work_order_labor_summary" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Labor summary</Link>
+          <Link href="/reports/work_order_bill_detail" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Billable detail</Link>
+        </div>
+
+        {tab === 'unassigned' && origin && (
+          <Alert tone="info" title={origin === 'resident' ? 'Unassigned work orders from resident requests' : 'Unassigned internal work orders'}>
+            <Link href="/work-orders?tab=unassigned" className="font-medium underline">Show all unassigned</Link>
+          </Alert>
+        )}
+        {listCapped && (
+          <Alert tone="warning" title="Showing the first 500 matches">Narrow the list with search, status, association or vendor to see the rest.</Alert>
+        )}
 
         {/* ── TABS ── */}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
@@ -286,6 +337,7 @@ export default async function WorkOrdersPage({
           searchPlaceholder="Search by number, title, vendor, unit..."
         >
           <input type="hidden" name="tab" value={status === 'overdue' ? 'all' : tab} />
+          {tab === 'unassigned' && origin && <input type="hidden" name="origin" value={origin} />}
 
           <FilterSelect label="Status" name="status" defaultValue={status}>
             <option value="">All statuses</option>
