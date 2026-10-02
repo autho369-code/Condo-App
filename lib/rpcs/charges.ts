@@ -3,6 +3,8 @@ import { isReceiptMethod } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
+import { todayInZone } from '@/lib/time/zoned';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 import { redirect } from 'next/navigation';
 
 /* ============ Charge Categories ============ */
@@ -112,32 +114,47 @@ export async function subscribeUnitToCharge(formData: FormData) {
   revalidatePath(`/units/${unit_id}`);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// unit_recurring_charges is writable only by finance staff (RLS
+// unit_recurring_charges_finance); for anyone else an update silently matches
+// 0 rows, so check up front and confirm a row actually changed.
+async function requireUnitFinanceAccess(unitId: string): Promise<(msg: string) => never> {
+  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
+  const failTo = (msg: string): never => redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
+  if (!UUID_RE.test(unitId)) redirect('/units?error=' + encodeURIComponent('Unit not found.'));
+  if (!me.is_finance_staff && !me.is_platform_operator) failTo('You need finance access to change recurring charges.');
+  return failTo;
+}
+
 export async function unsubscribeUnit(subscriptionId: string, unitId: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-  const { error } = await (supabase as any).from('unit_recurring_charges')
-    .update({ active: false, end_date: new Date().toISOString().slice(0,10) })
-    .eq('id', subscriptionId);
-  if (error) { failTo(error.message); return; }
+  const failTo = await requireUnitFinanceAccess(unitId);
+  if (!UUID_RE.test(subscriptionId)) failTo('Recurring charge not found.');
+  const db = (await createClient()) as any;
+  const { data: updated, error } = await db.from('unit_recurring_charges')
+    .update({ active: false, end_date: todayInZone() })
+    .eq('id', subscriptionId)
+    .eq('unit_id', unitId)
+    .select('id');
+  if (error) failTo(error.message);
+  if (!updated || updated.length === 0) failTo('That recurring charge was not found on this unit, or you cannot change it.');
   revalidatePath(`/units/${unitId}`);
 }
 
 export async function updateUnitSubscription(id: string, unitId: string, formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-  const { error } = await (supabase as any).from('unit_recurring_charges').update({
-    amount:    parseFloat(formData.get('amount') as string),
+  const failTo = await requireUnitFinanceAccess(unitId);
+  if (!UUID_RE.test(id)) failTo('Recurring charge not found.');
+  const amount = parseFloat(formData.get('amount') as string);
+  if (!Number.isFinite(amount) || amount < 0) failTo('Enter a valid amount.');
+  const db = (await createClient()) as any;
+  const { data: updated, error } = await db.from('unit_recurring_charges').update({
+    amount:    Math.round(amount * 100) / 100,
     frequency: (formData.get('frequency') as any) || 'monthly',
     memo:      (formData.get('memo') as string) || null,
     active:    formData.get('active') === 'on',
-  }).eq('id', id);
-  if (error) { failTo(error.message); return; }
+  }).eq('id', id).eq('unit_id', unitId).select('id');
+  if (error) failTo(error.message);
+  if (!updated || updated.length === 0) failTo('That recurring charge was not found on this unit, or you cannot change it.');
   revalidatePath(`/units/${unitId}`);
 }
 
@@ -167,26 +184,55 @@ export async function postAdHocCharge(formData: FormData) {
 }
 
 export async function recordReceipt(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const supabase = await createClient();
+  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
   const unit_id      = String(formData.get('unit_id') ?? '');
+  if (!UUID_RE.test(unit_id)) redirect('/units?error=' + encodeURIComponent('Unit not found.'));
   const failTo = (msg: string): never => redirect(`/units/${unit_id}?error=${encodeURIComponent(msg)}`);
+  // payments RLS (payments_finance_all) only lets finance staff insert.
+  if (!me.is_finance_staff && !me.is_platform_operator) failTo('You need finance access to record receipts.');
   const amount       = Number(formData.get('amount'));
   const payment_date = String(formData.get('payment_date') ?? '');
   const method       = String(formData.get('method') ?? '');
-  const reference    = String(formData.get('reference') ?? '').trim() || null;
-  const notes        = String(formData.get('notes') ?? '').trim() || null;
+  const reference    = String(formData.get('reference') ?? '').trim().slice(0, 100) || null;
+  const notes        = String(formData.get('notes') ?? '').trim().slice(0, 1000) || null;
   const bank_account_id = String(formData.get('bank_account_id') ?? '') || null;
-  if (!Number.isFinite(amount) || amount <= 0) failTo('Enter the amount received.');
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 10_000_000) failTo('Enter the amount received.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payment_date)) failTo('Enter the date received.');
   if (!isReceiptMethod(method)) failTo('Choose how the payment was made.');
 
-  // RLS (payments_finance_all) scopes the unit; auto_apply_new_payment applies
-  // it to charges and trg_post_payment_to_gl posts Dr bank / Cr A/R.
-  const { data, error } = await (supabase as any).from('payments').insert({
+  const db = (await createClient()) as any;
+  // RLS scopes both lookups to the caller's portfolio.
+  const { data: unit } = await db.from('units')
+    .select('id, buildings!inner(association_id)')
+    .eq('id', unit_id).is('archived_at', null).maybeSingle();
+  if (!unit) failTo('That unit was not found in your portfolio.');
+  if (bank_account_id) {
+    if (!UUID_RE.test(bank_account_id)) failTo('Choose a valid deposit account.');
+    const { data: bank } = await db.from('bank_accounts').select('id')
+      .eq('id', bank_account_id).eq('association_id', (unit.buildings as any)?.association_id)
+      .is('archived_at', null).maybeSingle();
+    if (!bank) failTo('The deposit account must belong to this unit’s association.');
+  }
+
+  // A double click or re-sent form must not record the payment twice.
+  const claim = await claimSubmission(db, formData, 'homeowner_receipt');
+  if (claim.status === 'error') failTo(claim.message);
+  if (claim.status === 'duplicate') {
+    redirect(claim.resultId ? `/units/${unit_id}?receipt=${claim.resultId}` : `/units/${unit_id}?error=${encodeURIComponent('This receipt is already being recorded. Refresh in a moment to see it.')}`);
+  }
+  const token = (claim as { token: string }).token;
+
+  // auto_apply_new_payment applies it to charges and trg_post_payment_to_gl
+  // posts Dr bank / Cr A/R.
+  const { data, error } = await db.from('payments').insert({
     unit_id, amount: Math.round(amount * 100) / 100, payment_date, method, reference, notes, bank_account_id,
+    created_by: me.auth_user_id,
   }).select('id').single();
-  if (error) failTo(error.message);
+  if (error || !data) {
+    await releaseSubmission(db, token);
+    failTo(error?.message ?? 'The receipt could not be saved.');
+  }
+  await completeSubmission(db, token, data.id);
   revalidatePath(`/units/${unit_id}`);
   redirect(`/units/${unit_id}?receipt=${data.id}`);
 }

@@ -216,7 +216,7 @@ export default async function PlatformOperatorOverviewPage() {
   const mrrQuery = db
     .from('subscriptions')
     .select('price_monthly_cents, status')
-    .in('status', ['active', 'trialing'])
+    .in('status', ['active', 'past_due'])
 
   const allSubscriptionsQuery = db.from('subscriptions').select('status, trial_ends_at')
 

@@ -1,3 +1,5 @@
+import { csvCell } from '@/lib/csv/cell';
+
 // Fiscal-year helpers shared by the budget worksheet and budget-vs-actual
 // views. Mirrors association_fiscal_window() in the database: fiscal year N
 // is the one that ENDS in calendar year N, and budget_lines.monthly_amounts[i]
@@ -63,11 +65,6 @@ export function adjustByPercent(amounts: number[], pct: number): number[] {
 export const sum = (a: number[]) => cents(a.reduce((s, x) => s + (Number(x) || 0), 0)) / 100;
 
 export type WorksheetRow = { glAccountId: string; number: number | null; name: string; amounts: number[]; notes: string };
-
-function csvCell(v: string | number) {
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 export function worksheetToCsv(rows: WorksheetRow[], labels: string[]) {
   const head = ['Account number', 'Account', ...labels, 'Annual', 'Notes'];

@@ -16,6 +16,8 @@ import { postHomeownerCredit } from '@/lib/rpcs/credits';
 import { Alert } from '@/components/ui/shell';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -244,13 +246,14 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
           <p className="mb-4 text-sm text-gray-500">Waive a fee or reduce the balance without a payment — for example a waived late fee or a board-approved concession. It applies to open charges like a payment and posts to the account you choose instead of cash.</p>
           <form action={postHomeownerCredit} className="grid grid-cols-1 gap-3 md:grid-cols-6">
             <input type="hidden" name="unit_id" value={unitId} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <Label htmlFor="credit_amount">Amount</Label>
               <Input id="credit_amount" name="amount" type="number" step="0.01" min="0.01" required />
             </div>
             <div>
               <Label htmlFor="credit_date">Date</Label>
-              <Input id="credit_date" name="credit_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+              <Input id="credit_date" name="credit_date" type="date" defaultValue={todayInZone()} required />
             </div>
             <div className="md:col-span-2">
               <Label htmlFor="credit_gl">Charge the credit to</Label>
@@ -310,9 +313,10 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
 
           <form action={recordReceipt as any} className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 md:grid-cols-5">
             <input type="hidden" name="unit_id" value={unitId} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <div>
               <Label htmlFor="pay_date">Date</Label>
-              <Input id="pay_date" name="payment_date" type="date" defaultValue={new Date().toISOString().slice(0,10)} required />
+              <Input id="pay_date" name="payment_date" type="date" defaultValue={todayInZone()} required />
             </div>
             <div>
               <Label htmlFor="pay_amount">Amount</Label>
@@ -339,7 +343,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest). Unapply above to redirect.</p>
+              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest) Unapply above to redirect.</p>
             </div>
           </form>
         </CardBody>

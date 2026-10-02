@@ -3,17 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getMe } from '@/lib/auth/me';
 import { receiptMethodLabel, RECEIPT_METHODS } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
+import { csvCell } from '@/lib/csv/cell';
 
 export const dynamic = 'force-dynamic';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f-]{36}$/i;
-
-function csvCell(value: unknown): string {
-  let s = value === null || value === undefined ? '' : String(value);
-  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`; // spreadsheet formula injection
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 export async function GET(request: NextRequest) {
   const me = await getMe();

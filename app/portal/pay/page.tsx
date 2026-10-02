@@ -61,6 +61,20 @@ export default async function PayPage({
         .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
         .in('id', associationIds)
     : { data: [] };
+  // Payments already on their way (ACH clearing, card awaiting confirmation)
+  // are not on the ledger yet; leave them out of the pre-filled amount so the
+  // owner does not pay the same balance twice.
+  const { data: inFlight } = await (supabase as any)
+    .from('payment_intents')
+    .select('unit_id, amount')
+    .in('unit_id', myUnits)
+    .is('payment_id', null)
+    .in('status', ['processing', 'succeeded']);
+  const pendingByUnit = new Map<string, number>();
+  for (const i of (inFlight ?? []) as Array<{ unit_id: string; amount: number }>) {
+    pendingByUnit.set(i.unit_id, (pendingByUnit.get(i.unit_id) ?? 0) + Number(i.amount ?? 0));
+  }
+
   const assocById = new Map<string, AssociationRemit>(
     ((associations ?? []) as AssociationRemit[]).map((a) => [a.id, a])
   );
@@ -93,7 +107,8 @@ export default async function PayPage({
         const credit = Number(unit.unapplied_credit ?? 0);
         // What the owner actually owes: open charges less credit already on
         // file (pre-filling the gross amount asked them to overpay).
-        const balance = Math.max(0, Math.round((outstanding - credit) * 100) / 100);
+        const pending = unit.unit_id ? pendingByUnit.get(unit.unit_id) ?? 0 : 0;
+        const balance = Math.max(0, Math.round((outstanding - credit - pending) * 100) / 100);
         const hasInstructions = !!(assoc?.remit_payee || assoc?.remit_address || assoc?.payment_instructions);
         return (
           <Card key={unit.unit_id ?? Math.random()}>
@@ -105,6 +120,7 @@ export default async function PayPage({
                   {money(balance)}
                 </span>
                 {credit > 0 && <span className="ml-2 text-xs text-emerald-700">(after {money(unit.unapplied_credit)} credit on file)</span>}
+                {pending > 0 && <span className="ml-2 text-xs text-amber-700">(after {money(pending)} payment in progress)</span>}
               </p>
             </CardHeader>
             <CardBody>

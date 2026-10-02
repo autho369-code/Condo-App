@@ -57,7 +57,7 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
     db.from('portfolios').select('id', { count: 'exact', head: true }),
     db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    db.from('subscriptions').select('price_monthly_cents').in('status', ['active', 'trialing']),
+    db.from('subscriptions').select('price_monthly_cents').in('status', ['active', 'past_due']),
     db.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue'),
   ]);
 

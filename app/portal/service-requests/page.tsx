@@ -12,6 +12,7 @@ import { date } from '@/lib/utils';
 import { currentWorkOrder } from '@/lib/maintenance/intake';
 import { loadRequestAttachmentsByRequest } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
+import { ownerTenureCutoffs, withinTenure } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,16 +26,16 @@ const PRIORITY_TONE: Record<string, Tone> = {
 export default async function ServiceRequestsList({
   searchParams,
 }: {
-  searchParams: Promise<{ submitted?: string; error?: string; cancelled?: string }>;
+  searchParams: Promise<{ submitted?: string; error?: string; cancelled?: string; notice?: string }>;
 }) {
   const me = await requireOwner();
-  const { submitted, error, cancelled } = await searchParams;
+  const { submitted, error, cancelled, notice } = await searchParams;
   const supabase = await createClient();
 
-  const { data: rows } = await (supabase as any)
+  const { data: unitRows } = await (supabase as any)
     .from('service_requests')
     .select(`
-      id, number, description, priority, status, source, created_on, created_at,
+      id, unit_id, number, description, priority, status, source, created_on, created_at,
       permission_to_enter, resolution_note, homeowner_id, owner_id,
       units(unit_number, buildings(associations(name))),
       work_orders(id, status, created_at)
@@ -42,6 +43,13 @@ export default async function ServiceRequestsList({
     .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
     .is('archived_at', null)
     .order('created_at', { ascending: false });
+  // A buyer must not see the previous owner's requests: keep rows naming this
+  // owner, or (when no owner is recorded) created on/after this owner's move-in.
+  const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const rows = ((unitRows ?? []) as any[]).filter((r) =>
+    r.homeowner_id || r.owner_id
+      ? Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id)
+      : withinTenure(tenure, r.unit_id, r.created_at));
   const files = await loadRequestAttachmentsByRequest((rows ?? []).map((r: any) => r.id));
   const isMine = (r: any) => Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id);
   const justSubmitted = submitted ? (rows ?? []).find((r: any) => r.id === submitted && isMine(r)) : null;
@@ -56,7 +64,7 @@ export default async function ServiceRequestsList({
         <Link href="/portal/service-requests/new"><Button size="lg">+ New request</Button></Link>
       </div>
 
-      {submitted && (
+      {submitted && notice !== 'already_submitted' && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Your request was submitted. We&apos;ll follow up once it&apos;s been reviewed — usually within one business day.
         </div>
@@ -71,6 +79,12 @@ export default async function ServiceRequestsList({
               canUpload currentUserId={me.auth_user_id} canRemoveAny={false} emptyText="No photos yet." />
           </CardBody>
         </Card>
+      )}
+
+      {notice === 'already_submitted' && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" role="status">
+          That request was already submitted — we didn&apos;t create a second copy.
+        </div>
       )}
 
       {cancelled === '1' && (

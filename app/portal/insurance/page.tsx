@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation'
 import { Shield, FileText } from 'lucide-react'
 import { AddInsurancePolicyForm } from '@/components/insurance/add-policy-form'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
+import { todayInZone } from '@/lib/time/zoned'
+import { associationZone } from '../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,8 +40,19 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   const hasInsurance = policies.length > 0
   // Date-only compare: coverage ending today is still in force today.
   const expYmd = current?.expiration_date ? String(current.expiration_date).slice(0, 10) : null
-  const todayYmd = new Date().toISOString().slice(0, 10)
-  const soonYmd = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  // "Today" in the owner's community zone — the server runs in UTC.
+  const { data: zoneOcc } = await db
+    .from('occupancies')
+    .select('associations(timezone)')
+    .eq('owner_id', me.owner_id)
+    .eq('status', 'current')
+    .order('is_primary', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const todayYmd = todayInZone(associationZone(zoneOcc?.associations?.timezone))
+  const soonDate = new Date(`${todayYmd}T00:00:00Z`)
+  soonDate.setUTCDate(soonDate.getUTCDate() + 30)
+  const soonYmd = soonDate.toISOString().slice(0, 10)
   const expired = !!(expYmd && expYmd < todayYmd)
   const expiringSoon = !!(expYmd && !expired && expYmd < soonYmd)
 

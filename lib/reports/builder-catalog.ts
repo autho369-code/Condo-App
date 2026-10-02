@@ -1,3 +1,5 @@
+import { csvCell } from '@/lib/csv/cell';
+
 // ─────────────────────────────────────────────────────────────────────────
 // User-defined Report Builder — CURATED catalog.
 //
@@ -26,6 +28,10 @@ export type BuilderSource = {
   filterableAssociation: boolean;
   /** existing date column for the from/to range filter, if any */
   dateColumn?: string;
+  /** true when dateColumn is a timestamptz (the `to` day must include the whole day) */
+  dateColumnIsTimestamp?: boolean;
+  /** true when the table has an `archived_at` column (archived rows are excluded) */
+  archivable?: boolean;
   /** existing status/enum column for the status filter, if any */
   statusColumn?: string;
 };
@@ -47,6 +53,8 @@ export const BUILDER_SOURCES: BuilderSource[] = [
     ],
     filterableAssociation: false, // owners has no association_id (portfolio-scoped via RLS)
     dateColumn: 'created_at',
+    dateColumnIsTimestamp: true,
+    archivable: true,
   },
   {
     key: 'units',
@@ -61,6 +69,7 @@ export const BUILDER_SOURCES: BuilderSource[] = [
       { key: 'ownership_pct', label: 'Ownership %' },
     ],
     filterableAssociation: false, // units link to association via building_id, not directly
+    archivable: true,
   },
   {
     key: 'work_orders',
@@ -75,6 +84,7 @@ export const BUILDER_SOURCES: BuilderSource[] = [
       { key: 'completed_date', label: 'Completed' },
     ],
     filterableAssociation: true,
+    archivable: true,
     dateColumn: 'scheduled_date',
     statusColumn: 'status',
   },
@@ -91,6 +101,7 @@ export const BUILDER_SOURCES: BuilderSource[] = [
       { key: 'created_at', label: 'Created' },
     ],
     filterableAssociation: true,
+    archivable: true,
     dateColumn: 'date_observed',
     statusColumn: 'status',
   },
@@ -137,8 +148,10 @@ export const BUILDER_SOURCES: BuilderSource[] = [
       { key: 'created_at', label: 'Created' },
     ],
     filterableAssociation: false, // vendors are portfolio-scoped (no association_id)
+    archivable: true,
     statusColumn: 'vendor_type',
     dateColumn: 'created_at',
+    dateColumnIsTimestamp: true,
   },
 ];
 
@@ -214,9 +227,15 @@ type QueryBuilder = PromiseLike<QueryResult> & {
   select: (cols: string) => QueryBuilder;
   eq: (col: string, val: unknown) => QueryBuilder;
   gte: (col: string, val: unknown) => QueryBuilder;
+  lt: (col: string, val: unknown) => QueryBuilder;
   lte: (col: string, val: unknown) => QueryBuilder;
+  is: (col: string, val: null) => QueryBuilder;
+  order: (col: string) => QueryBuilder;
   limit: (n: number) => QueryBuilder;
 };
+
+/** Row cap for the CSV export (paged past PostgREST's 1,000-row limit). */
+export const BUILDER_EXPORT_MAX_ROWS = 20000;
 
 /**
  * Build (but do not await) the whitelisted, RLS-scoped query.
@@ -226,12 +245,17 @@ type QueryBuilder = PromiseLike<QueryResult> & {
 export function buildBuilderQuery(
   supabase: { from: (table: string) => QueryBuilder },
   req: BuilderRequest,
-  limit = 500,
+  /** Row limit for an on-screen preview; null for a paged export (no limit). */
+  limit: number | null = 500,
 ): QueryBuilder {
   const { source, columns, filters } = req;
   const cols = columns.map((c) => c.key).join(',');
 
   let query = supabase.from(source.table).select(cols);
+
+  if (source.archivable) {
+    query = query.is('archived_at', null);
+  }
 
   if (source.filterableAssociation && filters.association) {
     query = query.eq('association_id', filters.association);
@@ -243,10 +267,21 @@ export function buildBuilderQuery(
     query = query.gte(source.dateColumn, filters.from);
   }
   if (source.dateColumn && filters.to) {
-    query = query.lte(source.dateColumn, filters.to);
+    // A timestamptz compared with `<= day` stops at that day's midnight and
+    // drops the rest of it: use `< next day` instead.
+    const nextDay = source.dateColumnIsTimestamp ? nextDayOf(filters.to) : null;
+    query = nextDay ? query.lt(source.dateColumn, nextDay) : query.lte(source.dateColumn, filters.to);
   }
 
-  return query.limit(limit);
+  // Deterministic order so a paged export never skips or repeats rows.
+  query = query.order('id');
+  return limit == null ? query : query.limit(limit);
+}
+
+function nextDayOf(day: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const ms = Date.parse(`${day}T00:00:00Z`);
+  return Number.isNaN(ms) ? null : new Date(ms + 86_400_000).toISOString().slice(0, 10);
 }
 
 /** Reconstruct a shareable querystring from a request (used by saved views & export links). */
@@ -271,10 +306,7 @@ export function formatCell(value: unknown): string {
 
 /** Serialize rows to CSV using the curated column labels as headers. */
 export function rowsToCsv(columns: BuilderColumn[], rows: Record<string, unknown>[]): string {
-  const escape = (s: string) => {
-    if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
+  const escape = (s: string) => csvCell(s);
   const header = columns.map((c) => escape(c.label)).join(',');
   const body = rows.map((row) =>
     columns.map((c) => escape(formatCell(row[c.key]))).join(','),

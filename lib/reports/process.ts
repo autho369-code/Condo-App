@@ -44,6 +44,14 @@ export async function processReportRun(runId: string): Promise<void> {
       return;
     }
 
+    // Generation runs with the service role, so re-check the run against the
+    // user who requested it (association scope, finance-only tax reports).
+    const { data: accessError, error: accessCheckError } = await svc.rpc('report_run_access_error', { p_run_id: runId });
+    if (accessCheckError || accessError) {
+      await finish({ status: 'failed', error_message: accessCheckError?.message ?? String(accessError) });
+      return;
+    }
+
     const slug = run.report_definitions?.slug;
     const liveRows = supportsLiveExport(slug) ? await generateLiveExportRows(svc, run.portfolio_id, slug, run.parameters ?? {}) : null;
     const { data: result, error } = liveRows == null ? await svc.rpc('report_data_dispatch', {

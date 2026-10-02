@@ -11,7 +11,6 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
-import { todayInZone } from '@/lib/time/zoned';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUSES = new Set(['new', 'assigned', 'scheduled', 'in_progress', 'done', 'completed', 'billed', 'closed', 'cancelled']);
@@ -48,9 +47,9 @@ export async function bulkWorkOrderAction(formData: FormData) {
     const status = String(formData.get('status') ?? '');
     if (!STATUSES.has(status)) fail('Pick a status');
 
+    // completed_date is stamped per work order by the database trigger in
+    // each association's own time zone.
     patch = { status };
-    if (status === 'completed' || status === 'closed') patch.completed_date = todayInZone();
-    else if (status === 'cancelled') patch.completed_date = null;
     note = `Status changed to ${status.replace(/_/g, ' ')} (bulk)`;
   } else if (op === 'priority') {
     const priority = String(formData.get('priority') ?? '');

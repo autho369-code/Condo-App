@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
+  BUILDER_EXPORT_MAX_ROWS,
   buildBuilderQuery,
   parseBuilderRequest,
   rowsToCsv,
@@ -29,12 +31,22 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await buildBuilderQuery(supabase as any, req);
+  // Page past PostgREST's 1,000-row cap (the export used to stop at 500 rows).
+  const { rows, truncated, error } = await fetchAllRows<Record<string, unknown>>(
+    () => buildBuilderQuery(supabase as any, req, null),
+    { maxRows: BUILDER_EXPORT_MAX_ROWS },
+  );
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error }, { status: 500 });
+  }
+  if (truncated) {
+    return NextResponse.json(
+      { error: `More than ${BUILDER_EXPORT_MAX_ROWS.toLocaleString()} rows match. Narrow the filters and export again.` },
+      { status: 413 },
+    );
   }
 
-  const csv = rowsToCsv(req.columns, (data ?? []) as Record<string, unknown>[]);
+  const csv = rowsToCsv(req.columns, rows);
   const filename = `${req.source.key}-report.csv`;
 
   return new NextResponse(csv, {

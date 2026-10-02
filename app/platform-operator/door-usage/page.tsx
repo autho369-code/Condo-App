@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { money } from '@/lib/utils';
 import { DoorOpen, TrendingUp, BarChart3, Layers } from 'lucide-react';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,12 +52,19 @@ export default async function DoorUsagePage() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Billing usage records
-  const { data: usageRows } = await db
+  // Latest billing period per company: summing every stored period counted a
+  // company once per month of history.
+  const { rows: allUsage } = await fetchAllRows<any>(() => db
     .from('billing_usage')
     .select('*, portfolios!inner(company_name)')
     .order('period_end', { ascending: false })
-    .limit(100);
+    .order('id'));
+  const seenPortfolios = new Set<string>();
+  const usageRows = allUsage.filter((r: any) => {
+    if (seenPortfolios.has(r.portfolio_id)) return false;
+    seenPortfolios.add(r.portfolio_id);
+    return true;
+  });
 
   // Subscriptions for included door limits
   const { data: subs } = await db

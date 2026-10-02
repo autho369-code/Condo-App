@@ -21,12 +21,9 @@ export async function updateWorkOrderStatus(workOrderId: string, newStatus: stri
   const failTo = (msg: string) => {
     redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(msg)}`);
   };
+  // completed_date is stamped by the work_order_stamp_completion trigger in
+  // the work order's own association time zone (and cleared on cancel/reopen).
   const patch: Record<string, unknown> = { status: newStatus };
-  if (newStatus === 'completed' || newStatus === 'closed') {
-    patch.completed_date = todayInZone();
-  } else if (newStatus === 'cancelled') {
-    patch.completed_date = null;
-  }
 
   const { data: updated, error: e1 } = await (supabase as any)
     .from('work_orders')

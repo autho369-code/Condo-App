@@ -2,13 +2,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
+import { csvCell } from '@/lib/csv/cell';
 
 export const dynamic = 'force-dynamic';
-
-function csvCell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 export async function GET() {
   const me = await getMe();

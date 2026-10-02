@@ -19,7 +19,7 @@ const CATEGORIES = ['pricing', 'product', 'sales', 'company', 'support', 'genera
 
 async function saveKnowledge(formData: FormData) {
   'use server'
-  await (await import('@/lib/auth/me')).requirePlatformOperator()
+  await (await import('@/lib/auth/me')).requirePlatformAdmin()
   const id = (formData.get('id') as string) || ''
   const title = ((formData.get('title') as string) || '').trim()
   const body = ((formData.get('body') as string) || '').trim()
@@ -39,7 +39,7 @@ async function saveKnowledge(formData: FormData) {
 
 async function toggleKnowledge(formData: FormData) {
   'use server'
-  await (await import('@/lib/auth/me')).requirePlatformOperator()
+  await (await import('@/lib/auth/me')).requirePlatformAdmin()
   const id = (formData.get('id') as string) || ''
   const field = (formData.get('field') as string) || ''
   const value = formData.get('value') === '1'
@@ -52,7 +52,7 @@ async function toggleKnowledge(formData: FormData) {
 
 async function markHandled(formData: FormData) {
   'use server'
-  await (await import('@/lib/auth/me')).requirePlatformOperator()
+  await (await import('@/lib/auth/me')).requirePlatformAdmin()
   const id = (formData.get('id') as string) || ''
   if (!id) redirect(RETURN)
   const svc = createServiceClient() as any

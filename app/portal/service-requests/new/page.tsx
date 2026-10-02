@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { submitServiceRequest } from '@/lib/rpcs/service-requests';
+import { SUBMISSION_FIELD, newSubmissionToken } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +104,8 @@ export default async function NewServiceRequest({
           <CardHeader><CardTitle>Request details</CardTitle></CardHeader>
           <CardBody>
             <form action={submitServiceRequest as any} className="space-y-6">
+              {/* One-time token: a double click or re-sent form can't file the request twice. */}
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               {/* --- Unit picker --- */}
               <div>
                 <Label htmlFor="unit_id">Unit</Label>

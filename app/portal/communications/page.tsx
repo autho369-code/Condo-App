@@ -17,7 +17,7 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   const requestKey = randomUUID()
 
   // Get association for announcements
-  const { data: occs } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).limit(1)
+  const { data: occs } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(1)
   const assocId = occs?.[0]?.association_id
 
   // Messages sent by this owner (sender_id references auth.users)

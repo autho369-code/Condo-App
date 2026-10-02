@@ -185,7 +185,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const ledgerUnitIds = unitIds.length > 0 ? unitIds : allOccUnitIds;
   if (ledgerUnitIds.length > 0) {
     financialQueries.push(
-      db.from('v_homeowner_ledgers').select('*').in('unit_id', ledgerUnitIds)
+      // One row per current owner per unit: scope to this owner so a unit with
+      // two current owners is not counted twice.
+      db.from('v_homeowner_ledgers').select('*').eq('owner_id', id).in('unit_id', ledgerUnitIds)
     );
   } else {
     financialQueries.push(Promise.resolve({ data: [] }));

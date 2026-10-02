@@ -39,11 +39,11 @@ export default async function RevenuePage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  // All active/trialing subscriptions
+  // Billable (active/past due) and canceled subscriptions; trials are not revenue.
   const { data: subs } = await db
     .from('subscriptions')
     .select('portfolio_id, tier, status, price_monthly_cents, created_at, canceled_at')
-    .in('status', ['active', 'trialing', 'canceled']);
+    .in('status', ['active', 'past_due', 'canceled']);
 
   const { data: portfolios } = await db
     .from('portfolios')
@@ -54,7 +54,7 @@ export default async function RevenuePage() {
   for (const p of portfolios ?? []) portfolioMap.set(p.id, p.company_name);
 
   // Compute MRR, ARR
-  const active = (subs ?? []).filter((s: any) => s.status === 'active' || s.status === 'trialing');
+  const active = (subs ?? []).filter((s: any) => s.status === 'active' || s.status === 'past_due');
   const mrr = active.reduce((sum: number, s: any) => sum + (s.price_monthly_cents ?? 0), 0) / 100;
   const arr = mrr * 12;
 

@@ -62,9 +62,11 @@ async function loadAccounts(
 ) {
   let query = db
     .from('gl_accounts')
-    .select('id, number, name, account_type')
+    .select('id, number, name, account_type, active')
     .eq('portfolio_id', portfolioId)
-    .eq('active', true)
+    // Every account: an inactive account can still carry posted lines, and
+    // dropping it made statements stop balancing. Idle inactive accounts are
+    // hidden by withoutIdleInactive().
     .order('number');
   if (associationId) {
     query = query.or(`association_id.is.null,association_id.eq.${associationId}`);
@@ -72,6 +74,15 @@ async function loadAccounts(
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+/** Drop inactive accounts that have no ledger lines in `totals`. */
+function withoutIdleInactive(accounts: any[], totals: LedgerTotals): any[] {
+  return accounts.filter((account) => {
+    if (account.active !== false) return true;
+    const total = totals[account.id];
+    return Boolean(total && (Number(total.debit) !== 0 || Number(total.credit) !== 0));
+  });
 }
 
 async function loadLedgerTotals(
@@ -117,8 +128,9 @@ async function trialBalanceRows(
   associationId: string | null,
   dateTo: string,
 ) {
-  const accounts = await loadAccounts(db, portfolioId, associationId);
-  const totals = await loadLedgerTotals(db, accounts.map((a: any) => a.id), associationId, null, dateTo);
+  const allAccounts = await loadAccounts(db, portfolioId, associationId);
+  const totals = await loadLedgerTotals(db, allAccounts.map((a: any) => a.id), associationId, null, dateTo);
+  const accounts = withoutIdleInactive(allAccounts, totals);
   const rows = accounts.map((account: any) => {
     const total = totals[account.id] ?? { debit: 0, credit: 0 };
     return {
@@ -151,8 +163,9 @@ async function balanceSheetRows(
   associationId: string | null,
   dateTo: string,
 ) {
-  const accounts = await loadAccounts(db, portfolioId, associationId);
-  const totals = await loadLedgerTotals(db, accounts.map((a: any) => a.id), associationId, null, dateTo);
+  const allAccounts = await loadAccounts(db, portfolioId, associationId);
+  const totals = await loadLedgerTotals(db, allAccounts.map((a: any) => a.id), associationId, null, dateTo);
+  const accounts = withoutIdleInactive(allAccounts, totals);
   const sections = ['asset', 'liability', 'equity'] as const;
   const rows: Record<string, unknown>[] = [];
 
@@ -172,6 +185,18 @@ async function balanceSheetRows(
     dateTo,
   );
   const currentIncome = netIncome(accounts, currentYearTotals);
+  // No closing entries are posted, so earlier years' income and expense never
+  // reach an equity account: carry them as accumulated surplus (same as the
+  // live balance sheet page) or the export stops balancing on January 1.
+  const priorYearsSurplus = netIncome(accounts, totals) - currentIncome;
+  if (Math.abs(priorYearsSurplus) >= 0.005) {
+    rows.push(accountRow(
+      { number: 3640, name: 'Accumulated Surplus – Prior Years', account_type: 'equity' },
+      priorYearsSurplus,
+      'equity',
+      `As of ${dateTo}`,
+    ));
+  }
   rows.push(accountRow(
     { number: 3650, name: 'Current Year Net Income', account_type: 'equity' },
     currentIncome,
@@ -203,14 +228,15 @@ async function incomeStatementRows(
   dateFrom: string,
   dateTo: string,
 ) {
-  const accounts = await loadAccounts(db, portfolioId, associationId);
+  const allAccounts = await loadAccounts(db, portfolioId, associationId);
   const totals = await loadLedgerTotals(
     db,
-    accounts.map((a: any) => a.id),
+    allAccounts.map((a: any) => a.id),
     associationId,
     dateFrom,
     dateTo,
   );
+  const accounts = withoutIdleInactive(allAccounts, totals);
   const rows: Record<string, unknown>[] = [];
   for (const account of accounts) {
     const section = financialSection(account);
@@ -445,14 +471,18 @@ async function arAgingRows(
   const associationIds = (associations ?? []).map((association: any) => association.id);
   if (associationIds.length === 0) return [];
 
-  const { data, error } = await db
+  // Every page: one request stops at 1,000 open charges. charge_id gives a
+  // stable order for paging.
+  const { rows: data, error, truncated } = await fetchAllRows<any>(() => db
     .from('aged_receivables')
     .select('*')
     .in('association_id', associationIds)
-    .order('due_date');
-  if (error) throw error;
+    .order('due_date')
+    .order('charge_id'));
+  if (error) throw new Error(error);
+  if (truncated) throw new Error('A/R aging has more open charges than can be exported at once; filter by association.');
 
-  return (data ?? []).map((row: any) => ({
+  return data.map((row: any) => ({
     Association: row.association_name,
     Unit: row.unit_number,
     Description: row.description,
@@ -509,7 +539,8 @@ async function delinquencySummaryRows(
     '31-60 days': summary.thirtyOneToSixty,
     '61-90 days': summary.sixtyOneToNinety,
     '90+ days': summary.overNinety,
-    'Total delinquent': summary.current + summary.oneToThirty + summary.thirtyOneToSixty + summary.sixtyOneToNinety + summary.overNinety,
+    // Delinquent = past due only; the not-yet-due "current" bucket is excluded.
+    'Total delinquent': summary.oneToThirty + summary.thirtyOneToSixty + summary.sixtyOneToNinety + summary.overNinety,
     'Open charges': summary.charges,
   }));
 }

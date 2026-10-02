@@ -1,488 +1,193 @@
 import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip } from '@/components/operations/metric-strip';
-import { StatusChip } from '@/components/operations/status-chip';
-import { Button } from '@/components/ui/button';
-import { Surface, SectionTitle } from '@/components/ui/shell';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
+import { PrintButton } from '@/components/ui/print-button';
+import { Alert, SectionTitle } from '@/components/ui/shell';
+import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
-// ── Types ────────────────────────────────────────────────────────
-type CheckStatus = 'pass' | 'warning' | 'fail';
+// Financial Diagnostics: per association, the balances that should agree.
+//  1. Security deposit funds: cash held for deposits (security-deposit cash
+//     and trust bank accounts) vs the deposits-held liability accounts.
+//  2. Escrow cash: trust/escrow bank GL balance vs the deposit liabilities,
+//     and vs the offsetting side of every entry that posted to escrow cash.
+//  3. Security clearing accounts: any non-zero balance, plus unpaid bills
+//     coded to a clearing account.
 
-interface DiagnosticCheck {
-  name: string;
-  status: CheckStatus;
-  description: string;
-  action?: { label: string; href: string };
-  detail?: string;
-}
+type Assoc = { id: string; name: string };
+type Gl = { id: string; name: string; number: number | null; account_type: string };
 
-// ── Severity ordering ────────────────────────────────────────────
-const statusOrder: Record<CheckStatus, number> = { fail: 0, warning: 1, pass: 2 };
+const amount = (n: number) =>
+  n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const differs = (a: number, b: number) => Math.abs(a - b) >= 0.005;
 
-// ── Status badge component ───────────────────────────────────────
-function StatusBadge({ status }: { status: CheckStatus }) {
-  const tone = { pass: 'success', warning: 'warning', fail: 'danger' } as const;
-  const label: Record<CheckStatus, string> = { pass: 'Pass', warning: 'Warning', fail: 'Fail' };
-  return <StatusChip tone={tone[status]}>{label[status]}</StatusChip>;
-}
-
-// ── Page ─────────────────────────────────────────────────────────
-export default async function DiagnosticsPage() {
+export default async function FinancialDiagnosticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; association?: string }>;
+}) {
   await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
+  const { q = '', association = '' } = await searchParams;
+  const db = (await createClient()) as any;
 
-  const today = new Date();
-  const sixtyDaysAgo = new Date(today);
-  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-  const sixtyDaysIso = sixtyDaysAgo.toISOString().slice(0, 10);
-
-  // ── 1. Security Deposit mismatch: trust bank accounts vs liability GLs ──
-  const trustBanksQ = db
-    .from('bank_accounts')
-    .select('id, name, gl_account_id')
-    .is('archived_at', null)
-    .eq('purpose', 'trust');
-
-  const secDepGLsQ = db
-    .from('gl_accounts')
-    .select('id, name, number, account_type')
-    .eq('active', true)
-    .or('name.ilike.%security deposit%,name.ilike.%tenant deposit%');
-
-  // ── 2. Escrow / Reserve mismatch ───────────────────────────────
-  const reserveGLsQ = db
-    .from('gl_accounts')
-    .select('id, name, number')
-    .eq('active', true)
-    .eq('fund_account', 'reserve');
-
-  const reserveBanksQ = db
-    .from('bank_accounts')
-    .select('id, name, gl_account_id')
-    .is('archived_at', null)
-    .eq('purpose', 'reserve');
-
-  // ── 3. Non-zero clearing account detection ─────────────────────
-  const clearingGLsQ = db
-    .from('gl_accounts')
-    .select('id, name, number, account_type')
-    .eq('active', true)
-    .or('name.ilike.%clearing%,name.ilike.%suspense%');
-
-  // ── 4. Additional fee GL account assignment ────────────────────
-  const addFeesQ = db
-    .from('association_additional_fees')
-    .select('id, label, gl_account_id, associations!inner(name)');
-
-  // ── 5. Prepayment / deferred GL accounts ───────────────────────
-  const prepayGLsQ = db
-    .from('gl_accounts')
-    .select('id, name, number, account_type')
-    .eq('active', true)
-    .or('name.ilike.%prepayment%,name.ilike.%prepaid%,name.ilike.%deferred income%');
-
-  // ── 6. Reconciliation lapses > 60 days ─────────────────────────
-  const allBanksQ = db
-    .from('bank_accounts')
-    .select('id, name, bank_name, last_reconciliation_date, purpose')
-    .is('archived_at', null)
-    .order('name');
-
-  // ── 7. Persisted diagnostics from data_diagnostics table ───────
-  const persistedDiagsQ = db
-    .from('data_diagnostics')
-    .select('id, title, category, severity, details, entity_type, entity_id, last_seen_at, occurrence_count')
-    .is('resolved_at', null)
-    .order('severity', { ascending: false })
-    .limit(20);
-
-  // ── Run all queries ────────────────────────────────────────────
-  const [
-    { data: trustBanks },
-    { data: secDepGLs },
-    { data: reserveGLs },
-    { data: reserveBanks },
-    { data: clearingGLs },
-    { data: addFees },
-    { data: prepayGLs },
-    { data: allBanks },
-    { data: persistedDiags },
-  ] = await Promise.all([
-    trustBanksQ,
-    secDepGLsQ,
-    reserveGLsQ,
-    reserveBanksQ,
-    clearingGLsQ,
-    addFeesQ,
-    prepayGLsQ,
-    allBanksQ,
-    persistedDiagsQ,
+  const [{ data: assocRows }, { data: glRows }, { data: bankRows }] = await Promise.all([
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('gl_accounts').select('id, name, number, account_type'),
+    db.from('bank_accounts').select('id, name, gl_account_id, association_id, purpose').is('archived_at', null),
   ]);
+  const allAssociations = (assocRows ?? []) as Assoc[];
+  const needle = q.trim().toLowerCase();
+  const associations = allAssociations.filter((a) =>
+    (!association || a.id === association) && (!needle || a.name.toLowerCase().includes(needle)));
+  const assocIds = new Set(associations.map((a) => a.id));
 
-  // ── Compute diagnostic checks ──────────────────────────────────
-  const checks: DiagnosticCheck[] = [];
+  const gls = (glRows ?? []) as Gl[];
+  const banks = (bankRows ?? []) as any[];
+  const trustGlIds = banks.filter((b) => b.purpose === 'trust' && b.gl_account_id).map((b) => b.gl_account_id as string);
+  const escrowGlIds = [...new Set([
+    ...trustGlIds,
+    ...gls.filter((g) => g.account_type === 'cash' && /escrow/i.test(g.name)).map((g) => g.id),
+  ])];
+  const depositCashGlIds = [...new Set([
+    ...trustGlIds,
+    ...gls.filter((g) => g.account_type === 'cash' && /security deposit/i.test(g.name)).map((g) => g.id),
+  ])];
+  const depositLiabilityGlIds = gls
+    .filter((g) => g.account_type === 'liability' && /(deposits? held|security deposit)/i.test(g.name))
+    .map((g) => g.id);
+  const clearingGlIds = gls.filter((g) => /clearing/i.test(g.name)).map((g) => g.id);
 
-  // 1. Security Deposit Funds Mismatch
-  {
-    const sds = secDepGLs ?? [];
-    const tbs = trustBanks ?? [];
-    const secDepIds = new Set(sds.map((g: any) => g.id));
-    const linkedTrustBanks = tbs.filter((b: any) => b.gl_account_id && secDepIds.has(b.gl_account_id));
+  const balanceIds = [...new Set([...depositCashGlIds, ...depositLiabilityGlIds, ...clearingGlIds, ...escrowGlIds])];
+  const [balancesRes, offsetRes, billsRes] = await Promise.all([
+    balanceIds.length ? db.rpc('gl_balances_by_association', { p_gl_account_ids: balanceIds }) : { data: [], error: null },
+    escrowGlIds.length ? db.rpc('escrow_offset_by_association', { p_escrow_gl_ids: escrowGlIds }) : { data: [], error: null },
+    clearingGlIds.length
+      ? fetchAllRows<any>(() => db
+          .from('payable_bills')
+          .select('id, association_id, amount, credit_applied, status')
+          .in('gl_account_id', clearingGlIds)
+          .is('archived_at', null)
+          .not('status', 'in', '("paid","void")')
+          .order('id'))
+      : Promise.resolve({ rows: [], truncated: false, error: null }),
+  ]);
+  const loadError = balancesRes.error?.message ?? offsetRes.error?.message ?? billsRes.error ?? null;
 
-    if (sds.length === 0 && tbs.length === 0) {
-      checks.push({
-        name: 'Security Deposit Funds Mismatch',
-        status: 'pass',
-        description: 'No security deposit GL accounts or trust bank accounts configured.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else if (sds.length === 0 && tbs.length > 0) {
-      checks.push({
-        name: 'Security Deposit Funds Mismatch',
-        status: 'warning',
-        description: `${tbs.length} trust bank account(s) exist but no security deposit liability GL accounts found.`,
-        detail: 'Create security deposit GL accounts and link them to trust bank accounts.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else if (sds.length > 0 && tbs.length === 0) {
-      checks.push({
-        name: 'Security Deposit Funds Mismatch',
-        status: 'warning',
-        description: `${sds.length} security deposit GL account(s) exist but no trust bank accounts configured.`,
-        detail: 'Create trust bank accounts for security deposit funds.',
-        action: { label: 'Bank accounts', href: '/bank-accounts' },
-      });
-    } else if (linkedTrustBanks.length < tbs.length) {
-      const unlinked = tbs.length - linkedTrustBanks.length;
-      checks.push({
-        name: 'Security Deposit Funds Mismatch',
-        status: 'warning',
-        description: `${unlinked} of ${tbs.length} trust bank account(s) are not linked to a security deposit GL account.`,
-        detail: 'Link each trust bank account to its corresponding security deposit GL account.',
-        action: { label: 'Bank accounts', href: '/bank-accounts' },
-      });
-    } else {
-      checks.push({
-        name: 'Security Deposit Funds Mismatch',
-        status: 'pass',
-        description: `All ${tbs.length} trust bank account(s) are linked to ${sds.length} security deposit GL account(s).`,
-        action: { label: 'View accounts', href: '/bank-accounts' },
-      });
-    }
+  // association → (gl → debit-minus-credit)
+  const bal = new Map<string, Map<string, number>>();
+  for (const r of (balancesRes.data ?? []) as any[]) {
+    if (!r.association_id) continue;
+    const m = bal.get(r.association_id) ?? new Map<string, number>();
+    m.set(r.gl_account_id, (m.get(r.gl_account_id) ?? 0) + Number(r.debit_minus_credit ?? 0));
+    bal.set(r.association_id, m);
+  }
+  const sumDebit = (assocId: string, ids: string[]) =>
+    ids.reduce((s, id) => s + (bal.get(assocId)?.get(id) ?? 0), 0);
+  const offsets = new Map<string, number>(
+    ((offsetRes.data ?? []) as any[]).map((r) => [r.association_id, Number(r.offset_balance ?? 0)]));
+  const unpaidClearing = new Map<string, number>();
+  for (const b of billsRes.rows as any[]) {
+    unpaidClearing.set(b.association_id, (unpaidClearing.get(b.association_id) ?? 0)
+      + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0));
   }
 
-  // 2. Escrow / Reserve Cash Account Balance Mismatch
-  {
-    const rgl = reserveGLs ?? [];
-    const rbk = reserveBanks ?? [];
+  const depositRows = associations
+    .map((a) => ({
+      a,
+      ledger: sumDebit(a.id, depositCashGlIds),
+      funds: -sumDebit(a.id, depositLiabilityGlIds),
+    }))
+    .filter((r) => differs(r.ledger, r.funds));
 
-    if (rgl.length === 0 && rbk.length === 0) {
-      checks.push({
-        name: 'Escrow / Reserve Cash Account Mismatch',
-        status: 'pass',
-        description: 'No reserve fund GL accounts or reserve bank accounts configured.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else if (rgl.length === 0) {
-      checks.push({
-        name: 'Escrow / Reserve Cash Account Mismatch',
-        status: 'warning',
-        description: `${rbk.length} reserve bank account(s) exist but no GL accounts tagged as fund_account=reserve.`,
-        detail: 'Tag reserve GL accounts with fund_account=reserve in chart of accounts.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else if (rbk.length === 0) {
-      checks.push({
-        name: 'Escrow / Reserve Cash Account Mismatch',
-        status: 'warning',
-        description: `${rgl.length} reserve GL account(s) exist but no reserve bank accounts configured.`,
-        detail: 'Set up reserve bank accounts for escrow/reserve funds.',
-        action: { label: 'Bank accounts', href: '/bank-accounts' },
-      });
-    } else {
-      checks.push({
-        name: 'Escrow / Reserve Cash Account Mismatch',
-        status: 'pass',
-        description: `${rgl.length} reserve GL account(s) and ${rbk.length} reserve bank account(s) are configured.`,
-        action: { label: 'View accounts', href: '/bank-accounts' },
-      });
-    }
-  }
+  const escrowRows = associations
+    .map((a) => ({
+      a,
+      escrow: sumDebit(a.id, escrowGlIds),
+      deposits: -sumDebit(a.id, depositLiabilityGlIds),
+      offset: offsets.get(a.id) ?? 0,
+    }))
+    .filter((r) => escrowGlIds.length > 0 && (differs(r.escrow, r.deposits) || differs(r.escrow, r.offset)));
 
-  // 3. Non-Zero Security Clearing Account Balances
-  {
-    const cls = clearingGLs ?? [];
-    if (cls.length === 0) {
-      checks.push({
-        name: 'Non-Zero Security Clearing Account Balances',
-        status: 'pass',
-        description: 'No clearing or suspense GL accounts found.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else {
-      // Check for charges posted to clearing accounts (which should not happen in normal ops)
-      const clearingIds = cls.map((g: any) => g.id);
-      const { count: chargeCount } = await db
-        .from('charges')
-        .select('id', { count: 'exact', head: true })
-        .in('gl_account_id', clearingIds);
+  const clearingRows = associations
+    .map((a) => ({ a, balance: sumDebit(a.id, clearingGlIds), unpaid: unpaidClearing.get(a.id) ?? 0 }))
+    .filter((r) => differs(r.balance, 0) || differs(r.unpaid, 0));
 
-      if ((chargeCount ?? 0) === 0) {
-        checks.push({
-          name: 'Non-Zero Security Clearing Account Balances',
-          status: 'pass',
-          description: `${cls.length} clearing/suspense account(s) found with no charges posted. Manual GL balance review recommended periodically.`,
-          action: { label: 'GL accounts', href: '/gl-accounts' },
-        });
-      } else {
-        checks.push({
-          name: 'Non-Zero Security Clearing Account Balances',
-          status: 'fail',
-          description: `${cls.length} clearing/suspense account(s) found with ${chargeCount} charge(s) posted to them.`,
-          detail: 'Clearing accounts should net to zero after reconciliation. Review and post clearing journal entries.',
-          action: { label: 'Journal entries', href: '/journal-entries' },
-        });
-      }
-    }
-  }
-
-  // 4. Negative/Positive Balance on Additional Fee GL Accounts
-  {
-    const fees = addFees ?? [];
-    if (fees.length === 0) {
-      checks.push({
-        name: 'Additional Fee GL Account Balances',
-        status: 'pass',
-        description: 'No association additional fees configured.',
-        action: { label: 'Associations', href: '/associations' },
-      });
-    } else {
-      const missingGL = fees.filter((f: any) => !f.gl_account_id);
-      if (missingGL.length > 0) {
-        const names = missingGL.slice(0, 3).map((f: any) =>
-          `${f.associations?.name ?? '?'} — ${f.label ?? 'unnamed'}`
-        ).join('; ');
-        const overflow = missingGL.length > 3 ? ` +${missingGL.length - 3} more` : '';
-        checks.push({
-          name: 'Additional Fee GL Account Balances',
-          status: 'warning',
-          description: `${missingGL.length} of ${fees.length} additional fee(s) missing GL account assignment.`,
-          detail: `${names}${overflow}. Assign a GL account to each additional fee for proper accounting.`,
-          action: { label: 'Associations', href: '/associations' },
-        });
-      } else {
-        checks.push({
-          name: 'Additional Fee GL Account Balances',
-          status: 'pass',
-          description: `All ${fees.length} additional fee(s) have GL accounts assigned.`,
-          action: { label: 'Associations', href: '/associations' },
-        });
-      }
-    }
-  }
-
-  // 5. Prepayment Balance Mismatch
-  {
-    const pgl = prepayGLs ?? [];
-    if (pgl.length === 0) {
-      checks.push({
-        name: 'Prepayment Balance Mismatch',
-        status: 'pass',
-        description: 'No prepayment or deferred income GL accounts configured.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    } else {
-      checks.push({
-        name: 'Prepayment Balance Mismatch',
-        status: 'pass',
-        description: `${pgl.length} prepayment/deferred GL account(s) configured. Manual review recommended for proper amortization.`,
-        detail: 'Review prepaid expenses and deferred income schedules periodically.',
-        action: { label: 'GL accounts', href: '/gl-accounts' },
-      });
-    }
-  }
-
-  // 6. Bank Account Reconciliation Lapses Over 60 Days
-  {
-    const banks = allBanks ?? [];
-    if (banks.length === 0) {
-      checks.push({
-        name: 'Bank Account Reconciliation Lapses',
-        status: 'pass',
-        description: 'No bank accounts configured.',
-        action: { label: 'Bank accounts', href: '/bank-accounts' },
-      });
-    } else {
-      const neverReconciled = banks.filter((b: any) => !b.last_reconciliation_date);
-      const overdueReconciled = banks.filter((b: any) =>
-        b.last_reconciliation_date && b.last_reconciliation_date < sixtyDaysIso
-      );
-      const current = banks.filter((b: any) =>
-        b.last_reconciliation_date && b.last_reconciliation_date >= sixtyDaysIso
-      );
-
-      const lapseCount = neverReconciled.length + overdueReconciled.length;
-
-      if (lapseCount === 0) {
-        checks.push({
-          name: 'Bank Account Reconciliation Lapses',
-          status: 'pass',
-          description: `All ${banks.length} bank account(s) reconciled within the last 60 days.`,
-        });
-      } else {
-        const detailParts: string[] = [];
-        if (neverReconciled.length > 0) {
-          const names = neverReconciled.slice(0, 2).map((b: any) => b.name).join(', ');
-          const more = neverReconciled.length > 2 ? ` +${neverReconciled.length - 2} more` : '';
-          detailParts.push(`${neverReconciled.length} never reconciled: ${names}${more}`);
-        }
-        if (overdueReconciled.length > 0) {
-          const names = overdueReconciled.slice(0, 2).map((b: any) =>
-            `${b.name} (${date(b.last_reconciliation_date)})`
-          ).join(', ');
-          const more = overdueReconciled.length > 2 ? ` +${overdueReconciled.length - 2} more` : '';
-          detailParts.push(`${overdueReconciled.length} overdue: ${names}${more}`);
-        }
-
-        checks.push({
-          name: 'Bank Account Reconciliation Lapses',
-          status: lapseCount > banks.length / 2 ? 'fail' : 'warning',
-          description: `${lapseCount} of ${banks.length} bank account(s) have reconciliation lapses over 60 days.`,
-          detail: `${detailParts.join(' | ')}. ${current.length} account(s) are current.`,
-          action: { label: 'Reconcile now', href: '/bank-accounts/reconcile' },
-        });
-      }
-    }
-  }
-
-  // ── 7. Persisted diagnostics from data_diagnostics table ───────
-  const persisted = persistedDiags ?? [];
-  for (const d of persisted) {
-    const status: CheckStatus =
-      d.severity === 'error' ? 'fail' : d.severity === 'warning' ? 'warning' : 'pass';
-    checks.push({
-      name: d.title,
-      status,
-      description: d.details ?? d.category,
-      detail: `Occurred ${d.occurrence_count ?? 1} time(s). Last seen ${date(d.last_seen_at)}.`,
-      action: d.entity_type ? {
-        label: `View ${d.entity_type}`,
-        href: d.entity_type === 'bank_account' ? `/bank-accounts` :
-              d.entity_type === 'gl_account' ? `/gl-accounts` :
-              d.entity_type === 'payable_bill' ? `/bills` :
-              d.entity_type === 'charge' ? `/charges` : `/accounting`,
-      } : { label: 'Accounting', href: '/accounting' },
-    });
-  }
-
-  // ── Sort: fails first, then warnings, then passes ──────────────
-  checks.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
-
-  // ── Summary metrics ────────────────────────────────────────────
-  const totalChecks = checks.length;
-  const passed = checks.filter((d) => d.status === 'pass').length;
-  const warnings = checks.filter((d) => d.status === 'warning').length;
-  const failed = checks.filter((d) => d.status === 'fail').length;
-
-  const metrics = [
-    { label: 'Total checks', value: totalChecks },
-    { label: 'Passed', value: passed, colorClass: 'text-emerald-600' },
-    { label: 'Warnings', value: warnings, colorClass: 'text-amber-600' },
-    { label: 'Failed', value: failed, colorClass: 'text-red-600' },
-  ].map((m) => ({
-    label: m.label,
-    value: <span className={`${m.colorClass ?? ''}`}>{m.value}</span>,
-  }));
+  const property = (a: Assoc) => (
+    <Link href={`/associations/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
+  );
+  const none = (cols: number) => (
+    <TR><TD colSpan={cols} className="py-6 text-center text-gray-500">No Mismatched Balances</TD></TR>
+  );
 
   return (
     <DataWorkspace
-      title="Accounting diagnostics"
-      description="Read-only health checks for GL account structure, bank reconciliations, security deposits, escrow accounts, and additional fees."
-      actions={
-        <Link href="/accounting">
-          <Button variant="secondary">Back to accounting</Button>
-        </Link>
-      }
+      title="Financial Diagnostics"
+      description="Balances that should agree, by association. Only associations with a mismatch are listed."
+      actions={<PrintButton />}
     >
       <div className="space-y-6">
-        {/* ── Metric strip ──────────────────────────────────── */}
-        <MetricStrip metrics={metrics} />
+        {loadError && <Alert title="Some balances could not be loaded.">{loadError}</Alert>}
+        {billsRes.truncated && <Alert title="Unpaid clearing bills are incomplete.">More than the row limit matched; narrow to one association.</Alert>}
 
-        {/* ── Diagnostic cards ──────────────────────────────── */}
+        <FilterBar action="/diagnostics" searchDefault={q} searchPlaceholder="Search by property">
+          <FilterSelect label="Properties" name="association" defaultValue={association}>
+            <option value="">Show All Properties</option>
+            {allAssociations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
+        </FilterBar>
+
         <section>
-          <SectionTitle title="Diagnostic checks" />
-          {checks.length === 0 ? (
-            <Surface padded={false} className="px-6 py-10 text-center text-sm text-gray-500">
-              No diagnostics available. Run a data health scan to populate checks.
-            </Surface>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {checks.map((check) => (
-                <Surface key={check.name} padded={false} className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-gray-950">{check.name}</h3>
-                      <p className="mt-1 text-sm text-gray-600">{check.description}</p>
-                      {check.detail && (
-                        <p className="mt-1.5 text-xs text-gray-400">{check.detail}</p>
-                      )}
-                    </div>
-                    <StatusBadge status={check.status} />
-                  </div>
-                  {check.action && (
-                    <div className="mt-3">
-                      <Link
-                        href={check.action.href}
-                        className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-950"
-                      >
-                        {check.action.label} &rarr;
-                      </Link>
-                    </div>
-                  )}
-                </Surface>
+          <SectionTitle title="Security Deposit Funds Mismatch" description="Cash held for deposits compared with the deposits-held liability." />
+          <Table>
+            <THead><TR><TH>Property</TH><TH className="text-right">Deposit Account Balance (General Ledger)</TH><TH className="text-right">Deposit Account Balance (Security Deposit Funds)</TH></TR></THead>
+            <tbody>
+              {depositRows.length === 0 ? none(3) : depositRows.map((r) => (
+                <TR key={r.a.id}>
+                  <TD>{property(r.a)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.ledger)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.funds)}</TD>
+                </TR>
               ))}
-            </div>
-          )}
+            </tbody>
+          </Table>
         </section>
 
-        {/* ── Legend ────────────────────────────────────────── */}
-        <Surface padded={false} className="p-5">
-          <SectionTitle title="Status legend" className="mb-3" />
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
-            <span className="inline-flex items-center gap-1.5">
-              <StatusChip tone="success">Pass</StatusChip>
-              No issues detected
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <StatusChip tone="warning">Warning</StatusChip>
-              Needs attention
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <StatusChip tone="danger">Fail</StatusChip>
-              Action required
-            </span>
-          </div>
-        </Surface>
+        <section>
+          <SectionTitle title="Escrow Cash Account Balance Mismatch" description="Escrow (trust) cash compared with deposit liabilities and with everything posted against escrow cash." />
+          <Table>
+            <THead><TR><TH>Property</TH><TH className="text-right">Escrow Cash GL Balance</TH><TH className="text-right">Deposit GL Accounts</TH><TH className="text-right">All GL Accounts w/ Escrow Cash Offset</TH></TR></THead>
+            <tbody>
+              {escrowRows.length === 0 ? none(4) : escrowRows.map((r) => (
+                <TR key={r.a.id}>
+                  <TD>{property(r.a)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.escrow)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.deposits)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.offset)}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </section>
 
-        {/* ── What gets checked ─────────────────────────────── */}
-        <Surface padded={false} className="p-5">
-          <SectionTitle title="What gets checked" className="mb-3" />
-          <ul className="list-inside list-disc space-y-1.5 text-sm text-gray-600">
-            <li>Security Deposit Funds — trust bank accounts linked to security deposit GL accounts</li>
-            <li>Escrow / Reserve Cash Accounts — reserve bank accounts linked to reserve GL accounts</li>
-            <li>Security Clearing Accounts — no charges posted to clearing/suspense GL accounts</li>
-            <li>Additional Fee GL Accounts — every additional fee has a GL account assigned</li>
-            <li>Prepayment Balances — prepaid/deferred income GL account structure in place</li>
-            <li>Bank Reconciliation Lapses — all bank accounts reconciled within 60 days</li>
-            <li>Persisted Diagnostics — issues from the data_diagnostics table</li>
-          </ul>
-        </Surface>
+        <section>
+          <SectionTitle title="Non-Zero Security Clearing Account Balances" description="Clearing accounts should net to zero once bills are paid." />
+          <Table>
+            <THead><TR><TH>Property</TH><TH className="text-right">Security Clearing Account Balance</TH><TH className="text-right">Unpaid Security Clearing Bill Balance</TH></TR></THead>
+            <tbody>
+              {clearingRows.length === 0 ? none(3) : clearingRows.map((r) => (
+                <TR key={r.a.id}>
+                  <TD>{property(r.a)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.balance)}</TD>
+                  <TD className="text-right tabular-nums">{amount(r.unpaid)}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </section>
       </div>
     </DataWorkspace>
   );
