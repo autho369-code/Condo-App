@@ -39,26 +39,34 @@ export default async function ProjectsPage({
   // Every project and every project's totals (a 500-row cap left later
   // projects showing $0 spent).
   const [projectsRes, { data: associations }, financialsRes] = await Promise.all([
-    fetchAllRows<any>(() => db.from('capital_projects')
-      .select('id, name, description, status, priority, start_date, target_end_date, budget_amount, contingency_amount, approved_budget_amount, board_approval_required, updated_at, association_id, associations(name)')
-      .is('archived_at', null)
-      .order('updated_at', { ascending: false })
-      .order('id')),
+    // Status and association filters run in the query, so they reach every
+    // matching project rather than only the rows already loaded.
+    fetchAllRows<any>(() => {
+      let query = db.from('capital_projects')
+        .select('id, name, description, status, priority, start_date, target_end_date, budget_amount, contingency_amount, approved_budget_amount, board_approval_required, updated_at, association_id, associations(name)')
+        .is('archived_at', null);
+      if (status && STATUSES.includes(status)) query = query.eq('status', status);
+      if (/^[0-9a-f-]{36}$/i.test(association_id)) query = query.eq('association_id', association_id);
+      return query.order('updated_at', { ascending: false }).order('id');
+    }),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     fetchAllRows<any>(() => db.from('capital_project_financials').select('project_id, work_order_count, committed_spend').order('project_id')),
   ]);
   const projectRows = projectsRes.rows;
-  const loadError = projectsRes.error ?? financialsRes.error;
-  const incomplete = projectsRes.truncated || financialsRes.truncated;
+  const loadError = projectsRes.error;
+  const incomplete = projectsRes.truncated;
+  // Spend is shown only when every project's totals loaded; a partial set would
+  // show understated figures.
+  const spendComplete = !financialsRes.error && !financialsRes.truncated;
 
-  const financials = new Map(financialsRes.rows.map((row: any) => [row.project_id, row]));
+  const financials = new Map((spendComplete ? financialsRes.rows : []).map((row: any) => [row.project_id, row]));
 
   let projects = (projectRows ?? []).map((project: any) => {
     const totals: any = financials.get(project.id);
     return {
       ...project,
-      work_order_count: Number(totals?.work_order_count ?? 0),
-      spent: Number(totals?.committed_spend ?? 0),
+      work_order_count: spendComplete ? Number(totals?.work_order_count ?? 0) : null,
+      spent: spendComplete ? Number(totals?.committed_spend ?? 0) : null,
     };
   });
 
@@ -69,11 +77,9 @@ export default async function ProjectsPage({
       || (project.description ?? '').toLowerCase().includes(needle)
       || (project.associations?.name ?? '').toLowerCase().includes(needle));
   }
-  if (status) projects = projects.filter((project: any) => project.status === status);
-  if (association_id) projects = projects.filter((project: any) => project.association_id === association_id);
 
   const totalBudget = projects.reduce((sum: number, project: any) => sum + Number(project.approved_budget_amount ?? project.budget_amount ?? 0), 0);
-  const totalSpent = projects.reduce((sum: number, project: any) => sum + project.spent, 0);
+  const totalSpent = projects.reduce((sum: number, project: any) => sum + (project.spent ?? 0), 0);
 
   return (
     <DataWorkspace
@@ -83,12 +89,15 @@ export default async function ProjectsPage({
     >
       <div className="space-y-6">
         {loadError && <Alert tone="danger" title="Could not load every project">{loadError}</Alert>}
+        {!spendComplete && <Alert tone="warning" title="Spend unavailable">{financialsRes.error ?? 'There are too many project totals to load, so spend is hidden rather than shown understated.'}</Alert>}
         {incomplete && <Alert tone="warning" title="List is incomplete">There are more projects than this page can load. Filter by association or status.</Alert>}
         <MetricStrip metrics={[
           { label: 'Active', value: projects.filter((p: any) => p.status === 'active').length, sublabel: 'In execution' },
           { label: 'Awaiting approval', value: projects.filter((p: any) => ['board_review', 'approved'].includes(p.status)).length, sublabel: 'Governance queue' },
           { label: 'Approved budget', value: currency(totalBudget), sublabel: 'Current view' },
-          { label: 'Committed spend', value: currency(totalSpent), sublabel: totalBudget ? `${Math.round((totalSpent / totalBudget) * 100)}% of budget` : 'No budget set' },
+          spendComplete
+            ? { label: 'Committed spend', value: currency(totalSpent), sublabel: totalBudget ? `${Math.round((totalSpent / totalBudget) * 100)}% of budget` : 'No budget set' }
+            : { label: 'Committed spend', value: '—', sublabel: 'Could not load every project total' },
         ]} />
 
         <FilterBar action="/projects" searchDefault={q} searchPlaceholder="Search projects and associations">
@@ -111,14 +120,14 @@ export default async function ProjectsPage({
                   <TD>
                     <Link href={`/projects/${project.id}`} className="block text-gray-900">
                       <div className="font-medium">{project.name}</div>
-                      <div className="text-xs text-gray-500">{project.work_order_count} linked work order{project.work_order_count === 1 ? '' : 's'}</div>
+                      {project.work_order_count !== null && <div className="text-xs text-gray-500">{project.work_order_count} linked work order{project.work_order_count === 1 ? '' : 's'}</div>}
                     </Link>
                   </TD>
                   <TD className="text-sm text-gray-700">{project.associations?.name ?? '—'}</TD>
                   <TD><StatusChip tone={projectTone(project.status)}>{project.status.replace(/_/g, ' ')}</StatusChip></TD>
                   <TD className="whitespace-nowrap text-sm text-gray-600">{date(project.start_date)} – {date(project.target_end_date)}</TD>
                   <TD className="text-right tabular-nums">{currency(Number(project.approved_budget_amount ?? project.budget_amount ?? 0))}</TD>
-                  <TD className="text-right tabular-nums">{currency(project.spent)}</TD>
+                  <TD className="text-right tabular-nums">{project.spent === null ? '—' : currency(project.spent)}</TD>
                 </TR>
               ))}
             </tbody>
