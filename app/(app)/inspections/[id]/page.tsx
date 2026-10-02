@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { todayInZone } from '@/lib/time/zoned';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
@@ -59,7 +60,7 @@ export default async function InspectionDetailPage({
     const patch: Record<string, unknown> = { status, notes: String(formData.get('notes') ?? '').trim() || null };
     // Stamp the completion date only when the inspection becomes completed;
     // re-saving notes must not move the real completion date.
-    if (status === 'completed' && current.status !== 'completed') patch.completed_date = new Date().toISOString().slice(0, 10);
+    if (status === 'completed' && current.status !== 'completed') patch.completed_date = todayInZone();
     if (status !== 'completed') patch.completed_date = null;
     const { data: updated, error } = await (supabase as any).from('inspections').update(patch).eq('id', inspectionId).select('id');
     if (error) bounce(inspectionId, 'error', error.message);
