@@ -78,10 +78,12 @@ export default async function VendorsPage({
     .order('id'));
 
   const allRows = vendorsRes.rows;
-  const { rows: ratingRows } = await fetchAllRows<any>(() => (supabase as any)
+  const ratingsRes = await fetchAllRows<any>(() => (supabase as any)
     .from('work_order_ratings').select('id, vendor_id, score').eq('portfolio_id', portfolioId).order('id'));
+  // A partial set would show skewed averages, so show none rather than wrong ones.
+  const ratingsComplete = !ratingsRes.error && !ratingsRes.truncated;
   const ratingByVendor = new Map<string, { sum: number; n: number }>();
-  for (const r of (ratingRows ?? []) as any[]) {
+  for (const r of (ratingsComplete ? ratingsRes.rows : []) as any[]) {
     const t = ratingByVendor.get(r.vendor_id) ?? { sum: 0, n: 0 };
     t.sum += Number(r.score); t.n += 1;
     ratingByVendor.set(r.vendor_id, t);
@@ -99,7 +101,8 @@ export default async function VendorsPage({
       [
         vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.vendor_type, vendor.payment_type,
         ...(Array.isArray(vendor.emails) ? vendor.emails : []),
-        ...(Array.isArray(vendor.phone_numbers) ? vendor.phone_numbers.map((p: any) => p?.number) : []),
+        // Entries are { type, number } objects, or bare strings on older records.
+        ...(Array.isArray(vendor.phone_numbers) ? vendor.phone_numbers.map((p: any) => (typeof p === 'string' ? p : p?.number)) : []),
       ].some((value) => typeof value === 'string' && value.toLowerCase().includes(q)),
     );
   }
@@ -148,6 +151,7 @@ export default async function VendorsPage({
         {sp.invited && <Alert tone="success" title="Portal invite sent">{`${sp.invited} will get an email with a link to set their password and access the vendor portal.`}</Alert>}
         {sp.error && <Alert tone="danger" title="Could not send invite">{sp.error}</Alert>}
         {vendorsRes.error && <Alert tone="danger" title="Could not load every vendor">{vendorsRes.error}</Alert>}
+        {!ratingsComplete && <Alert tone="warning" title="Vendor ratings unavailable">{ratingsRes.error ?? 'There are too many ratings to load, so averages are hidden rather than shown from a partial set.'}</Alert>}
         {vendorsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more vendors than this page can load. Filter by trade or search.</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link href="/owners" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Owners</Link>
@@ -209,7 +213,9 @@ export default async function VendorsPage({
                     {(vendor.emails?.length > 0 || vendor.phone_numbers?.length > 0) && (
                       <div className="mt-1 space-y-0.5">
                         {vendor.emails?.map((e: string) => <div key={e} className="text-xs text-gray-500">{e}</div>)}
-                        {vendor.phone_numbers?.map((p: any) => <div key={p.number} className="text-xs text-gray-500">{p.type}: {p.number}</div>)}
+                        {vendor.phone_numbers?.map((p: any, i: number) => (typeof p === 'string'
+                          ? <div key={`${p}-${i}`} className="text-xs text-gray-500">{p}</div>
+                          : <div key={`${p?.number}-${i}`} className="text-xs text-gray-500">{p?.type ? `${p.type}: ` : ''}{p?.number}</div>))}
                       </div>
                     )}
                   </TD>
