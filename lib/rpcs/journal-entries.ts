@@ -11,41 +11,26 @@ function fail(message: string): never {
   redirect(`${BACK}&error=${encodeURIComponent(message)}`);
 }
 
-// Post a draft journal entry. RLS limits the row to the caller's company, and
-// the ledger's balance check rejects an entry whose debits and credits differ.
-export async function postDraftJournalEntry(formData: FormData) {
+// Post or delete a draft journal entry. draft_journal_entry_action checks
+// finance access and that the caller manages every line's association; the
+// ledger's balance check still rejects an unbalanced entry, and a posted
+// bank-transfer draft is linked to its transfer.
+async function draftAction(formData: FormData, action: 'post' | 'delete') {
   await requireFinanceStaff();
   const id = String(formData.get('entry_id') ?? '');
   if (!UUID.test(id)) fail('Choose a journal entry.');
   const db = (await createClient()) as any;
-  const { data, error } = await db
-    .from('journal_entries')
-    .update({ posted: true })
-    .eq('id', id)
-    .eq('posted', false)
-    .select('id')
-    .maybeSingle();
+  const { error } = await db.rpc('draft_journal_entry_action', { p_entry_id: id, p_action: action });
   if (error) fail(error.message);
-  if (!data) fail('That draft was not found or is already posted.');
   revalidatePath('/journal-entries');
-  redirect(`${BACK}&posted=1`);
+  revalidatePath('/bank-transfers');
+  redirect(`${BACK}&${action === 'post' ? 'posted' : 'deleted'}=1`);
 }
 
-// Delete a draft journal entry that was never posted.
+export async function postDraftJournalEntry(formData: FormData) {
+  return draftAction(formData, 'post');
+}
+
 export async function deleteDraftJournalEntry(formData: FormData) {
-  await requireFinanceStaff();
-  const id = String(formData.get('entry_id') ?? '');
-  if (!UUID.test(id)) fail('Choose a journal entry.');
-  const db = (await createClient()) as any;
-  const { data, error } = await db
-    .from('journal_entries')
-    .delete()
-    .eq('id', id)
-    .eq('posted', false)
-    .select('id')
-    .maybeSingle();
-  if (error) fail(error.message);
-  if (!data) fail('That draft was not found or is already posted.');
-  revalidatePath('/journal-entries');
-  redirect(`${BACK}&deleted=1`);
+  return draftAction(formData, 'delete');
 }
