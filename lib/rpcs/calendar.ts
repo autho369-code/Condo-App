@@ -272,13 +272,20 @@ export async function updateCalendarEvent(formData: FormData) {
       all_day: allDay,
       location: str(formData, 'location'),
       description: str(formData, 'description'),
-      internal_notes: str(formData, 'internal_notes'),
       updated_at: new Date().toISOString(),
     })
     .eq('id', eventId)
     .select('id');
   if (error) failTo(error.message);
   if (!updated || updated.length === 0) failTo('Event not found or you do not have access to it.');
+  // Internal notes live in the staff-only calendar_event_private table; write
+  // the submitted value (including an empty one) there so clearing works.
+  const { error: notesError } = await db.from('calendar_event_private').upsert({
+    calendar_event_id: eventId,
+    internal_notes: str(formData, 'internal_notes'),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'calendar_event_id' });
+  if (notesError) failTo(`Event saved, but the internal notes could not be saved: ${notesError.message}`);
   if (new Date(start!).getTime() !== new Date(existing.start_datetime).getTime()) {
     await rescheduleReminders(db, eventId!, start!);
   }
