@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -40,26 +41,32 @@ function formatMoney(cents: number | null): string {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; view?: string; archived?: string; removed?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; location?: string; view?: string; archived?: string; removed?: string; added?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const category = sp.category ?? 'all';
-  const view = sp.view === 'categories' ? 'categories' : 'items';
+  const location = sp.location ?? 'all';
+  const view = sp.view === 'categories' ? 'categories' : sp.view === 'locations' ? 'locations' : 'items';
 
   // Query inventory_items — if the table doesn't exist yet, supabase returns an error
   // that we catch gracefully so the page still renders with an empty list.
   let allRows: (InventoryRow & { category: string | null })[] = [];
   let queryError: string | null = null;
+  let listTruncated = false;
   let removedItems: { id: string; name: string; category: string | null }[] = [];
   try {
     const supabase = await createClient();
-    const { data, error } = await (supabase as any)
+    // Every item, paged past PostgREST's 1,000-row cap.
+    const { rows: data, error: fetchError, truncated } = await fetchAllRows<any>(() => (supabase as any)
       .from('inventory_items')
       .select('id, name, sku, category, quantity_on_hand, reorder_point, unit_of_measure, location, unit_cost')
       .is('archived_at', null)
-      .order('name');
+      .order('name')
+      .order('id'));
+    const error = fetchError ? { message: fetchError } : null;
+    listTruncated = truncated;
     const { data: removedData } = sp.removed === '1'
       ? await (supabase as any).from('inventory_items').select('id, name, category, archived_at').not('archived_at', 'is', null).order('name')
       : { data: null };
@@ -88,7 +95,11 @@ export default async function InventoryPage({
     new Set(allRows.map((row) => row.category).filter(Boolean) as string[]),
   ).sort();
   let rows = allRows;
+  const locations: string[] = Array.from(
+    new Set(allRows.map((row) => row.location).filter(Boolean) as string[]),
+  ).sort();
   if (category !== 'all') rows = rows.filter((row) => row.category === category);
+  if (location !== 'all') rows = rows.filter((row) => (location === 'none' ? !row.location : row.location === location));
   if (q) {
     rows = rows.filter((row) =>
       [row.name, row.sku, row.category, row.location, row.unit_of_measure].some((value) =>
@@ -107,9 +118,16 @@ export default async function InventoryPage({
     <DataWorkspace
       title="Inventory"
       description="Consumables and parts kept on-hand for common maintenance — filters, bulbs, paint, hardware."
-      actions={<Link href="/inventory/new"><Button>New Inventory Item</Button></Link>}
+      actions={
+        <>
+          <Link href="/inventory/bulk"><Button variant="secondary">Bulk add items</Button></Link>
+          <Link href="/inventory/new"><Button>New Inventory Item</Button></Link>
+        </>
+      }
     >
       <div className="space-y-4">
+        {listTruncated && <Alert tone="warning" title="List is incomplete">There are more inventory items than this page can load. Filter by category or location.</Alert>}
+        {sp.added && <Alert tone="success">{`${sp.added} item${sp.added === '1' ? '' : 's'} added to inventory.`}</Alert>}
         {sp.archived && <Alert tone="success">Item removed from inventory. Its history stays in the Inventory Usage report.</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link
@@ -123,6 +141,12 @@ export default async function InventoryPage({
             className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${view === 'categories' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
           >
             Categories
+          </Link>
+          <Link
+            href="/inventory?view=locations"
+            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${view === 'locations' ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 transition-colors hover:text-gray-700'}`}
+          >
+            Locations
           </Link>
           <Link
             href="/reports/inventory_status"
@@ -170,10 +194,55 @@ export default async function InventoryPage({
               </option>
             ))}
           </FilterSelect>
+          <FilterSelect label="Location" name="location" defaultValue={location}>
+            <option value="all">All locations</option>
+            {locations.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+            <option value="none">No location</option>
+          </FilterSelect>
         </FilterBar>
 
         {queryError ? (
           <Alert tone="danger" title="Could not load inventory.">{queryError}</Alert>
+        ) : view === 'locations' ? (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Location</TH>
+                <TH>Items</TH>
+                <TH>Total Quantity</TH>
+                <TH>Total Value</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {allRows.length === 0 ? (
+                <TR>
+                  <TD colSpan={4} className="py-10 text-center text-gray-500">
+                    No inventory items yet. Use New Inventory Item to add your first item.
+                  </TD>
+                </TR>
+              ) : (
+                [...locations, ...(allRows.some((r) => !r.location) ? ['No location'] : [])].map((l) => {
+                  const items = allRows.filter((r) => (l === 'No location' ? !r.location : r.location === l));
+                  return (
+                    <TR key={l} className="hover:bg-gray-50">
+                      <TD>
+                        <Link href={`/inventory?location=${encodeURIComponent(l === 'No location' ? 'none' : l)}`} className="font-medium text-gray-950 hover:underline">
+                          {l}
+                        </Link>
+                      </TD>
+                      <TD className="tabular-nums text-gray-900">{items.length}</TD>
+                      <TD className="tabular-nums text-gray-900">{items.reduce((s, r) => s + r.quantity_on_hand, 0)}</TD>
+                      <TD className="tabular-nums text-gray-900">{formatMoney(items.reduce((s, r) => s + (r.total_value ?? 0), 0))}</TD>
+                    </TR>
+                  );
+                })
+              )}
+            </tbody>
+          </Table>
         ) : view === 'categories' ? (
           <Table>
             <THead>
