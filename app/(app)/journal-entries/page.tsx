@@ -12,6 +12,8 @@ import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { deleteDraftJournalEntry, postDraftJournalEntry } from '@/lib/rpcs/journal-entries';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +39,7 @@ function parseTab(value: string | undefined): JournalTab {
 export default async function JournalEntriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string; saved?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string; status?: string; saved?: string; posted?: string; deleted?: string; error?: string }>;
 }) {
   await requireStaff();
   const {
@@ -49,10 +51,61 @@ export default async function JournalEntriesPage({
     date_from = '',
     date_to = '',
     saved = '',
+    status: statusParam = '',
+    posted: postedFlag = '',
+    deleted: deletedFlag = '',
+    error: pageError = '',
   } = await searchParams;
+  const status = statusParam === 'posted' || statusParam === 'draft' ? statusParam : '';
   const tab = parseTab(tabParam);
   const supabase = await createClient();
   const db = supabase as any;
+
+  // Search runs in the database. Association and GL account names match
+  // through the entries' lines, so collect those entry ids first.
+  const term = sanitizeSearchTerm(q);
+  let searchEntryIds: string[] = [];
+  let searchIdsTruncated = false;
+  if (term && tab === 'history') {
+    const [{ data: glMatch }, { data: assocMatch }] = await Promise.all([
+      db.from('gl_accounts').select('id').or(`name.ilike.*${term}*${/^\d+$/.test(term) ? `,number.eq.${term}` : ''}`).limit(500),
+      db.from('associations').select('id').ilike('name', `%${term}%`).limit(500),
+    ]);
+    const glIds = ((glMatch ?? []) as any[]).map((g) => g.id);
+    const assocIds = ((assocMatch ?? []) as any[]).map((a) => a.id);
+    if (glIds.length || assocIds.length) {
+      const { rows, truncated } = await fetchAllRows<any>(() => {
+        const parts = [
+          glIds.length ? `gl_account_id.in.(${glIds.join(',')})` : null,
+          assocIds.length ? `association_id.in.(${assocIds.join(',')})` : null,
+        ].filter(Boolean).join(',');
+        return db.from('journal_lines').select('entry_id').or(parts).order('id');
+      }, { maxRows: 5000 });
+      searchEntryIds = [...new Set(rows.map((r) => r.entry_id as string))].slice(0, 1000);
+      searchIdsTruncated = truncated || rows.length > 1000;
+    }
+  }
+
+  // One filtered journal-entry query, used for the list and for the counts.
+  const lineFilter = association_id || gl_account_id;
+  const historyQuery = (select: string, opts?: { count: 'exact'; head: true }) => {
+    let jq = db.from('journal_entries').select(`${select}${lineFilter ? ', match:journal_lines!inner(id)' : ''}`, opts);
+    if (association_id) jq = jq.eq('match.association_id', association_id);
+    if (gl_account_id) jq = jq.eq('match.gl_account_id', gl_account_id);
+    if (date_from) jq = jq.gte('entry_date', date_from);
+    if (date_to) jq = jq.lte('entry_date', date_to);
+    const safeRef = sanitizeSearchTerm(ref_number);
+    if (safeRef) jq = jq.ilike('reference_number', `%${safeRef}%`);
+    if (term) {
+      jq = jq.or([
+        `reference_number.ilike.*${term}*`,
+        `memo.ilike.*${term}*`,
+        `description.ilike.*${term}*`,
+        searchEntryIds.length ? `id.in.(${searchEntryIds.join(',')})` : null,
+      ].filter(Boolean).join(','));
+    }
+    return jq;
+  };
 
   // ── PARALLEL FETCH: all tab data + lookup tables ──
   const [
@@ -61,22 +114,17 @@ export default async function JournalEntriesPage({
     { data: batches },
     { data: associations },
     { data: glAccounts },
+    { count: postedTotal },
+    { count: draftTotal },
   ] = await Promise.all([
     // Journal entries with their lines for History tab
     // Filters run in the query: applied in the app they only searched the
     // newest 500 entries, so older entries could never be found. A second,
     // aliased inner join filters by line without hiding the entry's other lines.
     (() => {
-      const lineFilter = association_id || gl_account_id;
-      let jq = db.from('journal_entries')
-        .select(`id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))${lineFilter ? ', match:journal_lines!inner(id)' : ''}`);
-      if (association_id) jq = jq.eq('match.association_id', association_id);
-      if (gl_account_id) jq = jq.eq('match.gl_account_id', gl_account_id);
-      if (date_from) jq = jq.gte('entry_date', date_from);
-      if (date_to) jq = jq.lte('entry_date', date_to);
-      const safeRef = sanitizeSearchTerm(ref_number);
-      if (safeRef) jq = jq.ilike('reference_number', `%${safeRef}%`);
-      return jq.order('entry_date', { ascending: false }).limit(500);
+      let jq = historyQuery('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))');
+      if (status) jq = jq.eq('posted', status === 'posted');
+      return jq.order('entry_date', { ascending: false }).order('id').limit(500);
     })(),
     // Recurring journal entries
     db.from('recurring_journal_entries')
@@ -98,57 +146,14 @@ export default async function JournalEntriesPage({
     db.from('gl_accounts')
       .select('id, number, name')
       .order('number'),
+    // Counts cover every matching entry, not only the 500 listed.
+    historyQuery('id', { count: 'exact', head: true }).eq('posted', true),
+    historyQuery('id', { count: 'exact', head: true }).eq('posted', false),
   ]);
 
-  // ── FILTER: journal entries ──
-  let filteredEntries = (journalEntries ?? []);
-
-  // Search across reference number, memo, description, association name, GL account
-  if (q) {
-    const ql = q.toLowerCase();
-    filteredEntries = filteredEntries.filter((je: any) => {
-      const lines = je.journal_lines ?? [];
-      const hasMatchingLine = lines.some(
-        (l: any) =>
-          (l.associations?.name ?? '').toLowerCase().includes(ql) ||
-          (l.gl_accounts?.name ?? '').toLowerCase().includes(ql) ||
-          // number is an integer column; .toLowerCase() on it crashed search.
-          String(l.gl_accounts?.number ?? '').toLowerCase().includes(ql),
-      );
-      return (
-        (je.reference_number ?? '').toLowerCase().includes(ql) ||
-        (je.memo ?? '').toLowerCase().includes(ql) ||
-        (je.description ?? '').toLowerCase().includes(ql) ||
-        hasMatchingLine
-      );
-    });
-  }
-
-  if (association_id) {
-    filteredEntries = filteredEntries.filter((je: any) =>
-      (je.journal_lines ?? []).some((l: any) => l.association_id === association_id),
-    );
-  }
-
-  if (gl_account_id) {
-    filteredEntries = filteredEntries.filter((je: any) =>
-      (je.journal_lines ?? []).some((l: any) => l.gl_account_id === gl_account_id),
-    );
-  }
-
-  if (ref_number) {
-    const rl = ref_number.toLowerCase();
-    filteredEntries = filteredEntries.filter((je: any) =>
-      (je.reference_number ?? '').toLowerCase().includes(rl),
-    );
-  }
-
-  if (date_from) {
-    filteredEntries = filteredEntries.filter((je: any) => je.entry_date >= date_from);
-  }
-  if (date_to) {
-    filteredEntries = filteredEntries.filter((je: any) => je.entry_date <= date_to);
-  }
+  // ── Journal entries (already filtered and searched in the database) ──
+  const filteredEntries = (journalEntries ?? []) as any[];
+  const matchingTotal = status === 'posted' ? (postedTotal ?? 0) : status === 'draft' ? (draftTotal ?? 0) : (postedTotal ?? 0) + (draftTotal ?? 0);
 
   // ── FILTER: batches ──
   let filteredBatches = (batches ?? []);
@@ -173,27 +178,14 @@ export default async function JournalEntriesPage({
   }
 
   // ── METRICS ──
-  const postedCount = (journalEntries ?? []).filter((je: any) => je.posted).length;
-  const draftCount = (journalEntries ?? []).filter((je: any) => !je.posted).length;
-
-  const totalDebits = (journalEntries ?? []).reduce((sum: number, je: any) => {
-    const lines = je.journal_lines ?? [];
-    return sum + lines.reduce((ls: number, l: any) => ls + Number(l.debit_amount ?? 0), 0);
-  }, 0);
-
-  const totalCredits = (journalEntries ?? []).reduce((sum: number, je: any) => {
-    const lines = je.journal_lines ?? [];
-    return sum + lines.reduce((ls: number, l: any) => ls + Number(l.credit_amount ?? 0), 0);
-  }, 0);
-
   const batchDraftCount = (batches ?? []).filter((b: any) => b.status === 'draft' || b.status === 'validating').length;
   const recurringActiveCount = (recurringEntries ?? []).filter((r: any) => r.auto_generate).length;
 
   const metrics: Metric[] = [
-    { label: 'Posted entries', value: postedCount, sublabel: `${draftCount} drafts` },
-    { label: 'Total debits', value: money(totalDebits), sublabel: `${(journalEntries ?? []).length} entries` },
-    { label: 'Total credits', value: money(totalCredits) },
-    { label: 'Open batches', value: batchDraftCount, sublabel: `${recurringActiveCount} active recurring` },
+    { label: 'Posted entries', value: postedTotal ?? 0, sublabel: 'Matching the filters' },
+    { label: 'Draft entries', value: draftTotal ?? 0, sublabel: 'Not yet posted' },
+    { label: 'Open batches', value: batchDraftCount },
+    { label: 'Active recurring', value: recurringActiveCount },
   ];
 
   // ── BUILD FILTER URL HELPER ──
@@ -206,6 +198,7 @@ export default async function JournalEntriesPage({
     if (ref_number) p.set('ref_number', ref_number);
     if (date_from) p.set('date_from', date_from);
     if (date_to) p.set('date_to', date_to);
+    if (status) p.set('status', status);
     for (const [k, v] of Object.entries(overrides)) {
       if (v) p.set(k, v);
     }
@@ -232,6 +225,10 @@ export default async function JournalEntriesPage({
     >
       <div className="space-y-6">
         {saved && <Alert tone="success" title={tab === 'recurring' ? 'Recurring entry saved' : 'Journal entry saved'} />}
+        {postedFlag && <Alert tone="success" title="Journal entry posted" />}
+        {deletedFlag && <Alert tone="success" title="Draft deleted" />}
+        {pageError && <Alert title="Could not update the journal entry.">{pageError}</Alert>}
+        {searchIdsTruncated && <Alert tone="warning" title="Search matched many accounts.">Results by association or GL account name may be incomplete; use the Association or GL Account filter instead.</Alert>}
         <MetricStrip metrics={metrics} />
 
         {/* ── MAIN TABS ── */}
@@ -262,6 +259,11 @@ export default async function JournalEntriesPage({
             searchPlaceholder="Search reference #, memo, description, association, GL account..."
           >
             <input type="hidden" name="tab" value="history" />
+            <FilterSelect label="Status" name="status" defaultValue={status}>
+              <option value="">All</option>
+              <option value="posted">Posted</option>
+              <option value="draft">Drafts (to post)</option>
+            </FilterSelect>
             <FilterSelect label="Association" name="association_id" defaultValue={association_id}>
               <option value="">All associations</option>
               {(associations ?? []).map((a: any) => (
@@ -341,6 +343,7 @@ export default async function JournalEntriesPage({
                     <TH className="text-right">Debit</TH>
                     <TH className="text-right">Credit</TH>
                     <TH>Status</TH>
+                    <TH />
                   </TR>
                 </THead>
                 <tbody>
@@ -376,6 +379,20 @@ export default async function JournalEntriesPage({
                         <TD>
                           <JEStatusChip posted={je.posted} />
                         </TD>
+                        <TD className="whitespace-nowrap text-right">
+                          {!je.posted && (
+                            <div className="flex items-center justify-end gap-3">
+                              <form action={postDraftJournalEntry}>
+                                <input type="hidden" name="entry_id" value={je.id} />
+                                <button type="submit" className="text-xs font-medium text-gray-900 hover:underline">Post</button>
+                              </form>
+                              <form action={deleteDraftJournalEntry}>
+                                <input type="hidden" name="entry_id" value={je.id} />
+                                <button type="submit" className="text-xs font-medium text-red-600 hover:underline">Delete</button>
+                              </form>
+                            </div>
+                          )}
+                        </TD>
                       </TR>
                     );
                   })}
@@ -386,13 +403,18 @@ export default async function JournalEntriesPage({
                 <EmptyState
                   icon={BookText}
                   title={
-                    q || association_id || gl_account_id || ref_number || date_from || date_to
+                    q || association_id || gl_account_id || ref_number || date_from || date_to || status
                       ? 'No journal entries match the current filters'
                       : 'No journal entries yet'
                   }
                   description="Manual and system-generated journal entries will appear here."
                 />
               </div>
+            )}
+            {matchingTotal > filteredEntries.length && (
+              <p className="text-xs text-gray-500">
+                Showing the latest {filteredEntries.length} of {matchingTotal} entries. Narrow with dates or filters to see older ones.
+              </p>
             )}
           </>
         )}
