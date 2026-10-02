@@ -93,7 +93,7 @@ export default async function FinancialDiagnosticsPage({
           .order('id'))
       : Promise.resolve({ rows: [], truncated: false, error: null }),
   ]);
-  const loadError = balancesRes.error?.message ?? offsetRes.error?.message ?? billsRes.error ?? creditRes.error ?? null;
+  const baseLoadError = balancesRes.error?.message ?? offsetRes.error?.message ?? billsRes.error ?? creditRes.error ?? null;
 
   // association → (gl → debit-minus-credit)
   const bal = new Map<string, Map<string, number>>();
@@ -145,23 +145,33 @@ export default async function FinancialDiagnosticsPage({
   const credits = (creditRes.rows as any[]).filter((u) => assocIds.has(u.association_id));
   const creditUnitIds = credits.map((u) => u.unit_id as string);
   const ownersByUnit = new Map<string, { names: string[]; moveIn: string | null }>();
-  const lastPaymentByUnit = new Map<string, string>();
-  if (creditUnitIds.length) {
-    const [{ rows: occ }, { rows: pays }] = await Promise.all([
+  // The unapplied payments themselves (the credit), so ownership is judged by
+  // when the credit was paid, not by the unit's latest payment.
+  const unappliedByUnit = new Map<string, Array<{ date: string; amount: number }>>();
+  const lookupErrors: string[] = [];
+  // Unit ids go into in() filters in chunks to keep request URLs short.
+  for (let i = 0; i < creditUnitIds.length; i += 150) {
+    const chunk = creditUnitIds.slice(i, i + 150);
+    const [occRes, credRes] = await Promise.all([
       fetchAllRows<any>(() => db.from('occupancies')
         .select('id, unit_id, move_in_date, owners(full_name)')
-        .in('unit_id', creditUnitIds).eq('status', 'current').eq('occupancy_type', 'owner').order('id')),
-      fetchAllRows<any>(() => db.from('payments').select('id, unit_id, payment_date').in('unit_id', creditUnitIds).order('id')),
+        .in('unit_id', chunk).eq('status', 'current').eq('occupancy_type', 'owner').order('id')),
+      fetchAllRows<any>(() => db.from('v_unapplied_credits')
+        .select('payment_id, unit_id, payment_date, unapplied_amount')
+        .in('unit_id', chunk).gt('unapplied_amount', 0).order('payment_id')),
     ]);
-    for (const o of occ) {
+    if (occRes.error) lookupErrors.push(occRes.error);
+    if (credRes.error) lookupErrors.push(credRes.error);
+    for (const o of occRes.rows) {
       const cur = ownersByUnit.get(o.unit_id) ?? { names: [], moveIn: null };
       if (o.owners?.full_name) cur.names.push(o.owners.full_name);
       if (o.move_in_date && (!cur.moveIn || o.move_in_date < cur.moveIn)) cur.moveIn = o.move_in_date;
       ownersByUnit.set(o.unit_id, cur);
     }
-    for (const pmt of pays) {
-      const prev = lastPaymentByUnit.get(pmt.unit_id);
-      if (!prev || pmt.payment_date > prev) lastPaymentByUnit.set(pmt.unit_id, pmt.payment_date);
+    for (const c of credRes.rows) {
+      const list = unappliedByUnit.get(c.unit_id) ?? [];
+      list.push({ date: c.payment_date, amount: Number(c.unapplied_amount ?? 0) });
+      unappliedByUnit.set(c.unit_id, list);
     }
   }
   const creditRow = (u: any) => ({
@@ -172,15 +182,20 @@ export default async function FinancialDiagnosticsPage({
     open: Number(u.outstanding_balance ?? 0),
   });
   const creditOpenRows = credits.filter((u) => Number(u.outstanding_balance ?? 0) > 0.004).map(creditRow);
-  // Credit left over from a previous owner: the unit's last payment was made
-  // before the current owner moved in.
+  // Credit left over from a previous owner: unapplied payments dated before
+  // the current owner moved in.
   const pastOwnerRows = credits
-    .filter((u) => {
-      const moveIn = ownersByUnit.get(u.unit_id)?.moveIn;
-      const lastPay = lastPaymentByUnit.get(u.unit_id);
-      return moveIn && lastPay && lastPay < moveIn;
+    .map((u) => {
+      const moveIn = ownersByUnit.get(u.unit_id)?.moveIn ?? null;
+      const before = moveIn ? (unappliedByUnit.get(u.unit_id) ?? []).filter((c) => c.date < moveIn) : [];
+      return {
+        ...creditRow(u),
+        moveIn,
+        lastPay: before.reduce<string | null>((m, c) => (!m || c.date > m ? c.date : m), null),
+        credit: before.reduce((sum, c) => sum + c.amount, 0),
+      };
     })
-    .map((u) => ({ ...creditRow(u), moveIn: ownersByUnit.get(u.unit_id)?.moveIn ?? null, lastPay: lastPaymentByUnit.get(u.unit_id) ?? null }));
+    .filter((r) => r.credit > 0.004);
   const creditByAssoc = new Map<string, number>();
   for (const u of credits) creditByAssoc.set(u.association_id, (creditByAssoc.get(u.association_id) ?? 0) + Number(u.unapplied_credit ?? 0));
   // Prepayments stay in Accounts Receivable here, so a prepaid-assessments
@@ -189,12 +204,15 @@ export default async function FinancialDiagnosticsPage({
     .map((a) => ({ a, gl: -sumDebit(a.id, prepaidGlIds), credit: creditByAssoc.get(a.id) ?? 0 }))
     .filter((r) => prepaidGlIds.length > 0 && differs(r.gl, 0) && differs(r.gl, r.credit));
 
-  // 7. Reconciliation lapses over 60 days.
+  const loadError = baseLoadError ?? lookupErrors[0] ?? null;
+
+  // 7. Reconciliation lapses over 60 days (only GL-linked accounts can be
+  // reconciled, as in period close).
   const today = todayInZone();
   const [ty, tm, td] = today.split('-').map(Number);
   const cutoff = new Date(Date.UTC(ty, tm - 1, td - 60)).toISOString().slice(0, 10);
   const lapseRows = banks
-    .filter((b) => assocById.has(b.association_id) && (!b.last_reconciliation_date || b.last_reconciliation_date < cutoff))
+    .filter((b) => b.gl_account_id && assocById.has(b.association_id) && (!b.last_reconciliation_date || b.last_reconciliation_date < cutoff))
     .map((b) => ({ id: b.id, a: assocById.get(b.association_id)!, name: b.name as string, last: b.last_reconciliation_date as string | null }))
     .sort((x, y) => x.a.name.localeCompare(y.a.name) || x.name.localeCompare(y.name));
 
@@ -339,9 +357,9 @@ export default async function FinancialDiagnosticsPage({
         </section>
 
         <section>
-          <SectionTitle title="Unused Prepayments for Past Owners" description="Credit on a unit whose last payment was made before the current owner moved in." />
+          <SectionTitle title="Unused Prepayments for Past Owners" description="Unused credit from payments made before the current owner moved in." />
           <Table>
-            <THead><TR><TH>Property</TH><TH>Unit</TH><TH>Current Owner</TH><TH>Last Payment</TH><TH>Owner Since</TH><TH className="text-right">Unused Credit</TH></TR></THead>
+            <THead><TR><TH>Property</TH><TH>Unit</TH><TH>Current Owner</TH><TH>Credit Paid</TH><TH>Owner Since</TH><TH className="text-right">Unused Credit</TH></TR></THead>
             <tbody>
               {pastOwnerRows.length === 0 ? none(6, 'No Past-Owner Credits') : pastOwnerRows.map((r) => (
                 <TR key={r.unit_id}>
