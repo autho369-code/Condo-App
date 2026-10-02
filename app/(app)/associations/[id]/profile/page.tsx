@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { hasPortfolioAdminAccess, requireFinanceStaff, requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { setAssociationHidden } from '@/lib/rpcs/entities';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
@@ -28,7 +28,7 @@ export default async function AssociationProfileTab({
 }) {
   const me = await requireStaff();
   const canManageLoans = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
-  const canHide = hasPortfolioAdminAccess(me);
+  const canHide = me.is_full_access_staff || me.is_platform_operator;
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();

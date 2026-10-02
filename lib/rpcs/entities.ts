@@ -175,24 +175,35 @@ export async function archiveAssociation(id: string) {
   redirect('/associations');
 }
 
+/** Managers (full-access staff) and platform operators may hide associations. */
+function canHideAssociations(me: { is_full_access_staff: boolean; is_platform_operator: boolean }) {
+  return me.is_full_access_staff || me.is_platform_operator;
+}
+
 /**
  * Form action: hide an association (it drops out of lists and pickers) or
  * show it again. Hidden associations keep all their history.
  */
 export async function setAssociationHidden(formData: FormData) {
-  const me = await requirePortfolioAdmin();
+  const me = await requireStaff();
   const id = String(formData.get('association_id') ?? '');
   const hide = formData.get('hide') === '1';
   const back = `/associations/${id}/profile`;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     redirect('/associations?error=' + encodeURIComponent('Association not found.'));
   }
-  if (!me.portfolio?.id) redirect(`${back}?error=${encodeURIComponent('Your account is not linked to a portfolio.')}`);
+  if (!canHideAssociations(me)) redirect(`${back}?error=${encodeURIComponent('Only managers can hide or unhide associations.')}`);
   const supabase = await createClient();
+  // Scope to the association's own portfolio: a manager only within theirs,
+  // a platform operator within whichever portfolio owns it.
+  const { data: target } = await (supabase as any).from('associations').select('id, portfolio_id').eq('id', id).maybeSingle();
+  if (!target || (!me.is_platform_operator && target.portfolio_id !== me.portfolio?.id)) {
+    redirect(`${back}?error=${encodeURIComponent('Association not found or you do not have access to it.')}`);
+  }
   const { data, error } = await (supabase as any).from('associations')
     .update({ archived_at: hide ? new Date().toISOString() : null })
     .eq('id', id)
-    .eq('portfolio_id', me.portfolio!.id)
+    .eq('portfolio_id', target.portfolio_id)
     .select('id');
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   if (!data || data.length === 0) redirect(`${back}?error=${encodeURIComponent('Association not found or you do not have access to it.')}`);
