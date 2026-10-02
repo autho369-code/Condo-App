@@ -1,4 +1,4 @@
-import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals, receivableSummary } from '@/lib/finance/totals';
+import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -123,7 +123,14 @@ export default async function MetricsPage({
     try {
       const [billing, ar, ie, woOpened, woCompleted, violationsOpened] = await Promise.all([
         billingCollectionTotals(db, mo.from, mo.to, assocIds),
-        receivableSummary(db, assocIds, mo.to),
+        // Balances as they stood at the end of the month: later charges and
+        // payments do not change an earlier month.
+        db.rpc('receivable_summary_as_of', { p_association_ids: assocIds, p_as_of: mo.to, p_cutoff: startOf(addDays(mo.to, 1)) })
+          .then(({ data, error }: any) => {
+            if (error) throw new Error(error.message);
+            const r = Array.isArray(data) ? data[0] : data;
+            return { arTotal: Number(r?.ar_total ?? 0), overdueTotal: Number(r?.overdue_total ?? 0), delinquentUnits: Number(r?.delinquent_units ?? 0) };
+          }),
         incomeExpenseTotals(db, { portfolioId, associationIds: assocIds, from: mo.from, to: mo.to }),
         count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
           .gte('created_at', startOf(mo.from)).lt('created_at', startOf(addDays(mo.to, 1))))),
@@ -154,25 +161,34 @@ export default async function MetricsPage({
   const now = trend[0];
   const prev = trend[1] ?? null;
 
-  // ── Current snapshot ──
+  // ── Current snapshot ── (a failed figure shows "—" and is reported above)
+  const noteFailure = (e: unknown) => {
+    loadError = loadError ?? (e instanceof Error ? e.message : String(e));
+    return null;
+  };
   const [openWorkOrders, overdueWorkOrders, openViolations, pendingApprovals, unitRows, occupiedRows, bankRows, billRows] = await Promise.all([
-    count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', OPEN_WORK_ORDER))).catch(() => null),
+    count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', OPEN_WORK_ORDER))).catch(noteFailure),
     count(withAssoc(db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null)
-      .lt('scheduled_date', today).not('status', 'in', OPEN_WORK_ORDER))).catch(() => null),
-    count(withAssoc(db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'))).catch(() => null),
-    count(withAssoc(db.from('approval_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('archived_at', null))).catch(() => null),
+      .lt('scheduled_date', today).not('status', 'in', OPEN_WORK_ORDER))).catch(noteFailure),
+    count(withAssoc(db.from('violations').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("closed","cured")'))).catch(noteFailure),
+    count(withAssoc(db.from('approval_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('archived_at', null))).catch(noteFailure),
     count(association
       ? db.from('units').select('id, buildings!inner(association_id)', { count: 'exact', head: true }).is('archived_at', null).eq('buildings.association_id', association)
-      : db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null)).catch(() => null),
+      : db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null)).catch(noteFailure),
     // A unit is occupied when it has a current occupancy.
     count(association
       ? db.from('units').select('id, buildings!inner(association_id), occupancies!inner(status)', { count: 'exact', head: true }).is('archived_at', null).eq('buildings.association_id', association).eq('occupancies.status', 'current')
-      : db.from('units').select('id, occupancies!inner(status)', { count: 'exact', head: true }).is('archived_at', null).eq('occupancies.status', 'current')).catch(() => null),
+      : db.from('units').select('id, occupancies!inner(status)', { count: 'exact', head: true }).is('archived_at', null).eq('occupancies.status', 'current')).catch(noteFailure),
     fetchAllRows<any>(() => withAssoc(db.from('bank_accounts').select('id, gl_account_id').is('archived_at', null)).order('id')),
     fetchAllRows<any>(() => withAssoc(db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved')).order('id')),
   ]);
+  if (bankRows.error) noteFailure(bankRows.error);
+  if (billRows.error) noteFailure(billRows.error);
+  if (billRows.truncated) noteFailure('There are more approved bills than this page can load.');
   const bankGlIds = bankRows.rows.map((b) => b.gl_account_id).filter(Boolean);
-  const cashByGl = await glDebitBalances(db, { glAccountIds: bankGlIds });
+  // A bank account can use a company-wide GL account shared by several
+  // associations, so the ledger total is limited to the selected association.
+  const cashByGl = await glDebitBalances(db, { glAccountIds: bankGlIds, associationIds: assocIds ?? undefined });
   const cashPosition = bankRows.error ? null : [...cashByGl.values()].reduce((s, v) => s + v, 0);
   const billsAwaiting = billRows.error || billRows.truncated
     ? null
@@ -183,15 +199,16 @@ export default async function MetricsPage({
   const [ownerTotal, ownerActivated] = association
     ? [null, null]
     : await Promise.all([
-        count(db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null)).catch(() => null),
-        count(db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portal_activated', true)).catch(() => null),
+        count(db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null)).catch(noteFailure),
+        count(db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portal_activated', true)).catch(noteFailure),
       ]);
 
   // Delinquency by days past due (report data runs with elevated privileges;
   // the portfolio comes from the session, the association from a visible row).
-  const { data: delinqRows } = portfolioId
+  const { data: delinqRows, error: delinqError } = portfolioId
     ? await serviceDb.rpc('report_data_delinquency', { p_portfolio_id: portfolioId, p_params: association ? { association_id: association } : {} })
     : { data: [] };
+  if (delinqError) noteFailure(delinqError.message);
   const delinq = (Array.isArray(delinqRows) ? delinqRows : []) as any[];
   const days = (r: any) => Number(r.days_past_due ?? 0);
 
@@ -228,9 +245,9 @@ export default async function MetricsPage({
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Tile label="Delinquent units" value={fmtCount(now?.delinquentUnits)} sub={<Change now={now?.delinquentUnits ?? null} before={prev?.delinquentUnits ?? null} format="count" inverse />} />
-            <Tile label="1–30 days past due" value={fmtCount(delinq.filter((r) => days(r) <= 30).length)} />
-            <Tile label="31–60 days past due" value={fmtCount(delinq.filter((r) => days(r) > 30 && days(r) <= 60).length)} />
-            <Tile label="61+ days past due" value={fmtCount(delinq.filter((r) => days(r) > 60).length)} />
+            <Tile label="1–30 days past due" value={delinqError ? '—' : fmtCount(delinq.filter((r) => days(r) <= 30).length)} />
+            <Tile label="31–60 days past due" value={delinqError ? '—' : fmtCount(delinq.filter((r) => days(r) > 30 && days(r) <= 60).length)} />
+            <Tile label="61+ days past due" value={delinqError ? '—' : fmtCount(delinq.filter((r) => days(r) > 60).length)} />
           </div>
         </Section>
 
