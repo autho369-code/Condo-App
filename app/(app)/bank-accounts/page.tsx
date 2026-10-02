@@ -11,16 +11,18 @@ import { requireStaff } from '@/lib/auth/me';
 import { maskBankNumber } from '@/lib/banking/bank-format';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { FinancialAccountTabs } from '@/components/banking/financial-account-tabs';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BankAccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string; bank?: string; error?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; bank?: string; association_id?: string; error?: string }>;
 }) {
   await requireStaff();
-  const { filter = '', q = '', bank = '', error: pageError } = await searchParams;
+  const { filter = '', q = '', bank = '', association_id = '', error: pageError } = await searchParams;
+  const assoc = /^[0-9a-f-]{36}$/i.test(association_id) ? association_id : '';
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -33,28 +35,45 @@ export default async function BankAccountsPage({
   if (filter === 'unreconciled') query = query.is('last_reconciliation_date', null);
   if (q) query = query.ilike('name', `%${q}%`);
   if (bank) query = query.ilike('bank_name', `%${bank}%`);
+  if (assoc) query = query.eq('association_id', assoc);
 
-  const { data: rows } = await query;
+  const [{ data: rows }, { data: associations }] = await Promise.all([
+    query,
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+  ]);
   const accounts = rows ?? [];
   const needsReconciliation = accounts.filter((row: any) => !row.last_reconciliation_date).length;
   const paymentsEnabled = accounts.filter((row: any) => row.payments_enabled).length;
 
   return (
     <DataWorkspace
-      title={filter === 'unreconciled' ? 'Unreconciled bank accounts' : 'Bank accounts'}
-      description="Operating, reserve, and trust accounts with reconciliation, deposits, bank feed, and reporting entry points."
+      title={filter === 'unreconciled' ? 'Unreconciled bank accounts' : 'Financial accounts'}
+      description="Operating, reserve, and trust bank accounts, with deposits, bank feed, reconciliation and period close."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link href="/credit-cards">
-            <Button variant="secondary">Credit card accounts</Button>
-          </Link>
           <Link href="/bank-accounts/new">
             <Button><Plus className="h-4 w-4" /> New bank account</Button>
+          </Link>
+          <Link href="/bank-accounts/deposits/new">
+            <Button variant="secondary">New bank deposit</Button>
+          </Link>
+          <Link href="/bank-accounts/feeds">
+            <Button variant="secondary">Bank feed</Button>
+          </Link>
+          <Link href="/bank-accounts/reconcile">
+            <Button variant="secondary">Reconcile</Button>
+          </Link>
+          <Link href="/accounting-periods">
+            <Button variant="secondary">Close accounting period</Button>
+          </Link>
+          <Link href="/bank-accounts/link-bank">
+            <Button variant="secondary">Link with bank</Button>
           </Link>
         </div>
       }
     >
       <div className="space-y-6">
+        <FinancialAccountTabs active="bank" />
         {pageError && <Alert tone="warning" title="Needs attention.">{pageError}</Alert>}
         <MetricStrip
           metrics={[
@@ -82,6 +101,10 @@ export default async function BankAccountsPage({
               className="mt-1 block h-10 min-w-36 rounded-lg border border-gray-300 bg-white px-3 text-sm font-normal text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
+          <FilterSelect label="Association" name="association_id" defaultValue={assoc}>
+            <option value="">All associations</option>
+            {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
           <FilterSelect label="Queue" name="filter" defaultValue={filter}>
             <option value="">All accounts</option>
             <option value="unreconciled">Unreconciled only</option>
@@ -103,6 +126,7 @@ export default async function BankAccountsPage({
                 </div>
               ),
             },
+            { key: 'association', header: 'Association', render: (account: any) => account.associations?.name ?? '—' },
             { key: 'bank_name', header: 'Bank', render: (account: any) => account.bank_name ?? 'Not provided' },
             {
               key: 'account_number',
