@@ -207,3 +207,127 @@ export async function createSchedule(formData: FormData) {
   revalidatePath('/reports');
   redirect('/scheduled-reports');
 }
+
+const REPORT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REPORT_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const REPORT_PRESETS = ['this_month', 'last_month', 'this_quarter', 'last_quarter', 'ytd', 'last_year', 'custom'];
+
+/** Only same-site report paths are valid places to return to. */
+function reportsReturnTo(formData: FormData) {
+  const back = String(formData.get('return_to') ?? '/reports');
+  return back.startsWith('/reports') && !back.startsWith('//') ? back : '/reports';
+}
+
+/** The report pages render no alerts of their own, so errors go to the Reports index. */
+function failReports(message: string) {
+  return `/reports?error=${encodeURIComponent(message)}`;
+}
+
+function withParam(path: string, key: string, value: string) {
+  const url = new URL(path, 'http://x');
+  url.searchParams.delete('error');
+  url.searchParams.delete('saved_report');
+  url.searchParams.delete('favorite');
+  url.searchParams.set(key, value);
+  return `${url.pathname}?${url.searchParams.toString()}`;
+}
+
+/** Star or unstar a report for the signed-in user. */
+export async function toggleReportFavorite(formData: FormData) {
+  const me = await requireStaff();
+  const back = reportsReturnTo(formData);
+  const definitionId = String(formData.get('definition_id') ?? '');
+  if (!REPORT_UUID.test(definitionId)) redirect(failReports('Unknown report.'));
+  const db = (await createClient()) as any;
+  const { data: def } = await db.from('report_definitions').select('id').eq('id', definitionId).eq('active', true).maybeSingle();
+  if (!def) redirect(failReports('Unknown report.'));
+
+  if (formData.get('favorite') === '1') {
+    const { error } = await db.from('report_favorites')
+      .upsert({ user_id: me.auth_user_id, definition_id: definitionId }, { onConflict: 'user_id,definition_id', ignoreDuplicates: true });
+    if (error) redirect(failReports(error.message));
+  } else {
+    const { error } = await db.from('report_favorites').delete().eq('user_id', me.auth_user_id).eq('definition_id', definitionId);
+    if (error) redirect(failReports(error.message));
+  }
+  revalidatePath('/reports');
+  redirect(back);
+}
+
+/** Save a report with its current filters as a custom report for the company. */
+export async function saveCustomReport(formData: FormData) {
+  const me = await requireStaff();
+  const back = reportsReturnTo(formData);
+  const definitionId = String(formData.get('definition_id') ?? '');
+  const name = String(formData.get('name') ?? '').trim().slice(0, 120);
+  if (!REPORT_UUID.test(definitionId)) redirect(failReports('Unknown report.'));
+  if (!name) redirect(failReports('Enter a name for the custom report.'));
+  if (!me.portfolio?.id) redirect(failReports('Custom reports are saved to a company; sign in to one first.'));
+
+  const db = (await createClient()) as any;
+  const { data: def } = await db.from('report_definitions').select('id').eq('id', definitionId).eq('active', true).maybeSingle();
+  if (!def) redirect(failReports('Unknown report.'));
+
+  const str = (k: string) => String(formData.get(k) ?? '').trim();
+  const parameters: Record<string, string> = {};
+  const preset = str('preset');
+  if (REPORT_PRESETS.includes(preset)) parameters.preset = preset;
+  if (preset === 'custom') {
+    if (REPORT_DATE.test(str('from'))) parameters.from = str('from');
+    if (REPORT_DATE.test(str('to'))) parameters.to = str('to');
+  }
+  const association = str('association');
+  if (association) {
+    if (!REPORT_UUID.test(association)) redirect(failReports('Unknown association.'));
+    // RLS: the association must be one this staffer can see.
+    const { data: assoc } = await db.from('associations').select('id').eq('id', association).maybeSingle();
+    if (!assoc) redirect(failReports('Unknown association.'));
+    parameters.association = association;
+  }
+  if (/^[a-z_]{1,40}$/.test(str('scope'))) parameters.scope = str('scope');
+  if (REPORT_UUID.test(str('account'))) parameters.account = str('account');
+
+  const { data, error } = await db.from('saved_reports').insert({
+    portfolio_id: me.portfolio.id,
+    definition_id: definitionId,
+    user_id: me.auth_user_id,
+    name,
+    parameters,
+  }).select('id').maybeSingle();
+  if (error) redirect(failReports(error.message));
+  if (!data) redirect(failReports('You cannot save custom reports.'));
+  revalidatePath('/reports');
+  redirect('/reports?tab=custom&saved_report=1');
+}
+
+/** Pin a custom report to Favorites, or unpin it. */
+export async function toggleSavedReportPin(formData: FormData) {
+  await requireStaff();
+  const back = reportsReturnTo(formData);
+  const id = String(formData.get('saved_report_id') ?? '');
+  if (!REPORT_UUID.test(id)) redirect(failReports('Unknown custom report.'));
+  const db = (await createClient()) as any;
+  const { data, error } = await db.from('saved_reports')
+    .update({ pinned: formData.get('pinned') === '1' })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error) redirect(failReports(error.message));
+  if (!data) redirect(failReports('You cannot change this custom report.'));
+  revalidatePath('/reports');
+  redirect(back);
+}
+
+/** Delete a custom report (the standard report it was built on is unaffected). */
+export async function deleteSavedReport(formData: FormData) {
+  await requireStaff();
+  const back = reportsReturnTo(formData);
+  const id = String(formData.get('saved_report_id') ?? '');
+  if (!REPORT_UUID.test(id)) redirect(failReports('Unknown custom report.'));
+  const db = (await createClient()) as any;
+  const { data, error } = await db.from('saved_reports').delete().eq('id', id).select('id').maybeSingle();
+  if (error) redirect(failReports(error.message));
+  if (!data) redirect(failReports('You cannot delete this custom report.'));
+  revalidatePath('/reports');
+  redirect(withParam(back, 'deleted', '1'));
+}

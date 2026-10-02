@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
-import { queueReport } from '@/lib/rpcs/reports';
+import { queueReport, saveCustomReport, toggleReportFavorite } from '@/lib/rpcs/reports';
 import { money, date } from '@/lib/utils';
 import { supportedReportOutputFormats } from '@/lib/reports/output';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
@@ -1976,8 +1976,50 @@ async function ReportRightRail({
     return `?${p.toString()}`;
   };
 
+  // The report's current filters, so Favorite returns here and Save keeps them.
+  const current = new URLSearchParams();
+  current.set('preset', selectedPreset);
+  if (selectedPreset === 'custom') { current.set('from', period.from); current.set('to', period.to); }
+  current.set('scope', selectedScope);
+  if (selectedAssociation) current.set('association', selectedAssociation);
+  const returnTo = `/reports/${encodeURIComponent(def.slug)}?${current.toString()}`;
+  const { data: favoriteRow } = await pickerDb.from('report_favorites').select('definition_id').eq('definition_id', def.id).maybeSingle();
+  const isFavorite = !!favoriteRow;
+
   return (
     <>
+      <div className="mb-5 space-y-3 border-b border-gray-100 pb-5">
+        <form action={toggleReportFavorite}>
+          <input type="hidden" name="definition_id" value={def.id} />
+          <input type="hidden" name="favorite" value={isFavorite ? '0' : '1'} />
+          <input type="hidden" name="return_to" value={returnTo} />
+          <Button type="submit" variant="secondary" className="w-full">
+            {isFavorite ? '\u2605 Remove from favorites' : '\u2606 Add to favorites'}
+          </Button>
+        </form>
+        <form action={saveCustomReport} className="space-y-2">
+          <input type="hidden" name="definition_id" value={def.id} />
+          <input type="hidden" name="return_to" value={returnTo} />
+          <input type="hidden" name="preset" value={selectedPreset} />
+          <input type="hidden" name="from" value={period.from} />
+          <input type="hidden" name="to" value={period.to} />
+          <input type="hidden" name="scope" value={selectedScope} />
+          <input type="hidden" name="association" value={selectedAssociation} />
+          <label className="block text-xs font-medium text-gray-700" htmlFor="custom_report_name">Save as custom report</label>
+          <div className="flex gap-2">
+            <input
+              id="custom_report_name"
+              name="name"
+              required
+              maxLength={120}
+              defaultValue={def.name}
+              className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+            <Button type="submit" variant="secondary">Save</Button>
+          </div>
+          <p className="text-[11px] text-gray-500">Saves the period, scope and association shown, for everyone in your company.</p>
+        </form>
+      </div>
       <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
         {isLive ? 'Live report' : 'Run this report'}
       </div>
