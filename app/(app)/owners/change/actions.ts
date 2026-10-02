@@ -69,46 +69,14 @@ export async function changeHomeowner(formData: FormData) {
     createdOwner = true;
   }
 
-  // The seller's dues carry over to the buyer.
-  const { data: sellerOccupancies } = await db.from('occupancies')
-    .select('id, owner_id, is_primary, dues_amount, dues_frequency')
-    .eq('unit_id', unitId).eq('occupancy_type', 'owner').eq('status', 'current');
-  const sellers = ((sellerOccupancies ?? []) as any[]).filter((o) => o.owner_id !== newOwnerId);
-  if (sellers.length === 0 && !createdOwner && ((sellerOccupancies ?? []) as any[]).some((o) => o.owner_id === newOwnerId)) {
-    fail('That owner already owns this unit.');
-  }
-  const seller = sellers.find((o) => o.is_primary) ?? sellers[0];
-
-  let insertedOccupancyId: string | null = null;
-  const alreadyCurrent = ((sellerOccupancies ?? []) as any[]).some((o) => o.owner_id === newOwnerId);
-  if (!alreadyCurrent) {
-    const { data: occ, error: occErr } = await db.from('occupancies').insert({
-      owner_id: newOwnerId,
-      unit_id: unitId,
-      association_id: associationId,
-      occupancy_type: 'owner',
-      status: 'current',
-      move_in_date: transferDate,
-      dues_amount: seller?.dues_amount ?? null,
-      dues_frequency: seller?.dues_frequency ?? 'monthly',
-      share_pct: 100,
-      is_primary: false,
-    }).select('id').single();
-    if (occErr || !occ) {
-      if (createdOwner) await db.from('owners').update({ archived_at: new Date().toISOString() }).eq('id', newOwnerId);
-      fail(`Could not move the new owner in: ${occErr?.message ?? 'unknown error'}`);
-    }
-    insertedOccupancyId = occ.id;
-  }
-
-  // Ends the seller's ownership and makes the buyer the primary owner.
-  const { error: transferErr } = await db.rpc('transfer_unit_ownership', {
+  // One locked transaction: moves the buyer in (with the seller's dues, or 0
+  // when the unit had no owner) and ends the seller's ownership.
+  const { error: transferErr } = await db.rpc('change_unit_homeowner', {
     p_unit_id: unitId,
     p_new_owner_id: newOwnerId!,
     p_transfer_date: transferDate,
   });
   if (transferErr) {
-    if (insertedOccupancyId) await db.from('occupancies').delete().eq('id', insertedOccupancyId);
     if (createdOwner) await db.from('owners').update({ archived_at: new Date().toISOString() }).eq('id', newOwnerId!);
     fail(transferErr.message);
   }

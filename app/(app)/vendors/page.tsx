@@ -16,6 +16,8 @@ import { inviteVendorToPortal } from './actions';
 import { Stars } from '@/components/work-orders/rating';
 import { tradeLabel } from '@/lib/vendors/options';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +29,10 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
     { label: 'Auto', date: vendor.auto_insurance_expiration },
     { label: 'Ctr', date: vendor.contract_expiration },
   ].filter(e => e.date);
-  const now = new Date();
-  const soon = new Date(now.getTime() + 30 * 86400000);
+  // Dates compare in the company's local time, not UTC.
+  const today = todayInZone();
+  const [ty, tm, td] = today.split('-').map(Number);
+  const soonYmd = new Date(Date.UTC(ty, tm - 1, td + 30)).toISOString().slice(0, 10);
 
   if (expirations.length === 0) return <span className="text-xs text-gray-400">—</span>;
 
@@ -37,8 +41,8 @@ function ComplianceBadges({ vendor }: { vendor: any }) {
       {expirations.map((e) => {
         // Date-only compare: coverage ending today is still valid today.
         const ymd = String(e.date).slice(0, 10);
-        const expired = ymd < now.toISOString().slice(0, 10);
-        const expiring = ymd <= soon.toISOString().slice(0, 10) && !expired;
+        const expired = ymd < today;
+        const expiring = ymd <= soonYmd && !expired;
         return (
           <span key={e.label} className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${expired ? 'bg-red-50 text-red-700 ring-red-600/15' : expiring ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-gray-100 text-gray-600 ring-gray-500/15'}`}>
             {e.label}: {new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
@@ -64,18 +68,22 @@ export default async function VendorsPage({
   const supabase = await createClient();
   const portfolioId = me.portfolio?.id;
   if (!portfolioId) throw new Error('Staff workspace is missing its management-company scope.');
-  const { data } = await (supabase as any)
+  // Every vendor, paged past PostgREST's 1,000-row cap.
+  const vendorsRes = await fetchAllRows<any>(() => (supabase as any)
     .from('vendors')
     .select('id, name, emails, phone_numbers, trade, vendor_type, payment_type, payment_terms, is_utility, is_auto_pay, send_1099, has_taxpayer_id, has_bank_account, portal_activated, hold_payments, workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration, archived_at')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
-    .order('name');
+    .order('name')
+    .order('id'));
 
-  const allRows = data ?? [];
-  const { data: ratingRows } = await (supabase as any)
-    .from('work_order_ratings').select('vendor_id, score').eq('portfolio_id', portfolioId);
+  const allRows = vendorsRes.rows;
+  const ratingsRes = await fetchAllRows<any>(() => (supabase as any)
+    .from('work_order_ratings').select('id, vendor_id, score').eq('portfolio_id', portfolioId).order('id'));
+  // A partial set would show skewed averages, so show none rather than wrong ones.
+  const ratingsComplete = !ratingsRes.error && !ratingsRes.truncated;
   const ratingByVendor = new Map<string, { sum: number; n: number }>();
-  for (const r of (ratingRows ?? []) as any[]) {
+  for (const r of (ratingsComplete ? ratingsRes.rows : []) as any[]) {
     const t = ratingByVendor.get(r.vendor_id) ?? { sum: 0, n: 0 };
     t.sum += Number(r.score); t.n += 1;
     ratingByVendor.set(r.vendor_id, t);
@@ -90,7 +98,12 @@ export default async function VendorsPage({
   const tagOptions = await tagsInUse(supabase, 'vendor');
   if (q) {
     rows = rows.filter((vendor: any) =>
-      [vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.vendor_type, vendor.payment_type].some((value) => value?.toLowerCase().includes(q)),
+      [
+        vendor.name, vendor.trade, tradeLabel(vendor.trade), vendor.vendor_type, vendor.payment_type,
+        ...(Array.isArray(vendor.emails) ? vendor.emails : []),
+        // Entries are { type, number } objects, or bare strings on older records.
+        ...(Array.isArray(vendor.phone_numbers) ? vendor.phone_numbers.map((p: any) => (typeof p === 'string' ? p : p?.number)) : []),
+      ].some((value) => typeof value === 'string' && value.toLowerCase().includes(q)),
     );
   }
 
@@ -122,14 +135,24 @@ export default async function VendorsPage({
       title="Vendors"
       description="Manage contractors, utilities, W-9 readiness, ACH setup, compliance documents, and vendor forms."
       actions={
-        <Link href="/vendors/new">
-          <Button><Plus className="h-4 w-4" /> New vendor</Button>
-        </Link>
+        <>
+          {canManageBank && (
+            <Link href="/vendors/ach"><Button variant="secondary">Vendor ACH setup</Button></Link>
+          )}
+          <Link href="/vendors/forms"><Button variant="secondary">Request documents</Button></Link>
+          <Link href="/vendors/w9"><Button variant="secondary">Request W-9</Button></Link>
+          <Link href="/vendors/new">
+            <Button><Plus className="h-4 w-4" /> New vendor</Button>
+          </Link>
+        </>
       }
     >
       <div className="space-y-4">
         {sp.invited && <Alert tone="success" title="Portal invite sent">{`${sp.invited} will get an email with a link to set their password and access the vendor portal.`}</Alert>}
         {sp.error && <Alert tone="danger" title="Could not send invite">{sp.error}</Alert>}
+        {vendorsRes.error && <Alert tone="danger" title="Could not load every vendor">{vendorsRes.error}</Alert>}
+        {!ratingsComplete && <Alert tone="warning" title="Vendor ratings unavailable">{ratingsRes.error ?? 'There are too many ratings to load, so averages are hidden rather than shown from a partial set.'}</Alert>}
+        {vendorsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more vendors than this page can load. Filter by trade or search.</Alert>}
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           <Link href="/owners" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Owners</Link>
           <Link href="/owners?view=directory" className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700">Directory</Link>
@@ -146,7 +169,13 @@ export default async function VendorsPage({
           ]}
         />
 
-        <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, type, or payment method">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Reports</span>
+          <Link href="/reports/vendor_directory" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Vendor directory</Link>
+          <Link href="/reports/vendor_ledger" className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50">Vendor ledger</Link>
+        </div>
+
+        <FilterBar action="/vendors" searchDefault={sp.q ?? ''} searchPlaceholder="Search vendor, trade, email, phone, or payment method">
           <FilterSelect label="Trade" name="trade" defaultValue={trade}>
             <option value="all">All trades</option>
             {trades.map((item) => <option key={item} value={item}>{tradeLabel(item)}</option>)}
@@ -165,9 +194,9 @@ export default async function VendorsPage({
               <TH>Name</TH>
               <TH>Trade</TH>
               <TH>Payment</TH>
-              <TH>Compliance</TH>
+              <TH>Tax &amp; portal</TH>
               <TH>Service record</TH>
-              <TH>Documentation</TH>
+              <TH>Compliance</TH>
               <TH>Workflows</TH>
             </TR>
           </THead>
@@ -184,7 +213,9 @@ export default async function VendorsPage({
                     {(vendor.emails?.length > 0 || vendor.phone_numbers?.length > 0) && (
                       <div className="mt-1 space-y-0.5">
                         {vendor.emails?.map((e: string) => <div key={e} className="text-xs text-gray-500">{e}</div>)}
-                        {vendor.phone_numbers?.map((p: any) => <div key={p.number} className="text-xs text-gray-500">{p.type}: {p.number}</div>)}
+                        {vendor.phone_numbers?.map((p: any, i: number) => (typeof p === 'string'
+                          ? <div key={`${p}-${i}`} className="text-xs text-gray-500">{p}</div>
+                          : <div key={`${p?.number}-${i}`} className="text-xs text-gray-500">{p?.type ? `${p.type}: ` : ''}{p?.number}</div>))}
                       </div>
                     )}
                   </TD>
