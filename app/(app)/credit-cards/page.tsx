@@ -10,6 +10,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { saveCreditCardAccount } from '@/lib/rpcs/credit-cards';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/utils';
+import { FinancialAccountTabs } from '@/components/banking/financial-account-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,11 +48,11 @@ export default async function CreditCardsPage({ searchParams }: { searchParams: 
       actions={
         <div className="flex flex-wrap gap-2">
           <Link href="/reports/credit_card_expense_detail"><Button variant="secondary">Credit Card Expense Detail</Button></Link>
-          <Link href="/bank-accounts"><Button variant="secondary">Bank accounts</Button></Link>
         </div>
       }
     >
       <div className="space-y-4">
+        <FinancialAccountTabs active="card" />
         {sp.error && <Alert tone="danger" title="Could not save the card">{sp.error}</Alert>}
         <MetricStrip
           metrics={[
