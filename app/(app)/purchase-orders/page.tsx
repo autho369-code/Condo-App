@@ -7,6 +7,7 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { sanitizeSearchTerm } from '@/lib/search/global';
 import { zonedWallTimeToUtc } from '@/lib/time/zoned';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
@@ -27,12 +28,6 @@ const FILTERS = [
   { value: 'cancelled', label: 'Cancelled' },
 ] as const;
 
-function matchesFilter(po: any, filter: string) {
-  if (filter === 'all') return true;
-  if (filter === 'cancelled') return po.status === 'cancelled';
-  return po.status !== 'cancelled' && po.approval_status === filter;
-}
-
 export default async function PurchaseOrdersPage({
   searchParams,
 }: {
@@ -46,7 +41,12 @@ export default async function PurchaseOrdersPage({
   const { status: statusParam, q = '' } = sp;
   const filter = FILTERS.some((f) => f.value === statusParam) ? statusParam! : 'all';
   const uuid = (v?: string) => (v && UUID_RE.test(v) ? v : '');
-  const ymd = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '');
+  // A real calendar date only (2026-99-99 is ignored, not a 500).
+  const ymd = (v?: string) => {
+    if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return '';
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v ? v : '';
+  };
   const associationId = uuid(sp.association_id);
   const vendorId = uuid(sp.vendor_id);
   const glAccountId = uuid(sp.gl_account_id);
@@ -58,43 +58,66 @@ export default async function PurchaseOrdersPage({
   const db = supabase as any;
   const zone = displayTimeZone();
 
-  // Every matching order (not the first 500), the filters applied in the query.
-  const [posRes, { data: associations }, { rows: vendors }, { data: glAccounts }] = await Promise.all([
-    fetchAllRows<any>(() => {
-      let query = db.from('purchase_orders')
-        .select(`id, number, status, approval_status, approval_required, po_total, po_billed, needed_by, submitted_at, created_at, vendors(name), associations(name)${glAccountId ? ', purchase_order_line_items!inner(gl_account_id)' : ''}`)
-        .is('archived_at', null);
-      if (associationId) query = query.eq('association_id', associationId);
-      if (vendorId) query = query.eq('vendor_id', vendorId);
-      if (glAccountId) query = query.eq('purchase_order_line_items.gl_account_id', glAccountId);
-      // PO date range, read as local calendar days.
-      if (dateFrom) query = query.gte('created_at', (zonedWallTimeToUtc(dateFrom, '00:00', zone) ?? new Date(dateFrom)).toISOString());
-      if (dateTo) {
-        const [y, m, d] = dateTo.split('-').map(Number);
-        const nextDay = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
-        query = query.lt('created_at', (zonedWallTimeToUtc(nextDay, '00:00', zone) ?? new Date(nextDay)).toISOString());
-      }
-      if (submitted === 'yes') query = query.not('submitted_at', 'is', null);
-      if (submitted === 'no') query = query.is('submitted_at', null);
-      // Completed: fully billed.
-      if (completed === 'yes') query = query.eq('status', 'billed');
-      if (completed === 'no') query = query.neq('status', 'billed');
-      return query.order('created_at', { ascending: false }).order('id');
-    }),
+  // Search runs in the database: PO number, or any vendor or association
+  // whose name matches.
+  const term = sanitizeSearchTerm(q);
+  let searchClauses: string[] | null = null;
+  if (term) {
+    const [{ rows: vMatch }, { rows: aMatch }] = await Promise.all([
+      fetchAllRows<any>(() => db.from('vendors').select('id').ilike('name', `%${term}%`).order('id')),
+      fetchAllRows<any>(() => db.from('associations').select('id').ilike('name', `%${term}%`).order('id')),
+    ]);
+    searchClauses = [`number.ilike."*${term}*"`];
+    if (vMatch.length) searchClauses.push(`vendor_id.in.(${vMatch.map((r: any) => r.id).join(',')})`);
+    if (aMatch.length) searchClauses.push(`association_id.in.(${aMatch.map((r: any) => r.id).join(',')})`);
+  }
+  const fromIso = dateFrom ? zonedWallTimeToUtc(dateFrom, '00:00', zone)?.toISOString() ?? null : null;
+  const toIso = (() => {
+    if (!dateTo) return null;
+    const [y, m, d] = dateTo.split('-').map(Number);
+    const nextDay = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+    return zonedWallTimeToUtc(nextDay, '00:00', zone)?.toISOString() ?? null;
+  })();
+
+  // Every filter except the approval tab, applied in the query.
+  const filtered = (columns: string) => {
+    let query = db.from('purchase_orders')
+      .select(`${columns}${glAccountId ? ', purchase_order_line_items!inner(gl_account_id)' : ''}`)
+      .is('archived_at', null);
+    if (associationId) query = query.eq('association_id', associationId);
+    if (vendorId) query = query.eq('vendor_id', vendorId);
+    if (glAccountId) query = query.eq('purchase_order_line_items.gl_account_id', glAccountId);
+    // PO date range, read as local calendar days.
+    if (fromIso) query = query.gte('created_at', fromIso);
+    if (toIso) query = query.lt('created_at', toIso);
+    if (submitted === 'yes') query = query.not('submitted_at', 'is', null);
+    if (submitted === 'no') query = query.is('submitted_at', null);
+    // Completed: fully billed.
+    if (completed === 'yes') query = query.eq('status', 'billed');
+    if (completed === 'no') query = query.neq('status', 'billed');
+    if (searchClauses) query = query.or(searchClauses.join(','));
+    return query;
+  };
+  // The approval tab, also in the query, so older matches are never cut off.
+  const withTab = (query: any) => {
+    if (filter === 'all') return query;
+    if (filter === 'cancelled') return query.eq('status', 'cancelled');
+    return query.neq('status', 'cancelled').eq('approval_status', filter);
+  };
+
+  const [rowsRes, metricsRes, { data: associations }, { rows: vendors }, { data: glAccounts }] = await Promise.all([
+    fetchAllRows<any>(() => withTab(filtered('id, number, status, approval_status, approval_required, po_total, po_billed, needed_by, submitted_at, created_at, vendors(name), associations(name)'))
+      .order('created_at', { ascending: false }).order('id')),
+    // Metrics cover every tab under the same filters.
+    fetchAllRows<any>(() => filtered('id, status, approval_status, po_total, po_billed').order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     fetchAllRows<any>(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
     db.from('gl_accounts').select('id, number, name').eq('active', true).order('number'),
   ]);
-  const pos = posRes.rows;
-
-  const ql = q.trim().toLowerCase();
-  const rows = pos.filter((po) =>
-    matchesFilter(po, filter) &&
-    (!ql ||
-      (po.number ?? '').toLowerCase().includes(ql) ||
-      (po.vendors?.name ?? '').toLowerCase().includes(ql) ||
-      (po.associations?.name ?? '').toLowerCase().includes(ql)),
-  );
+  const rows = rowsRes.rows;
+  const pos = metricsRes.rows;
+  const loadError = rowsRes.error ?? metricsRes.error;
+  const incomplete = rowsRes.truncated || metricsRes.truncated;
 
   const live = pos.filter((po) => po.status !== 'cancelled');
   const sum = (list: any[], pick: (po: any) => number) => list.reduce((s, po) => s + pick(po), 0);
@@ -136,8 +159,8 @@ export default async function PurchaseOrdersPage({
       }
     >
       <div className="space-y-6">
-        {posRes.error && <Alert tone="danger" title="Could not load every purchase order">{posRes.error}</Alert>}
-        {posRes.truncated && <Alert tone="warning" title="List is incomplete">There are more purchase orders than this page can load. Narrow the filters.</Alert>}
+        {loadError && <Alert tone="danger" title="Could not load every purchase order">{loadError}</Alert>}
+        {incomplete && <Alert tone="warning" title="List is incomplete">There are more purchase orders than this page can load. Narrow the filters.</Alert>}
         <MetricStrip metrics={metrics} />
 
         <nav className="flex flex-wrap gap-1" aria-label="Filter by approval status">
