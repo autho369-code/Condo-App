@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { isSupportedReportOutputFormat } from '@/lib/reports/output';
+import { computePeriod } from '@/lib/reports/period';
 
 /**
  * Queue a report run. The DB function stamps the portfolio_id + triggered_by
@@ -79,33 +80,6 @@ export async function cancelReportRun(runId: string) {
 
 // ── Scheduled report actions ──
 
-export async function toggleSchedule(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const supabase = await createClient();
-  const id = formData.get('id') as string;
-  const active = formData.get('active') === 'true';
-  const { error } = await (supabase as any)
-    .from('scheduled_reports')
-    .update({ active: !active })
-    .eq('id', id);
-  if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
-  revalidatePath('/scheduled-reports');
-  revalidatePath('/reports');
-}
-
-export async function deleteSchedule(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const supabase = await createClient();
-  const id = formData.get('id') as string;
-  const { error } = await (supabase as any)
-    .from('scheduled_reports')
-    .update({ archived_at: new Date().toISOString(), active: false })
-    .eq('id', id);
-  if (error) redirect(`/scheduled-reports?error=${encodeURIComponent(error.message)}`);
-  revalidatePath('/scheduled-reports');
-  revalidatePath('/reports');
-}
-
 export async function runScheduleNow(formData: FormData) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
@@ -151,61 +125,6 @@ export async function runScheduleNow(formData: FormData) {
   revalidatePath('/scheduled-reports');
   revalidatePath('/reports/runs');
   redirect('/scheduled-reports?ran=1');
-}
-
-export async function createSchedule(formData: FormData) {
-  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
-  const supabase = await createClient();
-  const failTo = (msg: string) => {
-    redirect(`/scheduled-reports?error=${encodeURIComponent(msg)}`);
-  };
-  const definition_id = formData.get('definition_id') as string;
-  const name = formData.get('name') as string;
-  const frequency = formData.get('frequency') as string;
-  const recipients = formData.get('recipients') as string;
-  const output_format = (formData.get('output_format') as string) || 'pdf';
-  const delivery_channel = (formData.get('delivery_channel') as string) || 'email';
-
-  if (!definition_id || !name || !frequency) {
-    failTo('definition_id, name, and frequency are required');
-    return;
-  }
-
-  // Parse recipients from comma-separated string
-  const recipientList = recipients
-    ? recipients.split(',').map((e) => e.trim()).filter(Boolean)
-    : [];
-
-  // Compute next_run_at — simple heuristic: next hour
-  const now = new Date();
-  const nextRun = new Date(now);
-  nextRun.setHours(nextRun.getHours() + 1, 0, 0, 0);
-
-  // The caller's own company (an arbitrary first portfolio was picked before,
-  // which for a platform operator could be any tenant).
-  const portfolio_id = me.portfolio?.id;
-  if (!portfolio_id) { failTo('No portfolio found'); return; }
-
-  const { error } = await (supabase as any)
-    .from('scheduled_reports')
-    .insert({
-      definition_id,
-      name,
-      frequency,
-      delivery_targets: recipientList,
-      delivery_channel,
-      output_format,
-      next_run_at: nextRun.toISOString(),
-      portfolio_id,
-      active: true,
-      hour_utc: nextRun.getUTCHours(),
-    });
-
-  if (error) { failTo(error.message); return; }
-
-  revalidatePath('/scheduled-reports');
-  revalidatePath('/reports');
-  redirect('/scheduled-reports');
 }
 
 const REPORT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -269,14 +188,26 @@ export async function saveCustomReport(formData: FormData) {
   if (!def) redirect(failReports('Unknown report.'));
 
   const str = (k: string) => String(formData.get(k) ?? '').trim();
+  // From the run form these arrive as param_* (the values as the user left
+  // them); the standalone form sends the page's own filters.
+  const pick = (formKey: string, plainKey: string) => (formData.has(formKey) ? str(formKey) : str(plainKey));
   const parameters: Record<string, string> = {};
-  const preset = str('preset');
-  if (REPORT_PRESETS.includes(preset)) parameters.preset = preset;
-  if (preset === 'custom') {
-    if (REPORT_DATE.test(str('from'))) parameters.from = str('from');
-    if (REPORT_DATE.test(str('to'))) parameters.to = str('to');
+  let preset = REPORT_PRESETS.includes(str('preset')) ? str('preset') : 'ytd';
+  const from = pick('param_date_from', 'from');
+  const to = pick('param_date_to', 'to');
+  // Dates changed by hand make this a custom period.
+  if (preset !== 'custom' && REPORT_DATE.test(from) && REPORT_DATE.test(to)) {
+    const expected = computePeriod(preset);
+    if (expected.from !== from || expected.to !== to) preset = 'custom';
   }
-  const association = str('association');
+  parameters.preset = preset;
+  if (preset === 'custom') {
+    if (!REPORT_DATE.test(from) || !REPORT_DATE.test(to)) redirect(failReports('Enter both dates for a custom period.'));
+    if (from > to) redirect(failReports('The start date is after the end date.'));
+    parameters.from = from;
+    parameters.to = to;
+  }
+  const association = pick('param_association_id', 'association');
   if (association) {
     if (!REPORT_UUID.test(association)) redirect(failReports('Unknown association.'));
     // RLS: the association must be one this staffer can see.
@@ -284,7 +215,8 @@ export async function saveCustomReport(formData: FormData) {
     if (!assoc) redirect(failReports('Unknown association.'));
     parameters.association = association;
   }
-  if (/^[a-z_]{1,40}$/.test(str('scope'))) parameters.scope = str('scope');
+  const scope = pick('param_scope', 'scope');
+  if (/^[a-z_]{1,40}$/.test(scope)) parameters.scope = scope;
   if (REPORT_UUID.test(str('account'))) parameters.account = str('account');
 
   const { data, error } = await db.from('saved_reports').insert({

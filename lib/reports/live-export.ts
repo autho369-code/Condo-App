@@ -271,8 +271,12 @@ async function generalLedgerRows(
   associationId: string | null,
   dateFrom: string,
   dateTo: string,
+  glAccountId: string | null = null,
 ) {
-  const accounts = await loadAccounts(db, portfolioId, associationId);
+  const allAccounts = await loadAccounts(db, portfolioId, associationId);
+  // A ledger drilled down to one account (a saved custom report) exports only that account.
+  const accounts = glAccountId ? allAccounts.filter((account: any) => String(account.id) === glAccountId) : allAccounts;
+  if (glAccountId && accounts.length === 0) throw new Error('That GL account is not in this portfolio or association.');
   const accountById = new Map<string, any>(
     accounts.map((account: any) => [String(account.id), account]),
   );
@@ -740,7 +744,7 @@ export async function generateLiveExportRows(
     case 'income_statement':
       return incomeStatementRows(db, portfolioId, associationId, dateFrom, dateTo);
     case 'general_ledger':
-      return generalLedgerRows(db, portfolioId, associationId, dateFrom, dateTo);
+      return generalLedgerRows(db, portfolioId, associationId, dateFrom, dateTo, stringParam(rawParams, 'gl_account_id'));
     case 'ar_aging':
       return arAgingRows(db, portfolioId, associationId);
     case 'delinquency_summary':

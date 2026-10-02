@@ -7,10 +7,11 @@ import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/reports/
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/shell';
 import { displayTimeZone } from '@/lib/time/display-zone';
-import { todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
+import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { queueReport, saveCustomReport, toggleReportFavorite } from '@/lib/rpcs/reports';
 import { money, date } from '@/lib/utils';
 import { supportedReportOutputFormats } from '@/lib/reports/output';
+import { computePeriod, type Period } from '@/lib/reports/period';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
 
 export const dynamic = 'force-dynamic';
@@ -925,7 +926,7 @@ async function GeneralLedgerView({
           subtitle={`${period.from} \u2192 ${period.to}`}
         />
       }
-      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period}
+      rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAccount={selectedAccount}
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
@@ -1934,11 +1935,30 @@ function QueuedReportView(ctx: ReportContext) {
 // ═══════════════════════════════════════════════════════════════
 // RIGHT RAIL — Run form + quick stats
 // ═══════════════════════════════════════════════════════════════
+function SaveCustomReportFields({ defaultName, formAction }: { defaultName: string; formAction?: (formData: FormData) => void | Promise<void> }) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-gray-700" htmlFor="custom_report_name">Save as custom report</label>
+      <div className="flex gap-2">
+        <input
+          id="custom_report_name"
+          name="name"
+          maxLength={120}
+          defaultValue={defaultName}
+          className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        />
+        <Button type="submit" variant="secondary" formAction={formAction}>Save</Button>
+      </div>
+      <p className="text-[11px] text-gray-500">Saves the period, scope and association set here, for everyone in your company.</p>
+    </div>
+  );
+}
+
 async function ReportRightRail({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, isLive, supportsLiveExport, isAsOfToday,
+  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedAccount, isLive, supportsLiveExport, isAsOfToday,
 }: {
   def: any; runs: any[]; associations: any[]; period: Period;
-  selectedAssociation: string; selectedPreset: string; selectedScope: string; isLive?: boolean; supportsLiveExport?: boolean; isAsOfToday?: boolean;
+  selectedAssociation: string; selectedPreset: string; selectedScope: string; selectedAccount?: string; isLive?: boolean; supportsLiveExport?: boolean; isAsOfToday?: boolean;
 }) {
   // Owner / unit pickers (RLS-scoped) instead of raw-UUID text boxes.
   const unitRequired = def.slug === 'owner_ledger';
@@ -1982,6 +2002,7 @@ async function ReportRightRail({
   if (selectedPreset === 'custom') { current.set('from', period.from); current.set('to', period.to); }
   current.set('scope', selectedScope);
   if (selectedAssociation) current.set('association', selectedAssociation);
+  if (selectedAccount) current.set('account', selectedAccount);
   const returnTo = `/reports/${encodeURIComponent(def.slug)}?${current.toString()}`;
   const { data: favoriteRow } = await pickerDb.from('report_favorites').select('definition_id').eq('definition_id', def.id).maybeSingle();
   const isFavorite = !!favoriteRow;
@@ -1997,28 +2018,22 @@ async function ReportRightRail({
             {isFavorite ? '\u2605 Remove from favorites' : '\u2606 Add to favorites'}
           </Button>
         </form>
-        <form action={saveCustomReport} className="space-y-2">
-          <input type="hidden" name="definition_id" value={def.id} />
-          <input type="hidden" name="return_to" value={returnTo} />
-          <input type="hidden" name="preset" value={selectedPreset} />
-          <input type="hidden" name="from" value={period.from} />
-          <input type="hidden" name="to" value={period.to} />
-          <input type="hidden" name="scope" value={selectedScope} />
-          <input type="hidden" name="association" value={selectedAssociation} />
-          <label className="block text-xs font-medium text-gray-700" htmlFor="custom_report_name">Save as custom report</label>
-          <div className="flex gap-2">
-            <input
-              id="custom_report_name"
-              name="name"
-              required
-              maxLength={120}
-              defaultValue={def.name}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-            <Button type="submit" variant="secondary">Save</Button>
-          </div>
-          <p className="text-[11px] text-gray-500">Saves the period, scope and association shown, for everyone in your company.</p>
-        </form>
+        {isLive && !exportEnabled && (
+          <form action={saveCustomReport} className="space-y-2">
+            <input type="hidden" name="definition_id" value={def.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="preset" value={selectedPreset} />
+            <input type="hidden" name="from" value={period.from} />
+            <input type="hidden" name="to" value={period.to} />
+            <input type="hidden" name="scope" value={selectedScope} />
+            <input type="hidden" name="association" value={selectedAssociation} />
+            <input type="hidden" name="account" value={selectedAccount ?? ''} />
+            <SaveCustomReportFields defaultName={def.name} />
+          </form>
+        )}
+        <Link href={`/scheduled-reports/new?report=${def.id}`} className="block text-xs font-medium text-gray-600 underline decoration-gray-300 underline-offset-4 hover:text-gray-900">
+          Schedule this report
+        </Link>
       </div>
       <div className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
         {isLive ? 'Live report' : 'Run this report'}
@@ -2156,6 +2171,14 @@ async function ReportRightRail({
         <Button type="submit" className="w-full">
           {isLive ? 'Export to file' : 'Run now'}
         </Button>
+
+        {/* Saves the filters as they are in this form now, not as the page loaded. */}
+        <div className="border-t border-gray-100 pt-3">
+          <input type="hidden" name="return_to" value={returnTo} />
+          <input type="hidden" name="preset" value={selectedPreset} />
+          <input type="hidden" name="account" value={selectedAccount ?? ''} />
+          <SaveCustomReportFields defaultName={def.name} formAction={saveCustomReport} />
+        </div>
       </form>
       )}
 
@@ -2219,49 +2242,6 @@ function RunPill({ status }: { status: string }) {
 // ═══════════════════════════════════════════════════════════════
 // PERIOD COMPUTATION
 // ═══════════════════════════════════════════════════════════════
-type Period = { from: string; to: string; label: string };
-
-function computePeriod(preset: string, customFrom?: string, customTo?: string): Period {
-  // "Today" is the calendar day in the request's display zone, not UTC (late
-  // evening in the US was already "tomorrow" and could jump a month/year).
-  const [ty, tm, td] = todayInZone().split('-').map(Number);
-  const today = { y: ty, m: tm - 1, d: td };
-  const ymd = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
-  const todayStr = ymd(today.y, today.m, today.d);
-  const firstOfMonth = (y: number, m: number) => ymd(y, m, 1);
-  const lastOfMonth  = (y: number, m: number) => ymd(y, m + 1, 0);
-
-  if (preset === 'custom') {
-    return {
-      from:  customFrom ?? firstOfMonth(today.y, today.m),
-      to:    customTo   ?? todayStr,
-      label: 'Custom',
-    };
-  }
-  if (preset === 'last_month') {
-    const d = new Date(Date.UTC(today.y, today.m - 1, 1));
-    return { from: firstOfMonth(d.getUTCFullYear(), d.getUTCMonth()), to: lastOfMonth(d.getUTCFullYear(), d.getUTCMonth()), label: 'Last month' };
-  }
-  if (preset === 'this_quarter') {
-    const q = Math.floor(today.m / 3) * 3;
-    return { from: firstOfMonth(today.y, q), to: todayStr, label: 'This quarter' };
-  }
-  if (preset === 'last_quarter') {
-    const q = Math.floor(today.m / 3) * 3 - 3;
-    const y = q < 0 ? today.y - 1 : today.y;
-    const m = (q + 12) % 12;
-    return { from: firstOfMonth(y, m), to: lastOfMonth(y, m + 2), label: 'Last quarter' };
-  }
-  if (preset === 'ytd') {
-    return { from: ymd(today.y, 0, 1), to: todayStr, label: 'Year to date' };
-  }
-  if (preset === 'last_year') {
-    return { from: ymd(today.y - 1, 0, 1), to: ymd(today.y - 1, 11, 31), label: 'Last year' };
-  }
-  // default: this_month
-  return { from: firstOfMonth(today.y, today.m), to: todayStr, label: 'This month' };
-}
-
 /** YYYY-MM-DD shifted by `days` calendar days. */
 function addDays(day: string, days: number): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);

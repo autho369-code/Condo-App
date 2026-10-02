@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { isSupportedReportOutputFormat, serializeReportOutput } from '@/lib/reports/output';
 import { generateLiveExportRows, supportsLiveExport } from '@/lib/reports/live-export';
+import { computePeriod, PERIOD_PRESETS } from '@/lib/reports/period';
+import { isValidTimeZone } from '@/lib/time/display-zone';
 
 // The missing half of the reporting pipeline: executes a queued report_run.
 //
@@ -50,6 +52,19 @@ export async function processReportRun(runId: string): Promise<void> {
     if (accessCheckError || accessError) {
       await finish({ status: 'failed', error_message: accessCheckError?.message ?? String(accessError) });
       return;
+    }
+
+    // A schedule built from a custom report keeps a relative period ("last
+    // month"); resolve it to dates on the day the run happens.
+    const preset = typeof run.parameters?.preset === 'string' ? run.parameters.preset : '';
+    if (preset && preset !== 'custom' && PERIOD_PRESETS.includes(preset) && !run.parameters?.date_from) {
+      // In the schedule's own time zone: the worker has no signed-in user to
+      // take a display zone from.
+      const zone = typeof run.parameters?.time_zone === 'string' && isValidTimeZone(run.parameters.time_zone)
+        ? run.parameters.time_zone
+        : undefined;
+      const period = computePeriod(preset, undefined, undefined, zone);
+      run.parameters = { ...run.parameters, date_from: period.from, date_to: period.to };
     }
 
     const slug = run.report_definitions?.slug;
