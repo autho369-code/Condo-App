@@ -5,7 +5,7 @@ import { ScheduleFields } from '@/components/reports/schedule-fields';
 import { Button } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
-import { describeSchedule, fromUtcHour } from '@/lib/reports/schedule';
+import { describeSchedule, scheduleLocalHour } from '@/lib/reports/schedule';
 import { loadScheduleOptions } from '@/lib/reports/schedule-options';
 import { saveScheduledReport } from '@/lib/rpcs/scheduled-reports';
 import { createClient } from '@/lib/supabase/server';
@@ -27,7 +27,7 @@ export default async function EditScheduledReportPage({
 
   const { data: schedule } = await db
     .from('scheduled_reports')
-    .select('id, name, definition_id, saved_report_id, frequency, day_of_week, day_of_month, hour_utc, output_format, delivery_channel, delivery_targets')
+    .select('id, name, definition_id, saved_report_id, frequency, day_of_week, day_of_month, hour_utc, local_hour, time_zone, output_format, delivery_channel, delivery_targets')
     .eq('id', id)
     .is('archived_at', null)
     .maybeSingle();
@@ -35,9 +35,8 @@ export default async function EditScheduledReportPage({
   const options = await loadScheduleOptions(db);
 
   const source = schedule.saved_report_id ? `saved:${schedule.saved_report_id}` : `def:${schedule.definition_id}`;
-  const localHour = fromUtcHour(schedule.hour_utc, options.zone);
-  // Keep the stored time selectable even if it is outside today's offered hours.
-  const hours = options.hours.includes(localHour) ? options.hours : [...options.hours, localHour].sort((a, b) => a - b);
+  // Saving re-saves the schedule in the company's current time zone.
+  const localHour = scheduleLocalHour(schedule, options.zone);
 
   return (
     <DataWorkspace
@@ -54,7 +53,7 @@ export default async function EditScheduledReportPage({
             <ScheduleFields
               definitions={options.definitions}
               customReports={options.customReports}
-              hours={hours}
+              hours={options.hours}
               zoneLabel={options.zoneLabel}
               schedule={{
                 source,

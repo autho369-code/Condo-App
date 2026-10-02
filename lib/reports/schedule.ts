@@ -1,4 +1,4 @@
-import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
+import { isValidTimeZone } from '@/lib/time/display-zone';
 
 export const SCHEDULE_FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually'] as const;
 export type ScheduleFrequency = (typeof SCHEDULE_FREQUENCIES)[number];
@@ -18,28 +18,23 @@ export function frequencyLabel(f: string) {
   return FREQUENCY_LABELS[f] ?? f;
 }
 
-/** UTC hour for a local hour today in `zone`, or null when that hour falls on another UTC day. */
-export function toUtcHour(localHour: number, zone: string): number | null {
-  const day = todayInZone(zone);
-  const at = zonedWallTimeToUtc(day, `${String(localHour).padStart(2, '0')}:00`, zone);
-  if (!at) return null;
-  // Day-of-week and day-of-month are stored for the UTC day, so only hours that
-  // stay on the same calendar day in UTC are offered.
-  if (at.toISOString().slice(0, 10) !== day) return null;
-  return at.getUTCHours();
-}
+export const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-/** Local hours (0-23) whose run stays on the same calendar day in UTC. */
-export function localHourOptions(zone: string): number[] {
-  return Array.from({ length: 24 }, (_, h) => h).filter((h) => toUtcHour(h, zone) != null);
-}
-
-/** The local hour for a stored UTC hour, today, in `zone`. */
-export function fromUtcHour(hourUtc: number | null | undefined, zone: string): number {
+/**
+ * The local hour a schedule runs at. Schedules saved with a time zone keep
+ * their local hour; older ones stored only a UTC hour, shown in `zone`.
+ */
+export function scheduleLocalHour(row: { local_hour?: number | null; hour_utc?: number | null }, zone: string): number {
+  if (row.local_hour != null) return row.local_hour;
   const d = new Date();
-  d.setUTCHours(hourUtc ?? 8, 0, 0, 0);
-  const local = new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(d);
-  return Number(local) % 24;
+  d.setUTCHours(row.hour_utc ?? 8, 0, 0, 0);
+  return Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(d)) % 24;
+}
+
+/** Short zone name, e.g. "CDT". */
+export function zoneAbbreviation(zone: string): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'short' })
+    .formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? zone;
 }
 
 export function hourLabel(h: number) {
@@ -54,9 +49,13 @@ function ordinal(n: number) {
   return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
 
-/** e.g. "Monthly on the 1st at 8:00 AM". */
-export function describeSchedule(row: { frequency: string; day_of_week?: number | null; day_of_month?: number | null; hour_utc?: number | null }, zone: string) {
-  const at = hourLabel(fromUtcHour(row.hour_utc, zone));
+/** e.g. "Monthly on the 1st at 8:00 AM CDT". */
+export function describeSchedule(
+  row: { frequency: string; day_of_week?: number | null; day_of_month?: number | null; hour_utc?: number | null; local_hour?: number | null; time_zone?: string | null },
+  displayZone: string,
+) {
+  const zone = row.local_hour != null && row.time_zone && isValidTimeZone(row.time_zone) ? row.time_zone : displayZone;
+  const at = `${hourLabel(scheduleLocalHour(row, zone))} ${zoneAbbreviation(zone)}`;
   switch (row.frequency) {
     case 'daily': return `Daily at ${at}`;
     case 'weekly': return `Weekly on ${WEEKDAYS[row.day_of_week ?? 1]} at ${at}`;

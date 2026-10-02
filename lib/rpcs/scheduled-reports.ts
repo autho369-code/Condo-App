@@ -6,8 +6,8 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { SUPPORTED_REPORT_OUTPUT_FORMATS } from '@/lib/reports/output';
 import { PERIOD_PRESETS } from '@/lib/reports/period';
-import { SCHEDULE_FREQUENCIES, toUtcHour } from '@/lib/reports/schedule';
-import { displayTimeZone } from '@/lib/time/display-zone';
+import { SCHEDULE_FREQUENCIES } from '@/lib/reports/schedule';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
@@ -46,7 +46,8 @@ function runParameters(saved: Record<string, unknown> | null | undefined) {
   } else if (PERIOD_PRESETS.includes(preset)) {
     out.preset = preset;
   }
-  if (UUID.test(str('account'))) out.account = str('account');
+  // The ledger exporter reads gl_account_id.
+  if (UUID.test(str('account'))) out.gl_account_id = str('account');
   return out;
 }
 
@@ -88,8 +89,13 @@ export async function saveScheduledReport(formData: FormData) {
   if (dated && !(Number.isInteger(dayOfMonth) && dayOfMonth >= 1 && dayOfMonth <= 31)) fail(back, 'Choose a day of the month from 1 to 31.');
 
   const localHour = Number(text(formData, 'hour'));
-  const hourUtc = Number.isInteger(localHour) && localHour >= 0 && localHour <= 23 ? toUtcHour(localHour, displayTimeZone()) : null;
-  if (hourUtc == null) fail(back, 'Choose a time of day.');
+  if (!(Number.isInteger(localHour) && localHour >= 0 && localHour <= 23)) fail(back, 'Choose a time of day.');
+  // The schedule keeps its local time and zone, so it runs at the same wall-clock
+  // time across daylight-saving changes.
+  const timeZone = displayTimeZone();
+  if (!isValidTimeZone(timeZone)) fail(back, 'Your company time zone is not set correctly.');
+  // Relative periods ("last month") resolve in this zone on each run day.
+  parameters = { ...parameters, time_zone: timeZone };
 
   const outputFormat = text(formData, 'output_format') || 'pdf';
   if (!(SUPPORTED_REPORT_OUTPUT_FORMATS as readonly string[]).includes(outputFormat)) fail(back, 'Choose a file format.');
@@ -106,7 +112,8 @@ export async function saveScheduledReport(formData: FormData) {
     p_frequency: frequency,
     p_day_of_week: weekly ? dayOfWeek : null,
     p_day_of_month: dated ? dayOfMonth : null,
-    p_hour_utc: hourUtc,
+    p_hour: localHour,
+    p_time_zone: timeZone,
     p_after: new Date().toISOString(),
   });
   if (nextError || !nextRun) fail(back, nextError?.message ?? 'Could not work out the next run.');
@@ -119,7 +126,10 @@ export async function saveScheduledReport(formData: FormData) {
     frequency,
     day_of_week: weekly ? dayOfWeek : null,
     day_of_month: dated ? dayOfMonth : null,
-    hour_utc: hourUtc,
+    local_hour: localHour,
+    time_zone: timeZone,
+    // Kept for reference; runs are scheduled from local_hour and time_zone.
+    hour_utc: new Date(nextRun).getUTCHours(),
     next_run_at: nextRun,
     output_format: outputFormat,
     delivery_channel: channel,
@@ -152,13 +162,15 @@ export async function setScheduleActive(formData: FormData) {
   const db = (await createClient()) as any;
   const patch: Record<string, unknown> = { active };
   if (active) {
-    const { data: row } = await db.from('scheduled_reports').select('frequency, day_of_week, day_of_month, hour_utc').eq('id', id).maybeSingle();
+    const { data: row } = await db.from('scheduled_reports').select('frequency, day_of_week, day_of_month, hour_utc, local_hour, time_zone').eq('id', id).maybeSingle();
     if (!row) fail('/scheduled-reports', 'Schedule not found.');
     const { data: nextRun } = await db.rpc('scheduled_report_next_run', {
       p_frequency: row.frequency,
       p_day_of_week: row.day_of_week,
       p_day_of_month: row.day_of_month,
-      p_hour_utc: row.hour_utc,
+      // Same rule as the enqueuer: older schedules run on hour_utc in UTC.
+      p_hour: row.local_hour ?? row.hour_utc,
+      p_time_zone: row.local_hour == null ? 'UTC' : row.time_zone,
       p_after: new Date().toISOString(),
     });
     // A paused schedule would otherwise run at once for every period it missed.

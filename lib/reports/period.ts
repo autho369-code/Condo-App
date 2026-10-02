@@ -4,10 +4,10 @@ export const PERIOD_PRESETS = ['this_month', 'last_month', 'this_quarter', 'last
 
 export type Period = { from: string; to: string; label: string };
 
-export function computePeriod(preset: string, customFrom?: string, customTo?: string): Period {
+export function computePeriod(preset: string, customFrom?: string, customTo?: string, timeZone?: string): Period {
   // "Today" is the calendar day in the request's display zone, not UTC (late
   // evening in the US was already "tomorrow" and could jump a month/year).
-  const [ty, tm, td] = todayInZone().split('-').map(Number);
+  const [ty, tm, td] = todayInZone(timeZone).split('-').map(Number);
   const today = { y: ty, m: tm - 1, d: td };
   const ymd = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
   const todayStr = ymd(today.y, today.m, today.d);

@@ -39,7 +39,7 @@ export default async function ScheduledReportsPage({
 
   const result = await fetchAllRows<any>(() => db
     .from('scheduled_reports')
-    .select('id, name, frequency, day_of_week, day_of_month, hour_utc, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_by, saved_report_id, report_definitions(name), saved_reports(name)')
+    .select('id, name, frequency, day_of_week, day_of_month, hour_utc, local_hour, time_zone, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_by, saved_report_id, report_definitions(name), saved_reports(name)')
     .is('archived_at', null)
     .order('name')
     .order('id'));
