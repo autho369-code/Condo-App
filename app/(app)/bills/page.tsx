@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert, EmptyState } from '@/components/ui/shell';
@@ -14,20 +14,28 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
 type PayableTab = 'bills' | 'payments';
-type BillStatusFilter = 'all' | 'pending_approval' | 'on_hold' | 'approved';
+type BillStatusFilter = 'all' | 'pending_approval' | 'my_approval' | 'on_hold' | 'approved';
 
 const PAYABLE_TABS: Array<{ key: PayableTab; label: string }> = [
   { key: 'bills', label: 'Bills' },
   { key: 'payments', label: 'Payments' },
 ];
+// Recurring bills and loans have their own pages; they sit in the same tab row.
+const LINK_TABS: Array<{ href: string; label: string }> = [
+  { href: '/bills/recurring', label: 'Recurring' },
+  { href: '/accounting/loans', label: 'Loans' },
+];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const STATUS_FILTERS: Array<{ key: BillStatusFilter; label: string }> = [
   { key: 'all', label: 'All' },
   { key: 'pending_approval', label: 'Pending Approval' },
+  { key: 'my_approval', label: 'Pending My Approval' },
   { key: 'on_hold', label: 'On Hold' },
   { key: 'approved', label: 'Approved' },
 ];
@@ -46,6 +54,7 @@ function parseStatus(value: string | undefined): BillStatusFilter {
   switch (value) {
     case 'all':
     case 'pending_approval':
+    case 'my_approval':
     case 'on_hold':
     case 'approved':
       return value;
@@ -57,13 +66,16 @@ function parseStatus(value: string | undefined): BillStatusFilter {
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; q?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; q?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
 }) {
   const me = await requireFinanceStaff();
   const sp = await searchParams;
   const { tab: tabParam, status: statusParam, q = '' } = sp;
   const tab = parseTab(tabParam);
   const statusFilter = parseStatus(statusParam);
+  const assoc = UUID.test(sp.association_id ?? '') ? sp.association_id! : '';
+  const vendor = UUID.test(sp.vendor_id ?? '') ? sp.vendor_id! : '';
+  const term = q.replace(/[%_,()*"\\]/g, ' ').trim();
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -72,17 +84,20 @@ export default async function BillsPage({
   // paid/void bills and dropped new open ones from the list and the metrics.
   const billsQuery = fetchAllRows(() => {
     let q = db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, approved_at, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)')
+      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, approved_at, approval_request_id, association_id, vendor_id, gl_account_id, bank_account_id, vendors(name, payment_type), associations(name), gl_accounts(number, name), bank_accounts(name)')
       .is('archived_at', null)
       .not('status', 'in', '("paid","void")');
-    if (statusFilter === 'pending_approval') q = q.eq('status', 'pending_approval');
+    // Every status is loaded so the metrics stay complete; the status chips
+    // filter the list below.
+    if (assoc) q = q.eq('association_id', assoc);
+    if (vendor) q = q.eq('vendor_id', vendor);
     return q.order('due_date', { ascending: true, nullsFirst: false }).order('id');
   }).then((r) => ({ data: r.rows, error: r.error }));
 
   // ── PARALLEL: fetch all tab data ──
   const [
     { data: allBills },
-    { data: paidBills },
+    { data: paidBills, count: paidMatching },
     { data: vendors },
     { data: associations },
     { data: glAccounts },
@@ -90,13 +105,30 @@ export default async function BillsPage({
   ] = await Promise.all([
     // Bills tab: all non-archived bills
     billsQuery,
-    // Payments tab: paid bills
-    db.from('payable_bills')
-      .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, association_id, vendor_id, vendors(name, payment_type), associations(name)')
-      .eq('status', 'paid')
-      .is('archived_at', null)
-      .order('paid_at', { ascending: false, nullsFirst: false })
-      .limit(500),
+    // Payments tab: paid bills, filtered and searched in the database.
+    (async () => {
+      const clauses: string[] = [];
+      if (term) {
+        const [{ data: vMatch }, { data: aMatch }] = await Promise.all([
+          db.from('vendors').select('id').ilike('name', `%${term}%`).limit(200),
+          db.from('associations').select('id').ilike('name', `%${term}%`).limit(200),
+        ]);
+        clauses.push(`memo.ilike.*${term}*`, `bill_number.ilike.*${term}*`);
+        if (/^\d+$/.test(term)) clauses.push(`check_number.eq.${term}`);
+        const vIds = ((vMatch ?? []) as any[]).map((v) => v.id);
+        const aIds = ((aMatch ?? []) as any[]).map((a) => a.id);
+        if (vIds.length) clauses.push(`vendor_id.in.(${vIds.join(',')})`);
+        if (aIds.length) clauses.push(`association_id.in.(${aIds.join(',')})`);
+      }
+      let p = db.from('payable_bills')
+        .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, check_number, association_id, vendor_id, vendors(name, payment_type), associations(name)', { count: 'exact' })
+        .eq('status', 'paid')
+        .is('archived_at', null);
+      if (assoc) p = p.eq('association_id', assoc);
+      if (vendor) p = p.eq('vendor_id', vendor);
+      if (clauses.length) p = p.or(clauses.join(','));
+      return p.order('paid_at', { ascending: false, nullsFirst: false }).order('id').limit(500);
+    })(),
     // Vendors for filter
     db.from('vendors')
       .select('id, name')
@@ -124,6 +156,9 @@ export default async function BillsPage({
     if (statusFilter === 'on_hold') {
       // "On Hold" maps to draft status in the DB
       filteredBills = filteredBills.filter((b: any) => b.status === 'draft');
+    } else if (statusFilter === 'my_approval') {
+      // Waiting on management's own approval: bills not routed to the board.
+      filteredBills = filteredBills.filter((b: any) => b.status === 'pending_approval' && !b.approval_request_id);
     } else {
       filteredBills = filteredBills.filter((b: any) => b.status === statusFilter);
     }
@@ -144,20 +179,10 @@ export default async function BillsPage({
 
   const actionableCount = filteredBills.filter((b: any) => b.status === 'draft' || b.status === 'pending_approval').length;
 
-  // ── FILTER PAID BILLS by search ──
-  let filteredPayments = (paidBills ?? []);
-  if (q && tab === 'payments') {
-    const ql = q.toLowerCase();
-    filteredPayments = filteredPayments.filter(
-      (b: any) =>
-        (b.vendors?.name ?? '').toLowerCase().includes(ql) ||
-        (b.memo ?? '').toLowerCase().includes(ql) ||
-        (b.associations?.name ?? '').toLowerCase().includes(ql),
-    );
-  }
+  const filteredPayments = (paidBills ?? []) as any[];
 
   // ── METRICS ──
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   const openCount = (allBills ?? []).filter(
     (b: any) => b.status !== 'paid' && b.status !== 'void',
@@ -203,7 +228,7 @@ export default async function BillsPage({
 
   // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
-  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportStamp = today;
   const exportTable: ExportTable | null =
     tab === 'bills'
       ? {
@@ -282,6 +307,15 @@ export default async function BillsPage({
           <Link href="/bills/upload">
             <Button variant="secondary">Upload bills</Button>
           </Link>
+          <Link href="/accounting/management-fees">
+            <Button variant="secondary">Pay management fees</Button>
+          </Link>
+          <Link href="/bills/owner-payable">
+            <Button variant="secondary">Homeowner payable</Button>
+          </Link>
+          <Link href="/bank-transfers/new">
+            <Button variant="secondary">Transfer between accounts</Button>
+          </Link>
         </>
       }
     >
@@ -297,6 +331,8 @@ export default async function BillsPage({
             if (t.key === 'bills' && statusFilter !== 'all') {
               params.set('status', statusFilter);
             }
+            if (assoc) params.set('association_id', assoc);
+            if (vendor) params.set('vendor_id', vendor);
             return (
               <Link
                 key={t.key}
@@ -311,6 +347,15 @@ export default async function BillsPage({
               </Link>
             );
           })}
+          {LINK_TABS.map((t) => (
+            <Link
+              key={t.href}
+              href={t.href}
+              className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+            >
+              {t.label}
+            </Link>
+          ))}
         </nav>
 
         {/* ── STATUS SUB-FILTERS (only for Bills tab) ── */}
@@ -322,6 +367,8 @@ export default async function BillsPage({
               params.set('tab', 'bills');
               if (f.key !== 'all') params.set('status', f.key);
               if (q) params.set('q', q);
+              if (assoc) params.set('association_id', assoc);
+              if (vendor) params.set('vendor_id', vendor);
               return (
                 <Link
                   key={f.key}
@@ -353,6 +400,14 @@ export default async function BillsPage({
         >
           <input type="hidden" name="tab" value={tab} />
           {statusFilter !== 'all' && <input type="hidden" name="status" value={statusFilter} />}
+          <FilterSelect label="Association" name="association_id" defaultValue={assoc}>
+            <option value="">All associations</option>
+            {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
+          <FilterSelect label="Vendor" name="vendor_id" defaultValue={vendor}>
+            <option value="">All vendors</option>
+            {(vendors ?? []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+          </FilterSelect>
         </FilterBar>
 
         {sp.bulk && (
@@ -508,6 +563,11 @@ export default async function BillsPage({
               <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <EmptyState icon={Receipt} title="No paid bills in this view" />
               </div>
+            )}
+            {(paidMatching ?? 0) > filteredPayments.length && (
+              <p className="text-xs text-gray-500">
+                Showing the latest {filteredPayments.length} of {paidMatching} payments. Narrow with search, an association or a vendor to see older ones.
+              </p>
             )}
           </>
         )}
