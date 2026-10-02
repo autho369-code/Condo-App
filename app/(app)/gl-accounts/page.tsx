@@ -3,64 +3,71 @@ import { BookOpen, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { hasPortfolioAdminAccess, requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { FilterBar } from '@/components/operations/filter-bar';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { EmptyState, SectionTitle } from '@/components/ui/shell';
+import { Alert, EmptyState, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
-const RANGES: Array<{ from: number; to: number; label: string }> = [
-  { from: 1000, to: 1999, label: 'Assets' },
-  { from: 2000, to: 2999, label: 'Liabilities' },
-  { from: 3000, to: 3999, label: 'Equity' },
-  { from: 4000, to: 4999, label: 'Income' },
-  { from: 5000, to: 5999, label: 'Cost of Goods Sold' },
-  { from: 6000, to: 6999, label: 'Operating Expenses' },
-  { from: 7000, to: 7999, label: 'Other Income' },
-  { from: 8000, to: 8999, label: 'Other Expenses' },
-  { from: 9000, to: 9999, label: 'Non-Operating' },
+// Grouped by the account's type (what the reports use). Grouping by number
+// range filed e.g. a 5xxx expense under Cost of Goods Sold and a 7xxx
+// reserve expense under Other Income, and hid numbers outside 1000-9999.
+const GROUPS: Array<{ label: string; types: string[] }> = [
+  { label: 'Assets', types: ['cash', 'asset', 'accounts_receivable', 'fixed_asset'] },
+  { label: 'Liabilities', types: ['liability', 'accounts_payable'] },
+  { label: 'Equity', types: ['equity'] },
+  { label: 'Income', types: ['income', 'other_income'] },
+  { label: 'Expenses', types: ['expense', 'cost_of_goods_sold', 'other_expense', 'non_operating'] },
 ];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function GLAccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; association_id?: string; saved?: string }>;
 }) {
   const me = await requireStaff();
-  const { q = '' } = await searchParams;
+  const { q = '', status = '', association_id = '', saved = '' } = await searchParams;
+  const assoc = UUID.test(association_id) ? association_id : '';
   const supabase = await createClient();
   const db = supabase as any;
 
-  let query = db
-    .from('gl_accounts')
-    .select('id, number, name, account_type, fund_account, active, include_on_cash_flow, subject_to_management_fees')
-    .order('number');
-
-  // PostgREST can't cast in filters (number::text), so that search errored
-  // and showed an empty chart. Match name/number in memory instead.
-  const { data: rows, error: glError } = await query;
-  if (glError) throw new Error(`Could not load GL accounts: ${glError.message}`);
+  // PostgREST can't cast in filters (number::text), so name/number search
+  // runs in memory over the whole chart (paged past 1,000 rows).
+  const [{ rows, error: glError }, { data: associations }] = await Promise.all([
+    fetchAllRows<any>(() => db
+      .from('gl_accounts')
+      .select('id, number, name, account_type, fund_account, active, include_on_cash_flow, subject_to_management_fees, association_id, associations(name)')
+      .order('number')
+      .order('id')),
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+  ]);
+  if (glError) throw new Error(`Could not load GL accounts: ${glError}`);
   const needle = q.trim().toLowerCase();
-  const accounts = ((rows ?? []) as any[]).filter((a: any) => !needle
-    || String(a.name ?? '').toLowerCase().includes(needle)
-    || String(a.number ?? '').includes(needle));
+  const accounts = (rows as any[]).filter((a: any) =>
+    (!needle || String(a.name ?? '').toLowerCase().includes(needle) || String(a.number ?? '').includes(needle))
+    && (status !== 'active' || a.active)
+    && (status !== 'inactive' || !a.active)
+    && (!assoc || a.association_id === assoc));
 
   const activeCount = accounts.filter((a: any) => a.active).length;
   const inactiveCount = accounts.filter((a: any) => !a.active).length;
   const fundCount = accounts.filter((a: any) => a.fund_account).length;
 
-  const grouped = RANGES.map((r) => ({
-    ...r,
-    items: accounts.filter((a: any) => a.number >= r.from && a.number <= r.to),
-  })).filter((g) => g.items.length > 0);
+  const known = new Set(GROUPS.flatMap((g) => g.types));
+  const grouped = [
+    ...GROUPS.map((g) => ({ label: g.label, items: accounts.filter((a: any) => g.types.includes(a.account_type)) })),
+    { label: 'Other', items: accounts.filter((a: any) => !known.has(a.account_type)) },
+  ].filter((g) => g.items.length > 0);
 
   return (
     <DataWorkspace
       title="GL Accounts"
-      description="Chart of accounts for the portfolio. Ranges follow standard accounting conventions (1xxx Assets, 2xxx Liabilities, 3xxx Equity, 4xxx Income, 5xxx COGS, 6xxx Expenses, 7xxx Other Income, 8xxx Other Expenses, 9xxx Non-Operating)."
+      description="Chart of accounts, grouped by account type. Open an account to edit or deactivate it."
       actions={<>
         {hasPortfolioAdminAccess(me) && <Link href="/gl-accounts/permissions"><Button variant="secondary">Role permissions</Button></Link>}
         <Link href="/gl-accounts/new"><Button><Plus className="h-4 w-4" /> New GL account</Button></Link>
@@ -76,15 +83,26 @@ export default async function GLAccountsPage({
           ]}
         />
 
-        <FilterBar action="/gl-accounts" searchDefault={q} searchPlaceholder="Search by name or account number" />
+        {saved && <Alert tone="success" title="GL account saved" />}
+        <FilterBar action="/gl-accounts" searchDefault={q} searchPlaceholder="Search by name or account number">
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All accounts</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </FilterSelect>
+          <FilterSelect label="Association" name="association_id" defaultValue={assoc}>
+            <option value="">All (including portfolio-wide)</option>
+            {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
+        </FilterBar>
 
         {accounts.length === 0 ? (
           <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <EmptyState
               icon={BookOpen}
-              title={q ? 'No GL accounts match your search' : 'No GL accounts configured yet'}
+              title={q || status || assoc ? 'No GL accounts match your filters' : 'No GL accounts configured yet'}
               description="The chart of accounts will appear here, grouped by account range."
-              action={!q && (
+              action={!q && !status && !assoc && (
                 <Link href="/gl-accounts/new">
                   <Button><Plus className="h-4 w-4" /> Create your first GL account</Button>
                 </Link>
@@ -99,7 +117,7 @@ export default async function GLAccountsPage({
           grouped.map((g) => (
             <section key={g.label}>
               <SectionTitle
-                title={`${g.from}s — ${g.label}`}
+                title={g.label}
                 actions={
                   <span className="text-xs text-gray-400">{g.items.length} account{g.items.length !== 1 ? 's' : ''}</span>
                 }
@@ -110,6 +128,7 @@ export default async function GLAccountsPage({
                     <TH>Number</TH>
                     <TH>Name</TH>
                     <TH>Account Type</TH>
+                    <TH>Association</TH>
                     <TH>Fund Account</TH>
                     <TH>Active</TH>
                   </tr>
@@ -118,8 +137,11 @@ export default async function GLAccountsPage({
                   {g.items.map((a: any) => (
                     <TR key={a.id}>
                       <TD className="font-mono tabular-nums">{a.number}</TD>
-                      <TD className="font-medium">{a.name}</TD>
+                      <TD className="font-medium">
+                        <Link href={`/gl-accounts/${a.id}`} className="text-gray-900 hover:underline">{a.name}</Link>
+                      </TD>
                       <TD className="capitalize">{a.account_type?.replace(/_/g, ' ')}</TD>
+                      <TD className="text-gray-600">{a.associations?.name ?? 'Portfolio-wide'}</TD>
                       <TD className="capitalize text-gray-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
                       <TD>
                         <StatusChip tone={a.active ? 'success' : 'neutral'}>
