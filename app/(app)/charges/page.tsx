@@ -72,7 +72,7 @@ export default async function ChargesPage({
         .eq('owner_id', owner)
         .or(`start_date.is.null,start_date.lte.${today}`)
         .or(`end_date.is.null,end_date.gte.${today}`),
-      db.from('occupancies').select('unit_id').eq('owner_id', owner).eq('status', 'current'),
+      db.from('occupancies').select('unit_id').eq('owner_id', owner).eq('status', 'current').eq('occupancy_type', 'owner'),
       db.from('owners').select('id, full_name').eq('id', owner).maybeSingle(),
     ]);
     ownerUnitIds = [...new Set([...(owned ?? []), ...(occupied ?? [])].map((r: any) => r.unit_id).filter(Boolean))] as string[];
@@ -82,6 +82,19 @@ export default async function ChargesPage({
   const unitScope = ownerUnitIds.length ? ownerUnitIds : [noUnit];
 
   const { data: associationRows } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
+  // Units of the selected association, so database totals follow the filter.
+  let assocUnitIds: string[] = [];
+  if (assoc) {
+    const { rows } = await fetchAllRows<any>(() => db
+      .from('units')
+      .select('id, buildings!inner(association_id)')
+      .eq('buildings.association_id', assoc)
+      .order('id'));
+    assocUnitIds = rows.map((u) => u.id);
+  }
+  const totalsUnitIds: string[] | null = assoc
+    ? (owner ? assocUnitIds.filter((id) => ownerUnitIds.includes(id)) : assocUnitIds)
+    : owner ? ownerUnitIds : null;
   const associations = (associationRows ?? []) as Array<{ id: string; name: string }>;
   const assocName = new Map(associations.map((a) => [a.id, a.name]));
 
@@ -123,13 +136,14 @@ export default async function ChargesPage({
       if (owner) d = d.in('unit_id', unitScope);
       return d.order('unit_id');
     }),
-    db.rpc('receivable_unit_totals', { p_unit_ids: owner ? unitScope : null }),
+    db.rpc('receivable_unit_totals', { p_unit_ids: totalsUnitIds ? (totalsUnitIds.length ? totalsUnitIds : [noUnit]) : null }),
     owner || assoc
       ? Promise.resolve({ data: [] })
       : db.from('v_charges_by_category').select('*').order('outstanding_balance', { ascending: false }),
   ]);
   const loadErrors = [receiptsRes.error?.message, chargesRes.error?.message, receiptAmounts.error, delinquentRes.error]
     .filter(Boolean) as string[];
+  if (receiptAmounts.truncated) loadErrors.push('The receipts total covers the first 50,000 receipts only; choose an association for an exact total.');
 
   const receipts = (receiptsRes.data ?? []) as any[];
   const receiptsMatching = receiptsRes.count ?? receipts.length;
@@ -147,6 +161,7 @@ export default async function ChargesPage({
       .select('id, unit_id, owners(full_name)')
       .in('unit_id', delinquentRows.map((u) => u.unit_id))
       .eq('status', 'current')
+      .eq('occupancy_type', 'owner')
       .order('id'));
     for (const o of occ) {
       const name = o.owners?.full_name;
@@ -177,15 +192,19 @@ export default async function ChargesPage({
     const [{ rows, truncated }, { data: batches }] = await Promise.all([
       fetchAllRows<any>(() => {
         let r = db.from('receivable_payments_ledger')
-          .select('payment_id, payment_date, amount, bank_account_id, bank_account_name, bank_name');
+          .select('payment_id, payment_date, amount, bank_account_id, bank_account_name, bank_name')
+          // Homeowner credits are non-cash: never part of a bank deposit.
+          .or('method.is.null,method.neq.credit');
         if (assoc) r = r.eq('association_id', assoc);
         if (owner) r = r.in('unit_id', unitScope);
         return r.order('payment_id');
       }),
-      db.from('lockbox_batches')
-        .select('id, batch_date, deposit_reference, status, total_amount_cents, total_items, provider, bank_accounts!inner(name, bank_name, association_id)')
-        .order('batch_date', { ascending: false })
-        .limit(200),
+      (() => {
+        let b = db.from('lockbox_batches')
+          .select('id, batch_date, deposit_reference, status, total_amount_cents, total_items, provider, bank_accounts!inner(name, bank_name, association_id)');
+        if (assoc) b = b.eq('bank_accounts.association_id', assoc);
+        return b.order('batch_date', { ascending: false }).limit(200);
+      })(),
     ]);
     depositsTruncated = truncated;
     const byKey = new Map<string, Deposit>();
@@ -203,7 +222,7 @@ export default async function ChargesPage({
       const ql = q.toLowerCase();
       deposits = deposits.filter((d) => d.bank.toLowerCase().includes(ql) || d.bankName.toLowerCase().includes(ql));
     }
-    lockboxBatches = ((batches ?? []) as any[]).filter((b) => !assoc || b.bank_accounts?.association_id === assoc);
+    lockboxBatches = (batches ?? []) as any[];
   }
 
   // ── Chargebacks: work-order costs charged back to homeowners ──
