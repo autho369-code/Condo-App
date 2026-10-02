@@ -82,7 +82,7 @@ export default function MeetingsPage() {
 
   const fetchAssociations = useCallback(async () => {
     const db = supabase as any;
-    const { data } = await db.from('associations').select('id, name').order('name');
+    const { data } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
     if (data) setAssociations(data);
   }, [supabase]);
 

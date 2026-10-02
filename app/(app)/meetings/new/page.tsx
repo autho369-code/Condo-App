@@ -13,7 +13,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
   await requireWorkspaceStaff();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: associations } = await (supabase as any).from('associations').select('id, name').order('name');
+  const { data: associations } = await (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name');
 
   async function handleSubmit(formData: FormData) {
     'use server';
@@ -28,7 +28,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     // datetime-local values are wall-clock times in the association's zone
     // (stored raw they were read as UTC: a 7 PM meeting showed as 2 PM).
     const { data: assoc } = await (supabase as any).from('associations')
-      .select('timezone').eq('id', String(formData.get('association_id'))).maybeSingle();
+      .select('timezone').eq('id', String(formData.get('association_id'))).is('archived_at', null).maybeSingle();
     if (!assoc) redirect(`/meetings/new?error=${encodeURIComponent('That association was not found in your workspace.')}`);
     const zone = assoc?.timezone || DEFAULT_TIME_ZONE;
     const startTime = wallDateTimeToIso(String(formData.get('start_time') ?? ''), zone);

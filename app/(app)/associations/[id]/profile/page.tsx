@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
+import { setAssociationHidden } from '@/lib/rpcs/entities';
 import { Workspace, WorkspaceHeader, Section, Tile } from '@/components/workspace/shell';
 import { Alert } from '@/components/ui/shell';
 import { AssociationTabs } from '@/components/associations/tabs';
@@ -27,6 +28,7 @@ export default async function AssociationProfileTab({
 }) {
   const me = await requireStaff();
   const canManageLoans = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator);
+  const canHide = me.is_full_access_staff || me.is_platform_operator;
   const { id: assocParam } = await params;
   const association = await resolveAssociation(assocParam);
   if (!association) notFound();
@@ -276,7 +278,17 @@ export default async function AssociationProfileTab({
       header={
         <>
           <AssociationTabs associationId={id} active="profile" />
-          <WorkspaceHeader title={assoc.name} />
+          <WorkspaceHeader
+            title={assoc.name}
+            subtitle={assoc.archived_at ? <span className="text-amber-700">Hidden since {date(assoc.archived_at)}</span> : undefined}
+            actions={canHide ? (
+              <form action={setAssociationHidden}>
+                <input type="hidden" name="association_id" value={id} />
+                <input type="hidden" name="hide" value={assoc.archived_at ? '0' : '1'} />
+                <Button type="submit" variant="secondary">{assoc.archived_at ? 'Unhide association' : 'Hide association'}</Button>
+              </form>
+            ) : undefined}
+          />
         </>
       }
       rail={rail}

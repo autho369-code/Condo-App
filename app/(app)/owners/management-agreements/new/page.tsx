@@ -15,7 +15,7 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
   const supabase = await createClient();
   const [{ data: owners }, { data: associations }] = await Promise.all([
     (supabase as any).from('owners').select('id, full_name, email').order('full_name').limit(500),
-    (supabase as any).from('associations').select('id, name').order('name').limit(500),
+    (supabase as any).from('associations').select('id, name').is('archived_at', null).order('name').limit(500),
   ]);
 
   async function handleSubmit(formData: FormData) {
