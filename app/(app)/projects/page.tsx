@@ -7,7 +7,8 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 
@@ -35,17 +36,22 @@ export default async function ProjectsPage({
   const { q = '', status = '', association_id = '' } = await searchParams;
   const db = (await createClient()) as any;
 
-  const [{ data: projectRows }, { data: associations }, { data: financialRows }] = await Promise.all([
-    db.from('capital_projects')
+  // Every project and every project's totals (a 500-row cap left later
+  // projects showing $0 spent).
+  const [projectsRes, { data: associations }, financialsRes] = await Promise.all([
+    fetchAllRows<any>(() => db.from('capital_projects')
       .select('id, name, description, status, priority, start_date, target_end_date, budget_amount, contingency_amount, approved_budget_amount, board_approval_required, updated_at, association_id, associations(name)')
       .is('archived_at', null)
       .order('updated_at', { ascending: false })
-      .limit(500),
+      .order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('capital_project_financials').select('project_id, work_order_count, committed_spend').limit(500),
+    fetchAllRows<any>(() => db.from('capital_project_financials').select('project_id, work_order_count, committed_spend').order('project_id')),
   ]);
+  const projectRows = projectsRes.rows;
+  const loadError = projectsRes.error ?? financialsRes.error;
+  const incomplete = projectsRes.truncated || financialsRes.truncated;
 
-  const financials = new Map((financialRows ?? []).map((row: any) => [row.project_id, row]));
+  const financials = new Map(financialsRes.rows.map((row: any) => [row.project_id, row]));
 
   let projects = (projectRows ?? []).map((project: any) => {
     const totals: any = financials.get(project.id);
@@ -76,6 +82,8 @@ export default async function ProjectsPage({
       actions={<Link href="/projects/new"><Button><Plus className="h-4 w-4" /> New project</Button></Link>}
     >
       <div className="space-y-6">
+        {loadError && <Alert tone="danger" title="Could not load every project">{loadError}</Alert>}
+        {incomplete && <Alert tone="warning" title="List is incomplete">There are more projects than this page can load. Filter by association or status.</Alert>}
         <MetricStrip metrics={[
           { label: 'Active', value: projects.filter((p: any) => p.status === 'active').length, sublabel: 'In execution' },
           { label: 'Awaiting approval', value: projects.filter((p: any) => ['board_review', 'approved'].includes(p.status)).length, sublabel: 'Governance queue' },
