@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Building2, FolderTree, Search, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { PageShell, PageHeader, EmptyState } from '@/components/ui/shell'
+import { Alert, Badge, PageShell, PageHeader, EmptyState } from '@/components/ui/shell'
 import { DataTable } from '@/components/ui/table'
 import { Input, Select } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ type Association = {
   zip: string
   unit_count: number | null
   property_group_id: string | null
+  archived_at: string | null
 }
 
 const PAGE_SIZE = 12
@@ -33,6 +34,8 @@ export default function AssociationsPage() {
   const [tags, setTags] = useState<{ id: string; name: string }[]>([])
   const [tag, setTag] = useState('')
   const [tagged, setTagged] = useState<Set<string> | null>(null)
+  const [showHidden, setShowHidden] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
 
   // ?group=<id> deep link from the property groups page.
@@ -42,27 +45,31 @@ export default function AssociationsPage() {
     if (fromUrl) setGroup(fromUrl)
     const tagFromUrl = params.get('tag')
     if (tagFromUrl) setTag(tagFromUrl)
+    if (params.get('hidden') === '1') setShowHidden(true)
   }, [])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [{ data }, { data: groupRows }, { data: tagRows }] = await Promise.all([
-        (supabase as any)
-          .from('associations')
-          .select('id, slug, name, address, city, state, zip, unit_count, property_group_id')
-          .is('archived_at', null)
-          .order('name', { ascending: true }),
+      let associationQuery = (supabase as any)
+        .from('associations')
+        .select('id, slug, name, address, city, state, zip, unit_count, property_group_id, archived_at')
+        .order('name', { ascending: true })
+      // Hidden associations stay out of the list unless asked for.
+      if (!showHidden) associationQuery = associationQuery.is('archived_at', null)
+      const [{ data, error }, { data: groupRows }, { data: tagRows }] = await Promise.all([
+        associationQuery,
         (supabase as any).from('property_groups').select('id, name').order('name'),
         (supabase as any).from('tags').select('id, name, tag_assignments!inner(entity_type)').eq('tag_assignments.entity_type', 'association').order('name'),
       ])
+      setLoadError(error ? error.message : null)
       setAssociations(data ?? [])
       setGroups(groupRows ?? [])
       setTags(((tagRows ?? []) as any[]).map((t) => ({ id: t.id, name: t.name })))
       setLoading(false)
     }
     load()
-  }, [supabase])
+  }, [supabase, showHidden])
 
   useEffect(() => {
     if (!tag) { setTagged(null); return }
@@ -85,15 +92,25 @@ export default function AssociationsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, totalPages)
   const paged = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
-  const totalUnits = associations.reduce((s, a) => s + (a.unit_count ?? 0), 0)
+  const visible = associations.filter((a) => !a.archived_at)
+  const totalUnits = visible.reduce((s, a) => s + (a.unit_count ?? 0), 0)
 
   return (
     <PageShell>
       <PageHeader
         title="Associations"
-        description={`${associations.length} communities · ${totalUnits.toLocaleString()} units under management`}
+        description={`${visible.length} communities · ${totalUnits.toLocaleString()} units under management`}
         actions={
           <>
+            <Link href="/meetings">
+              <Button variant="secondary">Meeting sign-in</Button>
+            </Link>
+            <Link href="/violations/field">
+              <Button variant="secondary">Violations field entry</Button>
+            </Link>
+            <Link href="/reports/bulk-association">
+              <Button variant="secondary">Bulk board reports</Button>
+            </Link>
             <Link href="/associations/groups">
               <Button variant="secondary"><FolderTree className="h-4 w-4" /> Property groups</Button>
             </Link>
@@ -138,7 +155,20 @@ export default function AssociationsPage() {
             {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </Select>
         )}
+        <label className="flex min-h-10 items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={showHidden}
+            onChange={(e) => { setShowHidden(e.target.checked); setPage(1) }}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          Show hidden
+        </label>
       </div>
+
+      {loadError && (
+        <Alert tone="danger" title="Could not load associations" className="mb-4">{loadError}</Alert>
+      )}
 
       {loading ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white py-16 text-center text-sm text-gray-400 shadow-sm">
@@ -159,7 +189,10 @@ export default function AssociationsPage() {
                     <Building2 className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate font-medium text-gray-900">{a.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-gray-900">{a.name}</span>
+                      {a.archived_at && <Badge tone="inactive">Hidden</Badge>}
+                    </div>
                     <div className="truncate text-[12px] text-gray-500">
                       {[a.address, a.city && `${a.city}, ${a.state} ${a.zip}`].filter(Boolean).join(' · ')}
                     </div>

@@ -175,6 +175,31 @@ export async function archiveAssociation(id: string) {
   redirect('/associations');
 }
 
+/**
+ * Form action: hide an association (it drops out of lists and pickers) or
+ * show it again. Hidden associations keep all their history.
+ */
+export async function setAssociationHidden(formData: FormData) {
+  const me = await requirePortfolioAdmin();
+  const id = String(formData.get('association_id') ?? '');
+  const hide = formData.get('hide') === '1';
+  const back = `/associations/${id}/profile`;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    redirect('/associations?error=' + encodeURIComponent('Association not found.'));
+  }
+  if (!me.portfolio?.id) redirect(`${back}?error=${encodeURIComponent('Your account is not linked to a portfolio.')}`);
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any).from('associations')
+    .update({ archived_at: hide ? new Date().toISOString() : null })
+    .eq('id', id)
+    .eq('portfolio_id', me.portfolio!.id)
+    .select('id');
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (!data || data.length === 0) redirect(`${back}?error=${encodeURIComponent('Association not found or you do not have access to it.')}`);
+  revalidatePath('/associations');
+  redirect(`${back}?saved=${encodeURIComponent(hide ? 'Association hidden. It no longer appears in lists; turn on "Show hidden" to find it.' : 'Association is visible again.')}`);
+}
+
 // ============================================================================
 // BANK ACCOUNTS
 // ============================================================================
