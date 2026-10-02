@@ -56,7 +56,7 @@ export default async function RecurringWorkOrdersPage({
   const [
     rowsRes,
     { data: associations },
-    { data: vendors },
+    { rows: vendors },
   ] = await Promise.all([
     fetchAllRows<any>(() => db
       .from('recurring_work_orders')
@@ -65,7 +65,8 @@ export default async function RecurringWorkOrdersPage({
       .order('next_due_date', { ascending: true, nullsFirst: false })
       .order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    // Every vendor, so a plan's vendor is always selectable in the filter.
+    fetchAllRows<any>(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')),
   ]);
 
   const all = rowsRes.rows;
