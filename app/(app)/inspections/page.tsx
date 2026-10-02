@@ -14,6 +14,7 @@ import { date } from '@/lib/utils';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { markInspectionsDone } from '@/lib/rpcs/inspections-bulk';
 import { todayInZone } from '@/lib/time/zoned';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,7 +100,7 @@ export default async function InspectionsPage({
   const [
     rowsRes,
     { data: associations },
-    { data: items },
+    itemsRes,
   ] = await Promise.all([
     // Every inspection, paged past the old 500-row limit.
     fetchAllRows<any>(() => db.from('inspections')
@@ -108,13 +109,17 @@ export default async function InspectionsPage({
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
       .order('id')),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    db.from('associations').select('id, name, timezone').is('archived_at', null).order('name'),
     // Every finding (one request stops at 1,000 rows, so newer inspections'
     // scores went missing).
-    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity, resolved').order('created_at').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => db.from('inspection_items').select('id, inspection_id, severity, resolved').order('created_at').order('id')),
   ]);
 
   const all = rowsRes.rows;
+  // Flags and scores are only shown when every finding loaded; a partial set
+  // would show undercounts that look exact.
+  const itemsComplete = !itemsRes.error && !itemsRes.truncated;
+  const items = itemsComplete ? itemsRes.rows : [];
 
   // ── Build score map from inspection_items ──
   const itemsByInspection = new Map<string, any[]>();
@@ -128,8 +133,8 @@ export default async function InspectionsPage({
   // Flags: findings on the inspection that are not resolved yet.
   const scored = all.map((row: any) => ({
     ...row,
-    score: computeScore(itemsByInspection.get(row.id) ?? []),
-    flags: (itemsByInspection.get(row.id) ?? []).filter((item: any) => !item.resolved).length,
+    score: itemsComplete ? computeScore(itemsByInspection.get(row.id) ?? []) : null,
+    flags: itemsComplete ? (itemsByInspection.get(row.id) ?? []).filter((item: any) => !item.resolved).length : null,
   }));
 
   // ── Tab counts ──
@@ -156,10 +161,14 @@ export default async function InspectionsPage({
   const scheduledCount = scored.filter((insp: any) => insp.status === 'scheduled').length;
   const inProgressCount = scored.filter((insp: any) => insp.status === 'in_progress').length;
   const completedCount = scored.filter((insp: any) => insp.status === 'completed').length;
-  const todayYmd = todayInZone();
+  // Each inspection is judged against today in its own association's time zone.
+  const zoneByAssociation = new Map<string, string>(
+    ((associations ?? []) as any[]).filter((a) => a.timezone && isValidTimeZone(a.timezone)).map((a) => [a.id, a.timezone]),
+  );
+  const todayFor = (associationId: string | null) => todayInZone(zoneByAssociation.get(associationId ?? '') ?? displayTimeZone());
   const overdueCount = scored.filter(
-    // Local date-only compare: an inspection scheduled today is not overdue.
-    (insp: any) => insp.scheduled_date && String(insp.scheduled_date).slice(0, 10) < todayYmd && insp.status === 'scheduled',
+    // Date-only compare: an inspection scheduled today is not overdue.
+    (insp: any) => insp.scheduled_date && insp.status === 'scheduled' && String(insp.scheduled_date).slice(0, 10) < todayFor(insp.association_id),
   ).length;
 
   const avgScore = (() => {
@@ -202,6 +211,7 @@ export default async function InspectionsPage({
         )}
         {sp.error && <Alert tone="danger" title="Could not mark inspections done">{sp.error}</Alert>}
         {rowsRes.error && <Alert tone="danger" title="Could not load every inspection">{rowsRes.error}</Alert>}
+        {!itemsComplete && <Alert tone="warning" title="Flags and scores unavailable">{itemsRes.error ?? 'There are too many findings to load, so flags and scores are hidden rather than shown from a partial set.'}</Alert>}
         {rowsRes.truncated && <Alert tone="warning" title="List is incomplete">There are more inspections than this page can load. Filter by association or type.</Alert>}
         <MetricStrip metrics={metrics} />
 
@@ -311,7 +321,7 @@ export default async function InspectionsPage({
                       <StatusChip tone={sc.tone}>{sc.label}</StatusChip>
                     </TD>
                     <TD className="text-right tabular-nums">
-                      {insp.flags > 0 ? <StatusChip tone="warning">{insp.flags}</StatusChip> : <span className="text-gray-400">0</span>}
+                      {insp.flags === null ? <span className="text-gray-400">—</span> : insp.flags > 0 ? <StatusChip tone="warning">{insp.flags}</StatusChip> : <span className="text-gray-400">0</span>}
                     </TD>
                     <TD className="text-right">
                       <StatusChip tone={sb.tone}>{sb.label}</StatusChip>
