@@ -12,8 +12,11 @@ export const dynamic = 'force-dynamic';
 const MAX_LINES = 500;
 const COLUMNS = ['Name', 'Quantity', 'Category', 'Location', 'Reorder point', 'Unit cost', 'SKU', 'Unit'];
 
-/** Splits one comma-separated line; a field may be wrapped in double quotes. */
-function splitLine(line: string): string[] {
+/**
+ * Splits one comma-separated line; a field may be wrapped in double quotes.
+ * Returns null for an unclosed quote rather than merging the rest of the line.
+ */
+function splitLine(line: string): string[] | null {
   const out: string[] = [];
   let cur = '';
   let quoted = false;
@@ -27,6 +30,7 @@ function splitLine(line: string): string[] {
     else if (ch === ',') { out.push(cur.trim()); cur = ''; }
     else cur += ch;
   }
+  if (quoted) return null;
   out.push(cur.trim());
   return out;
 }
@@ -40,9 +44,12 @@ export default async function BulkInventoryPage({ searchParams }: { searchParams
     await requireStaff();
     const fail = (message: string): never => redirect('/inventory/bulk?error=' + encodeURIComponent(message));
     const text = String(formData.get('items') ?? '');
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    // Keep each line's own number so errors point at the right row.
+    const lines = text.split(/\r?\n/)
+      .map((l, i) => ({ text: l.trim(), lineNo: i + 1 }))
+      .filter((l) => l.text);
     // A header row copied from a spreadsheet is skipped.
-    if (lines.length && /^name\s*,/i.test(lines[0])) lines.shift();
+    if (lines.length && /^name\s*,/i.test(lines[0].text)) lines.shift();
     if (lines.length === 0) fail('Enter at least one item, one per line.');
     if (lines.length > MAX_LINES) fail(`Add at most ${MAX_LINES} items at a time.`);
 
@@ -53,9 +60,10 @@ export default async function BulkInventoryPage({ searchParams }: { searchParams
       return n;
     };
 
-    const rows = lines.map((line, i) => {
-      const lineNo = i + 1;
-      const [name, qty, category, location, reorder, cost, sku, unit] = splitLine(line);
+    const rows = lines.map(({ text: line, lineNo }) => {
+      const fields = splitLine(line);
+      if (!fields) fail(`Line ${lineNo}: a quote mark is not closed. Write inches as in (or wrap the field in quotes and double the inner quote).`);
+      const [name, qty, category, location, reorder, cost, sku, unit] = fields!;
       if (!name) fail(`Line ${lineNo}: the item name is missing.`);
       return {
         name,
@@ -65,7 +73,9 @@ export default async function BulkInventoryPage({ searchParams }: { searchParams
         reorder_point: num(reorder, lineNo, 'Reorder point'),
         unit_cost: num(cost, lineNo, 'Unit cost'),
         sku: sku || null,
-        ...(unit ? { unit_of_measure: unit } : {}),
+        // Every row carries the same keys (a bulk insert requires it); 'ea'
+        // is the column's own default.
+        unit_of_measure: unit || 'ea',
       };
     });
 

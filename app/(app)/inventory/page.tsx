@@ -47,7 +47,10 @@ export default async function InventoryPage({
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
   const category = sp.category ?? 'all';
-  const location = sp.location ?? 'all';
+  // Location filter values: '' all, 'none' no location, 'loc:<name>' one
+  // location (prefixed, so a location named "none" or "all" still works).
+  const locationParam = sp.location ?? '';
+  const location = locationParam === 'none' ? 'none' : locationParam.startsWith('loc:') ? locationParam : '';
   const view = sp.view === 'categories' ? 'categories' : sp.view === 'locations' ? 'locations' : 'items';
 
   // Query inventory_items — if the table doesn't exist yet, supabase returns an error
@@ -99,7 +102,8 @@ export default async function InventoryPage({
     new Set(allRows.map((row) => row.location).filter(Boolean) as string[]),
   ).sort();
   if (category !== 'all') rows = rows.filter((row) => row.category === category);
-  if (location !== 'all') rows = rows.filter((row) => (location === 'none' ? !row.location : row.location === location));
+  if (location === 'none') rows = rows.filter((row) => !row.location);
+  else if (location) rows = rows.filter((row) => row.location === location.slice(4));
   if (q) {
     rows = rows.filter((row) =>
       [row.name, row.sku, row.category, row.location, row.unit_of_measure].some((value) =>
@@ -195,9 +199,9 @@ export default async function InventoryPage({
             ))}
           </FilterSelect>
           <FilterSelect label="Location" name="location" defaultValue={location}>
-            <option value="all">All locations</option>
+            <option value="">All locations</option>
             {locations.map((l) => (
-              <option key={l} value={l}>
+              <option key={l} value={`loc:${l}`}>
                 {l}
               </option>
             ))}
@@ -225,13 +229,16 @@ export default async function InventoryPage({
                   </TD>
                 </TR>
               ) : (
-                [...locations, ...(allRows.some((r) => !r.location) ? ['No location'] : [])].map((l) => {
-                  const items = allRows.filter((r) => (l === 'No location' ? !r.location : r.location === l));
+                [
+                  ...locations.map((name) => ({ key: `loc:${name}`, label: name, none: false })),
+                  ...(allRows.some((r) => !r.location) ? [{ key: 'none', label: 'No location', none: true }] : []),
+                ].map(({ key, label, none }) => {
+                  const items = allRows.filter((r) => (none ? !r.location : r.location === label));
                   return (
-                    <TR key={l} className="hover:bg-gray-50">
+                    <TR key={key} className="hover:bg-gray-50">
                       <TD>
-                        <Link href={`/inventory?location=${encodeURIComponent(l === 'No location' ? 'none' : l)}`} className="font-medium text-gray-950 hover:underline">
-                          {l}
+                        <Link href={`/inventory?location=${encodeURIComponent(key)}`} className={`font-medium hover:underline ${none ? 'text-gray-500' : 'text-gray-950'}`}>
+                          {label}
                         </Link>
                       </TD>
                       <TD className="tabular-nums text-gray-900">{items.length}</TD>
