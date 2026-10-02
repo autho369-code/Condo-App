@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { buildCommandMetrics } from '@/lib/operations/command-center';
 import { createClient } from '@/lib/supabase/server';
@@ -14,7 +14,7 @@ import { RemindersWidget } from '@/components/dashboard/reminders-widget';
 import { TrendCharts, type MonthPoint } from '@/components/dashboard/trend-charts';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
-import { displayTimeZone } from '@/lib/time/display-zone';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,21 +41,23 @@ export default async function DashboardPage({
 
   const { data: associations } = await db
     .from('associations')
-    .select('id, name')
+    .select('id, name, timezone')
     .is('archived_at', null)
     .order('name');
 
   const activeAssoc = assocFilter ? (associations ?? []).find((association: any) => association.id === assocFilter) : null;
   const today = new Date();
   const todayIso = today.toISOString();
-  // "Today" and "this week" in the company's local time, not UTC.
-  const zone = displayTimeZone();
+  // "Today" and "this week" in local time, not UTC: the selected association's
+  // own zone when filtered, otherwise the portfolio's predominant zone.
+  const zone = activeAssoc?.timezone && isValidTimeZone(activeAssoc.timezone) ? activeAssoc.timezone : displayTimeZone();
   const todayDate = todayInZone(zone, today);
   const [ty, tm, td] = todayDate.split('-').map(Number);
   const dayOfWeek = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
-  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-  const sundayDate = new Date(Date.UTC(ty, tm - 1, td + daysUntilSunday)).toISOString().slice(0, 10);
-  const endOfWeekIso = (zonedWallTimeToUtc(sundayDate, '23:59', zone) ?? today).toISOString();
+  // The week runs through Sunday: stop before next Monday's local midnight.
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+  const mondayDate = new Date(Date.UTC(ty, tm - 1, td + daysUntilMonday)).toISOString().slice(0, 10);
+  const endOfWeekIso = (zonedWallTimeToUtc(mondayDate, '00:00', zone) ?? today).toISOString();
 
   // ── Existing command-center queries ──────────────────────────
   const openViolationsQuery = db
@@ -102,20 +104,27 @@ export default async function DashboardPage({
     .not('status', 'in', '("done","completed","billed","closed","cancelled")')
     .lt('scheduled_date', todayDate);
 
+  // Any paged query that hit its row ceiling, so the page can say so.
+  const truncatedSources: string[] = [];
+  const noteTruncated = (label: string) => (r: { rows: any[]; truncated: boolean }) => {
+    if (r.truncated) truncatedSources.push(label);
+    return { data: r.rows };
+  };
+
   // 3. Bills awaiting payment: payable_bills approved but not paid
   // Summed over every row (paged past the 1,000-row cap).
   const awaitingPaymentQuery = fetchAllRows<any>(() => {
     let q = db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved');
     if (assocFilter) q = q.eq('association_id', assocFilter);
     return q.order('id');
-  }).then((r) => ({ data: r.rows }));
+  }).then(noteTruncated('bills awaiting payment'));
 
   // 4. AR balance: sum of unit_balances where balance > 0
   const arBalanceQuery = fetchAllRows<any>(() => {
     let q = db.from('unit_balances').select('unit_id, balance').gt('balance', 0);
     if (assocFilter) q = q.eq('association_id', assocFilter);
     return q.order('unit_id');
-  }).then((r) => ({ data: r.rows }));
+  }).then(noteTruncated('AR balance'));
 
   // 5. Upcoming calendar events this week
   const upcomingEventsQuery = db
@@ -123,19 +132,17 @@ export default async function DashboardPage({
     .select('id', { count: 'exact', head: true })
     .is('archived_at', null)
     .gte('start_datetime', todayIso)
-    .lte('start_datetime', endOfWeekIso);
+    .lt('start_datetime', endOfWeekIso);
 
-  // Portal adoption: current homeowners (one per owned unit) with the portal activated.
-  const ownersQuery = db.from('occupancies')
-    .select('id, owners!inner(portal_activated)', { count: 'exact', head: true })
-    .eq('status', 'current').eq('occupancy_type', 'owner');
-  const ownersActivatedQuery = db.from('occupancies')
-    .select('id, owners!inner(portal_activated)', { count: 'exact', head: true })
-    .eq('status', 'current').eq('occupancy_type', 'owner').eq('owners.portal_activated', true);
-  if (assocFilter) {
-    ownersQuery.eq('association_id', assocFilter);
-    ownersActivatedQuery.eq('association_id', assocFilter);
-  }
+  // Portal adoption: distinct current homeowners (an owner of two units counts
+  // once) with the portal activated.
+  const ownersQuery = fetchAllRows<any>(() => {
+    let q = db.from('occupancies')
+      .select('id, owner_id, owners!inner(portal_activated)')
+      .eq('status', 'current').eq('occupancy_type', 'owner');
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q.order('id');
+  }).then(noteTruncated('portal adoption'));
 
   // Apply association filter to new queries
   if (assocFilter) {
@@ -154,19 +161,19 @@ export default async function DashboardPage({
 
   // Every row in the six months (paged), dated by when it actually happened:
   // bills by payment date, work orders by completion date.
-  const paged = (build: () => any, key = 'id') => fetchAllRows<any>(() => build().order(key)).then((r) => ({ data: r.rows }));
-  const paymentsInQuery = paged(() => {
+  const paged = (label: string, build: () => any, key = 'id') => fetchAllRows<any>(() => build().order(key)).then(noteTruncated(label));
+  const paymentsInQuery = paged('payments received', () => {
     let q = db.from('receivable_payments_ledger').select('payment_id, amount, payment_date').gte('payment_date', sinceDate);
     if (assocFilter) q = q.eq('association_id', assocFilter);
     return q;
   }, 'payment_id');
-  const billsPaidQuery = paged(() => {
+  const billsPaidQuery = paged('bills paid', () => {
     let q = db.from('payable_bills').select('id, amount, credit_applied, paid_at').is('archived_at', null).eq('status', 'paid').gte('paid_at', sinceIso);
     if (assocFilter) q = q.eq('association_id', assocFilter);
     return q;
   });
   // charges carry no association_id; filter through unit -> building.
-  const chargesBilledQuery = paged(() => {
+  const chargesBilledQuery = paged('charges billed', () => {
     let q = db.from('charges')
       .select(assocFilter ? 'id, amount, due_date, units!inner(buildings!inner(association_id))' : 'id, amount, due_date')
       .gte('due_date', sinceDate)
@@ -174,12 +181,12 @@ export default async function DashboardPage({
     if (assocFilter) q = q.eq('units.buildings.association_id', assocFilter);
     return q;
   });
-  const woOpenedQuery = paged(() => {
+  const woOpenedQuery = paged('work orders opened', () => {
     let q = db.from('work_orders').select('id, created_at').is('archived_at', null).gte('created_at', sinceIso);
     if (assocFilter) q = q.eq('association_id', assocFilter);
     return q;
   });
-  const woCompletedQuery = paged(() => {
+  const woCompletedQuery = paged('work orders completed', () => {
     let q = db.from('work_orders').select('id, completed_date').is('archived_at', null)
       .in('status', ['done', 'completed', 'billed', 'closed']).gte('completed_date', sinceDate);
     if (assocFilter) q = q.eq('association_id', assocFilter);
@@ -245,8 +252,7 @@ export default async function DashboardPage({
     { data: trendChargesBilled },
     { data: trendWoOpened },
     { data: trendWoCompleted },
-    { count: ownerCount },
-    { count: ownerActivatedCount },
+    { data: ownerRows },
   ] = await Promise.all([
     openViolationsQuery,
     overdueViolationsQuery,
@@ -272,8 +278,15 @@ export default async function DashboardPage({
     woOpenedQuery,
     woCompletedQuery,
     ownersQuery,
-    ownersActivatedQuery,
   ]);
+
+  const ownerActivation = new Map<string, boolean>();
+  for (const row of ownerRows ?? []) {
+    if (!row.owner_id) continue;
+    ownerActivation.set(row.owner_id, ownerActivation.get(row.owner_id) || row.owners?.portal_activated === true);
+  }
+  const ownerCount = ownerActivation.size;
+  const ownerActivatedCount = [...ownerActivation.values()].filter(Boolean).length;
 
   // ── Bucket trend data by month ───────────────────────────────
   const monthKeys: string[] = [];
@@ -529,6 +542,12 @@ export default async function DashboardPage({
 
         {/* ── Demo Metrics Row ─────────────────────────────── */}
         <MetricStrip metrics={demoMetrics} />
+
+        {truncatedSources.length > 0 && (
+          <Alert tone="warning" title="Some totals are incomplete">
+            Too many rows to load for: {truncatedSources.join(', ')}. Filter by association to see complete figures.
+          </Alert>
+        )}
 
         {/* ── Trend charts ─────────────────────────────────── */}
         <TrendCharts
