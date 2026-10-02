@@ -75,7 +75,10 @@ export default async function BillsPage({
   const statusFilter = parseStatus(statusParam);
   const assoc = UUID.test(sp.association_id ?? '') ? sp.association_id! : '';
   const vendor = UUID.test(sp.vendor_id ?? '') ? sp.vendor_id! : '';
-  const term = q.replace(/[%_,()*"\\]/g, ' ').trim();
+  const term = q.trim();
+  // A double-quoted PostgREST value keeps commas, dots and brackets intact.
+  const quoted = (v: string) => `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  const likeTerm = term.replace(/\*/g, ' ');
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -109,14 +112,16 @@ export default async function BillsPage({
     (async () => {
       const clauses: string[] = [];
       if (term) {
-        const [{ data: vMatch }, { data: aMatch }] = await Promise.all([
-          db.from('vendors').select('id').ilike('name', `%${term}%`).limit(200),
-          db.from('associations').select('id').ilike('name', `%${term}%`).limit(200),
+        // Every matching vendor and association (no cap), so payments that
+        // match only by name are never dropped.
+        const [{ rows: vMatch }, { rows: aMatch }] = await Promise.all([
+          fetchAllRows<any>(() => db.from('vendors').select('id').ilike('name', `%${term}%`).order('id')),
+          fetchAllRows<any>(() => db.from('associations').select('id').ilike('name', `%${term}%`).order('id')),
         ]);
-        clauses.push(`memo.ilike.*${term}*`, `bill_number.ilike.*${term}*`);
+        clauses.push(`memo.ilike.${quoted(`*${likeTerm}*`)}`, `bill_number.ilike.${quoted(`*${likeTerm}*`)}`);
         if (/^\d+$/.test(term)) clauses.push(`check_number.eq.${term}`);
-        const vIds = ((vMatch ?? []) as any[]).map((v) => v.id);
-        const aIds = ((aMatch ?? []) as any[]).map((a) => a.id);
+        const vIds = vMatch.map((v) => v.id);
+        const aIds = aMatch.map((a) => a.id);
         if (vIds.length) clauses.push(`vendor_id.in.(${vIds.join(',')})`);
         if (aIds.length) clauses.push(`association_id.in.(${aIds.join(',')})`);
       }
