@@ -15,8 +15,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
 // Edit or deactivate a GL account. Type and association can only change while
-// nothing has been posted to the account, so existing ledger history keeps
-// its meaning.
+// nothing uses the account (no ledger lines, bank accounts, loans, charge
+// categories, ...), so history and linked setups keep their meaning.
 async function updateGlAccount(formData: FormData) {
   'use server';
   await requireFinanceStaff();
@@ -25,7 +25,7 @@ async function updateGlAccount(formData: FormData) {
   const fail = (m: string): never => redirect(`/gl-accounts/${id}?error=${encodeURIComponent(m)}`);
   const db = (await createClient()) as any;
 
-  const { data: current } = await db.from('gl_accounts').select('id, account_type, association_id').eq('id', id).maybeSingle();
+  const { data: current } = await db.from('gl_accounts').select('id, portfolio_id, account_type, association_id').eq('id', id).maybeSingle();
   if (!current) fail('GL account not found.');
 
   const number = parseInt(String(formData.get('number') ?? ''), 10);
@@ -36,10 +36,16 @@ async function updateGlAccount(formData: FormData) {
   if (!name) fail('Enter an account name.');
   if (!ACCOUNT_TYPES.includes(accountType)) fail('Select an account type.');
   if (associationId && !UUID.test(associationId)) fail('Choose a valid association.');
+  // The association must be one the caller can see, in the account's company.
+  if (associationId && associationId !== current.association_id) {
+    const { data: assocRow } = await db.from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
+    if (!assocRow || assocRow.portfolio_id !== current.portfolio_id) fail('Choose one of your associations.');
+  }
 
   if (accountType !== current.account_type || associationId !== current.association_id) {
-    const { count } = await db.from('journal_lines').select('id', { count: 'exact', head: true }).eq('gl_account_id', id);
-    if ((count ?? 0) > 0) fail('This account already has ledger activity, so its type and association cannot change. Create a new account instead.');
+    const { data: inUse, error: inUseError } = await db.rpc('gl_account_in_use', { p_gl_account_id: id });
+    if (inUseError) fail(inUseError.message);
+    if (inUse) fail('This account is already used (ledger entries, a bank account, loan, charge category or similar), so its type and association cannot change. Create a new account instead.');
   }
 
   const { data, error } = await db.from('gl_accounts').update({
@@ -70,13 +76,19 @@ export default async function EditGlAccountPage({
   const sp = await searchParams;
   if (!UUID.test(id)) notFound();
   const db = (await createClient()) as any;
-  const [{ data: account }, { data: associations }, { count: lineCount }] = await Promise.all([
-    db.from('gl_accounts').select('id, number, name, account_type, association_id, description, include_on_cash_flow, subject_to_management_fees, active').eq('id', id).maybeSingle(),
+  const [{ data: account }, { data: associations }, { data: inUse }] = await Promise.all([
+    db.from('gl_accounts').select('id, number, name, account_type, association_id, description, include_on_cash_flow, subject_to_management_fees, active, associations(id, name, archived_at)').eq('id', id).maybeSingle(),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('journal_lines').select('id', { count: 'exact', head: true }).eq('gl_account_id', id),
+    db.rpc('gl_account_in_use', { p_gl_account_id: id }),
   ]);
   if (!account) notFound();
-  const locked = (lineCount ?? 0) > 0;
+  const locked = inUse === true;
+  // Keep the account's current association selectable even if it is archived,
+  // so saving another field never clears it.
+  const assocOptions = [...((associations ?? []) as Array<{ id: string; name: string }>)];
+  if (account.associations && !assocOptions.some((a) => a.id === account.associations.id)) {
+    assocOptions.push({ id: account.associations.id, name: `${account.associations.name} (archived)` });
+  }
 
   return (
     <DataWorkspace
@@ -110,12 +122,12 @@ export default async function EditGlAccountPage({
             <Label htmlFor="association_id">Association</Label>
             <select id="association_id" name="association_id" defaultValue={account.association_id ?? ''} className={inputCls}>
               <option value="">Portfolio-wide</option>
-              {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {assocOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
         </div>
         {locked && (
-          <p className="text-xs text-gray-500">This account has ledger activity, so its type and association can&apos;t be changed.</p>
+          <p className="text-xs text-gray-500">This account is already in use, so its type and association can&apos;t be changed.</p>
         )}
 
         <div>
