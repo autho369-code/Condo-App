@@ -70,11 +70,11 @@ export default async function JournalEntriesPage({
     // GL accounts are matched in memory so a partial account number
     // ("10" finds 1010) still works; number is an integer column.
     const tl = term.toLowerCase();
-    const [{ data: allGl }, { data: assocMatch }] = await Promise.all([
-      db.from('gl_accounts').select('id, number, name'),
+    const [{ rows: allGl }, { data: assocMatch }] = await Promise.all([
+      fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name').order('id')),
       db.from('associations').select('id').ilike('name', `%${term}%`).limit(500),
     ]);
-    const glIds = ((allGl ?? []) as any[])
+    const glIds = allGl
       .filter((g) => String(g.number ?? '').includes(tl) || String(g.name ?? '').toLowerCase().includes(tl))
       .map((g) => g.id);
     const assocIds = ((assocMatch ?? []) as any[]).map((a) => a.id);

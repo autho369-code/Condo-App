@@ -5,7 +5,8 @@
 -- finance access and that the caller may see every line's association, then
 -- posts (the ledger's balance check still applies) or deletes the draft. A
 -- bank-transfer draft (source_type 'bank_transfer') is linked to its transfer
--- when posted, so the transfer is no longer listed as incomplete.
+-- (same company only, and it must still be unposted) when posted, so the
+-- transfer is no longer listed as incomplete.
 create or replace function public.draft_journal_entry_action(p_entry_id uuid, p_action text)
 returns void
 language plpgsql
@@ -14,6 +15,7 @@ set search_path to 'pg_catalog', 'public'
 as $$
 declare
   v_entry public.journal_entries;
+  v_linked integer;
 begin
   if p_action not in ('post', 'delete') then
     raise exception 'Unknown action';
@@ -39,7 +41,12 @@ begin
       update public.bank_transfers
          set journal_entry_id = p_entry_id
        where id = v_entry.source_id
+         and portfolio_id = v_entry.portfolio_id
          and journal_entry_id is null;
+      get diagnostics v_linked = row_count;
+      if v_linked = 0 then
+        raise exception 'The bank transfer for this draft was not found or is already posted';
+      end if;
     end if;
   else
     delete from public.journal_entries where id = p_entry_id;
