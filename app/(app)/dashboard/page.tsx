@@ -12,6 +12,9 @@ import { date, money } from '@/lib/utils';
 import { InsuranceExpirationWidget } from '@/components/dashboard/insurance-expiration-widget';
 import { RemindersWidget } from '@/components/dashboard/reminders-widget';
 import { TrendCharts, type MonthPoint } from '@/components/dashboard/trend-charts';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
+import { displayTimeZone } from '@/lib/time/display-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,15 +48,14 @@ export default async function DashboardPage({
   const activeAssoc = assocFilter ? (associations ?? []).find((association: any) => association.id === assocFilter) : null;
   const today = new Date();
   const todayIso = today.toISOString();
-  const todayDate = todayIso.slice(0, 10);
-
-  // Calculate end of week (Sunday 23:59:59)
-  const dayOfWeek = today.getDay();
+  // "Today" and "this week" in the company's local time, not UTC.
+  const zone = displayTimeZone();
+  const todayDate = todayInZone(zone, today);
+  const [ty, tm, td] = todayDate.split('-').map(Number);
+  const dayOfWeek = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
   const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-  const endOfWeek = new Date(today);
-  endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
-  endOfWeek.setHours(23, 59, 59, 999);
-  const endOfWeekIso = endOfWeek.toISOString();
+  const sundayDate = new Date(Date.UTC(ty, tm - 1, td + daysUntilSunday)).toISOString().slice(0, 10);
+  const endOfWeekIso = (zonedWallTimeToUtc(sundayDate, '23:59', zone) ?? today).toISOString();
 
   // ── Existing command-center queries ──────────────────────────
   const openViolationsQuery = db
@@ -101,17 +103,19 @@ export default async function DashboardPage({
     .lt('scheduled_date', todayDate);
 
   // 3. Bills awaiting payment: payable_bills approved but not paid
-  const awaitingPaymentQuery = db
-    .from('payable_bills')
-    .select('id, amount, credit_applied', { count: 'exact', head: false })
-    .is('archived_at', null)
-    .eq('status', 'approved');
+  // Summed over every row (paged past the 1,000-row cap).
+  const awaitingPaymentQuery = fetchAllRows<any>(() => {
+    let q = db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved');
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q.order('id');
+  }).then((r) => ({ data: r.rows }));
 
   // 4. AR balance: sum of unit_balances where balance > 0
-  const arBalanceQuery = db
-    .from('unit_balances')
-    .select('balance')
-    .gt('balance', 0);
+  const arBalanceQuery = fetchAllRows<any>(() => {
+    let q = db.from('unit_balances').select('unit_id, balance').gt('balance', 0);
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q.order('unit_id');
+  }).then((r) => ({ data: r.rows }));
 
   // 5. Upcoming calendar events this week
   const upcomingEventsQuery = db
@@ -121,6 +125,18 @@ export default async function DashboardPage({
     .gte('start_datetime', todayIso)
     .lte('start_datetime', endOfWeekIso);
 
+  // Portal adoption: current homeowners (one per owned unit) with the portal activated.
+  const ownersQuery = db.from('occupancies')
+    .select('id, owners!inner(portal_activated)', { count: 'exact', head: true })
+    .eq('status', 'current').eq('occupancy_type', 'owner');
+  const ownersActivatedQuery = db.from('occupancies')
+    .select('id, owners!inner(portal_activated)', { count: 'exact', head: true })
+    .eq('status', 'current').eq('occupancy_type', 'owner').eq('owners.portal_activated', true);
+  if (assocFilter) {
+    ownersQuery.eq('association_id', assocFilter);
+    ownersActivatedQuery.eq('association_id', assocFilter);
+  }
+
   // Apply association filter to new queries
   if (assocFilter) {
     openViolationsQuery.eq('association_id', assocFilter);
@@ -129,50 +145,46 @@ export default async function DashboardPage({
     unreconciledAccountsQuery.eq('association_id', assocFilter);
     openWorkOrdersQuery.eq('association_id', assocFilter);
     overdueMaintenanceQuery.eq('association_id', assocFilter);
-    awaitingPaymentQuery.eq('association_id', assocFilter);
     upcomingEventsQuery.eq('association_id', assocFilter);
-    arBalanceQuery.eq('association_id', assocFilter);
   }
 
   // ── Trend chart queries (last 6 months) ───────────────────────
-  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
-  const sinceDate = sixMonthsAgo.toISOString().slice(0, 10);
-  const sinceIso = sixMonthsAgo.toISOString();
+  const sinceDate = new Date(Date.UTC(ty, tm - 1 - 5, 1)).toISOString().slice(0, 10);
+  const sinceIso = (zonedWallTimeToUtc(sinceDate, '00:00', zone) ?? new Date(sinceDate)).toISOString();
 
-  const paymentsInQuery = db
-    .from('receivable_payments_ledger')
-    .select('amount, payment_date')
-    .gte('payment_date', sinceDate);
-  const billsPaidQuery = db
-    .from('payable_bills')
-    .select('amount, updated_at')
-    .is('archived_at', null)
-    .eq('status', 'paid')
-    .gte('updated_at', sinceIso);
+  // Every row in the six months (paged), dated by when it actually happened:
+  // bills by payment date, work orders by completion date.
+  const paged = (build: () => any, key = 'id') => fetchAllRows<any>(() => build().order(key)).then((r) => ({ data: r.rows }));
+  const paymentsInQuery = paged(() => {
+    let q = db.from('receivable_payments_ledger').select('payment_id, amount, payment_date').gte('payment_date', sinceDate);
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q;
+  }, 'payment_id');
+  const billsPaidQuery = paged(() => {
+    let q = db.from('payable_bills').select('id, amount, credit_applied, paid_at').is('archived_at', null).eq('status', 'paid').gte('paid_at', sinceIso);
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q;
+  });
   // charges carry no association_id; filter through unit -> building.
-  const chargesBilledQuery = db
-    .from('charges')
-    .select(assocFilter ? 'amount, due_date, units!inner(buildings!inner(association_id))' : 'amount, due_date')
-    .gte('due_date', sinceDate);
-  const woOpenedQuery = db
-    .from('work_orders')
-    .select('created_at')
-    .is('archived_at', null)
-    .gte('created_at', sinceIso);
-  const woCompletedQuery = db
-    .from('work_orders')
-    .select('updated_at')
-    .is('archived_at', null)
-    .in('status', ['done', 'completed', 'billed', 'closed'])
-    .gte('updated_at', sinceIso);
-
-  if (assocFilter) {
-    paymentsInQuery.eq('association_id', assocFilter);
-    billsPaidQuery.eq('association_id', assocFilter);
-    chargesBilledQuery.eq('units.buildings.association_id', assocFilter);
-    woOpenedQuery.eq('association_id', assocFilter);
-    woCompletedQuery.eq('association_id', assocFilter);
-  }
+  const chargesBilledQuery = paged(() => {
+    let q = db.from('charges')
+      .select(assocFilter ? 'id, amount, due_date, units!inner(buildings!inner(association_id))' : 'id, amount, due_date')
+      .gte('due_date', sinceDate)
+      .lte('due_date', todayDate);
+    if (assocFilter) q = q.eq('units.buildings.association_id', assocFilter);
+    return q;
+  });
+  const woOpenedQuery = paged(() => {
+    let q = db.from('work_orders').select('id, created_at').is('archived_at', null).gte('created_at', sinceIso);
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q;
+  });
+  const woCompletedQuery = paged(() => {
+    let q = db.from('work_orders').select('id, completed_date').is('archived_at', null)
+      .in('status', ['done', 'completed', 'billed', 'closed']).gte('completed_date', sinceDate);
+    if (assocFilter) q = q.eq('association_id', assocFilter);
+    return q;
+  });
 
   // ── Activity feed queries ─────────────────────────────────────
   const recentViolationsQuery = db
@@ -233,6 +245,8 @@ export default async function DashboardPage({
     { data: trendChargesBilled },
     { data: trendWoOpened },
     { data: trendWoCompleted },
+    { count: ownerCount },
+    { count: ownerActivatedCount },
   ] = await Promise.all([
     openViolationsQuery,
     overdueViolationsQuery,
@@ -257,15 +271,17 @@ export default async function DashboardPage({
     chargesBilledQuery,
     woOpenedQuery,
     woCompletedQuery,
+    ownersQuery,
+    ownersActivatedQuery,
   ]);
 
   // ── Bucket trend data by month ───────────────────────────────
   const monthKeys: string[] = [];
   const monthLabels: string[] = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-    monthLabels.push(d.toLocaleString('en-US', { month: 'short' }));
+    const d = new Date(Date.UTC(ty, tm - 1 - i, 1));
+    monthKeys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+    monthLabels.push(d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }));
   }
   const bucket = (rows: any[] | null, dateKey: string, amountKey?: string) => {
     const sums = new Map(monthKeys.map((k) => [k, 0]));
@@ -281,15 +297,15 @@ export default async function DashboardPage({
 
   const cashFlowSeries = zip(
     bucket(trendPaymentsIn, 'payment_date', 'amount'),
-    bucket(trendBillsPaid, 'updated_at', 'amount'),
+    bucket((trendBillsPaid ?? []).map((b: any) => ({ ...b, net: Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), paid_on: b.paid_at ? todayInZone(zone, new Date(b.paid_at)) : '' })), 'paid_on', 'net'),
   );
   const billedCollectedSeries = zip(
     bucket(trendChargesBilled, 'due_date', 'amount'),
     bucket(trendPaymentsIn, 'payment_date', 'amount'),
   );
   const workOrderSeries = zip(
-    bucket(trendWoOpened, 'created_at'),
-    bucket(trendWoCompleted, 'updated_at'),
+    bucket((trendWoOpened ?? []).map((w: any) => ({ opened_on: todayInZone(zone, new Date(w.created_at)) })), 'opened_on'),
+    bucket(trendWoCompleted, 'completed_date'),
   );
 
   const commandMetrics = buildCommandMetrics({
@@ -342,12 +358,19 @@ export default async function DashboardPage({
       value: upcomingEvents ?? 0,
       href: '/calendar',
     },
+    {
+      label: 'Portal adoption',
+      value: ownerCount ? Math.round(((ownerActivatedCount ?? 0) / ownerCount) * 100) : 0,
+      href: '/owners',
+    },
   ].map((m) => ({
     label: m.label,
     value:
       m.label === 'AR balance' || m.label === 'Bills awaiting'
         ? money(m.value)
-        : m.value,
+        : m.label === 'Portal adoption'
+          ? `${m.value}% (${ownerActivatedCount ?? 0} of ${ownerCount ?? 0})`
+          : m.value,
     sublabel: (
       <Link href={m.href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">
         Open list
@@ -485,6 +508,21 @@ export default async function DashboardPage({
           <Link href="/calendar/new">
             <Button variant="secondary" size="sm" className="text-sm font-medium">
               + Schedule Event
+            </Button>
+          </Link>
+          <Link href="/receipts/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + Homeowner Receipt
+            </Button>
+          </Link>
+          <Link href="/vendors/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + New Vendor
+            </Button>
+          </Link>
+          <Link href="/associations/new">
+            <Button variant="secondary" size="sm" className="text-sm font-medium">
+              + New Association
             </Button>
           </Link>
         </div>
