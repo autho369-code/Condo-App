@@ -88,6 +88,9 @@ export default async function NewBankTransferPage({ searchParams }: { searchPara
         description: `Bank transfer — ${fromBank.name} → ${toBank.name}`,
         reference_number: reference,
         memo,
+        // Lets a later manual post of this draft mark the transfer complete.
+        source_type: 'bank_transfer',
+        source_id: transfer.id,
         posted: false,
         created_by: me.auth_user_id,
       }).select('id').single();
