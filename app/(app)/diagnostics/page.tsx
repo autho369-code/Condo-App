@@ -4,7 +4,9 @@ import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { PrintButton } from '@/components/ui/print-button';
 import { Alert, SectionTitle } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
+import { applyCredits } from '@/lib/rpcs/receivables-tasks';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
@@ -20,7 +22,9 @@ export const dynamic = 'force-dynamic';
 //  3. Security clearing accounts: any non-zero balance, plus unpaid bills
 //     coded to a clearing account.
 //  4. Additional fee GL accounts with a balance left in them.
-//  5. Homeowners holding unused credit while charges are still open.
+//  5. Homeowners holding unused credit while their own charges are still open
+//     (credit and charges since the current owner took the unit; an
+//     earlier owner's credit is section 8).
 //  6. Prepayment GL balance vs homeowners' unused credit.
 //  7. Bank accounts not reconciled in over 60 days.
 //  8. Unused credit left on a unit from before the current owner bought it.
@@ -35,17 +39,22 @@ const differs = (a: number, b: number) => Math.abs(a - b) >= 0.005;
 export default async function FinancialDiagnosticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; association?: string }>;
+  searchParams: Promise<{ q?: string; association?: string; applied?: string; error?: string }>;
 }) {
-  await requireStaff();
-  const { q = '', association = '' } = await searchParams;
+  // Finance only: balances come from the ledger, which other staff can't read
+  // (they would see every balance as zero).
+  await requireFinanceStaff();
+  const { q = '', association = '', applied = '', error: actionError = '' } = await searchParams;
   const db = (await createClient()) as any;
 
-  const [{ data: assocRows }, { data: glRows }, { data: bankRows }, { data: feeRows }, creditRes] = await Promise.all([
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('gl_accounts').select('id, name, number, account_type'),
-    db.from('bank_accounts').select('id, name, gl_account_id, association_id, purpose, last_reconciliation_date').is('archived_at', null),
-    db.from('association_additional_fees').select('id, association_id, gl_account_id, label').not('gl_account_id', 'is', null),
+  const [assocRes, glRes, bankRes, feeRes, creditRes] = await Promise.all([
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, name, number, account_type').order('id')),
+    fetchAllRows<any>(() => db.from('bank_accounts')
+      .select('id, name, gl_account_id, association_id, purpose, last_reconciliation_date')
+      .is('archived_at', null).order('id')),
+    fetchAllRows<any>(() => db.from('association_additional_fees')
+      .select('id, association_id, gl_account_id, label').not('gl_account_id', 'is', null).order('id')),
     // Units holding unused (unapplied) homeowner credit.
     fetchAllRows<any>(() => db
       .from('v_unit_account_summary')
@@ -53,7 +62,10 @@ export default async function FinancialDiagnosticsPage({
       .gt('unapplied_credit', 0)
       .order('unit_id')),
   ]);
-  const allAssociations = (assocRows ?? []) as Assoc[];
+  const allAssociations = assocRes.rows as Assoc[];
+  const glRows = glRes.rows;
+  const bankRows = bankRes.rows;
+  const feeRows = feeRes.rows;
   const needle = q.trim().toLowerCase();
   const associations = allAssociations.filter((a) =>
     (!association || a.id === association) && (!needle || a.name.toLowerCase().includes(needle)));
@@ -81,8 +93,14 @@ export default async function FinancialDiagnosticsPage({
 
   const balanceIds = [...new Set([...depositCashGlIds, ...depositLiabilityGlIds, ...clearingGlIds, ...escrowGlIds, ...feeGlIds, ...prepaidGlIds])];
   const [balancesRes, offsetRes, billsRes] = await Promise.all([
-    balanceIds.length ? db.rpc('gl_balances_by_association', { p_gl_account_ids: balanceIds }) : { data: [], error: null },
-    escrowGlIds.length ? db.rpc('escrow_offset_by_association', { p_escrow_gl_ids: escrowGlIds }) : { data: [], error: null },
+    balanceIds.length
+      ? fetchAllRows<any>(() => db.rpc('gl_balances_by_association', { p_gl_account_ids: balanceIds })
+          .order('gl_account_id').order('association_id', { nullsFirst: true }))
+      : Promise.resolve({ rows: [], truncated: false, error: null }),
+    escrowGlIds.length
+      ? fetchAllRows<any>(() => db.rpc('escrow_offset_by_association', { p_escrow_gl_ids: escrowGlIds })
+          .order('association_id', { nullsFirst: true }))
+      : Promise.resolve({ rows: [], truncated: false, error: null }),
     clearingGlIds.length
       ? fetchAllRows<any>(() => db
           .from('payable_bills')
@@ -93,11 +111,12 @@ export default async function FinancialDiagnosticsPage({
           .order('id'))
       : Promise.resolve({ rows: [], truncated: false, error: null }),
   ]);
-  const baseLoadError = balancesRes.error?.message ?? offsetRes.error?.message ?? billsRes.error ?? creditRes.error ?? null;
+  const baseLoadError = assocRes.error ?? glRes.error ?? bankRes.error ?? feeRes.error
+    ?? balancesRes.error ?? offsetRes.error ?? billsRes.error ?? creditRes.error ?? null;
 
   // association → (gl → debit-minus-credit)
   const bal = new Map<string, Map<string, number>>();
-  for (const r of (balancesRes.data ?? []) as any[]) {
+  for (const r of balancesRes.rows as any[]) {
     if (!r.association_id) continue;
     const m = bal.get(r.association_id) ?? new Map<string, number>();
     m.set(r.gl_account_id, (m.get(r.gl_account_id) ?? 0) + Number(r.debit_minus_credit ?? 0));
@@ -106,7 +125,7 @@ export default async function FinancialDiagnosticsPage({
   const sumDebit = (assocId: string, ids: string[]) =>
     ids.reduce((s, id) => s + (bal.get(assocId)?.get(id) ?? 0), 0);
   const offsets = new Map<string, number>(
-    ((offsetRes.data ?? []) as any[]).map((r) => [r.association_id, Number(r.offset_balance ?? 0)]));
+    (offsetRes.rows as any[]).map((r) => [r.association_id, Number(r.offset_balance ?? 0)]));
   const unpaidClearing = new Map<string, number>();
   for (const b of billsRes.rows as any[]) {
     unpaidClearing.set(b.association_id, (unpaidClearing.get(b.association_id) ?? 0)
@@ -148,18 +167,29 @@ export default async function FinancialDiagnosticsPage({
   // The unapplied payments themselves (the credit), so ownership is judged by
   // when the credit was paid, not by the unit's latest payment.
   const unappliedByUnit = new Map<string, Array<{ date: string; amount: number }>>();
+  // Open charges, to count only the current owner's (due since they took the unit).
+  const openByUnit = new Map<string, Array<{ due: string | null; amount: number }>>();
   const lookupErrors: string[] = [];
   // Unit ids go into in() filters in chunks to keep request URLs short.
   for (let i = 0; i < creditUnitIds.length; i += 150) {
     const chunk = creditUnitIds.slice(i, i + 150);
-    const [occRes, credRes] = await Promise.all([
+    const [occRes, credRes, openRes] = await Promise.all([
       fetchAllRows<any>(() => db.from('occupancies')
         .select('id, unit_id, move_in_date, owners(full_name)')
         .in('unit_id', chunk).eq('status', 'current').eq('occupancy_type', 'owner').order('id')),
       fetchAllRows<any>(() => db.from('v_unapplied_credits')
         .select('payment_id, unit_id, payment_date, unapplied_amount')
         .in('unit_id', chunk).gt('unapplied_amount', 0).order('payment_id')),
+      fetchAllRows<any>(() => db.from('v_charge_balances')
+        .select('charge_id, unit_id, due_date, balance_due')
+        .in('unit_id', chunk).gt('balance_due', 0).order('charge_id')),
     ]);
+    if (openRes.error) lookupErrors.push(openRes.error);
+    for (const c of openRes.rows) {
+      const list = openByUnit.get(c.unit_id) ?? [];
+      list.push({ due: c.due_date, amount: Number(c.balance_due ?? 0) });
+      openByUnit.set(c.unit_id, list);
+    }
     if (occRes.error) lookupErrors.push(occRes.error);
     if (credRes.error) lookupErrors.push(credRes.error);
     for (const o of occRes.rows) {
@@ -181,7 +211,18 @@ export default async function FinancialDiagnosticsPage({
     credit: Number(u.unapplied_credit ?? 0),
     open: Number(u.outstanding_balance ?? 0),
   });
-  const creditOpenRows = credits.filter((u) => Number(u.outstanding_balance ?? 0) > 0.004).map(creditRow);
+  // The current owner's credit and open charges only: money paid and charges
+  // due since they took the unit (all of it when no move-in date is on file).
+  const creditOpenRows = credits
+    .map((u) => {
+      const since = ownersByUnit.get(u.unit_id)?.moveIn ?? null;
+      return {
+        ...creditRow(u),
+        credit: (unappliedByUnit.get(u.unit_id) ?? []).filter((c) => !since || c.date >= since).reduce((sum, c) => sum + c.amount, 0),
+        open: (openByUnit.get(u.unit_id) ?? []).filter((c) => !since || (c.due ?? '') >= since).reduce((sum, c) => sum + c.amount, 0),
+      };
+    })
+    .filter((r) => r.credit > 0.004 && r.open > 0.004);
   // Credit left over from a previous owner: unapplied payments dated before
   // the current owner moved in.
   const pastOwnerRows = credits
@@ -211,10 +252,14 @@ export default async function FinancialDiagnosticsPage({
   const today = todayInZone();
   const [ty, tm, td] = today.split('-').map(Number);
   const cutoff = new Date(Date.UTC(ty, tm - 1, td - 60)).toISOString().slice(0, 10);
+  // Company-level accounts (no association) are listed when no property filter is set.
+  const showCompany = !association && !needle;
   const lapseRows = banks
-    .filter((b) => b.gl_account_id && assocById.has(b.association_id) && (!b.last_reconciliation_date || b.last_reconciliation_date < cutoff))
-    .map((b) => ({ id: b.id, a: assocById.get(b.association_id)!, name: b.name as string, last: b.last_reconciliation_date as string | null }))
-    .sort((x, y) => x.a.name.localeCompare(y.a.name) || x.name.localeCompare(y.name));
+    .filter((b) => b.gl_account_id && (assocById.has(b.association_id) || (showCompany && !b.association_id))
+      && (!b.last_reconciliation_date || b.last_reconciliation_date < cutoff))
+    .map((b) => ({ id: b.id, a: (assocById.get(b.association_id) ?? null) as Assoc | null, name: b.name as string, last: b.last_reconciliation_date as string | null }))
+    .sort((x, y) => (x.a?.name ?? '').localeCompare(y.a?.name ?? '') || x.name.localeCompare(y.name));
+  const [appliedAmount, appliedCount] = applied.split('|').map(Number);
 
   const property = (a: Assoc) => (
     <Link href={`/associations/${a.id}`} className="font-medium text-gray-900 hover:underline">{a.name}</Link>
@@ -230,6 +275,12 @@ export default async function FinancialDiagnosticsPage({
       actions={<PrintButton />}
     >
       <div className="space-y-6">
+        {actionError && <Alert tone="danger" title="Could not apply the credit">{actionError}</Alert>}
+        {applied && (
+          <Alert tone="success" title="Credit applied">
+            {appliedCount > 0 ? `${amount(appliedAmount || 0)} applied to the homeowner's open charges, oldest first.` : 'Nothing was applied — the credit and open charges belong to different owners.'}
+          </Alert>
+        )}
         {loadError && <Alert title="Some balances could not be loaded.">{loadError}</Alert>}
         {billsRes.truncated && <Alert title="Unpaid clearing bills are incomplete.">More than the row limit matched; narrow to one association.</Alert>}
 
@@ -307,17 +358,25 @@ export default async function FinancialDiagnosticsPage({
         </section>
 
         <section>
-          <SectionTitle title="Homeowners With Unused Prepayments / Open Charges / Open Credits" description="Credit on file that could be applied to the homeowner's open charges." />
+          <SectionTitle title="Homeowners With Unused Prepayments / Open Charges / Open Credits" description="The current owner's credit that could pay their own open charges." />
           <Table>
-            <THead><TR><TH>Property</TH><TH>Unit</TH><TH>Homeowner</TH><TH className="text-right">Open Charges</TH><TH className="text-right">Unused Credit</TH></TR></THead>
+            <THead><TR><TH>Property</TH><TH>Unit</TH><TH>Homeowner</TH><TH className="text-right">Open Charges</TH><TH className="text-right">Unused Credit</TH><TH><span className="sr-only">Action</span></TH></TR></THead>
             <tbody>
-              {creditOpenRows.length === 0 ? none(5, 'No Homeowners') : creditOpenRows.map((r) => (
+              {creditOpenRows.length === 0 ? none(6, 'No Homeowners') : creditOpenRows.map((r) => (
                 <TR key={r.unit_id}>
                   <TD>{property(r.a)}</TD>
                   <TD><Link href={`/units/${r.unit_id}`} className="hover:underline">{r.unit_number ?? '—'}</Link></TD>
                   <TD>{r.owner}</TD>
                   <TD className="text-right tabular-nums">{amount(r.open)}</TD>
                   <TD className="text-right tabular-nums">{amount(r.credit)}</TD>
+                  <TD className="text-right">
+                    <form action={applyCredits}>
+                      <input type="hidden" name="association_id" value={r.association_id} />
+                      <input type="hidden" name="unit_id" value={r.unit_id} />
+                      <input type="hidden" name="return_to" value="/diagnostics" />
+                      <PendingSubmit variant="secondary" pendingLabel="Applying…">Apply credit</PendingSubmit>
+                    </form>
+                  </TD>
                 </TR>
               ))}
             </tbody>
@@ -347,7 +406,7 @@ export default async function FinancialDiagnosticsPage({
             <tbody>
               {lapseRows.length === 0 ? none(3, 'No Lapses') : lapseRows.map((r) => (
                 <TR key={r.id}>
-                  <TD>{property(r.a)}</TD>
+                  <TD>{r.a ? property(r.a) : <span className="text-gray-600">Company</span>}</TD>
                   <TD><Link href={`/bank-accounts/${r.id}`} className="hover:underline">{r.name}</Link></TD>
                   <TD>{r.last ? date(r.last) : 'Never'}</TD>
                 </TR>

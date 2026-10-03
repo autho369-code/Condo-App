@@ -34,14 +34,19 @@ export async function GET(request: NextRequest) {
     && (status !== 'inactive' || !a.active)
     && (!assoc || a.association_id === assoc || a.association_id == null));
   const numberById = new Map(rows.map((a: any) => [a.id, a.number]));
-  let balances: Map<string, number>;
-  try {
-    balances = await glBalances(db, accounts.map((a: any) => a.id), assoc || null);
-  } catch (e) {
-    return new NextResponse(`Export failed: ${(e as Error).message}`, { status: 500 });
+  // Balances for finance staff only: other staff can't read the ledger.
+  const isFinance = me.is_finance_staff || me.is_platform_operator;
+  let balances: Map<string, number> | null = null;
+  if (isFinance) {
+    try {
+      balances = await glBalances(db, accounts.map((a: any) => a.id), assoc || null);
+    } catch (e) {
+      return new NextResponse(`Export failed: ${(e as Error).message}`, { status: 500 });
+    }
   }
 
-  const lines = [['Number', 'Name', 'Type', 'Association', 'Sub-account of', 'Fund', 'Balance', 'Status', 'Description'].join(',')];
+  const header = ['Number', 'Name', 'Type', 'Association', 'Sub-account of', 'Fund', ...(balances ? ['Balance'] : []), 'Status', 'Description'];
+  const lines = [header.join(',')];
   for (const a of accounts) {
     lines.push([
       a.number,
@@ -50,7 +55,7 @@ export async function GET(request: NextRequest) {
       a.associations?.name ?? 'Portfolio-wide',
       a.sub_account_of_id ? numberById.get(a.sub_account_of_id) ?? '' : '',
       a.fund_account ?? '',
-      normalBalance(a.account_type, balances.get(a.id) ?? 0).toFixed(2),
+      ...(balances ? [normalBalance(a.account_type, balances.get(a.id) ?? 0).toFixed(2)] : []),
       a.active ? 'Active' : 'Inactive',
       a.description ?? '',
     ].map(csvCell).join(','));
