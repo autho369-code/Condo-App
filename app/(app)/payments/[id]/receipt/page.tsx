@@ -24,14 +24,15 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
     .eq('id', id).maybeSingle();
   if (!p) notFound();
 
-  const [{ data: owners }, { data: applied }, { data: balance }] = await Promise.all([
-    db.from('occupancies').select('owners(full_name)').eq('unit_id', p.unit_id).eq('status', 'current').eq('occupancy_type', 'owner'),
+  const [{ data: payer }, { data: applied }, { data: balance }] = await Promise.all([
+    // The homeowner who owned the unit on the payment date, not today's owner.
+    db.from('receivable_payments_ledger').select('owner_name').eq('payment_id', id).maybeSingle(),
     db.from('payment_applications').select('amount_applied, charges(description, due_date)').eq('payment_id', id),
     db.from('v_unit_account_summary').select('*').eq('unit_id', p.unit_id).maybeSingle(),
   ]);
   const assoc = p.units?.buildings?.associations;
   const company = assoc?.portfolios?.company_name ?? 'Management office';
-  const ownerNames = ((owners ?? []) as any[]).map((o) => o.owners?.full_name).filter(Boolean).join(' & ');
+  const ownerNames = payer?.owner_name ?? '';
   const balanceDue = balance ? Number(balance.outstanding_balance ?? 0) - Number(balance.unapplied_credit ?? 0) : null;
   const receiptNo = String(p.id).slice(0, 8).toUpperCase();
 

@@ -44,16 +44,25 @@ export async function GET(request: NextRequest) {
     if ((data ?? []).length < 1000) break;
   }
 
-  const lines = [['Date', 'Association', 'Unit', 'Method', 'Reference', 'Deposited to', 'Amount', 'Memo'].join(',')];
+  // Who paid: the homeowner who owned the unit on the payment date.
+  const payerById = new Map<string, string>();
+  for (let i = 0; i < rows.length; i += 200) {
+    const { data, error } = await db.from('receivable_payments_ledger').select('payment_id, owner_name').in('payment_id', rows.slice(i, i + 200).map((r) => r.id));
+    if (error) return new NextResponse(`Export failed: ${error.message}`, { status: 500 });
+    for (const row of data ?? []) if (row.owner_name) payerById.set(row.payment_id, row.owner_name);
+  }
+
+  const lines = [['Date', 'Homeowner', 'Association', 'Unit', 'Method', 'Reference', 'Deposited to', 'Amount', 'Memo'].join(',')];
   // Same text search as the register, so the export matches what is on screen.
   const visible = q
     ? rows.filter((r) =>
-        [r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
+        [payerById.get(r.id), r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
           .some((v) => String(v ?? '').toLowerCase().includes(q)))
     : rows;
   for (const r of visible) {
     lines.push([
       r.payment_date,
+      payerById.get(r.id) ?? '',
       r.units?.buildings?.associations?.name,
       r.units?.unit_number,
       receiptMethodLabel(r.method),
