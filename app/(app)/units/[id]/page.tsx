@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import {
   subscribeUnitToCharge, unsubscribeUnit,
-  postAdHocCharge, recordReceipt, unapplyPayment,
+  postAdHocCharge, recordReceipt,
 } from '@/lib/rpcs/charges';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     (supabase as any).from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
     (supabase as any).from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
     (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
-    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
+    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes, reversed_at').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
     // Active, unarchived categories (association-specific ones are filtered to this unit's association below).
     (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type, association_id').eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
@@ -301,9 +301,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
                   <TD className="text-right">
                     <div className="flex items-center justify-end gap-3">
                       <Link href={`/payments/${p.id}/receipt`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Receipt</Link>
-                      <form action={unapplyPayment.bind(null, p.id, unitId) as any}>
-                        <button type="submit" className="text-xs text-red-600 hover:underline">Unapply</button>
-                      </form>
+                      <Link href={`/payments/${p.id}`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">{p.reversed_at ? 'Reversed' : 'Allocate / reverse'}</Link>
                     </div>
                   </TD>
                 </TR>
@@ -343,7 +341,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
             <div className="md:col-span-5">
               <Label htmlFor="pay_notes">Notes</Label>
               <Input id="pay_notes" name="notes" placeholder="Optional" />
-              <p className="mt-1 text-xs text-gray-500">Auto-applies to outstanding charges (late fees first, then oldest) Unapply above to redirect.</p>
+              <p className="mt-1 text-xs text-gray-500">Applies to outstanding charges by the association&apos;s payment order. Open a payment above to change its allocation or reverse it.</p>
             </div>
           </form>
         </CardBody>

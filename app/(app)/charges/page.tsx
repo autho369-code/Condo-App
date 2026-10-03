@@ -334,7 +334,7 @@ export default async function ChargesPage({
 
   const metrics = [
     { label: 'Receipts', value: receiptAmounts.rows.length, sublabel: `${money(totalReceipts)} total` },
-    { label: 'Outstanding', value: money(totalOutstanding), sublabel: 'Open charges' },
+    { label: 'Outstanding', value: money(totalOutstanding), sublabel: 'Open charges less credits' },
     { label: 'Delinquent units', value: delinquentCount, sublabel: `${money(overdueBalance)} past due` },
     { label: 'Chargebacks', value: chargebacks.length, sublabel: `${money(chargebackOpenTotal)} unpaid` },
   ];
