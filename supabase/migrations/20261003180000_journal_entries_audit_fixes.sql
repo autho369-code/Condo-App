@@ -188,7 +188,7 @@ begin
       v_lines := public.app_normalize_je_lines(t.portfolio_id, t.template_lines, p_scoped);
       v_date := t.next_post_date;
       v_guard := 0;
-      while v_date <= p_through and (t.end_date is null or v_date <= t.end_date) and v_guard < 12 loop
+      while v_date <= p_through and (t.end_date is null or v_date <= t.end_date) and v_guard < 400 loop
         insert into public.journal_entries (portfolio_id, entry_date, description, memo, source_type, source_id, created_by, posted)
         values (t.portfolio_id, v_date, left(t.name, 500), coalesce(nullif(btrim(t.memo), ''), t.name) || ' (recurring)',
                 'recurring_je', t.id, t.created_by, false)

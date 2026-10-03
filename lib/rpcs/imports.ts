@@ -21,9 +21,10 @@ async function readRows(formData: FormData): Promise<{ rows?: Record<string, str
  * The same file posts once: a double click, a retry after a timeout or a
  * second upload of an identical file would otherwise post every entry again.
  */
-async function claimFile(db: any, kind: string, text: string): Promise<{ token?: string; message?: string }> {
+async function claimFile(db: any, kind: string, portfolioId: string, text: string): Promise<{ token?: string; message?: string }> {
   const tokenData = new FormData();
-  tokenData.set(SUBMISSION_FIELD, await contentSubmissionToken(kind, text));
+  // Scoped to the company: another company may upload an identical file.
+  tokenData.set(SUBMISSION_FIELD, await contentSubmissionToken(kind, portfolioId, text));
   const claim = await claimSubmission(db, tokenData, kind);
   if (claim.status === 'error') return { message: claim.message };
   if (claim.status === 'duplicate') return { message: 'This exact file was already uploaded and posted. Change the file if you meant to post different entries.' };
@@ -31,11 +32,11 @@ async function claimFile(db: any, kind: string, text: string): Promise<{ token?:
 }
 
 export async function importJournalEntries(_prev: ImportResult | null, formData: FormData): Promise<ImportResult> {
-  await requireFinanceStaff();
+  const me = await requireFinanceStaff();
   const { rows, text, error } = await readRows(formData);
   if (error || !rows || text == null) return { ok: false, message: error ?? 'Could not read the file.' };
   const db = (await createClient()) as any;
-  const claim = await claimFile(db, 'journal_entry_upload', text);
+  const claim = await claimFile(db, 'journal_entry_upload', me.portfolio?.id ?? '', text);
   if (!claim.token) return { ok: false, message: claim.message ?? 'The file could not be uploaded.' };
   const { data, error: rpcError } = await db.rpc('import_journal_entry_batch', {
     p_name: String(formData.get('name') ?? '').trim() || null,
@@ -53,11 +54,11 @@ export async function importJournalEntries(_prev: ImportResult | null, formData:
 }
 
 export async function importBills(_prev: ImportResult | null, formData: FormData): Promise<ImportResult> {
-  await requireFinanceStaff();
+  const me = await requireFinanceStaff();
   const { rows, text, error } = await readRows(formData);
   if (error || !rows || text == null) return { ok: false, message: error ?? 'Could not read the file.' };
   const db = (await createClient()) as any;
-  const claim = await claimFile(db, 'bill_upload', text);
+  const claim = await claimFile(db, 'bill_upload', me.portfolio?.id ?? '', text);
   if (!claim.token) return { ok: false, message: claim.message ?? 'The file could not be uploaded.' };
   const { data, error: rpcError } = await db.rpc('import_bills', { p_rows: rows });
   if (rpcError || !data?.ok) await releaseSubmission(db, claim.token);

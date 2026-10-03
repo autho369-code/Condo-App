@@ -26,6 +26,7 @@ export function RecurringJournalEntryForm({
             </Field>
             <Field label="Repeats" htmlFor="frequency" required>
               <Select id="frequency" name="frequency" defaultValue={entry?.frequency ?? 'monthly'}>
+                <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>

@@ -8,13 +8,10 @@ create or replace function public.guard_posted_journal_entry()
 returns trigger language plpgsql set search_path to 'pg_catalog', 'public' as $$
 begin
   if current_user not in ('authenticated', 'anon') then return coalesce(new, old); end if;
-  if tg_op = 'DELETE' and old.posted then
-    raise exception 'A posted journal entry cannot be removed; reverse it instead' using errcode = '42501';
-  end if;
-  if tg_op = 'UPDATE' and old.posted and (new.posted is distinct from old.posted or new.entry_date is distinct from old.entry_date
-       or new.portfolio_id is distinct from old.portfolio_id or new.source_type is distinct from old.source_type
-       or new.source_id is distinct from old.source_id) then
-    raise exception 'A posted journal entry cannot be changed; reverse it instead' using errcode = '42501';
+  -- Any direct change to (or removal of) a posted entry: description, memo,
+  -- reversal links and every other column included.
+  if old.posted then
+    raise exception 'A posted journal entry cannot be changed or removed; reverse it instead' using errcode = '42501';
   end if;
   return coalesce(new, old);
 end $$;
