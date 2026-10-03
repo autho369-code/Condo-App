@@ -10,6 +10,8 @@ import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,33 +61,12 @@ export default async function OwnerPayablePage({
   const db = supabase as any;
 
   // PARALLEL: fetch data
-  const [
-    { data: payables },
-    { data: owners },
-    { data: associations },
-    { data: glAccounts },
-    { data: bankAccounts },
-  ] = await Promise.all([
-    db.from('owner_payables')
-      .select('id, payable_number, payable_type, payable_date, due_date, amount, memo, status, paid_at, approved_at, association_id, owner_id, gl_account_id, bank_account_id, owners(full_name, email), associations(name), gl_accounts(number, name), bank_accounts(name)')
-      .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(500),
-    db.from('owners')
-      .select('id, full_name')
-      .order('full_name'),
-    db.from('associations')
-      .select('id, name')
-      .is('archived_at', null)
-      .order('name'),
-    db.from('gl_accounts')
-      .select('id, number, name')
-      .eq('active', true)
-      .order('number'),
-    db.from('bank_accounts')
-      .select('id, name, bank_name')
-      .is('archived_at', null)
-      .order('name'),
-  ]);
+  const { rows: payables, error: loadError } = await fetchAllRows<any>(() => db.from('owner_payables')
+    .select('id, payable_number, payable_type, payable_date, due_date, amount, memo, status, paid_at, approved_at, association_id, owner_id, gl_account_id, bank_account_id, owners(full_name, email), associations(name), gl_accounts(number, name), bank_accounts(name)')
+    .is('archived_at', null)
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('id'));
+  if (loadError) throw new Error(`Could not load homeowner payables: ${loadError}`);
 
   let items = (payables ?? []);
 
@@ -114,7 +95,7 @@ export default async function OwnerPayablePage({
   }
 
   // Metrics
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const allItems = (payables ?? []);
   const openItems = allItems.filter((p: any) => p.status !== 'paid' && p.status !== 'void');
   const paidItems = allItems.filter((p: any) => p.status === 'paid');
@@ -130,18 +111,18 @@ export default async function OwnerPayablePage({
 
   return (
     <DataWorkspace
-      title="Owner Payables"
-      description="Owner refunds, settlements, and distributions — tracked separately from vendor payables."
+      title="Homeowner payables"
+      description="Refunds, settlements and other payments owed to homeowners. Approving posts the payable to the ledger; paying records the check or transfer."
       actions={
         <Link href="/bills/owner-payable/new">
-          <Button><Plus className="h-4 w-4" /> New owner payable</Button>
+          <Button><Plus className="h-4 w-4" /> New homeowner payable</Button>
         </Link>
       }
     >
       <div className="space-y-6">
         {sp.error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            <span className="font-semibold">Could not update owner payable:</span> {sp.error}
+            <span className="font-semibold">Could not update homeowner payable:</span> {sp.error}
           </div>
         )}
 
@@ -198,7 +179,7 @@ export default async function OwnerPayablePage({
         <FilterBar
           action="/bills/owner-payable"
           searchDefault={q}
-          searchPlaceholder="Search owner, association, memo, payable #..."
+          searchPlaceholder="Search homeowner, association, memo, payable #..."
         >
           <input type="hidden" name="tab" value={tab} />
           {typeFilter !== 'all' && <input type="hidden" name="type" value={typeFilter} />}
@@ -210,7 +191,7 @@ export default async function OwnerPayablePage({
             <THead>
               <TR>
                 <TH>Payable #</TH>
-                <TH>Owner</TH>
+                <TH>Homeowner</TH>
                 <TH>Type</TH>
                 <TH>Association</TH>
                 <TH>GL Account</TH>
@@ -227,7 +208,7 @@ export default async function OwnerPayablePage({
                     {p.payable_number ?? '—'}
                   </TD>
                   <TD className="font-medium">
-                    {p.owners?.full_name ?? '—'}
+                    <Link href={`/bills/owner-payable/${p.id}`} className="text-gray-900 hover:underline">{p.owners?.full_name ?? '—'}</Link>
                     {p.owners?.email && (
                       <span className="ml-1 text-xs text-gray-400">{p.owners.email}</span>
                     )}
@@ -263,15 +244,15 @@ export default async function OwnerPayablePage({
               icon={Wallet}
               title={
                 tab === 'open'
-                  ? 'No open owner payables'
+                  ? 'No open homeowner payables'
                   : tab === 'paid'
-                    ? 'No paid owner payables in this view'
-                    : 'No owner payables found'
+                    ? 'No paid homeowner payables in this view'
+                    : 'No homeowner payables found'
               }
-              description="Owner refunds, settlements, and distributions will appear here once created."
+              description="Homeowner refunds, settlements and distributions will appear here once entered."
               action={
                 <Link href="/bills/owner-payable/new">
-                  <Button><Plus className="h-4 w-4" /> New owner payable</Button>
+                  <Button><Plus className="h-4 w-4" /> New homeowner payable</Button>
                 </Link>
               }
             />

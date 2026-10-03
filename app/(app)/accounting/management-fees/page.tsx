@@ -10,6 +10,7 @@ import { Alert, Badge, EmptyState, Surface, SectionTitle } from '@/components/ui
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -82,7 +83,7 @@ export default async function ManagementFeesPage({
 
   const [{ data: preview, error }, { data: vendors }, { data: gls }, { data: portfolio }] = await Promise.all([
     db.rpc('management_fee_preview', { p_month: `${month}-01` }),
-    db.from('vendors').select('id, name').is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => db.from('vendors').select('id, name').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
     db.from('gl_accounts').select('id, number, name').eq('active', true).is('association_id', null)
       .in('account_type', ['expense', 'other_expense']).order('number'),
     db.from('portfolios').select('management_fee_vendor_id, management_fee_gl_account_id, company_name, management_fee_auto_enabled, management_fee_auto_day, management_fee_auto_last_run').eq('id', me.portfolio?.id).maybeSingle(),

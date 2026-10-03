@@ -58,7 +58,7 @@ function parseStatus(value: string | undefined): BillStatusFilter {
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; q?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; q?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string; recorded?: string }>;
 }) {
   const me = await requireFinanceStaff();
   const sp = await searchParams;
@@ -127,24 +127,24 @@ export default async function BillsPage({
       return p.order('paid_at', { ascending: false, nullsFirst: false }).order('id').limit(500);
     })(),
     // Vendors for filter
-    db.from('vendors')
+    fetchAllRows<any>(() => db.from('vendors')
       .select('id, name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
     // Associations for filter
-    db.from('associations')
+    fetchAllRows<any>(() => db.from('associations')
       .select('id, name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
     // GL accounts for context
     db.from('gl_accounts')
       .select('id, number, name')
       .order('number'),
     // Bank accounts for context
-    db.from('bank_accounts')
+    fetchAllRows<any>(() => db.from('bank_accounts')
       .select('id, name, bank_name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   // ── FILTER BILLS by status ──
@@ -293,7 +293,7 @@ export default async function BillsPage({
             <Button><Plus className="h-4 w-4" /> New bill</Button>
           </Link>
           <Link href="/bills/check-run">
-            <Button variant="secondary">Run checks</Button>
+            <Button variant="secondary">Pay bills</Button>
           </Link>
           <Link href="/bills/recurring">
             <Button variant="secondary">Recurring bills</Button>
@@ -382,6 +382,7 @@ export default async function BillsPage({
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not update bills">{sp.error}</Alert>}
+        {sp.recorded && <Alert tone="success" title={`${Number(sp.recorded) || 0} payment${sp.recorded === '1' ? '' : 's'} recorded`} />}
 
         {/* ── TAB: BILLS ── */}
         {tab === 'bills' && (
