@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Select } from '@/components/ui/input';
 import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -26,7 +26,7 @@ export default async function BankReconciliationPage({
 }: {
   searchParams: Promise<{ account_id?: string; tab?: string; error?: string }>;
 }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const { account_id = '', tab = 'unreconciled', error: pageError } = await searchParams;
   const activeTab: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'unreconciled';
 
@@ -95,7 +95,7 @@ export default async function BankReconciliationPage({
       // separate .in(lineIds) lookup overflowed the URL on big statements).
       const { rows: items } = await fetchAllRows<any>(() => db
         .from('bank_reconciliation_items')
-        .select('id, journal_line_id, description, amount, type, is_cleared, sort_order, journal_lines(id, debit_amount, credit_amount, memo, journal_entries(entry_date, reference_number, description))')
+        .select('id, journal_line_id, description, amount, type, is_cleared, sort_order, journal_lines(id, debit_amount, credit_amount, memo, journal_entries(id, entry_date, reference_number, description, source_type, source_id))')
         .eq('reconciliation_id', recentReconciliation.id)
         .order('sort_order')
         .order('id'));
@@ -105,26 +105,67 @@ export default async function BankReconciliationPage({
   }
 
   // Build display items: merge reconciliation items with journal line data
-  const displayItems = reconciliationItems.map((item: any) => {
+  const baseItems = reconciliationItems.map((item: any) => {
     const line = journalLines.find((l: any) => l.id === item.journal_line_id);
     const amount = line
       ? (line.debit_amount ?? 0) - (line.credit_amount ?? 0)
-      : item.amount;
-    const entryDate = line?.journal_entries?.entry_date ?? null;
-    const refNumber = line?.journal_entries?.reference_number ?? null;
-    const description = item.description || line?.journal_entries?.description || line?.memo || '—';
-
+      : Number(item.amount ?? 0);
+    const entry = line?.journal_entries ?? null;
     return {
       id: item.id,
+      ids: [item.id] as string[],
       journalLineId: item.journal_line_id,
-      description,
+      description: item.description || entry?.description || line?.memo || '—',
       amount,
       type: item.type,
       isCleared: item.is_cleared,
-      entryDate,
-      refNumber,
+      entryDate: entry?.entry_date ?? null,
+      refNumber: entry?.reference_number ?? null,
+      sourceType: entry?.source_type ?? null,
+      sourceId: entry?.source_id ?? null,
+      entryId: entry?.id ?? null,
     };
   });
+
+  // Receipts grouped into a bank deposit show as the deposit: one line, as on
+  // the bank statement. Clearing it clears every receipt in it.
+  const depositOf = new Map<string, string>();
+  const paymentIds = [...new Set(baseItems.filter((i) => i.sourceType === 'payment' && i.sourceId).map((i) => i.sourceId as string))];
+  const entryIds = [...new Set(baseItems.map((i) => i.entryId).filter(Boolean) as string[])];
+  const deposits = new Map<string, any>();
+  if (paymentIds.length || entryIds.length) {
+    const chunks = <T,>(arr: T[]) => Array.from({ length: Math.ceil(arr.length / 200) }, (_, k) => arr.slice(k * 200, k * 200 + 200));
+    for (const part of chunks(paymentIds)) {
+      const { data } = await db.from('payments').select('id, bank_deposit_id').in('id', part).not('bank_deposit_id', 'is', null);
+      for (const p of data ?? []) depositOf.set(`payment:${p.id}`, p.bank_deposit_id);
+    }
+    for (const part of chunks(entryIds)) {
+      const { data } = await db.from('other_receipts').select('journal_entry_id, bank_deposit_id').in('journal_entry_id', part).not('bank_deposit_id', 'is', null);
+      for (const r of data ?? []) depositOf.set(`entry:${r.journal_entry_id}`, r.bank_deposit_id);
+    }
+    const depIds = [...new Set(depositOf.values())];
+    for (const part of chunks(depIds)) {
+      const { data } = await db.from('bank_deposits').select('id, deposit_date, memo, receipt_count').in('id', part).is('voided_at', null);
+      for (const d of data ?? []) deposits.set(d.id, d);
+    }
+  }
+  const displayItems: typeof baseItems = [];
+  const grouped = new Map<string, (typeof baseItems)[number]>();
+  for (const item of baseItems) {
+    const depId = (item.sourceType === 'payment' && depositOf.get(`payment:${item.sourceId}`)) || (item.entryId && depositOf.get(`entry:${item.entryId}`)) || null;
+    const dep = depId ? deposits.get(depId) : null;
+    if (!dep) { displayItems.push(item); continue; }
+    const g = grouped.get(dep.id);
+    if (g) {
+      g.ids.push(item.id);
+      g.amount += item.amount;
+      g.isCleared = g.isCleared && item.isCleared;
+    } else {
+      const row = { ...item, id: `deposit-${dep.id}`, ids: [item.id], description: `Bank deposit (${dep.receipt_count} receipts)${dep.memo ? ` — ${dep.memo}` : ''}`, entryDate: dep.deposit_date, refNumber: null, type: 'deposit' };
+      grouped.set(dep.id, row);
+      displayItems.push(row);
+    }
+  }
 
   // Metrics
   const totalBookItems = displayItems.length;
@@ -132,8 +173,13 @@ export default async function BankReconciliationPage({
   const clearedAmount = displayItems
     .filter((i: any) => i.isCleared)
     .reduce((sum: number, i: any) => sum + (i.amount ?? 0), 0);
+  // Book items not yet through the bank come off the book balance; bank-only
+  // adjustments that are on the statement (cleared) are added.
   const outstandingAmount = displayItems
-    .filter((i: any) => !i.isCleared)
+    .filter((i: any) => !i.isCleared && i.type !== 'bank_only')
+    .reduce((sum: number, i: any) => sum + (i.amount ?? 0), 0);
+  const bankOnlyCleared = displayItems
+    .filter((i: any) => i.isCleared && i.type === 'bank_only')
     .reduce((sum: number, i: any) => sum + (i.amount ?? 0), 0);
 
   const statementBalance = Number(recentReconciliation?.statement_balance ?? 0);
@@ -141,7 +187,7 @@ export default async function BankReconciliationPage({
   // reconciliation was started) less items that have not cleared the bank.
   // This month's items alone ignored everything cleared in earlier months.
   const bookBalance = Number(recentReconciliation?.ending_book_balance ?? 0);
-  const adjustedBookBalance = bookBalance - outstandingAmount;
+  const adjustedBookBalance = bookBalance - outstandingAmount + bankOnlyCleared;
 
   return (
     <DataWorkspace
@@ -339,7 +385,7 @@ export default async function BankReconciliationPage({
                           action={`/api/bank-reconciliation/toggle-cleared`}
                           method="post"
                         >
-                          <input type="hidden" name="item_id" value={item.id} />
+                          {item.ids.map((itemId: string) => <input key={itemId} type="hidden" name="item_id" value={itemId} />)}
                           <input type="hidden" name="reconciliation_id" value={recentReconciliation.id} />
                           <input type="hidden" name="account_id" value={selectedAccount.id} />
                           <input type="hidden" name="tab" value={activeTab} />
@@ -376,7 +422,7 @@ export default async function BankReconciliationPage({
                       <TD className="font-mono text-xs text-gray-500">{item.refNumber ?? '—'}</TD>
                       <TD>
                         <StatusChip tone={item.type === 'bank_only' ? 'info' : 'neutral'}>
-                          {item.type === 'bank_only' ? 'Bank Only' : 'Book'}
+                          {item.type === 'bank_only' ? 'Bank Only' : item.type === 'deposit' ? 'Deposit' : 'Book'}
                         </StatusChip>
                       </TD>
                       <TD className="text-right tabular-nums font-medium">
@@ -417,8 +463,8 @@ export default async function BankReconciliationPage({
                     <div className="font-medium tabular-nums">{money(bookBalance)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500">Less: outstanding</div>
-                    <div className="font-medium tabular-nums text-amber-700">({money(outstandingAmount)})</div>
+                    <div className="text-xs text-gray-500">Less: outstanding{bankOnlyCleared !== 0 ? ' · plus bank-only' : ''}</div>
+                    <div className="font-medium tabular-nums text-amber-700">({money(outstandingAmount)}){bankOnlyCleared !== 0 ? ` + ${money(bankOnlyCleared)}` : ''}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500">Adjusted book balance</div>

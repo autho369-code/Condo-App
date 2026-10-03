@@ -36,7 +36,7 @@ export async function reconcilableLines(
   const { rows: lineRows, truncated, error } = await fetchAllRows<any>(() => {
     let q = db
       .from('journal_lines')
-      .select('id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)')
+      .select('id, debit_amount, credit_amount, memo, journal_entries!inner(id, entry_date, reference_number, description, posted, source_type, source_id)')
       .eq('gl_account_id', bank.gl_account_id)
       .eq('journal_entries.posted', true)
       .lte('journal_entries.entry_date', statementDate);

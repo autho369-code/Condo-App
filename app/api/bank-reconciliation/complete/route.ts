@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   // Every item (paged past 1,000 rows).
   const { rows: items, error: itemsError } = await fetchAllRows<any>(() => db
     .from('bank_reconciliation_items')
-    .select('id, amount, is_cleared, journal_line_id')
+    .select('id, amount, is_cleared, journal_line_id, type')
     .eq('reconciliation_id', reconciliationId)
     .order('id'));
   if (itemsError) return back(`Could not load the reconciliation items: ${itemsError}`, recon.bank_account_id);
@@ -78,10 +78,15 @@ export async function POST(request: NextRequest) {
   // Adjusted book balance = book balance at the statement date less items
   // that have not cleared. It must match the statement before completing:
   // completion stamps the account as reconciled, which lets periods close.
+  // Book items not yet through the bank come off; bank-only adjustments that
+  // are on the statement (cleared) are added, since the books don't have them.
   const outstanding = items
-    .filter((i: any) => !i.is_cleared)
+    .filter((i: any) => !i.is_cleared && i.type !== 'bank_only')
     .reduce((sum: number, i: any) => sum + Number(i.amount ?? 0), 0);
-  const adjusted = Number(recon.ending_book_balance ?? 0) - outstanding;
+  const bankOnly = items
+    .filter((i: any) => i.is_cleared && i.type === 'bank_only')
+    .reduce((sum: number, i: any) => sum + Number(i.amount ?? 0), 0);
+  const adjusted = Number(recon.ending_book_balance ?? 0) - outstanding + bankOnly;
   const difference = Math.round((Number(recon.statement_balance ?? 0) - adjusted) * 100) / 100;
   if (Math.abs(difference) >= 0.01) {
     return back(`The reconciliation is out of balance by $${Math.abs(difference).toFixed(2)}. Clear the matching items (or correct the statement balance) before completing it.`, recon.bank_account_id);

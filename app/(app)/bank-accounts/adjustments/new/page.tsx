@@ -73,7 +73,7 @@ export default async function NewBankAdjustmentPage({
   return (
     <DataWorkspace
       title="Bank adjustment"
-      description="Create a bank-only adjustment with notes. Adjustments do not affect GL balances — use journal entries for accounting-impacting corrections."
+      description="Record a bank-only item (a bank error or a charge the books should not carry). It does not affect GL balances; it appears on the next bank reconciliation as a Bank Only item to clear against the statement."
     >
       <form action={handleSubmit} className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Adjustment not saved">{sp.error}</Alert>}
