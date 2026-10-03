@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -73,6 +74,7 @@ export default async function ScheduledReportsPage({
         </>
       }
     >
+      <ReportingTabs current="scheduled" />
       <div className="space-y-4">
         {sp.ran && <Alert tone="success">Report run started. It appears in Report history when it finishes.</Alert>}
         {sp.saved && SAVED_MESSAGES[sp.saved] && <Alert tone="success">{SAVED_MESSAGES[sp.saved]}</Alert>}

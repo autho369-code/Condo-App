@@ -8,7 +8,7 @@ describe('appModules', () => {
     expect(labels).toContain('Dashboard');
     expect(labels).toContain('Associations');
     expect(labels).toContain('Accounting');
-    expect(labels).toContain('Reports');
+    expect(labels).toContain('Reporting');
     expect(labels).toContain('Violations');
     expect(labels).toContain('People');
     expect(labels).toContain('Vendors');
@@ -18,13 +18,8 @@ describe('appModules', () => {
     const byLabel = new Map(appModules.map((module) => [module.label, module]));
     const childHrefs = (label: string) => byLabel.get(label)?.children?.map((child) => child.href) ?? [];
 
-    expect(childHrefs('Reports')).toEqual(expect.arrayContaining([
-      '/reports/builder',
-      '/scheduled-reports',
-      '/reports/monthly-package',
-      '/reports/bulk-association',
-      '/reports/runs',
-    ]));
+    // AppFolio's Reporting menu: exactly these five.
+    expect(childHrefs('Reporting')).toEqual(['/reports', '/scheduled-reports', '/metrics', '/surveys', '/compliance']);
     expect(childHrefs('Maintenance')).toEqual(expect.arrayContaining([
       '/recurring-work-orders',
       '/inspections',
@@ -39,8 +34,6 @@ describe('appModules', () => {
       '/architectural-reviews',
     ]));
     expect(childHrefs('Communication')).toEqual(expect.arrayContaining(['/inbox', '/letters/mail']));
-    // AppFolio lists Surveys under Reporting.
-    expect(childHrefs('Reports')).toEqual(expect.arrayContaining(['/metrics', '/surveys']));
   });
 });
 
