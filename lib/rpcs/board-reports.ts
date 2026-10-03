@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { isBoardSection, publishBoardPackage } from '@/lib/reports/board-package';
+import { isBoardSection, OWNER_HIDDEN_SECTIONS, publishBoardPackage } from '@/lib/reports/board-package';
 
 const REF_RE = /^[a-z0-9-]{1,80}$/i;
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
@@ -20,6 +20,11 @@ export async function saveBoardReportSettings(formData: FormData) {
   const sections = formData.getAll('sections').map(String).filter(isBoardSection);
   const day = Number(s(formData, 'publish_day'));
   const scope = s(formData, 'share_scope') === 'owners' ? 'owners' : 'board';
+  // Shared with owners, per-unit sections are left out of the package; it
+  // needs at least one other report or every publish would fail.
+  if (scope === 'owners' && sections.length > 0 && sections.every((k) => OWNER_HIDDEN_SECTIONS.has(k))) {
+    go(to, 'error', 'A package shared with owners leaves out the receivables aging. Choose at least one other report.');
+  }
   const db = (await createClient()) as any;
   const { error } = await db.rpc('save_board_report_settings', {
     p_association_id: s(formData, 'association_id'), p_sections: sections, p_share_scope: scope,
