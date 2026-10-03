@@ -74,7 +74,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .not('method', 'in', '("online","credit")')),
     // Portal adoption: current homeowners, each owner counted once.
     fetchAllRows<any>(() => byAssoc(db.from('occupancies')
-      .select('id, owner_id, owners!inner(portal_activated, email, archived_at)')
+      .select('id, owner_id, owners!inner(portal_activated, auth_user_id, email, archived_at)')
       .eq('status', 'current')
       .eq('occupancy_type', 'owner')
       .is('owners.archived_at', null))
@@ -113,14 +113,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const manualCount = manualThisWeek.count ?? 0;
 
   // ── Portal adoption ──────────────────────────────────────────
-  const owners = new Map<string, { active: boolean; email: string }>();
+  // Same classification as the activation page: an owner with an account
+  // but access off counts as not activated, whatever their email.
+  const owners = new Map<string, 'active' | 'inactive' | 'no_email'>();
   for (const row of homeowners.rows) {
     if (!row.owner_id) continue;
-    owners.set(row.owner_id, { active: row.owners?.portal_activated === true, email: String(row.owners?.email ?? '').trim() });
+    const o = row.owners ?? {};
+    owners.set(row.owner_id, o.portal_activated ? 'active' : o.auth_user_id || EMAIL.test(String(o.email ?? '').trim().toLowerCase()) ? 'inactive' : 'no_email');
   }
   const ownerList = [...owners.values()];
-  const activated = ownerList.filter((o) => o.active).length;
-  const noEmail = ownerList.filter((o) => !o.active && !EMAIL.test(o.email)).length;
+  const activated = ownerList.filter((o) => o === 'active').length;
+  const noEmail = ownerList.filter((o) => o === 'no_email').length;
   const notActivated = ownerList.length - activated - noEmail;
 
   // ── Notifications feed ───────────────────────────────────────
@@ -147,7 +150,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ];
 
   const assocQs = assoc ? `&association=${assoc}` : '';
-  const activationsHref = assoc ? `/owners/activations?association=${assoc}` : '/owners/activations';
+  const activationsHref = `/owners/activations?status=inactive${assocQs}`;
+  const assocParam = assoc ? `&association_id=${assoc}` : '';
   const receiptsHref = `/receipts?range=30d${assoc ? `&assoc=${assoc}` : ''}`;
   const tileLink = (href: string, label: string) => (
     <Link href={href} className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">{label}</Link>
@@ -214,13 +218,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           />
 
           <SubHeading className="mt-6">Bills</SubHeading>
-          <MetricStrip metrics={[{ label: 'Pending approval', value: billsPending.count ?? 0, sublabel: tileLink('/bills?status=pending_approval', 'Review bills') }]} />
+          <MetricStrip metrics={[{ label: 'Pending approval', value: billsPending.count ?? 0, sublabel: tileLink(`/bills?status=pending_approval${assocParam}`, 'Review bills') }]} />
 
           <SubHeading className="mt-6">Purchase orders</SubHeading>
           <MetricStrip
             metrics={[
-              { label: 'Drafts to submit', value: poDrafts.count ?? 0, sublabel: tileLink('/purchase-orders?status=draft', 'Review drafts') },
-              { label: 'Awaiting board approval', value: poAwaiting.count ?? 0, sublabel: tileLink('/purchase-orders?status=pending_approval', 'Review') },
+              { label: 'Drafts to submit', value: poDrafts.count ?? 0, sublabel: tileLink(`/purchase-orders?status=draft${assocParam}`, 'Review drafts') },
+              { label: 'Awaiting board approval', value: poAwaiting.count ?? 0, sublabel: tileLink(`/purchase-orders?status=pending_approval${assocParam}`, 'Review') },
             ]}
           />
 

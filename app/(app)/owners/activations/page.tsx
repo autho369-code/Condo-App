@@ -33,6 +33,8 @@ const STATUS: Record<Status, { label: string; tone: 'success' | 'info' | 'warnin
 
 /** Statuses that can be sent an invitation (a first one or a new one). */
 const INVITABLE: Status[] = ['not_invited', 'expired', 'invited'];
+/** Filter value for every owner not yet using the portal (has an email or an account). */
+const INACTIVE: Status[] = ['account', 'invited', 'expired', 'not_invited'];
 
 export default async function OwnerActivationsPage({
   searchParams,
@@ -42,7 +44,7 @@ export default async function OwnerActivationsPage({
   await requireStaff();
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().toLowerCase();
-  const statusFilter = (Object.keys(STATUS) as Status[]).includes(sp.status as Status) ? (sp.status as Status) : '';
+  const statusFilter: Status | 'inactive' | '' = sp.status === 'inactive' ? 'inactive' : (Object.keys(STATUS) as Status[]).includes(sp.status as Status) ? (sp.status as Status) : '';
   const association = UUID.test(sp.association ?? '') ? sp.association! : '';
   const db = (await createClient()) as any;
 
@@ -98,7 +100,7 @@ export default async function OwnerActivationsPage({
 
   const rows = all.filter((r) =>
     (!sp.owner || r.owner.id === sp.owner) &&
-    (!statusFilter || r.status === statusFilter) &&
+    (!statusFilter || (statusFilter === 'inactive' ? INACTIVE.includes(r.status) : r.status === statusFilter)) &&
     (!association || r.homes?.associations.has(association)) &&
     (!q || [r.owner.full_name, r.owner.email].some((v) => String(v ?? '').toLowerCase().includes(q))));
 
@@ -139,6 +141,7 @@ export default async function OwnerActivationsPage({
         <FilterBar action="/owners/activations" searchDefault={sp.q ?? ''} searchPlaceholder="Search owner or email">
           <FilterSelect label="Status" name="status" defaultValue={statusFilter}>
             <option value="">All</option>
+            <option value="inactive">Not activated (any)</option>
             {(Object.keys(STATUS) as Status[]).map((s) => <option key={s} value={s}>{STATUS[s].label}</option>)}
           </FilterSelect>
           <FilterSelect label="Association" name="association" defaultValue={association}>
