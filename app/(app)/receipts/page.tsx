@@ -84,10 +84,19 @@ export default async function ReceiptsPage({
   const exportQuery = keep({ from, to });
   const { data: associations } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
 
+  // Who paid: the homeowner who owned the unit on the payment date.
+  const payerById = new Map<string, string>();
+  const ids = fetched.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await db.from('receivable_payments_ledger').select('payment_id, owner_name').in('payment_id', ids.slice(i, i + 200));
+    if (error) throw new Error(`Could not load homeowners: ${error.message}`);
+    for (const row of data ?? []) if (row.owner_name) payerById.set(row.payment_id, row.owner_name);
+  }
+
   let rows = fetched;
   if (q) {
     rows = rows.filter((r) =>
-      [r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
+      [payerById.get(r.id), r.reference, r.notes, r.units?.unit_number, r.units?.buildings?.associations?.name, receiptMethodLabel(r.method)]
         .some((v) => String(v ?? '').toLowerCase().includes(q)),
     );
   }
@@ -192,6 +201,7 @@ export default async function ReceiptsPage({
             <THead>
               <tr>
                 <TH>Date</TH>
+                <TH>Homeowner</TH>
                 <TH>Association · unit</TH>
                 <TH>Method</TH>
                 <TH>Reference</TH>
@@ -204,6 +214,7 @@ export default async function ReceiptsPage({
               {rows.slice(0, 500).map((r) => (
                 <TR key={r.id}>
                   <TD className="whitespace-nowrap">{date(r.payment_date)}</TD>
+                  <TD className="text-sm text-gray-900">{payerById.get(r.id) ?? '—'}</TD>
                   <TD>
                     <Link href={`/units/${r.unit_id}`} className="text-gray-950 hover:underline">
                       {r.units?.buildings?.associations?.name ?? '—'} · Unit {r.units?.unit_number ?? '—'}
