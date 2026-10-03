@@ -75,6 +75,7 @@ export const REPORT_CATALOG: CatalogCategory[] = [
     title: 'Diagnostic Reports',
     reports: [
       { name: 'Email Delivery Errors', slug: 'email_delivery_errors' },
+      { name: 'Import Variances', slug: 'import_variances' },
       { name: 'Resident eCheck Fee Coverage', slug: 'residents_check_fee_coverage' },
       { name: 'User Roles and Permissions', slug: 'user_roles_permissions' },
       { name: 'Users', slug: 'users' },
@@ -91,6 +92,7 @@ export const REPORT_CATALOG: CatalogCategory[] = [
       { name: 'Recurring Work Order', slug: 'recurring_work_orders' },
       { name: 'Vendor Directory', slug: 'vendor_directory' },
       { name: 'Vendor Ledger', slug: 'vendor_ledger' },
+      { name: 'Vendor Ledger (Enhanced)', slug: 'vendor_ledger_enhanced' },
       { name: 'Work Order', slug: 'work_order_report' },
       { name: 'Work Order Billable Detail', slug: 'work_order_bill_detail' },
       { name: 'Work Order Labor Summary', slug: 'work_order_labor_summary' },
@@ -131,6 +133,8 @@ export const REPORT_CATALOG: CatalogCategory[] = [
     key: 'tax',
     title: 'Tax Reports',
     reports: [
+      { name: 'Owner 1099 Detail', slug: 'owner_1099_detail' },
+      { name: 'Owner 1099 Summary', slug: 'owner_1099_summary' },
       { name: 'Vendor 1099 Detail', slug: 'vendor_1099_detail' },
       { name: 'Vendor 1099 Summary', slug: 'vendor_1099_summary' },
     ],
@@ -145,6 +149,7 @@ export const REPORT_CATALOG: CatalogCategory[] = [
       { name: 'Charge Detail', slug: 'charge_detail' },
       { name: 'Check Register', slug: 'check_register' },
       { name: 'Check Register Detail', slug: 'check_register_detail' },
+      { name: 'Check Register Detail (Enhanced)', slug: 'check_register_detail_enhanced' },
       { name: 'Credit Card Expense Detail', slug: 'credit_card_expense_detail' },
       { name: 'Deposit Register', slug: 'deposit_register' },
       { name: 'Expense Register', slug: 'expense_register' },

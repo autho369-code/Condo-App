@@ -237,12 +237,14 @@ export async function importOpeningBalances(
     try {
       const dueDate = toDate(r.as_of_date) ?? new Date().toISOString().slice(0, 10);
       const description = clean(r.memo) || 'Opening balance';
-      const { error: postErr } = await db.rpc('post_ad_hoc_charge', {
+      // One transaction: the charge and the record of what the previous
+      // system reported (for Import Variances) succeed or fail together.
+      const { error: postErr } = await db.rpc('import_opening_balance', {
         p_unit_id: unitId,
         p_charge_category_id: chargeCategoryId,
         p_amount: amount,
         p_description: description,
-        p_due_date: dueDate,
+        p_as_of: dueDate,
       });
       if (postErr) throw new Error(postErr.message);
       imported++;
