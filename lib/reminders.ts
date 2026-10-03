@@ -32,7 +32,8 @@ function daysAgo(n: number): string {
   return new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 }
 
-export async function computeReminders(db: any, portfolioId: string | undefined): Promise<ReminderGroup[]> {
+/** associationId, when given, limits every alert to that one association. */
+export async function computeReminders(db: any, portfolioId: string | undefined, associationId?: string): Promise<ReminderGroup[]> {
   if (!portfolioId) return [];
 
   // Settings (fall back to defaults when no row exists).
@@ -43,7 +44,9 @@ export async function computeReminders(db: any, portfolioId: string | undefined)
 
   // Associations in this portfolio (for view-backed queries that aren't RLS-scoped).
   const { data: assocs } = await db.from('associations').select('id').eq('portfolio_id', portfolioId).is('archived_at', null);
-  const assocIds = (assocs ?? []).map((a: any) => a.id);
+  const assocIds = (assocs ?? []).map((a: any) => a.id).filter((id: string) => !associationId || id === associationId);
+  // Narrow a query to the one association when filtering.
+  const scoped = (q: any, column = 'association_id') => (associationId ? q.eq(column, associationId) : q);
 
   const today = new Date().toISOString().slice(0, 10);
   const groups: ReminderGroup[] = [];
@@ -52,11 +55,11 @@ export async function computeReminders(db: any, portfolioId: string | undefined)
   {
     const c = cfg('lease_renewal');
     if (c.enabled) {
-      const { data } = await db.from('tenants')
+      const { data } = await scoped(db.from('tenants')
         .select('id, first_name, last_name, lease_end, owner_id, units(unit_number)')
         .eq('status', 'active').is('archived_at', null)
         .not('lease_end', 'is', null)
-        .gte('lease_end', today).lte('lease_end', daysFromNow(c.lead_days))
+        .gte('lease_end', today).lte('lease_end', daysFromNow(c.lead_days)))
         .order('lease_end');
       groups.push({
         key: 'lease_renewal', label: 'Lease renewals', leadDays: c.lead_days,
@@ -74,10 +77,10 @@ export async function computeReminders(db: any, portfolioId: string | undefined)
   {
     const c = cfg('parking_available');
     if (c.enabled) {
-      const { data } = await db.from('parking_assignments')
-        .select('id, end_date, parking_spaces(label, associations(name))')
+      const { data } = await scoped(db.from('parking_assignments')
+        .select(associationId ? 'id, end_date, parking_spaces!inner(label, association_id, associations(name))' : 'id, end_date, parking_spaces(label, associations(name))')
         .eq('status', 'ended').eq('portfolio_id', portfolioId)
-        .not('end_date', 'is', null).gte('end_date', daysAgo(c.lead_days))
+        .not('end_date', 'is', null).gte('end_date', daysAgo(c.lead_days)), 'parking_spaces.association_id')
         .order('end_date', { ascending: false });
       groups.push({
         key: 'parking_available', label: 'Parking became available', leadDays: c.lead_days,
@@ -95,11 +98,11 @@ export async function computeReminders(db: any, portfolioId: string | undefined)
   {
     const c = cfg('owner_insurance_expiring');
     if (c.enabled) {
-      const { data } = await db.from('insurance_policies')
+      const { data } = await scoped(db.from('insurance_policies')
         .select('id, insurance_company, expiration_date, owner_id, owners(full_name)')
         .not('owner_id', 'is', null).eq('status', 'active').is('archived_at', null)
         .not('expiration_date', 'is', null)
-        .gte('expiration_date', today).lte('expiration_date', daysFromNow(c.lead_days))
+        .gte('expiration_date', today).lte('expiration_date', daysFromNow(c.lead_days)))
         .order('expiration_date');
       groups.push({
         key: 'owner_insurance_expiring', label: 'Owner insurance expiring', leadDays: c.lead_days,
@@ -117,11 +120,11 @@ export async function computeReminders(db: any, portfolioId: string | undefined)
   {
     const c = cfg('renter_insurance_expiring');
     if (c.enabled) {
-      const { data } = await db.from('tenants')
+      const { data } = await scoped(db.from('tenants')
         .select('id, first_name, last_name, insurance_expiration, owner_id, units(unit_number)')
         .eq('status', 'active').is('archived_at', null)
         .not('insurance_expiration', 'is', null)
-        .gte('insurance_expiration', today).lte('insurance_expiration', daysFromNow(c.lead_days))
+        .gte('insurance_expiration', today).lte('insurance_expiration', daysFromNow(c.lead_days)))
         .order('insurance_expiration');
       groups.push({
         key: 'renter_insurance_expiring', label: 'Renter insurance expiring', leadDays: c.lead_days,
