@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Landmark } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { PayablesTabs } from '@/components/accounting/payables-tabs';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -55,6 +56,7 @@ export default async function LoansPage({
       description="Association loans and mortgages. Record each payment here — principal and interest post to the general ledger and the balance and next due date update."
     >
       <div className="space-y-4">
+        <PayablesTabs current="loans" />
         {sp.error && <Alert tone="danger" title="Something went wrong">{sp.error}</Alert>}
         <MetricStrip
           metrics={[

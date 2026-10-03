@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { Plus, Repeat } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
+import { PayablesTabs } from '@/components/accounting/payables-tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
-import { archiveRecurringBill } from '@/lib/rpcs/recurring';
+import { archiveRecurringBill, postRecurringBills } from '@/lib/rpcs/recurring';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +26,7 @@ const cadence = (f: string, n: number | null) => (!n || n <= 1 ? EVERY[f]?.[0] ?
 export default async function RecurringBillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; archived?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; archived?: string; posted?: string; through?: string; error?: string }>;
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
@@ -56,9 +59,31 @@ export default async function RecurringBillsPage({
       }
     >
       <div className="space-y-4">
+        <PayablesTabs current="recurring" />
         {sp.saved && <Alert tone="success" title="Recurring bill saved" />}
         {sp.archived && <Alert tone="success" title="Recurring bill stopped" />}
+        {sp.posted !== undefined && (
+          <Alert tone="success" title={`${Number(sp.posted) || 0} bill${sp.posted === '1' ? '' : 's'} posted${sp.through ? ` through ${date(sp.through)}` : ''}`}>
+            {sp.posted === '0' ? 'No recurring bills were due through that date.' : 'They are on the Bills list, approved or waiting for board approval as each association requires.'}
+          </Alert>
+        )}
         {sp.error && <Alert tone="danger" title="Could not update">{sp.error}</Alert>}
+
+        {active.length > 0 && (
+          <Surface>
+            <form action={postRecurringBills} className="flex flex-wrap items-end gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-950">Manually post bills</h2>
+                <p className="mt-0.5 text-sm text-gray-600">Enter every recurring bill scheduled on or before this date now, instead of waiting for its date.</p>
+              </div>
+              <label className="ml-auto flex flex-col gap-1 text-xs font-medium text-gray-600">
+                Post through
+                <input type="date" name="through" required defaultValue={todayInZone()} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-950" />
+              </label>
+              <PendingSubmit pendingLabel="Posting…">Post bills</PendingSubmit>
+            </form>
+          </Surface>
+        )}
 
         {list.length === 0 ? (
           <Surface padded={false}>

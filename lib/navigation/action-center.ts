@@ -187,6 +187,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Run approved checks', href: '/bills/check-run', description: 'Pay approved bills and print checks.', access: 'finance' },
         { label: 'Pay management fees', href: '/accounting/management-fees', description: 'Bill each association its monthly management fee.', access: 'finance' },
         { label: 'Recurring bills', href: '/bills/recurring', description: 'Janitorial, utilities and other bills entered automatically.', access: 'finance' },
+        { label: 'Manually post bills', href: '/bills/recurring', description: 'Enter recurring bills now, through a chosen date.', access: 'finance' },
         { label: 'Record bank deposit', href: '/bank-accounts/deposits/new', description: 'Group receipts into a deposit.' },
         { label: 'Lockbox import', href: '/bank-accounts/lockbox', description: 'Import the bank lockbox file and post matched checks.', access: 'finance' },
         { label: 'Reconcile bank account', href: '/bank-accounts/reconcile/new', description: 'Match statement activity.' },
