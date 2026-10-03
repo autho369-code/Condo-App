@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           tx.amount
         );
 
-        await db.from('bank_transactions').upsert(
+        const { error: upsertError } = await db.from('bank_transactions').upsert(
           {
             portfolio_id: plaidItem.portfolio_id,
             bank_account_id: plaidItem.bank_account_id,
@@ -93,12 +93,15 @@ export async function POST(request: NextRequest) {
             ignoreDuplicates: false,
           }
         );
+        // A failed save must stop the sync before the cursor moves past it,
+        // or the transaction is never imported.
+        if (upsertError) throw new Error(`Could not save transaction ${tx.transaction_id}: ${upsertError.message}`);
         addedCount++;
       }
 
       // Process modified
       for (const tx of modified) {
-        await db
+        const { error: modError } = await db
           .from('bank_transactions')
           .update({
             amount: tx.amount,
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
             pending: tx.pending,
           })
           .eq('plaid_transaction_id', tx.transaction_id);
+        if (modError) throw new Error(`Could not update transaction ${tx.transaction_id}: ${modError.message}`);
         modifiedCount++;
       }
 

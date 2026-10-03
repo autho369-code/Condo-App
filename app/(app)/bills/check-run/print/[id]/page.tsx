@@ -74,7 +74,7 @@ export default async function PrintChecksPage({
       id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
       vendors(name, address_street, address_city, address_state, address_zip, vendor_financial_details(taxpayer_id)),
       associations(name),
-      bank_accounts(name, bank_name, company_name, company_address, routing_number, account_number, check_signature),
+      bank_accounts(name, bank_name, company_name, company_address, check_signature),
       payable_bills(bill_number, memo, bill_date, due_date, gl_accounts(number, name))
     `)
     .eq('run_transaction_id', seed?.run_transaction_id ?? '-1')

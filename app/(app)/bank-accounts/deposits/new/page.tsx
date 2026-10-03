@@ -4,75 +4,63 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { todayInZone } from '@/lib/time/zoned';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewBankDepositPage({ searchParams }: { searchParams: Promise<{ error?: string; posted?: string }> }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: accounts }, { data: associations }, { data: glAccounts }] = await Promise.all([
-    db.from('bank_accounts').select('id, name, gl_account_id').is('archived_at', null).order('name'),
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('gl_accounts').select('id, number, name').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('number'),
+  const [{ rows: accounts }, { rows: glAccounts }] = await Promise.all([
+    fetchAllRows<any>(() => db.from('bank_accounts').select('id, name, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name').order('id')),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations(name)').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('number').order('id')),
   ]);
 
   async function recordDeposit(formData: FormData) {
     'use server';
-    const me = await requireStaff();
-    const supabase = await createClient();
-    const db = supabase as any;
-    const fail = (m: string) => redirect('/bank-accounts/deposits/new?error=' + encodeURIComponent(m));
+    await requireFinanceStaff();
+    const db = (await createClient()) as any;
+    const fail = (m: string): never => redirect('/bank-accounts/deposits/new?error=' + encodeURIComponent(m));
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    const bankAccountId = formData.get('bank_account_id') as string;
-    const creditGlId = formData.get('credit_gl_id') as string;
-    const associationId = (formData.get('association_id') as string) || null;
-    const depositDate = formData.get('deposit_date') as string;
-    const amount = parseFloat(formData.get('amount') as string) || 0;
-    const memo = (formData.get('memo') as string)?.trim() || null;
-    const receivedFrom = (formData.get('received_from') as string)?.trim() || null;
+    const bankAccountId = String(formData.get('bank_account_id') ?? '');
+    const creditGlId = String(formData.get('credit_gl_id') ?? '');
+    const depositDate = String(formData.get('deposit_date') ?? '');
+    const amount = Number(String(formData.get('amount') ?? '').replace(/[$,\s]/g, ''));
+    if (!UUID.test(bankAccountId)) fail('Select a bank account.');
+    if (!UUID.test(creditGlId)) fail('Select the GL account to credit.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(depositDate)) fail('Deposit date is required.');
+    if (!Number.isFinite(amount) || amount <= 0) fail('Deposit amount must be greater than zero.');
 
-    if (!bankAccountId) fail('Select a bank account.');
-    if (!creditGlId) fail('Select the GL account to credit.');
-    if (!depositDate) fail('Deposit date is required.');
-    if (amount <= 0) fail('Deposit amount must be greater than zero.');
+    // A double click must not post the deposit twice.
+    const claim = await claimSubmission(db, formData, 'bank_deposit');
+    if (claim.status === 'error') fail(claim.message);
+    if (claim.status === 'duplicate') redirect('/bank-accounts/deposits/new?posted=1');
+    const token = (claim as { token: string }).token;
 
-    const { data: bank } = await db.from('bank_accounts').select('id, name, gl_account_id').eq('id', bankAccountId).single();
-    if (!bank) fail('Bank account not found.');
-    if (!bank.gl_account_id) fail(`"${bank.name}" has no linked GL account. Link one on the bank account before recording deposits.`);
-    if (bank.gl_account_id === creditGlId) fail('The credited GL account must differ from the bank account’s GL account.');
-
-    const description = `Bank deposit — ${bank.name}${receivedFrom ? ` (from ${receivedFrom})` : ''}`;
-
-    // Same draft -> lines -> post pattern as manual journal entries: the
-    // deposit debits the bank's GL account and credits the selected account.
-    const { data: entry, error: entryErr } = await db.from('journal_entries').insert({
-      portfolio_id: me.portfolio?.id,
-      entry_date: depositDate,
-      description,
-      reference_number: null,
-      memo,
-      posted: false,
-      created_by: me.auth_user_id,
-    }).select('id').single();
-    if (entryErr || !entry) fail(entryErr?.message ?? 'Could not create the deposit entry.');
-
-    const { error: linesErr } = await db.from('journal_lines').insert([
-      { entry_id: entry.id, gl_account_id: bank.gl_account_id, association_id: associationId, debit_amount: amount, credit_amount: 0, memo, sort_order: 0 },
-      { entry_id: entry.id, gl_account_id: creditGlId, association_id: associationId, debit_amount: 0, credit_amount: amount, memo, sort_order: 1 },
-    ]);
-    if (linesErr) {
-      await db.from('journal_entries').delete().eq('id', entry.id); // roll back the orphan draft
-      fail(`Could not save deposit lines: ${linesErr.message}`);
+    // One RPC posts the entry and both lines on the bank's own association, so
+    // the deposit shows in that bank's balance, activity and reconciliation.
+    const { data: entryId, error } = await db.rpc('record_bank_deposit', {
+      p_bank_account_id: bankAccountId,
+      p_credit_gl_id: creditGlId,
+      p_deposit_date: depositDate,
+      p_amount: amount,
+      p_memo: String(formData.get('memo') ?? ''),
+      p_received_from: String(formData.get('received_from') ?? ''),
+    });
+    if (error) {
+      await releaseSubmission(db, token);
+      fail(error.message);
     }
-
-    const { error: postErr } = await db.from('journal_entries').update({ posted: true }).eq('id', entry.id);
-    if (postErr) fail(`Saved as draft, but posting failed: ${postErr.message}`);
-
+    await completeSubmission(db, token, String(entryId));
     redirect('/bank-accounts/deposits/new?posted=1');
   }
 
@@ -85,34 +73,29 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not record deposit">{sp.error}</Alert>}
         {sp.posted && <Alert tone="success" title="Deposit recorded">The deposit was posted to the General Ledger.</Alert>}
-        {(glAccounts ?? []).length === 0 ? (
+        {glAccounts.length === 0 ? (
           <Alert tone="warning" title="No GL accounts yet">
             Add accounts to your chart of accounts first — <Link href="/gl-accounts/new" className="font-medium underline">create a GL account</Link>.
           </Alert>
         ) : (
           <form action={recordDeposit}>
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <Surface>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Bank account (debited)">
                   <Select name="bank_account_id" required>
                     <option value="">Select account</option>
-                    {(accounts ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}
+                    {accounts.map((row: any) => <option key={row.id} value={row.id}>{row.name}{row.associations?.name ? ` — ${row.associations.name}` : ''}</option>)}
                   </Select>
                 </Field>
                 <Field label="Credit GL account (source of funds)">
                   <Select name="credit_gl_id" required>
                     <option value="">Select GL account</option>
-                    {(glAccounts ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.number} — {row.name}</option>)}
-                  </Select>
-                </Field>
-                <Field label="Association (optional)">
-                  <Select name="association_id">
-                    <option value="">Portfolio-level</option>
-                    {(associations ?? []).map((row: any) => <option key={row.id} value={row.id}>{row.name}</option>)}
+                    {glAccounts.map((row: any) => <option key={row.id} value={row.id}>{row.number} — {row.name}{row.associations?.name ? ` (${row.associations.name})` : ''}</option>)}
                   </Select>
                 </Field>
                 <Field label="Deposit date">
-                  <Input name="deposit_date" type="date" required />
+                  <Input name="deposit_date" type="date" required defaultValue={todayInZone()} />
                 </Field>
                 <Field label="Amount">
                   <Input name="amount" type="number" step="0.01" min="0.01" placeholder="$0.00" required />
@@ -126,7 +109,7 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
               </Field>
             </Surface>
             <div className="mt-6">
-              <Button type="submit">Record deposit</Button>
+              <PendingSubmit pendingLabel="Recording…">Record deposit</PendingSubmit>
             </div>
           </form>
         )}

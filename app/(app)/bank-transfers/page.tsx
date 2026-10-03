@@ -73,7 +73,9 @@ export default async function BankTransfersPage({
       groups.push(`from_bank_account_id.in.(${ids}),to_bank_account_id.in.(${ids})`);
     }
     if (q) {
-      const clauses = [`reference_number.ilike.*${q}*`, `memo.ilike.*${q}*`];
+      // A double-quoted value keeps commas, dots and brackets in the search text.
+      const like = `"*${q.replace(/\*/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}*"`;
+      const clauses = [`reference_number.ilike.${like}`, `memo.ilike.${like}`];
       if (nameMatchBankIds.length) {
         const ids = nameMatchBankIds.join(',');
         clauses.push(`from_bank_account_id.in.(${ids})`, `to_bank_account_id.in.(${ids})`);
