@@ -25,7 +25,17 @@ export async function processReportRun(runId: string): Promise<void> {
     .maybeSingle();
   if (!run || !['queued', 'running'].includes(run.status)) return;
 
-  await svc.from('report_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('id', runId);
+  // Claim the run atomically: only a queued run, or one stuck in "running" for
+  // over 15 minutes, moves to running here. A second worker (the hourly cron
+  // overlapping the request that queued it) finds nothing to claim and stops,
+  // so a report is never generated twice.
+  const stuckBefore = new Date(Date.now() - 15 * 60000).toISOString();
+  const { data: claimed } = await svc.from('report_runs')
+    .update({ status: 'running', started_at: new Date().toISOString() })
+    .eq('id', runId)
+    .or(`status.eq.queued,and(status.eq.running,started_at.lt.${stuckBefore})`)
+    .select('id');
+  if (!claimed || claimed.length === 0) return;
 
   // duration_ms is a GENERATED column (finished_at - started_at) — never set it.
   const finish = async (patch: Record<string, unknown>) => {

@@ -35,6 +35,11 @@ export async function queueReport(formData: FormData) {
     failTo('Report scope is required');
     return;
   }
+  // "Association" scope with no association chosen would run company-wide.
+  if (params.scope === 'association' && !params.association_id) {
+    failTo('Choose an association, or set the scope to Portfolio.');
+    return;
+  }
 
   const { data, error } = await (supabase as any).rpc('queue_report_run', {
     p_definition_id: definitionId,
@@ -67,15 +72,15 @@ function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'csv' | 'j
  */
 export async function cancelReportRun(runId: string) {
   await requireStaff();  // in-action guard: server actions are callable endpoints
+  if (!REPORT_UUID.test(String(runId))) redirect(`/reports?error=${encodeURIComponent('Report run not found.')}`);
   const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('report_runs')
-    .update({ status: 'cancelled', finished_at: new Date().toISOString() })
-    .eq('id', runId)
-    .in('status', ['queued', 'running']);
+  // cancel_report_run re-checks that the caller can see the run and that it
+  // is still queued or running (it says so when it already finished).
+  const { error } = await (supabase as any).rpc('cancel_report_run', { p_run_id: runId });
   if (error) redirect(`/reports/runs/${runId}?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/reports/runs');
   revalidatePath(`/reports/runs/${runId}`);
+  redirect(`/reports/runs/${runId}`);
 }
 
 // ── Scheduled report actions ──

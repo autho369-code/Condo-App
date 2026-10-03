@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { BulkReportsForm } from './_bulk-reports-form';
+import { LIVE_ONLY_REPORT_SLUGS } from '@/lib/reports/catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function BulkAssociationReportsPage() {
     >
       <BulkReportsForm
         associations={associationsRes.data ?? []}
-        reports={reportsRes.data ?? []}
+        reports={(reportsRes.data ?? []).filter((r: any) => !LIVE_ONLY_REPORT_SLUGS.has(r.slug))}
       />
     </DataWorkspace>
   );

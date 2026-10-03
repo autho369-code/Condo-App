@@ -126,6 +126,24 @@ export default async function ReportView({
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The chart of accounts for a live report: the viewer's own company only (a
+ * platform operator's RLS sees every company, which mixed them together),
+ * company-wide accounts plus the chosen association's, paged past 1,000 rows.
+ */
+async function loadReportGlAccounts(db: any, columns: string, associationId: string, accountId?: string) {
+  const { data: portfolioId } = await db.rpc('current_portfolio_id');
+  const { rows, error } = await fetchAllRows<any>(() => {
+    let q = db.from('gl_accounts').select(columns).order('number').order('id');
+    if (portfolioId) q = q.eq('portfolio_id', portfolioId);
+    if (UUID_RE.test(associationId)) q = q.or(`association_id.is.null,association_id.eq.${associationId}`);
+    if (accountId) q = q.eq('id', accountId);
+    return q;
+  });
+  if (error) throw new Error(`Could not load GL accounts: ${error}`);
+  return rows;
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PRESETS = ['this_month', 'last_month', 'this_quarter', 'last_quarter', 'ytd', 'last_year', 'custom'];
 
@@ -227,14 +245,8 @@ async function TrialBalanceView({
 
   // Fetch every GL account (inactive ones can still carry a balance; dropping
   // them made the trial balance not balance) with their journal line totals.
-  let q = db
-    .from('gl_accounts')
-    .select('id, number, name, account_type, active')
-    .order('number');
-  if (selectedAssociation) q = q.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
-
-  const { data: glAccounts } = await q;
-  const allAccounts = (glAccounts ?? []) as any[];
+  const glAccounts = await loadReportGlAccounts(db, 'id, number, name, account_type, active', selectedAssociation);
+  const allAccounts = glAccounts as any[];
 
   // A trial balance is an as-of report. Limiting it to period activity makes a
   // new month look empty even when every account has a real opening balance.
@@ -345,12 +357,7 @@ async function BalanceSheetView({
   const db = supabase as any;
 
   // Fetch every GL account (an inactive account can still carry a balance)
-  let glAccountQuery = db
-    .from('gl_accounts')
-    .select('id, number, name, account_type, active')
-    .order('number');
-  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
-  const { data: glAccounts } = await glAccountQuery;
+  const glAccounts = await loadReportGlAccounts(db, 'id, number, name, account_type, active', selectedAssociation);
 
   // Posted totals through the as-of date, summed in the database (a list of
   // lines stopped at 1,000 rows).
@@ -493,14 +500,9 @@ async function IncomeStatementView({
   const db = supabase as any;
 
   // Fetch income (4000-4999, 7000-7999) and expense (5000-6999, 8000-9999) accounts
-  let glAccountQuery = db
-    .from('gl_accounts')
-    .select('id, number, name, account_type, active')
-    // All accounts (an inactive account can still have period activity);
-    // idle inactive accounts are hidden once totals are known.
-    .order('number');
-  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
-  const { data: glAccounts } = await glAccountQuery;
+  // All accounts (an inactive account can still have period activity);
+  // idle inactive accounts are hidden once totals are known.
+  const glAccounts = await loadReportGlAccounts(db, 'id, number, name, account_type, active', selectedAssociation);
 
   // Period totals summed in the database (a list of lines stopped at 1,000 rows).
   const totals = await ledgerTotalsByAccount(db, {
@@ -692,8 +694,33 @@ async function CashFlowView({
     from: period.from,
     to: period.to,
   });
-  const operatingInflows  = cashTotals.reduce((s, r) => s + r.debit_total, 0);
-  const operatingOutflows = cashTotals.reduce((s, r) => s + r.credit_total, 0);
+  // A transfer between two bank accounts debits one cash account and credits
+  // the other (and a void reverses both); it isn't money in or out, so take
+  // posted transfers and their voids in the period out of both gross totals.
+  // Net cash flow is unchanged.
+  const bankIdList = bAccounts.map((a: any) => a.id);
+  const { rows: postedTransfers } = await fetchAllRows<any>(() => {
+    let q = db.from('bank_transfers')
+      .select('id, amount, transfer_date, journal_entry_id, void_entry_id')
+      .not('journal_entry_id', 'is', null)
+      .order('id');
+    if (selectedAssociation) {
+      q = bankIdList.length ? q.in('from_bank_account_id', bankIdList).in('to_bank_account_id', bankIdList) : q.in('id', []);
+    }
+    return q;
+  });
+  const voidEntryIds = postedTransfers.map((t: any) => t.void_entry_id).filter(Boolean);
+  const voidDates = new Map<string, string>();
+  for (let i = 0; i < voidEntryIds.length; i += 200) {
+    const { data: entries } = await db.from('journal_entries').select('id, entry_date').in('id', voidEntryIds.slice(i, i + 200));
+    for (const e of (entries ?? []) as any[]) voidDates.set(e.id, e.entry_date);
+  }
+  const inPeriod = (d: string | null | undefined) => !!d && d >= period.from && d <= period.to;
+  const internalTransfers = postedTransfers.reduce((sum: number, t: any) =>
+    sum + (inPeriod(t.transfer_date) ? Number(t.amount ?? 0) : 0)
+        + (t.void_entry_id && inPeriod(voidDates.get(t.void_entry_id)) ? Number(t.amount ?? 0) : 0), 0);
+  const operatingInflows  = Math.max(0, cashTotals.reduce((s, r) => s + r.debit_total, 0) - internalTransfers);
+  const operatingOutflows = Math.max(0, cashTotals.reduce((s, r) => s + r.credit_total, 0) - internalTransfers);
   const netCashFlow = operatingInflows - operatingOutflows;
 
   // Ending balance per bank account = net of its GL account's posted lines through the as-of date.
@@ -839,17 +866,11 @@ async function GeneralLedgerView({
   const db = supabase as any;
 
   // Fetch all journal lines with entries for the period, grouped by GL account
-  let glAccountQuery = db
-    .from('gl_accounts')
-    .select('id, number, name, account_type')
-    // All accounts, not only active ones: an inactive account can still have
-    // posted lines. Accounts without activity are hidden below.
-    .order('number');
-  if (selectedAssociation) glAccountQuery = glAccountQuery.or(`association_id.is.null,association_id.eq.${selectedAssociation}`);
-  if (selectedAccount) glAccountQuery = glAccountQuery.eq('id', selectedAccount);
-  const { data: glAccounts } = await glAccountQuery;
+  // All accounts, not only active ones: an inactive account can still have
+  // posted lines. Accounts without activity are hidden below.
+  const glAccounts = await loadReportGlAccounts(db, 'id, number, name, account_type', selectedAssociation, selectedAccount);
 
-  const accounts = (glAccounts ?? []) as any[];
+  const accounts = glAccounts as any[];
 
   // Fetch journal_lines with entry info — every page of them (one request
   // stops at 1,000 rows, which silently cut the ledger short).
@@ -1166,11 +1187,12 @@ async function Owner1099View({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: finRows } = await db
+  const { rows: finRows } = await fetchAllRows<any>(() => db
     .from('owner_financial_details')
     .select('owner_id, taxpayer_name, taxpayer_id, sending_preference_1099, electronic_1099_consent, owners(id, full_name, email)')
-    .eq('send_1099', true);
-  const flagged = (finRows ?? []) as any[];
+    .eq('send_1099', true)
+    .order('owner_id'));
+  const flagged = finRows as any[];
   const flaggedIds = flagged.map((r: any) => r.owner_id);
 
   // 1099 amounts are reported by the year the money was PAID, so filter on
@@ -1332,15 +1354,15 @@ async function VehicleInfoView({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data }, { data: personVehicles }] = await Promise.all([
-    db.from('parking_assignments')
+  const [{ rows: data }, { rows: personVehicles }] = await Promise.all([
+    fetchAllRows<any>(() => db.from('parking_assignments')
       .select('id, vehicle_make, vehicle_model, vehicle_color, license_plate, insurance_company, status, occupant_name, owners(id, full_name), parking_spaces(label), units(unit_number, buildings(associations(id, name)))')
       .eq('status', 'active')
-      .order('created_at', { ascending: false }),
-    db.from('owner_vehicles')
+      .order('created_at', { ascending: false }).order('id')),
+    fetchAllRows<any>(() => db.from('owner_vehicles')
       .select('id, make, model, color, year, license_plate, plate_state, owners(id, full_name)')
       .is('archived_at', null)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false }).order('id')),
   ]);
 
   let rows = (data ?? []) as any[];
@@ -1802,9 +1824,11 @@ async function ManagementFeeSummaryView(ctx: ReportContext) {
 async function OwnerPrepaidView(ctx: ReportContext) {
   const supabase = await createClient();
   const db = supabase as any;
-  const [{ data: balances }, { data: occs }] = await Promise.all([
-    db.from('unit_balances').select('unit_id, unit_number, balance').lt('balance', 0),
-    db.from('occupancies').select('owner_id, unit_id, owners(id, full_name, email), units(unit_number, buildings(associations(id, name)))').eq('status', 'current'),
+  const [{ rows: balances }, { rows: occs }] = await Promise.all([
+    fetchAllRows<any>(() => db.from('unit_balances').select('unit_id, unit_number, balance').lt('balance', 0).order('unit_id')),
+    fetchAllRows<any>(() => db.from('occupancies')
+      .select('id, owner_id, unit_id, owners(id, full_name, email), units(unit_number, buildings(associations(id, name)))')
+      .eq('status', 'current').eq('occupancy_type', 'owner').order('id')),
   ]);
   const occByUnit = new Map(((occs ?? []) as any[]).map((o: any) => [o.unit_id, o]));
   let rows = ((balances ?? []) as any[]).map((b: any) => {
@@ -1961,16 +1985,16 @@ async function ReportRightRail({
   def: any; runs: any[]; associations: any[]; period: Period;
   selectedAssociation: string; selectedPreset: string; selectedScope: string; selectedAccount?: string; isLive?: boolean; supportsLiveExport?: boolean; isAsOfToday?: boolean;
 }) {
-  // Owner / unit pickers (RLS-scoped) instead of raw-UUID text boxes.
+  // Unit picker (RLS-scoped) only where the report takes a unit: the other
+  // reports run by association, and a homeowner/unit filter they ignored
+  // produced every owner's data.
   const unitRequired = def.slug === 'owner_ledger';
+  const unitSupported = unitRequired || def.slug === 'homeowner_resale';
   const pickerDb = (await createClient()) as any;
   // PostgREST caps a request at 1,000 rows (.limit(2000) did not lift it), so page through.
-  const [{ rows: pickerUnits }, { rows: pickerOwners }] = isLive
-    ? [{ rows: [] as any[] }, { rows: [] as any[] }]
-    : await Promise.all([
-        fetchAllRows<any>(() => pickerDb.from('units').select('id, unit_number, buildings(associations(name))').is('archived_at', null).order('unit_number').order('id'), { maxRows: 20000 }),
-        fetchAllRows<any>(() => pickerDb.from('owners').select('id, full_name').is('archived_at', null).order('full_name').order('id'), { maxRows: 20000 }),
-      ]);
+  const { rows: pickerUnits } = isLive || !unitSupported
+    ? { rows: [] as any[] }
+    : await fetchAllRows<any>(() => pickerDb.from('units').select('id, unit_number, buildings(associations(name))').is('archived_at', null).order('unit_number').order('id'), { maxRows: 20000 });
   const unitLabel = (u: any) => `${u.buildings?.associations?.name ?? 'Association'} · Unit ${u.unit_number}`;
   const sortedUnits = [...(pickerUnits ?? [])].sort((a: any, b: any) =>
     unitLabel(a).localeCompare(unitLabel(b), undefined, { numeric: true }));
@@ -2057,8 +2081,7 @@ async function ReportRightRail({
           >
             <option value="portfolio">Portfolio</option>
             <option value="association">Association</option>
-            {!isLive && <option value="owner">Owner</option>}
-            {!isLive && <option value="unit">Unit</option>}
+            {!isLive && unitSupported && <option value="unit">Unit</option>}
           </select>
         </div>
 
@@ -2076,21 +2099,8 @@ async function ReportRightRail({
           </select>
         </div>
 
-        {!isLive && (
+        {!isLive && unitSupported && (
           <div className="grid grid-cols-1 gap-2">
-            {!unitRequired && (
-              <div>
-                <label className="mb-0.5 block text-[11px] text-gray-500">Homeowner</label>
-                <select
-                  name="param_owner_id"
-                  defaultValue=""
-                  className="h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="">All homeowners</option>
-                  {(pickerOwners ?? []).map((o: any) => <option key={o.id} value={o.id}>{o.full_name}</option>)}
-                </select>
-              </div>
-            )}
             <div>
               <label className="mb-0.5 block text-[11px] text-gray-500">Unit{unitRequired ? ' (required)' : ''}</label>
               <select

@@ -1,5 +1,6 @@
 /**
- * Hourly scheduled-report generator and durable delivery recovery worker.
+ * Hourly report worker: generates scheduled runs, finishes manual or bulk
+ * runs left queued or stuck, and recovers scheduled-report email delivery.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
@@ -23,11 +24,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `enqueue failed: ${enqueueError.message}` }, { status: 500 });
     }
 
+    // Every queued run (scheduled, or a manual/bulk run whose request timed
+    // out before it was processed), plus runs stuck in "running" for over 15
+    // minutes; processReportRun takes both and records its own failures.
+    // (A manual run gets 5 minutes to be processed by its own request first;
+    // processReportRun also claims each run atomically.)
+    const stuckBefore = new Date(Date.now() - 15 * 60000).toISOString();
+    const manualBefore = new Date(Date.now() - 5 * 60000).toISOString();
     const { data: queuedRuns, error: runLookupError } = await svc
       .from('report_runs')
       .select('id')
-      .eq('status', 'queued')
-      .not('scheduled_report_id', 'is', null)
+      .or(`and(status.eq.queued,scheduled_report_id.not.is.null),and(status.eq.queued,created_at.lt.${manualBefore}),and(status.eq.running,started_at.lt.${stuckBefore})`)
       .order('created_at', { ascending: true })
       .limit(25);
     if (runLookupError) throw new Error(`run lookup failed: ${runLookupError.message}`);
