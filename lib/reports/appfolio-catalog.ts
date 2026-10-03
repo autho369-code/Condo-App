@@ -62,6 +62,15 @@ export const REPORT_CATALOG: CatalogCategory[] = [
     ],
   },
   {
+    key: 'corporate',
+    title: 'Corporate Accounting Reports',
+    reports: [
+      { name: 'Corporate - Association Transactions', slug: 'corporate_association_transactions' },
+      { name: 'Corporate Aged Receivable Detail', slug: 'corporate_aged_receivable_detail' },
+      { name: 'Customer Ledger', slug: 'customer_ledger' },
+    ],
+  },
+  {
     key: 'diagnostic',
     title: 'Diagnostic Reports',
     reports: [
