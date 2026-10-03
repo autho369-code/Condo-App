@@ -66,6 +66,14 @@ function when(value: string | null) {
   return value ? formatInZone(value) : '—';
 }
 
+/** A YYYY-MM-DD that is a real calendar day, else '' (an impossible date is ignored). */
+function realDate(raw: string | undefined) {
+  if (!raw || !DATE.test(raw)) return '';
+  const [y, m, d] = raw.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d ? raw : '';
+}
+
 function addDays(day: string, n: number) {
   return new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 }
@@ -81,8 +89,8 @@ export default async function CommunicationCenterPage({
   const tab: TabKey = TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : sp.status === 'failed' && !sp.tab ? 'drafts' : 'emails';
   const status = STATUS_OPTIONS[tab].some((o) => o.value === sp.status) ? sp.status! : '';
   const association = UUID.test(sp.association ?? '') ? sp.association! : '';
-  const from = DATE.test(sp.from ?? '') ? sp.from! : '';
-  const to = DATE.test(sp.to ?? '') ? sp.to! : '';
+  const from = realDate(sp.from);
+  const to = realDate(sp.to);
   const q = sanitizeSearchTerm(sp.q);
   const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
   const zone = displayTimeZone();
@@ -108,7 +116,11 @@ export default async function CommunicationCenterPage({
     let query = db.from('email_queue')
       .select('id, to_email, to_name, subject, status, delivery_status, error_message, created_at, sent_at, delivered_at, open_count, first_opened_at, bounced_at, associations(name)', { count: 'exact' });
     if (association) query = query.eq('association_id', association);
-    if (status === 'pending' || status === 'sent' || status === 'failed') query = query.eq('status', status);
+    // A provider can report a failure after accepting an email: the queue row
+    // stays 'sent' and delivery_status becomes 'failed'.
+    if (status === 'pending') query = query.eq('status', 'pending');
+    if (status === 'sent') query = query.eq('status', 'sent').or('delivery_status.is.null,delivery_status.neq.failed');
+    if (status === 'failed') query = query.or('status.eq.failed,delivery_status.eq.failed');
     if (status === 'opened') query = query.gt('open_count', 0);
     if (status === 'bounced') query = query.not('bounced_at', 'is', null);
     if (q) query = query.or(`to_email.ilike."%${q}%",to_name.ilike."%${q}%",subject.ilike."%${q}%"`);
@@ -244,7 +256,7 @@ export default async function CommunicationCenterPage({
                   <TD className="text-sm text-gray-600">{m.associations?.name ?? '—'}</TD>
                   <TD>
                     {m.bounced_at ? <StatusChip tone="danger">Bounced</StatusChip>
-                      : m.status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
+                      : m.status === 'failed' || m.delivery_status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
                       : m.status === 'pending' ? <StatusChip tone="warning">Waiting to send</StatusChip>
                       : m.delivered_at ? <StatusChip tone="success">Delivered</StatusChip>
                       : <StatusChip tone="info">Sent</StatusChip>}

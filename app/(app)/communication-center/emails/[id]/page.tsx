@@ -52,7 +52,7 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
 
   const [{ data: email }, { data: events }] = await Promise.all([
     db.from('email_queue')
-      .select('id, to_email, to_name, from_name, from_address, reply_to, subject, body, status, error_message, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, associations(name)')
+      .select('id, to_email, to_name, from_name, from_address, reply_to, subject, body, status, delivery_status, error_message, attempt_count, created_at, sent_at, delivered_at, open_count, first_opened_at, last_opened_at, clicked_at, bounced_at, complained_at, associations(name)')
       .eq('id', id)
       .maybeSingle(),
     db.from('email_events').select('id, event_type, occurred_at, detail').eq('email_id', id).order('occurred_at', { ascending: true }).limit(200),
@@ -83,11 +83,11 @@ export default async function SentEmailPage({ params }: { params: Promise<{ id: 
         <Surface>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {email.bounced_at ? <StatusChip tone="danger">Bounced</StatusChip>
-              : email.status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
+              : email.status === 'failed' || email.delivery_status === 'failed' ? <StatusChip tone="danger">Failed</StatusChip>
               : email.status === 'pending' ? <StatusChip tone="warning">Waiting to send</StatusChip>
               : email.delivered_at ? <StatusChip tone="success">Delivered</StatusChip>
               : <StatusChip tone="info">Sent</StatusChip>}
-            {email.status === 'failed' && email.error_message && <span className="text-sm text-red-600">{email.error_message}</span>}
+            {(email.status === 'failed' || email.delivery_status === 'failed') && email.error_message && <span className="text-sm text-red-600">{email.error_message}</span>}
             {email.status === 'pending' && email.attempt_count > 0 && <span className="text-sm text-gray-500">{email.attempt_count} attempt{email.attempt_count === 1 ? '' : 's'} so far</span>}
           </div>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
