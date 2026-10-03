@@ -103,6 +103,9 @@ export default async function BudgetTab({
                 <Link href={`/budget-vs-actuals?association=${id}&year=${fiscalYear}`}>
                   <Button size="sm" variant="secondary">Budget vs actual</Button>
                 </Link>
+                <Link href={`/associations/${ref}/budget/dues-increase`}>
+                  <Button size="sm" variant="secondary">Dues increase</Button>
+                </Link>
                 <Link href={`/associations/${ref}/budget/assessments?fiscal_year=${fiscalYear}`}>
                   <Button size="sm">Update assessments</Button>
                 </Link>
