@@ -166,7 +166,13 @@ export async function POST(request: NextRequest) {
   }));
   if (adjItems.length) {
     const { error: adjError } = await db.from('bank_reconciliation_items').insert(adjItems);
-    if (adjError) return back(`The reconciliation started, but its bank adjustments could not be added: ${adjError.message}`);
+    if (adjError) {
+      // A reconciliation missing its adjustments could never balance and
+      // would block a retry: roll it back like a failed ledger-item insert.
+      await db.from('bank_reconciliation_items').delete().eq('reconciliation_id', reconciliation.id);
+      await db.from('bank_reconciliations').delete().eq('id', reconciliation.id);
+      return back(`Could not add the bank adjustments to the reconciliation: ${adjError.message}`);
+    }
   }
 
   // Redirect to the reconcile page

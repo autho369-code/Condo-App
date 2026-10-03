@@ -36,7 +36,9 @@ begin
     raise exception 'Bank transaction not found' using errcode = 'P0002';
   end if;
   if b.gl_account_id is null then raise exception 'Link the bank account to a GL account first' using errcode = '22023'; end if;
-  if t.matched_journal_line_id is not null or t.matched_bank_deposit_id is not null then
+  -- matched_at covers every claim, including Stripe payout reconciliation,
+  -- which sets it without a ledger line or deposit.
+  if t.matched_at is not null or t.matched_journal_line_id is not null or t.matched_bank_deposit_id is not null then
     raise exception 'This transaction is already matched' using errcode = '22023';
   end if;
   if t.pending then raise exception 'Wait until the bank posts this transaction' using errcode = '22023'; end if;

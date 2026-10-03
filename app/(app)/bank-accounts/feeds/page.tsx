@@ -52,13 +52,13 @@ export default async function BankFeedsPage({
   let query = db
     .from('bank_transactions')
     .select(
-      'id, amount, date, name, merchant_name, category, pending, reviewed, gl_account_id, match_confidence, match_method, matched_journal_line_id, matched_bank_deposit_id, ignored_at, bank_account_id, bank_accounts(name, gl_account_id, association_id), gl_accounts(number, name)'
+      'id, amount, date, name, merchant_name, category, pending, reviewed, gl_account_id, match_confidence, match_method, matched_at, matched_journal_line_id, matched_bank_deposit_id, ignored_at, bank_account_id, bank_accounts(name, gl_account_id, association_id), gl_accounts(number, name)'
     )
     .order('date', { ascending: false })
     .limit(100);
 
-  if (filter === 'unreviewed') query = query.is('matched_journal_line_id', null).is('matched_bank_deposit_id', null).is('ignored_at', null);
-  if (filter === 'unmatched') query = query.is('matched_journal_line_id', null).is('matched_bank_deposit_id', null);
+  if (filter === 'unreviewed') query = query.is('matched_at', null).is('ignored_at', null);
+  if (filter === 'unmatched') query = query.is('matched_at', null);
   if (filter === 'ignored') query = query.not('ignored_at', 'is', null);
   if (filter === 'pending') query = query.eq('pending', true);
   if (bank_account_id) query = query.eq('bank_account_id', bank_account_id);
@@ -77,7 +77,9 @@ export default async function BankFeedsPage({
     .is('archived_at', null)
     .order('name');
 
-  const isMatched = (t: any) => Boolean(t.matched_journal_line_id || t.matched_bank_deposit_id);
+  // matched_at also covers Stripe payout reconciliation, which claims a
+  // transaction without a ledger line or deposit.
+  const isMatched = (t: any) => Boolean(t.matched_at || t.matched_journal_line_id || t.matched_bank_deposit_id);
   const open = (t: any) => !isMatched(t) && !t.ignored_at && !t.pending;
   const unreviewedCount = txns.filter(open).length;
   const unmatchedCount = txns.filter((t: any) => !isMatched(t)).length;
@@ -228,7 +230,7 @@ export default async function BankFeedsPage({
                       {txn.pending ? (
                         <StatusChip tone="warning">Pending at the bank</StatusChip>
                       ) : isMatched(txn) ? (
-                        <StatusChip tone="success">{txn.match_method === 'posted' ? 'Posted' : txn.match_method === 'deposit' ? 'Matched to deposit' : 'Matched'}</StatusChip>
+                        <StatusChip tone="success">{txn.match_method === 'posted' ? 'Posted' : txn.match_method === 'deposit' ? 'Matched to deposit' : txn.matched_journal_line_id ? 'Matched' : 'Matched to payout'}</StatusChip>
                       ) : txn.ignored_at ? (
                         <form action={bankFeedAction} className="flex items-center gap-2">
                           <input type="hidden" name="id" value={txn.id} />

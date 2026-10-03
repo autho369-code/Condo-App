@@ -145,7 +145,10 @@ export default async function BankReconciliationPage({
     }
     const depIds = [...new Set(depositOf.values())];
     for (const part of chunks(depIds)) {
-      const { data } = await db.from('bank_deposits').select('id, deposit_date, memo, receipt_count').in('id', part).is('voided_at', null);
+      // Only deposits made by the statement date: a later deposit was not on
+      // this statement, so its receipts stay separate here.
+      const { data } = await db.from('bank_deposits').select('id, deposit_date, memo, receipt_count').in('id', part).is('voided_at', null)
+        .lte('deposit_date', recentReconciliation.statement_date);
       for (const d of data ?? []) deposits.set(d.id, d);
     }
   }
