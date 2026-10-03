@@ -7,7 +7,7 @@ export async function queueOwnerPortalInvitation(db: any, input: {
   fullName: string;
   portfolioId: string;
   invitedBy: string | null;
-}): Promise<{ error: string | null }> {
+}): Promise<{ error: string | null; invitationId?: string }> {
   const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
   const { data: invitation, error: inviteError } = await db
     .from('user_invitations')
@@ -54,5 +54,5 @@ export async function queueOwnerPortalInvitation(db: any, input: {
     await db.from('user_invitations').update({ status: 'revoked' }).eq('id', invitation.id);
     return { error: queued.error ?? 'Could not queue portal invitation' };
   }
-  return { error: null };
+  return { error: null, invitationId: invitation.id };
 }
