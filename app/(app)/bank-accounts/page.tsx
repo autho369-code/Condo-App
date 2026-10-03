@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { DataTable } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { maskBankNumber } from '@/lib/banking/bank-format';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { FinancialAccountTabs } from '@/components/banking/financial-account-tabs';
@@ -28,7 +27,7 @@ export default async function BankAccountsPage({
 
   let query = db
     .from('bank_accounts')
-    .select('id, name, bank_name, account_number, routing_number, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations!bank_accounts_association_id_fkey(name)')
+    .select('id, name, bank_name, account_number_last4, routing_number_last4, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations!bank_accounts_association_id_fkey(name)')
     .is('archived_at', null)
     .order('name');
 
@@ -133,7 +132,7 @@ export default async function BankAccountsPage({
               key: 'account_number',
               header: 'Account number',
               className: 'font-mono',
-              render: (account: any) => (account.account_number ? maskBankNumber(account.account_number) : 'Not provided'),
+              render: (account: any) => (account.account_number_last4 ? `****${account.account_number_last4}` : 'Not provided'),
             },
             {
               key: 'last_reconciliation_date',

@@ -10,7 +10,6 @@ import { Alert } from '@/components/ui/shell';
 import { EmptyState, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
-import { maskBankNumber } from '@/lib/banking/bank-format';
 import { toActivityRows, type BankActivitySourceRow } from '@/lib/banking/activity';
 import { createClient } from '@/lib/supabase/server';
 import { linkBankGlAccount, updateBankCheckSettings } from '@/lib/rpcs/entities';
@@ -35,7 +34,7 @@ export default async function BankAccountDetailPage({
   const { data: account } = await db
     .from('bank_accounts')
     .select(
-      'id, name, bank_name, description, account_number, routing_number, account_type, purpose, gl_account_id, association_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
+      'id, name, bank_name, description, account_number_last4, routing_number_last4, account_type, purpose, gl_account_id, association_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, check_signature, company_name, company_address, associations!bank_accounts_association_id_fkey(name)',
     )
     .eq('id', id)
     .is('archived_at', null)
@@ -184,11 +183,11 @@ export default async function BankAccountDetailPage({
             />
             <Detail
               label="Account number"
-              value={<span className="font-mono">{account.account_number ? maskBankNumber(account.account_number) : 'Not provided'}</span>}
+              value={<span className="font-mono">{account.account_number_last4 ? `****${account.account_number_last4}` : 'Not provided'}</span>}
             />
             <Detail
               label="Routing number"
-              value={<span className="font-mono">{account.routing_number ? maskBankNumber(account.routing_number) : 'Not provided'}</span>}
+              value={<span className="font-mono">{account.routing_number_last4 ? `*****${account.routing_number_last4}` : 'Not provided'}</span>}
             />
             <Detail
               label="GL account"
