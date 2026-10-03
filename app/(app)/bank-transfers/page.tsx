@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { completeBankTransfers } from '@/lib/rpcs/bank-transfers';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { createClient } from '@/lib/supabase/server';
@@ -36,9 +36,9 @@ type TabKey = (typeof TABS)[number]['key'];
 export default async function BankTransfersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; date_from?: string; date_to?: string; completed?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; date_from?: string; date_to?: string; completed?: string; recorded?: string; error?: string }>;
 }) {
-  const me = await requireStaff();
+  const me = await requireFinanceStaff();
   const sp = await searchParams;
   const rawTab = sp.tab ?? 'activity';
   const tab = LEGACY_TABS[rawTab] ?? rawTab;
@@ -52,9 +52,9 @@ export default async function BankTransfersPage({
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: associations }, { data: banks }] = await Promise.all([
-    db.from('associations').select('id, name').is('archived_at', null).order('name'),
-    db.from('bank_accounts').select('id, name, association_id'),
+  const [{ rows: associations }, { rows: banks }] = await Promise.all([
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
+    fetchAllRows<any>(() => db.from('bank_accounts').select('id, name, association_id').order('id')),
   ]);
   const bankList = (banks ?? []) as Array<{ id: string; name: string; association_id: string | null }>;
   // A transfer belongs to an association through its bank accounts.
@@ -88,27 +88,28 @@ export default async function BankTransfersPage({
     if (dateTo) query = query.lte('transfer_date', dateTo);
     return query;
   };
+  // Void transfers stay in "All transfers" only.
   const withTab = (query: any) =>
-    activeTab === 'completed' ? query.not('journal_entry_id', 'is', null)
-      : activeTab === 'incomplete' ? query.is('journal_entry_id', null)
+    activeTab === 'completed' ? query.not('journal_entry_id', 'is', null).is('voided_at', null)
+      : activeTab === 'incomplete' ? query.is('journal_entry_id', null).is('voided_at', null)
         : query;
 
   const [listRes, { count: incompleteCount }, { count: completedCount }, amounts] = await Promise.all([
     withTab(base(
-      `id, amount, transfer_date, reference_number, memo, journal_entry_id,
+      `id, amount, transfer_date, reference_number, memo, journal_entry_id, voided_at,
        from:from_bank_account_id(id, name, account_type, bank_name),
        to:to_bank_account_id(id, name, account_type, bank_name)`,
       { count: 'exact' },
     )).order('transfer_date', { ascending: false }).order('id').limit(ROW_CAP),
-    base('id', { count: 'exact', head: true }).is('journal_entry_id', null),
-    base('id', { count: 'exact', head: true }).not('journal_entry_id', 'is', null),
+    base('id', { count: 'exact', head: true }).is('journal_entry_id', null).is('voided_at', null),
+    base('id', { count: 'exact', head: true }).not('journal_entry_id', 'is', null).is('voided_at', null),
     fetchAllRows<any>(() => withTab(base('id, amount')).order('id')),
   ]);
   const transfers = (listRes.data ?? []) as any[];
   const matching = listRes.count ?? transfers.length;
   const totalAmount = (amounts.rows as any[]).reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
   const loadError = listRes.error?.message ?? amounts.error ?? null;
-  const incompleteShown = transfers.filter((t) => !t.journal_entry_id);
+  const incompleteShown = transfers.filter((t) => !t.journal_entry_id && !t.voided_at);
   const showSelect = canComplete && incompleteShown.length > 0;
 
   const tabHref = (key: TabKey) => {
@@ -139,12 +140,12 @@ export default async function BankTransfersPage({
           <TR key={t.id}>
             {showSelect && (
               <TD>
-                {!t.journal_entry_id && (
+                {!t.journal_entry_id && !t.voided_at && (
                   <input type="checkbox" name="transfer_id" value={t.id} aria-label="Select transfer" className="h-4 w-4 rounded border-gray-300" />
                 )}
               </TD>
             )}
-            <TD className="whitespace-nowrap text-sm">{date(t.transfer_date)}</TD>
+            <TD className="whitespace-nowrap text-sm"><Link href={`/bank-transfers/${t.id}`} className="font-medium text-gray-900 hover:underline">{date(t.transfer_date)}</Link></TD>
             <TD>
               <div className="font-medium text-gray-900">{t.from?.name ?? '—'}</div>
               <div className="text-xs capitalize text-gray-500">{t.from?.account_type?.replace(/_/g, ' ') ?? ''}</div>
@@ -157,9 +158,13 @@ export default async function BankTransfersPage({
             <TD className="font-mono text-xs text-gray-600">{t.reference_number ?? '—'}</TD>
             <TD className="max-w-xs truncate text-sm text-gray-600">{t.memo ?? '—'}</TD>
             <TD>
-              <StatusChip tone={t.journal_entry_id ? 'success' : 'warning'}>
-                {t.journal_entry_id ? 'Completed' : 'Incomplete'}
-              </StatusChip>
+              {t.voided_at ? (
+                <StatusChip tone="neutral">Void</StatusChip>
+              ) : (
+                <StatusChip tone={t.journal_entry_id ? 'success' : 'warning'}>
+                  {t.journal_entry_id ? 'Completed' : 'Incomplete'}
+                </StatusChip>
+              )}
             </TD>
           </TR>
         ))}
@@ -185,6 +190,7 @@ export default async function BankTransfersPage({
           <Alert tone="success" title={`${sp.completed} transfer${sp.completed === '1' ? '' : 's'} completed and posted to the ledger`} />
         )}
         {sp.error && <Alert title="Not every transfer was completed.">{sp.error}</Alert>}
+        {sp.recorded && <Alert tone="success" title="Transfer recorded and posted to the ledger" />}
         {loadError && <Alert title="Could not load transfers.">{loadError}</Alert>}
 
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
