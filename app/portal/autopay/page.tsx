@@ -13,6 +13,8 @@ import {
 } from '@/lib/payments/guards';
 import { RefreshCcw, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { todayInZone } from '@/lib/time/zoned';
+import { associationZone } from '../_lib/tenure';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,16 +137,17 @@ async function updateMandate(formData: FormData) {
   }
   const svc = createServiceClient() as any;
 
-  const { data: mandate } = await svc.from('autopay_mandates').select('id, owner_id, next_run_date, day_of_month').eq('id', mandateId).maybeSingle();
+  const { data: mandate } = await svc.from('autopay_mandates').select('id, owner_id, next_run_date, day_of_month, associations(timezone)').eq('id', mandateId).maybeSingle();
   if (!mandate || mandate.owner_id !== me.owner_id) redirect(`${RETURN}?error=${encodeURIComponent('AutoPay enrollment not found.')}`);
 
   const updates: any = { updated_at: new Date().toISOString() };
+  // "Today" in the association's time zone, not UTC.
+  const today = todayInZone(associationZone(mandate.associations?.timezone));
   if (action === 'skip_month') {
     // Skip exactly the next scheduled run.
-    updates.skip_until = mandate.next_run_date ?? new Date().toISOString().slice(0, 10);
+    updates.skip_until = mandate.next_run_date ?? today;
   } else if (action === 'vacation') {
     const until = (formData.get('until') as string) || '';
-    const today = new Date().toISOString().slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || Number.isNaN(Date.parse(`${until}T00:00:00Z`)) || until < today) {
       redirect(`${RETURN}?error=${encodeURIComponent('Pick a valid vacation end date that is not in the past.')}`);
     }
@@ -187,7 +190,7 @@ export default async function AutopayPage({
 
   const [{ data: mandates }, { data: occs }] = await Promise.all([
     db.from('autopay_mandates')
-      .select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name), associations(name)')
+      .select('*, units(unit_number), payment_methods(brand, last_four, method_type, bank_name), associations(name, timezone)')
       .eq('owner_id', me.owner_id)
       .neq('status', 'canceled')
       .order('created_at', { ascending: false }),
@@ -201,7 +204,8 @@ export default async function AutopayPage({
   const enrollableUnits = (occs ?? []).filter(
     (o: any) => associationCanAcceptStripePayments(o.associations) && !activeMandateUnitIds.has(o.unit_id),
   );
-  const today = new Date().toISOString().slice(0, 10);
+  // Each mandate's "today" is its association's local date.
+  const todayFor = (m: any) => todayInZone(associationZone(m.associations?.timezone));
 
   return (
     <div className="space-y-6">
@@ -222,6 +226,7 @@ export default async function AutopayPage({
 
       {/* ── Active enrollments ────────────────────────── */}
       {(mandates ?? []).map((m: any) => {
+        const today = todayFor(m);
         const onHold = m.skip_until && m.skip_until >= today;
         return (
           <div key={m.id} className={card}>
