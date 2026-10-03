@@ -176,3 +176,25 @@ revoke execute on function public.unapply_payment(uuid, uuid) from authenticated
 -- Assess them daily for associations whose late-fee policy is on.
 select cron.schedule('assess-late-fees-daily', '10 7 * * *',
   $$ select public.cron_assess_late_fees(); $$);
+
+-- Receivables "Outstanding" is open charges less credit on file, so it agrees
+-- with the owners' balances (it used to ignore unapplied payments and credits).
+create or replace function public.receivable_unit_totals(p_unit_ids uuid[] default null::uuid[])
+returns table(outstanding_total numeric, delinquent_count integer, delinquent_balance numeric)
+language sql stable set search_path to 'public'
+as $function$
+  select
+    -- Open charges less credit on file (unapplied payments and credits).
+    ((select coalesce(sum(ar.balance_due), 0)
+       from public.aged_receivables ar
+      where p_unit_ids is null or ar.unit_id = any (p_unit_ids))
+     - (select coalesce(sum(uc.unapplied_amount), 0)
+       from public.v_unapplied_credits uc
+      where p_unit_ids is null or uc.unit_id = any (p_unit_ids)))::numeric,
+    (select count(*)
+       from public.delinquent_units du
+      where p_unit_ids is null or du.unit_id = any (p_unit_ids))::integer,
+    (select coalesce(sum(du.balance), 0)
+       from public.delinquent_units du
+      where p_unit_ids is null or du.unit_id = any (p_unit_ids))::numeric;
+$function$;
