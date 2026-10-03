@@ -1,40 +1,60 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { GL_ACCOUNT_TYPES, glWriteError } from '@/lib/gl/accounts';
 
 export const dynamic = 'force-dynamic';
 
-const ACCOUNT_TYPES = ['asset', 'cash', 'accounts_receivable', 'fixed_asset', 'liability', 'accounts_payable', 'equity', 'income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating'];
+const ACCOUNT_TYPES = GL_ACCOUNT_TYPES;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
-export default async function NewGlAccountPage({ searchParams }: { searchParams: Promise<{ error?: string; created?: string }> }) {
-  const me = await requireStaff();
+export default async function NewGlAccountPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  await requireFinanceStaff();
   const sp = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: associations } = await db.from('associations').select('id, name').is('archived_at', null).order('name');
+  const [{ data: associations }, { rows: parents }] = await Promise.all([
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number').order('id')),
+  ]);
 
   async function createGlAccount(formData: FormData) {
     'use server';
-    const me = await requireStaff();
+    const me = await requireFinanceStaff();
     const supabase = await createClient();
+    const db = supabase as any;
     const number = parseInt(formData.get('number') as string, 10);
     const name = (formData.get('name') as string)?.trim();
     const accountType = formData.get('account_type') as string;
     if (!Number.isFinite(number)) redirect('/gl-accounts/new?error=' + encodeURIComponent('Enter an account number.'));
     if (number < 1000 || number > 9999) redirect('/gl-accounts/new?error=' + encodeURIComponent('Account number must be between 1000 and 9999.'));
     if (!name) redirect('/gl-accounts/new?error=' + encodeURIComponent('Enter an account name.'));
-    if (!accountType) redirect('/gl-accounts/new?error=' + encodeURIComponent('Select an account type.'));
+    if (!ACCOUNT_TYPES.includes(accountType)) redirect('/gl-accounts/new?error=' + encodeURIComponent('Select an account type.'));
+    const associationId = String(formData.get('association_id') ?? '') || null;
+    const parentId = String(formData.get('sub_account_of_id') ?? '') || null;
+    if ((associationId && !UUID.test(associationId)) || (parentId && !UUID.test(parentId))) {
+      redirect('/gl-accounts/new?error=' + encodeURIComponent('Choose a valid association and parent account.'));
+    }
+    // The association must be one of the caller's own, in their company (the
+    // database re-checks the company and the parent account's rules).
+    if (associationId) {
+      const { data: assocRow } = await db.from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
+      if (!assocRow || assocRow.portfolio_id !== me.portfolio?.id) redirect('/gl-accounts/new?error=' + encodeURIComponent('Choose one of your associations.'));
+    }
 
     const { error } = await (supabase as any).from('gl_accounts').insert({
       portfolio_id: me.portfolio?.id,
-      association_id: (formData.get('association_id') as string) || null,
+      association_id: associationId,
+      sub_account_of_id: parentId,
       number,
       name,
       account_type: accountType,
@@ -43,8 +63,9 @@ export default async function NewGlAccountPage({ searchParams }: { searchParams:
       subject_to_management_fees: formData.get('subject_to_management_fees') === 'on',
       active: true,
     });
-    if (error) redirect('/gl-accounts/new?error=' + encodeURIComponent(error.message));
-    redirect('/gl-accounts/new?created=1');
+    if (error) redirect('/gl-accounts/new?error=' + encodeURIComponent(glWriteError(error.message)));
+    revalidatePath('/gl-accounts');
+    redirect('/gl-accounts?created=1');
   }
 
   return (
@@ -55,7 +76,6 @@ export default async function NewGlAccountPage({ searchParams }: { searchParams:
     >
       <form action={createGlAccount} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create account">{sp.error}</Alert>}
-        {sp.created === '1' && <Alert tone="success" title="GL account created">The account was added to the chart of accounts.</Alert>}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
@@ -84,6 +104,15 @@ export default async function NewGlAccountPage({ searchParams }: { searchParams:
               {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="sub_account_of_id">Sub-account of (optional)</Label>
+          <select id="sub_account_of_id" name="sub_account_of_id" className={inputCls}>
+            <option value="">None — a top-level account</option>
+            {(parents ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.number} · {a.name}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">A sub-account has the same type as its parent and rolls up under it.</p>
         </div>
 
         <div>
