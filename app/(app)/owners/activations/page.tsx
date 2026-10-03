@@ -37,7 +37,7 @@ const INVITABLE: Status[] = ['not_invited', 'expired', 'invited'];
 export default async function OwnerActivationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; owner?: string; status?: string; association?: string; sent?: string; skipped?: string; failed?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; owner?: string; status?: string; association?: string; sent?: string; skipped?: string; failed?: string; remaining?: string; error?: string }>;
 }) {
   await requireStaff();
   const sp = await searchParams;
@@ -121,6 +121,7 @@ export default async function OwnerActivationsPage({
           <Alert tone="success" title={`${sp.sent} invitation${sp.sent === '1' ? '' : 's'} sent`}>
             {sp.skipped ? `${sp.skipped} skipped (already active, has an account, or no valid email). ` : ''}
             Each owner gets an email with a private link that expires in 30 days.
+            {sp.remaining ? ` ${sp.remaining} more were selected than one send handles (200): filter Status to “Not invited”, select all and send again.` : ''}
           </Alert>
         )}
         {sp.failed && <Alert tone="danger" title="Some invitations failed">{sp.failed}</Alert>}

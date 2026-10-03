@@ -19,7 +19,7 @@ function backTo(formData: FormData) {
 
 function withParams(path: string, params: Record<string, string>) {
   const url = new URL(path, 'http://x');
-  for (const k of ['error', 'sent', 'skipped', 'failed']) url.searchParams.delete(k);
+  for (const k of ['error', 'sent', 'skipped', 'failed', 'remaining']) url.searchParams.delete(k);
   for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v);
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
@@ -39,7 +39,10 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
 
   const ids = [...new Set(formData.getAll('owner_id').map(String).filter((id) => UUID.test(id)))];
   if (ids.length === 0) fail('Select at least one owner.');
-  if (ids.length > MAX_PER_SEND) fail(`Send at most ${MAX_PER_SEND} invitations at a time.`);
+  // A large selection is sent in batches: this send takes the first
+  // MAX_PER_SEND, and the page reports how many are left for the next one.
+  const remaining = Math.max(0, ids.length - MAX_PER_SEND);
+  ids.splice(MAX_PER_SEND);
 
   const db = (await createClient()) as any;
   // One-time token: a double click or a re-sent form sends once.
@@ -70,27 +73,35 @@ export async function sendOwnerPortalInvitations(formData: FormData) {
       skipped += 1;
       continue;
     }
-    // Only the newest invitation link stays valid.
-    await svc.from('user_invitations')
-      .update({ status: 'revoked', updated_at: new Date().toISOString() })
-      .eq('portfolio_id', portfolioId)
-      .eq('hoa_role', 'owner')
-      .eq('status', 'pending')
-      .eq('email', email);
+    // Create and email the new link first; only once it is on its way are the
+    // owner's older pending links revoked, so a failed resend never leaves the
+    // owner without a working link.
     const result = await queueOwnerPortalInvitation(svc, {
       email,
       fullName: o.full_name ?? email,
       portfolioId,
       invitedBy: me.auth_user_id,
     });
-    if (result.error) failures.push(`${o.full_name ?? email}: ${result.error}`);
-    else sent += 1;
+    if (result.error || !result.invitationId) {
+      failures.push(`${o.full_name ?? email}: ${result.error ?? 'Could not create the invitation'}`);
+      continue;
+    }
+    sent += 1;
+    const { error: revokeError } = await svc.from('user_invitations')
+      .update({ status: 'revoked', updated_at: new Date().toISOString() })
+      .eq('portfolio_id', portfolioId)
+      .eq('hoa_role', 'owner')
+      .eq('status', 'pending')
+      .eq('email', email)
+      .neq('id', result.invitationId);
+    if (revokeError) failures.push(`${o.full_name ?? email}: new link sent, but an older link could not be cancelled (${revokeError.message})`);
   }
 
   revalidatePath('/owners/activations');
   redirect(withParams(back, {
     sent: String(sent),
     skipped: skipped ? String(skipped) : '',
+    remaining: remaining ? String(remaining) : '',
     failed: failures.length ? failures.slice(0, 5).join('; ') + (failures.length > 5 ? ` (+${failures.length - 5} more)` : '') : '',
   }));
 }
