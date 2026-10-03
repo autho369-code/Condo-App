@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -6,30 +7,26 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, Badge } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
-import { buildCommandMetrics } from '@/lib/operations/command-center';
+import { computeReminders } from '@/lib/reminders';
 import { createClient } from '@/lib/supabase/server';
-import { date, money } from '@/lib/utils';
-import { InsuranceExpirationWidget } from '@/components/dashboard/insurance-expiration-widget';
-import { RemindersWidget } from '@/components/dashboard/reminders-widget';
-import { TrendCharts, type MonthPoint } from '@/components/dashboard/trend-charts';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
 import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
+import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type DashboardSearchParams = Promise<{ assoc?: string }>;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+const DAY = 86400000;
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: DashboardSearchParams;
-}) {
+const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+const isOnline = (p: { method?: string | null; processor?: string | null }) => p.method === 'online' || !!p.processor;
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ assoc?: string }> }) {
   const me = await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
+  const db = (await createClient()) as any;
   const sp = await searchParams;
-  const assocFilter = sp.assoc ?? '';
 
   if (me.is_full_access_staff && me.portfolio?.id && process.env.LOCAL_PREVIEW_MODE !== 'true') {
     const { count } = await db
@@ -39,670 +36,238 @@ export default async function DashboardPage({
     if ((count ?? 0) === 0) redirect('/onboard');
   }
 
-  const { data: associations } = await db
-    .from('associations')
-    .select('id, name, timezone')
-    .is('archived_at', null)
-    .order('name');
+  const { data: associations } = await db.from('associations').select('id, name, timezone').is('archived_at', null).order('name');
+  const activeAssoc = UUID.test(sp.assoc ?? '') ? (associations ?? []).find((a: any) => a.id === sp.assoc) : null;
+  const assoc: string = activeAssoc?.id ?? '';
+  const byAssoc = (q: any, column = 'association_id') => (assoc ? q.eq(column, assoc) : q);
 
-  const activeAssoc = assocFilter ? (associations ?? []).find((association: any) => association.id === assocFilter) : null;
-  const today = new Date();
-  const todayIso = today.toISOString();
-  // "Today" and "this week" in local time, not UTC: the selected association's
-  // own zone when filtered, otherwise the portfolio's predominant zone.
+  // Local dates: the selected association's zone, else the portfolio's.
   const zone = activeAssoc?.timezone && isValidTimeZone(activeAssoc.timezone) ? activeAssoc.timezone : displayTimeZone();
-  const todayDate = todayInZone(zone, today);
+  const now = new Date();
+  const todayDate = todayInZone(zone, now);
   const [ty, tm, td] = todayDate.split('-').map(Number);
-  const dayOfWeek = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
-  // The week runs through Sunday: stop before next Monday's local midnight.
-  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-  const mondayDate = new Date(Date.UTC(ty, tm - 1, td + daysUntilMonday)).toISOString().slice(0, 10);
-  const endOfWeekIso = (zonedWallTimeToUtc(mondayDate, '00:00', zone) ?? today).toISOString();
+  const localDate = (offsetDays: number) => new Date(Date.UTC(ty, tm - 1, td + offsetDays)).toISOString().slice(0, 10);
+  const since30 = localDate(-30);
+  // The week starts Monday at local midnight.
+  const dow = new Date(Date.UTC(ty, tm - 1, td)).getUTCDay();
+  const weekStartIso = (zonedWallTimeToUtc(localDate(-((dow + 6) % 7)), '00:00', zone) ?? now).toISOString();
+  const nowIso = now.toISOString();
+  const in7Iso = new Date(now.getTime() + 7 * DAY).toISOString();
 
-  // ── Existing command-center queries ──────────────────────────
-  const openViolationsQuery = db
-    .from('violations')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")');
-  const overdueViolationsQuery = db
-    .from('violations')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
-    // Legacy cases may only have due_date; fall back like the violations list.
-    .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`);
-  const pendingBillsQuery = db
-    .from('payable_bills')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .eq('status', 'pending_approval');
-  const unreconciledAccountsQuery = db
-    .from('bank_accounts')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .is('last_reconciliation_date', null);
-  const reportsDueQuery = db
-    .from('scheduled_reports')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .eq('active', true)
-    .lte('next_run_at', todayIso);
-  const openWorkOrdersQuery = db
-    .from('work_orders')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .not('status', 'in', '("done","completed","billed","closed","cancelled")');
+  // Payments carry no association_id; filter through unit -> building.
+  const unitJoin = assoc ? ', units!inner(buildings!inner(association_id))' : '';
+  const onAssoc = (q: any) => byAssoc(q, 'units.buildings.association_id');
 
-  // ── NEW: Demo-worthy real-time metrics ────────────────────────
-  // 1. Open violations (already covered above in openViolationsQuery)
-  // 2. Maintenance overdue: work_orders past scheduled_date, not completed/closed/cancelled
-  const overdueMaintenanceQuery = db
-    .from('work_orders')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
-    .lt('scheduled_date', todayDate);
-
-  // Any paged query that hit its row ceiling, so the page can say so.
-  const truncatedSources: string[] = [];
-  const noteTruncated = (label: string) => (r: { rows: any[]; truncated: boolean }) => {
-    if (r.truncated) truncatedSources.push(label);
-    return { data: r.rows };
-  };
-
-  // 3. Bills awaiting payment: payable_bills approved but not paid
-  // Summed over every row (paged past the 1,000-row cap).
-  const awaitingPaymentQuery = fetchAllRows<any>(() => {
-    let q = db.from('payable_bills').select('id, amount, credit_applied').is('archived_at', null).eq('status', 'approved');
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q.order('id');
-  }).then(noteTruncated('bills awaiting payment'));
-
-  // 4. AR balance: sum of unit_balances where balance > 0
-  const arBalanceQuery = fetchAllRows<any>(() => {
-    let q = db.from('unit_balances').select('unit_id, balance').gt('balance', 0);
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q.order('unit_id');
-  }).then(noteTruncated('AR balance'));
-
-  // 5. Upcoming calendar events this week
-  const upcomingEventsQuery = db
-    .from('calendar_events')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-    .gte('start_datetime', todayIso)
-    .lt('start_datetime', endOfWeekIso);
-
-  // Portal adoption: distinct current homeowners (an owner of two units counts
-  // once) with the portal activated.
-  const ownersQuery = fetchAllRows<any>(() => {
-    let q = db.from('occupancies')
-      .select('id, owner_id, owners!inner(portal_activated)')
-      .eq('status', 'current').eq('occupancy_type', 'owner');
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q.order('id');
-  }).then(noteTruncated('portal adoption'));
-
-  // Apply association filter to new queries
-  if (assocFilter) {
-    openViolationsQuery.eq('association_id', assocFilter);
-    overdueViolationsQuery.eq('association_id', assocFilter);
-    pendingBillsQuery.eq('association_id', assocFilter);
-    unreconciledAccountsQuery.eq('association_id', assocFilter);
-    openWorkOrdersQuery.eq('association_id', assocFilter);
-    overdueMaintenanceQuery.eq('association_id', assocFilter);
-    upcomingEventsQuery.eq('association_id', assocFilter);
-  }
-
-  // ── Trend chart queries (last 6 months) ───────────────────────
-  const sinceDate = new Date(Date.UTC(ty, tm - 1 - 5, 1)).toISOString().slice(0, 10);
-  const sinceIso = (zonedWallTimeToUtc(sinceDate, '00:00', zone) ?? new Date(sinceDate)).toISOString();
-
-  // Every row in the six months (paged), dated by when it actually happened:
-  // bills by payment date, work orders by completion date.
-  const paged = (label: string, build: () => any, key = 'id') => fetchAllRows<any>(() => build().order(key)).then(noteTruncated(label));
-  const paymentsInQuery = paged('payments received', () => {
-    let q = db.from('receivable_payments_ledger').select('payment_id, amount, payment_date').gte('payment_date', sinceDate);
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q;
-  }, 'payment_id');
-  const billsPaidQuery = paged('bills paid', () => {
-    let q = db.from('payable_bills').select('id, amount, credit_applied, paid_at').is('archived_at', null).eq('status', 'paid').gte('paid_at', sinceIso);
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q;
-  });
-  // charges carry no association_id; filter through unit -> building.
-  const chargesBilledQuery = paged('charges billed', () => {
-    let q = db.from('charges')
-      .select(assocFilter ? 'id, amount, due_date, units!inner(buildings!inner(association_id))' : 'id, amount, due_date')
-      .gte('due_date', sinceDate)
-      .lte('due_date', todayDate);
-    if (assocFilter) q = q.eq('units.buildings.association_id', assocFilter);
-    return q;
-  });
-  const woOpenedQuery = paged('work orders opened', () => {
-    let q = db.from('work_orders').select('id, created_at').is('archived_at', null).gte('created_at', sinceIso);
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q;
-  });
-  const woCompletedQuery = paged('work orders completed', () => {
-    let q = db.from('work_orders').select('id, completed_date').is('archived_at', null)
-      .in('status', ['done', 'completed', 'billed', 'closed']).gte('completed_date', sinceDate);
-    if (assocFilter) q = q.eq('association_id', assocFilter);
-    return q;
-  });
-
-  // ── Activity feed queries ─────────────────────────────────────
-  const recentViolationsQuery = db
-    .from('violations')
-    .select('id, title, status, created_at, associations(name)')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const recentWorkOrdersQuery = db
-    .from('work_orders')
-    .select('id, title, status, created_at, associations(name)')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const recentBillsQuery = db
-    .from('payable_bills')
-    .select('id, memo, amount, status, created_at, associations(name), vendors(name)')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const recentPaymentsQuery = db
-    .from('receivable_payments_ledger')
-    .select('payment_id, amount, owner_name, unit_number, created_at, payment_date')
-    .order('created_at', { ascending: false, nullsFirst: false })
-    .limit(5);
-
-  if (assocFilter) {
-    recentViolationsQuery.eq('association_id', assocFilter);
-    recentWorkOrdersQuery.eq('association_id', assocFilter);
-    recentBillsQuery.eq('association_id', assocFilter);
-    recentPaymentsQuery.eq('association_id', assocFilter);
-  }
-
-  const [
-    { count: openViolations },
-    { count: overdueViolations },
-    { count: pendingBills },
-    { count: unreconciledBankAccounts },
-    { count: scheduledReportsDue },
-    { count: openWorkOrders },
-    { count: overdueMaintenance },
-    { data: awaitingPaymentBills },
-    { data: arBalanceRows },
-    { count: upcomingEvents },
-    { data: focusViolations },
-    { data: focusWorkOrders },
-    { data: focusBills },
-    { data: focusReports },
-    { data: recentViolations },
-    { data: recentWorkOrders },
-    { data: recentBills },
-    { data: recentPayments },
-    { data: trendPaymentsIn },
-    { data: trendBillsPaid },
-    { data: trendChargesBilled },
-    { data: trendWoOpened },
-    { data: trendWoCompleted },
-    { data: ownerRows },
-  ] = await Promise.all([
-    openViolationsQuery,
-    overdueViolationsQuery,
-    pendingBillsQuery,
-    unreconciledAccountsQuery,
-    reportsDueQuery,
-    openWorkOrdersQuery,
-    overdueMaintenanceQuery,
-    awaitingPaymentQuery,
-    arBalanceQuery,
-    upcomingEventsQuery,
-    buildViolationQueue(db, assocFilter, todayDate),
-    buildWorkOrderQueue(db, assocFilter),
-    buildBillQueue(db, assocFilter),
-    buildReportQueue(db, todayIso),
-    recentViolationsQuery,
-    recentWorkOrdersQuery,
-    recentBillsQuery,
-    recentPaymentsQuery,
-    paymentsInQuery,
-    billsPaidQuery,
-    chargesBilledQuery,
-    woOpenedQuery,
-    woCompletedQuery,
-    ownersQuery,
+  const [payments, manualThisWeek, homeowners, activitiesDue, activitiesOverdue, billsPending, poDrafts, poAwaiting, serviceRequests, reminderGroups] = await Promise.all([
+    // Online payment statistics: the last 30 days of receipts (credits are not payments).
+    fetchAllRows<any>(() => onAssoc(db.from('payments')
+      .select(`id, unit_id, amount, method, processor${unitJoin}`)
+      .gte('payment_date', since30)
+      .lte('payment_date', todayDate)
+      .neq('method', 'credit'))
+      .order('id'), { maxRows: 50000 }),
+    // Receipts staff typed in by hand this week.
+    onAssoc(db.from('payments')
+      .select(`id${unitJoin}`, { count: 'exact', head: true })
+      .gte('created_at', weekStartIso)
+      .is('processor', null)
+      .not('method', 'in', '("online","credit")')),
+    // Portal adoption: current homeowners, each owner counted once.
+    fetchAllRows<any>(() => byAssoc(db.from('occupancies')
+      .select('id, owner_id, owners!inner(portal_activated, auth_user_id, email, archived_at)')
+      .eq('status', 'current')
+      .eq('occupancy_type', 'owner')
+      .is('owners.archived_at', null))
+      .order('id'), { maxRows: 50000 }),
+    byAssoc(db.from('automation_tasks').select('id', { count: 'exact', head: true }).eq('status', 'open').gte('due_at', nowIso).lt('due_at', in7Iso)),
+    byAssoc(db.from('automation_tasks').select('id', { count: 'exact', head: true }).eq('status', 'open').lt('due_at', nowIso)),
+    byAssoc(db.from('payable_bills').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'pending_approval')),
+    byAssoc(db.from('purchase_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('status', 'cancelled').eq('approval_status', 'draft')),
+    byAssoc(db.from('purchase_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('status', 'cancelled').eq('approval_status', 'pending_approval')),
+    byAssoc(db.from('service_requests')
+      .select('id, number, description, created_at, associations(name), owner:owners!service_requests_owner_id_fkey(full_name), homeowner:owners!service_requests_homeowner_id_fkey(full_name), tenants(first_name, last_name)')
+      .is('archived_at', null)
+      .in('status', ['open', 'waiting'])
+      .gte('created_at', new Date(now.getTime() - 30 * DAY).toISOString()))
+      .order('created_at', { ascending: false })
+      .limit(25),
+    computeReminders(db, me.portfolio?.id, assoc || undefined),
   ]);
 
-  const ownerActivation = new Map<string, boolean>();
-  for (const row of ownerRows ?? []) {
+  const loadErrors = [
+    payments.error && 'online payments',
+    manualThisWeek.error && 'manual receipts',
+    homeowners.error && 'portal adoption',
+    (activitiesDue.error || activitiesOverdue.error) && 'activities',
+    billsPending.error && 'bills',
+    (poDrafts.error || poAwaiting.error) && 'purchase orders',
+    serviceRequests.error && 'service requests',
+  ].filter(Boolean) as string[];
+  const truncated = [payments.truncated && 'online payments', homeowners.truncated && 'portal adoption'].filter(Boolean) as string[];
+
+  // ── Online payments ──────────────────────────────────────────
+  const paymentTotal = payments.rows.reduce((s, p) => s + Number(p.amount ?? 0), 0);
+  const onlineTotal = payments.rows.filter(isOnline).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+  const unitsPaid = new Set(payments.rows.map((p) => p.unit_id).filter(Boolean));
+  const unitsPaidOnline = new Set(payments.rows.filter(isOnline).map((p) => p.unit_id).filter(Boolean));
+  const manualCount = manualThisWeek.count ?? 0;
+
+  // ── Portal adoption ──────────────────────────────────────────
+  // Same classification as the activation page: an owner with an account
+  // but access off counts as not activated, whatever their email.
+  const owners = new Map<string, 'active' | 'inactive' | 'no_email'>();
+  for (const row of homeowners.rows) {
     if (!row.owner_id) continue;
-    ownerActivation.set(row.owner_id, ownerActivation.get(row.owner_id) || row.owners?.portal_activated === true);
+    const o = row.owners ?? {};
+    owners.set(row.owner_id, o.portal_activated ? 'active' : o.auth_user_id || EMAIL.test(String(o.email ?? '').trim().toLowerCase()) ? 'inactive' : 'no_email');
   }
-  const ownerCount = ownerActivation.size;
-  const ownerActivatedCount = [...ownerActivation.values()].filter(Boolean).length;
+  const ownerList = [...owners.values()];
+  const activated = ownerList.filter((o) => o === 'active').length;
+  const noEmail = ownerList.filter((o) => o === 'no_email').length;
+  const notActivated = ownerList.length - activated - noEmail;
 
-  // ── Bucket trend data by month ───────────────────────────────
-  const monthKeys: string[] = [];
-  const monthLabels: string[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(Date.UTC(ty, tm - 1 - i, 1));
-    monthKeys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
-    monthLabels.push(d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }));
-  }
-  const bucket = (rows: any[] | null, dateKey: string, amountKey?: string) => {
-    const sums = new Map(monthKeys.map((k) => [k, 0]));
-    for (const row of rows ?? []) {
-      const key = String(row[dateKey] ?? '').slice(0, 7);
-      if (sums.has(key)) sums.set(key, (sums.get(key) ?? 0) + (amountKey ? Number(row[amountKey]) || 0 : 1));
-    }
-    return monthKeys.map((k) => sums.get(k) ?? 0);
-  };
+  // ── Notifications feed ───────────────────────────────────────
+  type FeedItem = { key: string; kind: string; title: string; detail: string; href: string };
+  const feed: FeedItem[] = [
+    ...(serviceRequests.data ?? []).map((r: any) => {
+      const tenant = r.tenants ? `${r.tenants.first_name ?? ''} ${r.tenants.last_name ?? ''}`.trim() : '';
+      const from = r.owner?.full_name ?? r.homeowner?.full_name ?? (tenant || null);
+      return {
+        key: `sr-${r.id}`,
+        kind: 'Service request',
+        title: `New service request${from ? ` from ${from}` : ''}`,
+        detail: [r.associations?.name, new Date(r.created_at).toLocaleString('en-US', { timeZone: zone, month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit' })].filter(Boolean).join(' · '),
+        href: `/service-requests/${r.id}`,
+      };
+    }),
+    ...reminderGroups.flatMap((group) => group.items.map((item, i) => ({
+      key: `${group.key}-${i}`,
+      kind: group.label,
+      title: item.title,
+      detail: item.detail,
+      href: item.href,
+    }))),
+  ];
 
-  const zip = (a: number[], b: number[]): MonthPoint[] =>
-    monthLabels.map((label, i) => ({ label, a: a[i], b: b[i] }));
-
-  const cashFlowSeries = zip(
-    bucket(trendPaymentsIn, 'payment_date', 'amount'),
-    bucket((trendBillsPaid ?? []).map((b: any) => ({ ...b, net: Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), paid_on: b.paid_at ? todayInZone(zone, new Date(b.paid_at)) : '' })), 'paid_on', 'net'),
+  const assocQs = assoc ? `&association=${assoc}` : '';
+  const activationsHref = `/owners/activations?status=inactive${assocQs}`;
+  const assocParam = assoc ? `&association_id=${assoc}` : '';
+  const receiptsHref = `/receipts?range=30d${assoc ? `&assoc=${assoc}` : ''}`;
+  const tileLink = (href: string, label: string) => (
+    <Link href={href} className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-gray-900 hover:underline">{label}</Link>
   );
-  const billedCollectedSeries = zip(
-    bucket(trendChargesBilled, 'due_date', 'amount'),
-    bucket(trendPaymentsIn, 'payment_date', 'amount'),
-  );
-  const workOrderSeries = zip(
-    bucket((trendWoOpened ?? []).map((w: any) => ({ opened_on: todayInZone(zone, new Date(w.created_at)) })), 'opened_on'),
-    bucket(trendWoCompleted, 'completed_date'),
-  );
-
-  const commandMetrics = buildCommandMetrics({
-    openViolations: openViolations ?? 0,
-    overdueViolations: overdueViolations ?? 0,
-    pendingBills: pendingBills ?? 0,
-    unreconciledBankAccounts: unreconciledBankAccounts ?? 0,
-    scheduledReportsDue: scheduledReportsDue ?? 0,
-    openWorkOrders: openWorkOrders ?? 0,
-  });
-
-  const linkedMetrics = commandMetrics.map((metric) => ({
-    label: metric.label,
-    value: metric.value,
-    sublabel: (
-      <Link href={metric.href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">
-        Open list
-      </Link>
-    ),
-  }));
-
-  // ── Demo-worthy metrics row ──────────────────────────────────
-  const arBalanceTotal = (arBalanceRows ?? []).reduce(
-    (sum: number, row: any) => sum + (row.balance ?? 0),
-    0,
-  );
-  const billsAwaitingTotal = (awaitingPaymentBills ?? []).reduce(
-    (sum: number, row: any) => sum + Number(row.amount ?? 0) - Number(row.credit_applied ?? 0),
-    0,
-  );
-
-  const demoMetrics = [
-    {
-      label: 'Maintenance overdue',
-      value: overdueMaintenance ?? 0,
-      href: '/work-orders?status=overdue',
-    },
-    {
-      label: 'Bills awaiting',
-      value: billsAwaitingTotal,
-      href: '/bills?status=approved',
-    },
-    {
-      label: 'AR balance',
-      value: arBalanceTotal,
-      href: '/charges',
-    },
-    {
-      label: 'Events this week',
-      value: upcomingEvents ?? 0,
-      href: '/calendar',
-    },
-    {
-      label: 'Portal adoption',
-      value: ownerCount ? Math.round(((ownerActivatedCount ?? 0) / ownerCount) * 100) : 0,
-      href: '/owners',
-    },
-  ].map((m) => ({
-    label: m.label,
-    value:
-      m.label === 'AR balance' || m.label === 'Bills awaiting'
-        ? money(m.value)
-        : m.label === 'Portal adoption'
-          ? `${m.value}% (${ownerActivatedCount ?? 0} of ${ownerCount ?? 0})`
-          : m.value,
-    sublabel: (
-      <Link href={m.href} className="font-medium text-gray-500 transition-colors hover:text-gray-900">
-        Open list
-      </Link>
-    ),
-  }));
-
-  const focusItems = [
-    ...(focusViolations ?? []).map((item: any) => ({
-      key: `violation-${item.id}`,
-      label: item.title,
-      detail: `${item.associations?.name ?? 'Association'} - cure by ${date(item.cure_deadline ?? item.due_date)}`,
-      href: '/violations?status=overdue',
-      tone: 'red' as const,
-      type: 'Violation',
-    })),
-    ...(focusBills ?? []).map((item: any) => ({
-      key: `bill-${item.id}`,
-      label: item.vendors?.name ?? item.memo ?? 'Bill awaiting approval',
-      detail: `${item.associations?.name ?? 'Portfolio'} - due ${date(item.due_date)}`,
-      href: '/bills?status=pending_approval',
-      tone: 'amber' as const,
-      type: 'Bill',
-    })),
-    ...(focusWorkOrders ?? []).map((item: any) => ({
-      key: `work-order-${item.id}`,
-      label: item.title,
-      detail: `${item.associations?.name ?? 'Association'} - ${formatStatus(item.status)}`,
-      href: `/work-orders/${item.id}`,
-      tone: item.priority === 'emergency' ? 'red' as const : 'blue' as const,
-      type: 'Work order',
-    })),
-    ...(focusReports ?? []).map((item: any) => ({
-      key: `report-${item.id}`,
-      label: item.name,
-      detail: `Next run ${date(item.next_run_at)} - ${formatStatus(item.delivery_channel)}`,
-      href: '/scheduled-reports',
-      tone: 'slate' as const,
-      type: 'Report',
-    })),
-  ].slice(0, 10);
-
-  // ── Build activity feed ──────────────────────────────────────
-  type ActivityItem = {
-    id: string;
-    type: 'violation' | 'work_order' | 'bill' | 'payment';
-    label: string;
-    detail: string;
-    created_at: string;
-    tone: 'red' | 'green' | 'amber' | 'blue';
-    href: string;
-  };
-
-  const activityFeed: ActivityItem[] = [
-    ...(recentViolations ?? []).map((v: any) => ({
-      id: `v-${v.id}`,
-      type: 'violation' as const,
-      label: `New violation: ${v.title}`,
-      detail: `${v.associations?.name ?? 'Association'} — ${formatStatus(v.status)}`,
-      created_at: v.created_at,
-      tone: 'red' as const,
-      href: `/violations/${v.id}`,
-    })),
-    ...(recentWorkOrders ?? []).map((w: any) => ({
-      id: `wo-${w.id}`,
-      type: 'work_order' as const,
-      label: `Work order: ${w.title}`,
-      detail: `${w.associations?.name ?? 'Association'} — ${formatStatus(w.status)}`,
-      created_at: w.created_at,
-      tone: w.status === 'completed' ? 'green' as const : 'blue' as const,
-      href: `/work-orders/${w.id}`,
-    })),
-    ...(recentBills ?? []).map((b: any) => ({
-      id: `bill-${b.id}`,
-      type: 'bill' as const,
-      label: `Bill: ${b.vendors?.name ?? b.memo ?? 'Untitled'}`,
-      detail: `${b.associations?.name ?? 'Portfolio'} — ${money(b.amount)} — ${formatStatus(b.status)}`,
-      created_at: b.created_at,
-      tone: 'amber' as const,
-      href: `/bills?status=${b.status}`,
-    })),
-    ...(recentPayments ?? []).map((p: any) => ({
-      id: `pmt-${p.payment_id}`,
-      type: 'payment' as const,
-      label: `Payment received`,
-      detail: `${p.owner_name ?? 'Owner'} — ${p.unit_number ? `Unit ${p.unit_number} — ` : ''}${money(p.amount)}`,
-      created_at: p.created_at ?? p.payment_date,
-      tone: 'green' as const,
-      href: `/charges`,
-    })),
-  ]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10);
 
   return (
     <DataWorkspace
-      title={activeAssoc ? `${activeAssoc.name} command center` : 'Command center'}
-      description="A staff-first operating view for exceptions, approvals, reconciliations, report runs, and maintenance work across the portfolio."
+      title={activeAssoc ? `${activeAssoc.name} dashboard` : 'Dashboard'}
       actions={
-        <>
-          <form action="/dashboard" method="get" className="flex items-center gap-2">
-            <Select name="assoc" defaultValue={assocFilter} className="min-w-44" aria-label="Filter by association">
-              <option value="">All associations</option>
-              {(associations ?? []).map((association: any) => (
-                <option key={association.id} value={association.id}>{association.name}</option>
-              ))}
-            </Select>
-            <Button type="submit" variant="secondary">Apply</Button>
-          </form>
-          <Link href="/work-orders"><Button>Open work orders</Button></Link>
-        </>
+        <form action="/dashboard" method="get" className="flex items-center gap-2">
+          <Select name="assoc" defaultValue={assoc} className="min-w-44" aria-label="View by association">
+            <option value="">All associations</option>
+            {(associations ?? []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </Select>
+          <Button type="submit" variant="secondary">View</Button>
+        </form>
       }
     >
       <div className="space-y-6">
-        <MetricStrip metrics={linkedMetrics} />
-
-        {/* ── Quick Actions ────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Quick actions</span>
-          <Link href="/violations/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + Report Violation
-            </Button>
-          </Link>
-          <Link href="/maintenance/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + Add Maintenance
-            </Button>
-          </Link>
-          <Link href="/bills/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + Create Bill
-            </Button>
-          </Link>
-          <Link href="/calendar/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + Schedule Event
-            </Button>
-          </Link>
-          <Link href="/receipts/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + Homeowner Receipt
-            </Button>
-          </Link>
-          <Link href="/vendors/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + New Vendor
-            </Button>
-          </Link>
-          <Link href="/associations/new">
-            <Button variant="secondary" size="sm" className="text-sm font-medium">
-              + New Association
-            </Button>
-          </Link>
-        </div>
-
-        {/* ── Demo Metrics Row ─────────────────────────────── */}
-        <MetricStrip metrics={demoMetrics} />
-
-        {truncatedSources.length > 0 && (
-          <Alert tone="warning" title="Some totals are incomplete">
-            Too many rows to load for: {truncatedSources.join(', ')}. Filter by association to see complete figures.
-          </Alert>
+        {loadErrors.length > 0 && (
+          <Alert tone="danger" title="Some figures could not load">Could not load: {loadErrors.join(', ')}. Refresh to try again.</Alert>
+        )}
+        {truncated.length > 0 && (
+          <Alert tone="warning" title="Some figures are incomplete">Too many rows to load for: {truncated.join(', ')}. Pick one association to see complete figures.</Alert>
         )}
 
-        {/* ── Trend charts ─────────────────────────────────── */}
-        <TrendCharts
-          cashFlow={cashFlowSeries}
-          billedCollected={billedCollectedSeries}
-          workOrders={workOrderSeries}
-        />
-
-        {/* ── Focus queue ──────────────────────────────────── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Focus queue</h2>
-              <p className="mt-0.5 text-xs text-gray-500">Highest leverage items needing staff attention.</p>
+        <DashboardSection title="Online payments">
+          <SubHeading>Last 30 days</SubHeading>
+          <MetricStrip
+            metrics={[
+              { label: 'Collected online', value: paymentTotal > 0 ? `${pct(onlineTotal, paymentTotal)}%` : '—', sublabel: paymentTotal > 0 ? tileLink(receiptsHref, 'View receipts') : 'No receipts in the last 30 days' },
+              { label: 'Units paying online', value: unitsPaid.size > 0 ? `${pct(unitsPaidOnline.size, unitsPaid.size)}%` : '—', sublabel: unitsPaid.size > 0 ? <>{unitsPaidOnline.size} of {unitsPaid.size} units that paid</> : 'No units paid in the last 30 days' },
+            ]}
+          />
+          {manualCount > 0 && (
+            <div className="mt-3">
+              <Alert tone="info" title={`${manualCount} receipt${manualCount === 1 ? '' : 's'} entered by hand this week`}>
+                Owners who pay in the portal post automatically. <Link href={activationsHref} className="underline">Invite owners to the portal</Link>.
+              </Alert>
             </div>
-            <Link href="/inbox" className="text-[13px] font-medium text-gray-900 underline-offset-4 hover:underline">Open inbox</Link>
+          )}
+
+          <SubHeading className="mt-6">Owner portal adoption</SubHeading>
+          {ownerList.length === 0 ? (
+            <p className="text-sm text-gray-500">No current homeowners{activeAssoc ? ' in this association' : ''}.</p>
+          ) : (
+            <MetricStrip
+              metrics={[
+                { label: 'Activated', value: `${pct(activated, ownerList.length)}%`, sublabel: <>{activated} owner{activated === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=active${assocQs}`, 'View homeowners')}</> },
+                { label: 'Not activated', value: `${pct(notActivated, ownerList.length)}%`, sublabel: <>{notActivated} owner{notActivated === 1 ? '' : 's'} · {tileLink(activationsHref, 'Send activation emails')}</> },
+                { label: 'No email', value: `${pct(noEmail, ownerList.length)}%`, sublabel: <>{noEmail} owner{noEmail === 1 ? '' : 's'} · {tileLink(`/owners/activations?status=no_email${assocQs}`, 'View homeowners')}</> },
+              ]}
+            />
+          )}
+        </DashboardSection>
+
+        <DashboardSection title="Notifications">
+          <SubHeading>Activities</SubHeading>
+          <MetricStrip
+            metrics={[
+              { label: 'Due in the next 7 days', value: activitiesDue.count ?? 0, sublabel: tileLink('/automation-center', 'Open tasks') },
+              { label: 'Overdue', value: <span className={(activitiesOverdue.count ?? 0) > 0 ? 'text-red-700' : undefined}>{activitiesOverdue.count ?? 0}</span>, sublabel: tileLink('/automation-center', 'Open tasks') },
+            ]}
+          />
+
+          <SubHeading className="mt-6">Bills</SubHeading>
+          <MetricStrip metrics={[{ label: 'Pending approval', value: billsPending.count ?? 0, sublabel: tileLink(`/bills?status=pending_approval${assocParam}`, 'Review bills') }]} />
+
+          <SubHeading className="mt-6">Purchase orders</SubHeading>
+          <MetricStrip
+            metrics={[
+              { label: 'Drafts to submit', value: poDrafts.count ?? 0, sublabel: tileLink(`/purchase-orders?status=draft${assocParam}`, 'Review drafts') },
+              { label: 'Awaiting board approval', value: poAwaiting.count ?? 0, sublabel: tileLink(`/purchase-orders?status=pending_approval${assocParam}`, 'Review') },
+            ]}
+          />
+
+          <div className="mt-6 mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-[13px] font-semibold text-gray-700">Notifications feed</h3>
+            <Link href="/reminders" className="text-[13px] font-medium text-gray-500 underline-offset-4 hover:text-gray-900 hover:underline">Choose notifications</Link>
           </div>
-          {focusItems.length > 0 ? (
-            <ul className="divide-y divide-gray-100">
-              {focusItems.map((item) => (
+          {feed.length === 0 ? (
+            <div className="rounded-xl border border-gray-200/70 px-5 py-8 text-center text-sm text-gray-500">No new notifications.</div>
+          ) : (
+            <ul className="max-h-[28rem] divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200/70">
+              {feed.map((item) => (
                 <li key={item.key}>
-                  <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
+                  <Link href={item.href} className="flex min-h-[44px] flex-col gap-1 px-4 py-3 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge tone={badgeTone(item.tone)}>{item.type}</Badge>
-                        <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
+                      <div className="truncate text-sm font-medium text-gray-950">{item.title}</div>
+                      <div className="mt-0.5 truncate text-xs text-gray-500">{item.detail}</div>
                     </div>
-                    <span className="shrink-0 text-[13px] font-medium text-gray-500">Review →</span>
+                    <span className="shrink-0"><Badge tone={item.kind === 'Service request' ? 'open' : item.kind === 'Delinquent accounts' ? 'danger' : 'pending'}>{item.kind}</Badge></span>
                   </Link>
                 </li>
               ))}
             </ul>
-          ) : (
-            <div className="px-5 py-10 text-center text-sm text-gray-500">No urgent operating items in the queue.</div>
           )}
-        </section>
-
-        {/* ── Recent Activity Feed ──────────────────────────── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold tracking-[-0.01em] text-gray-950">Recent activity</h2>
-              <p className="mt-0.5 text-xs text-gray-500">Latest events across violations, maintenance, bills, and payments.</p>
-            </div>
-          </div>
-          {activityFeed.length > 0 ? (
-            <ul className="divide-y divide-gray-100">
-              {activityFeed.map((item) => (
-                <li key={item.id}>
-                  <Link href={item.href} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-gray-50">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge tone={badgeTone(item.tone)}>
-                          {item.type === 'violation' ? 'Violation' : item.type === 'work_order' ? 'Maintenance' : item.type === 'bill' ? 'Bill' : 'Payment'}
-                        </Badge>
-                        <span className="truncate text-sm font-medium text-gray-950">{item.label}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
-                    </div>
-                    <span className="shrink-0 text-xs text-gray-400">{timeAgo(item.created_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-5 py-10 text-center text-sm text-gray-500">No recent activity to display.</div>
-          )}
-        </section>
-
-        <RemindersWidget portfolioId={me.portfolio?.id} />
-
-        <InsuranceExpirationWidget />
+          <p className="mt-2 text-xs text-gray-400">Open service requests from the last 30 days, then alerts due as of {date(todayDate)}.</p>
+        </DashboardSection>
       </div>
     </DataWorkspace>
   );
 }
 
-function buildViolationQueue(db: any, assocFilter: string, todayDate: string) {
-  let query = db
-    .from('violations')
-    .select('id, title, status, cure_deadline, due_date, associations(name)')
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
-    .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
-    .order('cure_deadline', { ascending: true, nullsFirst: false })
-    .order('due_date', { ascending: true, nullsFirst: false })
-    .limit(4);
-  if (assocFilter) query = query.eq('association_id', assocFilter);
-  return query;
+function DashboardSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details open className="group rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 border-b border-gray-100 px-5 py-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="text-gray-400 transition-transform group-open:rotate-90">›</span>
+        {title}
+      </summary>
+      <div className="p-5">{children}</div>
+    </details>
+  );
 }
 
-function buildWorkOrderQueue(db: any, assocFilter: string) {
-  let query = db
-    .from('work_orders')
-    .select('id, title, status, priority, associations(name)')
-    .is('archived_at', null)
-    .not('status', 'in', '("done","completed","billed","closed","cancelled")')
-    .order('priority', { ascending: false })
-    .order('scheduled_date', { ascending: true, nullsFirst: false })
-    .limit(4);
-  if (assocFilter) query = query.eq('association_id', assocFilter);
-  return query;
-}
-
-function buildBillQueue(db: any, assocFilter: string) {
-  let query = db
-    .from('payable_bills')
-    .select('id, due_date, memo, associations(name), vendors(name)')
-    .is('archived_at', null)
-    .eq('status', 'pending_approval')
-    .order('due_date', { ascending: true, nullsFirst: false })
-    .limit(4);
-  if (assocFilter) query = query.eq('association_id', assocFilter);
-  return query;
-}
-
-function buildReportQueue(db: any, todayIso: string) {
-  return db
-    .from('scheduled_reports')
-    .select('id, name, next_run_at, delivery_channel')
-    .is('archived_at', null)
-    .eq('active', true)
-    .lte('next_run_at', todayIso)
-    .order('next_run_at', { ascending: true, nullsFirst: false })
-    .limit(4);
-}
-
-function badgeTone(tone: 'red' | 'amber' | 'blue' | 'slate' | 'green') {
-  const tones = {
-    red: 'danger',
-    amber: 'pending',
-    blue: 'open',
-    slate: 'inactive',
-    green: 'complete',
-  } as const;
-  return tones[tone];
-}
-
-function formatStatus(status: string | null | undefined) {
-  return status ? status.replace(/_/g, ' ') : 'not set';
-}
-
-function timeAgo(dateStr: string | null | undefined): string {
-  if (!dateStr) return '';
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date(dateStr);
+function SubHeading({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <h3 className={`mb-3 text-[13px] font-semibold text-gray-700 ${className}`}>{children}</h3>;
 }
