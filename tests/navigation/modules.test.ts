@@ -38,7 +38,9 @@ describe('appModules', () => {
       '/compliance',
       '/architectural-reviews',
     ]));
-    expect(childHrefs('Communication')).toEqual(expect.arrayContaining(['/inbox', '/letters/mail', '/surveys']));
+    expect(childHrefs('Communication')).toEqual(expect.arrayContaining(['/inbox', '/letters/mail']));
+    // AppFolio lists Surveys under Reporting.
+    expect(childHrefs('Reports')).toEqual(expect.arrayContaining(['/metrics', '/surveys']));
   });
 });
 
