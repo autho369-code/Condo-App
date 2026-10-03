@@ -69,6 +69,19 @@ const DEFINITIONS: ActionCenterDefinition[] = [
     ],
   },
   {
+    label: 'Settings',
+    match: /^\/settings/,
+    sections: [
+      work('Manage', [
+        { label: 'Portfolio & team', href: '/settings', description: 'Company details, people, and access.', access: 'admin' },
+        { label: 'Branding', href: '/settings/branding', description: 'Logo and colors owners see.', access: 'admin' },
+        { label: 'AI configuration', href: '/settings/ai', description: 'Models, keys, and assistant behavior.', access: 'admin' },
+        { label: 'Developer Hub', href: '/settings/developer', description: 'API keys and webhooks.', access: 'admin' },
+        { label: 'Audit logs', href: '/company-admin/audit-logs', description: 'Review security and configuration history.', access: 'admin' },
+      ]),
+    ],
+  },
+  {
     label: 'Capital & reserves',
     match: /^\/capital-reserves/,
     sections: [
@@ -147,7 +160,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Units & parking',
-    match: /^\/(units|parking)/,
+    match: /^\/(units|parking|buildings)/,
     sections: [
       work('Association records', [
         { label: 'New unit', href: '/units/new', description: 'Create a unit in the selected building.', primary: true },
@@ -160,7 +173,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Accounting',
-    match: /^\/(accounting(?:\/|$)|receipts|command-center|bank-accounts|bank-transfers|journal-entries|gl-accounts|charges|charge-categories|bills|budget|budget-vs-actuals|diagnostics|accounting-periods|delinquencies)/,
+    match: /^\/(accounting(?:\/|$)|receipts|command-center|bank-accounts|bank-transfers|journal-entries|gl-accounts|charges|charge-categories|bills|budget|budget-vs-actuals|diagnostics|accounting-periods|delinquencies|payments|payment-plans|credit-cards)/,
     sections: [
       work('Daily accounting', [
         { label: 'Post owner charge', href: '/charges/new', description: 'Record an individual assessment or fee.', primary: true },
@@ -198,7 +211,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Maintenance',
-    match: /^\/(work-orders|maintenance|recurring-work-orders|projects|inspections|purchase-orders|inventory|fixed-assets)/,
+    match: /^\/(work-orders|maintenance|service-requests|unit-turns|recurring-work-orders|projects|inspections|purchase-orders|inventory|fixed-assets)/,
     sections: [
       work('Create & dispatch', [
         { label: 'New work order', href: '/work-orders/new', description: 'Create, prioritize, and assign work.', primary: true },
@@ -319,7 +332,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Reports',
-    match: /^\/(reports|scheduled-reports|metrics)/,
+    match: /^\/(reports|scheduled-reports|metrics|surveys)/,
     sections: [
       work('Reporting tools', [
         { label: 'Report builder', href: '/reports/builder', description: 'Choose fields, filters, and save a view.', primary: true },
@@ -328,6 +341,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'Bulk association reports', href: '/reports/bulk-association', description: 'Run one report across communities.' },
         { label: 'Run history', href: '/reports/runs', description: 'Inspect queued and completed exports.' },
         { label: 'Metrics', href: '/metrics', description: 'Review portfolio operating trends.' },
+        { label: 'New survey', href: '/surveys/new', description: 'Ask owners questions; they answer in the portal.' },
       ]),
       reports('Financial favorites', FINANCIAL_REPORTS),
       help('Guidance', [
@@ -338,7 +352,7 @@ const DEFINITIONS: ActionCenterDefinition[] = [
   },
   {
     label: 'Communications',
-    match: /^\/(communication-center|send-email|sms|inbox|letters|documents|forms|surveys|statements)/,
+    match: /^\/(communication-center|send-email|sms|inbox|letters|documents|forms|statements|bulk-statement-settings|signatures)/,
     sections: [
       work('Compose & deliver', [
         { label: 'Compose email', href: '/send-email', description: 'Send an association or portfolio message.', primary: true },
@@ -346,7 +360,6 @@ const DEFINITIONS: ActionCenterDefinition[] = [
         { label: 'New letter', href: '/letters/new', description: 'Generate a merge-ready notice.' },
         { label: 'Physical mail', href: '/letters/mail', description: 'Review print and delivery jobs.' },
         { label: 'New form', href: '/forms/new', description: 'Create a reusable digital form.' },
-        { label: 'New survey', href: '/surveys/new', description: 'Collect structured community feedback.' },
       ]),
       work('Templates & queues', [
         { label: 'Communication center', href: '/communication-center', description: 'Approve drafts and retry failed delivery.' },
