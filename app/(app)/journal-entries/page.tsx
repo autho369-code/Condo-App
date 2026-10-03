@@ -2,7 +2,7 @@ import { sanitizeSearchTerm } from '@/lib/search/global';
 import Link from 'next/link';
 import { BookText, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Alert } from '@/components/ui/shell';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -14,6 +14,9 @@ import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { deleteDraftJournalEntry, postDraftJournalEntry } from '@/lib/rpcs/journal-entries';
+import { archiveRecurringJournalEntry, postRecurringJournalEntries } from '@/lib/rpcs/recurring';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,9 +42,9 @@ function parseTab(value: string | undefined): JournalTab {
 export default async function JournalEntriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string; status?: string; saved?: string; posted?: string; deleted?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; association_id?: string; gl_account_id?: string; ref_number?: string; date_from?: string; date_to?: string; status?: string; batch_id?: string; saved?: string; posted?: string; deleted?: string; archived?: string; through?: string; error?: string }>;
 }) {
-  await requireStaff();
+  await requireFinanceStaff();
   const {
     tab: tabParam,
     q = '',
@@ -55,7 +58,11 @@ export default async function JournalEntriesPage({
     posted: postedFlag = '',
     deleted: deletedFlag = '',
     error: pageError = '',
+    batch_id: batchParam = '',
+    archived: archivedFlag = '',
+    through = '',
   } = await searchParams;
+  const batchId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(batchParam) ? batchParam : '';
   const status = statusParam === 'posted' || statusParam === 'draft' ? statusParam : '';
   const tab = parseTab(tabParam);
   const supabase = await createClient();
@@ -99,6 +106,7 @@ export default async function JournalEntriesPage({
     if (gl_account_id) jq = jq.eq('match.gl_account_id', gl_account_id);
     if (date_from) jq = jq.gte('entry_date', date_from);
     if (date_to) jq = jq.lte('entry_date', date_to);
+    if (batchId) jq = jq.eq('batch_id', batchId);
     const safeRef = sanitizeSearchTerm(ref_number);
     if (safeRef) jq = jq.ilike('reference_number', `%${safeRef}%`);
     if (term) {
@@ -127,13 +135,13 @@ export default async function JournalEntriesPage({
     // newest 500 entries, so older entries could never be found. A second,
     // aliased inner join filters by line without hiding the entry's other lines.
     (() => {
-      let jq = historyQuery('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))');
+      let jq = historyQuery('id, entry_date, reference_number, memo, description, source_type, posted, posted_at, batch_id, reversed_by_entry_id, journal_lines(id, debit_amount, credit_amount, memo, association_id, gl_account_id, associations(name), gl_accounts(number, name))');
       if (status) jq = jq.eq('posted', status === 'posted');
       return jq.order('entry_date', { ascending: false }).order('id').limit(500);
     })(),
     // Recurring journal entries
     db.from('recurring_journal_entries')
-      .select('id, name, memo, frequency, interval_count, next_post_date, auto_generate, last_generated_at, last_error, created_at')
+      .select('id, name, memo, frequency, interval_count, next_post_date, end_date, auto_generate, last_generated_at, last_error, created_at')
       .is('archived_at', null)
       .order('next_post_date', { ascending: true, nullsFirst: false })
       .limit(500),
@@ -142,15 +150,9 @@ export default async function JournalEntriesPage({
       .select('id, name, description, status, total_entries, total_debit, total_credit, created_at, posted_at, error_message')
       .order('created_at', { ascending: false })
       .limit(500),
-    // Associations for filter
-    db.from('associations')
-      .select('id, name')
-      .is('archived_at', null)
-      .order('name'),
-    // GL accounts for filter
-    db.from('gl_accounts')
-      .select('id, number, name')
-      .order('number'),
+    // Associations and GL accounts for the filters (all rows, past 1,000).
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name').order('number').order('id')).then((r) => ({ data: r.rows })),
     // Counts cover every matching entry, not only the 500 listed.
     historyQuery('id', { count: 'exact', head: true }).eq('posted', true),
     historyQuery('id', { count: 'exact', head: true }).eq('posted', false),
@@ -204,6 +206,7 @@ export default async function JournalEntriesPage({
     if (date_from) p.set('date_from', date_from);
     if (date_to) p.set('date_to', date_to);
     if (status) p.set('status', status);
+    if (batchId) p.set('batch_id', batchId);
     for (const [k, v] of Object.entries(overrides)) {
       if (v) p.set(k, v);
     }
@@ -230,7 +233,12 @@ export default async function JournalEntriesPage({
     >
       <div className="space-y-6">
         {saved && <Alert tone="success" title={tab === 'recurring' ? 'Recurring entry saved' : 'Journal entry saved'} />}
-        {postedFlag && <Alert tone="success" title="Journal entry posted" />}
+        {archivedFlag && <Alert tone="success" title="Recurring entry stopped" />}
+        {tab === 'recurring' && postedFlag && (
+          <Alert tone="success" title={`${Number(postedFlag) || 0} recurring entr${postedFlag === '1' ? 'y' : 'ies'} posted${through ? ` through ${date(through)}` : ''}`} />
+        )}
+        {batchId && tab === 'history' && <Alert tone="info" title="Showing one upload batch"><Link href="/journal-entries" className="font-medium underline">Show all entries</Link></Alert>}
+        {postedFlag && tab !== 'recurring' && <Alert tone="success" title="Journal entry posted" />}
         {deletedFlag && <Alert tone="success" title="Draft deleted" />}
         {pageError && <Alert title="Could not update the journal entry.">{pageError}</Alert>}
         {searchIdsTruncated && <Alert tone="warning" title="Search matched many accounts.">Results by association or GL account name may be incomplete; use the Association or GL Account filter instead.</Alert>}
@@ -264,6 +272,7 @@ export default async function JournalEntriesPage({
             searchPlaceholder="Search reference #, memo, description, association, GL account..."
           >
             <input type="hidden" name="tab" value="history" />
+            {batchId && <input type="hidden" name="batch_id" value={batchId} />}
             <FilterSelect label="Status" name="status" defaultValue={status}>
               <option value="">All</option>
               <option value="posted">Posted</option>
@@ -367,7 +376,7 @@ export default async function JournalEntriesPage({
                         <TD className="whitespace-nowrap text-sm">{date(je.entry_date)}</TD>
                         <TD className="font-mono text-xs text-gray-600 whitespace-nowrap">{je.reference_number ?? '—'}</TD>
                         <TD className="max-w-xs truncate text-sm text-gray-700" title={je.memo ?? je.description ?? ''}>
-                          {je.memo ?? je.description ?? '—'}
+                          <Link href={`/journal-entries/${je.id}`} className="text-gray-900 hover:underline">{je.description ?? je.memo ?? 'Journal entry'}</Link>
                         </TD>
                         <TD className="max-w-[160px] truncate text-sm text-gray-700" title={assocNames.join(', ')}>
                           {assocNames.length > 0 ? assocNames.join(', ') : '—'}
@@ -382,7 +391,7 @@ export default async function JournalEntriesPage({
                           {totalCredit > 0 ? money(totalCredit) : '—'}
                         </TD>
                         <TD>
-                          <JEStatusChip posted={je.posted} />
+                          {je.reversed_by_entry_id ? <StatusChip tone="neutral">Reversed</StatusChip> : <JEStatusChip posted={je.posted} />}
                         </TD>
                         <TD className="whitespace-nowrap text-right">
                           {!je.posted && (
@@ -427,6 +436,19 @@ export default async function JournalEntriesPage({
         {/* ── TAB: RECURRING JOURNAL ENTRIES ── */}
         {tab === 'recurring' && (
           <>
+            {recurringActiveCount > 0 && (
+              <form action={postRecurringJournalEntries} className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-semibold text-gray-950">Manually post recurring entries</h2>
+                  <p className="mt-0.5 text-sm text-gray-600">Post every active recurring entry scheduled on or before this date now, instead of waiting for its date.</p>
+                </div>
+                <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+                  Post through
+                  <input type="date" name="through" required defaultValue={todayInZone()} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-950" />
+                </label>
+                <PendingSubmit pendingLabel="Posting…">Post entries</PendingSubmit>
+              </form>
+            )}
             {filteredRecurring.length > 0 ? (
               <Table>
                 <THead>
@@ -435,16 +457,17 @@ export default async function JournalEntriesPage({
                     <TH>Memo</TH>
                     <TH>Frequency</TH>
                     <TH>Next Post Date</TH>
-                    <TH>Auto-Generate</TH>
+                    <TH>Ends</TH>
                     <TH>Last Generated</TH>
                     <TH>Status</TH>
+                    <TH />
                   </TR>
                 </THead>
                 <tbody>
                   {filteredRecurring.map((r: any) => (
                     <TR key={r.id}>
                       <TD className="font-medium text-sm text-gray-900">
-                        {r.name}
+                        <Link href={`/journal-entries/recurring/${r.id}/edit`} className="hover:underline">{r.name}</Link>
                         {r.last_error && <p className="mt-1 max-w-xs text-xs font-normal text-red-700">Not posting: {r.last_error}</p>}
                       </TD>
                       <TD className="max-w-xs truncate text-sm text-gray-600" title={r.memo ?? ''}>
@@ -456,18 +479,21 @@ export default async function JournalEntriesPage({
                           : '—'}
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.next_post_date)}</TD>
-                      <TD>
-                        {r.auto_generate ? (
-                          <StatusChip tone="success">Auto</StatusChip>
-                        ) : (
-                          <StatusChip tone="neutral">Manual</StatusChip>
-                        )}
-                      </TD>
+                      <TD className="whitespace-nowrap text-sm text-gray-600">{r.end_date ? date(r.end_date) : 'No end date'}</TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.last_generated_at)}</TD>
                       <TD>
                         <StatusChip tone={r.last_error ? 'danger' : r.auto_generate ? 'info' : 'neutral'}>
                           {r.last_error ? 'Needs attention' : r.auto_generate ? 'Active' : 'Paused'}
                         </StatusChip>
+                      </TD>
+                      <TD className="whitespace-nowrap text-right">
+                        <div className="flex justify-end gap-1">
+                          <Link href={`/journal-entries/recurring/${r.id}/edit`}><Button variant="ghost" size="sm">Edit</Button></Link>
+                          <form action={archiveRecurringJournalEntry}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <Button type="submit" variant="ghost" size="sm">Stop</Button>
+                          </form>
+                        </div>
                       </TD>
                     </TR>
                   ))}
@@ -509,7 +535,9 @@ export default async function JournalEntriesPage({
                 <tbody>
                   {filteredBatches.map((b: any) => (
                     <TR key={b.id}>
-                      <TD className="font-medium text-sm text-gray-900">{b.name}</TD>
+                      <TD className="font-medium text-sm text-gray-900">
+                        <Link href={`/journal-entries?tab=history&batch_id=${b.id}`} className="hover:underline">{b.name}</Link>
+                      </TD>
                       <TD className="max-w-xs truncate text-sm text-gray-600" title={b.description ?? ''}>
                         {b.description ?? '—'}
                       </TD>

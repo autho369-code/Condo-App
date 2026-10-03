@@ -53,9 +53,10 @@ export async function archiveRecurringBill(formData: FormData) {
 
 export async function saveRecurringJournalEntry(formData: FormData) {
   await requireFinanceStaff();
-  const back = '/journal-entries/recurring/new';
+  const id = uuidOrNull(s(formData, 'id'));
+  const back = id ? `/journal-entries/recurring/${id}/edit` : '/journal-entries/recurring/new';
   const lines: Array<Record<string, unknown>> = [];
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 24; i++) {
     const gl = uuidOrNull(s(formData, `line_${i}_gl`));
     const debit = numberOrNull(s(formData, `line_${i}_debit`)) ?? 0;
     const credit = numberOrNull(s(formData, `line_${i}_credit`)) ?? 0;
@@ -70,19 +71,47 @@ export async function saveRecurringJournalEntry(formData: FormData) {
     });
   }
   const db = (await createClient()) as any;
+  // The RPC re-checks finance access and association scope and applies the
+  // shared journal-line rules (association, matching GL account, cents).
   const { error } = await db.rpc('save_recurring_journal_entry', {
-    p_id: null,
+    p_id: id,
     p_name: s(formData, 'name'),
     p_memo: s(formData, 'memo'),
     p_frequency: s(formData, 'frequency'),
     p_interval: Math.max(1, Math.trunc(numberOrNull(s(formData, 'interval_count')) ?? 1)),
     p_next_date: s(formData, 'next_date') || null,
     p_lines: lines,
-    p_active: true,
+    p_active: id ? formData.get('active') === 'on' : true,
+    p_end_date: s(formData, 'end_date') || null,
   });
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/journal-entries');
-  redirect('/journal-entries?tab=recurring&saved=1');
+  revalidatePath('/journal-entries/recurring');
+  redirect('/journal-entries/recurring?saved=1');
+}
+
+export async function archiveRecurringJournalEntry(formData: FormData) {
+  await requireFinanceStaff();
+  const id = uuidOrNull(s(formData, 'id'));
+  if (!id) redirect('/journal-entries/recurring?error=' + encodeURIComponent('Recurring entry not found'));
+  const db = (await createClient()) as any;
+  const { error } = await db.rpc('archive_recurring_journal_entry', { p_id: id });
+  if (error) redirect(`/journal-entries/recurring?error=${encodeURIComponent(error.message)}`);
+  revalidatePath('/journal-entries/recurring');
+  redirect('/journal-entries/recurring?archived=1');
+}
+
+// Manually post recurring journal entries through the chosen date.
+export async function postRecurringJournalEntries(formData: FormData) {
+  await requireFinanceStaff();
+  const through = s(formData, 'through');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(through)) redirect('/journal-entries/recurring?error=' + encodeURIComponent('Choose a post-through date'));
+  const db = (await createClient()) as any;
+  const { data, error } = await db.rpc('post_recurring_journal_entries', { p_through: through });
+  if (error) redirect(`/journal-entries/recurring?error=${encodeURIComponent(error.message)}`);
+  revalidatePath('/journal-entries');
+  revalidatePath('/journal-entries/recurring');
+  redirect(`/journal-entries/recurring?posted=${Number(data ?? 0)}&through=${through}`);
 }
 
 // Payables → Manually post bills: every recurring bill due through the chosen
