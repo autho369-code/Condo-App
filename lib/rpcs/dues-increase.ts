@@ -3,9 +3,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFinanceOrPortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
 
-// apply_dues_increase re-checks finance permission for the association and
-// that the charge category belongs to its company.
+// apply_dues_increase_checked re-checks finance permission, that the charge is
+// an active assessment category for this association, and that the schedules
+// still match the preview the manager confirmed.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REF = /^[a-z0-9-]{1,80}$/i;
@@ -38,17 +40,32 @@ export async function applyDuesIncrease(formData: FormData) {
   if (!Number.isFinite(value)) fail('Enter the increase.');
   if (!effective) fail('Enter a valid effective date.');
   if (formData.get('confirm') !== 'on') fail('Tick the confirmation box to apply the increase.');
+  let expected: unknown;
+  try {
+    expected = JSON.parse(s(formData, 'expected') || 'null');
+  } catch {
+    expected = null;
+  }
+  if (!Array.isArray(expected)) fail('Preview the increase again before applying it.');
 
   const db = (await createClient()) as any;
-  const { data, error } = await db.rpc('apply_dues_increase', {
+  // One-time token: a double click or a re-sent form applies once.
+  const claim = await claimSubmission(db, formData, 'dues_increase');
+  if (claim.status === 'duplicate') redirect(`/associations/${ref}/budget/dues-increase?saved=${encodeURIComponent('This increase was already applied.')}`);
+  if (claim.status === 'error') fail(claim.message);
+  const { data, error } = await db.rpc('apply_dues_increase_checked', {
     p_association_id: associationId,
     p_charge_category_id: categoryId,
     p_mode: mode,
     p_value: value,
     p_effective_date: effective,
     p_apply: true,
+    p_expected: expected,
   });
-  if (error) fail(error.message);
+  if (error) {
+    if (claim.status === 'claimed') await releaseSubmission(db, claim.token);
+    fail(error.message);
+  }
   const rows = Array.isArray(data) ? data : [];
   const changed = rows.filter((r: any) => Number(r.new_amount) !== Number(r.old_amount)).length;
   revalidatePath(`/associations/${ref}/budget/dues-increase`);

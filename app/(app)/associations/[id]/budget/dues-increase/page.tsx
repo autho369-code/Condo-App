@@ -11,6 +11,8 @@ import { Field, Input, Select } from '@/components/ui/input';
 import { THead, TR, TH, TD } from '@/components/ui/table';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { applyDuesIncrease } from '@/lib/rpcs/dues-increase';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { SUBMISSION_FIELD, newSubmissionToken } from '@/lib/forms/submission';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { todayInZone } from '@/lib/time/zoned';
 import { money } from '@/lib/utils';
@@ -78,7 +80,7 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
   let previewError: string | null = null;
   const ready = !!category && value != null && Number.isFinite(value);
   if (ready) {
-    const { data, error } = await db.rpc('apply_dues_increase', {
+    const { data, error } = await db.rpc('apply_dues_increase_checked', {
       p_association_id: id,
       p_charge_category_id: category.id,
       p_mode: mode.value,
@@ -90,8 +92,21 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
     rows = Array.isArray(data) ? data : [];
   }
   const changed = rows.filter((r) => Number(r.new_amount) !== Number(r.old_amount));
-  const totalOld = rows.reduce((s, r) => s + Number(r.old_amount ?? 0), 0);
-  const totalNew = rows.reduce((s, r) => s + Number(r.new_amount ?? 0), 0);
+  // Totals per billing frequency (monthly and yearly amounts do not add up).
+  const byFrequency = new Map<string, { old: number; next: number; units: number }>();
+  for (const r of rows) {
+    const t = byFrequency.get(r.frequency) ?? { old: 0, next: 0, units: 0 };
+    t.old += Number(r.old_amount ?? 0);
+    t.next += Number(r.new_amount ?? 0);
+    t.units += 1;
+    byFrequency.set(r.frequency, t);
+  }
+  const totalsText = [...byFrequency.entries()].map(([f, t]) => {
+    const diff = t.next - t.old;
+    return `${FREQUENCY_LABEL[f] ?? f} (${t.units} unit${t.units === 1 ? '' : 's'}): ${money(t.old)} → ${money(t.next)} (${diff >= 0 ? '+' : ''}${money(diff)})`;
+  }).join(' · ');
+  // What the manager confirms: applying checks these schedules and amounts are unchanged.
+  const expected = JSON.stringify(rows.map((r) => ({ recurring_id: r.recurring_id, old_amount: r.old_amount })));
 
   return (
     <Workspace
@@ -149,7 +164,7 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
         {rows.length > 0 && (
           <Section
             title={`${rows.length} unit${rows.length === 1 ? '' : 's'} · ${changed.length} change${changed.length === 1 ? '' : 's'}`}
-            subtitle={`Per billing period: ${money(totalOld)} now → ${money(totalNew)} after (${totalNew - totalOld >= 0 ? '+' : ''}${money(totalNew - totalOld)}).`}
+            subtitle={`Total per billing period, ${totalsText}.`}
           >
             <div className="overflow-x-auto"><table className="w-full text-sm">
               <THead>
@@ -188,6 +203,8 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
               <input type="hidden" name="mode" value={mode.value} />
               <input type="hidden" name="value" value={valueRaw} />
               <input type="hidden" name="effective_date" value={effective} />
+              <input type="hidden" name="expected" value={expected} />
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <label className="flex min-h-10 items-start gap-2 text-[13px] text-gray-700">
                 <input type="checkbox" name="confirm" className="mt-0.5 h-4 w-4 rounded border-gray-300" disabled={changed.length === 0} />
                 <span>
@@ -195,7 +212,7 @@ export default async function DuesIncreasePage({ params, searchParams }: { param
                   Remember to send owners the notice your declaration and state law require.
                 </span>
               </label>
-              <Button type="submit" disabled={changed.length === 0}>Apply to {changed.length} unit{changed.length === 1 ? '' : 's'}</Button>
+              <PendingSubmit disabled={changed.length === 0} pendingLabel="Applying…">Apply to {changed.length} unit{changed.length === 1 ? '' : 's'}</PendingSubmit>
             </form>
           </Section>
         )}
