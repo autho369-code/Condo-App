@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 
-type GlAccount = { id: string; number: number; name: string };
+type GlAccount = { id: string; number: number; name: string; association_id?: string | null };
 type Assoc = { id: string; name: string };
 type Line = { gl: string; assoc: string; debit: string; credit: string; memo: string };
 
@@ -15,10 +16,12 @@ export function JournalEntryForm({
   glAccounts,
   associations,
   action,
+  today,
 }: {
   glAccounts: GlAccount[];
   associations: Assoc[];
   action: (formData: FormData) => void;
+  today: string;
 }) {
   const [lines, setLines] = useState<Line[]>([emptyLine(), emptyLine()]);
 
@@ -29,7 +32,9 @@ export function JournalEntryForm({
 
   const totalDebit = lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
-  const balanced = Math.abs(totalDebit - totalCredit) < 0.001 && totalDebit > 0;
+  const cents = (v: number) => Math.round(v * 100);
+  // Same rule as the server: amounts are rounded to cents before comparing.
+  const balanced = lines.reduce((s, l) => s + cents(parseFloat(l.debit) || 0), 0) === lines.reduce((s, l) => s + cents(parseFloat(l.credit) || 0), 0) && totalDebit > 0;
   const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   return (
@@ -37,7 +42,7 @@ export function JournalEntryForm({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div>
           <Label htmlFor="entry_date">Entry date <span className="text-red-500">*</span></Label>
-          <Input id="entry_date" name="entry_date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+          <Input id="entry_date" name="entry_date" type="date" required defaultValue={today} />
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
@@ -67,12 +72,13 @@ export function JournalEntryForm({
                 <td className="px-3 py-2">
                   <select name="line_gl" value={l.gl} onChange={(e) => update(i, 'gl', e.target.value)} className={inputCls}>
                     <option value="">—</option>
-                    {glAccounts.map((g) => <option key={g.id} value={g.id}>{g.number} · {g.name}</option>)}
+                    {/* Company-wide accounts, plus the line's own association's accounts. */}
+                    {glAccounts.filter((g) => !g.association_id || g.association_id === l.assoc).map((g) => <option key={g.id} value={g.id}>{g.number} · {g.name}</option>)}
                   </select>
                 </td>
                 <td className="px-3 py-2">
-                  <select name="line_assoc" value={l.assoc} onChange={(e) => update(i, 'assoc', e.target.value)} className={inputCls}>
-                    <option value="">Portfolio-wide</option>
+                  <select name="line_assoc" value={l.assoc} required onChange={(e) => update(i, 'assoc', e.target.value)} className={inputCls}>
+                    <option value="">Select association…</option>
                     {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 </td>
@@ -115,7 +121,7 @@ export function JournalEntryForm({
       </div>
 
       <div className="flex items-center justify-between border-t border-gray-100 pt-5">
-        <a href="/journal-entries" className="text-sm text-gray-600 hover:text-gray-900">Cancel</a>
+        <Link href="/journal-entries" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
         <Button type="submit" size="lg" disabled={!balanced}>Post journal entry</Button>
       </div>
     </form>

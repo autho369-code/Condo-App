@@ -34,3 +34,25 @@ export async function postDraftJournalEntry(formData: FormData) {
 export async function deleteDraftJournalEntry(formData: FormData) {
   return draftAction(formData, 'delete');
 }
+
+// Reverse a posted entry: posts an equal and opposite entry on the chosen
+// date. The RPC re-checks finance access and association scope, refuses
+// entries that belong to a receipt, bill or other record (void those there),
+// and refuses a second reversal.
+export async function reverseJournalEntry(formData: FormData) {
+  await requireFinanceStaff();
+  const id = String(formData.get('entry_id') ?? '');
+  if (!UUID.test(id)) fail('Choose a journal entry.');
+  const back = `/journal-entries/${id}`;
+  const reversalDate = String(formData.get('reversal_date') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim();
+  const db = (await createClient()) as any;
+  const { data: reversalId, error } = await db.rpc('reverse_journal_entry', {
+    p_id: id,
+    p_reversal_date: /^\d{4}-\d{2}-\d{2}$/.test(reversalDate) ? reversalDate : null,
+    p_reason: reason,
+  });
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath('/journal-entries');
+  redirect(`/journal-entries/${reversalId}?reversal=1`);
+}
