@@ -667,6 +667,7 @@ async function CashFlowView({
   let transferQuery = db
     .from('bank_transfers')
     .select('id, amount, transfer_date, reference_number, memo, journal_entry_id, from_bank_account_id, to_bank_account_id')
+    .is('voided_at', null)
     .gte('transfer_date', period.from)
     .lte('transfer_date', period.to)
     .order('transfer_date', { ascending: false });
