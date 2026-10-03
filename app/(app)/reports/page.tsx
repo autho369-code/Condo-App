@@ -95,6 +95,9 @@ export default async function ReportsIndex({
     (!createdTo || r.created_at.slice(0, 10) <= createdTo) &&
     (!ql || (r.name ?? '').toLowerCase().includes(ql) || (r.report_definitions?.name ?? '').toLowerCase().includes(ql)));
 
+  // Pinned saved reports show with the starred reports in Favorite Reports.
+  const pinnedSaved = savedRows.filter((r) => r.pinned && (!ql || (r.name ?? '').toLowerCase().includes(ql)));
+
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries({ q, created_by: createdBy, created_from: createdFrom, created_to: createdTo })) if (v) params.set(k, v);
   const returnTo = params.toString() ? `/reports?${params}` : '/reports';
@@ -116,9 +119,10 @@ export default async function ReportsIndex({
           <Button type="submit" variant="secondary">Search</Button>
         </form>
 
-        {favorites.length > 0 && (
+        {(favorites.length > 0 || pinnedSaved.length > 0) && (
           <ReportSection title="Favorite Reports">
-            <ReportGrid rows={favorites} favoriteIds={favoriteIds} returnTo={returnTo} />
+            {favorites.length > 0 && <ReportGrid rows={favorites} favoriteIds={favoriteIds} returnTo={returnTo} />}
+            {pinnedSaved.length > 0 && <SavedReports rows={pinnedSaved} returnTo={returnTo} />}
           </ReportSection>
         )}
 
