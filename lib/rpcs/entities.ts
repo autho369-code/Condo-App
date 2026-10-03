@@ -216,7 +216,7 @@ export async function setAssociationHidden(formData: FormData) {
 // ============================================================================
 
 export async function createBankAccount(formData: FormData) {
-  const me = await requireStaff();
+  const me = await requireFinanceOrPortfolioAdmin();
   const supabase = await createClient();
 
   const failTo = (msg: string) => {
@@ -244,6 +244,22 @@ export async function createBankAccount(formData: FormData) {
     next_check_number: intn(formData, 'next_check_number'),
   };
 
+  // The bank carries its cash on this GL account, so it must be an active
+  // cash/asset account of the same company and, if association-specific, the
+  // bank's own association (same rules as linking one later).
+  if (payload.association_id) {
+    const { data: assoc } = await (supabase as any).from('associations')
+      .select('id').eq('id', payload.association_id).eq('portfolio_id', me.portfolio?.id).maybeSingle();
+    if (!assoc) { failTo('Choose an association in this company.'); return; }
+  }
+  if (payload.gl_account_id) {
+    const { data: gl } = await (supabase as any).from('gl_accounts')
+      .select('id, portfolio_id, association_id, account_type, active').eq('id', payload.gl_account_id).maybeSingle();
+    if (!gl || gl.portfolio_id !== me.portfolio?.id || !gl.active) { failTo('Choose an active GL account in this company.'); return; }
+    if (!['cash', 'asset'].includes(String(gl.account_type))) { failTo('Choose a cash or asset GL account.'); return; }
+    if (gl.association_id && gl.association_id !== payload.association_id) { failTo('That GL account belongs to a different association.'); return; }
+  }
+
   const { data: bank, error } = await (supabase as any)
     .from('bank_accounts').insert(payload).select('id').single();
   if (error || !bank) { failTo(error?.message ?? 'Failed to create bank account'); return; }
@@ -258,14 +274,14 @@ export async function createBankAccount(formData: FormData) {
 }
 
 export async function updateBankCheckSettings(formData: FormData) {
-  await requireStaff();
+  await requireFinanceOrPortfolioAdmin();
   const id = req(formData, 'bank_account_id');
   const signer = req(formData, 'check_signature');
   if (signer.length > 120) {
     redirect(`/bank-accounts/${id}?error=${encodeURIComponent('Authorized signer label must be 120 characters or fewer.')}`);
   }
   const supabase = await createClient();
-  const { error } = await (supabase as any)
+  const { data: updatedRow, error } = await (supabase as any)
     .from('bank_accounts')
     .update({
       check_signature: signer,
@@ -273,9 +289,12 @@ export async function updateBankCheckSettings(formData: FormData) {
       company_address: str(formData, 'company_address'),
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
-  if (error) {
-    redirect(`/bank-accounts/${id}?error=${encodeURIComponent(error.message)}`);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  // No row back means RLS blocked the update: say so instead of "saved".
+  if (error || !updatedRow) {
+    redirect(`/bank-accounts/${id}?error=${encodeURIComponent(error?.message ?? 'You cannot change this bank account.')}`);
   }
   revalidatePath(`/bank-accounts/${id}`);
   revalidatePath('/bills/check-run');

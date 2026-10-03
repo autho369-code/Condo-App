@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { bookBalance, itemFromLine, reconcilableLines } from '@/lib/banking/reconciliation';
 
 export async function POST(request: NextRequest) {
   // Staff-only: server actions/route handlers are callable endpoints, so the
   // guard lives in the handler itself (middleware alone is not sufficient).
   try {
-    await (await import('@/lib/auth/me')).requireStaff();
+    await (await import('@/lib/auth/me')).requireFinanceStaff();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
   // RLS limits this read to reconciliations the caller can manage.
   const { data: recon } = await db
     .from('bank_reconciliations')
-    .select('id, portfolio_id, bank_account_id, status, statement_balance, ending_book_balance')
+    .select('id, portfolio_id, bank_account_id, status, statement_date, statement_balance, ending_book_balance, bank_accounts(id, gl_account_id, association_id)')
     .eq('id', reconciliationId)
     .maybeSingle();
 
@@ -43,10 +44,36 @@ export async function POST(request: NextRequest) {
   // Every item (paged past 1,000 rows).
   const { rows: items, error: itemsError } = await fetchAllRows<any>(() => db
     .from('bank_reconciliation_items')
-    .select('id, amount, is_cleared')
+    .select('id, amount, is_cleared, journal_line_id')
     .eq('reconciliation_id', reconciliationId)
     .order('id'));
   if (itemsError) return back(`Could not load the reconciliation items: ${itemsError}`, recon.bank_account_id);
+
+  // Entries posted (or reversed) on or before the statement date since the
+  // reconciliation started change the book balance. Bring them in as
+  // uncleared items and refresh the book balance, then let the user review.
+  const bank = recon.bank_accounts;
+  if (bank?.gl_account_id) {
+    const { balance, error: balError } = await bookBalance(db, bank, recon.statement_date);
+    if (balError) return back(`Could not compute the book balance: ${balError}`, recon.bank_account_id);
+    if (Math.abs(balance - Number(recon.ending_book_balance ?? 0)) >= 0.005) {
+      const { lines, error: linesError, truncated } = await reconcilableLines(
+        db, bank, recon.statement_date, new Set(items.map((i: any) => i.journal_line_id).filter(Boolean)),
+      );
+      if (linesError) return back(linesError, recon.bank_account_id);
+      if (truncated) return back('This account has too many unreconciled lines to load at once.', recon.bank_account_id);
+      const added = lines.map((line: any, index: number) => itemFromLine(reconciliationId, line, items.length + index));
+      for (let i = 0; i < added.length; i += 500) {
+        const { error: addError } = await db.from('bank_reconciliation_items').insert(added.slice(i, i + 500));
+        if (addError) return back(`Could not add new ledger lines: ${addError.message}`, recon.bank_account_id);
+      }
+      const { error: updError } = await db.from('bank_reconciliations')
+        .update({ ending_book_balance: balance, difference: balance - Number(recon.statement_balance ?? 0), updated_at: new Date().toISOString() })
+        .eq('id', reconciliationId).eq('status', 'in_progress');
+      if (updError) return back(`Could not refresh the book balance: ${updError.message}`, recon.bank_account_id);
+      return back(`The books changed since this reconciliation started (${added.length} new ledger line${added.length === 1 ? '' : 's'} on or before the statement date). Review them, then complete again.`, recon.bank_account_id);
+    }
+  }
 
   // Adjusted book balance = book balance at the statement date less items
   // that have not cleared. It must match the statement before completing:

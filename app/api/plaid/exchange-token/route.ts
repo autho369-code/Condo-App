@@ -4,14 +4,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 
 export async function POST(request: NextRequest) {
   try {
     // Banking connections are a staff-only capability.
     let user;
     try {
-      user = await requireStaff();
+      user = await requireFinanceStaff();
     } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
 
     if (!profile?.portfolio_id) {
       return NextResponse.json({ error: 'No portfolio found' }, { status: 400 });
+    }
+
+    // The bank account must be one of the caller's own (RLS scopes the read
+    // to their company and associations) before a connection is tied to it.
+    if (bank_account_id) {
+      const { data: ownBank } = await db
+        .from('bank_accounts')
+        .select('id, portfolio_id')
+        .eq('id', String(bank_account_id))
+        .is('archived_at', null)
+        .maybeSingle();
+      if (!ownBank || ownBank.portfolio_id !== profile.portfolio_id) {
+        return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
+      }
     }
 
     // Exchange public_token for access_token
@@ -79,10 +93,11 @@ export async function POST(request: NextRequest) {
 
     // If bank_account_id was provided, enable auto-reconciliation
     if (bank_account_id) {
-      await db
+      const { error: autoError } = await db
         .from('bank_accounts')
         .update({ auto_reconciliation: true })
         .eq('id', bank_account_id);
+      if (autoError) console.error('Could not turn on auto-reconciliation:', autoError);
     }
 
     return NextResponse.json({

@@ -9,6 +9,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { saveCreditCardAccount } from '@/lib/rpcs/credit-cards';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { money } from '@/lib/utils';
 import { FinancialAccountTabs } from '@/components/banking/financial-account-tabs';
 
@@ -30,7 +31,9 @@ export default async function CreditCardsPage({ searchParams }: { searchParams: 
       .select('id, name, issuer, last_four, association_id, associations(name), gl_accounts(number, name)')
       .is('archived_at', null)
       .order('name'),
-    db.from('credit_card_charges').select('card_id, amount').is('voided_at', null).gte('charge_date', monthStartIso).lt('charge_date', nextMonthIso),
+    // Every charge this month (past the 1,000-row cap) so the totals are complete.
+    fetchAllRows<any>(() => db.from('credit_card_charges').select('id, card_id, amount').is('voided_at', null)
+      .gte('charge_date', monthStartIso).lt('charge_date', nextMonthIso).order('id')).then((r) => ({ data: r.rows })),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('gl_accounts').select('id, number, name, association_id').eq('active', true)
       .in('account_type', ['liability', 'accounts_payable']).order('number'),

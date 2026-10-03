@@ -26,9 +26,8 @@ export default async function NewBankAccountPage({
     (supabase as any).from('gl_accounts').select('id, number, name, account_type').eq('active', true).order('number'),
   ]);
 
-  const cashGLs = (glAccounts ?? []).filter((account: any) =>
-    account.account_type === 'cash' || (account.number >= 1000 && account.number < 2000),
-  );
+  // Same rule the save enforces: an active cash or asset account.
+  const cashGLs = (glAccounts ?? []).filter((account: any) => account.account_type === 'cash' || account.account_type === 'asset');
 
   return (
     <DataWorkspace

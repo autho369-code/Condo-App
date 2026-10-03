@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { bookBalance, itemFromLine, reconcilableLines } from '@/lib/banking/reconciliation';
 
 export async function POST(request: NextRequest) {
   // Staff-only: server actions/route handlers are callable endpoints, so the
   // guard lives in the handler itself (middleware alone is not sufficient).
   try {
-    await (await import('@/lib/auth/me')).requireStaff();
+    await (await import('@/lib/auth/me')).requireFinanceStaff();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -46,47 +46,27 @@ export async function POST(request: NextRequest) {
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(statementDate)) return back('Enter a valid statement date');
 
-  // Book balance as of the statement date, summed in the database (a list of
-  // lines stopped at 1,000 rows, and entries after the statement date were
-  // counted too).
-  // Only this bank's association: several associations' banks can share one
-  // cash GL account.
-  const { data: balRows, error: balError } = await db.rpc('journal_line_totals', {
-    p_gl_account_ids: [bankAccount.gl_account_id],
-    p_association_ids: bankAccount.association_id ? [bankAccount.association_id] : null,
-    p_to: statementDate,
-  });
-  if (balError) return back(`Could not compute the book balance: ${balError.message}`);
-  const totalBookBalance = ((balRows ?? []) as any[]).reduce(
-    (sum: number, r: any) => sum + Number(r.debit_total ?? 0) - Number(r.credit_total ?? 0),
-    0,
-  );
+  // One reconciliation at a time, statements in order, none from the future:
+  // completing an older statement after a newer one would rewind the
+  // account's reconciled date, and a future date would let periods close
+  // that the bank has not confirmed yet.
+  const { todayInZone } = await import('@/lib/time/zoned');
+  if (statementDate > todayInZone()) return back('The statement date is in the future');
+  const [{ data: open }, { data: lastDone }] = await Promise.all([
+    db.from('bank_reconciliations').select('id').eq('bank_account_id', bankAccountId).eq('status', 'in_progress').limit(1).maybeSingle(),
+    db.from('bank_reconciliations').select('statement_date').eq('bank_account_id', bankAccountId).eq('status', 'completed')
+      .order('statement_date', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (open) return back('A reconciliation of this account is already in progress. Finish it before starting another.');
+  if (lastDone && statementDate <= lastDone.statement_date) {
+    return back(`This account is reconciled through ${lastDone.statement_date}. Choose a later statement date.`);
+  }
 
-  // Lines to reconcile: every posted line through the statement date that was
-  // not already cleared on a completed reconciliation of this account.
-  const { rows: lineRows, truncated, error: linesError } = await fetchAllRows<any>(() => {
-    let q = db
-      .from('journal_lines')
-      .select('id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, reference_number, description, posted)')
-      .eq('gl_account_id', bankAccount.gl_account_id)
-      .eq('journal_entries.posted', true)
-      .lte('journal_entries.entry_date', statementDate);
-    if (bankAccount.association_id) q = q.eq('association_id', bankAccount.association_id);
-    return q.order('id');
-  });
-  if (linesError) return back(`Could not load ledger lines: ${linesError}`);
+  const { balance: totalBookBalance, error: balError } = await bookBalance(db, bankAccount, statementDate);
+  if (balError) return back(`Could not compute the book balance: ${balError}`);
+  const { lines, error: linesError, truncated } = await reconcilableLines(db, bankAccount, statementDate);
+  if (linesError) return back(linesError);
   if (truncated) return back('This account has too many unreconciled lines to load at once. Reconcile an earlier statement first.');
-  const { rows: clearedRows, error: clearedError } = await fetchAllRows<any>(() => db
-    .from('bank_reconciliation_items')
-    .select('journal_line_id, bank_reconciliations!inner(bank_account_id, status)')
-    .eq('bank_reconciliations.bank_account_id', bankAccountId)
-    .eq('bank_reconciliations.status', 'completed')
-    .eq('is_cleared', true)
-    .not('journal_line_id', 'is', null)
-    .order('journal_line_id'));
-  if (clearedError) return back(`Could not load earlier reconciliations: ${clearedError}`);
-  const alreadyCleared = new Set(clearedRows.map((r: any) => r.journal_line_id));
-  const lines = lineRows.filter((line: any) => !alreadyCleared.has(line.id));
 
   // Create the reconciliation
   const { data: reconciliation, error: reconError } = await db
@@ -111,14 +91,7 @@ export async function POST(request: NextRequest) {
 
   // Populate reconciliation items from journal_lines
   if (lines.length > 0) {
-    const items = lines.map((line: any, index: number) => ({
-      reconciliation_id: reconciliation.id,
-      journal_line_id: line.id,
-      amount: (line.debit_amount ?? 0) - (line.credit_amount ?? 0),
-      type: 'book',
-      is_cleared: false,
-      sort_order: index,
-    }));
+    const items = lines.map((line: any, index: number) => itemFromLine(reconciliation.id, line, index));
 
     // Insert in chunks; a reconciliation with missing lines is worse than
     // none, so roll it back on failure.

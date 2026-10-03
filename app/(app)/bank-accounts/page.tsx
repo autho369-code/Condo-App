@@ -9,7 +9,7 @@ import { Alert, EmptyState } from '@/components/ui/shell';
 import { DataTable } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { date, money } from '@/lib/utils';
 import { FinancialAccountTabs } from '@/components/banking/financial-account-tabs';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,7 @@ export default async function BankAccountsPage({
 
   let query = db
     .from('bank_accounts')
-    .select('id, name, bank_name, account_number_last4, routing_number_last4, account_type, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations!bank_accounts_association_id_fkey(name)')
+    .select('id, name, bank_name, account_number_last4, routing_number_last4, account_type, gl_account_id, association_id, payments_enabled, auto_reconciliation, last_reconciliation_date, next_check_number, associations!bank_accounts_association_id_fkey(name)')
     .is('archived_at', null)
     .order('name');
 
@@ -40,7 +40,17 @@ export default async function BankAccountsPage({
     query,
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
-  const accounts = rows ?? [];
+  // Ledger balance of each account: posted lines on its cash GL account for
+  // its own association (several associations' banks can share one GL).
+  const accounts = await Promise.all(((rows ?? []) as any[]).map(async (row: any) => {
+    if (!row.gl_account_id) return { ...row, balance: null };
+    const { data: totals } = await db.rpc('journal_line_totals', {
+      p_gl_account_ids: [row.gl_account_id],
+      p_association_ids: row.association_id ? [row.association_id] : null,
+    });
+    const balance = ((totals ?? []) as any[]).reduce((sum: number, t: any) => sum + Number(t.debit_total ?? 0) - Number(t.credit_total ?? 0), 0);
+    return { ...row, balance };
+  }));
   const needsReconciliation = accounts.filter((row: any) => !row.last_reconciliation_date).length;
   const paymentsEnabled = accounts.filter((row: any) => row.payments_enabled).length;
 
@@ -133,6 +143,12 @@ export default async function BankAccountsPage({
               header: 'Account number',
               className: 'font-mono',
               render: (account: any) => (account.account_number_last4 ? `****${account.account_number_last4}` : 'Not provided'),
+            },
+            {
+              key: 'balance',
+              header: 'Balance',
+              className: 'text-right tabular-nums',
+              render: (account: any) => (account.balance === null ? <span className="text-gray-400">No GL account</span> : money(account.balance)),
             },
             {
               key: 'last_reconciliation_date',
