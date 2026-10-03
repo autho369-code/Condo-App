@@ -7,10 +7,12 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { GL_ACCOUNT_TYPES, glWriteError } from '@/lib/gl/accounts';
 
 export const dynamic = 'force-dynamic';
 
-const ACCOUNT_TYPES = ['asset', 'cash', 'accounts_receivable', 'fixed_asset', 'liability', 'accounts_payable', 'equity', 'income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating'];
+const ACCOUNT_TYPES = GL_ACCOUNT_TYPES;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
@@ -32,6 +34,9 @@ async function updateGlAccount(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim();
   const accountType = String(formData.get('account_type') ?? '');
   const associationId = String(formData.get('association_id') ?? '') || null;
+  const parentId = String(formData.get('sub_account_of_id') ?? '') || null;
+  if (parentId && !UUID.test(parentId)) fail('Choose a valid parent account.');
+  if (parentId === id) fail('An account cannot be its own sub-account.');
   if (!Number.isFinite(number) || number < 1000 || number > 9999) fail('Account number must be between 1000 and 9999.');
   if (!name) fail('Enter an account name.');
   if (!ACCOUNT_TYPES.includes(accountType)) fail('Select an account type.');
@@ -53,12 +58,13 @@ async function updateGlAccount(formData: FormData) {
     name,
     account_type: accountType,
     association_id: associationId,
+    sub_account_of_id: parentId,
     description: String(formData.get('description') ?? '').trim() || null,
     include_on_cash_flow: formData.get('include_on_cash_flow') === 'on',
     subject_to_management_fees: formData.get('subject_to_management_fees') === 'on',
     active: formData.get('active') === 'on',
   }).eq('id', id).select('id').maybeSingle();
-  if (error) fail(error.message);
+  if (error) fail(glWriteError(error.message));
   if (!data) fail('You do not have permission to change this account.');
   revalidatePath('/gl-accounts');
   redirect('/gl-accounts?saved=1');
@@ -76,10 +82,11 @@ export default async function EditGlAccountPage({
   const sp = await searchParams;
   if (!UUID.test(id)) notFound();
   const db = (await createClient()) as any;
-  const [{ data: account }, { data: associations }, { data: inUse }] = await Promise.all([
-    db.from('gl_accounts').select('id, number, name, account_type, association_id, description, include_on_cash_flow, subject_to_management_fees, active, associations(id, name, archived_at)').eq('id', id).maybeSingle(),
+  const [{ data: account }, { data: associations }, { data: inUse }, { rows: parents }] = await Promise.all([
+    db.from('gl_accounts').select('id, number, name, account_type, association_id, sub_account_of_id, description, include_on_cash_flow, subject_to_management_fees, active, associations(id, name, archived_at)').eq('id', id).maybeSingle(),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.rpc('gl_account_in_use', { p_gl_account_id: id }),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, active').neq('id', id).order('number').order('id')),
   ]);
   if (!account) notFound();
   const locked = inUse === true;
@@ -131,6 +138,17 @@ export default async function EditGlAccountPage({
         )}
 
         <div>
+          <Label htmlFor="sub_account_of_id">Sub-account of</Label>
+          <select id="sub_account_of_id" name="sub_account_of_id" defaultValue={account.sub_account_of_id ?? ''} className={inputCls}>
+            <option value="">None — a top-level account</option>
+            {(parents ?? []).filter((a: any) => a.active || a.id === account.sub_account_of_id).map((a: any) => (
+              <option key={a.id} value={a.id}>{a.number} · {a.name}{a.active ? '' : ' (inactive)'}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">A sub-account has the same type as its parent and rolls up under it.</p>
+        </div>
+
+        <div>
           <Label htmlFor="description">Description</Label>
           <Input id="description" name="description" defaultValue={account.description ?? ''} />
         </div>
@@ -139,6 +157,7 @@ export default async function EditGlAccountPage({
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" name="active" defaultChecked={account.active} className="accent-blue-600" /> Active (offered for new entries)
           </label>
+          <p className="pl-6 text-xs text-gray-400">A balance-sheet account with a balance, or an account used by a bank account, active sub-accounts or the GL account map, can&apos;t be deactivated.</p>
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" name="include_on_cash_flow" defaultChecked={account.include_on_cash_flow} className="accent-blue-600" /> Include on cash flow statement
           </label>

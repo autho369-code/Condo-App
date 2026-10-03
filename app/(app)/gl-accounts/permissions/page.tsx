@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { setGlRolePermission } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -19,9 +20,11 @@ export default async function GlPermissionsPage({
   const me = await requirePortfolioAdmin();
   const sp = await searchParams;
   const db = (await createClient()) as any;
-  const [{ data: roles }, { data: accounts }] = await Promise.all([
-    db.from('user_roles').select('id, name, description, is_system').eq('portfolio_id', me.portfolio?.id).order('name'),
-    db.from('gl_accounts').select('id, number, name, account_type, active').eq('portfolio_id', me.portfolio?.id).order('number'),
+  // System roles (manager, accountant, ...) have fixed access and ignore GL
+  // permissions, so only custom roles are listed.
+  const [{ data: roles }, { rows: accounts }] = await Promise.all([
+    db.from('user_roles').select('id, name, description, is_system').eq('portfolio_id', me.portfolio?.id).eq('is_system', false).order('name'),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, account_type, active').eq('portfolio_id', me.portfolio?.id).order('number').order('id')),
   ]);
   const selectedRoleId = (roles ?? []).some((role: any) => role.id === sp.role_id) ? sp.role_id : roles?.[0]?.id;
   const selectedRole = (roles ?? []).find((role: any) => role.id === selectedRoleId);
@@ -36,7 +39,7 @@ export default async function GlPermissionsPage({
     <div className="space-y-5">
       {sp.error && <Alert title="Could not save permission">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success">GL permission saved and audit logged.</Alert>}
-      <Alert tone="info" title="Permission semantics.">Read allows reporting visibility. Full also permits account selection in controlled posting workflows. None is an explicit denial. Company administrators, finance staff, and full-access staff retain their privileged access.</Alert>
+      <Alert tone="info" title="Permission semantics.">Read allows reporting visibility. Full also permits account selection in controlled posting workflows. None is an explicit denial. Built-in roles are not listed: company administrators, finance staff and full-access staff keep their own access. Postings the system makes (charges, receipts, bills) use the GL account map whatever the role.</Alert>
       {(roles ?? []).length ? <>
         <form action="/gl-accounts/permissions" className="flex max-w-xl flex-col gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-end">
           <label className="flex-1 text-sm font-medium text-gray-700">Staff role<Select name="role_id" defaultValue={selectedRoleId} className="mt-1.5">{(roles ?? []).map((role: any) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></label>
