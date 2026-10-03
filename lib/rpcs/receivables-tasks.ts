@@ -13,16 +13,21 @@ function id(formData: FormData, key: string) {
   return UUID.test(v) ? v : null;
 }
 
-/** Apply unapplied payments/credits to open charges. Re-checked in apply_credits. */
+/** Apply unapplied payments/credits to open charges, within the current owner's
+ * ownership (apply_credits re-checks access and keeps a previous owner's
+ * credit and charges apart). */
 export async function applyCredits(formData: FormData) {
   await requireFinanceStaff();
+  // Financial Diagnostics applies one unit's credit and returns there.
+  const back = formData.get('return_to') === '/diagnostics' ? '/diagnostics' : BACK;
   const associationId = id(formData, 'association_id');
-  if (!associationId) redirect(`${BACK}?error=${encodeURIComponent('Choose an association.')}`);
+  if (!associationId) redirect(`${back}?error=${encodeURIComponent('Choose an association.')}`);
   const db = (await createClient()) as any;
   const { data, error } = await db.rpc('apply_credits', { p_association_id: associationId, p_unit_id: id(formData, 'unit_id') });
-  if (error) redirect(`${BACK}?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
   revalidatePath('/charges');
-  redirect(`${BACK}?applied=${encodeURIComponent(`${data?.applied_total ?? 0}|${data?.payments ?? 0}`)}`);
+  revalidatePath('/diagnostics');
+  redirect(`${back}?applied=${encodeURIComponent(`${data?.applied_total ?? 0}|${data?.payments ?? 0}`)}`);
 }
 
 /** Charge late fees now with the association's late-fee policy. Re-checked in charge_late_fees_now. */

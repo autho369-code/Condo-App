@@ -59,7 +59,8 @@ export default async function GLAccountsPage({
     && (!assoc || a.association_id === assoc || a.association_id == null));
   const parentById = new Map((rows as any[]).map((a: any) => [a.id, a]));
   // Posted balance; with an association chosen, only that association's lines.
-  const balances = await glBalances(db, accounts.map((a: any) => a.id), assoc || null);
+  // Finance only: other staff can't read the ledger, so balances would read 0.
+  const balances = isFinance ? await glBalances(db, accounts.map((a: any) => a.id), assoc || null) : null;
 
   const activeCount = accounts.filter((a: any) => a.active).length;
   const inactiveCount = accounts.filter((a: any) => !a.active).length;
@@ -74,7 +75,7 @@ export default async function GLAccountsPage({
   return (
     <DataWorkspace
       title="GL Accounts"
-      description="Chart of accounts, grouped by account type, with each account's posted balance. Open an account to edit or deactivate it."
+      description="Chart of accounts, grouped by account type. Open an account to edit or deactivate it."
       actions={<>
         <a href={`/gl-accounts/export?${new URLSearchParams({ q, status, association_id: assoc }).toString()}`}><Button variant="secondary"><Download className="h-4 w-4" /> Export</Button></a>
         {isFinance && <Link href="/gl-accounts/map"><Button variant="secondary">GL account map</Button></Link>}
@@ -140,7 +141,7 @@ export default async function GLAccountsPage({
                     <TH>Account Type</TH>
                     <TH>Association</TH>
                     <TH>Fund Account</TH>
-                    <TH className="text-right">Balance</TH>
+                    {balances && <TH className="text-right">Balance</TH>}
                     <TH>Active</TH>
                   </tr>
                 </THead>
@@ -161,7 +162,7 @@ export default async function GLAccountsPage({
                       <TD className="capitalize">{a.account_type?.replace(/_/g, ' ')}</TD>
                       <TD className="text-gray-600">{a.associations?.name ?? 'Portfolio-wide'}</TD>
                       <TD className="capitalize text-gray-600">{a.fund_account?.replace(/_/g, ' ') ?? '—'}</TD>
-                      <TD className="text-right tabular-nums">{money(normalBalance(a.account_type, balances.get(a.id) ?? 0))}</TD>
+                      {balances && <TD className="text-right tabular-nums">{money(normalBalance(a.account_type, balances.get(a.id) ?? 0))}</TD>}
                       <TD>
                         <StatusChip tone={a.active ? 'success' : 'neutral'}>
                           {a.active ? 'Active' : 'Inactive'}
