@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/shell';
 import { readQuestions } from '@/lib/surveys/questions';
+import { ownerSurveyScope, scopeOwnerSurveys } from '@/lib/surveys/owner-scope';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -12,19 +13,13 @@ export default async function OwnerSurveysPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const db = (await createClient()) as any;
 
-  // Mirror the owner rule (surveys_resident_read) explicitly, so a board member
-  // or staffer who is also an owner sees only what an owner would.
-  const assocIds = me.resident_association_ids ?? [];
-  const scope = assocIds.length ? `association_id.is.null,association_id.in.(${assocIds.join(',')})` : 'association_id.is.null';
+  const scope = await ownerSurveyScope(db, me);
   const [{ data: surveys, error }, { data: mine }] = await Promise.all([
-    db.from('surveys')
-      .select('id, name, description, questions, created_at, associations(name)')
-      .eq('active', true)
-      .is('archived_at', null)
-      .or(scope)
+    scopeOwnerSurveys(db.from('surveys').select('id, name, description, questions, created_at, associations(name)'), scope)
       .order('created_at', { ascending: false })
       .limit(200),
-    db.from('survey_responses').select('survey_id, submitted_at').eq('submitted_by_owner_id', me.owner_id),
+    // Only portal answers (the detail page shows the same one).
+    db.from('survey_responses').select('survey_id, submitted_at').eq('submitted_by_owner_id', me.owner_id).is('work_order_id', null),
   ]);
   const answered = new Map<string, string>(((mine ?? []) as any[]).map((r) => [r.survey_id, r.submitted_at]));
   const list = (surveys ?? []) as any[];

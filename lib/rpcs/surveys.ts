@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireOwner, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { parseQuestions, readAnswer, readQuestions } from '@/lib/surveys/questions';
+import { ownerSurveyScope, scopeOwnerSurveys } from '@/lib/surveys/owner-scope';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // 'leasing' stays valid for older rows; new surveys are general or maintenance.
@@ -121,13 +122,11 @@ export async function submitSurveyResponse(formData: FormData) {
   const back = `/portal/surveys/${id}`;
   const db = (await createClient()) as any;
 
-  // Open surveys for an association the owner lives in (RLS enforces the same;
-  // repeated here so a board member or staffer who is also an owner gets
-  // only the owner view).
-  const assocIds = me.resident_association_ids ?? [];
-  const scope = assocIds.length ? `association_id.is.null,association_id.in.(${assocIds.join(',')})` : 'association_id.is.null';
-  const { data: survey } = await db.from('surveys').select('id, questions')
-    .eq('id', id).eq('active', true).is('archived_at', null).or(scope).maybeSingle();
+  // Open surveys in the owner's company for an association they live in
+  // (RLS enforces the same; repeated so another role held by the same person
+  // cannot widen it).
+  const scope = await ownerSurveyScope(db, me);
+  const { data: survey } = await scopeOwnerSurveys(db.from('surveys').select('id, questions').eq('id', id), scope).maybeSingle();
   if (!survey) fail('/portal/surveys', 'That survey is closed or not available to you.');
 
   const answers: Record<string, string | number> = {};
