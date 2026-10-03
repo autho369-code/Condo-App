@@ -12,7 +12,7 @@ export const normalBalance = (accountType: string, debitMinusCredit: number) =>
 
 // Defaults system postings use (GL account map). Keys match gl_account_map.map_key.
 export const GL_MAP_KEYS: Array<{ key: string; label: string; hint: string; types: string[] }> = [
-  { key: 'accounts_receivable', label: 'Accounts receivable', hint: 'Homeowner charges and receipts post here.', types: ['accounts_receivable'] },
+  { key: 'accounts_receivable', label: 'Accounts receivable', hint: 'Homeowner charges and receipts post here. It can change only while no other A/R account holds a balance.', types: ['accounts_receivable'] },
   { key: 'accounts_payable', label: 'Accounts payable', hint: 'Bills accrue here and checks relieve it.', types: ['accounts_payable', 'liability'] },
   { key: 'assessment_income', label: 'Assessment income', hint: 'Posted assessments credit this account.', types: ['income', 'other_income'] },
   { key: 'late_fee_income', label: 'Late fee income', hint: 'Late fees credit this account.', types: ['income', 'other_income'] },
