@@ -11,9 +11,12 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
+import { Select } from '@/components/ui/input';
+import { Alert } from '@/components/ui/shell';
+import { bankFeedAction } from '@/lib/rpcs/bank-feed';
 import { createClient } from '@/lib/supabase/server';
-import { date } from '@/lib/utils';
+import { date, money } from '@/lib/utils';
 import { RefreshButton } from './sync-button';
 import { isPlaidConfigured } from '@/lib/plaid/client';
 
@@ -26,10 +29,12 @@ export default async function BankFeedsPage({
     filter?: string;
     q?: string;
     bank_account_id?: string;
+    error?: string;
+    done?: string;
   }>;
 }) {
-  await requireStaff();
-  const { filter = '', q = '', bank_account_id = '' } = await searchParams;
+  await requireFinanceStaff();
+  const { filter = '', q = '', bank_account_id = '', error: pageError, done } = await searchParams;
   const supabase = await createClient();
   const db = supabase as any;
   const plaidConfigured = isPlaidConfigured();
@@ -47,13 +52,14 @@ export default async function BankFeedsPage({
   let query = db
     .from('bank_transactions')
     .select(
-      'id, amount, date, name, merchant_name, category, pending, reviewed, gl_account_id, match_confidence, bank_account_id, bank_accounts(name), gl_accounts(number, name)'
+      'id, amount, date, name, merchant_name, category, pending, reviewed, gl_account_id, match_confidence, match_method, matched_at, matched_journal_line_id, matched_bank_deposit_id, ignored_at, bank_account_id, bank_accounts(name, gl_account_id, association_id), gl_accounts(number, name)'
     )
     .order('date', { ascending: false })
     .limit(100);
 
-  if (filter === 'unreviewed') query = query.eq('reviewed', false);
-  if (filter === 'unmatched') query = query.is('gl_account_id', null);
+  if (filter === 'unreviewed') query = query.is('matched_at', null).is('ignored_at', null);
+  if (filter === 'unmatched') query = query.is('matched_at', null);
+  if (filter === 'ignored') query = query.not('ignored_at', 'is', null);
   if (filter === 'pending') query = query.eq('pending', true);
   if (bank_account_id) query = query.eq('bank_account_id', bank_account_id);
   // Strip characters that are syntax in a PostgREST or() filter, so a search
@@ -71,14 +77,72 @@ export default async function BankFeedsPage({
     .is('archived_at', null)
     .order('name');
 
-  const unreviewedCount = txns.filter((t: any) => !t.reviewed).length;
-  const unmatchedCount = txns.filter((t: any) => !t.gl_account_id).length;
+  // matched_at also covers Stripe payout reconciliation, which claims a
+  // transaction without a ledger line or deposit.
+  const isMatched = (t: any) => Boolean(t.matched_at || t.matched_journal_line_id || t.matched_bank_deposit_id);
+  const open = (t: any) => !isMatched(t) && !t.ignored_at && !t.pending;
+  const unreviewedCount = txns.filter(open).length;
+  const unmatchedCount = txns.filter((t: any) => !isMatched(t)).length;
+
+  // Ledger lines each open transaction could be: same bank (GL account and
+  // association), same amount (bank amounts are positive for money out, so the
+  // line's debit - credit is -amount), within 7 days, and not matched yet.
+  const openTxns = txns.filter(open);
+  const candidatesByTxn = new Map<string, any[]>();
+  if (openTxns.length) {
+    const dates = openTxns.map((t: any) => t.date).sort();
+    const shift = (d: string, days: number) => new Date(new Date(`${d}T00:00:00Z`).getTime() + days * 86400000).toISOString().slice(0, 10);
+    const glIds = [...new Set(openTxns.map((t: any) => t.bank_accounts?.gl_account_id).filter(Boolean))];
+    if (glIds.length) {
+      const [{ data: lines }, { data: matched }] = await Promise.all([
+        db.from('journal_lines')
+          .select('id, gl_account_id, association_id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, description, reference_number, posted)')
+          .in('gl_account_id', glIds)
+          .eq('journal_entries.posted', true)
+          .gte('journal_entries.entry_date', shift(dates[0], -7))
+          .lte('journal_entries.entry_date', shift(dates[dates.length - 1], 7))
+          .limit(1000),
+        db.from('bank_transactions').select('matched_journal_line_id').not('matched_journal_line_id', 'is', null),
+      ]);
+      const taken = new Set((matched ?? []).map((m: any) => m.matched_journal_line_id));
+      for (const t of openTxns) {
+        const bank = t.bank_accounts;
+        const want = Math.round(-Number(t.amount) * 100);
+        const from = shift(t.date, -7);
+        const to = shift(t.date, 7);
+        candidatesByTxn.set(t.id, (lines ?? []).filter((l: any) =>
+          !taken.has(l.id) && l.gl_account_id === bank?.gl_account_id && (l.association_id ?? null) === (bank?.association_id ?? null)
+          && Math.round((Number(l.debit_amount) - Number(l.credit_amount)) * 100) === want
+          && l.journal_entries.entry_date >= from && l.journal_entries.entry_date <= to));
+      }
+    }
+  }
+  // Bank deposits (grouped receipts) of the same amount within 7 days.
+  const depositsByTxn = new Map<string, any[]>();
+  const inflows = openTxns.filter((t: any) => Number(t.amount) < 0);
+  if (inflows.length) {
+    const { data: deps } = await db.from('bank_deposits')
+      .select('id, bank_account_id, deposit_date, amount, receipt_count')
+      .in('bank_account_id', [...new Set(inflows.map((t: any) => t.bank_account_id))])
+      .is('voided_at', null)
+      .limit(1000);
+    const { data: takenDeps } = await db.from('bank_transactions').select('matched_bank_deposit_id').not('matched_bank_deposit_id', 'is', null);
+    const taken = new Set((takenDeps ?? []).map((m: any) => m.matched_bank_deposit_id));
+    const days = (a: string, b: string) => Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
+    for (const t of inflows) {
+      depositsByTxn.set(t.id, (deps ?? []).filter((d: any) => !taken.has(d.id) && d.bank_account_id === t.bank_account_id
+        && Math.round(Number(d.amount) * 100) === Math.round(-Number(t.amount) * 100) && days(d.deposit_date, t.date) <= 7));
+    }
+  }
+  const { data: glOptions } = await db.from('gl_accounts').select('id, number, name').eq('active', true).order('number');
+  const back = `/bank-accounts/feeds?${new URLSearchParams({ ...(filter ? { filter } : {}), ...(q ? { q } : {}), ...(bank_account_id ? { bank_account_id } : {}) }).toString()}`;
+  const DONE: Record<string, string> = { match: 'Matched to the ledger', match_deposit: 'Matched to the bank deposit', post: 'Posted to the ledger', ignore: 'Transaction ignored', restore: 'Transaction back in review' };
   const pendingCount = txns.filter((t: any) => t.pending).length;
 
   return (
     <DataWorkspace
       title="Bank feed"
-      description="Imported transactions from linked bank accounts. Review auto-matched GL accounts or reassign as needed."
+      description="Transactions imported from your bank. Match each one to the ledger entry it belongs to, post it if the books don't have it yet (bank fees, interest), or ignore it. Matched transactions start cleared on the next reconciliation."
       actions={plaidConfigured ? (
         <Link href="/bank-accounts/link-bank">
           <Button variant="secondary">Connect bank</Button>
@@ -86,6 +150,8 @@ export default async function BankFeedsPage({
       ) : undefined}
     >
       <div className="space-y-6">
+        {pageError && <Alert tone="danger" title="Could not update the transaction">{pageError}</Alert>}
+        {done && DONE[done] && <Alert tone="success" title={DONE[done]} />}
         {activeConnections.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {activeConnections.map((item: any) => (
@@ -109,16 +175,17 @@ export default async function BankFeedsPage({
         <MetricStrip
           metrics={[
             { label: 'Transactions', value: txns.length, sublabel: 'In current view' },
-            { label: 'Unreviewed', value: unreviewedCount, sublabel: txns.length > 0 ? `${Math.round((unreviewedCount / txns.length) * 100)}%` : '—' },
-            { label: 'Unmatched', value: unmatchedCount, sublabel: txns.length > 0 ? 'Needs GL assignment' : '—' },
+            { label: 'To review', value: unreviewedCount, sublabel: 'Not matched, posted or ignored' },
+            { label: 'Unmatched', value: unmatchedCount, sublabel: 'No ledger entry yet' },
           ]}
         />
 
         <FilterBar action="/bank-accounts/feeds" searchDefault={q} searchPlaceholder="Search by name">
           <FilterSelect label="Queue" name="filter" defaultValue={filter}>
             <option value="">All transactions</option>
-            <option value="unreviewed">Unreviewed</option>
+            <option value="unreviewed">To review</option>
             <option value="unmatched">Unmatched</option>
+            <option value="ignored">Ignored</option>
             <option value="pending">Pending only</option>
           </FilterSelect>
 
@@ -140,60 +207,94 @@ export default async function BankFeedsPage({
               <TR>
                 <TH>Date</TH>
                 <TH>Description</TH>
-                <TH>Amount</TH>
-                <TH>GL Account</TH>
-                <TH>Match</TH>
-                <TH>Status</TH>
+                <TH className="text-right">Money out</TH>
+                <TH className="text-right">Money in</TH>
+                <TH>Ledger</TH>
               </TR>
             </THead>
             <tbody>
-              {txns.map((txn: any) => (
-                <TR key={txn.id}>
-                  <TD>{date(txn.date)}</TD>
-                  <TD>
-                    <div className="font-medium text-gray-900">{txn.name}</div>
-                    {txn.merchant_name && (
-                      <div className="text-xs text-gray-500">{txn.merchant_name}</div>
-                    )}
-                    {txn.category && (
-                      <div className="text-xs capitalize text-gray-400">{txn.category.replace(/_/g, ' ')}</div>
-                    )}
-                  </TD>
-                  <TD className="tabular-nums">
-                    <span className={txn.amount < 0 ? 'text-red-600' : 'text-emerald-600'}>
-                      ${Math.abs(txn.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </TD>
-                  <TD>
-                    {txn.gl_accounts ? (
-                      <div className="text-sm">
-                        <span className="font-mono text-gray-500">{txn.gl_accounts.number}</span>
-                        <span className="ml-1.5 text-gray-700">{txn.gl_accounts.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-amber-600">Not matched</span>
-                    )}
-                  </TD>
-                  <TD>
-                    {txn.match_confidence ? (
-                      <StatusChip tone={txn.match_confidence >= 0.8 ? 'success' : txn.match_confidence >= 0.5 ? 'info' : 'warning'}>
-                        {txn.match_method === 'auto' ? 'Auto' : 'Manual'} ({Math.round(txn.match_confidence * 100)}%)
-                      </StatusChip>
-                    ) : (
-                      <StatusChip tone="neutral">Pending</StatusChip>
-                    )}
-                  </TD>
-                  <TD>
-                    {txn.pending ? (
-                      <StatusChip tone="warning">Pending</StatusChip>
-                    ) : txn.reviewed ? (
-                      <StatusChip tone="success">Reviewed</StatusChip>
-                    ) : (
-                      <StatusChip tone="neutral">Needs review</StatusChip>
-                    )}
-                  </TD>
-                </TR>
-              ))}
+              {txns.map((txn: any) => {
+                const candidates = candidatesByTxn.get(txn.id) ?? [];
+                const depositCandidates = depositsByTxn.get(txn.id) ?? [];
+                return (
+                  <TR key={txn.id}>
+                    <TD className="whitespace-nowrap align-top">{date(txn.date)}</TD>
+                    <TD className="align-top">
+                      <div className="font-medium text-gray-900">{txn.name}</div>
+                      {txn.merchant_name && <div className="text-xs text-gray-500">{txn.merchant_name}</div>}
+                      <div className="text-xs text-gray-400">{txn.bank_accounts?.name}</div>
+                    </TD>
+                    <TD className="text-right tabular-nums align-top">{Number(txn.amount) > 0 ? money(Number(txn.amount)) : ''}</TD>
+                    <TD className="text-right tabular-nums align-top">{Number(txn.amount) < 0 ? money(-Number(txn.amount)) : ''}</TD>
+                    <TD className="align-top">
+                      {txn.pending ? (
+                        <StatusChip tone="warning">Pending at the bank</StatusChip>
+                      ) : isMatched(txn) ? (
+                        <StatusChip tone="success">{txn.match_method === 'posted' ? 'Posted' : txn.match_method === 'deposit' ? 'Matched to deposit' : txn.matched_journal_line_id ? 'Matched' : 'Matched to payout'}</StatusChip>
+                      ) : txn.ignored_at ? (
+                        <form action={bankFeedAction} className="flex items-center gap-2">
+                          <input type="hidden" name="id" value={txn.id} />
+                          <input type="hidden" name="op" value="restore" />
+                          <input type="hidden" name="back" value={back} />
+                          <StatusChip tone="neutral">Ignored</StatusChip>
+                          <Button type="submit" variant="ghost" size="sm">Review again</Button>
+                        </form>
+                      ) : !txn.bank_accounts?.gl_account_id ? (
+                        <span className="text-sm text-amber-700">Link the bank account to a GL account first</span>
+                      ) : (
+                        <div className="space-y-2">
+                          {depositCandidates.length > 0 && (
+                            <form action={bankFeedAction} className="flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="id" value={txn.id} />
+                              <input type="hidden" name="op" value="match_deposit" />
+                              <input type="hidden" name="back" value={back} />
+                              <Select name="bank_deposit_id" aria-label="Bank deposit" className="min-w-56">
+                                {depositCandidates.map((d: any) => (
+                                  <option key={d.id} value={d.id}>Bank deposit {date(d.deposit_date)} · {d.receipt_count} receipts</option>
+                                ))}
+                              </Select>
+                              <Button type="submit" size="sm">Match</Button>
+                            </form>
+                          )}
+                          {candidates.length > 0 && (
+                            <form action={bankFeedAction} className="flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="id" value={txn.id} />
+                              <input type="hidden" name="op" value="match" />
+                              <input type="hidden" name="back" value={back} />
+                              <Select name="journal_line_id" aria-label="Ledger entry" className="min-w-56">
+                                {candidates.map((l: any) => (
+                                  <option key={l.id} value={l.id}>
+                                    {date(l.journal_entries.entry_date)} · {l.journal_entries.description ?? l.memo ?? 'Entry'}{l.journal_entries.reference_number ? ` #${l.journal_entries.reference_number}` : ''}
+                                  </option>
+                                ))}
+                              </Select>
+                              <Button type="submit" size="sm">Match</Button>
+                            </form>
+                          )}
+                          <form action={bankFeedAction} className="flex flex-wrap items-end gap-2">
+                            <input type="hidden" name="id" value={txn.id} />
+                            <input type="hidden" name="op" value="post" />
+                            <input type="hidden" name="back" value={back} />
+                            <Select name="gl_account_id" aria-label="GL account" defaultValue={txn.gl_account_id ?? ''} className="min-w-56">
+                              <option value="">{candidates.length ? 'Or post to a GL account…' : 'Post to a GL account…'}</option>
+                              {(glOptions ?? []).filter((g: any) => g.id !== txn.bank_accounts?.gl_account_id).map((g: any) => (
+                                <option key={g.id} value={g.id}>{g.number} — {g.name}</option>
+                              ))}
+                            </Select>
+                            <Button type="submit" size="sm" variant="secondary">Post</Button>
+                          </form>
+                          <form action={bankFeedAction}>
+                            <input type="hidden" name="id" value={txn.id} />
+                            <input type="hidden" name="op" value="ignore" />
+                            <input type="hidden" name="back" value={back} />
+                            <Button type="submit" size="sm" variant="ghost">Ignore</Button>
+                          </form>
+                        </div>
+                      )}
+                    </TD>
+                  </TR>
+                );
+              })}
             </tbody>
           </Table>
         ) : activeConnections.length === 0 ? (

@@ -91,7 +91,40 @@ export async function POST(request: NextRequest) {
 
   // Populate reconciliation items from journal_lines
   if (lines.length > 0) {
-    const items = lines.map((line: any, index: number) => itemFromLine(reconciliation.id, line, index));
+    // Lines the bank feed already matched to a transaction the bank posted by
+    // the statement date start cleared.
+    const lineIds = lines.map((l: any) => l.id);
+    const clearedByFeed = new Set<string>();
+    for (let i = 0; i < lineIds.length; i += 200) {
+      const { data: matched } = await db.from('bank_transactions')
+        .select('matched_journal_line_id')
+        .in('matched_journal_line_id', lineIds.slice(i, i + 200))
+        .lte('date', statementDate);
+      for (const m of matched ?? []) clearedByFeed.add(m.matched_journal_line_id);
+    }
+    // Receipts in a bank deposit the feed matched start cleared as well.
+    const { data: matchedDeps } = await db.from('bank_transactions')
+      .select('matched_bank_deposit_id')
+      .eq('bank_account_id', bankAccountId)
+      .not('matched_bank_deposit_id', 'is', null)
+      .lte('date', statementDate);
+    const depIds = (matchedDeps ?? []).map((m: any) => m.matched_bank_deposit_id);
+    if (depIds.length) {
+      const [{ data: depPays }, { data: depOthers }] = await Promise.all([
+        db.from('payments').select('id').in('bank_deposit_id', depIds),
+        db.from('other_receipts').select('journal_entry_id').in('bank_deposit_id', depIds),
+      ]);
+      const payIds = new Set((depPays ?? []).map((p: any) => p.id));
+      const entryIds = new Set((depOthers ?? []).map((r: any) => r.journal_entry_id));
+      for (const line of lines) {
+        const e = line.journal_entries;
+        if ((e?.source_type === 'payment' && payIds.has(e.source_id)) || entryIds.has(e?.id)) clearedByFeed.add(line.id);
+      }
+    }
+    const items = lines.map((line: any, index: number) => {
+      const item = itemFromLine(reconciliation.id, line, index);
+      return clearedByFeed.has(line.id) ? { ...item, is_cleared: true, cleared_at: new Date().toISOString() } : item;
+    });
 
     // Insert in chunks; a reconciliation with missing lines is worse than
     // none, so roll it back on failure.
@@ -105,6 +138,40 @@ export async function POST(request: NextRequest) {
         await db.from('bank_reconciliations').delete().eq('id', reconciliation.id);
         return back(`Could not add the ledger lines to the reconciliation: ${itemsError.message}`);
       }
+    }
+  }
+
+  // Bank adjustments (bank-only items, no ledger effect) through the statement
+  // date that no completed reconciliation has cleared yet.
+  const [{ data: adjustments }, { data: clearedAdj }] = await Promise.all([
+    db.from('bank_adjustments').select('id, amount, adjustment_date, description')
+      .eq('bank_account_id', bankAccountId).lte('adjustment_date', statementDate),
+    db.from('bank_reconciliation_items')
+      .select('bank_adjustment_id, bank_reconciliations!inner(bank_account_id, status)')
+      .eq('bank_reconciliations.bank_account_id', bankAccountId)
+      .eq('bank_reconciliations.status', 'completed')
+      .eq('is_cleared', true)
+      .not('bank_adjustment_id', 'is', null),
+  ]);
+  const doneAdj = new Set((clearedAdj ?? []).map((r: any) => r.bank_adjustment_id));
+  const adjItems = (adjustments ?? []).filter((a: any) => !doneAdj.has(a.id)).map((a: any, i: number) => ({
+    reconciliation_id: reconciliation.id,
+    bank_adjustment_id: a.id,
+    journal_line_id: null,
+    amount: Number(a.amount),
+    description: `Bank adjustment ${a.adjustment_date}: ${a.description}`,
+    type: 'bank_only',
+    is_cleared: false,
+    sort_order: lines.length + i,
+  }));
+  if (adjItems.length) {
+    const { error: adjError } = await db.from('bank_reconciliation_items').insert(adjItems);
+    if (adjError) {
+      // A reconciliation missing its adjustments could never balance and
+      // would block a retry: roll it back like a failed ledger-item insert.
+      await db.from('bank_reconciliation_items').delete().eq('reconciliation_id', reconciliation.id);
+      await db.from('bank_reconciliations').delete().eq('id', reconciliation.id);
+      return back(`Could not add the bank adjustments to the reconciliation: ${adjError.message}`);
     }
   }
 

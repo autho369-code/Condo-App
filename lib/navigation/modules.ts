@@ -71,6 +71,7 @@ export const appModules: AppModule[] = [
       { label: 'Management fees', href: '/accounting/management-fees' },
       { label: 'Recurring bills', href: '/bills/recurring' },
       { label: 'Bank accounts', href: '/bank-accounts' },
+      { label: 'Bank deposits', href: '/bank-accounts/deposits' },
       { label: 'Bank reconciliation', href: '/bank-accounts/reconcile' },
       { label: 'Bank activity', href: '/bank-accounts/activity' },
       { label: 'Bank transfers', href: '/bank-transfers' },
