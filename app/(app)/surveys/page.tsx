@@ -1,214 +1,135 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { MetricStrip } from '@/components/operations/metric-strip';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { readQuestions } from '@/lib/surveys/questions';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type SurveyRow = {
-  id: string;
-  name: string;
-  survey_type: string;
-  description: string | null;
-  active: boolean;
-  created_at: string;
-  questions: any;
-  question_count: number;
-  response_count: number;
-  sent_date: string | null;
-};
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BATCH = 100;
 
-export default async function SurveysPage() {
+export default async function SurveysPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; association?: string; removed?: string }>;
+}) {
   await requireStaff();
-  const supabase = await createClient();
-  const db = supabase as any;
+  const sp = await searchParams;
+  const q = (sp.q ?? '').trim();
+  const status = sp.status === 'open' || sp.status === 'closed' ? sp.status : '';
+  const association = UUID.test(sp.association ?? '') ? sp.association! : '';
+  const db = (await createClient()) as any;
 
-  // Fetch surveys with response counts
-  const { data: surveys } = await db
-    .from('surveys')
-    .select('id, name, survey_type, description, active, created_at, questions')
-    .is('archived_at', null)
-    .order('created_at', { ascending: false });
+  const [surveys, associations] = await Promise.all([
+    fetchAllRows<any>(() => db
+      .from('surveys')
+      .select('id, name, survey_type, description, active, created_at, questions, association_id, associations(name)')
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .order('id')),
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
+  ]);
 
-  // Fetch response counts per survey
-  const surveyIds = (surveys ?? []).map((s: any) => s.id);
-  let responseCounts: Record<string, number> = {};
-
-  if (surveyIds.length > 0) {
-    const { data: counts } = await db
-      .from('survey_responses')
-      .select('survey_id')
-      .in('survey_id', surveyIds);
-    
-    // Group counts by survey_id
-    for (const r of (counts ?? [])) {
-      responseCounts[r.survey_id] = (responseCounts[r.survey_id] ?? 0) + 1;
+  // Response counts and last response per survey, counted from every response.
+  const ids = surveys.rows.map((s) => s.id);
+  const responseCount = new Map<string, number>();
+  const lastResponse = new Map<string, string>();
+  let responseError: string | null = null;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
+    const { rows, error, truncated } = await fetchAllRows<any>(() => db
+      .from('survey_responses').select('id, survey_id, submitted_at').in('survey_id', chunk).order('id'), { maxRows: 100000 });
+    if (error || truncated) responseError = error ?? 'There are more responses than this page can count.';
+    for (const r of rows) {
+      responseCount.set(r.survey_id, (responseCount.get(r.survey_id) ?? 0) + 1);
+      if (!lastResponse.has(r.survey_id) || r.submitted_at > lastResponse.get(r.survey_id)!) lastResponse.set(r.survey_id, r.submitted_at);
     }
   }
 
-  // Build rows with computed fields
-  const rows: SurveyRow[] = (surveys ?? []).map((s: any) => {
-    const questionCount = Array.isArray(s.questions) ? s.questions.length : 0;
-    const responses = responseCounts[s.id] ?? 0;
-
-    return {
-      id: s.id,
-      name: s.name,
-      survey_type: s.survey_type ?? 'general',
-      description: s.description,
-      active: s.active,
-      created_at: s.created_at,
-      questions: s.questions,
-      question_count: questionCount,
-      response_count: responses,
-      sent_date: s.created_at,
-    };
-  });
-
-  const activeCount = rows.filter((r) => r.active).length;
-  const totalResponses = rows.reduce((sum, r) => sum + r.response_count, 0);
+  const ql = q.toLowerCase();
+  const rows = surveys.rows.filter((s) =>
+    (!status || (status === 'open' ? s.active : !s.active)) &&
+    (!association || s.association_id === association) &&
+    (!ql || [s.name, s.description, s.associations?.name].some((v) => String(v ?? '').toLowerCase().includes(ql))));
+  const loadError = surveys.error ?? associations.error ?? responseError;
 
   return (
     <DataWorkspace
       title="Surveys"
-      description="Create and manage community surveys, maintenance satisfaction polls, and feedback forms. Track responses and completion rates."
+      description="Ask owners questions and see their answers. Owners answer open surveys from their portal."
       actions={
-        <Link href="/surveys/new">
-          <Button><Plus className="h-4 w-4" /> New survey</Button>
-        </Link>
+        <>
+          <Link href="/reports/survey_results"><Button variant="secondary">Survey Results report</Button></Link>
+          <Link href="/surveys/new"><Button><Plus className="h-4 w-4" /> New survey</Button></Link>
+        </>
       }
     >
-      <div className="space-y-6">
-        {/* ── KPI Strip ── */}
-        <MetricStrip
-          metrics={[
-            { label: 'Total surveys', value: rows.length, sublabel: `${activeCount} active` },
-            { label: 'Total responses', value: totalResponses, sublabel: 'Across all surveys' },
-            { label: 'Survey types', value: [...new Set(rows.map((r) => r.survey_type))].length, sublabel: 'Categories in use' },
-          ]}
-        />
+      <div className="space-y-4">
+        {loadError && <Alert tone="danger" title="Could not load every survey or response">{loadError}</Alert>}
+        {sp.removed && <Alert tone="success">Survey removed.</Alert>}
 
-        {/* ── Surveys Table ── */}
+        <FilterBar action="/surveys" searchDefault={q} searchPlaceholder="Search surveys...">
+          <FilterSelect label="Status" name="status" defaultValue={status}>
+            <option value="">All</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </FilterSelect>
+          <FilterSelect label="Association" name="association" defaultValue={association}>
+            <option value="">All associations</option>
+            {associations.rows.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </FilterSelect>
+        </FilterBar>
+
         {rows.length > 0 ? (
-          <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-950">All surveys</h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {rows.length} survey{rows.length !== 1 ? 's' : ''} configured
-                </p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Survey Name</TH>
-                    <TH>Scope</TH>
-                    <TH>Type</TH>
-                    <TH>Created</TH>
-                    <TH className="text-right">Questions</TH>
-                    <TH className="text-right">Responses</TH>
-                    <TH>Status</TH>
-                  </TR>
-                </THead>
-                <tbody>
-                  {rows.map((row) => (
-                    <TR key={row.id}>
-                      <TD className="font-medium text-gray-950">
-                        {row.name}
-                        {row.description && (
-                          <p className="mt-0.5 text-xs text-gray-500 line-clamp-1">{row.description}</p>
-                        )}
-                      </TD>
-                      <TD className="text-gray-600">Portfolio-wide</TD>
-                      <TD className="capitalize">{row.survey_type.replace(/_/g, ' ')}</TD>
-                      <TD className="whitespace-nowrap text-gray-600">{date(row.sent_date)}</TD>
-                      <TD className="text-right tabular-nums font-medium text-gray-700">{row.question_count}</TD>
-                      <TD className="text-right tabular-nums font-medium text-gray-950">{row.response_count}</TD>
-                      <TD>
-                        <StatusChip tone={row.active ? 'success' : 'neutral'}>
-                          {row.active ? 'Active' : 'Paused'}
-                        </StatusChip>
-                      </TD>
-                    </TR>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          </section>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Survey</TH>
+                <TH>Who can answer</TH>
+                <TH>Type</TH>
+                <TH>Created</TH>
+                <TH className="text-right">Questions</TH>
+                <TH className="text-right">Responses</TH>
+                <TH>Last response</TH>
+                <TH>Status</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {rows.map((s) => (
+                <TR key={s.id}>
+                  <TD className="font-medium text-gray-950">
+                    <Link href={`/surveys/${s.id}`} className="underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900">{s.name}</Link>
+                    {s.description && <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{s.description}</p>}
+                  </TD>
+                  <TD className="text-sm text-gray-600">{s.associations?.name ?? 'Every association'}</TD>
+                  <TD className="text-sm capitalize text-gray-700">{String(s.survey_type ?? 'general').replace(/_/g, ' ')}</TD>
+                  <TD className="whitespace-nowrap text-sm text-gray-600">{date(s.created_at)}</TD>
+                  <TD className="text-right tabular-nums text-gray-700">{readQuestions(s.questions).length}</TD>
+                  <TD className="text-right tabular-nums font-medium text-gray-950">{responseError ? '—' : responseCount.get(s.id) ?? 0}</TD>
+                  <TD className="whitespace-nowrap text-sm text-gray-600">{lastResponse.has(s.id) ? date(lastResponse.get(s.id)!) : '—'}</TD>
+                  <TD><StatusChip tone={s.active ? 'success' : 'neutral'}>{s.active ? 'Open' : 'Closed'}</StatusChip></TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
         ) : (
-          <section className="rounded-2xl border border-gray-200/70 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <p className="text-sm text-gray-500">No surveys configured yet.</p>
-            <p className="mt-1 text-xs text-gray-400">Create a survey to start collecting owner feedback and community input.</p>
-            <div className="mt-4">
-              <Link href="/surveys/new">
-                <Button><Plus className="h-4 w-4" /> Create first survey</Button>
-              </Link>
-            </div>
-          </section>
+          <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <EmptyState
+              title={q || status || association ? 'No surveys match this filter' : 'No surveys yet'}
+              description="Create a survey; owners answer it in their portal."
+              action={<Link href="/surveys/new"><Button><Plus className="h-4 w-4" /> New survey</Button></Link>}
+            />
+          </div>
         )}
-
-        {/* ── Survey Types Quick Links ── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Survey types</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Create different survey types for different needs</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-              <div className="text-sm font-medium text-gray-900">Maintenance</div>
-              <p className="mt-1 text-xs text-gray-500">Post-service satisfaction surveys tied to work orders</p>
-              <Link href="/surveys/new?type=maintenance" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
-                Create maintenance survey →
-              </Link>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-              <div className="text-sm font-medium text-gray-900">Leasing</div>
-              <p className="mt-1 text-xs text-gray-500">Tenant experience and move-in/move-out feedback</p>
-              <Link href="/surveys/new?type=leasing" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
-                Create leasing survey →
-              </Link>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-              <div className="text-sm font-medium text-gray-900">General</div>
-              <p className="mt-1 text-xs text-gray-500">Community polls, board elections, and general feedback</p>
-              <Link href="/surveys/new?type=general" className="mt-2 inline-block text-xs font-medium text-gray-600 transition-colors hover:text-gray-950">
-                Create general survey →
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Related Links ── */}
-        <section className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Go deeper</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-2 p-5 sm:grid-cols-2 xl:grid-cols-3">
-            <Link href="/reports/survey_results" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
-              Survey Results report →
-            </Link>
-            <Link href="/reports" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
-              Reports workspace →
-            </Link>
-            <Link href="/owners" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
-              Owner directory →
-            </Link>
-            <Link href="/communication-center" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
-              Communication Center →
-            </Link>
-            <Link href="/metrics" className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-950">
-              Metrics dashboard →
-            </Link>
-          </div>
-        </section>
       </div>
     </DataWorkspace>
   );
