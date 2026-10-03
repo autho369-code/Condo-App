@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { boardPackagePath, previousMonth, publishBoardPackage } from '@/lib/reports/board-package';
 
 export const dynamic = 'force-dynamic';
@@ -20,17 +21,21 @@ export async function GET(request: NextRequest) {
   const today = new Date();
   const period = previousMonth(today);
 
-  const { data: due, error } = await svc
+  // Every due association (paged), skipping already-published ones before
+  // spending time; a capped "first 200" list starved the rest forever.
+  const { rows: due, error } = await fetchAllRows<any>(() => svc
     .from('association_board_report_settings')
     .select('association_id, sections, share_scope, notify_board, publish_day, associations!inner(id, name, portfolio_id, archived_at, portfolios(company_name))')
     .eq('auto_publish', true)
     .lte('publish_day', today.getUTCDate())
     .is('associations.archived_at', null)
-    .limit(200);
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    .order('association_id'));
+  if (error) return NextResponse.json({ ok: false, error }, { status: 500 });
 
   const results: any[] = [];
-  for (const row of due ?? []) {
+  const deadline = Date.now() + 240_000;  // stop before maxDuration; the next run continues
+  for (const row of due) {
+    if (Date.now() > deadline) { results.push({ status: 'deferred', remaining: true }); break; }
     const a = row.associations;
     const { data: existing } = await svc.from('documents').select('id')
       .eq('entity_type', 'association').eq('entity_id', a.id).eq('file_url', boardPackagePath(a.id, period.to)).maybeSingle();

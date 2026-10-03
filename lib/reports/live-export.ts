@@ -1,3 +1,5 @@
+import { todayInZone } from '@/lib/time/zoned';
+import { isValidTimeZone } from '@/lib/time/display-zone';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
   addLedgerLine,
@@ -726,7 +728,11 @@ export async function generateLiveExportRows(
   rawParams: Record<string, unknown>,
 ): Promise<Record<string, unknown>[]> {
   const associationId = stringParam(rawParams, 'association_id');
-  const dateTo = stringParam(rawParams, 'date_to') ?? new Date().toISOString().slice(0, 10);
+  // Without an end date, today in the run's zone (a UTC date rolled evening
+  // activity in US time zones into tomorrow).
+  const runZone = stringParam(rawParams, 'time_zone');
+  const dateTo = stringParam(rawParams, 'date_to')
+    ?? (runZone && isValidTimeZone(runZone) ? todayInZone(runZone) : todayInZone());
   const dateFrom = stringParam(rawParams, 'date_from') ?? `${dateTo.slice(0, 4)}-01-01`;
   const fiscalYearText = stringParam(rawParams, 'fiscal_year') ?? dateTo.slice(0, 4);
   const fiscalYear = Number.parseInt(fiscalYearText, 10);

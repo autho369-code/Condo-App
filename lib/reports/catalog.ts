@@ -7,6 +7,10 @@ export type ReportDefinition = {
   active?: boolean;
 };
 
+/** Reports calculated live on their own page only: they have no queued data
+ * source, so they are not offered for bulk runs or schedules. */
+export const LIVE_ONLY_REPORT_SLUGS = new Set(['owner_1099_summary', 'owner_1099_detail']);
+
 const categoryLabels: Record<string, string> = {
   accounting: 'Accounting',
   association: 'Association',
