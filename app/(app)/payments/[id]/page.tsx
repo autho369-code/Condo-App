@@ -35,7 +35,7 @@ export default async function PaymentPage({
   const db = (await createClient()) as any;
 
   const { data: p } = await db.from('payments')
-    .select('id, amount, payment_date, method, reference, notes, processor, unit_id, reversed_at, reversal_reason, reversal_charge_id, units(unit_number, buildings(associations(name, timezone)))')
+    .select('id, amount, payment_date, method, reference, notes, processor, unit_id, reversed_at, reversal_reason, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(due_date), units(unit_number, buildings(associations(name, timezone)))')
     .eq('id', id)
     .maybeSingle();
   if (!p) notFound();
@@ -93,7 +93,7 @@ export default async function PaymentPage({
           </dl>
           {reversed && (
             <p className="mt-4 text-sm text-gray-600">
-              Reversed {date(p.reversed_at)}: {p.reversal_reason}. The returned amount was charged back to the owner as a &ldquo;Returned payment&rdquo; charge.
+              Reversed as of {date(p.reversal_charge?.due_date ?? p.reversed_at)}: {p.reversal_reason}. The returned amount was charged back to the owner as a &ldquo;Returned payment&rdquo; charge.
             </p>
           )}
         </Surface>
