@@ -133,7 +133,7 @@ export async function loadActionCenterAttention(
     { label: 'violation letters to mail', count: letters.count ?? 0, href: '/violations/letters', tone: 'pending' as const },
     { label: 'violations past cure date', count: violations.count ?? 0, href: '/violations?status=overdue', tone: 'danger' as const },
     { label: 'architectural reviews awaiting action', count: reviews.count ?? 0, href: '/architectural-reviews?status=open', tone: 'pending' as const },
-    { label: 'failed communications', count: communications.count ?? 0, href: '/communication-center?status=failed', tone: 'pending' as const },
+    { label: 'failed communications', count: communications.count ?? 0, href: '/communication-center?tab=drafts&status=failed', tone: 'pending' as const },
     { label: 'loan payments due this week', count: loans.count ?? 0, href: '/accounting/loans', tone: 'pending' as const },
     { label: 'purchase orders awaiting approval', count: pos.count ?? 0, href: '/purchase-orders?status=pending_approval', tone: 'pending' as const },
     { label: 'bills pending approval', count: bills.count ?? 0, href: '/bills?status=pending_approval', tone: 'info' as const },

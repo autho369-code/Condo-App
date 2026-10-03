@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Select, Textarea } from '@/components/ui/input';
 import { submitSurveyResponse } from '@/lib/rpcs/surveys';
 import { readQuestions, type SurveyQuestion } from '@/lib/surveys/questions';
+import { ownerSurveyScope, scopeOwnerSurveys } from '@/lib/surveys/owner-scope';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -31,12 +32,10 @@ export default async function OwnerSurveyPage({
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = (await createClient()) as any;
 
-  // Same scope as the survey list: open, and for an association the owner lives in.
-  const assocIds = me.resident_association_ids ?? [];
-  const scope = assocIds.length ? `association_id.is.null,association_id.in.(${assocIds.join(',')})` : 'association_id.is.null';
+  // Same scope as the survey list.
+  const scope = await ownerSurveyScope(db, me);
   const [{ data: survey }, { data: mine }] = await Promise.all([
-    db.from('surveys').select('id, name, description, questions, associations(name)')
-      .eq('id', id).eq('active', true).is('archived_at', null).or(scope).maybeSingle(),
+    scopeOwnerSurveys(db.from('surveys').select('id, name, description, questions, associations(name)').eq('id', id), scope).maybeSingle(),
     db.from('survey_responses').select('answers, comments, submitted_at')
       .eq('survey_id', id).eq('submitted_by_owner_id', me.owner_id).is('work_order_id', null).maybeSingle(),
   ]);
