@@ -237,16 +237,3 @@ export async function recordReceipt(formData: FormData) {
   redirect(`/units/${unit_id}?receipt=${data.id}`);
 }
 
-export async function unapplyPayment(paymentId: string, unitId: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/units/${unitId}?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-  const { error } = await (supabase as any).rpc('unapply_payment', {
-    p_payment_id: paymentId,
-    p_charge_id:  undefined,
-  });
-  if (error) { failTo(error.message); return; }
-  revalidatePath(`/units/${unitId}`);
-}
