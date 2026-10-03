@@ -13,7 +13,7 @@ import { textToHtml } from '@/lib/email/queue';
 const CENTER = '/communication-center';
 
 function fail(message: string): never {
-  redirect(`${CENTER}?error=${encodeURIComponent(message)}`);
+  redirect(`${CENTER}?tab=drafts&error=${encodeURIComponent(message)}`);
 }
 
 type Recipient = { email: string; name: string };
