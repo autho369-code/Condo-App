@@ -15,21 +15,13 @@ import { Button } from '@/components/ui/button';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
+import { PayablesTabs } from '@/components/accounting/payables-tabs';
 
 export const dynamic = 'force-dynamic';
 
 type PayableTab = 'bills' | 'payments';
 type BillStatusFilter = 'all' | 'pending_approval' | 'my_approval' | 'on_hold' | 'approved';
 
-const PAYABLE_TABS: Array<{ key: PayableTab; label: string }> = [
-  { key: 'bills', label: 'Bills' },
-  { key: 'payments', label: 'Payments' },
-];
-// Recurring bills and loans have their own pages; they sit in the same tab row.
-const LINK_TABS: Array<{ href: string; label: string }> = [
-  { href: '/bills/recurring', label: 'Recurring' },
-  { href: '/accounting/loans', label: 'Loans' },
-];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const STATUS_FILTERS: Array<{ key: BillStatusFilter; label: string }> = [
@@ -66,7 +58,7 @@ function parseStatus(value: string | undefined): BillStatusFilter {
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; q?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; q?: string; association_id?: string; vendor_id?: string; bulk?: string; done?: string; failed?: string; reason?: string; error?: string; recorded?: string }>;
 }) {
   const me = await requireFinanceStaff();
   const sp = await searchParams;
@@ -135,24 +127,24 @@ export default async function BillsPage({
       return p.order('paid_at', { ascending: false, nullsFirst: false }).order('id').limit(500);
     })(),
     // Vendors for filter
-    db.from('vendors')
+    fetchAllRows<any>(() => db.from('vendors')
       .select('id, name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
     // Associations for filter
-    db.from('associations')
+    fetchAllRows<any>(() => db.from('associations')
       .select('id, name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
     // GL accounts for context
     db.from('gl_accounts')
       .select('id, number, name')
       .order('number'),
     // Bank accounts for context
-    db.from('bank_accounts')
+    fetchAllRows<any>(() => db.from('bank_accounts')
       .select('id, name, bank_name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   // ── FILTER BILLS by status ──
@@ -301,7 +293,7 @@ export default async function BillsPage({
             <Button><Plus className="h-4 w-4" /> New bill</Button>
           </Link>
           <Link href="/bills/check-run">
-            <Button variant="secondary">Run checks</Button>
+            <Button variant="secondary">Pay bills</Button>
           </Link>
           <Link href="/bills/recurring">
             <Button variant="secondary">Recurring bills</Button>
@@ -327,41 +319,10 @@ export default async function BillsPage({
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
 
-        {/* ── MAIN TABS (Bills, Payments, Recurring, Loans, Online Payables) ── */}
-        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
-          {PAYABLE_TABS.map((t) => {
-            const active = t.key === tab;
-            const params = new URLSearchParams();
-            params.set('tab', t.key);
-            if (t.key === 'bills' && statusFilter !== 'all') {
-              params.set('status', statusFilter);
-            }
-            if (assoc) params.set('association_id', assoc);
-            if (vendor) params.set('vendor_id', vendor);
-            return (
-              <Link
-                key={t.key}
-                href={`/bills?${params.toString()}`}
-                className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'border-gray-950 text-gray-950'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {t.label}
-              </Link>
-            );
-          })}
-          {LINK_TABS.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              className="whitespace-nowrap border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
-            >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
+        <PayablesTabs
+          current={tab}
+          filters={new URLSearchParams([...(assoc ? [['association_id', assoc]] : []), ...(vendor ? [['vendor_id', vendor]] : [])])}
+        />
 
         {/* ── STATUS SUB-FILTERS (only for Bills tab) ── */}
         {tab === 'bills' && (
@@ -421,6 +382,7 @@ export default async function BillsPage({
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not update bills">{sp.error}</Alert>}
+        {sp.recorded && <Alert tone="success" title={`${Number(sp.recorded) || 0} payment${sp.recorded === '1' ? '' : 's'} recorded`} />}
 
         {/* ── TAB: BILLS ── */}
         {tab === 'bills' && (

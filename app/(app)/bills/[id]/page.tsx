@@ -36,7 +36,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
     : { data: null };
   const { data: checks } = await (supabase as any)
     .from('payable_checks')
-    .select('id, check_number, amount, payment_date, status, issued_at, voided_at, void_reason, run_transaction_id, bank_accounts(name, bank_name)')
+    .select('id, check_number, payment_method, reference, amount, payment_date, status, issued_at, voided_at, void_reason, run_transaction_id, bank_accounts(name, bank_name)')
     .eq('bill_id', id)
     .order('issued_at', { ascending: false });
   const issuedCheck = (checks ?? []).find((check: any) => check.status === 'issued');
@@ -113,19 +113,21 @@ export default async function BillDetailPage({ params, searchParams }: { params:
       )}
 
       {(checks ?? []).length > 0 && (
-        <Section title="Check history" padded>
+        <Section title="Payment history" padded>
           <div className="space-y-3">
             {(checks ?? []).map((check: any) => (
               <div key={check.id} className="rounded-lg border border-gray-200 p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="font-medium">Check #{check.check_number} · {money(check.amount)}</div>
+                  <div className="font-medium">{paymentLabel(check)} · {money(check.amount)}</div>
                   <Badge status={check.status} />
                 </div>
                 <div className="mt-1 text-gray-500">{check.bank_accounts?.name ?? 'Bank'} · {date(check.payment_date)}</div>
                 {check.void_reason && <div className="mt-1 text-red-700">{check.void_reason}</div>}
-                <Link href={`/bills/check-run/print/${check.id}`} className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
-                  {check.status === 'issued' ? 'Preview / reprint run' : 'View watermarked historical copy'}
-                </Link>
+                {check.payment_method === 'check' && (
+                  <Link href={`/bills/check-run/print/${check.id}`} className="mt-2 inline-block text-xs font-medium text-blue-700 hover:underline">
+                    {check.status === 'issued' ? 'Preview / reprint run' : 'View watermarked historical copy'}
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -156,7 +158,7 @@ export default async function BillDetailPage({ params, searchParams }: { params:
           </form>
         )}
         {b.status === 'approved' && b.paid_at === null && (
-          <Link href="/bills/check-run"><Button variant="secondary">Include in check run</Button></Link>
+          <Link href="/bills/check-run"><Button variant="secondary">{b.vendors?.payment_type === 'check' ? 'Include in check run' : 'Record payment'}</Button></Link>
         )}
         {b.status === 'paid' && issuedCheck && (
           <form action={voidPaidCheck as any} className="flex flex-wrap items-end gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
@@ -166,11 +168,18 @@ export default async function BillDetailPage({ params, searchParams }: { params:
               Void/stop reason
               <input name="reason" required minLength={3} className="mt-1 block rounded-md border border-red-300 bg-white px-3 py-2 text-sm" />
             </label>
-            <Button type="submit" name="stop_payment" value="false" variant="danger">Void check</Button>
-            <Button type="submit" name="stop_payment" value="true" variant="danger">Stop payment</Button>
+            <Button type="submit" name="stop_payment" value="false" variant="danger">{issuedCheck.payment_method === 'check' ? 'Void check' : 'Void payment'}</Button>
+            {issuedCheck.payment_method === 'check' && <Button type="submit" name="stop_payment" value="true" variant="danger">Stop payment</Button>}
           </form>
         )}
       </div>
     </Workspace>
   );
+}
+
+const METHOD_LABEL: Record<string, string> = { echeck: 'eCheck', ach: 'ACH', online: 'Online payment' };
+
+function paymentLabel(p: { payment_method?: string | null; check_number?: number | null; reference?: string | null }) {
+  if (!p.payment_method || p.payment_method === 'check') return `Check #${p.check_number}`;
+  return `${METHOD_LABEL[p.payment_method] ?? p.payment_method}${p.reference ? ` ${p.reference}` : ''}`;
 }

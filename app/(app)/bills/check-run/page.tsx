@@ -5,7 +5,9 @@ import { Input, Field, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SelectAllCheckbox } from '@/components/ui/select-all';
-import { writeChecks } from '@/lib/rpcs/bills';
+import { recordBillPayments, writeChecks } from '@/lib/rpcs/bills';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { money, date } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -20,29 +22,40 @@ export default async function CheckRunPage({
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: queue }, { data: banks }] = await Promise.all([
+  const [{ data: queue }, { data: banks }, { rows: approved }] = await Promise.all([
     (supabase as any).from('v_check_writing_queue').select('*'),
     (supabase as any).from('bank_accounts')
       .select('id, name, bank_name, next_check_number, check_signature')
       .is('archived_at', null)
       .order('name'),
+    // Approved, unpaid bills of vendors paid other than by printed check.
+    fetchAllRows<any>(() => (supabase as any).from('payable_bills')
+      .select('id, bill_number, amount, credit_applied, due_date, memo, vendors!inner(name, payment_type, is_auto_pay), associations(name)')
+      .eq('status', 'approved')
+      .is('paid_at', null)
+      .is('archived_at', null)
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('id')),
   ]);
+  const otherBills = approved.filter((b: any) => b.vendors?.payment_type !== 'check' || b.vendors?.is_auto_pay);
+  const otherTotal = otherBills.reduce((sum: number, b: any) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
+  const METHOD: Record<string, string> = { check: 'Auto-pay', echeck: 'eCheck', ach: 'ACH', online: 'Online' };
 
   const total = (queue ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0), 0);
   const defaultBank = (banks ?? []).find((bank: any) => Boolean(bank.check_signature?.trim()));
 
   return (
     <PageShell>
-      <Breadcrumb items={[{ label: 'Payables', href: '/bills' }, { label: 'Check run' }]} />
+      <Breadcrumb items={[{ label: 'Payables', href: '/bills' }, { label: 'Pay bills' }]} />
       <PageHeader
-        title="Check run"
-        description="Select approved bills to pay in this check run."
+        title="Pay bills"
+        description="Print checks for vendors paid by check, and record payments made by eCheck, ACH, online or auto-pay."
         actions={<Link href="/bills"><Button variant="secondary">Cancel</Button></Link>}
       />
 
       {sp.error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          <span className="font-semibold">Could not write checks:</span> {sp.error}
+          <span className="font-semibold">Could not pay bills:</span> {sp.error}
         </div>
       )}
 
@@ -71,7 +84,7 @@ export default async function CheckRunPage({
                 defaultValue={defaultBank?.next_check_number ?? ''} required />
             </Field>
             <Field label="Payment date" htmlFor="payment_date">
-              <Input id="payment_date" name="payment_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+              <Input id="payment_date" name="payment_date" type="date" defaultValue={todayInZone()} />
             </Field>
           </div>
         </Surface>
@@ -127,6 +140,60 @@ export default async function CheckRunPage({
           <Button type="submit">Write checks</Button>
         </div>
       </form>
+
+      {otherBills.length > 0 && (
+        <form id="other-payments" action={recordBillPayments} className="mt-10 space-y-6">
+          <SectionTitle
+            title="eCheck, ACH, online and auto-pay"
+            actions={
+              <div className="text-sm text-gray-600">
+                {otherBills.length} bills · <span className="font-semibold tabular-nums">{money(otherTotal)}</span>
+              </div>
+            }
+          />
+          <p className="text-sm text-gray-600">These vendors are not paid by printed check. Once you have paid them from the bank, record the payment here to mark the bills paid.</p>
+          <Table>
+            <THead><tr>
+              <TH className="w-8"><SelectAllCheckbox targetName="bill_ids" defaultChecked={false} /></TH>
+              <TH>Vendor</TH><TH>Pay by</TH><TH>Association</TH><TH>Memo</TH>
+              <TH className="text-right">Amount</TH><TH>Due</TH>
+            </tr></THead>
+            <tbody>
+              {otherBills.map((b: any) => (
+                <TR key={b.id}>
+                  <TD><input type="checkbox" name="bill_ids" value={b.id} aria-label={`Select bill from ${b.vendors?.name ?? 'vendor'}`} /></TD>
+                  <TD className="font-medium"><Link href={`/bills/${b.id}`} className="hover:underline">{b.vendors?.name}</Link></TD>
+                  <TD>{b.vendors?.is_auto_pay ? 'Auto-pay' : METHOD[b.vendors?.payment_type] ?? b.vendors?.payment_type}</TD>
+                  <TD>{b.associations?.name ?? '—'}</TD>
+                  <TD className="max-w-sm truncate text-gray-600" title={b.memo ?? ''}>{b.memo ?? '—'}</TD>
+                  <TD className="text-right tabular-nums">{money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}</TD>
+                  <TD>{date(b.due_date)}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+          <Surface>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="Paid from bank account" htmlFor="other_bank_account_id">
+                <Select id="other_bank_account_id" name="bank_account_id" required>
+                  {(banks ?? []).map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name} {b.bank_name ? `— ${b.bank_name}` : ''}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Payment date" htmlFor="other_payment_date">
+                <Input id="other_payment_date" name="payment_date" type="date" required defaultValue={todayInZone()} />
+              </Field>
+              <Field label="Reference (confirmation #)" htmlFor="other_reference">
+                <Input id="other_reference" name="reference" maxLength={80} />
+              </Field>
+            </div>
+          </Surface>
+          <div className="flex justify-end">
+            <Button type="submit">Record payments</Button>
+          </div>
+        </form>
+      )}
     </PageShell>
   );
 }

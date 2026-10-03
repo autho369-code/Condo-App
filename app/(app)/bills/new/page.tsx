@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
@@ -18,23 +19,23 @@ export default async function NewBillPage({
 
   // All the dropdown sources are filtered by RLS to the user's portfolio
   const [{ data: vendors }, { data: associations }, { data: gls }, { data: banks }] = await Promise.all([
-    (supabase as any).from('vendors')
+    fetchAllRows<any>(() => (supabase as any).from('vendors')
       .select('id, name, trade, payment_type')
       .is('archived_at', null)
-      .order('name'),
-    (supabase as any).from('associations')
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => (supabase as any).from('associations')
       .select('id, name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
     (supabase as any).from('gl_accounts')
       .select('id, number, name, account_type')
       .eq('active', true)
       .in('account_type', ['expense','cost_of_goods_sold','other_expense'])
       .order('number'),
-    (supabase as any).from('bank_accounts')
+    fetchAllRows<any>(() => (supabase as any).from('bank_accounts')
       .select('id, name, bank_name')
       .is('archived_at', null)
-      .order('name'),
+      .order('name').order('id')).then((r) => ({ data: r.rows })),
   ]);
 
   return (

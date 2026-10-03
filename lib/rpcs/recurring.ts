@@ -84,3 +84,17 @@ export async function saveRecurringJournalEntry(formData: FormData) {
   revalidatePath('/journal-entries');
   redirect('/journal-entries?tab=recurring&saved=1');
 }
+
+// Payables → Manually post bills: every recurring bill due through the chosen
+// date is entered now. The RPC re-checks finance permission and association scope.
+export async function postRecurringBills(formData: FormData) {
+  await requireFinanceStaff();
+  const through = s(formData, 'through');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(through)) redirect('/bills/recurring?error=' + encodeURIComponent('Choose a post-through date'));
+  const db = (await createClient()) as any;
+  const { data, error } = await db.rpc('post_recurring_bills', { p_through: through });
+  if (error) redirect(`/bills/recurring?error=${encodeURIComponent(error.message)}`);
+  revalidatePath('/bills/recurring');
+  revalidatePath('/bills');
+  redirect(`/bills/recurring?posted=${Number(data ?? 0)}&through=${through}`);
+}

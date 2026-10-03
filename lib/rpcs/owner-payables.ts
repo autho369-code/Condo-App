@@ -1,105 +1,84 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+// Homeowner payables go through RPCs that re-check finance permission and
+// association scope, enforce the status order and post to the ledger:
+// approval accrues (Dr chosen account, Cr A/P), payment clears it (Dr A/P,
+// Cr cash), voids post reversing entries.
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const s = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
+const uuidOrNull = (v: string) => (UUID.test(v) ? v : null);
+
 export async function createOwnerPayable(formData: FormData) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/bills/owner-payable/new?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-
-  const portfolio_id    = formData.get('portfolio_id') as string;
-  const association_id  = formData.get('association_id') as string;
-  const owner_id        = formData.get('owner_id') as string;
-  const gl_account_id   = (formData.get('gl_account_id') as string) || null;
-  const bank_account_id = (formData.get('bank_account_id') as string) || null;
-  const payable_type    = (formData.get('payable_type') as string) || 'refund';
-  const payable_date    = (formData.get('payable_date') as string) || new Date().toISOString().slice(0, 10);
-  const due_date        = (formData.get('due_date') as string) || null;
-  const amount          = parseFloat(formData.get('amount') as string);
-  const memo            = (formData.get('memo') as string) || null;
-  const status          = (formData.get('status') as string) || 'pending_approval';
-
-  if (!owner_id || !association_id || !amount || amount <= 0) {
-    failTo('Owner, association, and a positive amount are required.');
-    return;
+  await requireFinanceStaff();
+  const failTo = (msg: string): never => redirect(`/bills/owner-payable/new?error=${encodeURIComponent(msg)}`);
+  const amount = Number(s(formData, 'amount').replace(/[$,\s]/g, ''));
+  const ownerId = uuidOrNull(s(formData, 'owner_id'));
+  const associationId = uuidOrNull(s(formData, 'association_id'));
+  if (!ownerId || !associationId || !Number.isFinite(amount) || amount <= 0) {
+    failTo('Homeowner, association, and a positive amount are required.');
   }
+  const payableDate = s(formData, 'payable_date');
+  const dueDate = s(formData, 'due_date');
 
-  const { data, error } = await (supabase as any)
-    .from('owner_payables')
-    .insert({
-      portfolio_id, association_id, owner_id, gl_account_id, bank_account_id,
-      payable_type, payable_date, due_date, amount, memo, status,
-    })
-    .select('id')
-    .single();
-
-  if (error) { failTo(error.message); return; }
+  const db = (await createClient()) as any;
+  const { data, error } = await db.rpc('create_owner_payable', {
+    p_association_id: associationId,
+    p_owner_id: ownerId,
+    p_gl_account_id: uuidOrNull(s(formData, 'gl_account_id')),
+    p_bank_account_id: uuidOrNull(s(formData, 'bank_account_id')),
+    p_payable_type: s(formData, 'payable_type') || 'refund',
+    p_payable_date: DAY.test(payableDate) ? payableDate : null,
+    p_due_date: DAY.test(dueDate) ? dueDate : null,
+    p_amount: amount,
+    p_memo: s(formData, 'memo'),
+  });
+  if (error) failTo(error.message);
   revalidatePath('/bills/owner-payable');
-  redirect('/bills/owner-payable');
+  redirect(`/bills/owner-payable/${data}?saved=1`);
 }
 
-export async function approveOwnerPayable(id: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('owner_payables')
-    .update({ status: 'approved', approved_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) { failTo(error.message); return; }
-  revalidatePath('/bills/owner-payable');
-}
+/** Approve, pay, void the payment, or void a homeowner payable. */
+export async function ownerPayableAction(formData: FormData) {
+  await requireFinanceStaff();
+  const id = uuidOrNull(s(formData, 'id'));
+  if (!id) redirect('/bills/owner-payable?error=' + encodeURIComponent('Homeowner payable not found'));
+  const back = `/bills/owner-payable/${id}`;
+  const op = s(formData, 'op');
+  const db = (await createClient()) as any;
 
-export async function payOwnerPayable(id: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-
-  // Respect the owner's "Hold payments" accounting preference (owner profile →
-  // Federal Tax, Payout & Accounting Preferences). Approval is allowed; paying is not.
-  const { data: payable } = await (supabase as any)
-    .from('owner_payables')
-    .select('owner_id, owners(full_name)')
-    .eq('id', id)
-    .maybeSingle();
-  if (payable?.owner_id) {
-    const { data: fin } = await (supabase as any)
-      .from('owner_financial_details')
-      .select('hold_payments')
-      .eq('owner_id', payable.owner_id)
-      .maybeSingle();
-    if (fin?.hold_payments) {
-      failTo(`Payments to ${payable.owners?.full_name ?? 'this owner'} are on hold. Clear "Hold payments" on the owner profile first.`);
-      return;
+  let result: { error: { message: string } | null };
+  switch (op) {
+    case 'approve':
+      result = await db.rpc('approve_owner_payable', { p_id: id });
+      break;
+    case 'pay': {
+      const paidOn = s(formData, 'payment_date');
+      result = await db.rpc('pay_owner_payable', {
+        p_id: id,
+        p_bank_account_id: uuidOrNull(s(formData, 'bank_account_id')),
+        p_payment_date: DAY.test(paidOn) ? paidOn : null,
+        p_method: s(formData, 'method'),
+        p_reference: s(formData, 'reference'),
+      });
+      break;
     }
+    case 'void_payment':
+      result = await db.rpc('void_owner_payable_payment', { p_id: id, p_reason: s(formData, 'reason') });
+      break;
+    case 'void':
+      result = await db.rpc('void_owner_payable', { p_id: id });
+      break;
+    default:
+      redirect(`${back}?error=${encodeURIComponent('Choose an action')}`);
   }
-
-  const { error } = await (supabase as any)
-    .from('owner_payables')
-    .update({ status: 'paid', paid_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) { failTo(error.message); return; }
+  if (result.error) redirect(`${back}?error=${encodeURIComponent(result.error.message)}`);
   revalidatePath('/bills/owner-payable');
-}
-
-export async function voidOwnerPayable(id: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/bills/owner-payable?error=${encodeURIComponent(msg)}`);
-  };
-  const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('owner_payables')
-    .update({ status: 'void' })
-    .eq('id', id);
-  if (error) { failTo(error.message); return; }
-  revalidatePath('/bills/owner-payable');
+  revalidatePath(back);
+  redirect(`${back}?done=${op}`);
 }

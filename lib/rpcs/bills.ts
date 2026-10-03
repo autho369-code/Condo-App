@@ -183,3 +183,30 @@ export async function bulkBillAction(formData: FormData) {
   const reasons = [...new Set(failures)].slice(0, 3).join('; ');
   redirect(`${safeBack}${sep}bulk=${op}&done=${done}${failures.length ? `&failed=${failures.length}&reason=${encodeURIComponent(reasons)}` : ''}`);
 }
+
+/**
+ * Pay bills: vendors paid by eCheck, ACH, online or auto-pay are paid outside
+ * the check run (bank portal, vendor site). Recording the payment marks the
+ * bills paid and posts Dr A/P, Cr cash; the RPC re-checks finance permission,
+ * association scope and that each bill is approved and unpaid.
+ */
+export async function recordBillPayments(formData: FormData) {
+  await requireFinanceStaff();
+  const failTo = (msg: string): never => redirect(`/bills/check-run?error=${encodeURIComponent(msg)}#other-payments`);
+  const bankAccountId = String(formData.get('bank_account_id') ?? '');
+  const paymentDate = String(formData.get('payment_date') ?? '');
+  const reference = String(formData.get('reference') ?? '').trim();
+  const billIds = [...new Set(formData.getAll('bill_ids').map(String).filter((v) => BULK_UUID.test(v)))];
+  if (!BULK_UUID.test(bankAccountId) || !billIds.length) failTo('Choose a bank account and at least one bill.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) failTo('Choose the payment date.');
+  const supabase = (await createClient()) as any;
+  const { data, error } = await supabase.rpc('record_bill_payment', {
+    p_bank_account_id: bankAccountId,
+    p_bill_ids: billIds,
+    p_payment_date: paymentDate,
+    p_reference: reference,
+  });
+  if (error) failTo(error.message);
+  revalidatePath('/bills');
+  redirect(`/bills?tab=payments&recorded=${Number(data ?? 0)}`);
+}
