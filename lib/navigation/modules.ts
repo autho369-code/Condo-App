@@ -119,18 +119,16 @@ export const appModules: AppModule[] = [
     ],
   },
   {
-    label: 'Reports',
+    // AppFolio's Reporting menu, link for link.
+    label: 'Reporting',
     href: '/reports',
     group: 'Insights',
     children: [
-      { label: 'Report catalog', href: '/reports' },
-      { label: 'Report builder', href: '/reports/builder' },
-      { label: 'Scheduled reports', href: '/scheduled-reports' },
-      { label: 'Monthly board package', href: '/reports/monthly-package' },
-      { label: 'Bulk association reports', href: '/reports/bulk-association' },
-      { label: 'Run history', href: '/reports/runs' },
+      { label: 'Reports', href: '/reports' },
+      { label: 'Scheduled Reports', href: '/scheduled-reports' },
       { label: 'Metrics', href: '/metrics' },
       { label: 'Surveys', href: '/surveys' },
+      { label: 'Compliance', href: '/compliance' },
     ],
   },
   {

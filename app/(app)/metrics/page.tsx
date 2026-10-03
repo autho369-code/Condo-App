@@ -1,4 +1,5 @@
 import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
+import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -223,6 +224,7 @@ export default async function MetricsPage({
       description="Collections, delinquency, finances and maintenance by month, for the company or one association."
       actions={<Link href="/reports"><Button variant="secondary">View all reports</Button></Link>}
     >
+      <ReportingTabs current="metrics" />
       <div className="space-y-6">
         {loadError && <Alert tone="danger" title="Some figures could not be loaded">{loadError}</Alert>}
 

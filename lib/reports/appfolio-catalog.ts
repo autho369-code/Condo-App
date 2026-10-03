@@ -1,0 +1,153 @@
+// The Reports page lists reports the way AppFolio's Reports page does: the
+// same categories in the same order, each report under the heading AppFolio
+// files it under. "Property" reads "Association" here, as everywhere else in
+// Portier369. Each entry points at the report definition (slug) that runs it;
+// AppFolio reports with no Portier369 equivalent are left out.
+
+export type CatalogReport = { name: string; slug: string };
+export type CatalogCategory = { key: string; title: string; reports: CatalogReport[] };
+
+export const REPORT_CATALOG: CatalogCategory[] = [
+  {
+    key: 'accounting',
+    title: 'Accounting Reports',
+    reports: [
+      { name: 'Account Totals', slug: 'account_totals' },
+      { name: 'Balance Sheet', slug: 'balance_sheet' },
+      { name: 'Balance Sheet - Comparative', slug: 'balance_sheet_comparative' },
+      { name: 'Balance Sheet - Association Comparison', slug: 'balance_sheet_association_comparison' },
+      { name: 'Bank Account Activity', slug: 'bank_account_activity' },
+      { name: 'Bank Account Association', slug: 'bank_account_association' },
+      { name: 'Bank Account Directory', slug: 'bank_account_directory' },
+      { name: 'Cash Flow', slug: 'cash_flow' },
+      { name: 'Cash Flow - 12 Month', slug: 'cash_flow_12_month' },
+      { name: 'Cash Flow - Association Comparison', slug: 'cash_flow_association_comparison' },
+      { name: 'Cash Flow Detail', slug: 'cash_flow_detail' },
+      { name: 'Chart of Accounts', slug: 'chart_of_accounts' },
+      { name: 'Expense Distribution', slug: 'expense_distribution' },
+      { name: 'General Ledger', slug: 'general_ledger' },
+      { name: 'Income Statement', slug: 'income_statement' },
+      { name: 'Income Statement - 12 Month', slug: 'income_statement_12_month' },
+      { name: 'Income Statement - Comparative', slug: 'income_statement_comparative' },
+      { name: 'Income Statement - Association Comparison', slug: 'income_statement_association_comparison' },
+      { name: 'Income Statement (Date Range)', slug: 'income_statement_date_range' },
+      { name: 'Loans', slug: 'loan_statement' },
+      { name: 'Trial Balance', slug: 'trial_balance' },
+      { name: 'Trial Balance by Association', slug: 'trial_balance_association' },
+      { name: 'Trust Account Balance', slug: 'trust_account_balance' },
+      { name: 'Trust Account Detail', slug: 'trust_account_detail' },
+    ],
+  },
+  {
+    key: 'association',
+    title: 'Association Reports',
+    reports: [
+      { name: 'Architectural Review Detail', slug: 'architectural_review' },
+      { name: 'Association Work Order', slug: 'board_work_orders' },
+      { name: 'Board of Directors', slug: 'board_directory' },
+      { name: 'Dues Roll', slug: 'dues_roll' },
+      { name: 'Dues Roll (Itemized)', slug: 'dues_roll_itemized' },
+      { name: 'Fund Balance Sheet', slug: 'fund_balance_sheet' },
+      { name: 'Fund Balance Sheet - Active Funds', slug: 'fund_balance_sheet_active_funds' },
+      { name: 'Fund Income Statement', slug: 'fund_income_statement' },
+      { name: 'Homeowner Delinquency', slug: 'delinquency' },
+      { name: 'Homeowner Delinquency (As Of)', slug: 'delinquency_as_of' },
+      { name: 'Homeowner Directory', slug: 'owner_directory' },
+      { name: 'Homeowner Ledger', slug: 'owner_ledger' },
+      { name: 'Homeowner Prepayment Balance', slug: 'owner_prepaid' },
+      { name: 'Homeowner Resale', slug: 'homeowner_resale' },
+      { name: 'Homeowner Vehicle Info', slug: 'owner_vehicle_info' },
+      { name: 'Renter Directory', slug: 'resident_directory' },
+      { name: 'Violation Detail', slug: 'violation_log' },
+    ],
+  },
+  {
+    key: 'diagnostic',
+    title: 'Diagnostic Reports',
+    reports: [
+      { name: 'Email Delivery Errors', slug: 'email_delivery_errors' },
+      { name: 'Resident eCheck Fee Coverage', slug: 'residents_check_fee_coverage' },
+      { name: 'User Roles and Permissions', slug: 'user_roles_permissions' },
+      { name: 'Users', slug: 'users' },
+    ],
+  },
+  {
+    key: 'maintenance',
+    title: 'Maintenance Reports',
+    reports: [
+      { name: 'Inspection Detail', slug: 'inspection_detail' },
+      { name: 'Project Budget Detail', slug: 'project_budget_detail' },
+      { name: 'Project Directory', slug: 'project_directory' },
+      { name: 'Purchase Order', slug: 'purchase_order' },
+      { name: 'Recurring Work Order', slug: 'recurring_work_orders' },
+      { name: 'Vendor Directory', slug: 'vendor_directory' },
+      { name: 'Vendor Ledger', slug: 'vendor_ledger' },
+      { name: 'Work Order', slug: 'work_order_report' },
+      { name: 'Work Order Billable Detail', slug: 'work_order_bill_detail' },
+      { name: 'Work Order Labor Summary', slug: 'work_order_labor_summary' },
+    ],
+  },
+  {
+    key: 'owner',
+    title: 'Owner Reports',
+    reports: [
+      { name: 'Owner Insurance', slug: 'insurance_expiration_dates' },
+      { name: 'Owner Insurance Audit', slug: 'owner_insurance_audit' },
+    ],
+  },
+  {
+    key: 'property_unit',
+    title: 'Association And Unit Reports',
+    reports: [
+      { name: 'Activities Summary', slug: 'activities_summary' },
+      { name: 'Additional Fees', slug: 'additional_fees' },
+      { name: 'Amenities By Association', slug: 'amenities_assigned' },
+      { name: 'Annual Budget - Comparative', slug: 'annual_budget_comparative' },
+      { name: 'Annual Budget - Forecast', slug: 'annual_budget_forecast' },
+      { name: 'Budget - Comparative', slug: 'budget_vs_actual' },
+      { name: 'Budget - Association Comparison', slug: 'budget_association_comparison' },
+      { name: 'Budget Detail', slug: 'budget_detail' },
+      { name: 'Fixed Assets', slug: 'fixed_assets' },
+      { name: 'Inventory Status', slug: 'inventory_status' },
+      { name: 'Inventory Usage', slug: 'inventory_usage' },
+      { name: 'Keys Detail', slug: 'keys' },
+      { name: 'Association Directory', slug: 'association_directory' },
+      { name: 'Association Group Directory', slug: 'property_group_directory' },
+      { name: 'Association Performance', slug: 'property_performance' },
+      { name: 'Unit Directory', slug: 'unit_directory' },
+      { name: 'Unit Inspection', slug: 'unit_inspection' },
+    ],
+  },
+  {
+    key: 'tax',
+    title: 'Tax Reports',
+    reports: [
+      { name: 'Vendor 1099 Detail', slug: 'vendor_1099_detail' },
+      { name: 'Vendor 1099 Summary', slug: 'vendor_1099_summary' },
+    ],
+  },
+  {
+    key: 'transaction',
+    title: 'Transaction Reports',
+    reports: [
+      { name: 'Aged Payables Summary', slug: 'aged_payables_summary' },
+      { name: 'Aged Receivable Detail', slug: 'ar_aging' },
+      { name: 'Bill Detail', slug: 'bill_detail' },
+      { name: 'Charge Detail', slug: 'charge_detail' },
+      { name: 'Check Register', slug: 'check_register' },
+      { name: 'Check Register Detail', slug: 'check_register_detail' },
+      { name: 'Credit Card Expense Detail', slug: 'credit_card_expense_detail' },
+      { name: 'Deposit Register', slug: 'deposit_register' },
+      { name: 'Expense Register', slug: 'expense_register' },
+      { name: 'Income Register', slug: 'income_register' },
+      { name: 'Journal Entry Register', slug: 'journal_entry_register' },
+      { name: 'Payment Plans', slug: 'payment_plans' },
+      { name: 'Receivables Activity', slug: 'receivables_activity' },
+      { name: 'Resident Financial Activity', slug: 'resident_financial_activity' },
+      { name: 'Unpaid Balances by Month', slug: 'unpaid_balances_by_month' },
+    ],
+  },
+];
+
+/** Every slug the catalog lists, for tests and lookups. */
+export const CATALOG_SLUGS = REPORT_CATALOG.flatMap((c) => c.reports.map((r) => r.slug));

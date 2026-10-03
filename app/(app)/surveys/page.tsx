@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -73,6 +74,7 @@ export default async function SurveysPage({
         </>
       }
     >
+      <ReportingTabs current="surveys" />
       <div className="space-y-4">
         {loadError && <Alert tone="danger" title="Could not load every survey or response">{loadError}</Alert>}
         {sp.removed && <Alert tone="success">Survey removed.</Alert>}

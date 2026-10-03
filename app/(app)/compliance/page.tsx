@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Badge, EmptyState } from '@/components/ui/shell';
@@ -30,6 +31,7 @@ export default async function CompliancePage() {
       title="Compliance / Violations"
       description={`${open} open · ${totalCount ?? (rows ?? []).length} total violations tracked.${(totalCount ?? 0) > (rows ?? []).length ? ` Showing the latest ${(rows ?? []).length}.` : ''}`}
     >
+      <ReportingTabs current="compliance" />
       {rows && rows.length > 0 ? (
         <Table>
           <THead><tr><TH>Title</TH><TH>Type</TH><TH>Association</TH><TH>Unit</TH><TH>Observed</TH><TH>Due</TH><TH className="text-right">Fine</TH><TH>Status</TH></tr></THead>
