@@ -1,4 +1,5 @@
 'use server';
+import { LIVE_ONLY_REPORT_SLUGS } from '@/lib/reports/catalog';
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -73,8 +74,15 @@ export async function saveScheduledReport(formData: FormData) {
     savedReportId = saved.id;
     parameters = runParameters(saved.parameters);
   }
-  const { data: def } = await db.from('report_definitions').select('id').eq('id', definitionId).eq('active', true).maybeSingle();
+  const { data: def } = await db.from('report_definitions').select('id, slug').eq('id', definitionId).eq('active', true).maybeSingle();
   if (!def) fail(back, 'That report is not available.');
+  if (LIVE_ONLY_REPORT_SLUGS.has(def.slug)) fail(back, 'This report runs live on its own page and cannot be scheduled.');
+  // The same access rule every run is generated under, checked now so a
+  // schedule that could never run isn't saved.
+  const { data: accessError, error: accessCheckError } = await db.rpc('report_params_access_error', {
+    p_portfolio_id: me.portfolio?.id, p_slug: def.slug, p_params: parameters,
+  });
+  if (accessCheckError || accessError) fail(back, accessCheckError?.message ?? String(accessError));
 
   const name = text(formData, 'name').slice(0, 120);
   if (!name) fail(back, 'Enter a name for this schedule.');

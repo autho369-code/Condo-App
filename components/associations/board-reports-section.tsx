@@ -70,7 +70,7 @@ export async function BoardReportsSection({
             </div>
           </fieldset>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Who can see packages" htmlFor="br-scope">
+            <Field label="Who can see packages" htmlFor="br-scope" hint="Shared with owners, the package leaves out the receivables aging (it lists each unit's balance).">
               <Select id="br-scope" name="share_scope" defaultValue={settings?.share_scope ?? 'board'}>
                 <option value="board">Board only</option>
                 <option value="owners">Board and owners</option>

@@ -26,6 +26,9 @@ const KEYS = new Set<string>(BOARD_REPORT_SECTIONS.map(([k]) => k));
 
 export const isBoardSection = (v: string): v is BoardReportSection => KEYS.has(v);
 
+/** Sections with per-unit detail, never included when the package is shared with homeowners. */
+export const OWNER_HIDDEN_SECTIONS = new Set<string>(['ar_aging']);
+
 /** Selected sections in canonical package order. */
 export function orderSections(selected: string[]): BoardReportSection[] {
   const set = new Set(selected);
@@ -58,7 +61,9 @@ export async function publishBoardPackage(opts: {
 }) {
   const { dataClient, svc, association, dateFrom, dateTo, shareScope, notify, actorId, source } = opts;
   if (!DATE_RE.test(dateFrom) || !DATE_RE.test(dateTo) || dateFrom > dateTo) throw new Error('Choose a valid reporting period.');
-  const sections = orderSections(opts.sections);
+  // Shared with every homeowner: leave out the receivables aging, which lists
+  // each unit's open charges and balance. (The delinquency summary is totals.)
+  const sections = orderSections(opts.sections).filter((s) => shareScope !== 'owners' || !OWNER_HIDDEN_SECTIONS.has(s));
   if (!sections.length) throw new Error('Choose at least one report for the board package.');
 
   const params = { association_id: association.id, date_from: dateFrom, date_to: dateTo, scope: 'association' };

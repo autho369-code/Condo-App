@@ -18,6 +18,7 @@ describe('financial report drill-down', () => {
     expect(page).toContain("selectedAccount: /^[0-9a-f-]{36}$/i.test(sp.account ?? '')");
     expect(page).toContain("lineQuery = lineQuery.eq('gl_account_id', selectedAccount)");
     const gl = page.slice(page.indexOf('async function GeneralLedgerView'));
-    expect(gl).toContain("glAccountQuery = glAccountQuery.eq('id', selectedAccount)");
+    expect(gl).toContain("loadReportGlAccounts(db, 'id, number, name, account_type', selectedAssociation, selectedAccount)");
+    expect(page).toContain("if (accountId) q = q.eq('id', accountId);");
   });
 });
