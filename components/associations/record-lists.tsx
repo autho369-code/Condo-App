@@ -197,7 +197,8 @@ export function LinkedRecords({ banks, assets, associationId }: { banks: any[]; 
 }
 
 const AUDIT_LABEL: Record<string, string> = {
-  association_settings_updated: 'Settings updated', board_approval_settings_updated: 'Approval rules updated',
+  association_settings_updated: 'Settings updated', association_private_settings_updated: 'Staff-only settings updated',
+  board_approval_settings_updated: 'Approval rules updated',
   violation_settings_updated: 'Fining policy updated', delinquency_jurisdiction_applied: 'Collection profile applied',
   delinquency_compliance_updated: 'Collection protections updated', year_end_package_generated: 'Year-end package prepared',
   year_end_package_finalized: 'Year-end package finalized', year_end_package_superseded: 'Year-end package superseded',
@@ -209,7 +210,8 @@ export function AuditLog({ events }: { events: any[] }) {
       {events.length ? (
         <ul className="divide-y divide-gray-100">
           {events.map((e) => {
-            const fields = Object.keys(e.changes?.after ?? {});
+            // Staff-only settings log just the changed field names (no values).
+            const fields: string[] = Array.isArray(e.changes?.fields) ? e.changes.fields : Object.keys(e.changes?.after ?? {});
             return (
               <li key={e.id} className="px-5 py-2.5 text-sm">
                 <div className="flex items-center justify-between gap-3">
