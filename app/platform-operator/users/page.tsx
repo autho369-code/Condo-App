@@ -56,11 +56,12 @@ export default async function UsersPage({
     .limit(200);
 
   if (sp.role && isProfileRole(sp.role)) query = query.eq('hoa_role', sp.role);
-  if (sp.company) query = query.eq('portfolio_id', sp.company);
+  // A malformed company id made the whole query fail and the list read as empty.
+  if (sp.company && /^[0-9a-f-]{36}$/i.test(sp.company)) query = query.eq('portfolio_id', sp.company);
   if (sp.status === 'disabled') query = query.not('disabled_at', 'is', null);
   else if (sp.status === 'active') query = query.is('disabled_at', null);
 
-  const [{ data: users }, { data: portfolios }, { data: platformOperators }, { data: vendorUsers }] = await Promise.all([
+  const [{ data: users, error: usersError }, { data: portfolios }, { data: platformOperators, error: operatorsError }, { data: vendorUsers }] = await Promise.all([
     query,
     db.from('portfolios').select('id, company_name').order('company_name'),
     db.from('platform_operators').select('auth_user_id, role, active'),
@@ -78,6 +79,9 @@ export default async function UsersPage({
   return (
     <div className="space-y-7">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {(usersError || operatorsError) && (
+        <Alert title="Users could not be loaded">{usersError?.message ?? operatorsError?.message}</Alert>
+      )}
       {(sp.disabled === '1' || sp.enabled === '1') && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
           <h3 className="font-semibold text-green-900">{sp.disabled === '1' ? 'User disabled' : 'User enabled'}</h3>

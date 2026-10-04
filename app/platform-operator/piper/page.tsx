@@ -26,13 +26,15 @@ async function saveKnowledge(formData: FormData) {
   const category = (formData.get('category') as string) || 'general'
   const pinned = formData.get('pinned') === 'on'
   if (!title || !body) redirect(`${RETURN}?error=${encodeURIComponent('Title and content are required.')}`)
+  if (!(CATEGORIES as readonly string[]).includes(category)) redirect(`${RETURN}?error=${encodeURIComponent('Select a valid category.')}`)
 
   const svc = createServiceClient() as any
   const row = { title, body, category, pinned, updated_at: new Date().toISOString() }
-  const { error } = id
-    ? await svc.from('receptionist_knowledge').update(row).eq('id', id)
-    : await svc.from('receptionist_knowledge').insert({ ...row, active: true })
+  const { data: saved, error } = id
+    ? await svc.from('receptionist_knowledge').update(row).eq('id', id).select('id')
+    : await svc.from('receptionist_knowledge').insert({ ...row, active: true }).select('id')
   if (error) redirect(`${RETURN}?error=${encodeURIComponent(error.message)}`)
+  if (!saved?.length) redirect(`${RETURN}?error=${encodeURIComponent('That knowledge entry no longer exists.')}`)
   revalidatePath(RETURN)
   redirect(`${RETURN}?saved=1`)
 }
@@ -45,27 +47,32 @@ async function toggleKnowledge(formData: FormData) {
   const value = formData.get('value') === '1'
   if (!id || !['active', 'pinned'].includes(field)) redirect(`${RETURN}?error=${encodeURIComponent('Invalid toggle.')}`)
   const svc = createServiceClient() as any
-  const { error } = await svc.from('receptionist_knowledge').update({ [field]: value }).eq('id', id)
+  const { data: toggled, error } = await svc.from('receptionist_knowledge').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', id).select('id')
   if (error) redirect(`${RETURN}?error=${encodeURIComponent(error.message)}`)
+  if (!toggled?.length) redirect(`${RETURN}?error=${encodeURIComponent('That knowledge entry no longer exists.')}`)
   revalidatePath(RETURN)
+  redirect(`${RETURN}?saved=1`)
 }
 
 async function markHandled(formData: FormData) {
   'use server'
   await (await import('@/lib/auth/me')).requirePlatformAdmin()
   const id = (formData.get('id') as string) || ''
-  if (!id) redirect(RETURN)
+  if (!id) redirect(`${RETURN}?error=${encodeURIComponent('Missing message.')}`)
   const svc = createServiceClient() as any
-  await svc.from('phone_messages').update({ handled: true }).eq('id', id)
+  const { data: handled, error } = await svc.from('phone_messages').update({ handled: true }).eq('id', id).select('id')
+  if (error) redirect(`${RETURN}?error=${encodeURIComponent(`Could not mark the message handled: ${error.message}`)}`)
+  if (!handled?.length) redirect(`${RETURN}?error=${encodeURIComponent('That message no longer exists.')}`)
   revalidatePath(RETURN)
+  redirect(`${RETURN}?handled=1`)
 }
 
-export default async function PiperPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; edit?: string }> }) {
+export default async function PiperPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; edit?: string; handled?: string }> }) {
   const sp = await searchParams
   await requirePlatformOperator()
   const svc = createServiceClient() as any
 
-  const [{ data: knowledge }, { data: messages }] = await Promise.all([
+  const [{ data: knowledge, error: knowledgeError }, { data: messages, error: messagesError }] = await Promise.all([
     svc.from('receptionist_knowledge').select('*').order('pinned', { ascending: false }).order('category').order('updated_at', { ascending: false }),
     svc.from('phone_messages').select('*').order('created_at', { ascending: false }).limit(50),
   ])
@@ -86,6 +93,10 @@ export default async function PiperPage({ searchParams }: { searchParams: Promis
 
       {sp.error && <Alert tone="danger" title="Something went wrong:">{sp.error}</Alert>}
       {sp.saved === '1' && <Alert tone="success" title="Saved — Piper knows this on her next call." />}
+      {sp.handled === '1' && <Alert tone="success" title="Message marked handled." />}
+      {(knowledgeError || messagesError) && (
+        <Alert tone="danger" title="Piper data could not be loaded">{knowledgeError?.message ?? messagesError?.message}</Alert>
+      )}
 
       {/* Teach form */}
       <div className={card + ' p-6'}>

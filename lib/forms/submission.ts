@@ -17,11 +17,15 @@ export type SubmissionClaim =
   | { status: 'duplicate'; resultId: string | null }
   | { status: 'error'; message: string };
 
-/** Claim the form's token. `duplicate` means this form was already submitted. */
-export async function claimSubmission(db: any, formData: FormData, kind: string): Promise<SubmissionClaim> {
+/**
+ * Claim the form's token. `duplicate` means this form was already submitted.
+ * `createdBy` is for callers using the service-role client (e.g. platform
+ * operators, who are not company staff), where auth.uid() is null.
+ */
+export async function claimSubmission(db: any, formData: FormData, kind: string, createdBy?: string | null): Promise<SubmissionClaim> {
   const token = String(formData.get(SUBMISSION_FIELD) ?? '');
   if (!UUID.test(token)) return { status: 'error', message: 'This form expired. Reload the page and try again.' };
-  const { error } = await db.from('form_submissions').insert({ token, kind });
+  const { error } = await db.from('form_submissions').insert(createdBy ? { token, kind, created_by: createdBy } : { token, kind });
   if (!error) return { status: 'claimed', token };
   if (error.code === '23505') {
     const { data } = await db.from('form_submissions').select('result_id').eq('token', token).maybeSingle();
