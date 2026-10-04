@@ -32,23 +32,24 @@ corporate books — skipped by Mirsad 2026-10-01)
 | Maintenance → Unit Turns | Rental make-ready | — | /unit-turns | ➖ |
 | Maintenance → Projects | Name, property, total budget, actuals, start date, status | Add Project, Cost Categories | /projects | ✅ |
 | Maintenance → Purchase Orders | Filters (association, vendor, GL, dates, approval, completed, submitted); status tabs | New PO, Recurring PO, Recurring PO Templates | /purchase-orders | ✅ |
-| Maintenance → Inventory | Items (name, quantity, reorder, category, location) | Add Item, Bulk Add, Manage Locations, Manage Categories; reports Inventory Status, Inventory Usage | /inventory | 🟡 reports missing |
+| Maintenance → Inventory | Items (name, quantity, reorder, category, location) | Add Item, Bulk Add, Manage Locations, Manage Categories; reports Inventory Status, Inventory Usage | /inventory | ✅ (Inventory Status / Usage reports added) |
 | Maintenance → Fixed Assets | Property/unit, asset ID, type, status, in service, warranty | Add Fixed Asset | /fixed-assets | ✅ |
 | Maintenance → Maintenance Performer | AI maintenance triage | — | smart intake (#70) | ✅ |
-| Reporting → Reports | Report catalog (see below) + Report Builder + saved reports | — | /reports, /reports/builder | 🟡 see report table |
+| Reporting → Reports | Report catalog (see below) + Report Builder + saved reports | — | /reports, /reports/builder | ✅ see report table |
 | Reporting → Scheduled Reports | List + New Scheduled Report | — | /scheduled-reports | ✅ |
 | Reporting → Metrics | Pricing (rental), Business Metrics, Data Diagnostic | — | /metrics | ✅ (pricing ➖) |
 | Reporting → Surveys | Maintenance survey Responses / Analysis / Settings | — | /surveys | ✅ |
-| Reporting → Compliance | Violations (filters, bulk follow-up, mark corrected, download) · Architectural Reviews | New Violation, Rules & Regulations, Bulk Create/Copy Rules | /violations, /architectural-reviews | ✅ |
-| Communication → Letters | Letter templates by category (association, …) | 1099s, New Association Letter, New Vendor Letter, Owner Packets, Statements, Portal Activation letters | /letters, /statements | ✅ |
-| Communication → Forms | PDF Form Templates · Resident Forms · Owner Forms | New PDF Form Template | /forms | ✅ |
-| Communication → Inbox | Two-way text/email inbox, bulk message, text templates | My Texting Settings, Text Templates, Email Templates | /inbox | 🟡 SMS blocked on Twilio KYC |
+| Reporting → Compliance | Violations (filters, bulk follow-up, mark corrected, download) · Architectural Reviews | New Violation, Rules & Regulations, Bulk Create/Copy Rules | /violations, /architectural-reviews | ✅ (unit/homeowner/rule columns, rule + date filters, exact search: #175, #177) |
+| Communication → Letters | Letter templates by category (association, …) | 1099s, New Association Letter, New Vendor Letter, Owner Packets, Statements, Portal Activation letters | /letters, /statements | ✅ (batch letters per homeowner: #177) |
+| Communication → Forms | PDF Form Templates · Resident Forms · Owner Forms | New PDF Form Template | /forms | ✅ (upload, audience, edit/archive, owner-portal downloads: #178) |
+| Communication → Inbox | Two-way text/email inbox, bulk message, text templates | My Texting Settings, Text Templates, Email Templates | /inbox | 🟡 SMS blocked on Twilio KYC (email side: saved replies, search, association filter: #179) |
 | Communication → Mentions | Notes where you were @mentioned; My Notes | — | record notes (#59) | ✅ |
 
-## Missing AppFolio functions (to build)
+## Missing AppFolio functions
 
-1. **Homeowner payment plans**: installment agreements for delinquent owners. AppFolio report: *Payment Plans*.
-2. **Credit card accounts**: association credit cards as financial accounts, card expenses posted to the ledger. AppFolio report: *Credit Card Expense Detail*.
+None left in the left navigation as of 2026-10-04. Both items once listed here are built:
+homeowner payment plans (`/payment-plans`) and credit card accounts (`/credit-cards`).
+The only partial row is Inbox texting, which waits on Twilio 10DLC approval.
 
 ## Financial Diagnostics (AppFolio checks)
 
@@ -67,15 +68,15 @@ Run check, 2026-10-01: every active Portier report definition (145) was executed
 | Accounting: Account Totals, Balance Sheet (+Comparative, +Property Comparison), Bank Account Activity / Association / Directory, Cash Flow (+12 Month, +Comparison, +Detail), Chart of Accounts, Expense Distribution, General Ledger, Income Statement (+12 Month, +Comparative, +Comparison, +Date Range), Loans, Trial Balance (+by Property), Trust Account Balance / Detail | ✅ all |
 | Association: Architectural Review Detail, Association Work Order, Board of Directors, Dues Roll (+Itemized), Fund Balance Sheet (+Active Funds), Fund Income Statement, Homeowner Delinquency (+As Of), Homeowner Directory, Homeowner Ledger, Homeowner Prepayment Balance, Homeowner Resale, Homeowner Vehicle Info, Renter Directory, Violation Detail | ✅ all |
 | Diagnostic: Email Delivery Errors, Late Fee Policy Comparison, Resident eCheck Fee Coverage, User Roles and Permissions | ✅ |
-| Diagnostic: Users | ❌ |
-| Diagnostic: Import Variances | 🟡 definition exists (Import Validation), no data source |
+| Diagnostic: Users | ✅ |
+| Diagnostic: Import Variances | ✅ (#163) |
 | Maintenance: Inspection Detail, Project Budget Detail, Project Directory, Purchase Order, Recurring Work Order, Vendor Directory, Vendor Ledger, Work Order, Work Order Billable Detail, Work Order Labor Summary | ✅ |
 | Owner: Owner Insurance, Owner Insurance Audit | ✅ |
 | Property & Unit: Activities Summary, Additional Fees, Amenities, Annual Budget Comparative, Budget Comparative, Budget Detail, Fixed Assets, Keys Detail, Property Directory, Property Group Directory, Property Performance, Unit Directory, Unit Inspection | ✅ |
-| Property & Unit: **Annual Budget Forecast**, **Budget Property Comparison**, **Inventory Status**, **Inventory Usage** | ❌ |
+| Property & Unit: Annual Budget Forecast, Budget Property Comparison, Inventory Status, Inventory Usage | ✅ |
 | Tax: Vendor 1099 Detail / Summary | ✅ (Owner 1099 ➖ rental) |
 | Transaction: Aged Payables Summary, Aged Receivable Detail, Bill Detail, Charge Detail, Check Register (+Detail), Deposit Register, Expense Register, Income Register, Journal Entry Register, Unpaid Balances by Month | ✅ |
-| Transaction: **Credit Card Expense Detail**, **Payment Plans**, **Receivables Activity**, **Resident Financial Activity** | ❌ |
+| Transaction: Credit Card Expense Detail, Payment Plans, Receivables Activity, Resident Financial Activity | ✅ |
 
 Portier report definitions with no data source and **no AppFolio equivalent**, to be removed from the catalog:
 - Application Settings
