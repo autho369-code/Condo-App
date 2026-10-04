@@ -46,9 +46,13 @@ export async function glDebitBalances(db: Db, f: JournalTotalsFilter): Promise<M
   return map;
 }
 
-/** Income (credit-normal) and expense (debit-normal) totals for a period. */
+/**
+ * Income (credit-normal) and expense (debit-normal) totals for a period.
+ * Account types follow gl_section(): cost_of_goods_sold and non_operating
+ * are expense-section accounts.
+ */
 export async function incomeExpenseTotals(db: Db, f: Omit<JournalTotalsFilter, 'accountTypes'>): Promise<{ income: number; expense: number }> {
-  const rows = await journalLineTotals(db, { ...f, accountTypes: ['income', 'other_income', 'expense', 'other_expense'] });
+  const rows = await journalLineTotals(db, { ...f, accountTypes: ['income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense', 'non_operating'] });
   let income = 0;
   let expense = 0;
   for (const r of rows) {
@@ -65,11 +69,9 @@ export async function receivableSummary(db: Db, associationIds?: string[] | null
   const empty = { arTotal: 0, overdueTotal: 0, delinquentUnits: 0, weightedDays: null };
   if (associationIds && associationIds.length === 0) return empty;
   const { data, error } = await db.rpc('receivable_summary', { p_association_ids: associationIds ?? null, ...(asOf ? { p_as_of: asOf } : {}) });
+  if (error) throw new Error(`Receivable summary could not be loaded: ${error.message}`);
   const r = Array.isArray(data) ? data[0] : data;
-  if (error || !r) {
-    if (error) console.error('[totals] receivable_summary failed:', error.message);
-    return empty;
-  }
+  if (!r) return empty;
   return {
     arTotal: Number(r.ar_total ?? 0),
     overdueTotal: Number(r.overdue_total ?? 0),
@@ -81,21 +83,17 @@ export async function receivableSummary(db: Db, associationIds?: string[] | null
 export async function billingCollectionTotals(db: Db, from: string, to: string, associationIds?: string[] | null): Promise<{ charges: number; payments: number }> {
   if (associationIds && associationIds.length === 0) return { charges: 0, payments: 0 };
   const { data, error } = await db.rpc('billing_collection_totals', { p_from: from, p_to: to, p_association_ids: associationIds ?? null });
+  if (error) throw new Error(`Billing and collection totals could not be loaded: ${error.message}`);
   const r = Array.isArray(data) ? data[0] : data;
-  if (error || !r) {
-    if (error) console.error('[totals] billing_collection_totals failed:', error.message);
-    return { charges: 0, payments: 0 };
-  }
+  if (!r) return { charges: 0, payments: 0 };
   return { charges: Number(r.charges_total ?? 0), payments: Number(r.payments_total ?? 0) };
 }
 
 export async function unpaidBillsTotal(db: Db, portfolioId?: string | null): Promise<{ total: number; count: number; overdue: number }> {
   const { data, error } = await db.rpc('unpaid_bills_total', { p_portfolio_id: portfolioId ?? null });
+  if (error) throw new Error(`Unpaid bill totals could not be loaded: ${error.message}`);
   const r = Array.isArray(data) ? data[0] : data;
-  if (error || !r) {
-    if (error) console.error('[totals] unpaid_bills_total failed:', error.message);
-    return { total: 0, count: 0, overdue: 0 };
-  }
+  if (!r) return { total: 0, count: 0, overdue: 0 };
   return { total: Number(r.unpaid_total ?? 0), count: Number(r.unpaid_count ?? 0), overdue: Number(r.overdue_total ?? 0) };
 }
 
@@ -103,10 +101,7 @@ export async function unpaidBillsTotal(db: Db, portfolioId?: string | null): Pro
 export async function receivableAgingBuckets(db: Db, associationIds?: string[] | null): Promise<Record<string, number>> {
   if (associationIds && associationIds.length === 0) return {};
   const { data, error } = await db.rpc('receivable_aging_buckets', { p_association_ids: associationIds ?? null });
-  if (error) {
-    console.error('[totals] receivable_aging_buckets failed:', error.message);
-    return {};
-  }
+  if (error) throw new Error(`Receivable aging could not be loaded: ${error.message}`);
   const out: Record<string, number> = {};
   for (const r of (data ?? []) as any[]) out[r.aging_bucket] = (out[r.aging_bucket] ?? 0) + Number(r.balance_total ?? 0);
   return out;
@@ -138,16 +133,13 @@ export async function vendor1099Rows(
   filter: { vendorId?: string | null; associationId?: string | null } = {},
 ): Promise<Array<{ association_id: string | null; vendor: any; association: any; amount: number; credit_applied: number; bill_count: number }>> {
   const { data, error } = await db.rpc('vendor_1099_totals', { p_tax_year: taxYear });
-  if (error) {
-    console.error('[totals] vendor_1099_totals failed:', error.message);
-    return [];
-  }
+  if (error) throw new Error(`1099 vendor totals could not be loaded: ${error.message}`);
   const totals = ((data ?? []) as any[]).filter((r) =>
     (!filter.vendorId || r.vendor_id === filter.vendorId)
     && (!filter.associationId || r.association_id === filter.associationId));
   const vendorIds = [...new Set(totals.map((r) => r.vendor_id).filter(Boolean))];
   const associationIds = [...new Set(totals.map((r) => r.association_id).filter(Boolean))];
-  const [{ data: vendors }, { data: associations }] = await Promise.all([
+  const [{ data: vendors, error: vendorsError }, { data: associations, error: associationsError }] = await Promise.all([
     vendorIds.length > 0
       ? db.from('vendors').select('id, name, vendor_type, send_1099, taxpayer_name, vendor_financial_details(taxpayer_id, tax_account_number), address_street, address_city, address_state, address_zip').in('id', vendorIds)
       : Promise.resolve({ data: [] }),
@@ -155,6 +147,9 @@ export async function vendor1099Rows(
       ? db.from('associations').select('id, name, legal_name, address, city, state, zip, tax_id').in('id', associationIds)
       : Promise.resolve({ data: [] }),
   ]);
+  if (vendorsError || associationsError) {
+    throw new Error(`1099 vendor details could not be loaded: ${(vendorsError ?? associationsError).message}`);
+  }
   const vendorById = new Map(((vendors ?? []) as any[]).map((v) => [v.id, v]));
   const associationById = new Map(((associations ?? []) as any[]).map((a) => [a.id, a]));
   return totals.map((r) => ({

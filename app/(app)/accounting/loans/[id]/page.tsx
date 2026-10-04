@@ -4,6 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -11,6 +12,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { amortizationSchedule, FREQUENCY_LABEL, interestFor, type LoanFrequency } from '@/lib/loans/amortization';
 import { recordLoanPayment, saveLoanSetup, voidLoanPayment } from '@/lib/rpcs/loans';
 import { createClient } from '@/lib/supabase/server';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -122,6 +124,7 @@ export default async function LoanDetailPage({
             />
             <form action={recordLoanPayment} className="grid gap-4 sm:grid-cols-3">
               <input type="hidden" name="loan_id" value={loan.id} />
+              <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
               <Field label="Payment date">
                 <Input name="payment_date" type="date" required defaultValue={loan.next_payment_date && loan.next_payment_date <= today ? loan.next_payment_date : today} />
               </Field>
@@ -143,7 +146,7 @@ export default async function LoanDetailPage({
               <Field label="Memo (optional)">
                 <Input name="memo" maxLength={1000} />
               </Field>
-              <div className="sm:col-span-3"><Button type="submit">Record payment</Button></div>
+              <div className="sm:col-span-3"><PendingSubmit pendingLabel="Recording…">Record payment</PendingSubmit></div>
             </form>
           </Surface>
         )}

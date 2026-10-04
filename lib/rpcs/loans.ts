@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -92,7 +93,15 @@ export async function recordLoanPayment(formData: FormData) {
   if (!ISO_RE.test(date)) go(back, 'error', 'Enter the payment date.');
 
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('record_loan_payment', {
+  // A double click or re-sent form must not record (and post) the payment twice.
+  const claim = await claimSubmission(db, formData, 'loan_payment');
+  if (claim.status === 'error') go(back, 'error', claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) go(back, 'saved', 'Payment recorded and posted to the general ledger.');
+    go(back, 'error', 'This payment is already being recorded. Refresh in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
+  const { data: paymentId, error } = await db.rpc('record_loan_payment', {
     p_loan_id: id,
     p_payment_date: date,
     p_amount: amount,
@@ -101,7 +110,11 @@ export async function recordLoanPayment(formData: FormData) {
     p_reference: s(formData, 'reference') || null,
     p_memo: s(formData, 'memo') || null,
   });
-  if (error) go(back, 'error', error.message);
+  if (error) {
+    await releaseSubmission(db, token);
+    go(back, 'error', error.message);
+  }
+  if (typeof paymentId === 'string' && UUID_RE.test(paymentId)) await completeSubmission(db, token, paymentId);
   revalidatePath(back);
   revalidatePath('/accounting/loans');
   go(back, 'saved', 'Payment recorded and posted to the general ledger.');

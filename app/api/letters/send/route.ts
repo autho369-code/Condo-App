@@ -4,7 +4,7 @@ import { emailQueueRow, richTextToPlainText, textToHtml } from '@/lib/email/queu
 import { requireStaff, type MeResult } from '@/lib/auth/me';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: NextRequest) {
   // Staff-only: server actions/route handlers are callable endpoints, so the
