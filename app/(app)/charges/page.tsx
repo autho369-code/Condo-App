@@ -100,7 +100,9 @@ export default async function ChargesPage({
 
   // ── Receipts ── (searched and filtered in the database, newest first)
   const receiptsBase = () => {
-    let r = db.from('receivable_payments_ledger').select('*', { count: 'exact' });
+    let r = db.from('receivable_payments_ledger').select('*', { count: 'exact' })
+      // Homeowner credits are non-cash (as on /receipts): not receipts.
+      .or('method.is.null,method.neq.credit');
     if (assoc) r = r.eq('association_id', assoc);
     if (owner) r = r.in('unit_id', unitScope);
     if (term) r = r.or(`owner_name.ilike.*${term}*,unit_number.ilike.*${term}*,reference.ilike.*${term}*,association_name.ilike.*${term}*`);
@@ -125,7 +127,8 @@ export default async function ChargesPage({
       : Promise.resolve({ data: [], count: null, error: null }),
     // Receipt totals cover every matching receipt, not just the rows shown.
     fetchAllRows<any>(() => {
-      let r = db.from('receivable_payments_ledger').select('payment_id, amount');
+      let r = db.from('receivable_payments_ledger').select('payment_id, amount')
+        .or('method.is.null,method.neq.credit');
       if (assoc) r = r.eq('association_id', assoc);
       if (owner) r = r.in('unit_id', unitScope);
       return r.order('payment_id');
@@ -138,11 +141,21 @@ export default async function ChargesPage({
     }),
     db.rpc('receivable_unit_totals', { p_unit_ids: totalsUnitIds ? (totalsUnitIds.length ? totalsUnitIds : [noUnit]) : null }),
     owner || assoc
-      ? Promise.resolve({ data: [] })
-      : db.from('v_charges_by_category').select('*').order('outstanding_balance', { ascending: false }),
+      ? Promise.resolve({ rows: [], truncated: false, error: null })
+      // One row per association × category × month: read every row and total
+      // by category below.
+      : fetchAllRows<any>(() => db
+        .from('v_charges_by_category')
+        .select('association_id, category_id, category_name, period_month, charge_count, outstanding_balance')
+        .order('association_id')
+        .order('category_id', { nullsFirst: true })
+        .order('period_month', { nullsFirst: true })),
   ]);
-  const loadErrors = [receiptsRes.error?.message, chargesRes.error?.message, receiptAmounts.error, delinquentRes.error]
-    .filter(Boolean) as string[];
+  const loadErrors = [
+    receiptsRes.error?.message, chargesRes.error?.message, receiptAmounts.error, delinquentRes.error,
+    unitTotalsRes.error?.message, categoriesRes.error,
+  ].filter(Boolean) as string[];
+  if (categoriesRes.truncated) loadErrors.push('The charges-by-category totals cover the first 50,000 rows only.');
   if (receiptAmounts.truncated) loadErrors.push('The receipts total covers the first 50,000 receipts only; choose an association for an exact total.');
 
   const receipts = (receiptsRes.data ?? []) as any[];
@@ -229,7 +242,7 @@ export default async function ChargesPage({
   let chargebacks: any[] = [];
   let chargebacksTruncated = false;
   {
-    const { rows, truncated } = await fetchAllRows<any>(() => {
+    const { rows, truncated, error: chargebacksError } = await fetchAllRows<any>(() => {
       let c = db.from('charges')
         .select('id, unit_id, amount, due_date, description, work_order_id, work_orders(id, title), units!inner(unit_number, buildings!inner(association_id))')
         .not('work_order_id', 'is', null);
@@ -238,10 +251,15 @@ export default async function ChargesPage({
       return c.order('id');
     });
     chargebacksTruncated = truncated;
+    if (chargebacksError) loadErrors.push(chargebacksError);
     const ids = rows.map((c) => c.id);
     const balanceById = new Map<string, number>();
     for (let i = 0; i < ids.length; i += 200) {
-      const { data: bal } = await db.from('v_charge_balances').select('charge_id, balance_due').in('charge_id', ids.slice(i, i + 200));
+      const { data: bal, error: balError } = await db.from('v_charge_balances').select('charge_id, balance_due').in('charge_id', ids.slice(i, i + 200));
+      if (balError) {
+        loadErrors.push(`Chargeback balances: ${balError.message}`);
+        break;
+      }
       for (const b of (bal ?? []) as any[]) balanceById.set(b.charge_id, Number(b.balance_due ?? 0));
     }
     chargebacks = rows
@@ -267,7 +285,19 @@ export default async function ChargesPage({
   const overdueBalance = assoc
     ? delinquentRows.reduce((s, u) => s + Number(u.balance ?? 0), 0)
     : Number(unitTotals?.delinquent_balance ?? 0);
-  const categoryBreakdown = ((categoriesRes.data ?? []) as any[]).slice(0, 5);
+  const categoryTotals = new Map<string, { key: string; category_name: string | null; charge_count: number; outstanding_balance: number }>();
+  for (const r of categoriesRes.rows as any[]) {
+    const key = r.category_id ?? 'uncategorized';
+    const t = categoryTotals.get(key) ?? {
+      key, category_name: r.category_id ? r.category_name : (r.category_name ?? 'Uncategorized'), charge_count: 0, outstanding_balance: 0,
+    };
+    t.charge_count += Number(r.charge_count ?? 0);
+    t.outstanding_balance += Number(r.outstanding_balance ?? 0);
+    categoryTotals.set(key, t);
+  }
+  const categoryBreakdown = [...categoryTotals.values()]
+    .sort((a, b) => b.outstanding_balance - a.outstanding_balance || String(a.category_name ?? '').localeCompare(String(b.category_name ?? '')))
+    .slice(0, 5);
 
   // ── EXPORT (mirrors the active tab's on-screen table, same filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
@@ -535,7 +565,7 @@ export default async function ChargesPage({
                 </div>
                 <div className="divide-y divide-gray-100">
                   {categoryBreakdown.map((cat: any) => (
-                    <div key={cat.category_id} className="flex items-center justify-between px-5 py-3">
+                    <div key={cat.key} className="flex items-center justify-between px-5 py-3">
                       <div>
                         <span className="text-sm font-medium text-gray-900">{cat.category_name ?? '—'}</span>
                         <span className="ml-2 text-xs text-gray-500">({cat.charge_count ?? 0} charges)</span>

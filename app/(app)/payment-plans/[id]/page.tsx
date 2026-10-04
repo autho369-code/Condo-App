@@ -26,7 +26,7 @@ export default async function PaymentPlanPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string; cancelled?: string; error?: string }>;
+  searchParams: Promise<{ created?: string; cancelled?: string; error?: string; existing?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
@@ -41,12 +41,14 @@ export default async function PaymentPlanPage({
     .maybeSingle();
   if (!plan) notFound();
 
-  const { data: schedule } = await db.rpc('payment_plan_schedule', { p_plan_id: id });
+  const { data: schedule, error: scheduleError } = await db.rpc('payment_plan_schedule', { p_plan_id: id });
   const rows = (schedule ?? []) as { installment_number: number; due_date: string; amount: number; covered: number; status: string }[];
   const paid = rows.reduce((s, r) => s + Number(r.covered), 0);
   const next = rows.find((r) => r.status !== 'paid');
   const behind = rows.some((r) => r.status === 'behind');
-  const overall = plan.status === 'cancelled' ? 'Cancelled' : plan.status === 'completed' || !next ? 'Paid off' : behind ? 'Behind' : 'Current';
+  // A failed schedule read is a load failure, never "Paid off".
+  const overall = scheduleError ? 'Unavailable'
+    : plan.status === 'cancelled' ? 'Cancelled' : plan.status === 'completed' || !next ? 'Paid off' : behind ? 'Behind' : 'Current';
   const frequencyLabel = plan.frequency === 'biweekly' ? 'every two weeks' : plan.frequency;
 
   return (
@@ -62,14 +64,20 @@ export default async function PaymentPlanPage({
     >
       <div className="space-y-4">
         {sp.created && <Alert tone="success" title="Payment plan created">The homeowner&rsquo;s collection case, if any, is on hold while the plan is current.</Alert>}
+        {sp.existing && <Alert tone="info" title="This unit already has an active payment plan">No new plan was created. Cancel this plan first if it should be replaced.</Alert>}
         {sp.cancelled && <Alert tone="info" title="Payment plan cancelled">A collections hold the plan placed has been released.</Alert>}
         {sp.error && <Alert tone="danger" title="Could not update the plan">{sp.error}</Alert>}
+        {scheduleError && (
+          <Alert tone="danger" title="The installment schedule could not be loaded">
+            Paid and remaining amounts are unavailable. Reload the page to try again. ({scheduleError.message})
+          </Alert>
+        )}
 
         <MetricStrip
           metrics={[
             { label: 'Plan amount', value: money(plan.total_amount) },
-            { label: 'Paid toward plan', value: money(paid) },
-            { label: 'Remaining', value: money(Math.max(Number(plan.total_amount) - paid, 0)) },
+            { label: 'Paid toward plan', value: scheduleError ? '—' : money(paid) },
+            { label: 'Remaining', value: scheduleError ? '—' : money(Math.max(Number(plan.total_amount) - paid, 0)) },
             { label: 'Status', value: overall, sublabel: next && plan.status === 'active' ? `Next due ${date(next.due_date)}` : undefined },
           ]}
         />

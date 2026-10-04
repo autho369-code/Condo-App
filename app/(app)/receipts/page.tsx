@@ -9,6 +9,7 @@ import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
 import { date, money } from '@/lib/utils';
 
@@ -24,11 +25,11 @@ export default async function ReceiptsPage({
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  // Dates are the office's calendar day, not UTC.
+  const today = todayInZone();
   // Quick ranges. The default is the last 12 months: "month to date" opened
   // the register empty on the 1st of every month.
-  const presets = receiptRangePresets(now);
+  const presets = receiptRangePresets(today);
   const preset = presets.find((p) => p.key === sp.range);
   const from = preset ? preset.from : ISO.test(sp.from ?? '') ? sp.from! : presets.find((p) => p.key === '12m')!.from;
   const toInput = preset ? preset.to : ISO.test(sp.to ?? '') ? sp.to! : today;
@@ -238,13 +239,12 @@ export default async function ReceiptsPage({
   );
 }
 
-function receiptRangePresets(now: Date) {
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const daysAgo = (n: number) => iso(new Date(now.getTime() - n * 86400000));
-  const y = now.getFullYear();
-  const today = iso(now);
+/** Quick ranges relative to `today` (YYYY-MM-DD in the display time zone). */
+function receiptRangePresets(today: string) {
+  const [y, m, d] = today.split('-').map(Number);
+  const daysAgo = (n: number) => new Date(Date.UTC(y, m - 1, d) - n * 86400000).toISOString().slice(0, 10);
   return [
-    { key: 'mtd', label: 'This month', from: iso(new Date(Date.UTC(y, now.getMonth(), 1))), to: today },
+    { key: 'mtd', label: 'This month', from: `${today.slice(0, 7)}-01`, to: today },
     { key: '30d', label: 'Last 30 days', from: daysAgo(30), to: today },
     { key: '90d', label: 'Last 90 days', from: daysAgo(90), to: today },
     { key: 'ytd', label: 'Year to date', from: `${y}-01-01`, to: today },

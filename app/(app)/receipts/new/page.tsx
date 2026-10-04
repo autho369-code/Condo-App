@@ -9,11 +9,18 @@ import { RECEIPT_METHODS } from '@/lib/payments/methods';
 import { recordHomeownerReceipt } from '@/lib/rpcs/receipts';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** What the homeowner still owes once unapplied credit is used. */
+function netDue(s: { outstanding_balance?: unknown; unapplied_credit?: unknown } | null | undefined): number {
+  return Math.max(Number(s?.outstanding_balance ?? 0) - Number(s?.unapplied_credit ?? 0), 0);
+}
 
 export default async function NewHomeownerReceiptPage({
   searchParams,
@@ -27,11 +34,16 @@ export default async function NewHomeownerReceiptPage({
 
   // Step 1 list: every unit with its current homeowner and balance, so the
   // receipt is matched to a person, not just a unit number.
-  const [{ data: units }, { data: summaries }, { data: occupants }] = await Promise.all([
-    db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).limit(5000),
-    db.from('v_unit_account_summary').select('unit_id, outstanding_balance, unapplied_credit').limit(5000),
-    db.from('occupancies').select('unit_id, is_primary, owners(full_name)').eq('status', 'current').eq('occupancy_type', 'owner').limit(10000),
+  const [unitsRes, summariesRes, occupantsRes] = await Promise.all([
+    fetchAllRows<any>(() => db.from('units').select('id, unit_number, buildings!inner(association_id, associations(name))').is('archived_at', null).order('id')),
+    fetchAllRows<any>(() => db.from('v_unit_account_summary').select('unit_id, outstanding_balance, unapplied_credit').order('unit_id')),
+    fetchAllRows<any>(() => db.from('occupancies').select('id, unit_id, is_primary, owners(full_name)').eq('status', 'current').eq('occupancy_type', 'owner').order('id')),
   ]);
+  const units = unitsRes.rows;
+  const summaries = summariesRes.rows;
+  const occupants = occupantsRes.rows;
+  const loadErrors = [unitsRes.error, summariesRes.error, occupantsRes.error].filter(Boolean) as string[];
+  if (unitsRes.truncated || summariesRes.truncated || occupantsRes.truncated) loadErrors.push('Only the first 50,000 rows were loaded.');
   const balanceByUnit = new Map<string, any>((summaries ?? []).map((s: any) => [s.unit_id, s]));
   const ownerByUnit = new Map<string, string>();
   for (const o of (occupants ?? []).sort((a: any, b: any) => Number(b.is_primary) - Number(a.is_primary))) {
@@ -44,7 +56,7 @@ export default async function NewHomeownerReceiptPage({
       associationId: u.buildings?.association_id,
       unit: u.unit_number,
       owner: ownerByUnit.get(u.id) ?? 'No current homeowner',
-      balance: Number(balanceByUnit.get(u.id)?.outstanding_balance ?? 0),
+      balance: netDue(balanceByUnit.get(u.id)),
     }))
     .sort((a: any, b: any) => a.association.localeCompare(b.association) || String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }));
   const grouped = new Map<string, typeof unitOptions>();
@@ -65,7 +77,8 @@ export default async function NewHomeownerReceiptPage({
   const defaultBank = depositable.find((b: any) => b.fund_type === 'operating')?.id ?? depositable[0]?.id ?? '';
   const summary = selected ? balanceByUnit.get(unitId) : null;
   const pastDue = (openCharges ?? []).filter((c: any) => c.is_past_due).reduce((s: number, c: any) => s + Number(c.balance_due), 0);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
+  const balanceDue = netDue(summary);
 
   return (
     <DataWorkspace
@@ -75,6 +88,7 @@ export default async function NewHomeownerReceiptPage({
     >
       <div className="max-w-4xl space-y-5">
         {sp.error && <Alert tone="danger" title="Receipt not recorded">{sp.error}</Alert>}
+        {loadErrors.length > 0 && <Alert tone="danger" title="Some homeowners or balances could not be loaded">{loadErrors.join(' · ')}</Alert>}
         {sp.posted && UUID.test(sp.posted) && (
           <Alert tone="success" title="Receipt recorded">
             Ready for the next one. <Link href={`/payments/${sp.posted}/receipt`} className="font-medium underline">Print the last receipt</Link>
@@ -117,7 +131,7 @@ export default async function NewHomeownerReceiptPage({
                 actions={<Link href={`/units/${selected.id}`} className="text-[13px] font-medium text-gray-600 hover:text-gray-950 hover:underline">Open unit ledger</Link>}
               />
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div><div className="text-xs text-gray-500">Balance due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(summary?.outstanding_balance ?? 0)}</div></div>
+                <div><div className="text-xs text-gray-500">Balance due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(balanceDue)}</div></div>
                 <div><div className="text-xs text-gray-500">Past due</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(pastDue)}</div></div>
                 <div><div className="text-xs text-gray-500">Unapplied credit</div><div className="text-lg font-semibold tabular-nums text-gray-950">{money(summary?.unapplied_credit ?? 0)}</div></div>
               </div>
@@ -150,7 +164,7 @@ export default async function NewHomeownerReceiptPage({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Amount received" required>
                     <Input name="amount" type="number" step="0.01" min="0.01" required
-                      defaultValue={Number(summary?.outstanding_balance ?? 0) > 0 ? Number(summary.outstanding_balance).toFixed(2) : undefined} />
+                      defaultValue={balanceDue > 0 ? balanceDue.toFixed(2) : undefined} />
                   </Field>
                   <Field label="Date received" required>
                     <Input name="payment_date" type="date" defaultValue={today} required />
