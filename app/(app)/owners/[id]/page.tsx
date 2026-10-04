@@ -217,10 +217,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   if (unitIds.length > 0) {
     financialQueries.push(
       db.from('payments')
-        .select('id, amount, payment_date, method, reference, unit_id, created_at')
+        .select('id, amount, payment_date, method, reference, unit_id, created_at, reversed_at, reversal_charge_id')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
-        .is('reversed_at', null) // returned (NSF) payments were never collected
         .gte('created_at', ytdStart)
         .order('created_at', { ascending: false })
         .limit(200)
@@ -245,10 +244,17 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const [
     { data: unitBalances },
     { data: ledgers },
-    { data: ytdCharges },
-    { data: ytdPayments },
+    { data: ytdChargesRaw },
+    { data: ytdPaymentsRaw },
     { data: paymentLedger },
   ] = await Promise.all(financialQueries);
+
+  // A returned (NSF) payment was never collected, and its reversal charge just
+  // undoes it: leave both out of the YTD figures (counting only one of them
+  // would double the reversal).
+  const reversalChargeIds = new Set((ytdPaymentsRaw ?? []).filter((p: any) => p.reversed_at && p.reversal_charge_id).map((p: any) => p.reversal_charge_id));
+  const ytdPayments = (ytdPaymentsRaw ?? []).filter((p: any) => !p.reversed_at);
+  const ytdCharges = (ytdChargesRaw ?? []).filter((c: any) => !reversalChargeIds.has(c.id));
 
   // ── Compute financial summary ──
   const totalBalance = (unitBalances ?? []).reduce((sum: number, b: any) => sum + (b.balance ?? 0), 0);

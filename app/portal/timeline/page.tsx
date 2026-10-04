@@ -25,11 +25,16 @@ export default async function OwnerTimelinePage() {
   // Same for work orders: only those opened during the owner's tenure.
   const woScope = tenureFilter(tenure, 'created_at', unitIds)
 
-  const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([
+  const [paymentsRes, returnsRes, wosRes, violsRes, msgsRes] = await Promise.all([
     // By the owner's current units, like the ledger. Read payments directly so
     // returned (reversed) payments are labelled as they are on the ledger.
     paymentScope
-      ? db.from('payments').select('amount, payment_date, method, reversed_at, reversal_reason').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
+      ? db.from('payments').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
+      : Promise.resolve({ data: [], error: null }),
+    // A return is its own event, dated when the payment came back (which can
+    // be long after the payment date), so fetch returns by reversed_at.
+    paymentScope
+      ? db.from('payments').select('amount, method, reversed_at, reversal_reason').or(paymentScope).not('reversed_at', 'is', null).order('reversed_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [], error: null }),
     woScope
       ? db.from('work_orders').select('id, title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
@@ -43,11 +48,10 @@ export default async function OwnerTimelinePage() {
   const entries: Entry[] = []
 
   for (const p of paymentsRes?.data ?? []) {
-    if (p.reversed_at) {
-      entries.push({ date: p.payment_date, icon: Undo2, title: 'Payment returned', detail: money(p.amount) + ' via ' + (p.method ?? '—') + (p.reversal_reason ? ` · ${p.reversal_reason}` : ''), color: 'text-red-600 bg-red-50' })
-    } else {
-      entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
-    }
+    entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
+  }
+  for (const p of returnsRes?.data ?? []) {
+    entries.push({ date: p.reversed_at, icon: Undo2, title: 'Payment returned', detail: money(p.amount) + ' via ' + (p.method ?? '—') + (p.reversal_reason ? ` · ${p.reversal_reason}` : ''), color: 'text-red-600 bg-red-50' })
   }
   for (const w of wosRes?.data ?? []) {
     entries.push({ date: w.created_at, icon: Wrench, title: `Work Order: ${w.title}`, detail: w.status.replace('_',' '), color: 'text-blue-600 bg-blue-50' })
@@ -60,7 +64,7 @@ export default async function OwnerTimelinePage() {
   }
 
   entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  const loadError = paymentsRes?.error ?? wosRes?.error ?? violsRes?.error ?? msgsRes?.error
+  const loadError = paymentsRes?.error ?? returnsRes?.error ?? wosRes?.error ?? violsRes?.error ?? msgsRes?.error
 
   return (
     <div className="space-y-6 max-w-2xl">
