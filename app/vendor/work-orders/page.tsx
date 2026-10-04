@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
-import { PageHeader, Surface, Badge, EmptyState } from '@/components/ui/shell';
+import { PageHeader, Surface, Badge, EmptyState, Alert } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -18,14 +18,14 @@ const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress', 'open'];
 export default async function VendorWorkOrders({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string }>;
+  searchParams: Promise<{ f?: string; error?: string }>;
 }) {
   const me = await requireVendor();
   const sp = await searchParams;
   const filter = (FILTERS.find((f) => f.id === sp.f)?.id ?? 'open') as (typeof FILTERS)[number]['id'];
 
   const supabase = await createClient();
-  const { data } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from('work_orders')
     .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name), units(unit_number)')
     .eq('vendor_id', me.vendor_id)
@@ -44,6 +44,9 @@ export default async function VendorWorkOrders({
   return (
     <div>
       <PageHeader title="Work orders" description="Everything assigned to you across all communities." />
+
+      {error && <Alert tone="danger" title="Could not load work orders:" className="mb-4">{error.message}</Alert>}
+      {sp.error && <Alert tone="danger" className="mb-4">{sp.error}</Alert>}
 
       <div className="mb-4 inline-flex rounded-xl border border-gray-200/80 bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {FILTERS.map((f) => (
@@ -82,7 +85,7 @@ export default async function VendorWorkOrders({
                         .join(' · ') || `created ${date(w.created_at)}`}
                     </div>
                   </div>
-                  {w.priority && w.priority !== 'normal' && <Badge tone="danger">{w.priority}</Badge>}
+                  {(w.priority === 'emergency' || w.priority === 'high') && <Badge tone={w.priority === 'emergency' ? 'danger' : 'pending'}>{w.priority}</Badge>}
                   <Badge status={w.status} />
                 </Link>
               </li>

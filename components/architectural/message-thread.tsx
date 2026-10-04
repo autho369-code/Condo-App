@@ -1,4 +1,5 @@
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { formatInZone } from '@/lib/time/zoned';
 
 export type ArcMessage = {
   id: string;
@@ -23,11 +24,8 @@ const ROLE_BADGE: Record<string, string> = {
 };
 
 function fmt(ts: string): string {
-  try {
-    return new Date(ts).toLocaleString(undefined, {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    });
-  } catch { return ''; }
+  // Rendered on the server (UTC): pin the viewer's zone, or times read as UTC.
+  try { return formatInZone(ts); } catch { return ''; }
 }
 
 /**
@@ -77,7 +75,7 @@ export function ArcMessageThread({
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
           />
           <div className="flex justify-end">
-            <Button type="submit" size="sm">Send message</Button>
+            <PendingSubmit size="sm" pendingLabel="Sending…">Send message</PendingSubmit>
           </div>
         </form>
       )}

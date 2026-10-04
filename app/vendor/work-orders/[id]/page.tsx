@@ -8,13 +8,18 @@ import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import { PageHeader, Surface, SectionTitle, Badge, Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Select, Textarea } from '@/components/ui/input';
 import { ArcMessageThread, type ArcMessage } from '@/components/architectural/message-thread';
 import { postWorkOrderMessage } from '@/lib/rpcs/work-orders-messages';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { canVendorChangeStatus, isVendorSettableStatus } from '@/lib/vendors/portal';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NOT_ACCEPTED = 'That status change was not accepted — this job may already be completed or billed. Contact the manager.';
 
 const VENDOR_STATUSES = [
   { value: 'scheduled', label: 'Scheduled' },
@@ -32,37 +37,45 @@ export default async function VendorWorkOrderDetail({
   const me = await requireVendor();
   const { id } = await params;
   const sp = await searchParams;
+  if (!UUID.test(id)) notFound();
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: wo } = await db
+  const { data: wo, error: woError } = await db
     .from('work_orders')
     .select('id, number, title, status, priority, description, job_description, service_request_id, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
     .eq('id', id)
     .eq('vendor_id', me.vendor_id)
+    .is('archived_at', null)
     .maybeSingle();
+  if (woError) throw new Error(`Could not load the work order: ${woError.message}`);
   if (!wo) notFound();
-  // Instructions for the vendor are not on the work order row (owners and
-  // board read it); RLS lets the assigned vendor read them here.
-  const { data: instructions } = await db
-    .from('work_order_vendor_private')
-    .select('vendor_instructions')
-    .eq('work_order_id', id)
-    .maybeSingle();
-  wo.vendor_instructions = instructions?.vendor_instructions ?? null;
 
-  const { data: updates } = await db
-    .from('work_order_updates')
-    .select('id, note, new_status, created_at')
-    .eq('work_order_id', id)
-    .order('created_at', { ascending: false })
-    .limit(30);
-
-  const { data: messages } = await db
-    .from('work_order_messages')
-    .select('id, author_name, author_role, body, created_at')
-    .eq('work_order_id', id)
-    .order('created_at', { ascending: true });
+  const [instructionsResult, updatesResult, messagesResult] = await Promise.all([
+    // Instructions for the vendor are not on the work order row (owners and
+    // board read it); RLS lets the assigned vendor read them here.
+    db.from('work_order_vendor_private')
+      .select('vendor_instructions')
+      .eq('work_order_id', id)
+      .maybeSingle(),
+    db.from('work_order_updates')
+      .select('id, note, new_status, created_at')
+      .eq('work_order_id', id)
+      .order('created_at', { ascending: false })
+      .limit(30),
+    db.from('work_order_messages')
+      .select('id, author_name, author_role, body, created_at')
+      .eq('work_order_id', id)
+      .order('created_at', { ascending: true }),
+  ]);
+  const loadErrors = [
+    instructionsResult.error && `instructions (${instructionsResult.error.message})`,
+    updatesResult.error && `activity (${updatesResult.error.message})`,
+    messagesResult.error && `messages (${messagesResult.error.message})`,
+  ].filter(Boolean) as string[];
+  const vendorInstructions: string | null = instructionsResult.data?.vendor_instructions ?? null;
+  const updates = updatesResult.data ?? [];
+  const messages = messagesResult.data ?? [];
 
   const attachments = await loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id });
 
@@ -71,42 +84,65 @@ export default async function VendorWorkOrderDetail({
     const me2 = await requireVendor();
     const supabase2 = await createClient();
     const db2 = supabase2 as any;
-    const woId = formData.get('work_order_id') as string;
-    const newStatus = (formData.get('new_status') as string) || null;
-    const note = ((formData.get('note') as string) || '').trim();
+    const woId = String(formData.get('work_order_id') ?? '');
+    if (!UUID.test(woId)) redirect(`/vendor/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
+    const back = `/vendor/work-orders/${woId}`;
+    const fail = (message: string): never => redirect(`${back}?error=${encodeURIComponent(message)}`);
+    const rawStatus = String(formData.get('new_status') ?? '');
+    const note = String(formData.get('note') ?? '').trim();
 
-    if (!note && !newStatus) {
-      redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent('Add a note or pick a status before posting.')}`);
-    }
+    if (rawStatus && !isVendorSettableStatus(rawStatus)) fail('Pick a status from the list.');
+    if (note.length > 4000) fail('Keep the note under 4,000 characters.');
+
+    // The work order must be assigned to THIS vendor and still active.
+    const { data: current, error: loadErr } = await db2
+      .from('work_orders').select('id, status')
+      .eq('id', woId).eq('vendor_id', me2.vendor_id).is('archived_at', null)
+      .maybeSingle();
+    if (loadErr) fail(loadErr.message);
+    if (!current) redirect(`/vendor/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
+
+    // Picking the status the job already has is just a note.
+    const newStatus: string | null = rawStatus && rawStatus !== current.status ? rawStatus : null;
+    if (!note && !newStatus) fail('Add a note or pick a new status before posting.');
+    if (newStatus && !canVendorChangeStatus(current.status, newStatus)) fail(NOT_ACCEPTED);
+
+    const claim = await claimSubmission(db2, formData, 'vendor_work_order_update');
+    if (claim.status === 'error') fail(claim.message);
+    if (claim.status === 'duplicate') redirect(`${back}?saved=1`);
+    const token = (claim as { token: string }).token;
 
     if (newStatus) {
-      const patch: Record<string, any> = { status: newStatus };
-      if (newStatus === 'done') patch.completed_date = new Date().toISOString().slice(0, 10);
-      const { data: updated, error: upErr } = await db2.from('work_orders').update(patch).eq('id', woId).eq('vendor_id', me2.vendor_id).select('id');
-      if (upErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(upErr.message)}`);
-      // The DB guard ignores changes once a job is completed/billed; say so
-      // instead of logging a "Status changed" entry that never happened.
-      if (!updated || updated.length === 0) {
-        redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent('That status change was not accepted — this job may already be completed or billed. Contact the manager.')}`);
+      // completed_date is stamped by the database in the association's time zone.
+      const { data: updated, error: upErr } = await db2.from('work_orders')
+        .update({ status: newStatus })
+        .eq('id', woId).eq('vendor_id', me2.vendor_id)
+        .select('id, status');
+      if (upErr || !updated || updated.length === 0 || updated[0].status !== newStatus) {
+        await releaseSubmission(db2, token);
+        fail(upErr?.message ?? NOT_ACCEPTED);
       }
-      // Auto keep homeowner informed — only when the update actually matched this
-      // vendor's work order. Helper never throws, so it can't fail the action.
-      if (updated && updated.length > 0) {
-        await notifyOwnerOfStatusChange({ kind: 'work_order', id: woId, newStatus });
-      }
+      // Keep the homeowner informed. Helper never throws, so it can't fail the action.
+      await notifyOwnerOfStatusChange({ kind: 'work_order', id: woId, newStatus });
     }
 
     // Log the note only after the status change actually applied.
-    const { error: insErr } = await db2.from('work_order_updates').insert({
+    const { data: logged, error: insErr } = await db2.from('work_order_updates').insert({
       work_order_id: woId,
-      note: note || (newStatus ? `Status changed to ${newStatus.replace(/_/g, ' ')}` : ''),
+      note: note || `Status changed to ${String(newStatus).replace(/_/g, ' ')}`,
       new_status: newStatus,
       created_by: me2.auth_user_id,
-    });
-    if (insErr) redirect(`/vendor/work-orders/${woId}?error=${encodeURIComponent(insErr.message)}`);
+    }).select('id').single();
+    if (insErr || !logged) {
+      // A note-only post can be retried; once the status changed, keep the
+      // token claimed so a resend can't apply the change twice.
+      if (!newStatus) await releaseSubmission(db2, token);
+      fail(insErr?.message ?? 'The update could not be logged.');
+    }
+    await completeSubmission(db2, token, logged.id);
 
-    revalidatePath(`/vendor/work-orders/${woId}`);
-    redirect(`/vendor/work-orders/${woId}?saved=1`);
+    revalidatePath(back);
+    redirect(`${back}?saved=1`);
   }
 
   const assocLine = [wo.associations?.name, wo.units?.unit_number && `Unit ${wo.units.unit_number}`].filter(Boolean).join(' · ');
@@ -114,7 +150,7 @@ export default async function VendorWorkOrderDetail({
 
   return (
     <div>
-      <Link href="/vendor/work-orders" className="mb-3 inline-flex items-center gap-1 text-[13px] font-medium text-gray-500 transition-colors hover:text-gray-900">
+      <Link href="/vendor/work-orders" className="mb-3 inline-flex min-h-10 items-center gap-1 text-[13px] font-medium text-gray-500 transition-colors hover:text-gray-900">
         <ArrowLeft className="h-3.5 w-3.5" /> Work orders
       </Link>
       <PageHeader
@@ -123,8 +159,11 @@ export default async function VendorWorkOrderDetail({
         actions={<Badge status={wo.status} className="px-3 py-1 text-[12px]" />}
       />
 
-      {sp.error && <Alert tone="danger" title="Could not post update:" className="mb-5">{sp.error}</Alert>}
+      {sp.error && <Alert tone="danger" title="Could not save:" className="mb-5">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success" className="mb-5">Update posted. The management team can see it immediately.</Alert>}
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some details could not be loaded:" className="mb-5">{loadErrors.join('; ')}</Alert>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
@@ -137,10 +176,10 @@ export default async function VendorWorkOrderDetail({
                   <dd className="mt-0.5 whitespace-pre-wrap text-gray-800">{wo.job_description ?? wo.description}</dd>
                 </div>
               )}
-              {wo.vendor_instructions && (
+              {vendorInstructions && (
                 <div>
                   <dt className="font-medium text-gray-500">Instructions for you</dt>
-                  <dd className="mt-0.5 whitespace-pre-wrap text-gray-800">{wo.vendor_instructions}</dd>
+                  <dd className="mt-0.5 whitespace-pre-wrap text-gray-800">{vendorInstructions}</dd>
                 </div>
               )}
               {addressLine && (
@@ -184,11 +223,11 @@ export default async function VendorWorkOrderDetail({
 
           <Surface>
             <SectionTitle title="Activity" description="Updates are visible to the management team." />
-            {(updates ?? []).length === 0 ? (
+            {updates.length === 0 ? (
               <p className="text-[13px] text-gray-400">No updates yet.</p>
             ) : (
               <ul className="space-y-4">
-                {(updates ?? []).map((u: any) => (
+                {updates.map((u: any) => (
                   <li key={u.id} className="flex gap-3">
                     <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" />
                     <div className="min-w-0">
@@ -207,7 +246,7 @@ export default async function VendorWorkOrderDetail({
           <Surface>
             <SectionTitle title="Discussion" description="Messages here are visible to the management team and the homeowner." />
             <ArcMessageThread
-              messages={(messages ?? []) as ArcMessage[]}
+              messages={messages as ArcMessage[]}
               postAction={postWorkOrderMessage.bind(null, id, '/vendor/work-orders') as any}
               placeholder="Ask the management team a question…"
             />
@@ -218,6 +257,7 @@ export default async function VendorWorkOrderDetail({
           <SectionTitle title="Post an update" />
           <form action={postUpdate} className="space-y-4">
             <input type="hidden" name="work_order_id" value={wo.id} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <Field label="Status">
               <Select name="new_status" defaultValue="">
                 <option value="">Keep current status</option>
@@ -227,9 +267,9 @@ export default async function VendorWorkOrderDetail({
               </Select>
             </Field>
             <Field label="Note" hint="What was done, what's needed next, access issues, etc.">
-              <Textarea name="note" placeholder="e.g. Replaced shut-off valve, testing for leaks tomorrow morning." />
+              <Textarea name="note" maxLength={4000} placeholder="e.g. Replaced shut-off valve, testing for leaks tomorrow morning." />
             </Field>
-            <Button type="submit" className="w-full">Post update</Button>
+            <PendingSubmit pendingLabel="Posting…">Post update</PendingSubmit>
           </form>
         </Surface>
       </div>
