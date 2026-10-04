@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const sql = readFileSync(
-  join(process.cwd(), 'supabase/migrations/20261004240100_company_admin_profile_guard.sql'),
+  join(process.cwd(), 'supabase/migrations/20261004235000_company_admin_profile_guard.sql'),
   'utf8',
 ).toLowerCase();
 const code = sql.split('\n').filter((line) => !line.trim().startsWith('--')).join('\n');
