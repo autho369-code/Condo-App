@@ -69,6 +69,7 @@ function pretty(value: string | null | undefined, map: Record<string, string>): 
 interface ApprovalRequest {
   id: string
   association_id: string | null
+  owner_id: string | null
   request_type: string | null
   title: string | null
   description: string | null
@@ -129,7 +130,7 @@ export default async function BoardApprovalsPage({
   const { data: requestsData } = await db
     .from('approval_requests')
     .select(
-      'id, association_id, request_type, title, description, amount, due_date, status, voting_scheme, required_votes, votes_for, votes_against, votes_abstain, signatures_required, board_member_ids, percentage_required, requested_by_name, requested_at, decision_at, associations!approval_requests_association_id_fkey(name)',
+      'id, association_id, owner_id, request_type, title, description, amount, due_date, status, voting_scheme, required_votes, votes_for, votes_against, votes_abstain, signatures_required, board_member_ids, percentage_required, requested_by_name, requested_at, decision_at, associations!approval_requests_association_id_fkey(name)',
     )
     .in('association_id', boardAssocIds)
     .is('archived_at', null)
@@ -163,8 +164,10 @@ export default async function BoardApprovalsPage({
   // A request limited to specific seats (board_member_ids) is only votable by
   // those seats; an empty list means the whole board votes.
   const mySeatIds = new Set((await findMyBoardSeats(me)).map((s) => s.id))
+  // Nobody votes on a request they filed as an owner (cast_board_approval refuses it).
   const canVote = (r: ApprovalRequest) =>
-    !r.board_member_ids || r.board_member_ids.length === 0 || r.board_member_ids.some((id) => mySeatIds.has(id))
+    !(r.owner_id && me.owner_id && r.owner_id === me.owner_id)
+    && (!r.board_member_ids || r.board_member_ids.length === 0 || r.board_member_ids.some((id) => mySeatIds.has(id)))
   const awaitingMine = pending.filter((r) => canVote(r) && !myDecisionByRequest.has(r.id)).length
   const decided = requests.filter((r) => r.status !== 'pending')
 
