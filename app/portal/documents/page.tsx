@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { FileText, Scale, Users, File } from 'lucide-react'
+import { ClipboardList, FileText, Scale, Users, File } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { date } from '@/lib/utils'
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
+import { signFormFiles } from '@/lib/forms/files'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,22 @@ export default async function OwnerDocumentsPage() {
     .order('uploaded_at', { ascending: false })
   const docs = (data ?? []) as DocRow[]
 
+  // Forms the management company publishes to homeowners. Filtered
+  // explicitly (not only by RLS) so an owner who is also staff sees just the
+  // homeowner forms of their own management company.
+  const { data: ownerRow } = await db.from('owners').select('portfolio_id').eq('id', me.owner_id).maybeSingle()
+  const { data: formRows } = ownerRow?.portfolio_id
+    ? await db.from('form_templates')
+        .select('id, portfolio_id, name, description, file_url, file_path, file_name')
+        .eq('portfolio_id', ownerRow.portfolio_id)
+        .eq('audience', 'homeowner')
+        .eq('active', true)
+        .is('archived_at', null)
+        .order('name')
+    : { data: [] }
+  const forms = (formRows ?? []) as Array<{ id: string; portfolio_id: string; name: string; description: string | null; file_url: string | null; file_path: string | null; file_name: string | null }>
+  const formLinks = await signFormFiles(forms, 3600)
+
   // Resolve viewable links. file_url may be a full https URL (link directly) or
   // a storage object path in a private bucket (needs a signed URL).
   const linkByDoc = new Map<string, string>()
@@ -115,6 +132,35 @@ export default async function OwnerDocumentsPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Documents</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Governing documents, forms, and association records</p>
       </div>
+
+      {forms.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
+            <ClipboardList className="h-5 w-5 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-950">Forms</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {forms.map((f) => {
+              const href = formLinks.get(f.id) ?? (f.file_url && /^https:\/\//i.test(f.file_url) ? f.file_url : null)
+              return (
+                <div key={f.id} className="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-gray-50/60">
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-gray-900">{f.name}</span>
+                    {f.description && <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{f.description}</div>}
+                  </div>
+                  {href ? (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center text-xs font-medium text-gray-600 transition hover:text-gray-950">
+                      Download →
+                    </a>
+                  ) : (
+                    <span className="shrink-0 text-xs text-gray-400">Ask your manager for a copy</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {docs.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
