@@ -217,7 +217,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   if (unitIds.length > 0) {
     financialQueries.push(
       db.from('payments')
-        .select('id, amount, payment_date, method, reference, unit_id, created_at, reversed_at, reversal_charge_id')
+        .select('id, amount, payment_date, method, reference, unit_id, created_at')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
         .gte('created_at', ytdStart)
@@ -249,17 +249,28 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: paymentLedger },
   ] = await Promise.all(financialQueries);
 
-  // A returned (NSF) payment was never collected, and its reversal charge just
-  // undoes it: leave both out of the YTD figures (counting only one of them
-  // would double the reversal).
-  const reversalChargeIds = new Set((ytdPaymentsRaw ?? []).filter((p: any) => p.reversed_at && p.reversal_charge_id).map((p: any) => p.reversal_charge_id));
-  const ytdPayments = (ytdPaymentsRaw ?? []).filter((p: any) => !p.reversed_at);
+  // Returned (NSF) payments: the payment counts when it was received, and the
+  // return counts as money back out when it happened (the reversal charge's
+  // date) instead of as a new charge. Reversal charges are identified through
+  // payments.reversal_charge_id with no date window, so a payment received
+  // last year and returned this year is handled too.
+  const ytdChargeIds = (ytdChargesRaw ?? []).map((c: any) => c.id);
+  const reversalChargeIds = new Set<string>();
+  for (let i = 0; i < ytdChargeIds.length; i += 200) {
+    const { data: reversed, error: reversedError } = await db.from('payments')
+      .select('reversal_charge_id').in('reversal_charge_id', ytdChargeIds.slice(i, i + 200));
+    if (reversedError) throw new Error(`Could not load returned payments: ${reversedError.message}`);
+    for (const r of reversed ?? []) reversalChargeIds.add(r.reversal_charge_id);
+  }
   const ytdCharges = (ytdChargesRaw ?? []).filter((c: any) => !reversalChargeIds.has(c.id));
+  const ytdReturns = (ytdChargesRaw ?? []).filter((c: any) => reversalChargeIds.has(c.id));
+  const ytdPayments = ytdPaymentsRaw ?? [];
 
   // ── Compute financial summary ──
   const totalBalance = (unitBalances ?? []).reduce((sum: number, b: any) => sum + (b.balance ?? 0), 0);
   const ytdChargeTotal = (ytdCharges ?? []).reduce((sum: number, c: any) => sum + (c.amount ?? 0), 0);
-  const ytdPaymentTotal = (ytdPayments ?? []).reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0);
+  const ytdPaymentTotal = (ytdPayments ?? []).reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0)
+    - ytdReturns.reduce((sum: number, c: any) => sum + (c.amount ?? 0), 0);
   const ytdNOI = ytdPaymentTotal - ytdChargeTotal;
   const pastDueCount = (ledgers ?? []).reduce((sum: number, l: any) => sum + (l.open_past_due_count ?? 0), 0);
   const totalOwnershipPct = (currentOccs ?? []).reduce((sum: number, o: any) => sum + (o.share_pct ?? 0), 0);
@@ -276,7 +287,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const financialMetrics = [
     { label: 'Current Balance', value: money(totalBalance), sublabel: totalBalance > 0 ? 'Amount due' : totalBalance < 0 ? 'Credit' : 'Current' },
     { label: `YTD Charges (${currentYear})`, value: money(ytdChargeTotal), sublabel: `${(ytdCharges ?? []).length} charges` },
-    { label: `YTD Payments (${currentYear})`, value: money(ytdPaymentTotal), sublabel: `${(ytdPayments ?? []).length} payments` },
+    { label: `YTD Payments (${currentYear})`, value: money(ytdPaymentTotal), sublabel: `${(ytdPayments ?? []).length} payments${ytdReturns.length ? ` · ${ytdReturns.length} returned` : ''}` },
     { label: 'Past Due', value: pastDueCount, sublabel: pastDueCount > 0 ? 'Items overdue' : 'None overdue' },
     { label: 'Ownership Share', value: `${totalOwnershipPct.toFixed(1)}%`, sublabel: `${currentOccs.length} unit${currentOccs.length !== 1 ? 's' : ''}` },
     { label: 'Last Distribution', value: lastDistributionAmount != null ? money(lastDistributionAmount) : '—', sublabel: lastDistributionDate ? date(lastDistributionDate) : 'No distributions' },
@@ -311,6 +322,13 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
     entry.payments += p.amount ?? 0;
     entry.paymentCount += 1;
+    monthMap.set(mk, entry);
+  }
+  for (const c of ytdReturns) {
+    if (!c.created_at) continue;
+    const mk = monthKey(c.created_at);
+    const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
+    entry.payments -= c.amount ?? 0;
     monthMap.set(mk, entry);
   }
 
