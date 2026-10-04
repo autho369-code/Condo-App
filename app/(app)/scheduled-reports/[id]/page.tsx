@@ -46,6 +46,7 @@ export default async function EditScheduledReportPage({
     >
       <div className="max-w-3xl space-y-5">
         {sp.error && <Alert tone="danger" title="Could not save schedule">{sp.error}</Alert>}
+        <Alert tone="info">Saving a change to the report, filters, format or recipients makes this schedule run with your access.</Alert>
         {options.error && <Alert tone="danger" title="Could not load every report">{options.error}</Alert>}
         <form action={saveScheduledReport}>
           <input type="hidden" name="schedule_id" value={schedule.id} />
