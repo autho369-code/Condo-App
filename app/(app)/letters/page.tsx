@@ -85,7 +85,7 @@ export default async function LettersPage() {
                 <TH>Subject</TH>
                 <TH>Updated</TH>
                 <TH>Status</TH>
-                <TH className="w-[140px]">Actions</TH>
+                <TH className="w-[190px]">Actions</TH>
               </tr>
             </THead>
             <tbody>
@@ -113,6 +113,12 @@ export default async function LettersPage() {
                         className="rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-950"
                       >
                         Preview
+                      </Link>
+                      <Link
+                        href={`/letters/${t.id}/batch`}
+                        className="rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-950"
+                      >
+                        Batch
                       </Link>
                     </div>
                   </TD>
