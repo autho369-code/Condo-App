@@ -51,7 +51,7 @@ export async function processReportRun(runId: string): Promise<void> {
     if (!isSupportedReportOutputFormat(run.output_format)) {
       await finish({
         status: 'failed',
-        error_message: `Unsupported report format "${run.output_format}". This environment supports CSV, JSON, and PDF.`,
+        error_message: `Unsupported report format "${run.output_format}". This environment supports CSV, Excel, PDF and JSON.`,
       });
       return;
     }
@@ -108,7 +108,7 @@ export async function processReportRun(runId: string): Promise<void> {
         .maybeSingle();
       scope = association?.name ?? 'Selected association';
     }
-    const output = serializeReportOutput(run.output_format, rows, {
+    const output = await serializeReportOutput(run.output_format, rows, {
       title: run.report_definitions?.name ?? slug ?? 'Portier369 report',
       scope,
       dateFrom: typeof parameters.date_from === 'string' ? parameters.date_from : null,

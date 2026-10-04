@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { reportFormatLabel } from '@/lib/reports/formats';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
 import { Plus } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -123,7 +124,7 @@ export default async function ScheduledReportsPage({
                           ? targets.slice(0, 3).join(', ') + (targets.length > 3 ? ` +${targets.length - 3} more` : '')
                           : '—'}
                     </TD>
-                    <TD className="text-sm uppercase text-gray-600">{s.output_format}</TD>
+                    <TD className="text-sm text-gray-600">{reportFormatLabel(String(s.output_format ?? ''))}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{s.last_run_at ? date(s.last_run_at) : '—'}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-900">{s.active ? when(s.next_run_at) : '—'}</TD>
                     <TD className="text-sm text-gray-600">{creatorName.get(s.run_as ?? s.created_by) ?? '—'}</TD>

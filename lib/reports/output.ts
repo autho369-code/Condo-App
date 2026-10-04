@@ -2,8 +2,21 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { csvCell } from '@/lib/csv/cell';
 
-export const SUPPORTED_REPORT_OUTPUT_FORMATS = ['csv', 'json', 'pdf'] as const;
-export type SupportedReportOutputFormat = (typeof SUPPORTED_REPORT_OUTPUT_FORMATS)[number];
+import {
+  isSupportedReportOutputFormat,
+  reportFormatLabel,
+  supportedReportOutputFormats,
+  SUPPORTED_REPORT_OUTPUT_FORMATS,
+  type SupportedReportOutputFormat,
+} from '@/lib/reports/formats';
+
+export {
+  isSupportedReportOutputFormat,
+  reportFormatLabel,
+  supportedReportOutputFormats,
+  SUPPORTED_REPORT_OUTPUT_FORMATS,
+  type SupportedReportOutputFormat,
+};
 
 export type ReportOutput = {
   body: Uint8Array;
@@ -17,17 +30,6 @@ export type ReportOutputContext = {
   dateFrom?: string | null;
   dateTo?: string | null;
 };
-
-export function isSupportedReportOutputFormat(value: unknown): value is SupportedReportOutputFormat {
-  return typeof value === 'string' && (SUPPORTED_REPORT_OUTPUT_FORMATS as readonly string[]).includes(value);
-}
-
-/** Keep catalog metadata honest: never offer a format this service cannot create. */
-export function supportedReportOutputFormats(values: unknown): SupportedReportOutputFormat[] {
-  const requested = Array.isArray(values) ? values : [];
-  const supported = requested.filter(isSupportedReportOutputFormat);
-  return supported.length > 0 ? [...new Set(supported)] : ['csv'];
-}
 
 export function rowsToCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return 'No data\n';
@@ -80,12 +82,78 @@ function rowsToPdf(rows: Record<string, unknown>[], context: ReportOutputContext
   return new Uint8Array(doc.output('arraybuffer'));
 }
 
-export function serializeReportOutput(
+const XLSX_MAX_CELL = 32767;
+
+function xlsxCell(value: unknown): string | number | boolean | Date | null {
+  if (value == null) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean') return value;
+  if (value instanceof Date) return value;
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  // Written as a string cell, which Excel never evaluates, so a value that
+  // starts with "=" stays inert text without changing what the user sees.
+  return text.length > XLSX_MAX_CELL ? text.slice(0, XLSX_MAX_CELL) : text;
+}
+
+async function rowsToXlsx(rows: Record<string, unknown>[], context: ReportOutputContext): Promise<Uint8Array> {
+  // Loaded on demand so the report worker only pays for it when Excel is picked.
+  const ExcelJS = (await import('exceljs')).default;
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Portier369';
+  workbook.created = new Date();
+  const title = context.title?.trim() || 'Portier369 report';
+  // Sheet names: max 31 chars, no : \ / ? * [ ]
+  const sheet = workbook.addWorksheet(title.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Report');
+
+  const period = context.dateFrom && context.dateTo
+    ? `${context.dateFrom} through ${context.dateTo}`
+    : context.dateTo ? `As of ${context.dateTo}` : 'Current data';
+  sheet.addRow([title]).font = { bold: true, size: 14 };
+  sheet.addRow([`Scope: ${context.scope?.trim() || 'Portfolio'}`]);
+  sheet.addRow([`Reporting period: ${period}`]);
+  sheet.addRow([]);
+
+  const headers = rows.length === 0 ? ['Result'] : [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const headerRow = sheet.addRow(headers.map(humanizeHeader));
+  headerRow.font = { bold: true };
+  headerRow.eachCell((cell) => {
+    cell.border = { bottom: { style: 'thin' } };
+  });
+  if (rows.length === 0) sheet.addRow(['No data']);
+  for (const row of rows) sheet.addRow(headers.map((header) => xlsxCell(row[header])));
+
+  // Freeze the header, size columns to their content (capped), and number
+  // format money-looking columns.
+  sheet.views = [{ state: 'frozen', ySplit: headerRow.number }];
+  headers.forEach((header, i) => {
+    const column = sheet.getColumn(i + 1);
+    const longest = Math.max(
+      humanizeHeader(header).length,
+      ...rows.slice(0, 500).map((row) => String(row[header] ?? '').length),
+    );
+    column.width = Math.min(Math.max(longest + 2, 10), 60);
+    if (/(amount|balance|total|debit|credit|paid|due|budget|actual|variance|fee|cost|price|payment)/i.test(header)
+      && rows.some((row) => typeof row[header] === 'number')) {
+      column.numFmt = '#,##0.00;[Red]-#,##0.00';
+    }
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Uint8Array(buffer as ArrayBuffer);
+}
+
+export async function serializeReportOutput(
   format: SupportedReportOutputFormat,
   rows: Record<string, unknown>[],
   context: ReportOutputContext = {},
-): ReportOutput {
+): Promise<ReportOutput> {
   switch (format) {
+    case 'xlsx':
+      return {
+        body: await rowsToXlsx(rows, context),
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        extension: 'xlsx',
+      };
     case 'json':
       return {
         body: Buffer.from(JSON.stringify(rows, null, 2), 'utf8'),
