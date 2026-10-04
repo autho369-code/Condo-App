@@ -5,6 +5,7 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Trophy, Timer, Wrench, AlertTriangle, ClipboardCheck, ArrowRight } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,9 +36,9 @@ export default async function ManagerPerformancePage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date()
-  const todayDate = today.toISOString().slice(0, 10)
-  const ninetyDaysAgo = new Date(today.getTime() - 90 * 86400000).toISOString()
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const todayDate = todayInZone()
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString()
 
   const [
     { data: managers },

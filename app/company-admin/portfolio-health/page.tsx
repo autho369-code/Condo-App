@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { CheckCircle2, AlertTriangle, AlertOctagon, HelpCircle } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,9 +40,9 @@ export default async function PortfolioHealthPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date()
-  const todayDate = today.toISOString().slice(0, 10)
-  const sevenDaysAgo = new Date(today.getTime() - 7 * 86400000).toISOString()
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const todayDate = todayInZone()
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
 
   const { data: associations } = await db
     .from('associations')

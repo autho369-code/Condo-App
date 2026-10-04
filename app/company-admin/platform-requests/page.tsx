@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { submitPlatformRequest } from './actions'
 import { Send, Clock, MessageSquare, RefreshCw } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 
 const REQUEST_TYPES = [
   { value: 'more_doors', label: 'More Doors' },
@@ -51,19 +52,26 @@ export default function PlatformRequestsPage() {
   const [activeTab, setActiveTab] = useState<'submit' | 'history'>('history')
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const res = await fetch('/company-admin/platform-requests/api')
-      if (res.ok) {
-        const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Never show a failed load as "No platform requests yet".
+        setLoadError(data?.error ?? `Could not load platform requests (HTTP ${res.status}).`)
+        setRequests([])
+      } else {
         setRequests(data.requests ?? [])
       }
     } catch {
+      setLoadError('Could not reach the server to load platform requests.')
       setRequests([])
     } finally {
       setLoading(false)
@@ -220,6 +228,12 @@ export default function PlatformRequestsPage() {
                     <td colSpan={6} className="px-4 py-16 text-center text-sm text-gray-500">
                       <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-gray-300" />
                       Loading requests...
+                    </td>
+                  </tr>
+                ) : loadError ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6">
+                      <Alert title="Could not load requests">{loadError}</Alert>
                     </td>
                   </tr>
                 ) : requests.length === 0 ? (
