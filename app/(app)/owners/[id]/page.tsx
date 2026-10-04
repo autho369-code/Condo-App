@@ -50,7 +50,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: delinquencyNotes },
   ] = await Promise.all([
     db.from('owners')
-      .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
+      .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
       .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, send_dues_reminders, units(id, unit_number, buildings(name, associations(id, name)))')
@@ -74,6 +74,9 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   ]);
 
   if (!owner) notFound();
+  // Staff notes live in owner_private (staff-only), never on the owner row.
+  const { data: ownerPrivate } = await db.from('owner_private').select('notes').eq('owner_id', id).maybeSingle();
+  (owner as any).notes = ownerPrivate?.notes ?? null;
 
   const currentOccs = (occs ?? []).filter((o: any) => o.status === 'current');
   const pastOccs    = (occs ?? []).filter((o: any) => o.status === 'past');
