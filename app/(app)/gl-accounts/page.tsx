@@ -44,7 +44,7 @@ export default async function GLAccountsPage({
   const [{ rows, error: glError }, { data: associations }] = await Promise.all([
     fetchAllRows<any>(() => db
       .from('gl_accounts')
-      .select('id, number, name, account_type, fund_account, active, include_on_cash_flow, subject_to_management_fees, association_id, sub_account_of_id, associations(name)')
+      .select('id, number, name, account_type, fund_account, active, include_on_cash_flow, subject_to_management_fees, association_id, sub_account_of_id, associations!gl_accounts_association_id_fkey(name)')
       .order('number')
       .order('id')),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),

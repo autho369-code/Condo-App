@@ -21,7 +21,7 @@ export default async function NewBankDepositPage({ searchParams }: { searchParam
 
   const [{ rows: accounts }, { rows: glAccounts }] = await Promise.all([
     fetchAllRows<any>(() => db.from('bank_accounts').select('id, name, gl_account_id, associations!bank_accounts_association_id_fkey(name)').is('archived_at', null).order('name').order('id')),
-    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations(name)').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('number').order('id')),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations!gl_accounts_association_id_fkey(name)').eq('portfolio_id', me.portfolio?.id).eq('active', true).order('number').order('id')),
   ]);
 
   async function recordDeposit(formData: FormData) {
