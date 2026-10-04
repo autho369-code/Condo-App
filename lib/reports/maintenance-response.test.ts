@@ -31,7 +31,6 @@ describe('maintenance response metrics', () => {
     expect(m.medianDaysToResolve).toBe(2);
   });
 
-<<<<<<< HEAD
   it('leaves requests still inside their reply window out of the on-time rate', () => {
     const m = responseMetrics([
       req({ first_response_due_at: '2026-10-04T10:00:00Z', acknowledged_at: '2026-10-04T09:00:00Z' }),
@@ -41,8 +40,6 @@ describe('maintenance response metrics', () => {
     expect(m.onTimeRate).toBe(1);
   });
 
-=======
->>>>>>> origin/main
   it('measures work-order completion in calendar days and counts done statuses without a date', () => {
     const m = responseMetrics([], [
       wo({ completed_date: '2026-10-04' }),
@@ -54,7 +51,6 @@ describe('maintenance response metrics', () => {
     expect(m.onTimeRate).toBeNull();
   });
 
-<<<<<<< HEAD
   it('counts completion days from the association-local creation date', () => {
     // 02:00 UTC on Oct 2 is the evening of Oct 1 in Chicago.
     const local = responseMetrics([], [wo({ created_at: '2026-10-02T02:00:00Z', completed_date: '2026-10-02', time_zone: 'America/Chicago' })], NOW);
@@ -63,8 +59,6 @@ describe('maintenance response metrics', () => {
     expect(utc.medianDaysToComplete).toBe(0);
   });
 
-=======
->>>>>>> origin/main
   it('ages open work orders and skips finished or cancelled ones', () => {
     expect(openWorkOrderAging([
       wo({ created_at: '2026-10-02T00:00:00Z' }),
@@ -80,7 +74,6 @@ describe('maintenance response metrics', () => {
     ]);
   });
 
-<<<<<<< HEAD
   it('exports the association, priority and open-age sections', () => {
     const rows = responseExportRows(
       [req({ association_id: 'b', priority: 'high', first_response_due_at: '2026-10-01T14:00:00Z', acknowledged_at: '2026-10-01T11:00:00Z' })],
@@ -105,17 +98,5 @@ describe('maintenance response metrics', () => {
     expect(rows[8]).toMatchObject({ open_work_orders: 1, requests: null });
     // Every row carries the same columns, so CSV/Excel headers stay stable.
     expect(new Set(rows.map((r) => Object.keys(r).join()))).toHaveProperty('size', 1);
-=======
-  it('exports one row per association plus a total', () => {
-    const rows = responseExportRows(
-      [req({ association_id: 'b', first_response_due_at: '2026-10-01T14:00:00Z', acknowledged_at: '2026-10-01T11:00:00Z' })],
-      [wo({ association_id: 'a' })],
-      new Map([['a', 'Alder'], ['b', 'Birch']]),
-      NOW,
-    );
-    expect(rows.map((r) => r.association)).toEqual(['Alder', 'Birch', 'All associations']);
-    expect(rows[1]).toMatchObject({ requests: 1, answered_on_time: 1, on_time_rate: 1, median_hours_to_respond: 1 });
-    expect(rows[2]).toMatchObject({ requests: 1, work_orders: 1 });
->>>>>>> origin/main
   });
 });
