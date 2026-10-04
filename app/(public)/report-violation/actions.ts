@@ -15,7 +15,7 @@ const VIOLATION_TYPES = new Set([
 ]);
 const REQUESTED_ACTIONS = new Set(['warning', 'fine', 'hearing']);
 const AI_SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IP_POLICY = { scope: 'public:violation-report:ip', windowSeconds: 3600, maxRequests: 5 };
 const ASSOCIATION_POLICY = { scope: 'public:violation-report:association', windowSeconds: 3600, maxRequests: 50 };
 

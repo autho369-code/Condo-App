@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Input, Label } from '@/components/ui/input';
 
 type GlAccount = { id: string; number: number; name: string; association_id?: string | null };
@@ -17,11 +17,15 @@ export function JournalEntryForm({
   associations,
   action,
   today,
+  submissionField,
+  submissionToken,
 }: {
   glAccounts: GlAccount[];
   associations: Assoc[];
   action: (formData: FormData) => void;
   today: string;
+  submissionField: string;
+  submissionToken: string;
 }) {
   const [lines, setLines] = useState<Line[]>([emptyLine(), emptyLine()]);
 
@@ -39,6 +43,7 @@ export function JournalEntryForm({
 
   return (
     <form action={action} className="space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <input type="hidden" name={submissionField} value={submissionToken} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div>
           <Label htmlFor="entry_date">Entry date <span className="text-red-500">*</span></Label>
@@ -122,7 +127,7 @@ export function JournalEntryForm({
 
       <div className="flex items-center justify-between border-t border-gray-100 pt-5">
         <Link href="/journal-entries" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-        <Button type="submit" size="lg" disabled={!balanced}>Post journal entry</Button>
+        <PendingSubmit disabled={!balanced} pendingLabel="Posting…">Post journal entry</PendingSubmit>
       </div>
     </form>
   );

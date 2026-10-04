@@ -7,6 +7,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { JournalEntryForm } from './journal-entry-form';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,15 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
       .map((gl, i) => ({ gl_account_id: gl, association_id: assocs[i] || null, debit: debits[i] || '0', credit: credits[i] || '0', memo: memos[i] || '' }))
       .filter((l) => l.gl_account_id || Number(l.debit) || Number(l.credit));
 
+    // A double click or re-sent form must not post the entry twice.
+    const claim = await claimSubmission(db, formData, 'manual_journal_entry');
+    if (claim.status === 'error') fail(claim.message);
+    if (claim.status === 'duplicate') {
+      if (claim.resultId) redirect(`/journal-entries/${claim.resultId}?saved=1`);
+      fail('This entry is already being posted. Check the journal before posting it again.');
+    }
+    const token = (claim as { token: string }).token;
+
     // One RPC posts the entry: it re-checks finance access and association
     // scope, that each GL account belongs to the line's association, one of
     // debit/credit per line, and the balance after rounding to cents.
@@ -52,7 +62,11 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
       p_memo: String(formData.get('memo') ?? ''),
       p_lines: lines,
     });
-    if (error) fail(error.message);
+    if (error) {
+      await releaseSubmission(db, token);
+      fail(error.message);
+    }
+    if (typeof entryId === 'string') await completeSubmission(db, token, entryId);
     redirect(`/journal-entries/${entryId}?saved=1`);
   }
 
@@ -72,6 +86,8 @@ export default async function NewJournalEntryPage({ searchParams }: { searchPara
             associations={associations as any}
             action={createJournalEntry}
             today={todayInZone()}
+            submissionField={SUBMISSION_FIELD}
+            submissionToken={newSubmissionToken()}
           />
         )}
       </div>

@@ -60,14 +60,19 @@ export default async function FixedAssetsPage({
   })();
   const active = rows.filter((a) => a.status === 'active');
   const expiringSoon = active.filter((a) => a.warranty_expiration_date && a.warranty_expiration_date >= today && a.warranty_expiration_date <= in90).length;
-  const cost = rows.reduce((s, a) => s + Number(a.purchase_price ?? 0), 0);
-  const book = rows.reduce((s, a) => s + Number(a.purchase_price ?? 0) - Number(a.accumulated_depreciation ?? 0), 0);
+  // Value totals cover assets still in service (disposed and sold assets are
+  // off the books) and follow the filters shown, like the table below.
+  const inService = filtered.filter((a) => a.status === 'active' || a.status === 'fully_depreciated');
+  const cost = inService.reduce((s, a) => s + Number(a.purchase_price ?? 0), 0);
+  const book = inService.reduce((s, a) => s + Number(a.purchase_price ?? 0) - Number(a.accumulated_depreciation ?? 0), 0);
   const partial = assetResult.truncated || !!assetResult.error;
+  const filtering = status !== 'all' || association || type || q;
+  const valueScope = filtering ? 'In service, matching filters' : 'Active and fully depreciated';
   const metrics: Metric[] = [
     { label: 'Active', value: partial ? '—' : active.length },
     { label: 'Warranties ending in 90 days', value: partial ? '—' : expiringSoon },
-    { label: 'Total cost', value: partial ? '—' : money(cost) },
-    { label: 'Book value', value: partial ? '—' : money(book) },
+    { label: 'Cost in service', value: partial ? '—' : money(cost), sublabel: valueScope },
+    { label: 'Book value in service', value: partial ? '—' : money(book), sublabel: valueScope },
   ];
 
   const statusHref = (value: string) => {
@@ -78,7 +83,6 @@ export default async function FixedAssetsPage({
     if (q) p.set('q', q);
     return p.toString() ? `/fixed-assets?${p}` : '/fixed-assets';
   };
-  const filtering = status !== 'all' || association || type || q;
 
   return (
     <DataWorkspace

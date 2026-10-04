@@ -73,28 +73,48 @@ export default async function JournalEntriesPage({
   const term = sanitizeSearchTerm(q);
   let searchEntryIds: string[] = [];
   let searchIdsTruncated = false;
+  const loadErrors: string[] = [];
+  // Ids are sent in the request URL (`in.(...)`), so keep the lists short.
+  const MAX_SEARCH_ACCOUNTS = 100;
+  const MAX_SEARCH_ENTRIES = 200;
   if (term && tab === 'history') {
     // GL accounts are matched in memory so a partial account number
     // ("10" finds 1010) still works; number is an integer column.
     const tl = term.toLowerCase();
-    const [{ rows: allGl }, { data: assocMatch }] = await Promise.all([
+    const [{ rows: allGl, error: glError }, { data: assocMatch, error: assocError }] = await Promise.all([
       fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name').order('id')),
-      db.from('associations').select('id').ilike('name', `%${term}%`).limit(500),
+      db.from('associations').select('id').ilike('name', `%${term}%`).order('name').order('id').limit(MAX_SEARCH_ACCOUNTS + 1),
     ]);
-    const glIds = allGl
+    if (glError) loadErrors.push(glError);
+    if (assocError) loadErrors.push(assocError.message);
+    // Most relevant first: exact number, number prefix, name prefix, then any match.
+    const rank = (g: any) => {
+      const num = String(g.number ?? '');
+      const name = String(g.name ?? '').toLowerCase();
+      if (num === tl || name === tl) return 0;
+      if (num.startsWith(tl)) return 1;
+      if (name.startsWith(tl)) return 2;
+      return 3;
+    };
+    const glMatches = allGl
       .filter((g) => String(g.number ?? '').includes(tl) || String(g.name ?? '').toLowerCase().includes(tl))
-      .map((g) => g.id);
-    const assocIds = ((assocMatch ?? []) as any[]).map((a) => a.id);
+      .sort((a, b) => rank(a) - rank(b) || (Number(a.number) || 0) - (Number(b.number) || 0) || String(a.id).localeCompare(String(b.id)));
+    const glIds = glMatches.slice(0, MAX_SEARCH_ACCOUNTS).map((g) => g.id);
+    const assocRows = (assocMatch ?? []) as any[];
+    const assocIds = assocRows.slice(0, MAX_SEARCH_ACCOUNTS).map((a) => a.id);
+    if (glMatches.length > MAX_SEARCH_ACCOUNTS || assocRows.length > MAX_SEARCH_ACCOUNTS) searchIdsTruncated = true;
     if (glIds.length || assocIds.length) {
-      const { rows, truncated } = await fetchAllRows<any>(() => {
+      const { rows, truncated, error: linesError } = await fetchAllRows<any>(() => {
         const parts = [
           glIds.length ? `gl_account_id.in.(${glIds.join(',')})` : null,
           assocIds.length ? `association_id.in.(${assocIds.join(',')})` : null,
         ].filter(Boolean).join(',');
         return db.from('journal_lines').select('entry_id').or(parts).order('id');
       }, { maxRows: 5000 });
-      searchEntryIds = [...new Set(rows.map((r) => r.entry_id as string))].slice(0, 1000);
-      searchIdsTruncated = truncated || rows.length > 1000;
+      if (linesError) loadErrors.push(linesError);
+      const uniqueIds = [...new Set(rows.map((r) => r.entry_id as string))];
+      searchEntryIds = uniqueIds.slice(0, MAX_SEARCH_ENTRIES);
+      if (truncated || uniqueIds.length > MAX_SEARCH_ENTRIES) searchIdsTruncated = true;
     }
   }
 
@@ -122,13 +142,13 @@ export default async function JournalEntriesPage({
 
   // ── PARALLEL FETCH: all tab data + lookup tables ──
   const [
-    { data: journalEntries },
-    { data: recurringEntries },
-    { data: batches },
-    { data: associations },
-    { data: glAccounts },
-    { count: postedTotal },
-    { count: draftTotal },
+    { data: journalEntries, error: entriesError },
+    { data: recurringEntries, error: recurringError },
+    { data: batches, error: batchesError },
+    { data: associations, error: associationsError },
+    { data: glAccounts, error: glAccountsError },
+    { count: postedTotal, error: postedCountError },
+    { count: draftTotal, error: draftCountError },
   ] = await Promise.all([
     // Journal entries with their lines for History tab
     // Filters run in the query: applied in the app they only searched the
@@ -151,12 +171,16 @@ export default async function JournalEntriesPage({
       .order('created_at', { ascending: false })
       .limit(500),
     // Associations and GL accounts for the filters (all rows, past 1,000).
-    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows })),
-    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name').order('number').order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')).then((r) => ({ data: r.rows, error: r.error })),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name').order('number').order('id')).then((r) => ({ data: r.rows, error: r.error })),
     // Counts cover every matching entry, not only the 500 listed.
     historyQuery('id', { count: 'exact', head: true }).eq('posted', true),
     historyQuery('id', { count: 'exact', head: true }).eq('posted', false),
   ]);
+
+  for (const e of [entriesError, recurringError, batchesError, associationsError, glAccountsError, postedCountError, draftCountError]) {
+    if (e) loadErrors.push(typeof e === 'string' ? e : e.message ?? String(e));
+  }
 
   // ── Journal entries (already filtered and searched in the database) ──
   const filteredEntries = (journalEntries ?? []) as any[];
@@ -241,6 +265,7 @@ export default async function JournalEntriesPage({
         {postedFlag && tab !== 'recurring' && <Alert tone="success" title="Journal entry posted" />}
         {deletedFlag && <Alert tone="success" title="Draft deleted" />}
         {pageError && <Alert title="Could not update the journal entry.">{pageError}</Alert>}
+        {loadErrors.length > 0 && <Alert tone="danger" title="Some journal data could not be loaded.">{[...new Set(loadErrors)].join(' · ')}</Alert>}
         {searchIdsTruncated && <Alert tone="warning" title="Search matched many accounts.">Results by association or GL account name may be incomplete; use the Association or GL Account filter instead.</Alert>}
         <MetricStrip metrics={metrics} />
 

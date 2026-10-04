@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/input';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Alert, Badge, EmptyState, Surface } from '@/components/ui/shell';
 import { fiscalYearFor } from '@/lib/budget/fiscal';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,13 +38,15 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
 
   const [linesRes, headersRes] = ids.length
     ? await Promise.all([
-        db.from('budget_lines').select('association_id, category, annual_total').in('association_id', ids).eq('fiscal_year', fy),
+        // Every line, past PostgREST's 1,000-row cap, in a stable order.
+        fetchAllRows<any>(() => db.from('budget_lines').select('association_id, category, annual_total').in('association_id', ids).eq('fiscal_year', fy).order('association_id').order('id')),
         db.from('association_budgets').select('association_id, status, adopted_at').in('association_id', ids).eq('fiscal_year', fy),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ rows: [], truncated: false, error: null }, { data: [], error: null }];
+  const loadError = linesRes.error ?? headersRes.error?.message ?? null;
 
   const totals = new Map<string, { income: number; expense: number; lines: number }>();
-  for (const l of (linesRes.data ?? []) as any[]) {
+  for (const l of linesRes.rows as any[]) {
     const t = totals.get(l.association_id) ?? { income: 0, expense: 0, lines: 0 };
     if (l.category === 'income') t.income += Number(l.annual_total); else t.expense += Number(l.annual_total);
     t.lines += 1;
@@ -58,6 +61,8 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
     <DataWorkspace title="Budgets" description="Every association’s annual budget and where it stands. Open one to edit its worksheet, adopt it, and update assessments.">
       <div className="space-y-6">
         {error && <Alert tone="danger">{error.message}</Alert>}
+        {loadError && <Alert tone="danger" title="Budget totals could not be loaded.">{loadError}</Alert>}
+        {linesRes.truncated && <Alert tone="warning" title="Budget totals are incomplete.">There are more budget lines than this page can load.</Alert>}
         <MetricStrip
           metrics={[
             { label: `FY${fy} adopted`, value: `${adoptedCount} of ${list.length}` },
