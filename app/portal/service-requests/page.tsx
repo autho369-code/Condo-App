@@ -161,7 +161,8 @@ export default async function ServiceRequestsList({
                       </TD>
                       <TD className="whitespace-nowrap text-sm text-gray-600">{date(r.created_on ?? r.created_at)}</TD>
                       <TD>
-                        {isOpen && !wo && (
+                        {/* RLS only lets the filer cancel a still-open request with no work order. */}
+                        {r.status === 'open' && isMine(r) && !wo && (
                           <form action={cancelServiceRequest.bind(null, r.id) as any}>
                             <button type="submit" className="text-xs text-red-600 hover:underline">
                               Cancel

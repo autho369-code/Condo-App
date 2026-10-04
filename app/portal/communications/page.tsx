@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Badge, Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -17,22 +17,28 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   const requestKey = randomUUID()
 
   // Get association for announcements
-  const { data: occs } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(1)
+  const { data: occs, error: occError } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(1)
   const assocId = occs?.[0]?.association_id
 
-  // Messages sent by this owner (sender_id references auth.users)
-  const { data: msgs } = await db.from('communications_log')
+  // Messages sent by this owner (sender_id references auth.users). Only their
+  // own inbound messages — not announcements/emails they sent as a board member.
+  const { data: msgs, error: msgsError } = await db.from('communications_log')
     .select('subject, body, channel, status, created_at').eq('sender_id', me.auth_user_id)
+    .eq('direction', 'inbound')
     .order('created_at', { ascending: false }).limit(50)
 
   // Announcements
+  // Announcements for owners (null audience = everyone; tenant-only ones are hidden)
   let announcements: any[] = []
+  let annError: { message: string } | null = null
   if (assocId) {
-    try {
-      const { data: ann } = await db.from('communications_log').select('subject, created_at').eq('association_id', assocId).eq('channel', 'announcement').order('created_at', { ascending: false }).limit(20)
-      announcements = ann ?? []
-    } catch {}
+    const res = await db.from('communications_log').select('subject, created_at').eq('association_id', assocId).eq('channel', 'announcement')
+      .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
+      .order('created_at', { ascending: false }).limit(20)
+    annError = res.error
+    announcements = res.data ?? []
   }
+  const loadError = occError ?? msgsError ?? annError
 
   async function sendMessage(formData: FormData) {
     'use server'
@@ -62,9 +68,8 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Send messages to management and view announcements</p>
       </div>
 
-      {banner.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
-      )}
+      {banner.error && <Alert tone="danger" title="Could not send:">{banner.error}</Alert>}
+      {loadError && <Alert tone="danger" title="Could not load your messages:">{loadError.message}</Alert>}
       {banner.sent === '1' && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your message was sent to management.</div>
       )}

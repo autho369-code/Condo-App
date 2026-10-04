@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Badge, Alert } from '@/components/ui/shell'
 import { money, date } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -12,12 +12,14 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
   const supabase = await createClient()
   const db = supabase as any
 
-  const { data: viols } = await db.from('violations')
-    .select('id, title, violation_type, status, date_observed, fine_amount, hearing_date, hearing_at, units!inner(unit_number)')
+  const { data: viols, error: violsError } = await db.from('violations')
+    .select('id, title, violation_type, status, date_observed, fine_amount, fines_total, hearing_date, hearing_at, units!inner(unit_number)')
     .eq('owner_id', me.owner_id).is('archived_at', null)
     .order('date_observed', { ascending: false }).limit(100)
 
   const all = viols ?? []
+  // Same rule as the detail page: accumulated fines when recorded, else the base fine.
+  const fineOf = (v: any) => Number(v.fines_total ?? 0) > 0 ? Number(v.fines_total) : Number(v.fine_amount ?? 0)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -39,10 +41,12 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
         </div>
       )}
 
+      {violsError && <Alert tone="danger" title="Could not load violations:">{violsError.message}</Alert>}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: 'Open', value: all.filter((v: any) => !['closed','cured'].includes(v.status)).length },
-          { label: 'Total Fines', value: money(all.reduce((s: number, v: any) => s + (v.fine_amount ?? 0), 0)) },
+          { label: 'Total Fines', value: money(all.reduce((s: number, v: any) => s + fineOf(v), 0)) },
           // hearing_at is what the detail page and the hearing workflow set.
           { label: 'Hearings Scheduled', value: all.filter((v: any) => v.hearing_at || v.hearing_date).length },
         ].map(s => (
@@ -53,7 +57,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
         ))}
       </div>
 
-      {all.length === 0 ? (
+      {violsError ? null : all.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No violations on your record.</p>
         </div>
@@ -79,7 +83,7 @@ export default async function OwnerViolationsPage({ searchParams }: { searchPara
                   <td className="px-5 py-3 text-[13px] text-gray-700">{v.units?.unit_number ?? '—'}</td>
                   <td className="px-5 py-3 text-[13px] capitalize text-gray-700">{v.violation_type?.replace('_',' ') ?? '—'}</td>
                   <td className="px-5 py-3 text-center"><Badge status={v.status} /></td>
-                  <td className="px-5 py-3 text-right tabular-nums text-gray-700">{v.fine_amount ? money(v.fine_amount) : '—'}</td>
+                  <td className="px-5 py-3 text-right tabular-nums text-gray-700">{fineOf(v) > 0 ? money(fineOf(v)) : '—'}</td>
                   <td className="px-5 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(v.date_observed)}</td>
                 </tr>
               ))}

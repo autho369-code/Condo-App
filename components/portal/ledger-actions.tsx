@@ -20,6 +20,8 @@ export type LedgerPaymentRow = {
   method: string;
   reference: string;
   amount: number;
+  /** 'Returned' (with reason) when the payment was reversed, else ''. */
+  status: string;
 };
 
 const usd = (n: number) =>
@@ -61,9 +63,9 @@ export function LedgerActions({
     }
     lines.push('');
     lines.push('PAYMENTS');
-    lines.push(['Date', 'Method', 'Reference', 'Amount'].join(','));
+    lines.push(['Date', 'Method', 'Reference', 'Amount', 'Status'].join(','));
     for (const p of payments) {
-      lines.push([p.date, csvEscape(p.method), csvEscape(p.reference), p.amount.toFixed(2)].join(','));
+      lines.push([p.date, csvEscape(p.method), csvEscape(p.reference), p.amount.toFixed(2), csvEscape(p.status)].join(','));
     }
     lines.push('');
     lines.push(`Current balance,${totalBalance.toFixed(2)}`);
@@ -104,8 +106,8 @@ export function LedgerActions({
 
     (doc as any).autoTable({
       startY: afterCharges + 13,
-      head: [['Date', 'Method', 'Reference', 'Amount']],
-      body: payments.map((p) => [p.date, p.method, p.reference, usd(p.amount)]),
+      head: [['Date', 'Method', 'Reference', 'Amount', 'Status']],
+      body: payments.map((p) => [p.date, p.method, p.reference, usd(p.amount), p.status]),
       styles: { fontSize: 8.5 },
       headStyles: { fillColor: [17, 24, 39] },
       columnStyles: { 3: { halign: 'right' } },
