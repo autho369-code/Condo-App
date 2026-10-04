@@ -28,10 +28,8 @@ export async function journalLineTotals(db: Db, f: JournalTotalsFilter = {}): Pr
     p_from: f.from ?? null,
     p_to: f.to ?? null,
   });
-  if (error) {
-    console.error('[totals] journal_line_totals failed:', error.message);
-    return [];
-  }
+  // Fail loudly: returning [] here rendered balances as a silent $0.
+  if (error) throw new Error(`Could not load journal totals: ${error.message}`);
   return ((data ?? []) as any[]).map((r) => ({
     gl_account_id: r.gl_account_id,
     account_type: r.account_type,

@@ -67,8 +67,11 @@ export default async function BankFeedsPage({
   const safeQ = sanitizeSearchTerm(q);
   if (safeQ) query = query.or(`name.ilike.%${safeQ}%,merchant_name.ilike.%${safeQ}%`);
 
-  const { data: transactions } = await query;
+  const { data: transactions, error: txnsError } = await query;
   const txns = transactions || [];
+  // Load failures render an alert rather than an empty feed / no candidates.
+  const loadErrors: string[] = [];
+  if (txnsError) loadErrors.push(`Bank transactions: ${txnsError.message}`);
 
   // Load bank accounts for filter dropdown
   const { data: bankAccounts } = await db
@@ -89,50 +92,75 @@ export default async function BankFeedsPage({
   // line's debit - credit is -amount), within 7 days, and not matched yet.
   const openTxns = txns.filter(open);
   const candidatesByTxn = new Map<string, any[]>();
+  const openDates = openTxns.map((t: any) => t.date).sort();
+  const shift = (d: string, days: number) => new Date(new Date(`${d}T00:00:00Z`).getTime() + days * 86400000).toISOString().slice(0, 10);
   if (openTxns.length) {
-    const dates = openTxns.map((t: any) => t.date).sort();
-    const shift = (d: string, days: number) => new Date(new Date(`${d}T00:00:00Z`).getTime() + days * 86400000).toISOString().slice(0, 10);
+    const dates = openDates;
     const glIds = [...new Set(openTxns.map((t: any) => t.bank_accounts?.gl_account_id).filter(Boolean))];
     if (glIds.length) {
-      const [{ data: lines }, { data: matched }] = await Promise.all([
-        db.from('journal_lines')
-          .select('id, gl_account_id, association_id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, description, reference_number, posted)')
-          .in('gl_account_id', glIds)
-          .eq('journal_entries.posted', true)
-          .gte('journal_entries.entry_date', shift(dates[0], -7))
-          .lte('journal_entries.entry_date', shift(dates[dates.length - 1], 7))
-          .limit(1000),
-        db.from('bank_transactions').select('matched_journal_line_id').not('matched_journal_line_id', 'is', null),
-      ]);
-      const taken = new Set((matched ?? []).map((m: any) => m.matched_journal_line_id));
+      const { data: lines, error: linesError } = await db.from('journal_lines')
+        .select('id, gl_account_id, association_id, debit_amount, credit_amount, memo, journal_entries!inner(entry_date, description, reference_number, posted)')
+        .in('gl_account_id', glIds)
+        .eq('journal_entries.posted', true)
+        .gte('journal_entries.entry_date', shift(dates[0], -7))
+        .lte('journal_entries.entry_date', shift(dates[dates.length - 1], 7))
+        .order('journal_entries(entry_date)', { ascending: false })
+        .order('id')
+        .limit(1000);
+      if (linesError) loadErrors.push(`Ledger match candidates: ${linesError.message}`);
+      const raw = new Map<string, any[]>();
       for (const t of openTxns) {
         const bank = t.bank_accounts;
         const want = Math.round(-Number(t.amount) * 100);
         const from = shift(t.date, -7);
         const to = shift(t.date, 7);
-        candidatesByTxn.set(t.id, (lines ?? []).filter((l: any) =>
-          !taken.has(l.id) && l.gl_account_id === bank?.gl_account_id && (l.association_id ?? null) === (bank?.association_id ?? null)
+        raw.set(t.id, (lines ?? []).filter((l: any) =>
+          l.gl_account_id === bank?.gl_account_id && (l.association_id ?? null) === (bank?.association_id ?? null)
           && Math.round((Number(l.debit_amount) - Number(l.credit_amount)) * 100) === want
           && l.journal_entries.entry_date >= from && l.journal_entries.entry_date <= to));
       }
+      // "Already matched" only for the candidate lines, not every matched row.
+      const candidateIds = [...new Set([...raw.values()].flat().map((l: any) => l.id))];
+      let taken = new Set<string>();
+      if (candidateIds.length) {
+        const { data: matched, error: matchedError } = await db.from('bank_transactions')
+          .select('matched_journal_line_id').in('matched_journal_line_id', candidateIds);
+        if (matchedError) loadErrors.push(`Matched ledger lines: ${matchedError.message}`);
+        taken = new Set((matched ?? []).map((m: any) => m.matched_journal_line_id));
+      }
+      for (const [id, list] of raw) candidatesByTxn.set(id, list.filter((l: any) => !taken.has(l.id)));
     }
   }
   // Bank deposits (grouped receipts) of the same amount within 7 days.
   const depositsByTxn = new Map<string, any[]>();
   const inflows = openTxns.filter((t: any) => Number(t.amount) < 0);
   if (inflows.length) {
-    const { data: deps } = await db.from('bank_deposits')
+    const inflowDates = inflows.map((t: any) => t.date).sort();
+    const { data: deps, error: depsError } = await db.from('bank_deposits')
       .select('id, bank_account_id, deposit_date, amount, receipt_count')
       .in('bank_account_id', [...new Set(inflows.map((t: any) => t.bank_account_id))])
       .is('voided_at', null)
+      .gte('deposit_date', shift(inflowDates[0], -7))
+      .lte('deposit_date', shift(inflowDates[inflowDates.length - 1], 7))
+      .order('deposit_date', { ascending: false })
+      .order('id')
       .limit(1000);
-    const { data: takenDeps } = await db.from('bank_transactions').select('matched_bank_deposit_id').not('matched_bank_deposit_id', 'is', null);
-    const taken = new Set((takenDeps ?? []).map((m: any) => m.matched_bank_deposit_id));
+    if (depsError) loadErrors.push(`Bank deposit candidates: ${depsError.message}`);
     const days = (a: string, b: string) => Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
+    const raw = new Map<string, any[]>();
     for (const t of inflows) {
-      depositsByTxn.set(t.id, (deps ?? []).filter((d: any) => !taken.has(d.id) && d.bank_account_id === t.bank_account_id
+      raw.set(t.id, (deps ?? []).filter((d: any) => d.bank_account_id === t.bank_account_id
         && Math.round(Number(d.amount) * 100) === Math.round(-Number(t.amount) * 100) && days(d.deposit_date, t.date) <= 7));
     }
+    const candidateIds = [...new Set([...raw.values()].flat().map((d: any) => d.id))];
+    let taken = new Set<string>();
+    if (candidateIds.length) {
+      const { data: takenDeps, error: takenError } = await db.from('bank_transactions')
+        .select('matched_bank_deposit_id').in('matched_bank_deposit_id', candidateIds);
+      if (takenError) loadErrors.push(`Matched bank deposits: ${takenError.message}`);
+      taken = new Set((takenDeps ?? []).map((m: any) => m.matched_bank_deposit_id));
+    }
+    for (const [id, list] of raw) depositsByTxn.set(id, list.filter((d: any) => !taken.has(d.id)));
   }
   const { data: glOptions } = await db.from('gl_accounts').select('id, number, name').eq('active', true).order('number');
   const back = `/bank-accounts/feeds?${new URLSearchParams({ ...(filter ? { filter } : {}), ...(q ? { q } : {}), ...(bank_account_id ? { bank_account_id } : {}) }).toString()}`;
@@ -151,6 +179,9 @@ export default async function BankFeedsPage({
     >
       <div className="space-y-6">
         {pageError && <Alert tone="danger" title="Could not update the transaction">{pageError}</Alert>}
+        {loadErrors.length > 0 && (
+          <Alert tone="danger" title="Some bank feed data could not be loaded.">{loadErrors.join(' · ')}</Alert>
+        )}
         {done && DONE[done] && <Alert tone="success" title={DONE[done]} />}
         {activeConnections.length > 0 && (
           <div className="flex flex-wrap gap-2">

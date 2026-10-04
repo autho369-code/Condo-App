@@ -43,14 +43,16 @@ export default async function BankAccountsPage({
   // Ledger balance of each account: posted lines on its cash GL account for
   // its own association (several associations' banks can share one GL).
   const accounts = await Promise.all(((rows ?? []) as any[]).map(async (row: any) => {
-    if (!row.gl_account_id) return { ...row, balance: null };
-    const { data: totals } = await db.rpc('journal_line_totals', {
+    if (!row.gl_account_id) return { ...row, balance: null, balanceError: null };
+    const { data: totals, error: totalsError } = await db.rpc('journal_line_totals', {
       p_gl_account_ids: [row.gl_account_id],
       p_association_ids: row.association_id ? [row.association_id] : null,
     });
+    if (totalsError) return { ...row, balance: null, balanceError: totalsError.message as string };
     const balance = ((totals ?? []) as any[]).reduce((sum: number, t: any) => sum + Number(t.debit_total ?? 0) - Number(t.credit_total ?? 0), 0);
-    return { ...row, balance };
+    return { ...row, balance, balanceError: null };
   }));
+  const balanceErrors = [...new Set(accounts.map((row: any) => row.balanceError).filter(Boolean))] as string[];
   const needsReconciliation = accounts.filter((row: any) => !row.last_reconciliation_date).length;
   const paymentsEnabled = accounts.filter((row: any) => row.payments_enabled).length;
 
@@ -85,6 +87,7 @@ export default async function BankAccountsPage({
         <FinancialAccountTabs active="bank" />
         {pageError && <Alert tone="warning" title="Needs attention.">{pageError}</Alert>}
         {loadError && <Alert title="Could not load bank accounts.">{loadError.message}</Alert>}
+        {balanceErrors.length > 0 && <Alert tone="danger" title="Could not load account balances.">{balanceErrors.join('; ')}</Alert>}
         <MetricStrip
           metrics={[
             { label: 'Total accounts', value: accounts.length, sublabel: 'Visible in current view' },
@@ -148,7 +151,7 @@ export default async function BankAccountsPage({
               key: 'balance',
               header: 'Balance',
               className: 'text-right tabular-nums',
-              render: (account: any) => (account.balance === null ? <span className="text-gray-400">No GL account</span> : money(account.balance)),
+              render: (account: any) => (account.balanceError ? <span className="text-gray-400">Unavailable</span> : account.balance === null ? <span className="text-gray-400">No GL account</span> : money(account.balance)),
             },
             {
               key: 'last_reconciliation_date',
