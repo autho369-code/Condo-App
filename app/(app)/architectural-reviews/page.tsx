@@ -41,8 +41,14 @@ export default async function ArchitecturalReviewQueue({
 }) {
   const me = await requireStaff();
   const filters = await searchParams;
-  // Month boundaries in the association's local time, not the server's UTC.
-  const zone = displayTimeZone();
+  const supabase = await createClient();
+  const db = supabase as any;
+  // Date boundaries in the selected association's time zone; otherwise the
+  // portfolio's display zone.
+  const { data: selectedAssociation } = filters.association
+    ? await db.from('associations').select('timezone').eq('id', filters.association).maybeSingle()
+    : { data: null };
+  const zone: string = selectedAssociation?.timezone || displayTimeZone();
   const todayDate = todayInZone(zone);
   // Local midnight of a YYYY-MM-DD day, as a UTC instant for timestamptz columns.
   const localMidnight = (day: string) => zonedWallTimeToUtc(day, '00:00', zone)?.toISOString() ?? `${day}T00:00:00Z`;
@@ -53,9 +59,6 @@ export default async function ArchitecturalReviewQueue({
   const dateTo = isDate(filters.to) ? filters.to! : '';
   const category = filters.category && filters.category in CATEGORY_LABEL ? filters.category : '';
   const status = filters.status === 'open' || (filters.status && filters.status in STATUS_TONE) ? filters.status : '';
-
-  const supabase = await createClient();
-  const db = supabase as any;
 
   // Every filter runs in the query, so the 500-row window holds matching
   // requests (filtering the 500 newest afterwards dropped older ones).

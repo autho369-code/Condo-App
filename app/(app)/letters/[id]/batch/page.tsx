@@ -72,18 +72,22 @@ export default async function BatchLettersPage({
     else {
       const zone = assoc.timezone || undefined;
       const today = todayInZone(zone);
+      // A transfer ends the seller's ownership on the day the buyer's starts,
+      // so an ownership ending today is no longer current.
       const isCurrent = (o: Ownership) =>
         !!o.owners && !(o.owners as any).archived_at
         && (!o.start_date || o.start_date <= today)
-        && (!o.end_date || o.end_date >= today);
+        && (!o.end_date || o.end_date > today);
 
       // Recipients: one per unit (its primary current owner) or one per owner
       // (an owner of several units gets a single letter listing them).
       const recipients = new Map<string, { owner: MergeOwner & { id: string }; units: string[] }>();
       for (const u of units.rows) {
-        const current = (u.unit_owners ?? []).filter(isCurrent);
+        // Primary first, then the most recent start: a deterministic pick.
+        const current = (u.unit_owners ?? []).filter(isCurrent).sort((x, y) =>
+          Number(!!y.is_primary) - Number(!!x.is_primary) || (y.start_date ?? '').localeCompare(x.start_date ?? ''));
         if (current.length === 0) continue;
-        const chosen = perOwner ? current : [current.find((o) => o.is_primary) ?? current[0]];
+        const chosen = perOwner ? current : [current[0]];
         for (const o of chosen) {
           const key = perOwner ? o.owner_id : `${u.id}:${o.owner_id}`;
           const entry = recipients.get(key) ?? { owner: o.owners!, units: [] };
