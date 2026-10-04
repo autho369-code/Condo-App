@@ -201,7 +201,8 @@ export default async function VendorDetailPage({
             <SectionTitle title="Accounting" />
             <dl className="space-y-2 text-sm">
               {([
-                ['Check consolidation', vendor.check_consolidation === 'per_bill' ? 'One check per bill' : 'All bills on a single check'],
+                // The check run writes one check per bill regardless of the saved preference.
+                ['Checks', 'One check per bill'],
                 ['Check stub', vendor.check_stub_breakdown === 'summary' ? 'One line per bill' : 'Each bill line item'],
                 ['Hold payments', vendor.hold_payments ? 'Yes' : 'No'],
                 ['Payment terms', vendor.payment_terms || '—'],

@@ -148,6 +148,7 @@ export default async function EditVendorPage({
               <select id="check_consolidation" name="check_consolidation" defaultValue={v.check_consolidation ?? 'single_check'} className={SELECT}>
                 {CHECK_CONSOLIDATION.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
+              <p className="mt-1 text-xs text-gray-500">Saved as a preference only. Checks are written one per bill; bills are not combined onto a single check.</p>
             </div>
             <div>
               <Label htmlFor="check_stub_breakdown">Check stub breakdown</Label>

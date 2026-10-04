@@ -7,6 +7,9 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { applyVendorCredit, enterVendorCredit } from '@/lib/rpcs/vendor-credits';
 import { createClient } from '@/lib/supabase/server';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
+import { todayInZone } from '@/lib/time/zoned';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -21,19 +24,20 @@ export default async function VendorCreditsPage({
   await requireFinanceStaff();
   const sp = await searchParams;
   const db = (await createClient()) as any;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   const cols = 'id, credit_date, amount, applied_amount, reference, memo, vendor_id, association_id, vendors(name), associations(name), gl_accounts(number, name)';
   // The Data API returns at most 1,000 rows per request, so page through every active vendor.
   const pageAll = async (query: () => any) => {
     const all: any[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data } = await query().range(from, from + 999);
+      const { data, error } = await query().range(from, from + 999);
+      if (error) return { data: all, error };
       all.push(...(data ?? []));
-      if (!data || data.length < 1000) return { data: all };
+      if (!data || data.length < 1000) return { data: all, error: null };
     }
   };
-  const [{ data: openCredits }, { data: history }, { data: associations }, { data: vendors }, { data: gls }] = await Promise.all([
+  const [{ data: openCredits, error: openError }, { data: history, error: historyError }, { data: associations, error: assocError }, { data: vendors, error: vendorError }, { data: gls, error: glError }] = await Promise.all([
     // Every credit with a balance left, so recent history can never crowd one out.
     pageAll(() => db.from('vendor_credits').select(cols).gt('remaining_amount', 0).order('credit_date', { ascending: false }).order('id')),
     db.from('vendor_credits').select(cols).eq('remaining_amount', 0).order('credit_date', { ascending: false }).limit(300),
@@ -46,12 +50,13 @@ export default async function VendorCreditsPage({
 
   // Approved, unpaid bills for the vendors/associations that have open credits.
   const vendorIds = [...new Set(open.map((c) => c.vendor_id))];
-  const { data: bills } = vendorIds.length
+  const { data: bills, error: billsError } = vendorIds.length
     ? await pageAll(() => db.from('payable_bills')
         .select('id, vendor_id, association_id, bill_number, due_date, amount, credit_applied')
         .eq('status', 'approved').is('paid_at', null).is('archived_at', null).in('vendor_id', vendorIds)
         .order('due_date').order('id'))
-    : { data: [] };
+    : { data: [], error: null };
+  const loadError = openError ?? historyError ?? assocError ?? vendorError ?? glError ?? billsError;
   const billsFor = (c: any) => ((bills ?? []) as any[]).filter((b) => b.vendor_id === c.vendor_id && b.association_id === c.association_id
     && Number(b.amount) - Number(b.credit_applied ?? 0) > 0.005);
 
@@ -63,12 +68,14 @@ export default async function VendorCreditsPage({
     >
       <div className="space-y-4">
         {sp.error && <Alert tone="danger" title="Could not save">{sp.error}</Alert>}
+        {loadError && <Alert tone="danger" title="Could not load vendor credits">{loadError.message}</Alert>}
         {sp.entered && <Alert tone="success">Vendor credit entered and posted (Dr Accounts Payable).</Alert>}
         {sp.applied && <Alert tone="success">Credit applied. A bill fully covered by credits is marked paid.</Alert>}
 
         <Surface>
           <SectionTitle title="Enter a credit" description="Posts Dr Accounts Payable / Cr the account the credit reduces — usually the original expense." />
           <form action={enterVendorCredit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <Field label="Vendor" htmlFor="vendor_id">
               <Select id="vendor_id" name="vendor_id" required defaultValue="">
                 <option value="">Choose a vendor</option>
@@ -91,7 +98,7 @@ export default async function VendorCreditsPage({
             </Field>
             <Field label="Reference (optional)" htmlFor="reference"><Input id="reference" name="reference" placeholder="Credit memo #" /></Field>
             <Field label="Memo (optional)" htmlFor="memo" className="sm:col-span-3"><Input id="memo" name="memo" /></Field>
-            <div className="sm:col-span-3"><Button type="submit">Enter credit</Button></div>
+            <div className="sm:col-span-3"><PendingSubmit pendingLabel="Entering…">Enter credit</PendingSubmit></div>
           </form>
         </Surface>
 
@@ -131,6 +138,7 @@ export default async function VendorCreditsPage({
                       ) : (
                         <form action={applyVendorCredit} className="flex flex-wrap items-center gap-2">
                           <input type="hidden" name="credit_id" value={c.id} />
+                          <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
                           <Select name="bill_id" required defaultValue="" aria-label="Bill" className="h-9 w-48">
                             <option value="">Choose a bill</option>
                             {candidates.map((b) => (
@@ -140,7 +148,7 @@ export default async function VendorCreditsPage({
                             ))}
                           </Select>
                           <Input name="amount" type="number" min="0.01" step="0.01" required defaultValue={left.toFixed(2)} aria-label="Amount to apply" className="h-9 w-28" />
-                          <Button type="submit" variant="secondary" size="sm">Apply</Button>
+                          <PendingSubmit variant="secondary" size="sm" pendingLabel="Applying…">Apply</PendingSubmit>
                         </form>
                       )}
                     </TD>

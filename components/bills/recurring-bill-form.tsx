@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Surface, SectionTitle } from '@/components/ui/shell';
 import { saveRecurringBill } from '@/lib/rpcs/recurring';
+import { todayInZone } from '@/lib/time/zoned';
 
 export type RecurringBillValues = {
   id?: string;
@@ -36,7 +37,7 @@ export function RecurringBillForm({
   gls: Option[];
   banks: Option[];
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   return (
     <form action={saveRecurringBill} className="space-y-6">
       {values.id && <input type="hidden" name="id" value={values.id} />}
