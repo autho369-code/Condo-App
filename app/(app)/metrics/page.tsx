@@ -1,5 +1,6 @@
 import { billingCollectionTotals, glDebitBalances, incomeExpenseTotals } from '@/lib/finance/totals';
 import { ReportingTabs } from '@/components/reports/reporting-tabs';
+import { MetricsTabs } from '@/components/reports/metrics-tabs';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
@@ -225,6 +226,7 @@ export default async function MetricsPage({
       actions={<Link href="/reports"><Button variant="secondary">View all reports</Button></Link>}
     >
       <ReportingTabs current="metrics" />
+      <MetricsTabs current="performance" />
       <div className="space-y-6">
         {loadError && <Alert tone="danger" title="Some figures could not be loaded">{loadError}</Alert>}
 
