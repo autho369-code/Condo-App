@@ -55,6 +55,7 @@ export default async function BankReconciliationPage({
   let journalLines: any[] = [];
   let glAccount: any = null;
   let recentReconciliation: any = null;
+  const loadErrors: string[] = [];
 
   if (selectedAccount) {
     // Get the GL account info
@@ -68,12 +69,13 @@ export default async function BankReconciliationPage({
     }
 
     // Fetch reconciliations for this account
-    const { data: recs } = await db
+    const { data: recs, error: recsError } = await db
       .from('bank_reconciliations')
       .select('*')
       .eq('bank_account_id', selectedAccount.id)
       .order('created_at', { ascending: false })
       .limit(20);
+    if (recsError) loadErrors.push(`Reconciliations: ${recsError.message}`);
     reconciliations = recs ?? [];
 
     // Find active (in_progress) reconciliation or the most recent
@@ -93,12 +95,13 @@ export default async function BankReconciliationPage({
     if (selectedAccount.gl_account_id && recentReconciliation) {
       // Every item, with its ledger line embedded (paged past 1,000 rows; a
       // separate .in(lineIds) lookup overflowed the URL on big statements).
-      const { rows: items } = await fetchAllRows<any>(() => db
+      const { rows: items, error: itemsError } = await fetchAllRows<any>(() => db
         .from('bank_reconciliation_items')
         .select('id, journal_line_id, description, amount, type, is_cleared, sort_order, journal_lines(id, debit_amount, credit_amount, memo, journal_entries(id, entry_date, reference_number, description, source_type, source_id))')
         .eq('reconciliation_id', recentReconciliation.id)
         .order('sort_order')
         .order('id'));
+      if (itemsError) loadErrors.push(`Reconciliation items: ${itemsError}`);
       reconciliationItems = items;
       journalLines = items.map((i: any) => i.journal_lines).filter(Boolean);
     }
@@ -199,6 +202,7 @@ export default async function BankReconciliationPage({
     >
       <div className="space-y-6">
         {pageError && <Alert tone="danger" title="Reconciliation not updated.">{pageError}</Alert>}
+        {loadErrors.length > 0 && <Alert tone="danger" title="Could not load reconciliation data.">{loadErrors.join(' · ')}</Alert>}
         {selectedAccount && !selectedAccount.gl_account_id && (
           <Alert tone="warning" title="This bank account isn't linked to a GL account.">
             Link one before reconciling — <Link href={`/bank-accounts/${selectedAccount.id}`} className="font-medium underline">open bank account settings</Link>.

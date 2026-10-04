@@ -34,7 +34,7 @@ export default async function NewBankDepositPage({
   const bankId = UUID.test(sp.bank_account_id ?? '') ? sp.bank_account_id! : banks[0]?.id ?? '';
 
   // Receipts recorded to this bank that are not in a deposit yet.
-  const [{ rows: payments }, { rows: others }] = bankId
+  const [{ rows: payments, error: paymentsError }, { rows: others, error: othersError }] = bankId
     ? await Promise.all([
         fetchAllRows<any>(() => db.from('payments')
           .select('id, payment_date, amount, method, reference, units(unit_number)')
@@ -45,7 +45,8 @@ export default async function NewBankDepositPage({
           .eq('bank_account_id', bankId).is('bank_deposit_id', null).is('voided_at', null)
           .order('receipt_date').order('id')),
       ])
-    : [{ rows: [] as any[] }, { rows: [] as any[] }];
+    : [{ rows: [] as any[], error: null }, { rows: [] as any[], error: null }];
+  const receiptsError = [paymentsError && `Payments: ${paymentsError}`, othersError && `Other receipts: ${othersError}`].filter(Boolean).join(' · ');
   const total = payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
     + others.reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
 
@@ -76,7 +77,9 @@ export default async function NewBankDepositPage({
           </form>
         </Surface>
 
-        {payments.length + others.length === 0 ? (
+        {receiptsError ? (
+          <Alert tone="danger" title="Could not load undeposited receipts.">{receiptsError}</Alert>
+        ) : payments.length + others.length === 0 ? (
           <Surface padded={false}>
             <EmptyState icon={Landmark} title="No undeposited receipts" description="Every receipt recorded to this bank account is already in a deposit." />
           </Surface>
