@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
@@ -220,8 +221,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         .select('id, amount, payment_date, method, reference, unit_id, created_at')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
-        .gte('created_at', ytdStart)
-        .order('created_at', { ascending: false })
+        // By the date received (as entered on the receipt), the same basis as a
+        // return's effective date below.
+        .gte('payment_date', ytdStart)
+        .order('payment_date', { ascending: false })
         .limit(200)
     );
   } else {
@@ -254,13 +257,15 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   // charge's due_date, which staff choose) instead of as a new charge. All of
   // the units' returns are loaded, with no date window, so a reversal charge is
   // recognised even when the payment it undoes is from an earlier year.
-  const { data: returnedPayments, error: returnedError } = unitIds.length > 0
-    ? await db.from('payments')
-        .select('reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
+  const { rows: returnedPayments, error: returnedError, truncated: returnedTruncated } = unitIds.length > 0
+    ? await fetchAllRows<any>(() => db.from('payments')
+        .select('id, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
         .in('unit_id', unitIds)
         .not('reversal_charge_id', 'is', null)
-    : { data: [], error: null };
-  if (returnedError) throw new Error(`Could not load returned payments: ${returnedError.message}`);
+        .order('id'))
+    : { rows: [], error: null, truncated: false };
+  if (returnedError) throw new Error(`Could not load returned payments: ${returnedError}`);
+  if (returnedTruncated) throw new Error('Too many returned payments to total; the YTD figures would be incomplete.');
   const reversalChargeIds = new Set<string>((returnedPayments ?? []).map((r: any) => r.reversal_charge_id));
   const ytdReturns = (returnedPayments ?? [])
     .map((r: any) => r.reversal_charge)
@@ -319,8 +324,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     monthMap.set(mk, entry);
   }
   for (const p of (ytdPayments ?? [])) {
-    if (!p.created_at) continue;
-    const mk = monthKey(p.created_at);
+    if (!p.payment_date) continue;
+    const mk = monthKey(`${p.payment_date}T12:00:00`);
     const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
     entry.payments += p.amount ?? 0;
     entry.paymentCount += 1;
