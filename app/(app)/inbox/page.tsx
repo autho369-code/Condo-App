@@ -6,10 +6,12 @@ import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
-import { Badge, EmptyState } from '@/components/ui/shell';
+import { Alert, Badge, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { responseState } from '@/lib/maintenance/intake';
+import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
+import { descNullsLast, unionSearch } from '@/lib/supabase/search-union';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,29 +37,53 @@ function residentName(t: any) {
   return { name: 'Resident', role: '' };
 }
 
-export default async function InboxPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ q?: string; association?: string; search?: string }> }) {
   const me = await requireWorkspaceStaff();
   const sp = await searchParams;
   const queue: Queue = (QUEUES.find((x) => x.key === sp.q)?.key ?? 'open') as Queue;
   const db = (await createClient()) as any;
   const nowIso = new Date().toISOString();
+  const associationId = sp.association && UUID.test(sp.association) ? sp.association : '';
+  const term = (sp.search ?? '').replace(/[%_,()*"\\]/g, ' ').trim();
+  // Queue tabs keep the association filter and search.
+  const keep = new URLSearchParams();
+  if (associationId) keep.set('association', associationId);
+  if (sp.search) keep.set('search', sp.search);
+  const tabHref = (key: string) => `/inbox?q=${key}${keep.size ? `&${keep}` : ''}`;
 
   const count = (build: (q: any) => any) =>
     build(db.from('message_threads').select('id', { count: 'exact', head: true }).eq('status', 'open'));
 
-  let list = db.from('message_threads')
-    .select('id, subject, status, last_message_at, last_message_preview, last_message_role, staff_unread, first_response_due_at, acknowledged_at, owners(full_name), tenants(first_name, last_name), associations(name), units(unit_number), assignee:assigned_to(full_name, email)');
-  if (queue === 'closed') list = list.eq('status', 'closed');
-  else {
-    list = list.eq('status', 'open');
-    // "Needs reply" = the resident wrote last (reading a thread doesn't answer it).
-    if (queue === 'unread') list = list.eq('last_message_role', 'resident');
-    if (queue === 'overdue') list = list.is('acknowledged_at', null).lt('first_response_due_at', nowIso);
-    if (queue === 'mine') list = list.eq('assigned_to', me.auth_user_id);
-  }
+  const THREAD_COLUMNS = 'id, subject, status, last_message_at, last_message_preview, last_message_role, staff_unread, first_response_due_at, acknowledged_at, owners(full_name), tenants(first_name, last_name), associations(name), units(unit_number), assignee:assigned_to(full_name, email)';
+  const listQuery = (extraColumns = '') => {
+    let q = db.from('message_threads').select(THREAD_COLUMNS + extraColumns);
+    if (associationId) q = q.eq('association_id', associationId);
+    if (queue === 'closed') q = q.eq('status', 'closed');
+    else {
+      q = q.eq('status', 'open');
+      // "Needs reply" = the resident wrote last (reading a thread doesn't answer it).
+      if (queue === 'unread') q = q.eq('last_message_role', 'resident');
+      if (queue === 'overdue') q = q.is('acknowledged_at', null).lt('first_response_due_at', nowIso);
+      if (queue === 'mine') q = q.eq('assigned_to', me.auth_user_id);
+    }
+    return q.order('last_message_at', { ascending: false }).limit(300);
+  };
+  // Search: subject, homeowner, tenant or unit, one query per match type
+  // merged by id (see unionSearch).
+  const threadsQuery: PromiseLike<{ data: any[] | null; error: any }> = term
+    ? unionSearch<any>([
+        listQuery().ilike('subject', `%${term}%`),
+        listQuery(', s_o:owners!message_threads_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`),
+        listQuery(', s_t:tenants!message_threads_tenant_id_fkey!inner(first_name)').ilike('s_t.first_name', `%${term}%`),
+        listQuery(', s_l:tenants!message_threads_tenant_id_fkey!inner(last_name)').ilike('s_l.last_name', `%${term}%`),
+        listQuery(', s_u:units!message_threads_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term),
+      ], (x, y) => descNullsLast(x.last_message_at, y.last_message_at), 300).then(({ rows, error }) => ({ data: rows, error }))
+    : listQuery();
 
-  const [threadsRes, smsRes, openRes, unreadRes, overdueRes, mineRes] = await Promise.all([
-    queue === 'sms' ? Promise.resolve({ data: [] }) : list.order('last_message_at', { ascending: false }).limit(300),
+  const [threadsRes, smsRes, openRes, unreadRes, overdueRes, mineRes, { data: associations }] = await Promise.all([
+    queue === 'sms' ? Promise.resolve({ data: [], error: null }) : threadsQuery,
     queue === 'sms'
       ? db.from('sms_messages').select('id, direction, body, from_number, to_number, status, sent_at').order('sent_at', { ascending: false }).limit(100)
       : Promise.resolve({ data: [] }),
@@ -65,6 +91,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     count((q) => q.eq('last_message_role', 'resident')),
     count((q) => q.is('acknowledged_at', null).lt('first_response_due_at', nowIso)),
     count((q) => q.eq('assigned_to', me.auth_user_id)),
+    db.from('associations').select('id, name').is('archived_at', null).order('name'),
   ]);
   const threads = (threadsRes.data ?? []) as any[];
   const sms = (smsRes.data ?? []) as any[];
@@ -81,12 +108,23 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {QUEUES.map((x) => (
-            <Link key={x.key} href={`/inbox?q=${x.key}`}
+            <Link key={x.key} href={tabHref(x.key)}
               className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${x.key === queue ? 'border-gray-950 text-gray-950' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               {x.label}
             </Link>
           ))}
         </nav>
+
+        {queue !== 'sms' && (
+          <FilterBar action="/inbox" searchName="search" searchDefault={sp.search ?? ''} searchPlaceholder="Search subject, homeowner, tenant or unit">
+            <input type="hidden" name="q" value={queue} />
+            <FilterSelect label="Association" name="association" defaultValue={associationId}>
+              <option value="">All</option>
+              {((associations ?? []) as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </FilterSelect>
+          </FilterBar>
+        )}
+        {threadsRes.error && <Alert tone="danger" title="Could not load conversations:">{threadsRes.error.message ?? String(threadsRes.error)}</Alert>}
 
         {queue === 'sms' ? (
           sms.length > 0 ? (
@@ -110,9 +148,9 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               <EmptyState icon={Inbox} title="No text messages" description="Two-way SMS appears here once the texting number is live." />
             </div>
           )
-        ) : threads.length === 0 ? (
+        ) : threadsRes.error ? null : threads.length === 0 ? (
           <div className="rounded-2xl border border-gray-200/70 bg-white">
-            <EmptyState icon={MessageSquare} title="Nothing here" description="Owners and tenants can message you from their portal. Start a conversation from an owner's page." />
+            <EmptyState icon={MessageSquare} title={term || associationId ? 'No conversations match' : 'Nothing here'} description="Owners and tenants can message you from their portal. Start a conversation from an owner's page." />
           </div>
         ) : (
           <Table>

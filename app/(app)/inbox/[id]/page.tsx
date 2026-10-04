@@ -6,8 +6,9 @@ import { Workspace, WorkspaceHeader, Section } from '@/components/workspace/shel
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
-import { Label, Textarea } from '@/components/ui/input';
 import { MessageList, type ThreadMessage } from '@/components/messages/resident-messages';
+import { ReplyComposer, type ReplyTemplate } from '@/components/messages/reply-composer';
+import { buildMergeValues } from '@/lib/letters/merge';
 import { assignConversation, replyAsStaff, setConversationStatus } from '@/lib/rpcs/messages';
 import { responseState } from '@/lib/maintenance/intake';
 
@@ -28,25 +29,36 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 export default async function ConversationPage({
   params, searchParams,
 }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; error?: string }> }) {
-  await requireWorkspaceStaff();
+  const me = await requireWorkspaceStaff();
   const { id } = await params;
   const sp = await searchParams;
   const db = (await createClient()) as any;
 
   const [{ data: t }, { data: messages }, { data: staff }] = await Promise.all([
     db.from('message_threads')
-      .select('id, subject, status, owner_id, tenant_id, unit_id, assigned_to, first_response_due_at, acknowledged_at, created_at, owners(full_name, email), tenants(first_name, last_name, email, phone), associations(name), units(unit_number)')
+      .select('id, portfolio_id, subject, status, owner_id, tenant_id, unit_id, assigned_to, first_response_due_at, acknowledged_at, created_at, owners(full_name, email), tenants(first_name, last_name, email, phone), associations(name), units(unit_number)')
       .eq('id', id).maybeSingle(),
     db.from('message_thread_messages').select('id, author_role, author_name, body, internal, created_at').eq('thread_id', id).order('created_at'),
     db.rpc('message_thread_assignees', { p_thread: id }),
   ]);
   if (!t) notFound();
+  // Saved replies (email templates) of the conversation's own management
+  // company, not the viewer's: a platform operator may be in another one.
+  const { data: templates } = await db.from('message_templates').select('id, name, body')
+    .eq('portfolio_id', t.portfolio_id).in('channel', ['email', 'both']).order('name').limit(200);
   await db.rpc('mark_message_thread_read', { p_thread: id, p_as: 'staff' });
 
   const owner = one<any>(t.owners);
   const tenant = one<any>(t.tenants);
   const name = owner?.full_name ?? (tenant ? `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() : 'Resident');
   const email = owner?.email ?? tenant?.email ?? null;
+  const mergeValues = buildMergeValues({
+    association: { name: one<any>(t.associations)?.name ?? null },
+    owner: { full_name: name, email: email ?? null, phone: tenant?.phone ?? null },
+    unitNumbers: one<any>(t.units)?.unit_number ? [one<any>(t.units).unit_number] : [],
+  });
+  mergeValues.resident_name = name;
+  mergeValues.manager_name = me.profile?.full_name ?? '';
   const state = t.status === 'open' ? responseState({ status: 'open', acknowledged_at: t.acknowledged_at, first_response_due_at: t.first_response_due_at }) : null;
 
   return (
@@ -101,8 +113,7 @@ export default async function ConversationPage({
 
       <Section title="Reply">
         <form action={replyAsStaff.bind(null, id)} className="space-y-3 px-5 py-4">
-          <Label htmlFor="body">Message to {name}</Label>
-          <Textarea id="body" name="body" rows={5} required maxLength={5000} />
+          <ReplyComposer recipientName={name} templates={(templates ?? []) as ReplyTemplate[]} mergeValues={mergeValues} />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
               <label className="flex items-center gap-2"><input type="checkbox" name="internal" className="h-4 w-4" /> Internal note (resident won’t see it)</label>
