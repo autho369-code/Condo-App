@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
 import { signFormFiles } from '@/lib/forms/files'
 
@@ -63,7 +64,7 @@ export default async function OwnerDocumentsPage() {
   // also owners.
   const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
   const assocIds = (me.resident_association_ids ?? []).length ? me.resident_association_ids : ['00000000-0000-0000-0000-000000000000']
-  const { data } = await db
+  const { data, error: docsError } = await db
     .from('documents')
     .select('id, doc_type, entity_type, entity_id, file_name, file_url, uploaded_at, expires_at')
     .or([
@@ -78,7 +79,7 @@ export default async function OwnerDocumentsPage() {
   // explicitly (not only by RLS) so an owner who is also staff sees just the
   // homeowner forms of their own management company.
   const { data: ownerRow } = await db.from('owners').select('portfolio_id').eq('id', me.owner_id).maybeSingle()
-  const { data: formRows } = ownerRow?.portfolio_id
+  const { data: formRows, error: formsError } = ownerRow?.portfolio_id
     ? await db.from('form_templates')
         .select('id, portfolio_id, name, description, file_url, file_path, file_name')
         .eq('portfolio_id', ownerRow.portfolio_id)
@@ -86,7 +87,8 @@ export default async function OwnerDocumentsPage() {
         .eq('active', true)
         .is('archived_at', null)
         .order('name')
-    : { data: [] }
+    : { data: [], error: null }
+  const loadError = docsError ?? formsError
   const forms = (formRows ?? []) as Array<{ id: string; portfolio_id: string; name: string; description: string | null; file_url: string | null; file_path: string | null; file_name: string | null }>
   const formLinks = await signFormFiles(forms, 3600)
 
@@ -133,6 +135,8 @@ export default async function OwnerDocumentsPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Governing documents, forms, and association records</p>
       </div>
 
+      {loadError && <Alert tone="danger" title="Could not load your documents:">{loadError.message}</Alert>}
+
       {forms.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4">
@@ -162,7 +166,7 @@ export default async function OwnerDocumentsPage() {
         </div>
       )}
 
-      {docs.length === 0 ? (
+      {docsError ? null : docs.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <File className="mx-auto h-8 w-8 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">No documents have been shared with you yet.</p>

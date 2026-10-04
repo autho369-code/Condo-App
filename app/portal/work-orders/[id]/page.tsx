@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
+import { ownerTenureCutoffs, withinTenure } from '../../_lib/tenure'
 import { notFound } from 'next/navigation'
 import { Badge, Alert } from '@/components/ui/shell'
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card'
@@ -24,10 +25,12 @@ export default async function OwnerWorkOrderDetail({ params, searchParams }: { p
   // an owner open any work order in the association from the owner portal.
   const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
   const { data: wo } = await db.from('work_orders')
-    .select('id, title, description, category, priority, status, created_at, scheduled_date, completed_date, vendor_id, units!inner(unit_number), vendors(name)')
+    .select('id, unit_id, title, description, category, priority, status, created_at, scheduled_date, completed_date, vendor_id, units!inner(unit_number), vendors(name)')
     .eq('id', id).in('unit_id', myUnits).maybeSingle()
 
   if (!wo) return notFound()
+  // A buyer must not open the seller's work orders (filed before move-in).
+  if (!withinTenure(await ownerTenureCutoffs(db, me.owner_id), wo.unit_id, wo.created_at)) return notFound()
 
   const { data: messages } = await db.from('work_order_messages')
     .select('id, author_name, author_role, body, created_at')

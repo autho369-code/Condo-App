@@ -47,8 +47,22 @@ export async function startOnlinePayment(formData: FormData) {
     redirect(`${RETURN}?error=${encodeURIComponent('Online payments are not available for this account. Please contact the management office.')}`);
   }
   if (occ.require_full_online_payment) {
-    const { data: bal } = await svc.from('unit_balances').select('balance').eq('unit_id', unitId).maybeSingle();
-    const owed = Math.round(Math.max(0, Number(bal?.balance ?? 0)) * 100);
+    const { data: bal, error: balError } = await svc.from('unit_balances').select('balance').eq('unit_id', unitId).maybeSingle();
+    // Payments already on their way (processing / succeeded but not yet posted)
+    // are not in unit_balances; subtract them exactly like the pay page does
+    // (its RLS limits the same query to this owner's intents).
+    const { data: inFlight, error: inFlightError } = await svc
+      .from('payment_intents')
+      .select('amount')
+      .eq('owner_id', me.owner_id)
+      .eq('unit_id', unitId)
+      .is('payment_id', null)
+      .in('status', ['processing', 'succeeded']);
+    if (balError || inFlightError) {
+      redirect(`${RETURN}?error=${encodeURIComponent('Could not check your balance. Please try again.')}`);
+    }
+    const pending = ((inFlight ?? []) as Array<{ amount: number | string | null }>).reduce((s, i) => s + Number(i.amount ?? 0), 0);
+    const owed = Math.round(Math.max(0, Number(bal?.balance ?? 0) - pending) * 100);
     if (amountCents < owed) {
       redirect(`${RETURN}?error=${encodeURIComponent(`This account must pay the full balance of $${(owed / 100).toFixed(2)} online.`)}`);
     }

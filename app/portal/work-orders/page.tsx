@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
-import { Badge } from '@/components/ui/shell'
+import { ownPortalUnitIds } from '@/lib/portal/own-units'
+import { ownerTenureCutoffs, tenureFilter } from '../_lib/tenure'
+import { Badge, Alert } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { Plus } from 'lucide-react'
@@ -15,13 +16,17 @@ export default async function OwnerWorkOrdersPage() {
   const db = supabase as any
 
   // Scope to the owner's own units explicitly; RLS also admits board members
-  // to every work order in the association.
-  const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
-  const { data: wos } = await db.from('work_orders')
-    .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')
-    .in('unit_id', myUnits)
-    .is('archived_at', null)
-    .order('created_at', { ascending: false }).limit(100)
+  // to every work order in the association. A buyer sees only work orders
+  // opened during their tenure, not the seller's.
+  const myUnits = await ownPortalUnitIds(db, me.owner_id)
+  const woScope = tenureFilter(await ownerTenureCutoffs(db, me.owner_id), 'created_at', myUnits)
+  const { data: wos, error: wosError } = woScope
+    ? await db.from('work_orders')
+        .select('id, title, category, priority, status, created_at, scheduled_date, completed_date, units!inner(unit_number)')
+        .or(woScope)
+        .is('archived_at', null)
+        .order('created_at', { ascending: false }).limit(100)
+    : { data: [], error: null }
 
   const all = wos ?? []
   const priorityTone = (p: string): Tone => {
@@ -41,7 +46,9 @@ export default async function OwnerWorkOrdersPage() {
         </Link>
       </div>
 
-      {all.length === 0 ? (
+      {wosError && <Alert tone="danger" title="Could not load work orders:">{wosError.message}</Alert>}
+
+      {wosError ? null : all.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <p className="text-sm text-gray-500">No work orders submitted yet.</p>
           <Link href="/portal/service-requests/new" className="mt-3 inline-block text-sm font-medium text-gray-700 hover:text-gray-950 hover:underline">Submit your first request →</Link>

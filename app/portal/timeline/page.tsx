@@ -19,7 +19,10 @@ export default async function OwnerTimelinePage() {
   const { data: myUnits } = await db.from('occupancies').select('unit_id').eq('owner_id', ownerId).eq('status', 'current')
   const unitIds = (myUnits ?? []).map((u: any) => u.unit_id)
   // Payments only from the owner's own move-in on (a buyer must not see the seller's).
-  const paymentScope = tenureFilter(await ownerTenureCutoffs(db, ownerId), 'payment_date', unitIds)
+  const tenure = await ownerTenureCutoffs(db, ownerId)
+  const paymentScope = tenureFilter(tenure, 'payment_date', unitIds)
+  // Same for work orders: only those opened during the owner's tenure.
+  const woScope = tenureFilter(tenure, 'created_at', unitIds)
 
   const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([
     // By the owner's current units, like the ledger: the view's owner_id comes
@@ -27,8 +30,8 @@ export default async function OwnerTimelinePage() {
     paymentScope
       ? db.from('receivable_payments_ledger').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
-    unitIds.length > 0
-      ? db.from('work_orders').select('id, title, status, created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
+    woScope
+      ? db.from('work_orders').select('id, title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
     db.from('violations').select('id, title, status, date_observed').eq('owner_id', ownerId).is('archived_at', null).order('date_observed', { ascending: false }).limit(30),
     // sender_id holds the auth user id, not the owner id (matches /portal/communications)

@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Badge, Alert } from '@/components/ui/shell'
+import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
 import { money, date } from '@/lib/utils'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
@@ -14,17 +15,22 @@ export default async function OwnerDashboard() {
   const supabase = await createClient()
   const db = supabase as any
   const ownerId = me.owner_id
+  // Sections whose read failed — shown in an Alert instead of a silent zero.
+  const loadErrors: string[] = []
+  const track = (label: string, error: { message?: string } | null | undefined) => { if (error) loadErrors.push(`${label} (${error.message ?? 'error'})`) }
 
   // Owner info + unit (occupancies has no archived_at column)
   // Current occupancies only: a sold unit must not keep showing its new
   // owner's balance, payments and work orders (board RLS would allow it).
-  const { data: occupancies } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(5)
+  const { data: occupancies, error: occError } = await db.from('occupancies').select('id, unit_id, association_id, dues_amount, dues_paid_through, share_pct').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(5)
+  track('your units', occError)
   const occs = occupancies ?? []
   const unitIds = occs.map((o: any) => o.unit_id).filter(Boolean)
   // Next Due = the earliest open charge's due date on the owner's units.
   let nextDue = 'Nothing due'
   if (unitIds.length > 0) {
-    const { data: openCharge } = await db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
+    const { data: openCharge, error: dueError } = await db.from('v_charge_balances').select('due_date').in('unit_id', unitIds).gt('balance_due', 0).not('due_date', 'is', null).order('due_date', { ascending: true }).limit(1).maybeSingle()
+    track('next due date', dueError)
     if (openCharge?.due_date) {
       nextDue = new Date(`${String(openCharge.due_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
     }
@@ -34,51 +40,62 @@ export default async function OwnerDashboard() {
   // Current balance = outstanding A/R (charges − payments) across the owner's units
   let totalDue = 0
   if (unitIds.length > 0) {
-    const { data: bals } = await db.from('unit_balances').select('balance').in('unit_id', unitIds)
+    const { data: bals, error: balError } = await db.from('unit_balances').select('balance').in('unit_id', unitIds)
+    track('balance', balError)
     totalDue = (bals ?? []).reduce((s: number, b: any) => s + Number(b.balance ?? 0), 0)
   }
 
-  // Work orders (work_orders links to a unit, not an owner)
+  // Work orders (work_orders links to a unit, not an owner) — only those opened
+  // during the owner's tenure, so a buyer never sees the seller's.
+  const tenure = await ownerTenureCutoffs(db, ownerId)
+  const woScope = tenureFilter(tenure, 'created_at', unitIds)
   let workOrders: any[] = []
-  if (unitIds.length > 0) {
-    const { data: wos } = await db.from('work_orders').select('id,title,status,created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
+  if (woScope) {
+    const { data: wos, error: woError } = await db.from('work_orders').select('id,title,status,created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(5)
+    track('work orders', woError)
     workOrders = wos ?? []
   }
   // Counts come from their own head queries — the lists above/below are capped at 5.
   let openWOCount = 0
-  if (unitIds.length > 0) {
-    const { count } = await db.from('work_orders').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")')
+  if (woScope) {
+    const { count, error: woCountError } = await db.from('work_orders').select('id', { count: 'exact', head: true }).or(woScope).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")')
+    track('open work order count', woCountError)
     openWOCount = count ?? 0
   }
 
   // Violations
-  const { data: viols } = await db.from('violations').select('id,title,status,date_observed').eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
+  const { data: viols, error: violError } = await db.from('violations').select('id,title,status,date_observed').eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")').order('date_observed', { ascending: false }).limit(5)
   const violations = viols ?? []
-  const { count: openViolationCount } = await db.from('violations').select('id', { count: 'exact', head: true }).eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")')
+  const { count: openViolationCount, error: violCountError } = await db.from('violations').select('id', { count: 'exact', head: true }).eq('owner_id', ownerId).is('archived_at', null).not('status','in','("closed","cured")')
+  track('violations', violError ?? violCountError)
   const openViolations = openViolationCount ?? 0
 
   // Calendar
   let events: any[] = []
   if (assocId) {
-    const { data: ev } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
+    const { data: ev, error: evError } = await db.from('calendar_events').select('id,title,start_datetime,location').eq('association_id', assocId).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(5)
+    track('events', evError)
     events = ev ?? []
   }
 
   // Announcements
   let announcements: any[] = []
   if (assocId) {
-    try {
-      const { data: ann } = await db.from('communications_log').select('subject,created_at').eq('association_id', assocId).eq('channel','announcement').order('created_at',{ascending:false}).limit(3)
-      announcements = ann ?? []
-    } catch {}
+    // Owner-facing only: tenant-only announcements are not for owners.
+    const { data: ann, error: annError } = await db.from('communications_log').select('subject,created_at').eq('association_id', assocId).eq('channel','announcement')
+      .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
+      .order('created_at',{ascending:false}).limit(3)
+    track('announcements', annError)
+    announcements = ann ?? []
   }
 
   // Recent payments on the owner's units — only from their own move-in on, so
   // a buyer never sees the seller's payments.
   let recentPayments: any[] = []
-  const paymentScope = tenureFilter(await ownerTenureCutoffs(db, ownerId), 'payment_date', unitIds)
+  const paymentScope = tenureFilter(tenure, 'payment_date', unitIds)
   if (paymentScope) {
-    const { data: pays } = await db.from('payments').select('id, amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(5)
+    const { data: pays, error: payError } = await db.from('payments').select('id, amount, payment_date, method, reversed_at').or(paymentScope).order('payment_date', { ascending: false }).limit(5)
+    track('payments', payError)
     recentPayments = pays ?? []
   }
 
@@ -122,6 +139,10 @@ export default async function OwnerDashboard() {
           </Link>
         </div>
       </div>
+
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some of your account could not be loaded:">{loadErrors.join('; ')}. Figures shown may be incomplete — please refresh.</Alert>
+      )}
 
       {/* Emergency notice */}
       {emergencies.length > 0 && (
@@ -280,9 +301,10 @@ export default async function OwnerDashboard() {
               {recentPayments.map((p: any) => (
                 <div key={p.id} className="flex items-center justify-between border-b border-gray-50 py-2 last:border-0">
                   <div>
-                    <div className="text-sm text-gray-900">{money(Number(p.amount ?? 0))}</div>
+                    <div className={p.reversed_at ? 'text-sm text-gray-400 line-through' : 'text-sm text-gray-900'}>{money(Number(p.amount ?? 0))}</div>
                     <div className="text-xs capitalize text-gray-500">{(p.method ?? 'payment').replace(/_/g, ' ')}</div>
                   </div>
+                  {p.reversed_at && <StatusChip tone="danger">Returned</StatusChip>}
                   <div className="text-xs tabular-nums text-gray-500">{date(p.payment_date)}</div>
                 </div>
               ))}
