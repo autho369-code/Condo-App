@@ -44,12 +44,15 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
   if (!manager || manager.hoa_role !== 'manager') notFound()
 
   // A failed load is an error: no rows means full portfolio access.
-  const { data: assocManagers, error: assocManagersError } = await db
+  // Every assignment (paged): the scope form below is saved from these rows,
+  // so a truncated list would revoke the assignments it left out.
+  const { rows: assocManagers, error: assocManagersError } = await fetchAllRows<any>(() => db
     .from('association_managers')
-    .select(`association_id, assigned_at, associations:association_id(id, name, unit_count, city, state)`)
+    .select(`id, association_id, assigned_at, associations:association_id(id, name, unit_count, city, state)`)
     .eq('user_id', id)
     .is('ended_at', null)
-  if (assocManagersError) throw new Error(`Could not load this manager's assignments: ${assocManagersError.message}`)
+    .order('id'))
+  if (assocManagersError) throw new Error(`Could not load this manager's assignments: ${assocManagersError}`)
 
   const assignedAssocs = (assocManagers ?? []).map((am: any) => ({
     id: am.associations?.id,
