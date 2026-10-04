@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const rows: any[] = [];
   for (let offset = 0; offset < 50000; offset += 1000) {
     let query = db.from('payments')
-      .select(`id, amount, payment_date, method, reference, created_at, bank_accounts(name), ${unitSelect}`)
+      .select(`id, amount, payment_date, method, reference, created_at, reversed_at, reversal_reason, reversal_charge:charges!payments_reversal_charge_id_fkey(due_date), bank_accounts(name), ${unitSelect}`)
       .gte('payment_date', from).lte('payment_date', to)
       .order('payment_date', { ascending: false }).order('id', { ascending: false })
       .range(offset, offset + 999);
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     for (const row of data ?? []) if (row.owner_name) payerById.set(row.payment_id, row.owner_name);
   }
 
-  const lines = [['Date', 'Homeowner', 'Association', 'Unit', 'Method', 'Reference', 'Deposited to', 'Amount', 'Memo'].join(',')];
+  const lines = [['Date', 'Homeowner', 'Association', 'Unit', 'Method', 'Reference', 'Deposited to', 'Amount', 'Status', 'Returned on', 'Return reason', 'Memo'].join(',')];
   // Same text search as the register, so the export matches what is on screen.
   const visible = q
     ? rows.filter((r) =>
@@ -73,6 +73,11 @@ export async function GET(request: NextRequest) {
       r.reference,
       r.method === 'credit' ? '' : r.bank_accounts?.name ?? 'Operating',
       Number(r.amount).toFixed(2),
+      // Returned (NSF) receipts, as marked on the register.
+      r.reversed_at ? 'Returned' : 'Received',
+      // Effective return date (the reversal charge's due date), not entry time.
+      r.reversed_at ? (r.reversal_charge?.due_date ?? String(r.reversed_at).slice(0, 10)) : '',
+      r.reversal_reason ?? '',
       r.notes,
     ].map(csvCell).join(','));
   }

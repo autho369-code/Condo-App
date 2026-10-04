@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { money, date } from '@/lib/utils'
-import { CreditCard, Wrench, AlertTriangle, Shield, MessageSquare, Calendar } from 'lucide-react'
+import { CreditCard, Wrench, AlertTriangle, Shield, MessageSquare, Calendar, Undo2 } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 import { ownerTenureCutoffs, tenureFilter } from '../_lib/tenure'
 
 export const dynamic = 'force-dynamic'
@@ -24,12 +25,20 @@ export default async function OwnerTimelinePage() {
   // Same for work orders: only those opened during the owner's tenure.
   const woScope = tenureFilter(tenure, 'created_at', unitIds)
 
-  const [paymentsRes, wosRes, violsRes, msgsRes] = await Promise.all([
-    // By the owner's current units, like the ledger: the view's owner_id comes
-    // from unit_owners, which often disagrees with occupancies.
+  const [paymentsRes, returnsRes, wosRes, violsRes, msgsRes] = await Promise.all([
+    // By the owner's current units, like the ledger. Read payments directly so
+    // returned (reversed) payments are labelled as they are on the ledger.
     paymentScope
-      ? db.from('receivable_payments_ledger').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
-      : Promise.resolve({ data: [] }),
+      ? db.from('payments').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
+      : Promise.resolve({ data: [], error: null }),
+    // A return is its own event, dated when the payment came back (which can
+    // be long after the payment date). The effective return date staff chose
+    // is the reversal charge's due date (the view's reversal_date); fetch and
+    // order returns by it, falling back to when the return was entered.
+    paymentScope
+      ? db.from('receivable_payments_ledger').select('amount, method, reversed_at, reversal_reason, reversal_date').or(paymentScope).not('reversed_at', 'is', null)
+          .order('reversal_date', { ascending: false, nullsFirst: false }).order('reversed_at', { ascending: false }).limit(30)
+      : Promise.resolve({ data: [], error: null }),
     woScope
       ? db.from('work_orders').select('id, title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [] }),
@@ -44,6 +53,9 @@ export default async function OwnerTimelinePage() {
   for (const p of paymentsRes?.data ?? []) {
     entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
   }
+  for (const p of returnsRes?.data ?? []) {
+    entries.push({ date: p.reversal_date ?? p.reversed_at, icon: Undo2, title: 'Payment returned', detail: money(p.amount) + ' via ' + (p.method ?? '—') + (p.reversal_reason ? ` · ${p.reversal_reason}` : ''), color: 'text-red-600 bg-red-50' })
+  }
   for (const w of wosRes?.data ?? []) {
     entries.push({ date: w.created_at, icon: Wrench, title: `Work Order: ${w.title}`, detail: w.status.replace('_',' '), color: 'text-blue-600 bg-blue-50' })
   }
@@ -55,6 +67,7 @@ export default async function OwnerTimelinePage() {
   }
 
   entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const loadError = paymentsRes?.error ?? returnsRes?.error ?? wosRes?.error ?? violsRes?.error ?? msgsRes?.error
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -62,6 +75,10 @@ export default async function OwnerTimelinePage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Activity Timeline</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">All activity on your account in one place</p>
       </div>
+
+      {loadError && (
+        <Alert tone="danger" title="Could not load all of your activity:">{loadError.message}. The timeline below may be incomplete — please refresh.</Alert>
+      )}
 
       {entries.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/70 bg-white p-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { money, date } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
@@ -37,10 +39,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const supabase = await createClient();
   const db = supabase as any;
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
+  // Local calendar day (the display time zone), not UTC: in US evenings the
+  // UTC date is already tomorrow, and around New Year the UTC year rolls early.
+  const todayStr = todayInZone();
+  const currentYear = Number(todayStr.slice(0, 4));
   const ytdStart = `${currentYear}-01-01`;
-  const todayStr = now.toISOString().slice(0, 10);
 
   const [
     { data: owner },
@@ -220,8 +223,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         .select('id, amount, payment_date, method, reference, unit_id, created_at')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
-        .gte('created_at', ytdStart)
-        .order('created_at', { ascending: false })
+        // By the date received (as entered on the receipt), the same basis as a
+        // return's effective date below.
+        .gte('payment_date', ytdStart)
+        .lte('payment_date', todayStr) // future-dated receipts are not received yet
+        .order('payment_date', { ascending: false })
         .limit(200)
     );
   } else {
@@ -244,15 +250,37 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const [
     { data: unitBalances },
     { data: ledgers },
-    { data: ytdCharges },
-    { data: ytdPayments },
+    { data: ytdChargesRaw },
+    { data: ytdPaymentsRaw },
     { data: paymentLedger },
   ] = await Promise.all(financialQueries);
+
+  // Returned (NSF) payments: the payment counts when it was received, and the
+  // return counts as money back out on its effective date (the reversal
+  // charge's due_date, which staff choose) instead of as a new charge. All of
+  // the units' returns are loaded, with no date window, so a reversal charge is
+  // recognised even when the payment it undoes is from an earlier year.
+  const { rows: returnedPayments, error: returnedError, truncated: returnedTruncated } = unitIds.length > 0
+    ? await fetchAllRows<any>(() => db.from('payments')
+        .select('id, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
+        .in('unit_id', unitIds)
+        .not('reversal_charge_id', 'is', null)
+        .order('id'))
+    : { rows: [], error: null, truncated: false };
+  if (returnedError) throw new Error(`Could not load returned payments: ${returnedError}`);
+  if (returnedTruncated) throw new Error('Too many returned payments to total; the YTD figures would be incomplete.');
+  const reversalChargeIds = new Set<string>((returnedPayments ?? []).map((r: any) => r.reversal_charge_id));
+  const ytdReturns = (returnedPayments ?? [])
+    .map((r: any) => r.reversal_charge)
+    .filter((c: any) => c?.due_date && c.due_date >= ytdStart && c.due_date <= todayStr);
+  const ytdCharges = (ytdChargesRaw ?? []).filter((c: any) => !reversalChargeIds.has(c.id));
+  const ytdPayments = ytdPaymentsRaw ?? [];
 
   // ── Compute financial summary ──
   const totalBalance = (unitBalances ?? []).reduce((sum: number, b: any) => sum + (b.balance ?? 0), 0);
   const ytdChargeTotal = (ytdCharges ?? []).reduce((sum: number, c: any) => sum + (c.amount ?? 0), 0);
-  const ytdPaymentTotal = (ytdPayments ?? []).reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0);
+  const ytdPaymentTotal = (ytdPayments ?? []).reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0)
+    - ytdReturns.reduce((sum: number, c: any) => sum + (c.amount ?? 0), 0);
   const ytdNOI = ytdPaymentTotal - ytdChargeTotal;
   const pastDueCount = (ledgers ?? []).reduce((sum: number, l: any) => sum + (l.open_past_due_count ?? 0), 0);
   const totalOwnershipPct = (currentOccs ?? []).reduce((sum: number, o: any) => sum + (o.share_pct ?? 0), 0);
@@ -262,14 +290,22 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     .sort((a: any, b: any) => a.due_date.localeCompare(b.due_date));
   const nextDueDate = upcomingCharges.length > 0 ? upcomingCharges[0].due_date : null;
 
-  const lastPayment = (paymentLedger ?? []).length > 0 ? paymentLedger[0] : null;
+  // The latest payment that was not returned, queried directly so a run of
+  // returned payments in the recent history can't hide an older good one.
+  const { data: lastPayment, error: lastPaymentError } = payUnitIds.length > 0
+    ? await db.from('receivable_payments_ledger').select('amount, payment_date')
+        .in('unit_id', payUnitIds).is('reversed_at', null)
+        .order('payment_date', { ascending: false }).order('payment_id', { ascending: false })
+        .limit(1).maybeSingle()
+    : { data: null, error: null };
+  if (lastPaymentError) throw new Error(`Could not load the last payment: ${lastPaymentError.message}`);
   const lastDistributionAmount = lastPayment?.amount ?? null;
   const lastDistributionDate = lastPayment?.payment_date ?? null;
 
   const financialMetrics = [
     { label: 'Current Balance', value: money(totalBalance), sublabel: totalBalance > 0 ? 'Amount due' : totalBalance < 0 ? 'Credit' : 'Current' },
     { label: `YTD Charges (${currentYear})`, value: money(ytdChargeTotal), sublabel: `${(ytdCharges ?? []).length} charges` },
-    { label: `YTD Payments (${currentYear})`, value: money(ytdPaymentTotal), sublabel: `${(ytdPayments ?? []).length} payments` },
+    { label: `YTD Payments (${currentYear})`, value: money(ytdPaymentTotal), sublabel: `${(ytdPayments ?? []).length} payments${ytdReturns.length ? ` · ${ytdReturns.length} returned` : ''}` },
     { label: 'Past Due', value: pastDueCount, sublabel: pastDueCount > 0 ? 'Items overdue' : 'None overdue' },
     { label: 'Ownership Share', value: `${totalOwnershipPct.toFixed(1)}%`, sublabel: `${currentOccs.length} unit${currentOccs.length !== 1 ? 's' : ''}` },
     { label: 'Last Distribution', value: lastDistributionAmount != null ? money(lastDistributionAmount) : '—', sublabel: lastDistributionDate ? date(lastDistributionDate) : 'No distributions' },
@@ -299,11 +335,17 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     monthMap.set(mk, entry);
   }
   for (const p of (ytdPayments ?? [])) {
-    if (!p.created_at) continue;
-    const mk = monthKey(p.created_at);
+    if (!p.payment_date) continue;
+    const mk = monthKey(`${p.payment_date}T12:00:00`);
     const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
     entry.payments += p.amount ?? 0;
     entry.paymentCount += 1;
+    monthMap.set(mk, entry);
+  }
+  for (const c of ytdReturns) {
+    const mk = monthKey(`${c.due_date}T12:00:00`);
+    const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
+    entry.payments -= c.amount ?? 0;
     monthMap.set(mk, entry);
   }
 
@@ -319,6 +361,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     unit: p.unit_number,
     association: p.association_name,
     reference: p.reference,
+    reversedAt: p.reversed_at,
+    reversalReason: p.reversal_reason,
   }));
 
   const meta = await loadRecordMeta(db, 'owner', id);
@@ -634,8 +678,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 {distributionHistory.map((d: any) => (
                   <tr key={d.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-2 whitespace-nowrap">{date(d.date)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums font-medium text-green-700">{money(d.amount)}</td>
-                    <td className="px-4 py-2 capitalize text-gray-600">{d.method ?? '—'}</td>
+                    <td className={`px-4 py-2 text-right tabular-nums font-medium ${d.reversedAt ? 'text-gray-400 line-through' : 'text-green-700'}`}>{money(d.amount)}</td>
+                    <td className="px-4 py-2 capitalize text-gray-600">
+                      {d.method ?? '—'}
+                      {d.reversedAt && <span className="ml-2 normal-case"><StatusChip tone="danger">Returned{d.reversalReason ? ` · ${d.reversalReason}` : ''}</StatusChip></span>}
+                    </td>
                     <td className="px-4 py-2">{d.unit ?? '—'}</td>
                     <td className="px-4 py-2 text-gray-600">{d.association ?? '—'}</td>
                     <td className="px-4 py-2 text-xs text-gray-500">{d.reference ?? '—'}</td>
