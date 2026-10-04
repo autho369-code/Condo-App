@@ -1900,7 +1900,7 @@ async function MaintenanceResponseView(ctx: ReportContext) {
     if (UUID_RE.test(ctx.selectedAssociation)) q = q.eq('association_id', ctx.selectedAssociation);
     return q;
   };
-  const [reqRes, woRes, openRes] = await Promise.all([
+  const [reqRes, woRes, openRes, zoneRes] = await Promise.all([
     fetchAllRows<any>(() => scoped(db.from('service_requests')
       .select('id, association_id, priority, status, created_at, first_response_due_at, acknowledged_at, resolved_at')
       .is('archived_at', null).neq('status', 'cancelled')
@@ -1913,10 +1913,13 @@ async function MaintenanceResponseView(ctx: ReportContext) {
       .select('id, association_id, priority, status, created_at, completed_date')
       .is('archived_at', null).is('completed_date', null)
       .not('status', 'in', '(done,completed,billed,closed,cancelled)').order('id'))),
+    db.from('associations').select('id, timezone'),
   ]);
-  const loadError = reqRes.error ?? woRes.error ?? openRes.error;
+  const loadError = reqRes.error ?? woRes.error ?? openRes.error ?? zoneRes.error?.message ?? null;
   const requests = reqRes.rows;
-  const workOrders = woRes.rows;
+  // completed_date is the association's local date; compare it with the local creation date.
+  const zones = new Map<string, string | null>(((zoneRes.data ?? []) as any[]).map((a) => [a.id, a.timezone ?? null]));
+  const workOrders = woRes.rows.map((w: any) => ({ ...w, time_zone: zones.get(w.association_id) ?? zone }));
   const now = new Date();
   const total = responseMetrics(requests, workOrders, now);
   const aging = openWorkOrderAging(openRes.rows, now);
@@ -1962,7 +1965,7 @@ async function MaintenanceResponseView(ctx: ReportContext) {
     <LiveReportShell ctx={ctx} subtitle={`Requests and work orders created ${ctx.period.from} → ${ctx.period.to}`}>
       {loadError && <Alert tone="danger" title="Some maintenance records could not be loaded:">{loadError}</Alert>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile label="Replied on time" value={rateLabel(total.onTimeRate)} sub={`${total.onTime} of ${total.withTarget} with a reply target`}
+        <Tile label="Replied on time" value={rateLabel(total.onTimeRate)} sub={`${total.onTime} of ${total.withTarget} answered or past their reply target`}
           tone={total.onTimeRate == null ? 'neutral' : total.onTimeRate >= 0.9 ? 'positive' : total.onTimeRate >= 0.7 ? 'warning' : 'danger'} />
         <Tile label="Median first reply" value={hoursLabel(total.medianHoursToRespond)} sub={`${total.overdueNow} waiting past target`} tone={total.overdueNow > 0 ? 'warning' : 'neutral'} />
         <Tile label="Median to complete a work order" value={daysLabel(total.medianDaysToComplete)} sub={`${total.completed} of ${total.workOrders} completed`} tone="neutral" />

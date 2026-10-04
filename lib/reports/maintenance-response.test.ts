@@ -31,6 +31,15 @@ describe('maintenance response metrics', () => {
     expect(m.medianDaysToResolve).toBe(2);
   });
 
+  it('leaves requests still inside their reply window out of the on-time rate', () => {
+    const m = responseMetrics([
+      req({ first_response_due_at: '2026-10-04T10:00:00Z', acknowledged_at: '2026-10-04T09:00:00Z' }),
+      req({ first_response_due_at: '2026-10-05T10:00:00Z' }),
+    ], [], NOW);
+    expect(m).toMatchObject({ withTarget: 1, onTime: 1, overdueNow: 0 });
+    expect(m.onTimeRate).toBe(1);
+  });
+
   it('measures work-order completion in calendar days and counts done statuses without a date', () => {
     const m = responseMetrics([], [
       wo({ completed_date: '2026-10-04' }),
@@ -40,6 +49,14 @@ describe('maintenance response metrics', () => {
     ], NOW);
     expect(m).toMatchObject({ workOrders: 4, completed: 3, medianDaysToComplete: 1.5 });
     expect(m.onTimeRate).toBeNull();
+  });
+
+  it('counts completion days from the association-local creation date', () => {
+    // 02:00 UTC on Oct 2 is the evening of Oct 1 in Chicago.
+    const local = responseMetrics([], [wo({ created_at: '2026-10-02T02:00:00Z', completed_date: '2026-10-02', time_zone: 'America/Chicago' })], NOW);
+    const utc = responseMetrics([], [wo({ created_at: '2026-10-02T02:00:00Z', completed_date: '2026-10-02' })], NOW);
+    expect(local.medianDaysToComplete).toBe(1);
+    expect(utc.medianDaysToComplete).toBe(0);
   });
 
   it('ages open work orders and skips finished or cancelled ones', () => {
@@ -57,15 +74,29 @@ describe('maintenance response metrics', () => {
     ]);
   });
 
-  it('exports one row per association plus a total', () => {
+  it('exports the association, priority and open-age sections', () => {
     const rows = responseExportRows(
-      [req({ association_id: 'b', first_response_due_at: '2026-10-01T14:00:00Z', acknowledged_at: '2026-10-01T11:00:00Z' })],
+      [req({ association_id: 'b', priority: 'high', first_response_due_at: '2026-10-01T14:00:00Z', acknowledged_at: '2026-10-01T11:00:00Z' })],
       [wo({ association_id: 'a' })],
       new Map([['a', 'Alder'], ['b', 'Birch']]),
+      [wo({ created_at: '2026-07-01T00:00:00Z' })],
       NOW,
     );
-    expect(rows.map((r) => r.association)).toEqual(['Alder', 'Birch', 'All associations']);
+    expect(rows.map((r) => `${r.section}: ${r.group}`)).toEqual([
+      'By association: Alder',
+      'By association: Birch',
+      'By association: All associations',
+      'By priority: High',
+      'By priority: Normal',
+      'Open work orders by age: 0–7 days',
+      'Open work orders by age: 8–30 days',
+      'Open work orders by age: 31–60 days',
+      'Open work orders by age: Over 60 days',
+    ]);
     expect(rows[1]).toMatchObject({ requests: 1, answered_on_time: 1, on_time_rate: 1, median_hours_to_respond: 1 });
     expect(rows[2]).toMatchObject({ requests: 1, work_orders: 1 });
+    expect(rows[8]).toMatchObject({ open_work_orders: 1, requests: null });
+    // Every row carries the same columns, so CSV/Excel headers stay stable.
+    expect(new Set(rows.map((r) => Object.keys(r).join()))).toHaveProperty('size', 1);
   });
 });

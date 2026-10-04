@@ -19,10 +19,13 @@ export type ResponseWorkOrder = {
   status: string | null;
   created_at: string;
   completed_date: string | null;
+  /** The association's time zone: completed_date is a local calendar date. */
+  time_zone?: string | null;
 };
 
 export type ResponseMetrics = {
   requests: number;
+  /** Requests with a reply target whose outcome is known (answered, or past the target). */
   withTarget: number;
   onTime: number;
   late: number;
@@ -52,9 +55,20 @@ export function median(values: number[]): number | null {
 
 const ms = (iso: string | null) => (iso ? Date.parse(iso) : NaN);
 
-/** Days from a timestamp to a calendar date (completed_date has no time). */
-function daysToDate(createdAt: string, completedDate: string): number {
-  return Math.max(0, Math.round((Date.parse(`${completedDate}T00:00:00Z`) - Date.parse(`${createdAt.slice(0, 10)}T00:00:00Z`)) / DAY));
+/** The calendar date of a timestamp in a time zone (UTC when unknown or invalid). */
+export function localDate(iso: string, timeZone?: string | null): string {
+  const at = new Date(iso);
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
+  } catch {
+    return at.toISOString().slice(0, 10);
+  }
+}
+
+/** Days from a timestamp to a local calendar date (completed_date has no time). */
+function daysToDate(createdAt: string, completedDate: string, timeZone?: string | null): number {
+  const created = localDate(createdAt, timeZone);
+  return Math.max(0, Math.round((Date.parse(`${completedDate}T00:00:00Z`) - Date.parse(`${created}T00:00:00Z`)) / DAY));
 }
 
 export function responseMetrics(requests: ResponseRequest[], workOrders: ResponseWorkOrder[], now = new Date()): ResponseMetrics {
@@ -67,11 +81,13 @@ export function responseMetrics(requests: ResponseRequest[], workOrders: Respons
     const created = ms(r.created_at);
     const due = ms(r.first_response_due_at);
     const ack = ms(r.acknowledged_at);
-    if (!Number.isNaN(due)) {
+    // Only requests whose outcome is known count toward the on-time rate:
+    // answered, or past their deadline. One still inside its window is neither.
+    if (!Number.isNaN(due) && (!Number.isNaN(ack) || due < nowMs)) {
       withTarget++;
       if (!Number.isNaN(ack)) {
         if (ack <= due) onTime++; else late++;
-      } else if (due < nowMs && OPEN_REQUEST.has(String(r.status))) {
+      } else if (OPEN_REQUEST.has(String(r.status))) {
         overdueNow++;
       }
     }
@@ -88,7 +104,7 @@ export function responseMetrics(requests: ResponseRequest[], workOrders: Respons
   for (const w of workOrders) {
     if (w.completed_date) {
       completed++;
-      completeDays.push(daysToDate(w.created_at, w.completed_date));
+      completeDays.push(daysToDate(w.created_at, w.completed_date, w.time_zone));
     } else if (DONE_WORK_ORDER.has(String(w.status))) {
       completed++;
     }
@@ -142,32 +158,52 @@ export const hoursLabel = (h: number | null) => (h == null ? '—' : h < 1 ? `${
 export const daysLabel = (d: number | null) => (d == null ? '—' : `${d.toFixed(1)} days`);
 export const rateLabel = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
 
-/** Export rows: one per association plus a total row. */
+/**
+ * Export rows, the same sections as the live page: one row per association
+ * plus a total, one per priority, then open work orders by age.
+ */
 export function responseExportRows(
   requests: ResponseRequest[],
   workOrders: ResponseWorkOrder[],
   associationNames: Map<string, string>,
+  openWorkOrders: ResponseWorkOrder[] = [],
   now = new Date(),
 ): Record<string, unknown>[] {
-  const reqBy = groupBy(requests, (r) => r.association_id ?? '');
-  const woBy = groupBy(workOrders, (w) => w.association_id ?? '');
-  const ids = [...new Set([...reqBy.keys(), ...woBy.keys()])]
-    .sort((a, b) => (associationNames.get(a) ?? '').localeCompare(associationNames.get(b) ?? ''));
-  const row = (name: string, m: ResponseMetrics) => ({
-    association: name,
+  const round1 = (v: number | null) => (v == null ? null : Math.round(v * 10) / 10);
+  const blank = {
+    requests: null, answered_on_time: null, answered_late: null, overdue_unanswered: null, on_time_rate: null,
+    median_hours_to_respond: null, resolved: null, median_days_to_resolve: null, work_orders: null,
+    work_orders_completed: null, median_days_to_complete: null, open_work_orders: null,
+  };
+  const row = (section: string, group: string, m: ResponseMetrics): Record<string, unknown> => ({
+    section,
+    group,
+    ...blank,
     requests: m.requests,
     answered_on_time: m.onTime,
     answered_late: m.late,
     overdue_unanswered: m.overdueNow,
     on_time_rate: m.onTimeRate == null ? null : Math.round(m.onTimeRate * 100) / 100,
-    median_hours_to_respond: m.medianHoursToRespond == null ? null : Math.round(m.medianHoursToRespond * 10) / 10,
+    median_hours_to_respond: round1(m.medianHoursToRespond),
     resolved: m.resolved,
-    median_days_to_resolve: m.medianDaysToResolve == null ? null : Math.round(m.medianDaysToResolve * 10) / 10,
+    median_days_to_resolve: round1(m.medianDaysToResolve),
     work_orders: m.workOrders,
     work_orders_completed: m.completed,
-    median_days_to_complete: m.medianDaysToComplete == null ? null : Math.round(m.medianDaysToComplete * 10) / 10,
+    median_days_to_complete: round1(m.medianDaysToComplete),
   });
-  const rows = ids.map((id) => row(associationNames.get(id) ?? (id ? 'Association' : 'No association'), responseMetrics(reqBy.get(id) ?? [], woBy.get(id) ?? [], now)));
-  if (rows.length > 0) rows.push(row('All associations', responseMetrics(requests, workOrders, now)));
+  const reqBy = groupBy(requests, (r) => r.association_id ?? '');
+  const woBy = groupBy(workOrders, (w) => w.association_id ?? '');
+  const ids = [...new Set([...reqBy.keys(), ...woBy.keys()])]
+    .sort((a, b) => (associationNames.get(a) ?? '').localeCompare(associationNames.get(b) ?? ''));
+  const rows = ids.map((id) => row('By association', associationNames.get(id) ?? (id ? 'Association' : 'No association'),
+    responseMetrics(reqBy.get(id) ?? [], woBy.get(id) ?? [], now)));
+  if (rows.length > 0) rows.push(row('By association', 'All associations', responseMetrics(requests, workOrders, now)));
+  for (const p of PRIORITIES) {
+    const m = responseMetrics(requests.filter((r) => r.priority === p), workOrders.filter((w) => w.priority === p), now);
+    if (m.requests + m.workOrders > 0) rows.push(row('By priority', p.charAt(0).toUpperCase() + p.slice(1), m));
+  }
+  for (const b of openWorkOrderAging(openWorkOrders, now)) {
+    rows.push({ section: 'Open work orders by age', group: b.bucket, ...blank, open_work_orders: b.count });
+  }
   return rows;
 }
