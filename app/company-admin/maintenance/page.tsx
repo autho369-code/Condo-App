@@ -4,6 +4,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { CalendarClock, Wrench, AlertTriangle } from 'lucide-react'
+import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +14,9 @@ export default async function CompanyMaintenanceCalendarPage() {
   await requirePortfolioAdmin()
   const supabase = await createClient()
   const db = supabase as any
-  const today = new Date().toISOString().slice(0, 10)
-  const in90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
+  const in90 = addDaysToDate(today, 90)
 
   const [{ data: upcoming }, { data: inspections }] = await Promise.all([
     // v_upcoming_maintenance is portfolio-scoped by can_access_portfolio inside the view.

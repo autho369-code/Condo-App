@@ -16,6 +16,7 @@ import {
   Landmark,
   ArrowRight,
 } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,9 +56,11 @@ export default async function FinancialOversightPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date()
-  const year = today.getFullYear()
-  const monthStart = `${year}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const todayDate = todayInZone()
+  const [year, month, day] = todayDate.split('-').map(Number)
+  const today = new Date(year, month - 1, day, 12)
+  const monthStart = `${todayDate.slice(0, 7)}-01`
   const yearStart = `${year}-01-01`
 
   const [

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { DollarSign, TrendingUp, Home, AlertTriangle, ArrowDown } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
+import { addMonthsToMonth, todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,22 +46,21 @@ export default async function RevenuePage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const now = new Date()
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+  // Months are calendar months in the company's zone (server runs in UTC).
+  const currentMonth = todayInZone().slice(0, 7)
+  const currentMonthStart = `${currentMonth}-01`
+  const trendStart = `${addMonthsToMonth(currentMonth, -5)}-01`
 
   // ── Fetch management fees ────────────────────────────
-  let feeRows: any[] = []
-  try {
-    const { data } = await db
-      .from('management_fees')
-      .select('*, associations!inner(id, name)')
-      .eq('portfolio_id', portfolioId)
-      .order('month', { ascending: false })
-      .limit(500)
-    feeRows = data ?? []
-  } catch {
-    feeRows = []
-  }
+  // Only the six months the page shows (a fixed 500-row cap cut the trend
+  // short for larger portfolios). Errors are shown, not rendered as $0.
+  const { data: feeData, error: feeError } = await db
+    .from('management_fees')
+    .select('*, associations!inner(id, name)')
+    .eq('portfolio_id', portfolioId)
+    .gte('month', trendStart)
+    .order('month', { ascending: false })
+  const feeRows: any[] = feeData ?? []
 
   // Current month fees
   const currentMonthFees = feeRows.filter((f: any) => {
@@ -94,9 +95,8 @@ export default async function RevenuePage() {
   // Last 6 months trend
   const last6Months: { label: string; collected: number; fee: number; key: string }[] = []
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = d.toISOString().slice(0, 7)
-    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+    const key = addMonthsToMonth(currentMonth, -i)
+    const label = new Date(`${key}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' })
     const monthFees = feeRows.filter((f: any) => {
       if (!f.month) return false
       const m = typeof f.month === 'string' ? f.month.slice(0, 7) : f.month
@@ -119,6 +119,8 @@ export default async function RevenuePage() {
           Company-wide revenue dashboard for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
+
+      {feeError && <Alert title="Could not load management fees">{feeError.message}</Alert>}
 
       {/* ── Stats Cards ─────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

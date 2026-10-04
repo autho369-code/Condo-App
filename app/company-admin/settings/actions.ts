@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { normalizeCompanySettingsInput } from '@/lib/company-admin/settings'
 
 function failTo(message: string): never {
   redirect(`/company-admin/settings?error=${encodeURIComponent(message)}`)
@@ -11,12 +12,12 @@ function failTo(message: string): never {
 
 export async function updateCompanySettings(formData: FormData) {
   const me = await requirePortfolioAdmin()
+  const portfolioId: string | undefined = me.portfolio?.id
+  if (!portfolioId) failTo('Your account is not linked to a company.')
   const supabase = await createClient()
   const db = supabase as any
-  const portfolioId = me.portfolio.id
 
   const companyName = formData.get('company_name') as string
-  const logoUrl = formData.get('logo_url') as string
   const addressStreet = formData.get('address_street') as string
   const addressCity = formData.get('address_city') as string
   const addressState = formData.get('address_state') as string
@@ -36,11 +37,15 @@ export async function updateCompanySettings(formData: FormData) {
     billing_reminder: formData.get('notify_billing') === 'on',
   }
 
-  // Manager defaults
-  const managerDefaults = {
-    role: (formData.get('default_role') as string) || 'manager',
-    permissions: (formData.get('default_permissions') as string) || 'standard',
-  }
+  // Logo URL and manager defaults are free-form inputs; only accept an
+  // http(s) logo URL and the role/permission values the page offers.
+  const normalized = normalizeCompanySettingsInput({
+    logo_url: formData.get('logo_url'),
+    default_role: formData.get('default_role'),
+    default_permissions: formData.get('default_permissions'),
+  })
+  if ('error' in normalized) failTo(normalized.error)
+  const { logoUrl, managerDefaults } = normalized as Exclude<typeof normalized, { error: string }>
 
   // Company profile goes through update_company_profile: a direct update on
   // portfolios matched 0 rows for company admins (RLS), so saves were lost

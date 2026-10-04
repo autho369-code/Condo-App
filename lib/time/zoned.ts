@@ -76,3 +76,17 @@ export function formatInZone(
 export function todayInZone(timeZone: string = displayTimeZone(), now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
+
+/** Shift a calendar date (YYYY-MM-DD) by whole days. Pure date math, no zone. */
+export function addDaysToDate(date: string, days: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) throw new Error(`Invalid calendar date: ${date}`);
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + days)).toISOString().slice(0, 10);
+}
+
+/** Shift a calendar month (YYYY-MM) by whole months. */
+export function addMonthsToMonth(month: string, months: number): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!m) throw new Error(`Invalid calendar month: ${month}`);
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1 + months, 1)).toISOString().slice(0, 7);
+}

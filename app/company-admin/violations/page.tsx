@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { AlertTriangle, Calendar, FileText, Eye } from 'lucide-react'
 import { isHearingPendingViolationStatus, isOpenViolationStatus } from '@/lib/violations/queries'
+import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned'
+import { displayTimeZone } from '@/lib/time/display-zone'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +20,11 @@ export default async function ViolationsOversightPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date()
-  const firstOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  // Calendar dates are the company's zone (server code runs in UTC). notice_sent_at is a timestamp, so
+  // compare against the instant the month began in that zone.
+  const zone = displayTimeZone()
+  const monthStartDate = `${todayInZone(zone).slice(0, 7)}-01`
+  const firstOfMonth = (zonedWallTimeToUtc(monthStartDate, '00:00', zone) ?? new Date(`${monthStartDate}T00:00:00Z`)).toISOString()
 
   // violations has no portfolio_id column — scope by the portfolio's associations.
   const { data: assocRows } = await db

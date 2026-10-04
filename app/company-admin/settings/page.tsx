@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Alert } from '@/components/ui/shell'
+import { PendingSubmit } from '@/components/ui/pending-submit'
 import { updateCompanySettings } from './actions'
 import { Building2, Bell, UserCog, Palette, Save } from 'lucide-react'
 
@@ -20,25 +21,24 @@ export default async function SettingsPage({
   const portfolioId = me.portfolio?.id
   const { error: errorMsg, saved } = await searchParams
 
-  // Fetch portfolio data
-  const { data: portfolio } = await db
-    .from('portfolios')
-    .select('*')
-    .eq('id', portfolioId)
-    .maybeSingle()
-
-  // Fetch portfolio_settings
-  let portfolioSettings: any = null
-  try {
-    const { data } = await db
+  // Explicit columns: portfolios also holds secrets (AI API keys) that this
+  // page never needs.
+  const [{ data: portfolio, error: portfolioError }, { data: portfolioSettings, error: settingsError }] = await Promise.all([
+    db
+      .from('portfolios')
+      .select('id, company_name, phone_number, support_email, address_street, address_city, address_state, address_zip, brand_color')
+      .eq('id', portfolioId)
+      .maybeSingle(),
+    db
       .from('portfolio_settings')
-      .select('*')
+      .select('logo_url, office_address, office_phone, billing_email, notification_prefs, manager_defaults, branding_enabled')
       .eq('portfolio_id', portfolioId)
-      .maybeSingle()
-    portfolioSettings = data
-  } catch {
-    portfolioSettings = null
-  }
+      .maybeSingle(),
+  ])
+  // Saving a form rendered from a failed load would blank every field.
+  const loadError = !portfolioId
+    ? 'Your account is not linked to a company.'
+    : portfolioError?.message ?? settingsError?.message ?? (!portfolio ? 'Company profile not found.' : null)
 
   const p = portfolio ?? {}
   const ps = portfolioSettings ?? {}
@@ -93,10 +93,11 @@ export default async function SettingsPage({
         </p>
       </div>
 
+      {loadError && <Alert title="Could not load settings">{loadError} Reload the page before saving.</Alert>}
       {errorMsg && <Alert title="Settings not saved">{errorMsg}</Alert>}
       {saved && <Alert tone="success" title="Settings saved" />}
 
-      <form action={updateCompanySettings} className="space-y-6">
+      {!loadError && <form action={updateCompanySettings} className="space-y-6">
         {/* ── Company Profile ────────────────────────── */}
         <div className={card}>
           <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
@@ -236,15 +237,12 @@ export default async function SettingsPage({
 
         {/* ── Save Button ────────────────────────────── */}
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
+          <PendingSubmit pendingLabel="Saving…">
             <Save className="h-4 w-4" />
             Save All Settings
-          </button>
+          </PendingSubmit>
         </div>
-      </form>
+      </form>}
     </div>
   )
 }

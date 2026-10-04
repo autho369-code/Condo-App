@@ -6,6 +6,7 @@ import { date } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { ShieldAlert, FileWarning, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,8 +26,9 @@ export default async function CompliancePage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date().toISOString().slice(0, 10)
-  const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
+  const in60 = addDaysToDate(today, 60)
 
   const [
     { data: vendors },
