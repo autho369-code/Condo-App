@@ -315,6 +315,7 @@ export default async function BoardViolationDetailPage({
                     <div key={idx} className="overflow-hidden rounded-xl border border-gray-200/70 bg-gray-50/60">
                       {isImage ? (
                         <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed storage URL; the image optimizer would cache an expiring link */}
                           <img src={url} alt={label} className="h-24 w-full object-cover transition-opacity hover:opacity-80" />
                         </a>
                       ) : (
