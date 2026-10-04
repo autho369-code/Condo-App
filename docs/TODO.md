@@ -17,7 +17,10 @@ Every AppFolio page is built; these need access, accounts or decisions first.
       environment's network settings (or supply a `.env.local`). Unblocks:
   - [ ] Browser walkthroughs of every workflow on the Vercel preview (manager,
         board, owner, vendor, company admin, platform operator).
-  - [ ] `npm run check:queries` against production (every list/detail query).
+  - [ ] `npm run check:queries` against production. Note: it is a schema probe
+        only (literal `.from().select()` strings, anonymous, `limit=0`); it
+        skips template selects and RPCs, so it does not replace the signed-in
+        walkthroughs above.
   - [ ] End-to-end Excel report download (run a report as `.xlsx`, open it).
   - [ ] End-to-end checks of the 2026-10-04 work: batch letters print, Forms
         upload + owner-portal download, Inbox saved replies/search.
@@ -42,7 +45,8 @@ Every AppFolio page is built; these need access, accounts or decisions first.
 - [ ] **Pilot client** to run a full month on real data.
 
 ### Out of scope by choice (revisit only if asked)
-- Native iOS/Android apps · integration marketplace.
+- New native-only features and app-store publishing (the Capacitor iOS/Android
+  shell in `mobile/` is built and loads the live site) · integration marketplace.
 
 ## 🔴 Launch gates — must close before the first paying client
 Mostly on Mirsad / external; not code.
