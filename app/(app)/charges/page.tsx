@@ -316,7 +316,7 @@ export default async function ChargesPage({
         date(r.payment_date), r.owner_name ?? '—', r.method ?? '—', r.unit_number ?? '—',
         r.association_name ?? '—', money(r.amount), r.reference ?? '—',
         // Returned (NSF) receipts, as marked on screen.
-        r.reversed_at ? `Returned ${date(r.reversed_at)}${r.reversal_reason ? ` · ${r.reversal_reason}` : ''}` : 'Received',
+        r.reversed_at ? `Returned ${date(r.reversal_date ?? r.reversed_at)}${r.reversal_reason ? ` · ${r.reversal_reason}` : ''}` : 'Received',
       ]),
     };
   } else if (tab === 'bank-deposits') {
