@@ -69,15 +69,13 @@ export default async function SupportPage({
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-  let requests: any[] = [];
-  try {
-    const { data } = await db
-      .from('platform_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    requests = data ?? [];
-  } catch { requests = []; }
+  // A failed load shows an error instead of an empty queue.
+  const { data: requestRows, error: requestsError } = await db
+    .from('platform_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  const requests: any[] = requestRows ?? [];
 
   const openCount = requests.filter((r: any) => !r.status || r.status === 'open' || r.status === 'pending').length;
   const inProgressCount = requests.filter((r: any) => r.status === 'in_progress' || r.status === 'processing').length;
@@ -94,6 +92,7 @@ export default async function SupportPage({
   return (
     <div className="space-y-6">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
+      {requestsError && <Alert tone="danger" title="Could not load support requests">{requestsError.message}</Alert>}
       {sp.updated === '1' && <Alert tone="success" title="Request updated" />}
 
       <div>
