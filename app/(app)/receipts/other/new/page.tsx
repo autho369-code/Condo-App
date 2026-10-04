@@ -2,10 +2,13 @@ import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { recordOtherReceipt } from '@/lib/rpcs/other-receipts';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +27,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
     db.from('gl_accounts').select('id, number, name, account_type, association_id, associations!gl_accounts_association_id_fkey(name)').eq('portfolio_id', portfolioId).eq('active', true)
       .not('account_type', 'in', '(cash,accounts_receivable)').order('number'),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const usableBanks = (banks ?? []).filter((b: any) => b.gl_account_id);
 
   return (
@@ -41,6 +44,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
           </Alert>
         ) : (
           <form action={recordOtherReceipt} className="space-y-5">
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <Surface>
               <SectionTitle title="Receipt" />
               <div className="grid gap-4 sm:grid-cols-2">
@@ -107,7 +111,7 @@ export default async function NewOtherReceiptPage({ searchParams }: { searchPara
               </div>
             </Surface>
 
-            <Button type="submit">Record receipt</Button>
+            <PendingSubmit pendingLabel="Recording…">Record receipt</PendingSubmit>
           </form>
         )}
       </div>

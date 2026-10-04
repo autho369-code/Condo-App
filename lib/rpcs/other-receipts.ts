@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
@@ -32,6 +33,16 @@ export async function recordOtherReceipt(formData: FormData) {
   const vendorId = s(formData, 'vendor_id');
   const receiptDate = s(formData, 'receipt_date');
   const db = (await createClient()) as any;
+
+  // A double click or re-sent form must not record the receipt twice.
+  const claim = await claimSubmission(db, formData, 'other_receipt');
+  if (claim.status === 'error') fail(claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`/receipts/other/${claim.resultId}?recorded=1`);
+    fail('This receipt is already being recorded. Refresh the other receipts list in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
+
   const { data, error } = await db.rpc('record_other_receipt', {
     p_association_id: UUID_RE.test(s(formData, 'association_id')) ? s(formData, 'association_id') : null,
     p_bank_account_id: UUID_RE.test(s(formData, 'bank_account_id')) ? s(formData, 'bank_account_id') : null,
@@ -43,7 +54,11 @@ export async function recordOtherReceipt(formData: FormData) {
     p_memo: s(formData, 'memo'),
     p_lines: lines,
   });
-  if (error || !data) fail(error?.message ?? 'Could not record the receipt.');
+  if (error || !data) {
+    await releaseSubmission(db, token);
+    fail(error?.message ?? 'Could not record the receipt.');
+  }
+  if (typeof data === 'string' && UUID_RE.test(data)) await completeSubmission(db, token, data);
   revalidatePath('/receipts/other');
   redirect(`/receipts/other/${data}?recorded=1`);
 }

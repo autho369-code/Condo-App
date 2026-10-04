@@ -2,16 +2,20 @@ import Link from 'next/link';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createPaymentPlan } from '@/lib/rpcs/payment-plans';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 import { money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+/** The 1st of the month after `today` (YYYY-MM-DD in the display time zone). */
+function firstOfNextMonth(today: string) {
+  const [y, m] = today.split('-').map(Number);
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
 }
 
 export default async function NewPaymentPlanPage({ searchParams }: { searchParams: Promise<{ error?: string; unit?: string }> }) {
@@ -43,8 +47,7 @@ export default async function NewPaymentPlanPage({ searchParams }: { searchParam
   const options = rows.filter((r) => !hasPlan.has(r.unit_id));
   const selected = options.find((r) => r.unit_id === sp.unit) ?? null;
 
-  const nextMonth = new Date();
-  nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+  const nextMonth = firstOfNextMonth(todayInZone());
 
   return (
     <DataWorkspace
@@ -85,7 +88,7 @@ export default async function NewPaymentPlanPage({ searchParams }: { searchParam
                   </Select>
                 </Field>
                 <Field label="First installment due" htmlFor="first_due_date">
-                  <Input id="first_due_date" name="first_due_date" type="date" required defaultValue={isoDate(nextMonth)} />
+                  <Input id="first_due_date" name="first_due_date" type="date" required defaultValue={nextMonth} />
                 </Field>
                 <Field label="Notes (optional)" htmlFor="notes" className="sm:col-span-2">
                   <Textarea id="notes" name="notes" rows={3} placeholder="e.g. Agreed by phone with the owner on 10/1" />
@@ -96,7 +99,7 @@ export default async function NewPaymentPlanPage({ searchParams }: { searchParam
               Regular dues keep billing as usual — the plan covers the past-due amount. Payments the owner makes count toward the plan automatically.
             </p>
             <div className="mt-4">
-              <Button type="submit">Create payment plan</Button>
+              <PendingSubmit pendingLabel="Creating…">Create payment plan</PendingSubmit>
             </div>
           </form>
         )}

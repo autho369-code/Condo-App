@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { PrintButton } from '@/components/ui/print-button';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import { receiptMethodLabel } from '@/lib/payments/methods';
 import { money } from '@/lib/utils';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -20,7 +21,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
   const { id } = await params;
   const db = (await createClient()) as any;
   const { data: p } = await db.from('payments')
-    .select('id, amount, payment_date, method, reference, notes, created_at, unit_id, units(unit_number, buildings(associations(name, address, city, state, zip, portfolios(company_name, support_email))))')
+    .select('id, amount, payment_date, method, reference, notes, created_at, reversed_at, reversal_reason, unit_id, units(unit_number, buildings(associations(name, address, city, state, zip, portfolios(company_name, support_email))))')
     .eq('id', id).maybeSingle();
   if (!p) notFound();
 
@@ -43,6 +44,13 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
         <PrintButton label="Print receipt" />
       </div>
 
+      {p.reversed_at && (
+        <Alert tone="danger" title={`REVERSED on ${fmtDate(p.reversed_at)}`} className="mb-4">
+          This {p.method === 'credit' ? 'credit' : 'payment'} was reversed and no longer counts toward the account.
+          {p.reversal_reason ? ` Reason: ${p.reversal_reason}` : ''}
+        </Alert>
+      )}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-8 print:rounded-none print:border-0">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 pb-5">
           <div>
@@ -52,6 +60,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
           <div className="text-right">
             <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">{p.method === 'credit' ? 'Credit memo' : 'Payment receipt'}</div>
             <div className="mt-1 font-mono text-sm text-gray-900">#{receiptNo}</div>
+            {p.reversed_at && <div className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-red-700">Reversed</div>}
           </div>
         </div>
 
@@ -85,7 +94,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
         )}
 
         {balanceDue !== null && Number.isFinite(balanceDue) && (
-          <p className="mt-4 text-sm text-gray-600">Account balance after this payment: <span className="font-medium tabular-nums text-gray-900">{money(balanceDue)}</span></p>
+          <p className="mt-4 text-sm text-gray-600">Current account balance: <span className="font-medium tabular-nums text-gray-900">{money(balanceDue)}</span></p>
         )}
         {p.notes && <p className="mt-2 text-sm text-gray-600">Note: {p.notes}</p>}
 

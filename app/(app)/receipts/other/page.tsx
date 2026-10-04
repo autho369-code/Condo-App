@@ -10,6 +10,7 @@ import { StatusChip } from '@/components/operations/status-chip';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +25,10 @@ export default async function OtherReceiptsPage({
 }) {
   await requireFinanceStaff();
   const sp = await searchParams;
-  const now = new Date();
-  const yearStart = `${now.getFullYear()}-01-01`;
+  const today = todayInZone();
+  const yearStart = `${today.slice(0, 4)}-01-01`;
   const from = ISO.test(sp.from ?? '') ? sp.from! : yearStart;
-  const to = ISO.test(sp.to ?? '') ? sp.to! : now.toISOString().slice(0, 10);
+  const to = ISO.test(sp.to ?? '') ? sp.to! : today;
   const assoc = UUID.test(sp.assoc ?? '') ? sp.assoc! : '';
   const payer = sp.payer === 'vendor' || sp.payer === 'other' ? sp.payer : '';
   const showVoided = sp.voided === '1';

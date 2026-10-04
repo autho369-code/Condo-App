@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Alert } from '@/components/ui/shell';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
@@ -28,6 +30,7 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
     'use server';
     await requireStaff();
     const supabase = await createClient();
+    const db = supabase as any;
     const unitId = formData.get('unit_id') as string;
     const categoryId = formData.get('charge_category_id') as string;
     const amount = parseFloat(formData.get('amount') as string);
@@ -35,14 +38,28 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
     if (!categoryId) redirect('/charges/new?error=' + encodeURIComponent('Select a charge category.'));
     if (!Number.isFinite(amount) || amount <= 0) redirect('/charges/new?error=' + encodeURIComponent('Enter an amount greater than zero.'));
 
-    const { error } = await (supabase as any).rpc('post_ad_hoc_charge', {
+    // A double click or re-sent form must not post the charge twice.
+    const claim = await claimSubmission(db, formData, 'ad_hoc_charge');
+    if (claim.status === 'error') redirect('/charges/new?error=' + encodeURIComponent(claim.message));
+    if (claim.status === 'duplicate') {
+      if (claim.resultId) redirect('/charges/new?posted=1');
+      redirect('/charges/new?error=' + encodeURIComponent('This charge is already being posted. Refresh in a moment to see it.'));
+    }
+    const token = (claim as { token: string }).token;
+
+    const { data: charge, error } = await db.rpc('post_ad_hoc_charge', {
       p_unit_id: unitId,
       p_charge_category_id: categoryId,
       p_amount: amount,
       p_description: (formData.get('description') as string)?.trim() || null,
       p_due_date: (formData.get('due_date') as string) || undefined,
     });
-    if (error) redirect('/charges/new?error=' + encodeURIComponent(error.message));
+    if (error) {
+      await releaseSubmission(db, token);
+      redirect('/charges/new?error=' + encodeURIComponent(error.message));
+    }
+    const chargeId = Array.isArray(charge) ? charge[0]?.id : charge?.id;
+    if (typeof chargeId === 'string') await completeSubmission(db, token, chargeId);
     redirect('/charges/new?posted=1');
   }
 
@@ -55,6 +72,7 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
       <form action={createCharge} className="max-w-2xl space-y-5 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not post charge">{sp.error}</Alert>}
         {sp.posted === '1' && <Alert tone="success" title="Charge posted">The charge was added to the unit&apos;s ledger.</Alert>}
+        <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
 
         <div>
           <Label htmlFor="unit_id">Unit <span className="text-red-500">*</span></Label>
@@ -93,7 +111,7 @@ export default async function NewChargePage({ searchParams }: { searchParams: Pr
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-5">
           <Link href="/charges" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-          <Button type="submit" size="lg">Post charge</Button>
+          <PendingSubmit pendingLabel="Posting…">Post charge</PendingSubmit>
         </div>
       </form>
     </DataWorkspace>
