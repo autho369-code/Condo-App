@@ -83,7 +83,7 @@ export default async function EditGlAccountPage({
   if (!UUID.test(id)) notFound();
   const db = (await createClient()) as any;
   const [{ data: account }, { data: associations }, { data: inUse }, { rows: parents }] = await Promise.all([
-    db.from('gl_accounts').select('id, number, name, account_type, association_id, sub_account_of_id, description, include_on_cash_flow, subject_to_management_fees, active, associations(id, name, archived_at)').eq('id', id).maybeSingle(),
+    db.from('gl_accounts').select('id, number, name, account_type, association_id, sub_account_of_id, description, include_on_cash_flow, subject_to_management_fees, active, associations!gl_accounts_association_id_fkey(id, name, archived_at)').eq('id', id).maybeSingle(),
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.rpc('gl_account_in_use', { p_gl_account_id: id }),
     fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, active').neq('id', id).order('number').order('id')),

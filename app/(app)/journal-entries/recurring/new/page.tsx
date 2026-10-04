@@ -12,7 +12,7 @@ export default async function NewRecurringJournalEntryPage({ searchParams }: { s
   const sp = await searchParams;
   const db = (await createClient()) as any;
   const [{ rows: gls }, { rows: associations }] = await Promise.all([
-    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations(name)').eq('active', true).order('number').order('id')),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations!gl_accounts_association_id_fkey(name)').eq('active', true).order('number').order('id')),
     fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
   ]);
 

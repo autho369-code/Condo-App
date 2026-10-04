@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const db = (await createClient()) as any;
   const { rows, error } = await fetchAllRows<any>(() => db
     .from('gl_accounts')
-    .select('id, number, name, account_type, fund_account, active, association_id, sub_account_of_id, description, associations(name)')
+    .select('id, number, name, account_type, fund_account, active, association_id, sub_account_of_id, description, associations!gl_accounts_association_id_fkey(name)')
     .order('number')
     .order('id'));
   if (error) return new NextResponse(`Export failed: ${error}`, { status: 500 });

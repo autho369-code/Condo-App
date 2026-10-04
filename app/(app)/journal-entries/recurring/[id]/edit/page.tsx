@@ -26,7 +26,7 @@ export default async function EditRecurringJournalEntryPage({
     db.from('recurring_journal_entries')
       .select('id, name, memo, frequency, interval_count, next_post_date, end_date, auto_generate, template_lines, last_error')
       .eq('id', id).is('archived_at', null).maybeSingle(),
-    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations(name)').eq('active', true).order('number').order('id')),
+    fetchAllRows<any>(() => db.from('gl_accounts').select('id, number, name, associations!gl_accounts_association_id_fkey(name)').eq('active', true).order('number').order('id')),
     fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
   ]);
   if (!entry) notFound();
