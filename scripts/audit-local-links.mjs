@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { templatePath } from './lib/template-path.mjs';
 
 const root = process.cwd();
 const appDir = join(root, 'app');
@@ -161,6 +162,13 @@ function matchesRoute(href) {
 }
 
 const hrefRegex = /href=(?:\{`([^`]+)`\}|"([^"]+)"|'([^']+)')/g;
+// Links built outside JSX attributes: nav/menu objects, redirects, router calls.
+const extraLinkRegexes = [
+  /\bhref:\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+  /\bredirect\(\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+  /\brouter\.(?:push|replace)\(\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+];
+
 const missing = [];
 const missingReportSlugs = [];
 const placeholders = [];
@@ -168,9 +176,14 @@ const placeholders = [];
 for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/.test(path)))) {
   const text = readFileSync(file, 'utf8');
   let match;
-  while ((match = hrefRegex.exec(text))) {
+  const found = [hrefRegex, ...extraLinkRegexes].flatMap((regex) =>
+    [...text.matchAll(regex)].map((m) => ({ m, jsx: regex === hrefRegex })));
+  for (const { m, jsx } of found) {
+    match = m;
     const raw = match[1] ?? match[2] ?? match[3];
     if (raw.startsWith('#')) {
+      // Anchors in menu objects usually target ids set at runtime; only JSX hrefs are checked.
+      if (!jsx) continue;
       const anchor = raw.slice(1);
       const escapedAnchor = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (!anchor || !new RegExp(`id=["']${escapedAnchor}["']`).test(text)) {
@@ -178,8 +191,15 @@ for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/
       }
       continue;
     }
-    if (!raw.startsWith('/')) continue;
-    if (raw.includes('${')) continue;
+    if (!raw.startsWith('/') || raw.startsWith('//')) continue;
+    if (raw.includes('${')) {
+      const path = templatePath(raw);
+      if (!path) continue;
+      const slug = path.includes('__param__') ? null : unresolvedReportSlug(path);
+      if (slug) missingReportSlugs.push({ file, href: raw, slug });
+      if (!matchesRoute(path)) missing.push({ file, href: raw });
+      continue;
+    }
     const missingReportSlug = unresolvedReportSlug(raw);
     if (missingReportSlug) missingReportSlugs.push({ file, href: raw, slug: missingReportSlug });
     if (!matchesRoute(raw)) missing.push({ file, href: raw });

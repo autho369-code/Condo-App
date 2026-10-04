@@ -85,7 +85,9 @@ export const REPORT_CATALOG: CatalogCategory[] = [
     key: 'maintenance',
     title: 'Maintenance Reports',
     reports: [
+      { name: 'Inspection Compliance', slug: 'inspection_compliance' },
       { name: 'Inspection Detail', slug: 'inspection_detail' },
+      { name: 'Maintenance Response Times', slug: 'maintenance_response_times' },
       { name: 'Project Budget Detail', slug: 'project_budget_detail' },
       { name: 'Project Directory', slug: 'project_directory' },
       { name: 'Purchase Order', slug: 'purchase_order' },

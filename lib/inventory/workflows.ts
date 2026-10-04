@@ -26,7 +26,7 @@ export const inventoryWorkflowCards = [
   {
     title: 'Inventory Report',
     description: 'View low-stock items, valuation summary, and restock recommendations.',
-    href: '/reports/inventory',
+    href: '/reports/inventory_status',
     action: 'generate_report' satisfies InventoryWorkflowAction,
   },
   {
