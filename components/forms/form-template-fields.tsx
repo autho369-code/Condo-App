@@ -1,5 +1,6 @@
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { FORM_AUDIENCES } from '@/lib/forms/files';
+import { FormFileInput } from '@/components/forms/form-file-input';
 
 export type FormTemplateValues = {
   id?: string;
@@ -13,7 +14,7 @@ export type FormTemplateValues = {
   active?: boolean | null;
 };
 
-/** Fields shared by the new and edit form-template pages (multipart form). */
+/** Fields shared by the new and edit form-template pages (the file uploads separately). */
 export function FormTemplateFields({ form, fileHref }: { form?: FormTemplateValues; fileHref?: string | null }) {
   const editing = !!form?.id;
   return (
@@ -38,15 +39,9 @@ export function FormTemplateFields({ form, fileHref }: { form?: FormTemplateValu
       <Field
         label={form?.file_path ? 'Replace file' : 'Upload file'}
         htmlFor="file"
-        hint="PDF, Word, PNG or JPEG, up to 10 MB."
+        hint="PDF, Word, PNG or JPEG, up to 25 MB."
       >
-        <input
-          id="file"
-          name="file"
-          type="file"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf"
-          className="block w-full text-sm text-gray-700 file:mr-3 file:h-10 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50"
-        />
+        <FormFileInput formId={form?.id} />
       </Field>
       {form?.file_path && (
         <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm sm:flex-row sm:items-center">

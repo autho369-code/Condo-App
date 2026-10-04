@@ -2,7 +2,9 @@
 
 // Form templates (Communication → Forms). Staff create, edit and archive
 // forms; a form can carry an uploaded file (private storage, signed links)
-// or an https link. Every action re-checks staff access in its own body and
+// or an https link. The file goes browser→storage through a signed upload
+// URL (Vercel caps server-action bodies at ~4.5 MB); saveFormTemplate then
+// checks the uploaded object before linking it. Every action re-checks staff access in its own body and
 // reads the form through the caller's RLS-scoped client before changing it,
 // so a form id from the request can only reach the caller's own portfolio.
 
@@ -12,20 +14,40 @@ import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { FORMS_BUCKET } from '@/lib/forms/files';
+import { FORM_FILE_MAX_BYTES, FORM_FILE_TYPES, isFormFilePath } from '@/lib/forms/file-types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AUDIENCES = new Set(['homeowner', 'vendor', 'internal']);
-const MAX_BYTES = 10 * 1024 * 1024;
-// Within the association-documents bucket's allowed MIME types.
-const TYPES: Record<string, string> = {
-  'application/pdf': 'pdf',
-  'application/msword': 'doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-};
+const MAX_MB = Math.round(FORM_FILE_MAX_BYTES / 1048576);
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
+
+/** Authorizes one browser→storage upload into the caller's portfolio folder. */
+export async function createFormFileUpload(input: {
+  formId?: string | null;
+  fileType: string;
+  fileSize: number;
+}): Promise<{ error?: string; path?: string; token?: string }> {
+  const me = await requireStaff();
+  let portfolioId = me.portfolio?.id ?? null;
+  if (input.formId) {
+    if (!UUID.test(input.formId)) return { error: 'Invalid form.' };
+    const db = (await createClient()) as any;
+    const { data } = await db.from('form_templates').select('portfolio_id').eq('id', input.formId).is('archived_at', null).maybeSingle();
+    if (!data) return { error: 'That form is unavailable or outside your access.' };
+    portfolioId = data.portfolio_id;
+  }
+  if (!portfolioId) return { error: 'Your account is not linked to a management company.' };
+  const ext = FORM_FILE_TYPES[input.fileType];
+  if (!ext) return { error: 'Upload a PDF, Word document, PNG or JPEG.' };
+  if (!(input.fileSize > 0)) return { error: 'The file is empty.' };
+  if (input.fileSize > FORM_FILE_MAX_BYTES) return { error: `Files can be up to ${MAX_MB} MB.` };
+
+  const path = `forms/${portfolioId}/${randomUUID()}.${ext}`;
+  const { data, error } = await (createServiceClient() as any).storage.from(FORMS_BUCKET).createSignedUploadUrl(path);
+  if (error || !data?.token) return { error: error?.message ?? 'Could not authorize the upload.' };
+  return { path, token: data.token };
+}
 
 function fail(path: string, msg: string): never {
   redirect(`${path}${path.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
@@ -56,20 +78,26 @@ export async function saveFormTemplate(formData: FormData) {
   }
   const targetPortfolio = existing?.portfolio_id ?? portfolioId!;
 
-  // Optional new file.
-  const file = formData.get('file');
+  // Optional new file, already uploaded by the browser (FormFileInput).
+  if (str(formData, 'file_state') === 'uploading') fail(back, 'Wait for the file to finish uploading, then save again.');
   let upload: { path: string; name: string } | null = null;
-  if (file && typeof file === 'object' && 'size' in file && file.size > 0) {
-    const f = file as File;
-    const ext = TYPES[f.type];
-    if (!ext) fail(back, 'Upload a PDF, Word document, PNG or JPEG.');
-    if (f.size > MAX_BYTES) fail(back, 'Files can be up to 10 MB.');
-    const path = `forms/${targetPortfolio}/${randomUUID()}.${ext}`;
-    const { error: upErr } = await (createServiceClient() as any).storage
-      .from(FORMS_BUCKET)
-      .upload(path, Buffer.from(await f.arrayBuffer()), { contentType: f.type, upsert: false });
-    if (upErr) fail(back, `The file could not be uploaded: ${upErr.message}`);
-    upload = { path, name: (f.name || `form.${ext}`).slice(0, 200) };
+  const uploadedPath = str(formData, 'file_path');
+  if (uploadedPath) {
+    const svc = createServiceClient() as any;
+    if (!isFormFilePath(uploadedPath, targetPortfolio)) fail(back, 'Invalid file reference. Choose the file again.');
+    const { data: info, error: infoErr } = await svc.storage.from(FORMS_BUCKET).info(uploadedPath);
+    if (infoErr || !info) fail(back, 'The uploaded file was not found. Choose the file again.');
+    const size = Number(info.size ?? info.metadata?.size ?? 0);
+    const type = String(info.contentType ?? info.metadata?.mimetype ?? '');
+    if (!FORM_FILE_TYPES[type] || !(size > 0) || size > FORM_FILE_MAX_BYTES) {
+      await svc.storage.from(FORMS_BUCKET).remove([uploadedPath]);
+      fail(back, `Upload a PDF, Word document, PNG or JPEG up to ${MAX_MB} MB.`);
+    }
+    // A path already linked to a form is never re-linked (or later deleted) through another one.
+    const { data: taken } = await svc.from('form_templates').select('id').eq('file_path', uploadedPath).limit(1);
+    if (taken?.length) fail(back, 'Invalid file reference. Choose the file again.');
+    const ext = FORM_FILE_TYPES[type];
+    upload = { path: uploadedPath, name: (str(formData, 'file_name') || `form.${ext}`).slice(0, 200) };
   }
   const removeFile = str(formData, 'remove_file') === '1';
 
