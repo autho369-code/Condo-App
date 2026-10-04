@@ -310,11 +310,13 @@ export default async function ChargesPage({
       title: 'Receipts',
       columns: [
         { header: 'Date' }, { header: 'Payer' }, { header: 'Method' }, { header: 'Unit' },
-        { header: 'Association' }, { header: 'Amount', align: 'right' }, { header: 'Reference' },
+        { header: 'Association' }, { header: 'Amount', align: 'right' }, { header: 'Reference' }, { header: 'Status' },
       ],
       rows: receipts.map((r) => [
         date(r.payment_date), r.owner_name ?? '—', r.method ?? '—', r.unit_number ?? '—',
         r.association_name ?? '—', money(r.amount), r.reference ?? '—',
+        // Returned (NSF) receipts, as marked on screen.
+        r.reversed_at ? `Returned ${date(r.reversed_at)}${r.reversal_reason ? ` · ${r.reversal_reason}` : ''}` : 'Received',
       ]),
     };
   } else if (tab === 'bank-deposits') {
