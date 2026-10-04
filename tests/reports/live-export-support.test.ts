@@ -23,6 +23,7 @@ describe('audited live report exports', () => {
       'bank_account_reconciliation',
       'bank_reconciliation_detail',
       'maintenance_response_times',
+      'inspection_compliance',
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
