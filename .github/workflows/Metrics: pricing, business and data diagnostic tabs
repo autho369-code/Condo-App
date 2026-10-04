@@ -1,4 +1,4 @@
-name: CI
+name: Metrics: pricing, business and data diagnostic tabs
 
 on:
   pull_request:
