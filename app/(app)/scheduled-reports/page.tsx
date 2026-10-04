@@ -40,14 +40,14 @@ export default async function ScheduledReportsPage({
 
   const result = await fetchAllRows<any>(() => db
     .from('scheduled_reports')
-    .select('id, name, frequency, day_of_week, day_of_month, hour_utc, local_hour, time_zone, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_by, saved_report_id, report_definitions(name), saved_reports(name)')
+    .select('id, name, frequency, day_of_week, day_of_month, hour_utc, local_hour, time_zone, delivery_targets, delivery_channel, output_format, active, next_run_at, last_run_at, created_by, run_as, saved_report_id, report_definitions(name), saved_reports(name)')
     .is('archived_at', null)
     .order('name')
     .order('id'));
   const rows = result.rows;
 
-  // created_by references auth.users, so names come from profiles separately.
-  const creatorIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))] as string[];
+  // created_by / run_as reference auth.users, so names come from profiles separately.
+  const creatorIds = [...new Set(rows.flatMap((r) => [r.created_by, r.run_as]).filter(Boolean))] as string[];
   const { data: creators } = creatorIds.length
     ? await db.from('profiles').select('id, full_name, email').in('id', creatorIds)
     : { data: [] };
@@ -66,7 +66,7 @@ export default async function ScheduledReportsPage({
   return (
     <DataWorkspace
       title="Scheduled Reports"
-      description="Reports that run automatically on a schedule and are emailed to the people you choose."
+      description="Reports that run automatically on a schedule and are emailed to the people you choose. Each runs with the access of the person who last set its report or recipients."
       actions={
         <>
           <Link href="/reports/runs"><Button variant="secondary">Report history</Button></Link>
@@ -99,7 +99,7 @@ export default async function ScheduledReportsPage({
                 <TH>Format</TH>
                 <TH>Last run</TH>
                 <TH>Next run</TH>
-                <TH>Created by</TH>
+                <TH>Runs as</TH>
                 <TH>Status</TH>
                 <TH className="text-right">Actions</TH>
               </TR>
@@ -126,7 +126,7 @@ export default async function ScheduledReportsPage({
                     <TD className="text-sm uppercase text-gray-600">{s.output_format}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-600">{s.last_run_at ? date(s.last_run_at) : '—'}</TD>
                     <TD className="whitespace-nowrap text-sm text-gray-900">{s.active ? when(s.next_run_at) : '—'}</TD>
-                    <TD className="text-sm text-gray-600">{creatorName.get(s.created_by) ?? '—'}</TD>
+                    <TD className="text-sm text-gray-600">{creatorName.get(s.run_as ?? s.created_by) ?? '—'}</TD>
                     <TD>
                       <StatusChip tone={s.active ? 'success' : 'neutral'}>{s.active ? 'Active' : 'Paused'}</StatusChip>
                     </TD>
