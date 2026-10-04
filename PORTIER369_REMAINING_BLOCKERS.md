@@ -55,6 +55,8 @@ Fifteen accounting exporters and eight database-dispatch report families are imp
 
 Required: remove the XLSX claim or implement and verify XLSX, then execute every active report definition.
 
+*2026-10-04:* the catalog already lists only supported formats (`supportedReportOutputFormats`); the last place offering Excel/HTML, the bulk association reports form, now offers CSV/PDF/JSON only and the action rejects anything else. Real XLSX output would need a spreadsheet library (an owner decision). Every active definition is handled by `report_data_dispatch` (verified 2026-10-04 for the ten newest).
+
 ### 6. Hosted delivery evidence
 
 Worker and retry logic pass staging verification, but external delivery still needs evidence for:
@@ -69,9 +71,9 @@ The immutable check PDF is generated correctly and the accounting lifecycle pass
 
 ## Non-blocking but required before broad rollout
 
-- Replace or explicitly justify the three raw-image lint warnings.
-- Triage the remaining empty `catch` blocks where a user-visible or audit-critical failure could be hidden.
-- Remove or delegate the dead duplicate `PUBLIC_PATHS` list in `lib/supabase/middleware.ts`.
+- ~~Replace or explicitly justify the three raw-image lint warnings.~~ Done 2026-10-04: justified inline (tenant logos on arbitrary hosts; short-lived signed URLs). `next lint` is clean.
+- Triage the remaining empty `catch` blocks where a user-visible or audit-critical failure could be hidden. *2026-10-04:* the platform audit log now shows load failures instead of an empty trail; the remaining ~30 are best-effort (signed links, cache cleanup, optional parsing).
+- ~~Remove or delegate the dead duplicate `PUBLIC_PATHS` list in `lib/supabase/middleware.ts`.~~ Done 2026-10-04: the unused file is removed; `middleware.ts` uses `lib/server/public-paths.ts`.
 - Add production observability/alert thresholds for failed workers, report runs, auth denials, and payment webhooks.
 - Perform dependency remediation planning for the six vulnerabilities reported during Vercel installation; do not apply breaking `audit fix --force` changes without regression review.
 

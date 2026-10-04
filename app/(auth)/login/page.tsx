@@ -61,6 +61,7 @@ export default async function LoginPage({
         {tenant ? (
           <>
             {tenant.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tenant logos live on arbitrary customer hosts; next/image would need every host allow-listed
               <img src={tenant.logoUrl} alt={tenant.companyName} className="h-10 object-contain" />
             ) : (
               <div className="text-lg font-semibold tracking-tight text-gray-950">{tenant.companyName}</div>

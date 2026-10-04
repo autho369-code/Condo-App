@@ -118,6 +118,7 @@ export default function Sidebar({ portfolioName, logoUrl, brandColor, userEmail,
       {/* Workspace header */}
       <div className="flex-shrink-0 border-b border-white/[0.06] px-4 py-4">
         {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- tenant logos live on arbitrary customer hosts; next/image would need every host allow-listed
           <img src={logoUrl} alt={portfolioName ?? 'Portal'} className="mb-1 h-8 object-contain" />
         ) : (
           <div className="flex items-center gap-2.5">

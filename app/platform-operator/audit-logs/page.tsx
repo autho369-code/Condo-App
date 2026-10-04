@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { FileSearch, Filter, Calendar, Building2, User } from 'lucide-react';
 import { displayTimeZone } from '@/lib/time/display-zone';
@@ -21,6 +21,7 @@ export default async function AuditLogsPage({
 
   // Filtered audit query
   let auditRows: any[] = [];
+  let loadError: string | null = null;
   try {
     let query = db
       .from('audit_logs')
@@ -32,9 +33,12 @@ export default async function AuditLogsPage({
     if (sp.action) query = query.eq('action', sp.action);
     if (sp.company) query = query.eq('entity_id', sp.company);
     if (sp.user) query = query.eq('actor_id', sp.user);
-    const { data } = await query;
+    const { data, error } = await query;
+    // Never show a failed load as an empty audit trail.
+    if (error) loadError = error.message;
     auditRows = data ?? [];
-  } catch {
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : 'The audit log could not be loaded.';
     auditRows = [];
   }
 
@@ -73,6 +77,7 @@ export default async function AuditLogsPage({
           {auditRows.length > 0 && ` — ${auditRows.length} records`}
         </p>
       </div>
+      {loadError && <Alert tone="danger" title="Could not load the audit log:">{loadError}</Alert>}
 
       {/* Filters */}
       <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -143,7 +148,7 @@ export default async function AuditLogsPage({
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
                     <FileSearch className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-                    <div className="text-sm font-semibold text-gray-900">No audit logs found</div>
+                    <div className="text-sm font-semibold text-gray-900">{loadError ? 'Audit log unavailable' : 'No audit logs found'}</div>
                     <div className="mt-1 text-xs text-gray-500">
                       Platform actions (company created, plan changed, suspensions, password resets) appear here as they happen.
                     </div>
