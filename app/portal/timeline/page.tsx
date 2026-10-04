@@ -32,10 +32,12 @@ export default async function OwnerTimelinePage() {
       ? db.from('payments').select('amount, payment_date, method').or(paymentScope).order('payment_date', { ascending: false }).limit(30)
       : Promise.resolve({ data: [], error: null }),
     // A return is its own event, dated when the payment came back (which can
-    // be long after the payment date), so fetch returns by reversed_at. The
-    // effective return date staff chose is the reversal charge's due date.
+    // be long after the payment date). The effective return date staff chose
+    // is the reversal charge's due date (the view's reversal_date); fetch and
+    // order returns by it, falling back to when the return was entered.
     paymentScope
-      ? db.from('payments').select('amount, method, reversed_at, reversal_reason, reversal_charge:charges!payments_reversal_charge_id_fkey(due_date)').or(paymentScope).not('reversed_at', 'is', null).order('reversed_at', { ascending: false }).limit(30)
+      ? db.from('receivable_payments_ledger').select('amount, method, reversed_at, reversal_reason, reversal_date').or(paymentScope).not('reversed_at', 'is', null)
+          .order('reversal_date', { ascending: false, nullsFirst: false }).order('reversed_at', { ascending: false }).limit(30)
       : Promise.resolve({ data: [], error: null }),
     woScope
       ? db.from('work_orders').select('id, title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(30)
@@ -52,7 +54,7 @@ export default async function OwnerTimelinePage() {
     entries.push({ date: p.payment_date, icon: CreditCard, title: 'Payment', detail: money(p.amount) + ' via ' + (p.method ?? '—'), color: 'text-emerald-600 bg-emerald-50' })
   }
   for (const p of returnsRes?.data ?? []) {
-    entries.push({ date: p.reversal_charge?.due_date ?? p.reversed_at, icon: Undo2, title: 'Payment returned', detail: money(p.amount) + ' via ' + (p.method ?? '—') + (p.reversal_reason ? ` · ${p.reversal_reason}` : ''), color: 'text-red-600 bg-red-50' })
+    entries.push({ date: p.reversal_date ?? p.reversed_at, icon: Undo2, title: 'Payment returned', detail: money(p.amount) + ' via ' + (p.method ?? '—') + (p.reversal_reason ? ` · ${p.reversal_reason}` : ''), color: 'text-red-600 bg-red-50' })
   }
   for (const w of wosRes?.data ?? []) {
     entries.push({ date: w.created_at, icon: Wrench, title: `Work Order: ${w.title}`, detail: w.status.replace('_',' '), color: 'text-blue-600 bg-blue-50' })
