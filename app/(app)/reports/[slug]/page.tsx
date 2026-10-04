@@ -10,7 +10,7 @@ import { displayTimeZone } from '@/lib/time/display-zone';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { queueReport, saveCustomReport, toggleReportFavorite } from '@/lib/rpcs/reports';
 import { money, date } from '@/lib/utils';
-import { supportedReportOutputFormats } from '@/lib/reports/output';
+import { reportFormatLabel, supportedReportOutputFormats } from '@/lib/reports/formats';
 import { computePeriod, type Period } from '@/lib/reports/period';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
 
@@ -1912,7 +1912,7 @@ function QueuedReportView(ctx: ReportContext) {
             Available formats:
             <span className="ml-2 inline-flex gap-1">
               {supportedReportOutputFormats(def.output_formats).map((f) => (
-                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] uppercase text-gray-700">{f}</span>
+                <span key={f} className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[11px] text-gray-700">{reportFormatLabel(f)}</span>
               ))}
             </span>
           </p>
@@ -1939,7 +1939,7 @@ function QueuedReportView(ctx: ReportContext) {
               {runs.map((r: any) => (
                 <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-5 py-2 text-gray-700">{date(r.created_at)}</td>
-                  <td className="px-4 py-2 text-xs uppercase text-gray-500">{r.output_format}</td>
+                  <td className="px-4 py-2 text-xs text-gray-500">{reportFormatLabel(String(r.output_format ?? ''))}</td>
                   <td className="px-4 py-2"><RunPill status={r.status} /></td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-700">{r.row_count?.toLocaleString() ?? '\u2014'}</td>
                   <td className="px-5 py-2 text-right">
@@ -2174,7 +2174,7 @@ async function ReportRightRail({
             className="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             {supportedReportOutputFormats(def.output_formats).map((f) => (
-              <option key={f} value={f}>{f.toUpperCase()}</option>
+              <option key={f} value={f}>{reportFormatLabel(f)}</option>
             ))}
           </select>
         </div>

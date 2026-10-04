@@ -55,7 +55,7 @@ Fifteen accounting exporters and eight database-dispatch report families are imp
 
 Required: remove the XLSX claim or implement and verify XLSX, then execute every active report definition.
 
-*2026-10-04:* the catalog already lists only supported formats (`supportedReportOutputFormats`); the last place offering Excel/HTML, the bulk association reports form, now offers CSV/PDF/JSON only and the action rejects anything else. Real XLSX output would need a spreadsheet library (an owner decision). Every active definition is handled by `report_data_dispatch` (verified 2026-10-04 for the ten newest).
+*2026-10-04:* the catalog already lists only supported formats (`supportedReportOutputFormats`); the last place offering Excel/HTML, the bulk association reports form, now offers CSV/PDF/JSON only and the action rejects anything else. Update later the same day: **XLSX is now implemented** (ExcelJS, approved by Mirsad) and offered wherever a report lists it; the bulk form offers CSV/Excel/PDF/JSON. Every active definition is handled by `report_data_dispatch` (verified 2026-10-04 for the ten newest).
 
 ### 6. Hosted delivery evidence
 

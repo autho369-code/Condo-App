@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
-import { SUPPORTED_REPORT_OUTPUT_FORMATS } from '@/lib/reports/output';
+import { SUPPORTED_REPORT_OUTPUT_FORMATS } from '@/lib/reports/formats';
 import { PERIOD_PRESETS } from '@/lib/reports/period';
 import { SCHEDULE_FREQUENCIES } from '@/lib/reports/schedule';
 import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';

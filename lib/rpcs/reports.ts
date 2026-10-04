@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { isSupportedReportOutputFormat } from '@/lib/reports/output';
+import { isSupportedReportOutputFormat, type SupportedReportOutputFormat } from '@/lib/reports/formats';
 import { computePeriod } from '@/lib/reports/period';
 
 /**
@@ -62,7 +62,7 @@ export async function queueReport(formData: FormData) {
   redirect(`/reports/runs/${(data as any).id}`);
 }
 
-function parseOutputFormat(value: FormDataEntryValue | null): 'pdf' | 'csv' | 'json' {
+function parseOutputFormat(value: FormDataEntryValue | null): SupportedReportOutputFormat {
   return isSupportedReportOutputFormat(value) ? value : 'csv';
 }
 

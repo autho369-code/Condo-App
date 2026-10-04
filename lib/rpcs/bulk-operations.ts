@@ -1,6 +1,6 @@
 'use server';
 import { LIVE_ONLY_REPORT_SLUGS } from '@/lib/reports/catalog';
-import { isSupportedReportOutputFormat } from '@/lib/reports/output';
+import { isSupportedReportOutputFormat } from '@/lib/reports/formats';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
@@ -106,7 +106,7 @@ export async function queueBulkReports(formData: FormData) {
 
   // Only formats the report processor can create (lib/reports/output.ts);
   // anything else would queue runs that fail later.
-  if (!isSupportedReportOutputFormat(outputFormat)) return { error: 'Choose CSV, PDF or JSON.' };
+  if (!isSupportedReportOutputFormat(outputFormat)) return { error: 'Choose CSV, Excel, PDF or JSON.' };
   if (associationIds.length === 0) return { error: 'No associations selected' };
   if (reportSlugs.length === 0) return { error: 'No report types selected' };
   if (reportSlugs.some((slug) => LIVE_ONLY_REPORT_SLUGS.has(slug))) return { error: 'Owner 1099 reports run live on their own page and cannot be queued.' };

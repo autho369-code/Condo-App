@@ -1,5 +1,5 @@
 import { Field, Input, Select } from '@/components/ui/input';
-import { SUPPORTED_REPORT_OUTPUT_FORMATS } from '@/lib/reports/output';
+import { SUPPORTED_REPORT_OUTPUT_FORMATS, reportFormatLabel } from '@/lib/reports/formats';
 import { SCHEDULE_FREQUENCIES, WEEKDAYS, frequencyLabel, hourLabel } from '@/lib/reports/schedule';
 
 type Option = { id: string; name: string };
@@ -71,7 +71,7 @@ export function ScheduleFields({
       </Field>
       <Field label="Format" htmlFor="output_format">
         <Select id="output_format" name="output_format" defaultValue={s?.output_format ?? 'pdf'}>
-          {SUPPORTED_REPORT_OUTPUT_FORMATS.map((f) => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+          {SUPPORTED_REPORT_OUTPUT_FORMATS.map((f) => <option key={f} value={f}>{reportFormatLabel(f)}</option>)}
         </Select>
       </Field>
       <Field label="Delivery" htmlFor="delivery_channel">
