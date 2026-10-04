@@ -161,6 +161,27 @@ function matchesRoute(href) {
 }
 
 const hrefRegex = /href=(?:\{`([^`]+)`\}|"([^"]+)"|'([^']+)')/g;
+// Links built outside JSX attributes: nav/menu objects, redirects, router calls.
+const extraLinkRegexes = [
+  /\bhref:\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+  /\bredirect\(\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+  /\brouter\.(?:push|replace)\(\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
+];
+
+/**
+ * Turn a template link into a checkable path: a `${…}` filling a whole path
+ * segment becomes a dynamic segment; one glued to text ends the path there
+ * (`/budget${qs}` checks `/budget`). Returns null when it can't be parsed.
+ */
+function templatePath(raw) {
+  let path = raw.split('?')[0].split('#')[0];
+  path = path.replace(/\/\$\{[^{}`]*\}(?=\/|$)/g, '/__param__');
+  const cut = path.indexOf('${');
+  if (cut === 0) return null;
+  if (cut > 0) path = path.slice(0, cut);
+  if (/[`{}]/.test(path) || !path.startsWith('/')) return null;
+  return path;
+}
 const missing = [];
 const missingReportSlugs = [];
 const placeholders = [];
@@ -168,9 +189,14 @@ const placeholders = [];
 for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/.test(path)))) {
   const text = readFileSync(file, 'utf8');
   let match;
-  while ((match = hrefRegex.exec(text))) {
+  const found = [hrefRegex, ...extraLinkRegexes].flatMap((regex) =>
+    [...text.matchAll(regex)].map((m) => ({ m, jsx: regex === hrefRegex })));
+  for (const { m, jsx } of found) {
+    match = m;
     const raw = match[1] ?? match[2] ?? match[3];
     if (raw.startsWith('#')) {
+      // Anchors in menu objects usually target ids set at runtime; only JSX hrefs are checked.
+      if (!jsx) continue;
       const anchor = raw.slice(1);
       const escapedAnchor = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (!anchor || !new RegExp(`id=["']${escapedAnchor}["']`).test(text)) {
@@ -178,8 +204,12 @@ for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/
       }
       continue;
     }
-    if (!raw.startsWith('/')) continue;
-    if (raw.includes('${')) continue;
+    if (!raw.startsWith('/') || raw.startsWith('//')) continue;
+    if (raw.includes('${')) {
+      const path = templatePath(raw);
+      if (path && !matchesRoute(path)) missing.push({ file, href: raw });
+      continue;
+    }
     const missingReportSlug = unresolvedReportSlug(raw);
     if (missingReportSlug) missingReportSlugs.push({ file, href: raw, slug: missingReportSlug });
     if (!matchesRoute(raw)) missing.push({ file, href: raw });
