@@ -270,9 +270,9 @@ export default async function AssociationProfileTab({
     (supabase as any).from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'association').eq('entity_id', id).order('created_at', { ascending: false }).limit(25),
   ]);
   // Staff-only settings live off the association row (everyone in the
-  // association reads it): the end reason in association_private, the
+  // association reads it): the end reason and description in association_private, the
   // vendor-facing maintenance notes in association_vendor_private.
-  await mergePrivateFieldsOne(supabase as any, 'association_private', 'association_id', ['management_end_reason'], record);
+  await mergePrivateFieldsOne(supabase as any, 'association_private', 'association_id', ['management_end_reason', 'description'], record);
   await mergePrivateFieldsOne(supabase as any, 'association_vendor_private', 'association_id', ['maintenance_notes'], record);
   const assocGl = ((glAccounts ?? []) as any[]).filter((g) => !g.association_id || g.association_id === id);
   const recordBack = `/associations/${assocParam}/profile`;

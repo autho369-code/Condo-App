@@ -10,6 +10,7 @@ import { savePrivateFields } from '@/lib/private-fields';
 // vendors read): written to their side tables directly so clearing works.
 const PRIVATE_SETTINGS: Record<string, string> = {
   management_end_reason: 'association_private',
+  description: 'association_private',
   maintenance_notes: 'association_vendor_private',
 };
 

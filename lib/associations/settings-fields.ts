@@ -40,7 +40,7 @@ export const ASSOCIATION_SECTIONS: SettingSection[] = [
         { value: 'America/Denver', label: 'Mountain' }, { value: 'America/Phoenix', label: 'Arizona' },
         { value: 'America/Los_Angeles', label: 'Pacific' }, { value: 'America/Anchorage', label: 'Alaska' }, { value: 'Pacific/Honolulu', label: 'Hawaii' },
       ] },
-      { key: 'description', label: 'Description', type: 'textarea', span: 2, hint: 'Owners, board members and vendors can see this. Keep internal notes off it.' },
+      { key: 'description', label: 'Description / internal notes', type: 'textarea', span: 2, hint: 'Staff only. Owners, board members and vendors never see it.' },
     ],
   },
   {
