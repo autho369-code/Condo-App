@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { templatePath } from './lib/template-path.mjs';
 
 const root = process.cwd();
 const appDir = join(root, 'app');
@@ -168,20 +169,6 @@ const extraLinkRegexes = [
   /\brouter\.(?:push|replace)\(\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)')/g,
 ];
 
-/**
- * Turn a template link into a checkable path: a `${…}` filling a whole path
- * segment becomes a dynamic segment; one glued to text ends the path there
- * (`/budget${qs}` checks `/budget`). Returns null when it can't be parsed.
- */
-function templatePath(raw) {
-  let path = raw.split('?')[0].split('#')[0];
-  path = path.replace(/\/\$\{[^{}`]*\}(?=\/|$)/g, '/__param__');
-  const cut = path.indexOf('${');
-  if (cut === 0) return null;
-  if (cut > 0) path = path.slice(0, cut);
-  if (/[`{}]/.test(path) || !path.startsWith('/')) return null;
-  return path;
-}
 const missing = [];
 const missingReportSlugs = [];
 const placeholders = [];
@@ -207,7 +194,10 @@ for (const file of sourceDirs.flatMap((dir) => walk(dir, (path) => /\.(tsx|ts)$/
     if (!raw.startsWith('/') || raw.startsWith('//')) continue;
     if (raw.includes('${')) {
       const path = templatePath(raw);
-      if (path && !matchesRoute(path)) missing.push({ file, href: raw });
+      if (!path) continue;
+      const slug = path.includes('__param__') ? null : unresolvedReportSlug(path);
+      if (slug) missingReportSlugs.push({ file, href: raw, slug });
+      if (!matchesRoute(path)) missing.push({ file, href: raw });
       continue;
     }
     const missingReportSlug = unresolvedReportSlug(raw);
