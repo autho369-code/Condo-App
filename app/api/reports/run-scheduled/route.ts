@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { processReportRun } from '@/lib/reports/process';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { queueEmails } from '@/lib/email/queue';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -105,23 +106,25 @@ export async function GET(request: NextRequest) {
 
     // A scheduled run that failed tells the person it runs as (otherwise the
     // failure only showed in Report history). One notice per run.
-    const { data: failedRuns, error: failedLookupError } = await svc
+    // Every failure in the window (paged), not only the newest 200: the
+    // idempotency key makes repeats no-ops, so older ones still get a notice.
+    const { rows: failedRuns, error: failedLookupError } = await fetchAllRows<any>(() => svc
       .from('report_runs')
       .select('id, portfolio_id, error_message, triggered_by, portfolios(company_name), scheduled_reports:scheduled_report_id(name)')
       .eq('status', 'failed')
       .not('scheduled_report_id', 'is', null)
       .gte('finished_at', new Date(Date.now() - 2 * 86400000).toISOString())
       .order('finished_at', { ascending: false })
-      .limit(200);
-    if (failedLookupError) throw new Error(`failure lookup failed: ${failedLookupError.message}`);
-    const ownerIds = [...new Set((failedRuns ?? []).map((r: any) => r.triggered_by).filter(Boolean))] as string[];
+      .order('id'));
+    if (failedLookupError) throw new Error(`failure lookup failed: ${failedLookupError}`);
+    const ownerIds = [...new Set(failedRuns.map((r: any) => r.triggered_by).filter(Boolean))] as string[];
     const { data: owners } = ownerIds.length
       ? await svc.from('profiles').select('id, email, full_name').in('id', ownerIds)
       : { data: [] };
     const ownerById = new Map(((owners ?? []) as any[]).map((o) => [o.id, o]));
     const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://portier369.com').replace(/\/$/, '');
     const failures: any[] = [];
-    for (const run of failedRuns ?? []) {
+    for (const run of failedRuns) {
       const owner = ownerById.get(run.triggered_by);
       const to = String(owner?.email ?? '').trim().toLowerCase();
       if (!EMAIL_PATTERN.test(to)) continue;
