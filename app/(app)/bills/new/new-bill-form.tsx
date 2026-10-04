@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { createBill } from '@/lib/rpcs/bills';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,11 @@ interface Props {
   gls: any[];
   banks: any[];
   portfolioId: string;
+  /** Today in the display time zone, computed on the server. */
+  defaultBillDate: string;
+  /** One-time token so a double click cannot save the bill twice. */
+  submissionToken: string;
+  submissionField: string;
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -74,7 +80,7 @@ function money(n: number | null | undefined): string {
 
 // ── component ──────────────────────────────────────────────────────────────
 
-export default function NewBillForm({ vendors, associations, gls, banks, portfolioId }: Props) {
+export default function NewBillForm({ vendors, associations, gls, banks, portfolioId, defaultBillDate, submissionToken, submissionField }: Props) {
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedInvoice | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -211,6 +217,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
         {/* Remount the form when extraction lands so defaultValues (incl. selects) apply. */}
         <form key={d ? 'ai-prefilled' : 'manual'} action={createBill as any} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <input type="hidden" name="portfolio_id" value={portfolioId} />
+          <input type="hidden" name={submissionField} value={submissionToken} />
 
           {/* VENDOR */}
           <div className="sm:col-span-2">
@@ -230,9 +237,9 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
 
           {/* ASSOCIATION */}
           <div>
-            <Label htmlFor="association_id">Association</Label>
-            <Select id="association_id" name="association_id">
-              <option value="">— None (portfolio-wide) —</option>
+            <Label htmlFor="association_id">Association *</Label>
+            <Select id="association_id" name="association_id" required defaultValue="">
+              <option value="">Select an association…</option>
               {(associations ?? []).map((a: any) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -264,7 +271,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
               <Label htmlFor="bill_date">Bill date *</Label>
               <Input
                 id="bill_date" name="bill_date" type="date" required
-                defaultValue={safeDate(d?.invoice_date) || new Date().toISOString().slice(0, 10)}
+                defaultValue={safeDate(d?.invoice_date) || defaultBillDate}
               />
             </div>
             <div>
@@ -275,9 +282,9 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
 
           {/* GL ACCOUNT */}
           <div>
-            <Label htmlFor="gl_account_id">Expense GL account</Label>
-            <Select id="gl_account_id" name="gl_account_id" defaultValue={matchedGlId}>
-              <option value="">—</option>
+            <Label htmlFor="gl_account_id">Expense GL account *</Label>
+            <Select id="gl_account_id" name="gl_account_id" required defaultValue={matchedGlId}>
+              <option value="">Select an account…</option>
               {(gls ?? []).map((g: any) => (
                 <option key={g.id} value={g.id}>{g.number} — {g.name}</option>
               ))}
@@ -322,7 +329,7 @@ export default function NewBillForm({ vendors, associations, gls, banks, portfol
           </div>
 
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit">Save bill</Button>
+            <PendingSubmit pendingLabel="Saving…">Save bill</PendingSubmit>
             <Link href="/bills"><Button variant="secondary" type="button">Cancel</Button></Link>
           </div>
         </form>

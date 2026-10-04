@@ -5,6 +5,8 @@ import { Breadcrumb, PageHeader, PageShell } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import NewBillForm from './new-bill-form';
+import { todayInZone } from '@/lib/time/zoned';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +60,9 @@ export default async function NewBillPage({
         gls={gls ?? []}
         banks={banks ?? []}
         portfolioId={me.portfolio?.id ?? ''}
+        defaultBillDate={todayInZone()}
+        submissionToken={newSubmissionToken()}
+        submissionField={SUBMISSION_FIELD}
       />
     </PageShell>
   );

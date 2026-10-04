@@ -91,8 +91,8 @@ export default async function BillsPage({
 
   // ── PARALLEL: fetch all tab data ──
   const [
-    { data: allBills },
-    { data: paidBills, count: paidMatching },
+    { data: allBills, error: billsError },
+    { data: paidBills, count: paidMatching, error: paymentsError },
     { data: vendors },
     { data: associations },
     { data: glAccounts },
@@ -382,6 +382,8 @@ export default async function BillsPage({
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not update bills">{sp.error}</Alert>}
+        {billsError && <Alert tone="danger" title="Could not load bills">{billsError}</Alert>}
+        {paymentsError && <Alert tone="danger" title="Could not load payments">{paymentsError.message ?? String(paymentsError)}</Alert>}
         {sp.recorded && <Alert tone="success" title={`${Number(sp.recorded) || 0} payment${sp.recorded === '1' ? '' : 's'} recorded`} />}
 
         {/* ── TAB: BILLS ── */}

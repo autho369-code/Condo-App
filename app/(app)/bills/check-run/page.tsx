@@ -22,22 +22,26 @@ export default async function CheckRunPage({
   const sp = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: queue }, { data: banks }, { rows: approved }] = await Promise.all([
-    (supabase as any).from('v_check_writing_queue').select('*'),
+  const [{ rows: queue, error: queueError }, { data: banks, error: banksError }, { rows: approved, error: approvedError }] = await Promise.all([
+    // Every approved check bill; the Data API returns at most 1,000 rows per request.
+    fetchAllRows<any>(() => (supabase as any).from('v_check_writing_queue').select('*')
+      .order('due_date', { ascending: true }).order('vendor_name').order('bill_id')),
     (supabase as any).from('bank_accounts')
       .select('id, name, bank_name, next_check_number, check_signature')
       .is('archived_at', null)
       .order('name'),
     // Approved, unpaid bills of vendors paid other than by printed check.
     fetchAllRows<any>(() => (supabase as any).from('payable_bills')
-      .select('id, bill_number, amount, credit_applied, due_date, memo, vendors!inner(name, payment_type, is_auto_pay), associations(name)')
+      .select('id, bill_number, amount, credit_applied, due_date, memo, vendors!inner(name, payment_type, is_auto_pay, hold_payments), associations(name)')
       .eq('status', 'approved')
       .is('paid_at', null)
       .is('archived_at', null)
       .order('due_date', { ascending: true, nullsFirst: false })
       .order('id')),
   ]);
-  const otherBills = approved.filter((b: any) => b.vendors?.payment_type !== 'check' || b.vendors?.is_auto_pay);
+  const loadError = queueError ?? banksError?.message ?? approvedError;
+  // Vendors on "Hold payments" can't be paid until the hold is cleared.
+  const otherBills = approved.filter((b: any) => !b.vendors?.hold_payments && (b.vendors?.payment_type !== 'check' || b.vendors?.is_auto_pay));
   const otherTotal = otherBills.reduce((sum: number, b: any) => sum + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
   const METHOD: Record<string, string> = { check: 'Auto-pay', echeck: 'eCheck', ach: 'ACH', online: 'Online' };
 
@@ -57,6 +61,10 @@ export default async function CheckRunPage({
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Could not pay bills:</span> {sp.error}
         </div>
+      )}
+
+      {loadError && (
+        <Alert tone="danger" title="Could not load the bills to pay." className="mb-6">{loadError}</Alert>
       )}
 
       {(banks ?? []).length > 0 && !defaultBank && (

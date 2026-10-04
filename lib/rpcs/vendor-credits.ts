@@ -4,10 +4,12 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const BACK = '/bills/credits';
+const fail = (msg: string): never => redirect(`${BACK}?error=${encodeURIComponent(msg)}`);
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? '').trim();
@@ -24,7 +26,17 @@ export async function enterVendorCredit(formData: FormData) {
   if (!DATE.test(date)) redirect(`${BACK}?error=${encodeURIComponent('Enter the credit date.')}`);
   const amount = Number(text(formData, 'amount'));
   const db = (await createClient()) as any;
-  const { error } = await db.rpc('enter_vendor_credit', {
+
+  // A double click or re-sent form must not enter the credit twice.
+  const claim = await claimSubmission(db, formData, 'vendor_credit');
+  if (claim.status === 'error') fail(claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`${BACK}?entered=1`);
+    fail('This credit is already being entered. Refresh in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
+
+  const { data: creditId, error } = await db.rpc('enter_vendor_credit', {
     p_association_id: id(formData, 'association_id'),
     p_vendor_id: id(formData, 'vendor_id'),
     p_credit_date: date,
@@ -33,7 +45,11 @@ export async function enterVendorCredit(formData: FormData) {
     p_reference: text(formData, 'reference') || null,
     p_memo: text(formData, 'memo') || null,
   });
-  if (error) redirect(`${BACK}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await releaseSubmission(db, token);
+    fail(error.message);
+  }
+  if (typeof creditId === 'string' && UUID.test(creditId)) await completeSubmission(db, token, creditId);
   revalidatePath(BACK);
   redirect(`${BACK}?entered=1`);
 }
@@ -42,13 +58,28 @@ export async function enterVendorCredit(formData: FormData) {
 export async function applyVendorCredit(formData: FormData) {
   await requireFinanceStaff();
   const amount = Number(text(formData, 'amount'));
+  const creditId = id(formData, 'credit_id');
   const db = (await createClient()) as any;
+
+  // A double click or re-sent form must not apply the credit twice.
+  const claim = await claimSubmission(db, formData, 'vendor_credit_application');
+  if (claim.status === 'error') fail(claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`${BACK}?applied=1`);
+    fail('This credit is already being applied. Refresh in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
+
   const { error } = await db.rpc('apply_vendor_credit', {
-    p_credit_id: id(formData, 'credit_id'),
+    p_credit_id: creditId,
     p_bill_id: id(formData, 'bill_id'),
     p_amount: Number.isFinite(amount) ? amount : null,
   });
-  if (error) redirect(`${BACK}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await releaseSubmission(db, token);
+    fail(error.message);
+  }
+  if (creditId) await completeSubmission(db, token, creditId);
   revalidatePath(BACK);
   revalidatePath('/bills');
   revalidatePath('/bills/check-run');
