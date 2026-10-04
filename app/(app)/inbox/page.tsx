@@ -148,7 +148,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               <EmptyState icon={Inbox} title="No text messages" description="Two-way SMS appears here once the texting number is live." />
             </div>
           )
-        ) : threads.length === 0 ? (
+        ) : threadsRes.error ? null : threads.length === 0 ? (
           <div className="rounded-2xl border border-gray-200/70 bg-white">
             <EmptyState icon={MessageSquare} title={term || associationId ? 'No conversations match' : 'Nothing here'} description="Owners and tenants can message you from their portal. Start a conversation from an owner's page." />
           </div>

@@ -34,17 +34,18 @@ export default async function ConversationPage({
   const sp = await searchParams;
   const db = (await createClient()) as any;
 
-  const [{ data: t }, { data: messages }, { data: staff }, { data: templates }] = await Promise.all([
+  const [{ data: t }, { data: messages }, { data: staff }] = await Promise.all([
     db.from('message_threads')
-      .select('id, subject, status, owner_id, tenant_id, unit_id, assigned_to, first_response_due_at, acknowledged_at, created_at, owners(full_name, email), tenants(first_name, last_name, email, phone), associations(name), units(unit_number)')
+      .select('id, portfolio_id, subject, status, owner_id, tenant_id, unit_id, assigned_to, first_response_due_at, acknowledged_at, created_at, owners(full_name, email), tenants(first_name, last_name, email, phone), associations(name), units(unit_number)')
       .eq('id', id).maybeSingle(),
     db.from('message_thread_messages').select('id, author_role, author_name, body, internal, created_at').eq('thread_id', id).order('created_at'),
     db.rpc('message_thread_assignees', { p_thread: id }),
-    // Saved replies for email (Inbox replies are emailed).
-    db.from('message_templates').select('id, name, body')
-      .eq('portfolio_id', me.portfolio?.id).in('channel', ['email', 'both']).order('name').limit(200),
   ]);
   if (!t) notFound();
+  // Saved replies (email templates) of the conversation's own management
+  // company, not the viewer's: a platform operator may be in another one.
+  const { data: templates } = await db.from('message_templates').select('id, name, body')
+    .eq('portfolio_id', t.portfolio_id).in('channel', ['email', 'both']).order('name').limit(200);
   await db.rpc('mark_message_thread_read', { p_thread: id, p_as: 'staff' });
 
   const owner = one<any>(t.owners);
