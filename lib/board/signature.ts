@@ -18,6 +18,7 @@ const BUCKET = 'association-documents';
 
 export interface BoardSeatSignature {
   id: string;
+  association_id: string | null;
   signature_url: string | null;
   signature_on_file: boolean;
 }
@@ -29,27 +30,33 @@ function escapeLike(value: string): string {
 
 /**
  * The caller's own active board seats (auth_user_id match first, then
- * email-matched seats that have not been auto-linked yet).
+ * email-matched seats that have not been auto-linked yet). Email matches are
+ * limited to the associations me() already scopes this board member to, so
+ * an unlinked seat with the same email in another company never matches.
  */
-export async function findMyBoardSeats(me: Pick<MeResult, 'auth_user_id' | 'email'>): Promise<BoardSeatSignature[]> {
+export async function findMyBoardSeats(
+  me: Pick<MeResult, 'auth_user_id' | 'email' | 'board_association_ids'>,
+): Promise<BoardSeatSignature[]> {
   const svc = createServiceClient() as any;
   const seats: BoardSeatSignature[] = [];
 
   if (me.auth_user_id) {
     const { data } = await svc
       .from('board_members')
-      .select('id, signature_url, signature_on_file')
+      .select('id, association_id, signature_url, signature_on_file')
       .eq('active', true)
       .eq('auth_user_id', me.auth_user_id);
     seats.push(...((data ?? []) as BoardSeatSignature[]));
   }
 
-  if (me.email) {
+  const scopedAssociationIds = (me.board_association_ids ?? []).filter(Boolean);
+  if (me.email && scopedAssociationIds.length > 0) {
     const { data } = await svc
       .from('board_members')
-      .select('id, signature_url, signature_on_file')
+      .select('id, association_id, signature_url, signature_on_file')
       .eq('active', true)
       .is('auth_user_id', null)
+      .in('association_id', scopedAssociationIds)
       .ilike('email', escapeLike(me.email));
     seats.push(...((data ?? []) as BoardSeatSignature[]));
   }

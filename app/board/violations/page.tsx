@@ -3,7 +3,8 @@ import { displayTimeZone } from '@/lib/time/display-zone'
 import { zonedWallTimeToUtc } from '@/lib/time/zoned'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
+import { VIOLATION_TYPES } from '@/lib/violations/rules-data'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { ACTIVE_VIOLATION_STATUSES, CLOSED_VIOLATION_STATUSES } from '@/lib/violations/queries'
@@ -86,7 +87,10 @@ export default async function BoardViolationsPage({
   const statusFilter = (params.status as string) || ''
   const repeatOffender = params.repeat === 'true'
   const finedOnly = params.fined === 'true'
-  const typeFilter = (params.type as string) || ''
+  // Only a real violation_type enum value filters; anything else is ignored
+  // (an invalid enum value made the whole query fail).
+  const rawType = typeof params.type === 'string' ? params.type : ''
+  const typeFilter = (VIOLATION_TYPES as readonly string[]).includes(rawType) ? rawType : ''
   const fromDate = (params.from as string) || ''
   const toDate = (params.to as string) || ''
   const hasActiveFilters = !!(statusFilter || repeatOffender || finedOnly || typeFilter || fromDate || toDate)
@@ -149,7 +153,7 @@ export default async function BoardViolationsPage({
     baseQuery = baseQuery.not('fine_amount', 'is', null)
   }
 
-  const { data: allViolations } = await baseQuery
+  const { data: allViolations, error: violationsError } = await baseQuery
   let violations = (allViolations ?? [])
 
   // Repeat offender filter — compute client-side
@@ -221,6 +225,8 @@ export default async function BoardViolationsPage({
           {boardAssocIds.length > 1 ? 's' : ''}
         </p>
       </div>
+
+      {violationsError && <Alert tone="danger" title="Violations could not be loaded">{violationsError.message}</Alert>}
 
       {/* ── Summary Cards ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
@@ -329,7 +335,7 @@ export default async function BoardViolationsPage({
           </thead>
           <tbody>
             {violations.length === 0 ? (
-              <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500">No violations found.</td></tr>
+              <tr><td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500">{violationsError ? 'Violations are unavailable right now.' : 'No violations found.'}</td></tr>
             ) : (
               violations.map((v: any) => (
                 <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

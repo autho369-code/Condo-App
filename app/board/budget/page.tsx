@@ -3,6 +3,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { ExportActions, type ExportTable } from '@/components/export/export-actions'
 import { money } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal'
 
 export const dynamic = 'force-dynamic'
@@ -35,14 +36,15 @@ export default async function BoardBudgetPage() {
         .single()
       // Budgets follow each association's own fiscal year.
       const fy = fiscalYearFor(new Date(), assoc?.fiscal_year_start)
-      const { data } = await db.rpc('get_budget_vs_actuals', {
+      const { data, error } = await db.rpc('get_budget_vs_actuals', {
         p_association_id: assocId,
         p_fiscal_year: fy,
       })
       return {
         associationId: assocId,
         associationName: assoc?.name ?? 'Association',
-        rows: (data ?? []) as any[],
+        rows: (error ? [] : data ?? []) as any[],
+        error: error ? (error.message as string) : null,
         fy,
         labels: fiscalMonthLabels(assoc?.fiscal_year_start),
         elapsed: Math.max(1, fiscalMonthsElapsed(fy, assoc?.fiscal_year_start)),
@@ -86,7 +88,7 @@ export default async function BoardBudgetPage() {
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Association financial performance against budget — current fiscal year</p>
         </div>
         <ExportActions
-          documentTitle={`Budget vs Actual — FY${currentYear}`}
+          documentTitle={`Budget vs Actual — ${[...new Set(allReports.map((r) => `FY${r.fy}`))].join(', ') || `FY${currentYear}`}`}
           subtitle={associationNames || undefined}
           companyName={me.portfolio?.company_name ?? associationNames}
           filename={`budget-vs-actual-${exportDate}`}
@@ -119,6 +121,7 @@ export default async function BoardBudgetPage() {
         return (
           <div key={report.associationId} className="space-y-4">
             <h2 className="border-b border-gray-200 pb-2 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">{report.associationName}</h2>
+            {report.error && <Alert tone="danger" title="Budget vs actual could not be loaded">{report.error}</Alert>}
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -200,8 +203,13 @@ export default async function BoardBudgetPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((row: any) => (
-                        <tr key={row.budget_line_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      {rows.map((row: any) => {
+                        // Expense lines: spending over budget is bad, under is good.
+                        const isExpense = row.category === 'expense'
+                        const good = (actual: number, budget: number) => (isExpense ? actual <= budget : actual >= budget)
+                        const varianceTone = (v: number) => ((isExpense ? v <= 0 : v >= 0) ? 'text-emerald-700' : 'text-red-700')
+                        return (
+                        <tr key={row.budget_line_id ?? row.gl_account_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                           <td className="px-5 py-2.5">
                             <div className="flex items-center gap-2">
                               <span className={`h-1.5 w-1.5 rounded-full ${row.category === 'income' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -209,13 +217,13 @@ export default async function BoardBudgetPage() {
                             </div>
                           </td>
                           <td className="px-5 py-2.5 text-right tabular-nums text-gray-900">{money(row.annual_budget)}</td>
-                          <td className={`px-5 py-2.5 text-right font-medium tabular-nums ${row.annual_actual >= row.annual_budget ? 'text-emerald-700' : 'text-red-700'}`}>
+                          <td className={`px-5 py-2.5 text-right font-medium tabular-nums ${good(Number(row.annual_actual), Number(row.annual_budget)) ? 'text-emerald-700' : 'text-red-700'}`}>
                             {money(row.annual_actual)}
                           </td>
-                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          <td className={`px-5 py-2.5 text-right tabular-nums ${varianceTone(Number(row.annual_variance))}`}>
                             {money(row.annual_variance)}
                           </td>
-                          <td className={`px-5 py-2.5 text-right tabular-nums ${row.annual_variance_pct >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          <td className={`px-5 py-2.5 text-right tabular-nums ${varianceTone(Number(row.annual_variance_pct))}`}>
                             {row.annual_variance_pct}%
                           </td>
                           <td className="hidden px-5 py-2.5 sm:table-cell">
@@ -226,7 +234,7 @@ export default async function BoardBudgetPage() {
                                 return (
                                   <div
                                     key={i}
-                                    className={`flex-1 rounded-t-sm ${actual >= budget ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
+                                    className={`flex-1 rounded-t-sm ${good(actual, budget) ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
                                     style={{ height: `${Math.max((Math.max(budget, actual) / maxVal) * 100, 2)}%` }}
                                     title={`${report.labels[i]}: B ${money(budget)} / A ${money(actual)}`}
                                   />
@@ -235,12 +243,13 @@ export default async function BoardBudgetPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
-            ) : (
+            ) : report.error ? null : (
               <div className={`${card} p-8 text-center`}>
                 <BarChart3 className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                 <p className="text-sm font-semibold text-gray-900">No budget lines found for FY{report.fy}</p>

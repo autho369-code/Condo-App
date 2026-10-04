@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
+import { Alert } from '@/components/ui/shell'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,22 +13,26 @@ export default async function BoardVendorsPage() {
   const ids = me.board_association_ids ?? []
 
   // Find vendors serving this association via work_orders
-  const { data: vendorWos } = await db
+  // Every work order, not the first 1,000, so no vendor is dropped.
+  const { rows: vendorWos, error: woError } = await fetchAllRows<{ id: string; vendor_id: string }>(() => db
     .from('work_orders')
-    .select('vendor_id')
+    .select('id, vendor_id')
     .in('association_id', ids)
     .is('archived_at', null)
     .not('vendor_id', 'is', null)
+    .order('id'))
 
-  const vendorIds = [...new Set((vendorWos ?? []).map((v: any) => v.vendor_id))]
+  const vendorIds = [...new Set(vendorWos.map((v) => v.vendor_id))]
 
   let vendors: any[] = []
+  let vendorsError: string | null = woError ? `Work orders could not be loaded: ${woError}` : null
   if (vendorIds.length > 0) {
-    const { data } = await db
+    const { data, error } = await db
       .from('vendors')
       .select('id, name, vendor_type, trade, phone_numbers, emails, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration')
       .in('id', vendorIds)
       .is('archived_at', null)
+    if (error) vendorsError = `Vendors could not be loaded: ${error.message}`
     vendors = data ?? []
   }
 
@@ -54,6 +60,8 @@ export default async function BoardVendorsPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Vendors providing services to your association</p>
       </div>
 
+      {vendorsError && <Alert tone="danger">{vendorsError}</Alert>}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: 'Active Vendors', value: vendors.length },
@@ -79,7 +87,7 @@ export default async function BoardVendorsPage() {
           </thead>
           <tbody>
             {vendors.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-gray-500">No vendors assigned to work orders in your association.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-gray-500">{vendorsError ? 'Vendors are unavailable right now.' : 'No vendors assigned to work orders in your association.'}</td></tr>
             ) : (
               vendors.map((v: any) => {
                 const c = getCompliance(v)

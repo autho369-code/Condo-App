@@ -21,6 +21,7 @@ describe('board communications visibility', () => {
     expect(page).not.toContain('catch { }');
     expect(roleVerifier).toContain("field === 'is_board'");
     expect(roleVerifier).toContain("row.association_id === '36900000-0000-4000-8000-000000000011'");
-    expect(page).toContain("status === 'sent' || status === 'delivered'");
+    expect(page).toContain(".in('status', ['sent', 'delivered'])");
+    expect(page).toContain("count: 'exact', head: true");
   });
 });
