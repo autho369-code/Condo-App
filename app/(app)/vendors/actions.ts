@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { safeInternalNext } from '@/lib/security/redirects'
 import { CHECK_CONSOLIDATION, CHECK_STUB, VENDOR_PAYMENT_TYPES, VENDOR_TRADES, VENDOR_TYPES } from '@/lib/vendors/options'
+import { mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields'
 
 // Invite a vendor to the vendor portal. Creates a real user_invitations row so
 // the vendor gets the /invite link, sets a password, and can log in. Vendor is
@@ -84,6 +85,8 @@ export async function updateVendorRecord(formData: FormData) {
   const { data: before } = await supabase
     .from('vendors').select('*').eq('id', vendorId).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle()
   if (!before) failTo('Vendor not found.')
+  // Internal notes live in staff-only vendor_private (the vendor reads its own row).
+  await mergePrivateFieldsOne(supabase, 'vendor_private', 'vendor_id', ['notes'], before)
 
   const canEditBank = !!(me.is_finance_staff || me.is_company_admin || me.is_platform_operator)
   // Tax IDs and bank numbers live in vendor_financial_details (finance staff only).
@@ -178,8 +181,15 @@ export async function updateVendorRecord(formData: FormData) {
     })
   }
 
-  const { error } = await supabase.from('vendors').update(patch).eq('id', vendorId).eq('portfolio_id', portfolioId)
+  // Notes go straight to vendor_private so clearing them works (a NULL on
+  // vendors.notes would leave the stored note in place).
+  const { notes, ...vendorPatch } = patch as Record<string, unknown> & { notes: string | null }
+  const { error } = await supabase.from('vendors').update(vendorPatch).eq('id', vendorId).eq('portfolio_id', portfolioId)
   if (error) failTo(error.message)
+  if ((before.notes ?? null) !== (notes ?? null)) {
+    const notesError = await savePrivateFields(supabase, 'vendor_private', 'vendor_id', vendorId, { notes })
+    if (notesError) failTo('Saved, but the internal notes could not be saved: ' + notesError.message)
+  }
 
   const finChanged = Object.entries(fin).some(([k, v]) => (finBefore?.[k] ?? null) !== (v ?? null))
   if (canEditBank && finChanged) {

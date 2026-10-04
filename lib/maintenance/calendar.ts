@@ -37,7 +37,10 @@ export async function syncMaintenanceCalendarEvent(
     title: `🔧 ${title}`, event_type: eventType,
     calendar_scope: 'daily',
     start_datetime: start, end_datetime: end,
-    location: null, description: notes?.slice(0,200) || null,
+    // The task's notes are staff-only: they go to internal_notes (moved to
+    // staff-only calendar_event_private), never to the description that
+    // owners, board members, tenants and the vendor can read.
+    location: null, description: null, internal_notes: notes?.trim().slice(0,200) || null,
     operations_status: 'scheduled',
     notification_recipients: ['management_office'],
     reminder_rules: [{ minutes_before: 10080, actions: ['notify_management_office'] }],

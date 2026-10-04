@@ -75,6 +75,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     { data: ratings },
     { data: authData },
     { data: privateRow },
+    { data: vendorPrivateRow },
   ] = await Promise.all([
     (supabase as any).from('work_orders').select(`
       *, vendors(id, name, trade, phone_numbers, emails),
@@ -91,9 +92,12 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
     supabase.auth.getUser(),
     // Staff-only fields (not on the work order row, which vendors/residents can read).
     (supabase as any).from('work_order_private').select('internal_notes').eq('work_order_id', id).maybeSingle(),
+    // Vendor instructions: staff and the assigned vendor only.
+    (supabase as any).from('work_order_vendor_private').select('vendor_instructions').eq('work_order_id', id).maybeSingle(),
   ]);
   if (!wo) notFound();
   wo.internal_notes = privateRow?.internal_notes ?? null;
+  wo.vendor_instructions = vendorPrivateRow?.vendor_instructions ?? null;
   const [attachments, { data: chargebacks }, { data: chargeCategories }, { data: staffRows }] = await Promise.all([
     loadMaintenanceAttachments({ workOrderId: wo.id, serviceRequestId: wo.service_request_id }),
     wo.unit_id

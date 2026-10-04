@@ -21,7 +21,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
   const { id } = await params;
   const db = (await createClient()) as any;
   const { data: p } = await db.from('payments')
-    .select('id, amount, payment_date, method, reference, notes, created_at, reversed_at, reversal_reason, unit_id, units(unit_number, buildings(associations(name, address, city, state, zip, portfolios(company_name, support_email))))')
+    .select('id, amount, payment_date, method, reference, created_at, reversed_at, reversal_reason, unit_id, units(unit_number, buildings(associations(name, address, city, state, zip, portfolios(company_name, support_email))))')
     .eq('id', id).maybeSingle();
   if (!p) notFound();
 
@@ -96,7 +96,7 @@ export default async function PaymentReceiptPage({ params }: { params: Promise<{
         {balanceDue !== null && Number.isFinite(balanceDue) && (
           <p className="mt-4 text-sm text-gray-600">Current account balance: <span className="font-medium tabular-nums text-gray-900">{money(balanceDue)}</span></p>
         )}
-        {p.notes && <p className="mt-2 text-sm text-gray-600">Note: {p.notes}</p>}
+        {/* No staff payment notes here: the receipt is handed to the homeowner. */}
 
         <p className="mt-8 border-t border-gray-200 pt-4 text-xs text-gray-400">
           Recorded {new Date(p.created_at).toLocaleString('en-US', { timeZone: displayTimeZone(), dateStyle: 'medium', timeStyle: 'short' })}. Keep this receipt for your records.

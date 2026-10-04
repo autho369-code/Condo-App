@@ -19,7 +19,7 @@ export default async function VendorProfile({
   const supabase = await createClient();
   const { data: v } = await (supabase as any)
     .from('vendors')
-    .select('id, name, trade, vendor_type, phone_numbers, emails, address_street, address_city, address_state, address_zip, payment_terms, notes')
+    .select('id, name, trade, vendor_type, phone_numbers, emails, address_street, address_city, address_state, address_zip, payment_terms')
     .eq('id', me.vendor_id)
     .maybeSingle();
 

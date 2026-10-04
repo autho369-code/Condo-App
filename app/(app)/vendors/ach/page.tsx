@@ -14,6 +14,7 @@ import { date } from '@/lib/utils';
 import { verifyVendorAch, activateVendorAch, revokeVendorAch } from '@/lib/rpcs/entities';
 import { Field, Input } from '@/components/ui/input';
 import { tradeLabel } from '@/lib/vendors/options';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 async function saveVendorBankDetails(formData: FormData) {
   'use server';
@@ -102,9 +103,11 @@ export default async function VendorAchPage({
 
   const { data } = await (supabase as any)
     .from('vendors')
-    .select('id, name, trade, payment_type, vendor_financial_details(bank_routing_number, bank_account_number), savings_account, is_auto_pay, auto_pay_setup_at, auto_pay_notes, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at')
+    .select('id, name, trade, payment_type, vendor_financial_details(bank_routing_number, bank_account_number), savings_account, is_auto_pay, auto_pay_setup_at, ach_status, ach_verified_at, ach_verified_by, ach_activated_at, ach_activated_by, hold_payments, archived_at')
     .is('archived_at', null)
     .order('name');
+  // ACH review notes are staff-only (vendor_private).
+  await mergePrivateFields(supabase as any, 'vendor_private', 'vendor_id', ['auto_pay_notes'], (data ?? []) as any[]);
 
   // Fetch verifier/activator names
   const staffIds = new Set<string>();

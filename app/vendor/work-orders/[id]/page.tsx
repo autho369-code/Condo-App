@@ -37,11 +37,19 @@ export default async function VendorWorkOrderDetail({
 
   const { data: wo } = await db
     .from('work_orders')
-    .select('id, number, title, status, priority, description, job_description, vendor_instructions, service_request_id, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
+    .select('id, number, title, status, priority, description, job_description, service_request_id, scheduled_date, scheduled_time, completed_date, created_at, associations(name, address, city, state), units(unit_number)')
     .eq('id', id)
     .eq('vendor_id', me.vendor_id)
     .maybeSingle();
   if (!wo) notFound();
+  // Instructions for the vendor are not on the work order row (owners and
+  // board read it); RLS lets the assigned vendor read them here.
+  const { data: instructions } = await db
+    .from('work_order_vendor_private')
+    .select('vendor_instructions')
+    .eq('work_order_id', id)
+    .maybeSingle();
+  wo.vendor_instructions = instructions?.vendor_instructions ?? null;
 
   const { data: updates } = await db
     .from('work_order_updates')

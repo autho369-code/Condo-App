@@ -4,6 +4,7 @@ import { getMe } from '@/lib/auth/me';
 import { receiptMethodLabel, RECEIPT_METHODS } from '@/lib/payments/methods';
 import { createClient } from '@/lib/supabase/server';
 import { csvCell } from '@/lib/csv/cell';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   const rows: any[] = [];
   for (let offset = 0; offset < 50000; offset += 1000) {
     let query = db.from('payments')
-      .select(`id, amount, payment_date, method, reference, notes, created_at, bank_accounts(name), ${unitSelect}`)
+      .select(`id, amount, payment_date, method, reference, created_at, bank_accounts(name), ${unitSelect}`)
       .gte('payment_date', from).lte('payment_date', to)
       .order('payment_date', { ascending: false }).order('id', { ascending: false })
       .range(offset, offset + 999);
@@ -43,6 +44,9 @@ export async function GET(request: NextRequest) {
     rows.push(...(data ?? []));
     if ((data ?? []).length < 1000) break;
   }
+
+  // Staff export (finance only): memos come from staff-only payment_private.
+  await mergePrivateFields(db, 'payment_private', 'payment_id', ['notes'], rows);
 
   // Who paid: the homeowner who owned the unit on the payment date.
   const payerById = new Map<string, string>();
