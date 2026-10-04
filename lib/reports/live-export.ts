@@ -1,5 +1,6 @@
-import { todayInZone } from '@/lib/time/zoned';
-import { isValidTimeZone } from '@/lib/time/display-zone';
+import { todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
+import { responseExportRows } from '@/lib/reports/maintenance-response';
+import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
   addLedgerLine,
@@ -28,6 +29,7 @@ export const LIVE_EXPORT_SLUGS = [
   'bank_reconciliation',
   'bank_account_reconciliation',
   'bank_reconciliation_detail',
+  'maintenance_response_times',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -721,6 +723,37 @@ async function budgetVsActualRows(
   return rows;
 }
 
+/** Service requests and work orders created in the period, per association. */
+async function maintenanceResponseRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+  dateFrom: string,
+  dateTo: string,
+  zone: string,
+): Promise<Record<string, unknown>[]> {
+  const next = new Date(`${dateTo}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const from = wallDateTimeToIso(dateFrom, zone) ?? `${dateFrom}T00:00:00Z`;
+  const before = wallDateTimeToIso(next.toISOString().slice(0, 10), zone) ?? next.toISOString();
+  const scoped = (q: any) => {
+    q = q.eq('portfolio_id', portfolioId).is('archived_at', null).neq('status', 'cancelled')
+      .gte('created_at', from).lt('created_at', before).order('id');
+    return associationId ? q.eq('association_id', associationId) : q;
+  };
+  const [requests, workOrders, associations] = await Promise.all([
+    fetchAllRows<any>(() => scoped(db.from('service_requests')
+      .select('id, association_id, priority, status, created_at, first_response_due_at, acknowledged_at, resolved_at'))),
+    fetchAllRows<any>(() => scoped(db.from('work_orders')
+      .select('id, association_id, priority, status, created_at, completed_date'))),
+    fetchAllRows<any>(() => db.from('associations').select('id, name').eq('portfolio_id', portfolioId).order('id')),
+  ]);
+  const error = requests.error ?? workOrders.error ?? associations.error;
+  if (error) throw new Error(`Could not load maintenance records: ${error}`);
+  const names = new Map<string, string>(associations.rows.map((a: any) => [a.id, a.name]));
+  return responseExportRows(requests.rows, workOrders.rows, names);
+}
+
 export async function generateLiveExportRows(
   db: ServiceClient,
   portfolioId: string,
@@ -768,5 +801,7 @@ export async function generateLiveExportRows(
       return bankReconciliationRows(db, portfolioId, associationId, dateTo, false);
     case 'bank_reconciliation_detail':
       return bankReconciliationRows(db, portfolioId, associationId, dateTo, true);
+    case 'maintenance_response_times':
+      return maintenanceResponseRows(db, portfolioId, associationId, dateFrom, dateTo, runZone && isValidTimeZone(runZone) ? runZone : displayTimeZone());
   }
 }

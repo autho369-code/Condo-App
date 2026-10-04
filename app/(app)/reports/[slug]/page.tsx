@@ -13,6 +13,7 @@ import { money, date } from '@/lib/utils';
 import { reportFormatLabel, supportedReportOutputFormats } from '@/lib/reports/formats';
 import { computePeriod, type Period } from '@/lib/reports/period';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
+import { PRIORITIES, daysLabel, groupBy, hoursLabel, openWorkOrderAging, rateLabel, responseMetrics, type ResponseMetrics } from '@/lib/reports/maintenance-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,7 @@ const LIVE_REPORT_SLUGS = [
   'trust_account_detail',
   'management_fee_summary',
   'owner_prepaid',
+  'maintenance_response_times',
 ] as const;
 
 type LiveReportSlug = (typeof LIVE_REPORT_SLUGS)[number];
@@ -200,6 +202,7 @@ async function LiveReportView(
     case 'trust_account_detail':  return <TrustDetailView {...ctx} />;
     case 'management_fee_summary': return <ManagementFeeSummaryView {...ctx} />;
     case 'owner_prepaid':     return <OwnerPrepaidView {...ctx} />;
+    case 'maintenance_response_times': return <MaintenanceResponseView {...ctx} />;
     default:                  return <QueuedReportView {...ctx} />;
   }
 }
@@ -1880,6 +1883,143 @@ async function OwnerPrepaidView(ctx: ReportContext) {
             </tbody>
           </table>
         </div>
+      </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ MAINTENANCE RESPONSE TIMES ═══
+async function MaintenanceResponseView(ctx: ReportContext) {
+  const db = (await createClient()) as any;
+  const zone = displayTimeZone();
+  const from = wallDateTimeToIso(ctx.period.from, zone) ?? `${ctx.period.from}T00:00:00Z`;
+  const before = wallDateTimeToIso(addDays(ctx.period.to, 1), zone) ?? `${addDays(ctx.period.to, 1)}T00:00:00Z`;
+  const { data: portfolioId } = await db.rpc('current_portfolio_id');
+  const scoped = (q: any) => {
+    if (portfolioId) q = q.eq('portfolio_id', portfolioId);
+    if (UUID_RE.test(ctx.selectedAssociation)) q = q.eq('association_id', ctx.selectedAssociation);
+    return q;
+  };
+  const [reqRes, woRes, openRes] = await Promise.all([
+    fetchAllRows<any>(() => scoped(db.from('service_requests')
+      .select('id, association_id, priority, status, created_at, first_response_due_at, acknowledged_at, resolved_at')
+      .is('archived_at', null).neq('status', 'cancelled')
+      .gte('created_at', from).lt('created_at', before).order('id'))),
+    fetchAllRows<any>(() => scoped(db.from('work_orders')
+      .select('id, association_id, priority, status, created_at, completed_date')
+      .is('archived_at', null).neq('status', 'cancelled')
+      .gte('created_at', from).lt('created_at', before).order('id'))),
+    fetchAllRows<any>(() => scoped(db.from('work_orders')
+      .select('id, association_id, priority, status, created_at, completed_date')
+      .is('archived_at', null).is('completed_date', null)
+      .not('status', 'in', '(done,completed,billed,closed,cancelled)').order('id'))),
+  ]);
+  const loadError = reqRes.error ?? woRes.error ?? openRes.error;
+  const requests = reqRes.rows;
+  const workOrders = woRes.rows;
+  const now = new Date();
+  const total = responseMetrics(requests, workOrders, now);
+  const aging = openWorkOrderAging(openRes.rows, now);
+  const names = new Map<string, string>(ctx.associations.map((a: any) => [a.id, a.name]));
+  const reqBy = groupBy(requests, (r: any) => r.association_id ?? '');
+  const woBy = groupBy(workOrders, (w: any) => w.association_id ?? '');
+  const byAssociation = [...new Set([...reqBy.keys(), ...woBy.keys()])]
+    .map((id) => ({ id, name: names.get(id) ?? (id ? 'Association' : 'No association'), m: responseMetrics(reqBy.get(id) ?? [], woBy.get(id) ?? [], now) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const byPriority = PRIORITIES.map((p) => ({
+    p,
+    m: responseMetrics(requests.filter((r: any) => r.priority === p), workOrders.filter((w: any) => w.priority === p), now),
+  })).filter((x) => x.m.requests + x.m.workOrders > 0);
+  const openTotal = aging.reduce((s, b) => s + b.count, 0);
+  const stale = aging.slice(2).reduce((s, b) => s + b.count, 0);
+
+  const metricCells = (m: ResponseMetrics) => (
+    <>
+      <td className="px-4 py-2 text-right tabular-nums">{m.requests}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{rateLabel(m.onTimeRate)}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.overdueNow}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{hoursLabel(m.medianHoursToRespond)}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{daysLabel(m.medianDaysToResolve)}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.workOrders}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.completed}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{daysLabel(m.medianDaysToComplete)}</td>
+    </>
+  );
+  const metricHead = (
+    <>
+      <th className={thRight}>Requests</th>
+      <th className={thRight}>Replied on time</th>
+      <th className={thRight}>Overdue now</th>
+      <th className={thRight}>Median reply</th>
+      <th className={thRight}>Median resolve</th>
+      <th className={thRight}>Work orders</th>
+      <th className={thRight}>Completed</th>
+      <th className={thRight}>Median to complete</th>
+    </>
+  );
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={`Requests and work orders created ${ctx.period.from} → ${ctx.period.to}`}>
+      {loadError && <Alert tone="danger" title="Some maintenance records could not be loaded:">{loadError}</Alert>}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile label="Replied on time" value={rateLabel(total.onTimeRate)} sub={`${total.onTime} of ${total.withTarget} with a reply target`}
+          tone={total.onTimeRate == null ? 'neutral' : total.onTimeRate >= 0.9 ? 'positive' : total.onTimeRate >= 0.7 ? 'warning' : 'danger'} />
+        <Tile label="Median first reply" value={hoursLabel(total.medianHoursToRespond)} sub={`${total.overdueNow} waiting past target`} tone={total.overdueNow > 0 ? 'warning' : 'neutral'} />
+        <Tile label="Median to complete a work order" value={daysLabel(total.medianDaysToComplete)} sub={`${total.completed} of ${total.workOrders} completed`} tone="neutral" />
+        <Tile label="Open work orders over 30 days" value={stale} sub={`${openTotal} open today`} tone={stale > 0 ? 'danger' : 'positive'} />
+      </div>
+      <Section title="By association" subtitle={`${byAssociation.length} associations`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr><th className="px-5 py-2 text-left font-semibold">Association</th>{metricHead}</tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {byAssociation.map((r) => (
+                <tr key={r.id || 'none'}>
+                  <td className="px-5 py-2 font-medium text-gray-900">{r.id ? <Link href={`/associations/${r.id}`} className="hover:underline">{r.name}</Link> : r.name}</td>
+                  {metricCells(r.m)}
+                </tr>
+              ))}
+              {byAssociation.length === 0 && (
+                <tr><td colSpan={9} className="px-5 py-6 text-center text-gray-500">No service requests or work orders were created in this period.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+      {byPriority.length > 0 && (
+        <Section title="By priority">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr><th className="px-5 py-2 text-left font-semibold">Priority</th>{metricHead}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {byPriority.map(({ p, m }) => (
+                  <tr key={p}><td className="px-5 py-2 font-medium capitalize text-gray-900">{p}</td>{metricCells(m)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+      <Section title="Open work orders by age" subtitle="Every open work order today, whatever the period">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr><th className="px-5 py-2 text-left font-semibold">Age</th><th className={thRight}>Open work orders</th></tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {aging.map((b) => (
+                <tr key={b.bucket}><td className="px-5 py-2 text-gray-900">{b.bucket}</td><td className="px-4 py-2 text-right tabular-nums">{b.count}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="px-5 py-3 text-sm text-gray-600">
+          <Link href="/work-orders" className="font-medium text-gray-950 hover:underline">Open the work order list</Link>
+        </p>
       </Section>
     </LiveReportShell>
   );

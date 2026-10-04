@@ -93,7 +93,7 @@ Mostly on Mirsad / external; not code.
       seven flagged sections. Remaining honest gaps deliberately deferred:
       - staff-side "submit ARC request on owner's behalf" flow — **DONE 2026-07-14** (`/architectural-reviews/new`, occupancy-pick prevents forged owner/unit pairing)
       - amenity image upload (same placeholder pattern as approvals had) — **DONE 2026-07-14** (signed-URL render, 5 MB cap)
-      - maintenance SLA / inspection-compliance metrics (no data source yet) — still deferred.
+      - maintenance SLA metrics — **DONE 2026-10-04** (`/reports/maintenance_response_times`: first-reply on-time rate, median reply/resolve/complete times, open work-order aging; CSV/Excel/PDF export). Inspection-compliance metrics still deferred.
 
 - [x] **File uploads actually work with large files (2026-07-14, PM).** Both the
       architectural-documents and insurance-certificate uploaders originally posted
@@ -148,8 +148,8 @@ but a few worth addressing before scale:
       `association_local_date`, `association_fiscal_year_of` reveal trivial
       facts by id but are needed by RLS policies/views.
 - [x] **Fixed: pinned `search_path`** on all 20 app functions. (2026-06-22)
-- [ ] (Lower-risk, deferred) review the 8 SECURITY DEFINER views — converting to
-      `security_invoker` can change results, so each needs per-view testing.
+- [x] SECURITY DEFINER views — verified 2026-10-04: every public view now runs
+      with `security_invoker`, so none bypasses RLS.
 
 ## 🟢 Optional / cleanup (no rush)
 - [ ] Decide fate of the orphaned `/platform-operator/overview` page vs the root
