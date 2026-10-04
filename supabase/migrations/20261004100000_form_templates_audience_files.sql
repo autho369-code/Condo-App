@@ -6,10 +6,14 @@
 --           (forms/<portfolio_id>/<uuid>.<ext>); downloads use short-lived
 --           signed URLs. file_url stays for forms that link elsewhere.
 
+-- Existing forms were never shown to owners, so they are backfilled as
+-- 'internal' (staff-only); only forms created from now on default to
+-- 'homeowner'. Re-running is a no-op once the column exists.
 alter table public.form_templates
-  add column if not exists audience text not null default 'homeowner',
+  add column if not exists audience text not null default 'internal',
   add column if not exists file_path text,
   add column if not exists file_name text;
+alter table public.form_templates alter column audience set default 'homeowner';
 
 do $$
 begin
@@ -24,7 +28,9 @@ begin
   end if;
   if not exists (select 1 from pg_constraint where conname = 'form_templates_file_url_check') then
     alter table public.form_templates
-      add constraint form_templates_file_url_check check (file_url is null or file_url ~* '^https://');
+      -- NOT VALID: older forms may hold http:// links (the form page used to
+      -- accept any URL); new and edited forms must use https.
+      add constraint form_templates_file_url_check check (file_url is null or file_url ~* '^https://') not valid;
   end if;
 end $$;
 
