@@ -134,8 +134,19 @@ but a few worth addressing before scale:
       policies (RLS deny-all). (2026-06-22) Remaining benign always-true policies are
       reference/by-design: `house_rules`, `feature_entitlements`, `user_roles`,
       `maintenance_templates`, `portfolios` branding (now via SECDEF fn), audit/marketing INSERTs.
-- [ ] Review the 8 SECURITY DEFINER views + 26 "RLS enabled, no policy" tables —
-      confirm each is intentional/locked, add policies where a real surface needs them.
+- [x] **Security audit of all 257 SECURITY DEFINER RPCs (2026-10-04).** No
+      cross-company read/write or role escalation found. Fixed (migration
+      `20261004130000_association_scope_hardening`, applied): association-scoped
+      managers could write outside their associations (charges, recurring
+      charges, dues increase, owner statements, board-approval settings, notes,
+      tags, signatures, year-end, lockbox payments) → row-level scope trigger on
+      11 tables; `me()` no longer returns the full company row (tax id, security
+      policy) to owners/tenants/board/vendors; six fee/processor lookups revoked
+      from signed-in users. The 38 "RLS enabled, no policy" tables are
+      intentional deny-all (the four the app uses are read with the service key).
+      Accepted LOW: `document_portfolio_id`, `*_links_valid`,
+      `association_local_date`, `association_fiscal_year_of` reveal trivial
+      facts by id but are needed by RLS policies/views.
 - [x] **Fixed: pinned `search_path`** on all 20 app functions. (2026-06-22)
 - [ ] (Lower-risk, deferred) review the 8 SECURITY DEFINER views — converting to
       `security_invoker` can change results, so each needs per-view testing.
