@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
-import { PageHeader, Surface, EmptyState } from '@/components/ui/shell';
+import { PageHeader, Surface, EmptyState, Alert } from '@/components/ui/shell';
 import { Building2, Phone, Mail, KeyRound } from 'lucide-react';
 import { mergePrivateFields } from '@/lib/private-fields';
 
@@ -13,21 +13,25 @@ export default async function VendorPropertiesPage() {
 
   // Associations are visible to vendors only through their assigned work
   // orders (RLS: vendor_select_associations_units_via_work_orders).
-  const { data: wos } = await db
+  // Only properties with a live job: access notes are not shown for
+  // finished or cancelled work.
+  const { data: wos, error: woError } = await db
     .from('work_orders')
     .select('association_id')
     .eq('vendor_id', me.vendor_id)
-    .is('archived_at', null);
+    .is('archived_at', null)
+    .not('status', 'in', '(completed,closed,cancelled,billed)');
 
   const assocIds = [...new Set((wos ?? []).map((w: any) => w.association_id).filter(Boolean))];
 
-  const { data: assocs } = assocIds.length
+  const { data: assocs, error: assocError } = assocIds.length
     ? await db
         .from('associations')
         .select('id, name, address, address_line_2, city, state, zip, maintenance_contact_name, maintenance_contact_email, maintenance_contact_phone, maintenance_phone, unit_entry_pre_authorized, site_manager, site_manager_phone')
         .in('id', assocIds)
         .order('name')
-    : { data: [] as any[] };
+    : { data: [] as any[], error: null };
+  const loadError = woError ?? assocError;
   // Access & site notes are not on the association row (owners, tenants and
   // board read it); RLS lets vendors with a work order there read them.
   await mergePrivateFields(db, 'association_vendor_private', 'association_id', ['maintenance_notes'], (assocs ?? []) as any[]);
@@ -36,8 +40,10 @@ export default async function VendorPropertiesPage() {
     <div>
       <PageHeader
         title="Properties"
-        description="Access details and contacts for the properties you're assigned to work at."
+        description="Access details and contacts for the properties where you have an active job."
       />
+
+      {loadError && <Alert tone="danger" title="Could not load properties:" className="mb-5">{loadError.message}</Alert>}
 
       {(assocs ?? []).length === 0 ? (
         <Surface padded={false}>

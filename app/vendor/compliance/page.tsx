@@ -4,8 +4,10 @@ import { FileText, ShieldCheck } from 'lucide-react';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, Alert } from '@/components/ui/shell';
-import { Button } from '@/components/ui/button';
-import { Field, Input } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { Input } from '@/components/ui/input';
+import { complianceState } from '@/lib/vendors/portal';
+import { todayInZone } from '@/lib/time/zoned';
 import { ComplianceDocumentForm } from '@/components/vendor/compliance-document-form';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { date } from '@/lib/utils';
@@ -20,11 +22,13 @@ const FIELDS = [
   { key: 'state_license_expiration', label: 'State license' },
 ] as const;
 
-function statusFor(d: string | null): { tone: 'complete' | 'pending' | 'danger' | 'inactive'; label: string } {
-  if (!d) return { tone: 'inactive', label: 'Not on file' };
-  const t = new Date(d).getTime();
-  if (t < Date.now()) return { tone: 'danger', label: 'Expired' };
-  if (t < Date.now() + 30 * 86400000) return { tone: 'pending', label: 'Expiring soon' };
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function statusFor(d: string | null, today: string): { tone: 'complete' | 'pending' | 'danger' | 'inactive'; label: string } {
+  const state = complianceState(d, today);
+  if (state === 'missing') return { tone: 'inactive', label: 'Not on file' };
+  if (state === 'expired') return { tone: 'danger', label: 'Expired' };
+  if (state === 'expiring') return { tone: 'pending', label: 'Expiring soon' };
   return { tone: 'complete', label: 'Current' };
 }
 
@@ -36,10 +40,14 @@ export default async function VendorCompliance({
   const me = await requireVendor();
   const sp = await searchParams;
   const supabase = await createClient();
-  const [complianceResult, documentResult, requestResult] = await Promise.all([
-    // Read the vendor record: that is what management sees (vendor saves are
-    // synced onto it by trg_vendor_compliance_sync).
+  const today = todayInZone();
+  const [complianceResult, claimResult, documentResult, requestResult] = await Promise.all([
+    // Official dates live on the vendor record (what management sees). The
+    // vendor's own entries in vendor_compliance are only claims: they are no
+    // longer copied onto the vendor (trg_vendor_compliance_sync is disabled);
+    // official dates change when management approves the uploaded document.
     (supabase as any).from('vendors').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
+    (supabase as any).from('vendor_compliance').select('workers_comp_expiration, general_liability_expiration, epa_certification_expiration, auto_insurance_expiration, state_license_expiration, updated_at').eq('vendor_id', me.vendor_id).maybeSingle(),
     (supabase as any).from('documents')
       .select('id, doc_type, file_name, file_url, expires_at, uploaded_at')
       .eq('entity_type', 'vendor').eq('entity_id', me.vendor_id).order('uploaded_at', { ascending: false }),
@@ -48,9 +56,11 @@ export default async function VendorCompliance({
       .eq('vendor_id', me.vendor_id).neq('status', 'approved').order('requested_at', { ascending: false }),
   ]);
   if (complianceResult.error) throw new Error(`Could not load compliance dates: ${complianceResult.error.message}`);
+  if (claimResult.error) throw new Error(`Could not load your submitted dates: ${claimResult.error.message}`);
   if (documentResult.error) throw new Error(`Could not load compliance documents: ${documentResult.error.message}`);
   if (requestResult.error) throw new Error(`Could not load document requests: ${requestResult.error.message}`);
   const c = complianceResult.data;
+  const claims = claimResult.data;
   const documents = documentResult.data ?? [];
   const requests = requestResult.data ?? [];
 
@@ -71,7 +81,8 @@ export default async function VendorCompliance({
     const supabase2 = await createClient();
     const patch: Record<string, any> = { vendor_id: me2.vendor_id, updated_at: new Date().toISOString() };
     for (const f of FIELDS) {
-      const v = (formData.get(f.key) as string) || null;
+      const v = String(formData.get(f.key) ?? '').trim() || null;
+      if (v && !DATE_ONLY.test(v)) redirect(`/vendor/compliance?error=${encodeURIComponent(`Enter a valid ${f.label.toLowerCase()} date.`)}`);
       patch[f.key] = v;
     }
     const { error } = await (supabase2 as any).from('vendor_compliance').upsert(patch, { onConflict: 'vendor_id' });
@@ -88,35 +99,45 @@ export default async function VendorCompliance({
       />
 
       {sp.error && <Alert tone="danger" title="Could not save:" className="mb-5">{sp.error}</Alert>}
-      {sp.saved && <Alert tone="success" className="mb-5">Compliance dates saved.</Alert>}
+      {sp.saved && <Alert tone="success" className="mb-5">Dates sent to management. They count toward your compliance once management approves the matching document.</Alert>}
       {sp.saved_document && <Alert tone="success" className="mb-5">Compliance document uploaded for management review.</Alert>}
 
       <Surface>
-        <SectionTitle title="Certificates & licenses" description="Enter the expiration date from each document." />
+        <SectionTitle title="Certificates & licenses" description="Enter the expiration date from each document. The status shows the date management has approved." />
         <form action={save} className="space-y-1">
           <ul className="divide-y divide-gray-50">
             {FIELDS.map((f) => {
-              const current = c?.[f.key] ?? null;
-              const s = statusFor(current);
+              const official = c?.[f.key] ?? null;
+              const claimed = claims?.[f.key] ?? null;
+              const s = statusFor(official, today);
+              const pendingReview = !!claimed && claimed !== official;
               return (
                 <li key={f.key} className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-gray-300" />
-                    <span className="text-[13px] font-medium text-gray-800">{f.label}</span>
-                    <Badge tone={s.tone}>{s.label}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <ShieldCheck className="h-4 w-4 flex-shrink-0 text-gray-300" />
+                      <span className="text-[13px] font-medium text-gray-800">{f.label}</span>
+                      <Badge tone={s.tone}>{s.label}</Badge>
+                    </div>
+                    {(official || pendingReview) && (
+                      <p className="mt-1 pl-6 text-[12px] text-gray-500">
+                        {official ? `On file: expires ${date(official)}` : 'Nothing approved yet'}
+                        {pendingReview ? ` · You entered ${date(claimed)} (awaiting management review)` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 sm:w-56">
-                    <Input type="date" name={f.key} defaultValue={current ?? ''} aria-label={`${f.label} expiration date`} />
+                    <Input type="date" name={f.key} defaultValue={claimed ?? official ?? ''} aria-label={`${f.label} expiration date`} />
                   </div>
                 </li>
               );
             })}
           </ul>
           <div className="pt-4">
-            <Button type="submit">Save compliance dates</Button>
+            <PendingSubmit pendingLabel="Saving…">Save compliance dates</PendingSubmit>
           </div>
         </form>
-        {c?.updated_at && <p className="mt-3 text-[12px] text-gray-400">Last updated {date(c.updated_at)}</p>}
+        {claims?.updated_at && <p className="mt-3 text-[12px] text-gray-400">You last sent dates {date(claims.updated_at)}</p>}
       </Surface>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -138,7 +159,8 @@ export default async function VendorCompliance({
                     <div className="truncate text-sm font-medium text-gray-900">{document.file_name}</div>
                     <div className="mt-0.5 text-xs capitalize text-gray-500">
                       {document.doc_type.replace(/_/g, ' ')} · Uploaded {date(document.uploaded_at)}
-                      {document.expires_at ? ` · Expires ${date(document.expires_at)}` : ''}
+                      {/* Stored as midnight UTC of the calendar day; show that day, not the instant. */}
+                      {document.expires_at ? ` · Expires ${date(String(document.expires_at).slice(0, 10))}` : ''}
                     </div>
                   </div>
                   {signedByPath.get(document.file_url) && (

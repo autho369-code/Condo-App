@@ -17,7 +17,7 @@ export default async function VendorProfile({
   const me = await requireVendor();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: v } = await (supabase as any)
+  const { data: v, error: loadError } = await (supabase as any)
     .from('vendors')
     .select('id, name, trade, vendor_type, phone_numbers, emails, address_street, address_city, address_state, address_zip, payment_terms')
     .eq('id', me.vendor_id)
@@ -66,6 +66,7 @@ export default async function VendorProfile({
         description={v?.name ? `${v.name}${v.trade ? ` · ${tradeLabel(v.trade)}` : ''}` : 'Your vendor profile'}
       />
 
+      {loadError && <Alert tone="danger" title="Could not load your profile:" className="mb-5">{loadError.message}</Alert>}
       {sp.error && <Alert tone="danger" title="Could not save:" className="mb-5">{sp.error}</Alert>}
       {sp.saved && <Alert tone="success" className="mb-5">Profile saved.</Alert>}
 

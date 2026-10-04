@@ -29,6 +29,10 @@ export async function postWorkOrderMessage(
         : null;
   if (!context) { redirect('/?error=' + encodeURIComponent('Invalid work-order return path')); return; }
   const { me, authorRole } = context;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(workOrderId))) {
+    redirect(`${basePath}?error=${encodeURIComponent('That work order is not available.')}`);
+    return;
+  }
   const back = `${basePath}/${workOrderId}`;
 
   const body = (formData.get('body') as string)?.trim();
@@ -44,6 +48,20 @@ export async function postWorkOrderMessage(
     const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
     if (!wo || !withinTenure(tenure, wo.unit_id, wo.created_at)) {
       redirect(`/portal/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
+      return;
+    }
+  }
+  // A vendor may only post on an active work order assigned to them (bound
+  // action arguments come back from the browser, so re-check here; RLS on
+  // work_order_messages enforces the same rule).
+  if (authorRole === 'vendor') {
+    const { data: wo, error: woError } = await (supabase as any)
+      .from('work_orders').select('id')
+      .eq('id', workOrderId).eq('vendor_id', me.vendor_id).is('archived_at', null)
+      .maybeSingle();
+    if (woError) { redirect(`${back}?error=${encodeURIComponent(woError.message)}`); return; }
+    if (!wo) {
+      redirect(`/vendor/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
       return;
     }
   }

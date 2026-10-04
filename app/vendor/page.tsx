@@ -3,8 +3,9 @@ import { Wrench, ShieldAlert, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
-import { date } from '@/lib/utils';
+import { date, money } from '@/lib/utils';
 import { tradeLabel } from '@/lib/vendors/options';
+import { complianceState } from '@/lib/vendors/portal';
 import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export default async function VendorDashboard() {
 
   const todayDate = todayInZone();
 
-  const [{ data: vendor }, { data: workOrders }, { data: compliance }, { data: openBills }] = await Promise.all([
+  const [vendorResult, workOrderResult, complianceResult, billResult] = await Promise.all([
     db.from('vendors').select('id, name, trade').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
       .select('id, number, title, status, priority, scheduled_date, completed_date, created_at, associations(name)')
@@ -34,7 +35,16 @@ export default async function VendorDashboard() {
       .not('status', 'in', '("paid","void")'),
   ]);
 
-  const wos = workOrders ?? [];
+  const vendor = vendorResult.data;
+  const compliance = complianceResult.data;
+  const loadErrors = [
+    vendorResult.error && `profile (${vendorResult.error.message})`,
+    workOrderResult.error && `work orders (${workOrderResult.error.message})`,
+    complianceResult.error && `compliance dates (${complianceResult.error.message})`,
+    billResult.error && `bills (${billResult.error.message})`,
+  ].filter(Boolean) as string[];
+  const wos = workOrderResult.data ?? [];
+  const openBills = billResult.data;
   const open = wos.filter((w: any) => OPEN_STATUSES.includes((w.status ?? '').toLowerCase()));
   const scheduled = open.filter((w: any) => w.scheduled_date);
   const emergencies = open.filter((w: any) => (w.priority ?? '').toLowerCase() === 'emergency');
@@ -44,21 +54,21 @@ export default async function VendorDashboard() {
   const completed = wos.filter((w: any) => ['done', 'completed', 'billed', 'closed'].includes((w.status ?? '').toLowerCase()));
   const pendingPay = (openBills ?? []).reduce((s: number, b: any) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
-  // Compliance expirations within 30 days or past
-  const soon = Date.now() + 30 * 86400000;
+  // Compliance expirations within 30 days or past (local calendar days).
   const expiring: { label: string; date: string; expired: boolean }[] = [];
   const checks: [string, string | null][] = [
     ['Workers comp', compliance?.workers_comp_expiration],
     ['General liability', compliance?.general_liability_expiration],
     ['Auto insurance', compliance?.auto_insurance_expiration],
+    ['EPA certification', compliance?.epa_certification_expiration],
     ['State license', compliance?.state_license_expiration],
     ['Contract', compliance?.contract_expiration],
   ];
   for (const [label, d] of checks) {
-    if (!d) continue;
-    const t = new Date(d).getTime();
-    if (t < soon) expiring.push({ label, date: d, expired: t < Date.now() });
+    const state = complianceState(d, todayDate);
+    if (state === 'expired' || state === 'expiring') expiring.push({ label, date: d as string, expired: state === 'expired' });
   }
+  const noComplianceOnFile = !complianceResult.error && checks.every(([, d]) => !d);
 
   return (
     <div>
@@ -66,6 +76,10 @@ export default async function VendorDashboard() {
         title={`Welcome${vendor?.name ? `, ${vendor.name}` : ''}`}
         description={vendor?.trade ? `Trade: ${tradeLabel(vendor.trade)}` : 'Your assigned work at a glance.'}
       />
+
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some information could not be loaded:" className="mb-5">{loadErrors.join('; ')}</Alert>
+      )}
 
       {expiring.length > 0 && (
         <Alert tone={expiring.some((e) => e.expired) ? 'danger' : 'warning'} className="mb-5">
@@ -90,7 +104,7 @@ export default async function VendorDashboard() {
         <Metric label="Emergency" value={emergencies.length} accent={emergencies.length > 0 ? 'red' : undefined} />
         <Metric label="Scheduled" value={scheduled.length} />
         <Metric label="Completed" value={completed.length} sub="recent history" accent="emerald" />
-        <Metric label="Pending payment" value={`$${pendingPay.toLocaleString()}`} sub={<Link href="/vendor/payments" className="underline underline-offset-2">payment status</Link>} />
+        <Metric label="Pending payment" value={money(pendingPay)} sub={<Link href="/vendor/payments" className="underline underline-offset-2">payment status</Link>} />
         <Metric label="All assigned" value={wos.length} sub="last 100 shown" />
       </MetricStrip>
 
@@ -123,7 +137,7 @@ export default async function VendorDashboard() {
         )}
       </Surface>
 
-      {!compliance && (
+      {noComplianceOnFile && (
         <Surface className="mt-5">
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />

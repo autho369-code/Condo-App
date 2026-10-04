@@ -96,6 +96,9 @@ export async function saveVendorComplianceDocument(input: {
       .select('id, attachment_urls')
       .eq('id', input.requestId)
       .eq('vendor_id', me.vendor_id)
+      // An approved request is closed: re-submitting would silently reopen it
+      // for review (the vendor page only offers open requests).
+      .neq('status', 'approved')
       .maybeSingle();
     if (error || !data) {
       await removeUploadedFile(input.path);
@@ -124,7 +127,7 @@ export async function saveVendorComplianceDocument(input: {
       attachment_urls: [...prior, input.path],
       status: 'submitted',
       submitted_at: new Date().toISOString(),
-    }).eq('id', request.id).eq('vendor_id', me.vendor_id);
+    }).eq('id', request.id).eq('vendor_id', me.vendor_id).neq('status', 'approved');
     if (requestError) {
       await service.from('documents').delete().eq('id', document.id);
       await removeUploadedFile(input.path);

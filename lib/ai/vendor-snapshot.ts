@@ -8,6 +8,7 @@
 import 'server-only';
 import { requireVendor } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 const OPEN_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress'];
 const DONE_STATUSES = ['done', 'completed', 'billed', 'closed'];
@@ -30,10 +31,11 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
   const me = await requireVendor();
   const supabase = await createClient();
   const db = supabase as any;
-  const todayDate = new Date().toISOString().slice(0, 10);
+  // Local calendar day (the UTC date flipped to tomorrow every evening in US zones).
+  const todayDate = todayInZone();
 
   const [{ data: vendor }, { data: wos }, { data: bills }, { data: events }] = await Promise.all([
-    db.from('vendors').select('name, trade, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
+    db.from('vendors').select('name, trade, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
       .select('number, title, status, priority, scheduled_date, completed_date, associations(name), units(unit_number)')
       .eq('vendor_id', me.vendor_id)
@@ -63,6 +65,7 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
     ['General liability (COI)', vendor?.general_liability_expiration],
     ['Workers comp', vendor?.workers_comp_expiration],
     ['Auto insurance', vendor?.auto_insurance_expiration],
+    ['EPA certification', vendor?.epa_certification_expiration],
     ['State license', vendor?.state_license_expiration],
     ['Contract', vendor?.contract_expiration],
   ]
