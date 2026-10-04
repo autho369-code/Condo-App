@@ -1,5 +1,6 @@
 import { todayInZone, wallDateTimeToIso } from '@/lib/time/zoned';
 import { responseExportRows } from '@/lib/reports/maintenance-response';
+import { complianceExportRows } from '@/lib/reports/inspection-compliance';
 import { displayTimeZone, isValidTimeZone } from '@/lib/time/display-zone';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
@@ -30,6 +31,7 @@ export const LIVE_EXPORT_SLUGS = [
   'bank_account_reconciliation',
   'bank_reconciliation_detail',
   'maintenance_response_times',
+  'inspection_compliance',
 ] as const;
 
 export function supportsLiveExport(slug: unknown): slug is LiveExportSlug {
@@ -762,6 +764,39 @@ async function maintenanceResponseRows(
   return responseExportRows(requests.rows, withZone, names, openWorkOrders.rows);
 }
 
+/** Inspections scheduled in the period and their findings, per association and type. */
+async function inspectionComplianceRows(
+  db: ServiceClient,
+  portfolioId: string,
+  associationId: string | null,
+  dateFrom: string,
+  dateTo: string,
+  zone: string,
+): Promise<Record<string, unknown>[]> {
+  const [inspections, findings, associations] = await Promise.all([
+    fetchAllRows<any>(() => {
+      const q = db.from('inspections').select('id, association_id, inspection_type, status, scheduled_date, completed_date')
+        .eq('portfolio_id', portfolioId).is('archived_at', null).neq('status', 'cancelled')
+        .gte('scheduled_date', dateFrom).lte('scheduled_date', dateTo).order('id');
+      return associationId ? q.eq('association_id', associationId) : q;
+    }),
+    fetchAllRows<any>(() => {
+      const q = db.from('inspection_items')
+        .select('id, inspection_id, severity, resolved, resolved_at, work_order_id, created_at, insp:inspections!inspection_items_inspection_id_fkey!inner(portfolio_id, association_id, scheduled_date, archived_at, status)')
+        .eq('insp.portfolio_id', portfolioId).is('insp.archived_at', null).neq('insp.status', 'cancelled')
+        .gte('insp.scheduled_date', dateFrom).lte('insp.scheduled_date', dateTo).order('id');
+      return associationId ? q.eq('insp.association_id', associationId) : q;
+    }),
+    fetchAllRows<any>(() => db.from('associations').select('id, name, timezone').eq('portfolio_id', portfolioId).order('id')),
+  ]);
+  const error = inspections.error ?? findings.error ?? associations.error;
+  if (error) throw new Error(`Could not load inspections: ${error}`);
+  const names = new Map<string, string>(associations.rows.map((a: any) => [a.id, a.name]));
+  const zones = new Map<string, string | null>(associations.rows.map((a: any) => [a.id, a.timezone ?? null]));
+  const withZone = inspections.rows.map((i: any) => ({ ...i, time_zone: zones.get(i.association_id) ?? zone }));
+  return complianceExportRows(withZone, findings.rows, names);
+}
+
 export async function generateLiveExportRows(
   db: ServiceClient,
   portfolioId: string,
@@ -809,6 +844,8 @@ export async function generateLiveExportRows(
       return bankReconciliationRows(db, portfolioId, associationId, dateTo, false);
     case 'bank_reconciliation_detail':
       return bankReconciliationRows(db, portfolioId, associationId, dateTo, true);
+    case 'inspection_compliance':
+      return inspectionComplianceRows(db, portfolioId, associationId, dateFrom, dateTo, runZone && isValidTimeZone(runZone) ? runZone : displayTimeZone());
     case 'maintenance_response_times':
       return maintenanceResponseRows(db, portfolioId, associationId, dateFrom, dateTo, runZone && isValidTimeZone(runZone) ? runZone : displayTimeZone());
   }

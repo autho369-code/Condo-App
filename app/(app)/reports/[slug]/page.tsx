@@ -13,6 +13,7 @@ import { money, date } from '@/lib/utils';
 import { reportFormatLabel, supportedReportOutputFormats } from '@/lib/reports/formats';
 import { computePeriod, type Period } from '@/lib/reports/period';
 import { addLedgerLine, financialSection, netIncome as calculateNetIncome, normalBalance } from '@/lib/reports/financial';
+import { complianceMetrics, findingsBySeverity, typeLabel, type ComplianceMetrics } from '@/lib/reports/inspection-compliance';
 import { PRIORITIES, daysLabel, groupBy, hoursLabel, openWorkOrderAging, rateLabel, responseMetrics, type ResponseMetrics } from '@/lib/reports/maintenance-response';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +49,7 @@ const LIVE_REPORT_SLUGS = [
   'management_fee_summary',
   'owner_prepaid',
   'maintenance_response_times',
+  'inspection_compliance',
 ] as const;
 
 type LiveReportSlug = (typeof LIVE_REPORT_SLUGS)[number];
@@ -203,6 +205,7 @@ async function LiveReportView(
     case 'management_fee_summary': return <ManagementFeeSummaryView {...ctx} />;
     case 'owner_prepaid':     return <OwnerPrepaidView {...ctx} />;
     case 'maintenance_response_times': return <MaintenanceResponseView {...ctx} />;
+    case 'inspection_compliance': return <InspectionComplianceView {...ctx} />;
     default:                  return <QueuedReportView {...ctx} />;
   }
 }
@@ -2024,6 +2027,143 @@ async function MaintenanceResponseView(ctx: ReportContext) {
           <Link href="/work-orders" className="font-medium text-gray-950 hover:underline">Open the work order list</Link>
         </p>
       </Section>
+    </LiveReportShell>
+  );
+}
+
+// ═══ INSPECTION COMPLIANCE ═══
+async function InspectionComplianceView(ctx: ReportContext) {
+  const db = (await createClient()) as any;
+  const zone = displayTimeZone();
+  const { data: portfolioId } = await db.rpc('current_portfolio_id');
+  const association = UUID_RE.test(ctx.selectedAssociation) ? ctx.selectedAssociation : '';
+  const [inspRes, findRes, zoneRes] = await Promise.all([
+    fetchAllRows<any>(() => {
+      let q = db.from('inspections')
+        .select('id, association_id, inspection_type, status, scheduled_date, completed_date')
+        .is('archived_at', null).neq('status', 'cancelled')
+        .gte('scheduled_date', ctx.period.from).lte('scheduled_date', ctx.period.to).order('id');
+      if (portfolioId) q = q.eq('portfolio_id', portfolioId);
+      if (association) q = q.eq('association_id', association);
+      return q;
+    }),
+    fetchAllRows<any>(() => {
+      let q = db.from('inspection_items')
+        .select('id, inspection_id, severity, resolved, resolved_at, work_order_id, created_at, insp:inspections!inspection_items_inspection_id_fkey!inner(portfolio_id, association_id, scheduled_date, archived_at, status)')
+        .is('insp.archived_at', null).neq('insp.status', 'cancelled')
+        .gte('insp.scheduled_date', ctx.period.from).lte('insp.scheduled_date', ctx.period.to).order('id');
+      if (portfolioId) q = q.eq('insp.portfolio_id', portfolioId);
+      if (association) q = q.eq('insp.association_id', association);
+      return q;
+    }),
+    fetchAllRows<any>(() => db.from('associations').select('id, timezone').order('id')),
+  ]);
+  const loadError = inspRes.error ?? findRes.error ?? zoneRes.error;
+  // Scheduled and completed dates are the association's local dates.
+  const zones = new Map<string, string | null>(zoneRes.rows.map((a: any) => [a.id, a.timezone ?? null]));
+  const inspections = inspRes.rows.map((i: any) => ({ ...i, time_zone: zones.get(i.association_id) ?? zone }));
+  const findings = findRes.rows;
+  const now = new Date();
+  const total = complianceMetrics(inspections, findings, now);
+  const names = new Map<string, string>(ctx.associations.map((a: any) => [a.id, a.name]));
+  const byAssociation = [...groupBy(inspections, (i: any) => i.association_id ?? '').entries()]
+    .map(([id, rows]) => ({ id, name: names.get(id) ?? (id ? 'Association' : 'No association'), m: complianceMetrics(rows, findings, now) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const byType = [...groupBy(inspections, (i: any) => i.inspection_type ?? '').entries()]
+    .map(([t, rows]) => ({ t, m: complianceMetrics(rows, findings, now) }))
+    .sort((a, b) => a.t.localeCompare(b.t));
+  const severities = findingsBySeverity(findings);
+
+  const cells = (m: ComplianceMetrics) => (
+    <>
+      <td className="px-4 py-2 text-right tabular-nums">{m.inspections}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.completed}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{rateLabel(m.onTimeRate)}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.overdueNow}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.findings}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.openFindings}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{m.openSerious}</td>
+      <td className="px-4 py-2 text-right tabular-nums">{daysLabel(m.medianDaysToResolve)}</td>
+    </>
+  );
+  const head = (
+    <>
+      <th className={thRight}>Inspections</th>
+      <th className={thRight}>Completed</th>
+      <th className={thRight}>On time</th>
+      <th className={thRight}>Overdue now</th>
+      <th className={thRight}>Findings</th>
+      <th className={thRight}>Open</th>
+      <th className={thRight}>Open critical/major</th>
+      <th className={thRight}>Median to resolve</th>
+    </>
+  );
+
+  return (
+    <LiveReportShell ctx={ctx} subtitle={`Inspections scheduled ${ctx.period.from} → ${ctx.period.to}`}>
+      {loadError && <Alert tone="danger" title="Some inspection records could not be loaded:">{loadError}</Alert>}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile label="Completed on time" value={rateLabel(total.onTimeRate)} sub={`${total.onTime} of ${total.onTime + total.late + total.overdueNow} completed or past due`}
+          tone={total.onTimeRate == null ? 'neutral' : total.onTimeRate >= 0.9 ? 'positive' : total.onTimeRate >= 0.7 ? 'warning' : 'danger'} />
+        <Tile label="Overdue now" value={total.overdueNow} sub={total.late > 0 ? `${total.late} completed late (median ${daysLabel(total.medianDaysLate)})` : 'Past the scheduled date, not completed'} tone={total.overdueNow > 0 ? 'danger' : 'positive'} />
+        <Tile label="Open findings" value={total.openFindings} sub={`${total.openSerious} critical or major`} tone={total.openSerious > 0 ? 'danger' : total.openFindings > 0 ? 'warning' : 'positive'} />
+        <Tile label="Median to resolve a finding" value={daysLabel(total.medianDaysToResolve)} sub={`${total.sentToWorkOrder} of ${total.findings} sent to a work order`} tone="neutral" />
+      </div>
+      <Section title="By association" subtitle={`${byAssociation.length} associations`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+              <tr><th className="px-5 py-2 text-left font-semibold">Association</th>{head}</tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {byAssociation.map((r) => (
+                <tr key={r.id || 'none'}>
+                  <td className="px-5 py-2 font-medium text-gray-900">{r.id ? <Link href={`/associations/${r.id}`} className="hover:underline">{r.name}</Link> : r.name}</td>
+                  {cells(r.m)}
+                </tr>
+              ))}
+              {byAssociation.length === 0 && (
+                <tr><td colSpan={9} className="px-5 py-6 text-center text-gray-500">No inspections were scheduled in this period.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+      {byType.length > 0 && (
+        <Section title="By inspection type">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr><th className="px-5 py-2 text-left font-semibold">Type</th>{head}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {byType.map(({ t, m }) => (
+                  <tr key={t || 'none'}><td className="px-5 py-2 font-medium text-gray-900">{typeLabel(t || null)}</td>{cells(m)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+      {severities.length > 0 && (
+        <Section title="Findings by severity">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                <tr><th className="px-5 py-2 text-left font-semibold">Severity</th><th className={thRight}>Findings</th><th className={thRight}>Still open</th></tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {severities.map((s) => (
+                  <tr key={s.severity}><td className="px-5 py-2 text-gray-900">{typeLabel(s.severity)}</td><td className="px-4 py-2 text-right tabular-nums">{s.total}</td><td className="px-4 py-2 text-right tabular-nums">{s.open}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+      <p className="text-sm text-gray-600">
+        <Link href="/inspections" className="font-medium text-gray-950 hover:underline">Open the inspection list</Link>
+      </p>
     </LiveReportShell>
   );
 }

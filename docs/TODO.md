@@ -93,7 +93,7 @@ Mostly on Mirsad / external; not code.
       seven flagged sections. Remaining honest gaps deliberately deferred:
       - staff-side "submit ARC request on owner's behalf" flow — **DONE 2026-07-14** (`/architectural-reviews/new`, occupancy-pick prevents forged owner/unit pairing)
       - amenity image upload (same placeholder pattern as approvals had) — **DONE 2026-07-14** (signed-URL render, 5 MB cap)
-      - maintenance SLA metrics — **DONE 2026-10-04** (`/reports/maintenance_response_times`: first-reply on-time rate, median reply/resolve/complete times, open work-order aging; CSV/Excel/PDF export). Inspection-compliance metrics still deferred.
+      - maintenance SLA metrics — **DONE 2026-10-04** (`/reports/maintenance_response_times`: first-reply on-time rate, median reply/resolve/complete times, open work-order aging; CSV/Excel/PDF export). Inspection compliance — **DONE 2026-10-04** (`/reports/inspection_compliance`: on-time completion rate, overdue inspections, open findings by severity, median days to resolve a finding; CSV/Excel/PDF export).
 
 - [x] **File uploads actually work with large files (2026-07-14, PM).** Both the
       architectural-documents and insurance-certificate uploaders originally posted
