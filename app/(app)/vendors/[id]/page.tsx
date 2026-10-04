@@ -18,6 +18,7 @@ import { Stars, summarize } from '@/components/work-orders/rating';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
 import { tradeLabel } from '@/lib/vendors/options';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,8 @@ export default async function VendorDetailPage({
     .is('archived_at', null)
     .maybeSingle();
   if (!vendor) notFound();
+  // Internal notes live in staff-only vendor_private (the vendor reads its own row).
+  await mergePrivateFieldsOne(db, 'vendor_private', 'vendor_id', ['notes'], vendor);
 
   const meta = await loadRecordMeta(db, 'vendor', id);
   const [performanceRows, { data: workOrders }, { data: ratingRows }, { data: auditRows }, { data: glRow }] = await Promise.all([

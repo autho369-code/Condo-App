@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { savePrivateFields } from '@/lib/private-fields';
 
 export type PurchaseOrderLineInput = {
   description: string;
@@ -54,6 +55,12 @@ export async function savePurchaseOrder(formData: FormData) {
     p_submit: formData.get('intent') === 'submit',
   });
   if (error) failTo(error.message);
+  // Internal notes are staff-only (purchase_order_private). Written here so
+  // clearing them works: the RPC's NULL would leave the stored note.
+  const notesError = await savePrivateFields(supabase, 'purchase_order_private', 'purchase_order_id', String(data), {
+    notes: String(formData.get('notes') ?? '').slice(0, 2000),
+  });
+  if (notesError) redirect(`/purchase-orders/${data}?error=${encodeURIComponent(`Saved, but the internal notes could not be saved: ${notesError.message}`)}`);
 
   revalidatePath('/purchase-orders');
   redirect(`/purchase-orders/${data}`);

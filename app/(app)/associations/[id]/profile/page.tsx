@@ -15,6 +15,7 @@ import { ASSOCIATION_SECTIONS } from '@/lib/associations/settings-fields';
 import { AssociationSettingsSection } from '@/components/associations/settings-section';
 import { RecordMetaPanels } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
 
 export const dynamic = 'force-dynamic';
@@ -268,6 +269,11 @@ export default async function AssociationProfileTab({
     (supabase as any).from('fixed_assets').select('id, name, purchase_price, purchase_date').eq('association_id', id).is('archived_at', null).order('name').limit(20),
     (supabase as any).from('audit_logs').select('id, action, actor_email, changes, created_at').eq('entity_type', 'association').eq('entity_id', id).order('created_at', { ascending: false }).limit(25),
   ]);
+  // Staff-only settings live off the association row (everyone in the
+  // association reads it): the end reason and description in association_private, the
+  // vendor-facing maintenance notes in association_vendor_private.
+  await mergePrivateFieldsOne(supabase as any, 'association_private', 'association_id', ['management_end_reason', 'description'], record);
+  await mergePrivateFieldsOne(supabase as any, 'association_vendor_private', 'association_id', ['maintenance_notes'], record);
   const assocGl = ((glAccounts ?? []) as any[]).filter((g) => !g.association_id || g.association_id === id);
   const recordBack = `/associations/${assocParam}/profile`;
 

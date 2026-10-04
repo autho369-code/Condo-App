@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { todayInZone } from '@/lib/time/zoned';
 import { RECEIPT_METHODS, receiptMethodLabel } from '@/lib/payments/methods';
 import { date, money } from '@/lib/utils';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +53,7 @@ export default async function ReceiptsPage({
   for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
     let query = db
       .from('payments')
-      .select(`id, amount, payment_date, method, reference, notes, processor, unit_id, created_at, bank_accounts(name), ${unitSelect}`)
+      .select(`id, amount, payment_date, method, reference, processor, unit_id, created_at, bank_accounts(name), ${unitSelect}`)
       .gte('payment_date', from)
       .lte('payment_date', to)
       .order('payment_date', { ascending: false })
@@ -68,6 +69,8 @@ export default async function ReceiptsPage({
     if ((data ?? []).length < PAGE) break;
   }
   const truncated = fetched.length >= MAX_ROWS;
+  // Payment notes are staff-only (payment_private); owners and board read payment rows.
+  await mergePrivateFields(db, 'payment_private', 'payment_id', ['notes'], fetched);
   const postedId = UUID.test(sp.posted ?? '') ? sp.posted! : '';
   const posted = postedId
     ? (await db.from('payments').select('id, amount, units(unit_number)').eq('id', postedId).maybeSingle()).data

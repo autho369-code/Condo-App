@@ -20,6 +20,7 @@ import { OwnerLateFeeOverrides } from '@/components/owners/late-fee-overrides';
 import { OwnerCommunicationHistory } from '@/components/owners/communication-history';
 import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,10 +51,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     { data: delinquencyNotes },
   ] = await Promise.all([
     db.from('owners')
-      .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, notes, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
+      .select('id, portfolio_id, full_name, first_name, last_name, email, emails, phone, phone_numbers, address_street, address_city, address_state, address_zip, preferred_comm, portal_activated, portal_login_last_at, created_at, emergency_contact_name, emergency_contact_phone')
       .eq('id', id).is('archived_at', null).maybeSingle(),
     db.from('occupancies')
-      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, late_fee_override_reason, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, send_dues_reminders, units(id, unit_number, buildings(name, associations(id, name)))')
+      .select('id, occupancy_type, status, is_primary, share_pct, move_in_date, move_out_date, dues_amount, dues_frequency, online_portal_activated, late_fee_exempt, late_fee_override_amount, late_fee_override_is_percent, late_fee_override_until, in_foreclosure, in_collections, certified_funds_only, allow_online_payments, require_full_online_payment, send_dues_reminders, units(id, unit_number, buildings(name, associations(id, name)))')
       .eq('owner_id', id)
       .order('status').order('move_in_date', { ascending: false }),
     db.from('service_requests')
@@ -74,6 +75,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   ]);
 
   if (!owner) notFound();
+  // Staff notes live in owner_private (staff-only), never on the owner row.
+  const { data: ownerPrivate } = await db.from('owner_private').select('notes').eq('owner_id', id).maybeSingle();
+  (owner as any).notes = ownerPrivate?.notes ?? null;
+  // The late-fee override reason is staff-only (occupancy_private).
+  await mergePrivateFields(db, 'occupancy_private', 'occupancy_id', ['late_fee_override_reason'], (occs ?? []) as any[]);
 
   const currentOccs = (occs ?? []).filter((o: any) => o.status === 'current');
   const pastOccs    = (occs ?? []).filter((o: any) => o.status === 'past');
@@ -98,6 +104,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       ? db.from('unit_pets').select('*').in('unit_id', ownedUnitIds).is('archived_at', null).order('created_at')
       : Promise.resolve({ data: [] }),
   ]);
+  // Staff notes about a tenant are staff-only (tenant_private).
+  await mergePrivateFields(db, 'tenant_private', 'tenant_id', ['notes'], (tenants ?? []) as any[]);
 
   // ── Cross-module records for this owner (board seat, HO-6, vehicles, agreements) ──
   const [
@@ -209,7 +217,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   if (unitIds.length > 0) {
     financialQueries.push(
       db.from('payments')
-        .select('id, amount, payment_date, method, reference, notes, unit_id, created_at')
+        .select('id, amount, payment_date, method, reference, unit_id, created_at')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
         .gte('created_at', ytdStart)
@@ -311,7 +319,6 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     unit: p.unit_number,
     association: p.association_name,
     reference: p.reference,
-    notes: p.notes,
   }));
 
   const meta = await loadRecordMeta(db, 'owner', id);

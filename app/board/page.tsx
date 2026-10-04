@@ -116,10 +116,11 @@ export default async function BoardDashboardPage() {
   const mySeats = await findMyBoardSeats(me)
   const mySeatIds = new Set(mySeats.map((s) => s.id))
   const pendingApprovals = await fetchAllRows<any>(() =>
-    db.from('approval_requests').select('id, title, board_member_ids, approval_decisions(decided_by)')
+    db.from('approval_requests').select('id, title, owner_id, board_member_ids, approval_decisions(decided_by)')
       .in('association_id', ids).eq('status', 'pending').is('archived_at', null)
       .order('requested_at', { ascending: false }).order('id'))
   const approvals = pendingApprovals.rows.filter((a: any) => {
+    if (a.owner_id && me.owner_id && a.owner_id === me.owner_id) return false
     const voters: string[] = a.board_member_ids ?? []
     if (voters.length > 0 && !voters.some((v) => mySeatIds.has(v))) return false
     return !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id)

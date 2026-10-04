@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, EmptyState } from '@/components/ui/shell';
 import { Building2, Phone, Mail, KeyRound } from 'lucide-react';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,10 +24,13 @@ export default async function VendorPropertiesPage() {
   const { data: assocs } = assocIds.length
     ? await db
         .from('associations')
-        .select('id, name, address, address_line_2, city, state, zip, maintenance_contact_name, maintenance_contact_email, maintenance_contact_phone, maintenance_phone, maintenance_notes, unit_entry_pre_authorized, site_manager, site_manager_phone')
+        .select('id, name, address, address_line_2, city, state, zip, maintenance_contact_name, maintenance_contact_email, maintenance_contact_phone, maintenance_phone, unit_entry_pre_authorized, site_manager, site_manager_phone')
         .in('id', assocIds)
         .order('name')
     : { data: [] as any[] };
+  // Access & site notes are not on the association row (owners, tenants and
+  // board read it); RLS lets vendors with a work order there read them.
+  await mergePrivateFields(db, 'association_vendor_private', 'association_id', ['maintenance_notes'], (assocs ?? []) as any[]);
 
   return (
     <div>
