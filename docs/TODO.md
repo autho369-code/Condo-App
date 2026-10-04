@@ -23,11 +23,10 @@ Every AppFolio page is built; these need access, accounts or decisions first.
         upload + owner-portal download, Inbox saved replies/search.
 
 ### Known issue to fix
-- [ ] **Forms upload size on Vercel.** `/forms/new` and `/forms/[id]` send the
-      file through a server action and allow 10 MB, but Vercel caps request
-      bodies at about 4.5 MB, so larger files fail in production. Move to
-      browser→storage signed upload URLs, the same pattern as ARC documents and
-      insurance certificates (`createSignedUploadUrl`).
+- [x] **Forms upload size on Vercel.** FIXED 2026-10-04: the file now goes
+      browser→storage through a signed upload URL (`FormFileInput` +
+      `createFormFileUpload`); `saveFormTemplate` checks the stored object's
+      path, type and size before linking it. Limit raised to 25 MB (bucket max).
 
 ### Needs provider accounts from Mirsad
 - [ ] **Two-way SMS:** Twilio account + US 10DLC registration (Inbox texting).
