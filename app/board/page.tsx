@@ -146,10 +146,16 @@ export default async function BoardDashboardPage() {
 
   // Bank balances: roll posted journal lines up onto each bank account's GL account.
   // Summed in the database: a list of journal lines stops at 1,000 rows.
-  const balByGl = await glDebitBalances(db, {
-    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
-    associationIds: ids,
-  })
+  let balByGl = new Map<string, number>()
+  let balancesError: string | null = null
+  try {
+    balByGl = await glDebitBalances(db, {
+      glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+      associationIds: ids,
+    })
+  } catch (e) {
+    balancesError = e instanceof Error ? e.message : String(e)
+  }
   let operating = 0
   let reserve = 0
   for (const b of bankAccounts ?? []) {
@@ -178,6 +184,7 @@ export default async function BoardDashboardPage() {
       </div>
 
       {receivablesError && <Alert tone="danger" title="Delinquency figures could not be loaded">{receivablesError}</Alert>}
+      {balancesError && <Alert tone="danger" title="Bank balances could not be loaded">{balancesError}</Alert>}
       {pendingApprovals.error && <Alert tone="danger" title="Pending approvals could not be loaded">{pendingApprovals.error}</Alert>}
 
       {/* ── Emergency alerts ─────────────────────────── */}
@@ -234,8 +241,8 @@ export default async function BoardDashboardPage() {
       {/* ── KPI grid ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Health Score" value={`${score}`} sub={health} icon={Heart} tone={score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
-        <StatCard label="Operating Balance" value={money(operating)} icon={Landmark} href="/board/financials" />
-        <StatCard label="Reserve Balance" value={money(reserve)} icon={PiggyBank} href="/board/financials" />
+        <StatCard label="Operating Balance" value={balancesError ? "—" : money(operating)} icon={Landmark} href="/board/financials" />
+        <StatCard label="Reserve Balance" value={balancesError ? "—" : money(reserve)} icon={PiggyBank} href="/board/financials" />
         <StatCard label="Delinquent Owners" value={receivablesError ? '—' : delinquentUnits} sub={receivablesError ? 'Unavailable' : `${money(overdueTotal)} past due`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
         <StatCard label="Open Work Orders" value={open.length} sub={`${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
         <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} href="/board/violations" />

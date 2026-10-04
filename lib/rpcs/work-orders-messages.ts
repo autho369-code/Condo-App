@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireOwner, requireStaff, requireVendor } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { ownerTenureCutoffs, withinTenure } from '@/app/portal/_lib/tenure';
 
 /**
  * Post a message to a work order's discussion thread. Works for owner, staff,
@@ -34,6 +35,18 @@ export async function postWorkOrderMessage(
   if (!body) { redirect(`${back}?error=${encodeURIComponent('Message cannot be empty')}`); return; }
 
   const supabase = await createClient();
+  // An owner may only post on work orders from their own time at the unit
+  // (a buyer never joins the seller's threads; the detail page 404s them too).
+  if (authorRole === 'owner') {
+    const { data: wo, error: woError } = await (supabase as any)
+      .from('work_orders').select('unit_id, created_at').eq('id', workOrderId).maybeSingle();
+    if (woError) { redirect(`${back}?error=${encodeURIComponent(woError.message)}`); return; }
+    const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+    if (!wo || !withinTenure(tenure, wo.unit_id, wo.created_at)) {
+      redirect(`/portal/work-orders?error=${encodeURIComponent('That work order is not available.')}`);
+      return;
+    }
+  }
   const { error } = await (supabase as any).from('work_order_messages').insert({
     work_order_id: workOrderId,
     author_id:     me.auth_user_id,
