@@ -3,6 +3,7 @@ import { validatePlatformRequest, PLATFORM_REQUEST_ADMIN_COLUMNS } from '@/lib/c
 import { normalizeCompanySettingsInput, safeHttpUrl } from '@/lib/company-admin/settings';
 import { effectiveManagerScope } from '@/lib/company-admin/manager-scope';
 import { addDaysToDate, addMonthsToMonth } from '@/lib/time/zoned';
+import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance';
 
 describe('validatePlatformRequest', () => {
   const ok = { request_type: 'more_doors', priority: 'high', subject: '  Need 50 doors ', description: 'Growing.' };
@@ -61,6 +62,25 @@ describe('effectiveManagerScope', () => {
 
   it('stays scoped (not full access) when every assignment is archived', () => {
     expect(effectiveManagerScope(['archived'], portfolio)).toEqual({ associationIds: [], fullAccess: false });
+  });
+});
+
+describe('vendorComplianceStatus', () => {
+  const today = '2026-10-04';
+
+  it('is valid through the expiration date itself', () => {
+    expect(vendorComplianceStatus({ general_liability_expiration: '2026-10-04' }, today)).toBe('expiring');
+    expect(vendorComplianceStatus({ general_liability_expiration: '2026-10-03' }, today)).toBe('expired');
+  });
+
+  it('flags documents expiring within the window', () => {
+    expect(vendorComplianceStatus({ contract_expiration: '2026-11-03' }, today)).toBe('expiring');
+    expect(vendorComplianceStatus({ contract_expiration: '2026-11-04' }, today)).toBe('compliant');
+  });
+
+  it('reports vendors with no dates and lets the worst document win', () => {
+    expect(vendorComplianceStatus({ name: 'Acme' }, today)).toBe('none');
+    expect(vendorComplianceStatus({ contract_expiration: '2027-01-01', workers_comp_expiration: '2026-01-01' }, today)).toBe('expired');
   });
 });
 
