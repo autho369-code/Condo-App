@@ -92,13 +92,15 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   let openViolations = 0
   if (assocIds.length > 0) {
+    // Always scoped to this company through the association (platform operators
+    // pass requirePortfolioAdmin and their RLS is global). Full access filters by
+    // company instead of the id list, which would not fit in the request URL.
     let violationQuery = db
       .from('violations')
-      .select('id', { count: 'exact', head: true })
+      .select('id, associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', portfolioId)
       .is('archived_at', null)
       .not('status', 'in', '("closed","cured")')
-    // Full access = every association RLS lets this company admin see; a full
-    // id list would not fit in the request URL for large portfolios.
     if (!scope.fullAccess) violationQuery = violationQuery.in('association_id', assocIds)
     const { count } = await violationQuery
     openViolations = count ?? 0

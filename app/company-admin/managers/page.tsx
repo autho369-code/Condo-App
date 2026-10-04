@@ -95,7 +95,8 @@ export default async function CompanyAdminManagersPage({
   const { rows: violationRows } = allAssocIds.length > 0
     ? await fetchAllRows(() => db
       .from('violations')
-      .select('association_id, id')
+      .select('association_id, id, associations!violations_association_id_fkey!inner(portfolio_id)')
+      .eq('associations.portfolio_id', portfolioId)
       .is('archived_at', null)
       .not('status', 'in', '("closed","cured")')
       .order('id'))
