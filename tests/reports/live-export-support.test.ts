@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { agingBucket, LIVE_EXPORT_SLUGS, supportsLiveExport } from '@/lib/reports/live-export';
+import { REPORT_CATALOG } from '@/lib/reports/appfolio-catalog';
 
 describe('audited live report exports', () => {
   it('advertises the core accounting exports implemented by the worker', () => {
@@ -27,6 +28,13 @@ describe('audited live report exports', () => {
     ]);
     for (const slug of LIVE_EXPORT_SLUGS) expect(supportsLiveExport(slug)).toBe(true);
     expect(supportsLiveExport('cash_flow')).toBe(false);
+  });
+
+  it('lists the Portier369-only maintenance reports on the Reports page', () => {
+    // The Reports page shows only slugs in REPORT_CATALOG; a report missing
+    // there is reachable by URL alone.
+    const listed = new Set(REPORT_CATALOG.flatMap((c) => c.reports.map((r) => r.slug)));
+    for (const slug of ['maintenance_response_times', 'inspection_compliance']) expect(listed.has(slug)).toBe(true);
   });
 
   it('assigns payable balances to conventional aging buckets', () => {
