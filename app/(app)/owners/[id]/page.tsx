@@ -8,6 +8,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 import { updateOwner, linkOccupancy, endOccupancy } from '@/lib/rpcs/entities';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Alert } from '@/components/ui/shell';
@@ -38,10 +39,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const supabase = await createClient();
   const db = supabase as any;
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
+  // Local calendar day (the display time zone), not UTC: in US evenings the
+  // UTC date is already tomorrow, and around New Year the UTC year rolls early.
+  const todayStr = todayInZone();
+  const currentYear = Number(todayStr.slice(0, 4));
   const ytdStart = `${currentYear}-01-01`;
-  const todayStr = now.toISOString().slice(0, 10);
 
   const [
     { data: owner },
