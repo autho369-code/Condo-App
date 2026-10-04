@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { Alert } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { ShieldCheck, FileText } from 'lucide-react'
 
@@ -16,7 +17,7 @@ export default async function BoardInsurancePage() {
   const ids = me.board_association_ids ?? []
   const today = new Date().toISOString().slice(0, 10)
 
-  const [{ data: docs }, { data: policies }] = await Promise.all([
+  const [{ data: docs, error: docsError }, { data: policies, error: policiesError }] = await Promise.all([
     // Association-level insurance documents (master policy, certificates, ...)
     db.from('documents')
       .select('id, entity_id, doc_type, file_name, file_url, expires_at, uploaded_at')
@@ -55,11 +56,14 @@ export default async function BoardInsurancePage() {
         </p>
       </div>
 
+      {docsError && <Alert tone="danger" title="Insurance documents could not be loaded">{docsError.message}</Alert>}
+      {policiesError && <Alert tone="danger" title="Owner policies could not be loaded">{policiesError.message}</Alert>}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[
-          { label: 'Insurance Documents', value: insuranceDocs.length, icon: FileText, warn: false },
-          { label: 'Current Owner Policies', value: current.length, icon: ShieldCheck, warn: false },
-          { label: 'Expired / Missing', value: expired.length, icon: ShieldCheck, warn: expired.length > 0 },
+          { label: 'Insurance Documents', value: docsError ? '—' : insuranceDocs.length, icon: FileText, warn: false },
+          { label: 'Current Owner Policies', value: policiesError ? '—' : current.length, icon: ShieldCheck, warn: false },
+          { label: 'Expired / Missing', value: policiesError ? '—' : expired.length, icon: ShieldCheck, warn: !policiesError && expired.length > 0 },
         ].map((item) => {
           const Icon = item.icon
           return (
@@ -94,7 +98,7 @@ export default async function BoardInsurancePage() {
             </thead>
             <tbody>
               {insuranceDocs.length === 0 ? (
-                <tr><td colSpan={3} className="px-5 py-8 text-center text-sm text-gray-500">No insurance documents uploaded yet — ask your manager to upload the master policy and current certificates.</td></tr>
+                <tr><td colSpan={3} className="px-5 py-8 text-center text-sm text-gray-500">{docsError ? 'Insurance documents are unavailable right now.' : 'No insurance documents uploaded yet — ask your manager to upload the master policy and current certificates.'}</td></tr>
               ) : (
                 insuranceDocs.map((d: any) => (
                   <tr key={d.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
@@ -138,7 +142,7 @@ export default async function BoardInsurancePage() {
             </thead>
             <tbody>
               {(policies ?? []).length === 0 ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">No owner insurance policies on file.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">{policiesError ? 'Owner policies are unavailable right now.' : 'No owner insurance policies on file.'}</td></tr>
               ) : (
                 (policies ?? []).map((p: any) => {
                   const isExpired = !p.expiration_date || p.expiration_date < today

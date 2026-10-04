@@ -4,7 +4,7 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState, Surface } from '@/components/ui/shell';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
@@ -18,7 +18,7 @@ type Plan = {
 };
 
 function tone(status: string): Tone {
-  return status === 'Paid off' ? 'success' : status === 'Behind' ? 'danger' : status === 'Cancelled' ? 'neutral' : 'info';
+  return status === 'Paid off' ? 'success' : status === 'Behind' || status === 'Unavailable' ? 'danger' : status === 'Cancelled' ? 'neutral' : 'info';
 }
 
 export default async function PaymentPlansPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
@@ -33,24 +33,27 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
     .order('created_at', { ascending: false })
     .limit(500);
   if (!showAll) query = query.eq('status', 'active');
-  const { data: plans } = await query;
+  const { data: plans, error: plansError } = await query;
   const rows = (plans ?? []) as Plan[];
 
   // Progress per plan (paid to date, next due, status) from the schedule.
   const progress = await Promise.all(rows.map(async (p) => {
-    const { data: sched } = await db.rpc('payment_plan_schedule', { p_plan_id: p.id });
+    const { data: sched, error: schedError } = await db.rpc('payment_plan_schedule', { p_plan_id: p.id });
+    // A failed schedule read is a load failure, never "Paid off".
+    if (schedError) return { paid: 0, nextDue: null as string | null, status: 'Unavailable', failed: true };
     const s = (sched ?? []) as { due_date: string; amount: number; covered: number; status: string }[];
     const paid = s.reduce((sum, i) => sum + Number(i.covered), 0);
     const next = s.find((i) => i.status !== 'paid');
     const status = p.status === 'cancelled' ? 'Cancelled'
       : p.status === 'completed' || !next ? 'Paid off'
       : s.some((i) => i.status === 'behind') ? 'Behind' : 'Current';
-    return { paid, nextDue: next?.due_date ?? null, status };
+    return { paid, nextDue: next?.due_date ?? null, status, failed: false };
   }));
 
   const active = rows.filter((p) => p.status === 'active');
   const behind = progress.filter((p, i) => rows[i].status === 'active' && p.status === 'Behind').length;
-  const outstanding = rows.reduce((s, p, i) => s + (p.status === 'active' ? Math.max(Number(p.total_amount) - progress[i].paid, 0) : 0), 0);
+  const failedSchedules = progress.filter((p) => p.failed).length;
+  const outstanding = rows.reduce((s, p, i) => s + (p.status === 'active' && !progress[i].failed ? Math.max(Number(p.total_amount) - progress[i].paid, 0) : 0), 0);
 
   return (
     <DataWorkspace
@@ -64,6 +67,12 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
       }
     >
       <div className="space-y-4">
+        {plansError && <Alert tone="danger" title="Payment plans could not be loaded">{plansError.message}</Alert>}
+        {failedSchedules > 0 && (
+          <Alert tone="danger" title="Some plan schedules could not be loaded">
+            {failedSchedules === 1 ? 'One plan shows' : `${failedSchedules} plans show`} &ldquo;Unavailable&rdquo; and {failedSchedules === 1 ? 'is' : 'are'} left out of &ldquo;Behind schedule&rdquo; and &ldquo;Still to collect&rdquo;. Reload the page to try again.
+          </Alert>
+        )}
         <MetricStrip
           metrics={[
             { label: 'Active plans', value: active.length },
@@ -106,8 +115,8 @@ export default async function PaymentPlansPage({ searchParams }: { searchParams:
                   </TD>
                   <TD className="text-sm text-gray-700">{p.associations?.name ?? '—'} · {p.units?.unit_number ?? '—'}</TD>
                   <TD className="text-right tabular-nums">{money(p.total_amount)}</TD>
-                  <TD className="text-right tabular-nums">{money(progress[i].paid)}</TD>
-                  <TD className="text-right tabular-nums">{money(Math.max(Number(p.total_amount) - progress[i].paid, 0))}</TD>
+                  <TD className="text-right tabular-nums">{progress[i].failed ? '—' : money(progress[i].paid)}</TD>
+                  <TD className="text-right tabular-nums">{progress[i].failed ? '—' : money(Math.max(Number(p.total_amount) - progress[i].paid, 0))}</TD>
                   <TD className="text-sm text-gray-700">{progress[i].nextDue && p.status === 'active' ? date(progress[i].nextDue!) : '—'}</TD>
                   <TD><StatusChip tone={tone(progress[i].status)}>{progress[i].status}</StatusChip></TD>
                 </TR>

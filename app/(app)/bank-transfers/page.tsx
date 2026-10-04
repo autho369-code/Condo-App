@@ -103,7 +103,8 @@ export default async function BankTransfersPage({
     )).order('transfer_date', { ascending: false }).order('id').limit(ROW_CAP),
     base('id', { count: 'exact', head: true }).is('journal_entry_id', null).is('voided_at', null),
     base('id', { count: 'exact', head: true }).not('journal_entry_id', 'is', null).is('voided_at', null),
-    fetchAllRows<any>(() => withTab(base('id, amount')).order('id')),
+    // Voided transfers never moved money: keep them out of the total.
+    fetchAllRows<any>(() => withTab(base('id, amount')).is('voided_at', null).order('id')),
   ]);
   const transfers = (listRes.data ?? []) as any[];
   const matching = listRes.count ?? transfers.length;

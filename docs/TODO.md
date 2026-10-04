@@ -31,6 +31,18 @@ Every AppFolio page is built; these need access, accounts or decisions first.
       `createFormFileUpload`); `saveFormTemplate` checks the stored object's
       path, type and size before linking it. Limit raised to 25 MB (bucket max).
 
+### Audit follow-ups (2026-10-04, need a design change)
+- [ ] **Staff-only notes are readable through the API.** Board members can
+      read `owners.notes` (management's notes about owners); owners can read
+      `work_orders.internal_notes`, `vendor_instructions` and
+      `withheld_amount_from_owner` for their units. Pages don't show them, but
+      the row-level policies return whole rows. Fix: move those columns into
+      staff-only tables (or staff-only views/RPCs) and revoke the columns from
+      `authenticated`, then point the staff pages at the new source.
+- [ ] **Owner timeline shows returned (NSF) payments as normal payments** —
+      `receivable_payments_ledger` has no `reversed_at`; add it to the view (or
+      read payments directly) and label returned payments as the ledger does.
+
 ### Needs provider accounts from Mirsad
 - [ ] **Two-way SMS:** Twilio account + US 10DLC registration (Inbox texting).
 - [ ] **Physical mail:** Lob account (certified mail, letters).

@@ -27,6 +27,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { PrintButton } from '@/components/ui/print-button';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import { money, date } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
@@ -61,14 +62,14 @@ export default async function PrintChecksPage({
 
   const supabase = await createClient();
 
-  const { data: seed } = await (supabase as any)
+  const { data: seed, error: seedError } = await (supabase as any)
     .from('payable_checks')
     .select('run_transaction_id')
     .eq('id', seedCheckId)
     .maybeSingle();
 
   // Every check in the run: all of its bills were paid, so all must print.
-  const { rows: checks } = await fetchAllRows<any>(() => (supabase as any)
+  const { rows: checks, error: checksError } = await fetchAllRows<any>(() => (supabase as any)
     .from('payable_checks')
     .select(`
       id, bill_id, check_number, amount, payment_date, status, void_reason, authorized_signer_label, authorization_acknowledged_at,
@@ -80,6 +81,8 @@ export default async function PrintChecksPage({
     .eq('run_transaction_id', seed?.run_transaction_id ?? '-1')
     .order('check_number')
     .order('id'));
+  const loadError = seedError?.message ?? checksError
+    ?? (!seed ? 'This check was not found, or you do not have access to it.' : null);
 
   return (
     <div className="space-y-4">
@@ -94,6 +97,8 @@ export default async function PrintChecksPage({
           <PrintButton label="Print" />
         </div>
       </div>
+
+      {loadError && <Alert tone="danger" title="Could not load the checks." className="no-print print:hidden">{loadError}</Alert>}
 
       <div>
         {(checks ?? []).map((c: any) => {

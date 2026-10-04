@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,7 @@ export default async function BoardWorkOrdersPage() {
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  const { data: wos } = await db
+  const { data: wos, error: wosError } = await db
     .from('work_orders')
     .select('id, title, category, priority, status, created_at, scheduled_date, vendor_id, units(unit_number), vendors(name)') // common-area work orders have no unit
     .in('association_id', ids)
@@ -37,6 +37,8 @@ export default async function BoardWorkOrdersPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Work Orders</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Maintenance and repair work across your association</p>
       </div>
+
+      {wosError && <Alert tone="danger" title="Work orders could not be loaded">{wosError.message}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
@@ -66,7 +68,7 @@ export default async function BoardWorkOrdersPage() {
           </thead>
           <tbody>
             {all.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-500">No work orders found for your association.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-500">{wosError ? 'Work orders are unavailable right now.' : 'No work orders found for your association.'}</td></tr>
             ) : (
               all.map((w: any) => (
                 <tr key={w.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
 import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Badge } from '@/components/ui/shell';
+import { Badge, Alert } from '@/components/ui/shell';
+import { StatusChip } from '@/components/operations/status-chip';
 import { money, date } from '@/lib/utils';
 import { LedgerActions, type LedgerChargeRow, type LedgerPaymentRow } from '@/components/portal/ledger-actions';
 import { ownerTenureCutoffs, tenureFilter, withinTenure } from '../_lib/tenure';
@@ -16,7 +17,7 @@ export default async function LedgerPage() {
   // Filter to the owner's own units explicitly: RLS also admits board members
   // to the whole association, which leaked every owner's ledger here.
   const myUnits = unitFilter(await ownPortalUnitIds(supabase, me.owner_id));
-  const { data: charges } = await (supabase as any)
+  const { data: charges, error: chargesError } = await (supabase as any)
     .from('v_charge_balances')
     .select('*')
     .in('unit_id', myUnits)
@@ -24,20 +25,21 @@ export default async function LedgerPage() {
 
   // Charges show the unit's full open balance (the debt is real), but payment
   // details only from the owner's own move-in on — a buyer must not see the
-  // seller's payments, references or notes.
+  // seller's payments or references. Staff `notes` are internal and never
+  // shown to owners. Reversed (returned) payments are listed but marked.
   const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
   const paymentScope = tenureFilter(tenure, 'payment_date', myUnits);
-  const { data: payments } = paymentScope
+  const { data: payments, error: paymentsError } = paymentScope
     ? await (supabase as any)
         .from('payments')
-        .select('id, amount, payment_date, method, reference, notes')
+        .select('id, amount, payment_date, method, reference, reversed_at, reversal_reason')
         .or(paymentScope)
         .order('payment_date', { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
 
   // Unapplied credit (payments not yet matched to a charge) reduces what is owed,
   // so the total agrees with the dashboard and the pay page.
-  const { data: summaries } = await (supabase as any)
+  const { data: summaries, error: summariesError } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unapplied_credit')
     .in('unit_id', myUnits);
@@ -69,9 +71,11 @@ export default async function LedgerPage() {
   const exportPayments: LedgerPaymentRow[] = (payments ?? []).map((p: any) => ({
     date: p.payment_date ? date(p.payment_date) : '',
     method: String(p.method ?? '').toUpperCase(),
-    reference: p.reference ?? p.notes ?? '',
+    reference: p.reference ?? '',
     amount: Number(p.amount ?? 0),
+    status: p.reversed_at ? `Returned${p.reversal_reason ? ` (${p.reversal_reason})` : ''}` : '',
   }));
+  const loadError = chargesError ?? paymentsError ?? summariesError;
   const totalBalance = Math.round((exportCharges.reduce((s, c) => s + c.balance, 0) - unappliedCredit) * 100) / 100;
 
   // Active payment plans for the owner's units (RLS: their own units; one per unit).
@@ -104,6 +108,10 @@ export default async function LedgerPage() {
           totalBalance={totalBalance}
         />
       </div>
+
+      {loadError && (
+        <Alert tone="danger" title="Could not load your ledger:">{loadError.message}. The balance and history below may be incomplete — please refresh.</Alert>
+      )}
 
       {plans.map(({ plan, rows: planRows, paid: planPaid }) => (
         <section key={plan.id}>
@@ -159,14 +167,15 @@ export default async function LedgerPage() {
       <section>
         <h2 className="mb-3 text-[15px] font-semibold tracking-[-0.01em] text-gray-950">Payments</h2>
         <Table>
-          <THead><TR><TH>Date</TH><TH>Method</TH><TH>Reference</TH><TH className="text-right">Amount</TH></TR></THead>
+          <THead><TR><TH>Date</TH><TH>Method</TH><TH>Reference</TH><TH className="text-right">Amount</TH><TH>Status</TH></TR></THead>
           <tbody>
             {(payments ?? []).map((p: any) => (
               <TR key={p.id}>
                 <TD>{date(p.payment_date)}</TD>
                 <TD className="uppercase">{p.method}</TD>
-                <TD className="text-gray-600">{p.reference ?? p.notes ?? '—'}</TD>
-                <TD className="text-right text-emerald-700">{money(p.amount)}</TD>
+                <TD className="text-gray-600">{p.reference ?? '—'}</TD>
+                <TD className={p.reversed_at ? 'text-right text-gray-400 line-through' : 'text-right text-emerald-700'}>{money(p.amount)}</TD>
+                <TD>{p.reversed_at ? <StatusChip tone="danger">Returned{p.reversal_reason ? ` · ${p.reversal_reason}` : ''}</StatusChip> : null}</TD>
               </TR>
             ))}
           </tbody>

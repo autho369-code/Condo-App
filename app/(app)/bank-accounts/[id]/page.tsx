@@ -74,6 +74,7 @@ export default async function BankAccountDetailPage({
   // Recent ledger activity from journal lines posting to the bank account's GL account.
   let sourceRows: BankActivitySourceRow[] = [];
   let openingBalance = 0;
+  let linesError: string | null = null;
   if (account.gl_account_id) {
     // Lines of this bank's association only: several associations' banks can
     // share one cash GL account.
@@ -85,10 +86,11 @@ export default async function BankAccountDetailPage({
       .eq('gl_account_id', account.gl_account_id)
       .eq('journal_entries.posted', true);
     if (account.association_id) linesQuery = linesQuery.eq('association_id', account.association_id);
-    const { data: lines } = await linesQuery
+    const { data: lines, error: linesLoadError } = await linesQuery
       // "Recent activity": newest first (it was an arbitrary 50 lines).
       .order('journal_entries(entry_date)', { ascending: false })
       .limit(50);
+    if (linesLoadError) linesError = linesLoadError.message;
 
     sourceRows = ((lines ?? []) as any[]).map((line) => {
       const debit = Number(line.debit_amount ?? 0);
@@ -143,6 +145,7 @@ export default async function BankAccountDetailPage({
     >
       <div className="space-y-6">
         {sp.error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>}
+        {linesError && <Alert tone="danger" title="Could not load ledger activity.">{linesError}</Alert>}
         {sp.gl_linked && <Alert tone="success" title="GL account linked.">This bank account now carries ledger cash and can be reconciled.</Alert>}
         {sp.check_settings_saved && <div role="status" className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">Check authorization settings saved.</div>}
         <MetricStrip

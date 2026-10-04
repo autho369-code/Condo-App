@@ -7,6 +7,7 @@ import { Table, TD, TH, THead, TR } from '@/components/ui/table';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { importLockbox } from '@/lib/rpcs/lockbox';
+import { todayInZone } from '@/lib/time/zoned';
 import { date, money } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,7 @@ export default async function LockboxPage() {
       .order('batch_date', { ascending: false }).order('created_at', { ascending: false }).limit(100),
   ]);
   if (error) throw new Error(`Could not load lockbox batches: ${error.message}`);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   return (
     <DataWorkspace

@@ -9,6 +9,7 @@
 import 'server-only';
 import { requireOwner } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { ownerTenureCutoffs, tenureFilter } from '@/app/portal/_lib/tenure';
 
 export interface OwnerSnapshot {
   generatedAt: string;
@@ -42,6 +43,11 @@ export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
 
   const unitIds = (occs ?? []).map((o: any) => o.unit_id).filter(Boolean);
   const assocIds = [...new Set((occs ?? []).map((o: any) => o.association_id).filter(Boolean))];
+  // Unit history only from the owner's own move-in on — a buyer must not see
+  // the seller's payments or work orders (same scoping as the portal pages).
+  const tenure = await ownerTenureCutoffs(db, ownerId);
+  const paymentScope = tenureFilter(tenure, 'payment_date', unitIds);
+  const woScope = tenureFilter(tenure, 'created_at', unitIds);
 
   const [
     { data: balances },
@@ -56,13 +62,14 @@ export async function buildOwnerSnapshot(): Promise<OwnerSnapshot> {
   ] = await Promise.all([
     unitIds.length ? db.from('unit_balances').select('balance').in('unit_id', unitIds) : { data: [] },
     unitIds.length ? db.from('aged_receivables').select('description, balance_due, due_date').in('unit_id', unitIds).order('due_date') : { data: [] },
-    unitIds.length ? db.from('payments').select('amount, payment_date, method').in('unit_id', unitIds).order('payment_date', { ascending: false }).limit(8) : { data: [] },
-    unitIds.length ? db.from('work_orders').select('title, status, created_at').in('unit_id', unitIds).is('archived_at', null).order('created_at', { ascending: false }).limit(10) : { data: [] },
+    // Reversed (returned) payments are excluded — they no longer count.
+    paymentScope ? db.from('payments').select('amount, payment_date, method').or(paymentScope).is('reversed_at', null).order('payment_date', { ascending: false }).limit(8) : { data: [] },
+    woScope ? db.from('work_orders').select('title, status, created_at').or(woScope).is('archived_at', null).order('created_at', { ascending: false }).limit(10) : { data: [] },
     db.from('violations').select('title, status, date_observed').eq('owner_id', ownerId).is('archived_at', null).order('date_observed', { ascending: false }).limit(10),
     db.from('architectural_requests').select('title, status').eq('owner_id', ownerId).order('created_at', { ascending: false }).limit(10),
     db.from('insurance_policies').select('policy_number, expiration_date, status').eq('owner_id', ownerId).is('archived_at', null),
     assocIds.length ? db.from('calendar_events').select('title, start_datetime, location').in('association_id', assocIds).is('archived_at', null).gte('start_datetime', new Date().toISOString()).order('start_datetime').limit(8) : { data: [] },
-    assocIds.length ? db.from('association_amenities').select('name, allow_reservations').in('association_id', assocIds) : { data: [] },
+    assocIds.length ? db.from('association_amenities').select('name, allow_reservations').in('association_id', assocIds).is('archived_at', null) : { data: [] },
   ]);
 
   const paymentInstructions = (occs ?? [])

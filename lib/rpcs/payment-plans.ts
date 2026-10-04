@@ -32,7 +32,21 @@ export async function createPaymentPlan(formData: FormData) {
     p_first_due: firstDue,
     p_notes: text(formData, 'notes') || null,
   });
-  if (error) fail(error.message);
+  if (error) {
+    // payment_plans_one_active_per_unit: a double submit or a second plan for
+    // the same unit. Send the user to the plan that already exists.
+    if (error.code === '23505') {
+      const { data: existing } = await db
+        .from('payment_plans')
+        .select('id')
+        .eq('unit_id', unitId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (existing?.id) redirect(`/payment-plans/${existing.id}?existing=1`);
+      fail('This unit already has an active payment plan.');
+    }
+    fail(error.message);
+  }
   revalidatePath('/payment-plans');
   revalidatePath('/delinquencies');
   redirect(`/payment-plans/${data}?created=1`);

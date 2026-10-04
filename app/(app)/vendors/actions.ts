@@ -167,6 +167,17 @@ export async function updateVendorRecord(formData: FormData) {
     return failTo(e instanceof Error ? e.message : 'Invalid vendor details.')
   }
 
+  // New bank details must be verified again before ACH or auto-pay uses them.
+  // (The vendor_financial_details trigger enforces this too.)
+  const bankChanged = canEditBank && (['bank_routing_number', 'bank_account_number'] as const)
+    .some((k) => k in fin && (finBefore?.[k] ?? null) !== (fin[k] ?? null))
+  if (bankChanged) {
+    Object.assign(patch, {
+      ach_status: 'pending', ach_verified_at: null, ach_verified_by: null,
+      ach_activated_at: null, ach_activated_by: null, is_auto_pay: false,
+    })
+  }
+
   const { error } = await supabase.from('vendors').update(patch).eq('id', vendorId).eq('portfolio_id', portfolioId)
   if (error) failTo(error.message)
 

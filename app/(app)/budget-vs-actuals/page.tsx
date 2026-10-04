@@ -8,8 +8,8 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
-import { EmptyState, Surface } from '@/components/ui/shell';
-import { fiscalMonthLabels, fiscalMonthsElapsed } from '@/lib/budget/fiscal';
+import { Alert, EmptyState, Surface } from '@/components/ui/shell';
+import { fiscalMonthLabels, fiscalMonthsElapsed, fiscalYearFor } from '@/lib/budget/fiscal';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,6 @@ export default async function BudgetVsActualsPage({
   const supabase = await createClient();
   const db = supabase as any;
   const { association, year } = await searchParams;
-  const selectedYear = parseInt(year ?? String(new Date().getFullYear()), 10);
 
   const { data: associations } = await db
     .from('associations')
@@ -34,8 +33,12 @@ export default async function BudgetVsActualsPage({
     .order('name');
 
   const selectedAssociation = association ?? associations?.[0]?.id ?? '';
+  const startMonth = associations?.find((a: any) => a.id === selectedAssociation)?.fiscal_year_start ?? 1;
+  // Default to the fiscal year in progress for this association (FY N ends in year N).
+  const parsedYear = parseInt(year ?? '', 10);
+  const selectedYear = Number.isInteger(parsedYear) ? parsedYear : fiscalYearFor(new Date(), startMonth);
 
-  const { data: reportData } = selectedAssociation
+  const { data: reportData, error: reportError } = selectedAssociation
     ? await db.rpc('get_budget_vs_actuals', {
         p_association_id: selectedAssociation,
         p_fiscal_year: selectedYear,
@@ -56,9 +59,9 @@ export default async function BudgetVsActualsPage({
   const netActual = totalIncomeActual - totalExpenseActual;
   const netVariance = netActual - netBudget;
 
-  const startMonth = associations?.find((a: any) => a.id === selectedAssociation)?.fiscal_year_start ?? 1;
   const MONTHS = fiscalMonthLabels(startMonth);
-  const currentMonth = Math.max(1, fiscalMonthsElapsed(selectedYear, startMonth));
+  // 0 for a fiscal year that has not started yet: YTD is then empty, not month 1.
+  const currentMonth = fiscalMonthsElapsed(selectedYear, startMonth);
   const ytdIncomeBudget = incomeRows.reduce((s: number, r: any) => {
     return s + (r.monthly_budget ?? []).slice(0, currentMonth).reduce((a: number, b: number) => a + (b ?? 0), 0);
   }, 0);
@@ -88,9 +91,10 @@ export default async function BudgetVsActualsPage({
       }
     >
       <div className="space-y-6">
+        {reportError && <Alert tone="danger">Budget vs actuals could not be loaded: {reportError.message}</Alert>}
         <MetricStrip
           metrics={[
-            { label: `YTD budget (thru ${MONTHS[currentMonth - 1]})`, value: money(ytdNetBudget) },
+            { label: currentMonth > 0 ? `YTD budget (thru ${MONTHS[currentMonth - 1]})` : 'YTD budget (not started)', value: money(ytdNetBudget) },
             {
               label: 'YTD actual',
               value: (
@@ -139,7 +143,7 @@ export default async function BudgetVsActualsPage({
             <label className="text-[12px] font-medium text-gray-500">
               Fiscal year
               <Select name="year" defaultValue={String(selectedYear)} className="mt-1 w-28">
-                {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                {[...new Set([2024, 2025, 2026, 2027, 2028, selectedYear])].sort((a, b) => a - b).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </Select>
@@ -164,7 +168,7 @@ export default async function BudgetVsActualsPage({
             ) : rows.length === 0 ? (
               <EmptyState
                 icon={BarChart3}
-                title={`No budget lines for FY${selectedYear}`}
+                title={`No budget or activity for FY${selectedYear}`}
                 description="Set up budget lines first to compare them against actual activity."
                 action={
                   <Link href={`/budget?association=${selectedAssociation}&year=${selectedYear}`}>
@@ -263,14 +267,16 @@ function ReportSection({ title, income = false, rows, months }: { title: string;
         <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
       </div>
       {rows.map((row: any) => (
-        <div key={row.budget_line_id} className="border-b border-gray-100 last:border-0">
+        <div key={row.budget_line_id ?? row.gl_account_id} className="border-b border-gray-100 last:border-0">
           {/* Summary row */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50/60">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-gray-900">
                 {row.gl_account_number} — {row.gl_account_name}
               </div>
-              {row.notes && <div className="mt-0.5 text-xs text-gray-500">{row.notes}</div>}
+              {row.budget_line_id == null
+                ? <div className="mt-0.5 text-xs text-gray-500">Not budgeted — posted activity only</div>
+                : row.notes && <div className="mt-0.5 text-xs text-gray-500">{row.notes}</div>}
             </div>
             <div className="flex items-center gap-4 text-sm tabular-nums">
               <div className="text-right">

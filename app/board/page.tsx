@@ -1,4 +1,6 @@
-import { glDebitBalances } from '@/lib/finance/totals'
+import { glDebitBalances, receivableSummary, type ReceivableSummary } from '@/lib/finance/totals'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { Alert } from '@/components/ui/shell'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
@@ -84,23 +86,18 @@ export default async function BoardDashboardPage() {
     { data: assoc },
     { data: openWOs },
     { data: viols },
-    { data: balances },
     { data: bankAccounts },
     { data: meetings },
     { data: vendorVisits },
-    { data: approvalRows },
     { data: projectRows },
     { data: archRows, count: archCount },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
     db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
-    db.from('unit_balances').select('balance').in('association_id', ids),
     db.from('bank_accounts').select('id, gl_account_id, purpose, fund_type, association_id').in('association_id', ids).is('archived_at', null),
-    db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).gte('start_time', today.toISOString()).order('start_time').limit(5),
+    db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).in('status', ['scheduled', 'in_progress']).gte('start_time', today.toISOString()).order('start_time').limit(5),
     db.from('calendar_events').select('id, title, start_datetime, vendors(name)').in('association_id', ids).not('vendor_id', 'is', null).is('archived_at', null).gte('start_datetime', today.toISOString()).lte('start_datetime', in30).order('start_datetime').limit(5),
-    // Include my decisions so requests I already voted on don't count as awaiting my vote.
-    db.from('approval_requests').select('id, title, status, approval_decisions(decided_by)').in('association_id', ids).eq('status', 'pending').limit(25),
     db.from('capital_projects').select('id, status').in('association_id', ids).is('archived_at', null),
     // Open requests this member can decide: exclude their own in the query and
     // count exactly, so the card is neither capped nor hidden by own requests.
@@ -113,8 +110,29 @@ export default async function BoardDashboardPage() {
   ])
   const archAwaiting = (archRows ?? []) as { id: string; title: string }[]
   const archAwaitingCount = archCount ?? archAwaiting.length
-  const approvals = (approvalRows ?? []).filter((a: any) =>
-    !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id))
+
+  // Pending requests awaiting MY vote: every pending row (exact, not capped),
+  // minus ones I already decided and ones restricted to other seats.
+  const mySeats = await findMyBoardSeats(me)
+  const mySeatIds = new Set(mySeats.map((s) => s.id))
+  const pendingApprovals = await fetchAllRows<any>(() =>
+    db.from('approval_requests').select('id, title, board_member_ids, approval_decisions(decided_by)')
+      .in('association_id', ids).eq('status', 'pending').is('archived_at', null)
+      .order('requested_at', { ascending: false }).order('id'))
+  const approvals = pendingApprovals.rows.filter((a: any) => {
+    const voters: string[] = a.board_member_ids ?? []
+    if (voters.length > 0 && !voters.some((v) => mySeatIds.has(v))) return false
+    return !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id)
+  })
+
+  // Past-due receivables only, same source as /board/delinquencies.
+  let receivables: ReceivableSummary | null = null
+  let receivablesError: string | null = null
+  try {
+    receivables = await receivableSummary(db, ids)
+  } catch (e) {
+    receivablesError = e instanceof Error ? e.message : String(e)
+  }
 
   const open = openWOs ?? []
   const overdue = open.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < todayDate).length
@@ -123,15 +141,21 @@ export default async function BoardDashboardPage() {
   const activeProjects = (projectRows ?? []).filter((p: any) =>
     ['board_review', 'approved', 'active', 'on_hold'].includes(p.status)).length
   const openViolations = (viols ?? []).length
-  const delinquentUnits = (balances ?? []).filter((b: any) => Number(b.balance ?? 0) > 0).length
-  const arTotal = (balances ?? []).reduce((s: number, b: any) => s + Math.max(0, Number(b.balance ?? 0)), 0)
+  const delinquentUnits = receivables?.delinquentUnits ?? 0
+  const overdueTotal = receivables?.overdueTotal ?? 0
 
   // Bank balances: roll posted journal lines up onto each bank account's GL account.
   // Summed in the database: a list of journal lines stops at 1,000 rows.
-  const balByGl = await glDebitBalances(db, {
-    glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
-    associationIds: ids,
-  })
+  let balByGl = new Map<string, number>()
+  let balancesError: string | null = null
+  try {
+    balByGl = await glDebitBalances(db, {
+      glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
+      associationIds: ids,
+    })
+  } catch (e) {
+    balancesError = e instanceof Error ? e.message : String(e)
+  }
   let operating = 0
   let reserve = 0
   for (const b of bankAccounts ?? []) {
@@ -149,7 +173,6 @@ export default async function BoardDashboardPage() {
   const assocNames = (assoc ?? []).map((a: any) => a.name).join(', ')
 
   // My e-signature: attached to approval sign-offs (AppFolio parity).
-  const mySeats = await findMyBoardSeats(me)
   const mySigPath = mySeats.find((s) => s.signature_url)?.signature_url ?? null
   const mySigUrl = mySigPath ? (await signSignaturePaths([mySigPath])).get(mySigPath) ?? null : null
 
@@ -159,6 +182,10 @@ export default async function BoardDashboardPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Board Dashboard</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Governance overview for {assocNames || 'your association'}</p>
       </div>
+
+      {receivablesError && <Alert tone="danger" title="Delinquency figures could not be loaded">{receivablesError}</Alert>}
+      {balancesError && <Alert tone="danger" title="Bank balances could not be loaded">{balancesError}</Alert>}
+      {pendingApprovals.error && <Alert tone="danger" title="Pending approvals could not be loaded">{pendingApprovals.error}</Alert>}
 
       {/* ── Emergency alerts ─────────────────────────── */}
       {emergencies.length > 0 && (
@@ -214,9 +241,9 @@ export default async function BoardDashboardPage() {
       {/* ── KPI grid ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Health Score" value={`${score}`} sub={health} icon={Heart} tone={score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
-        <StatCard label="Operating Balance" value={money(operating)} icon={Landmark} href="/board/financials" />
-        <StatCard label="Reserve Balance" value={money(reserve)} icon={PiggyBank} href="/board/financials" />
-        <StatCard label="Delinquent Owners" value={delinquentUnits} sub={`${money(arTotal)} outstanding`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
+        <StatCard label="Operating Balance" value={balancesError ? "—" : money(operating)} icon={Landmark} href="/board/financials" />
+        <StatCard label="Reserve Balance" value={balancesError ? "—" : money(reserve)} icon={PiggyBank} href="/board/financials" />
+        <StatCard label="Delinquent Owners" value={receivablesError ? '—' : delinquentUnits} sub={receivablesError ? 'Unavailable' : `${money(overdueTotal)} past due`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
         <StatCard label="Open Work Orders" value={open.length} sub={`${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
         <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} href="/board/violations" />
         <StatCard label="Active Projects" value={activeProjects} icon={HardHat} href="/board/projects" />

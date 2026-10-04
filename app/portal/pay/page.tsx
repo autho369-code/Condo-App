@@ -75,6 +75,19 @@ export default async function PayPage({
     pendingByUnit.set(i.unit_id, (pendingByUnit.get(i.unit_id) ?? 0) + Number(i.amount ?? 0));
   }
 
+  // Management can switch online payments off per account (occupancy); the
+  // action refuses those, so don't offer the form either.
+  const { data: occRows } = await (supabase as any)
+    .from('occupancies')
+    .select('unit_id, allow_online_payments')
+    .eq('owner_id', me.owner_id)
+    .eq('status', 'current');
+  const onlineBlocked = new Set<string>(
+    ((occRows ?? []) as Array<{ unit_id: string | null; allow_online_payments: boolean | null }>)
+      .filter((o) => o.unit_id && o.allow_online_payments === false)
+      .map((o) => o.unit_id as string)
+  );
+
   const assocById = new Map<string, AssociationRemit>(
     ((associations ?? []) as AssociationRemit[]).map((a) => [a.id, a])
   );
@@ -124,7 +137,12 @@ export default async function PayPage({
               </p>
             </CardHeader>
             <CardBody>
-              {onlinePayments && unit.unit_id && associationCanAcceptStripePayments(assoc) && (
+              {onlinePayments && unit.unit_id && onlineBlocked.has(unit.unit_id) && (
+                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  Online payments are not available for this account. Please pay using the options below or contact the management office.
+                </div>
+              )}
+              {onlinePayments && unit.unit_id && !onlineBlocked.has(unit.unit_id) && associationCanAcceptStripePayments(assoc) && (
                 <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-gray-500" />

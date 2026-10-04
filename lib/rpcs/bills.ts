@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { todayInZone } from '@/lib/time/zoned';
 
 export async function createBill(formData: FormData) {
   const me = await requireFinanceStaff();  // in-action guard: server actions are callable endpoints
-  const failTo = (msg: string) => {
-    redirect(`/bills/new?error=${encodeURIComponent(msg)}`);
-  };
+  const failTo = (msg: string): never => redirect(`/bills/new?error=${encodeURIComponent(msg)}`);
   const supabase = await createClient();
 
   const submittedPortfolio = formData.get('portfolio_id') as string;
@@ -27,14 +27,25 @@ export async function createBill(formData: FormData) {
 
   if (!portfolio_id || !vendor_id || !bill_date || !Number.isFinite(amount) || amount <= 0) {
     failTo('Portfolio, vendor, bill date, and a positive amount are required.');
-    return;
   }
+  // A bill without an association or expense account can never be approved.
+  if (!association_id) failTo('Choose the association the bill is for.');
+  if (!gl_account_id) failTo('Choose the expense GL account.');
+
+  // A double click or re-sent form must not save the bill twice.
+  const claim = await claimSubmission(supabase, formData, 'payable_bill');
+  if (claim.status === 'error') failTo(claim.message);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`/bills/${claim.resultId}`);
+    failTo('This bill is already being saved. Refresh the bills list in a moment to see it.');
+  }
+  const token = (claim as { token: string }).token;
 
   const { data, error } = await (supabase as any)
     .rpc('create_payable_bill', {
       p_portfolio_id: portfolio_id,
       p_vendor_id: vendor_id,
-      p_association_id: association_id || null,
+      p_association_id: association_id,
       p_gl_account_id: gl_account_id,
       p_bank_account_id: bank_account_id,
       p_bill_number: bill_number,
@@ -46,7 +57,11 @@ export async function createBill(formData: FormData) {
       p_board_approval: board_approval,
     });
 
-  if (error) { failTo(error.message); return; }
+  if (error) {
+    await releaseSubmission(supabase, token);
+    failTo(error.message);
+  }
+  if (typeof data === 'string' && data) await completeSubmission(supabase, token, data);
   revalidatePath('/bills');
   redirect(`/bills/${data}`);
 }
@@ -93,7 +108,7 @@ export async function writeChecks(formData: FormData) {
   const supabase = await createClient();
   const bank_account_id       = formData.get('bank_account_id') as string;
   const starting_check_number = parseInt(formData.get('starting_check_number') as string);
-  const payment_date          = (formData.get('payment_date') as string) || new Date().toISOString().slice(0, 10);
+  const payment_date          = (formData.get('payment_date') as string) || todayInZone();
   const bill_ids              = formData.getAll('bill_ids') as string[];
   const authorization_confirmed = formData.get('authorization_confirmed') === 'on';
 

@@ -100,12 +100,23 @@ export default async function BoardViolationDetailPage({
   const errorMsg = typeof sp.error === 'string' ? sp.error : ''
 
   // Fetch violation — ensure it belongs to board's association
-  const { data: violation } = await db
+  const { data: violation, error: violationError } = await db
     .from('violations')
     .select(`*, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name, email, phone), profiles!violations_created_by_fkey(full_name)`)
     .eq('id', id)
     .in('association_id', boardAssocIds)
     .maybeSingle()
+
+  if (violationError) {
+    return (
+      <div className="space-y-6">
+        <Link href="/board/violations" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-950">
+          <ArrowLeft className="h-4 w-4" /> Back to Violations
+        </Link>
+        <Alert tone="danger" title="This violation could not be loaded">{violationError.message}</Alert>
+      </div>
+    )
+  }
 
   if (!violation) {
     return (
@@ -122,18 +133,12 @@ export default async function BoardViolationDetailPage({
   }
 
   // Fetch board comments
-  let boardComments: any[] = []
-  try {
-    const { data: comments } = await db
-      .from('board_comments')
-      .select('*')
-      .eq('violation_id', id)
-      .order('created_at', { ascending: true })
-    boardComments = comments ?? []
-  } catch {
-    // board_comments table may not exist yet
-    boardComments = []
-  }
+  const { data: comments, error: commentsError } = await db
+    .from('board_comments')
+    .select('*')
+    .eq('violation_id', id)
+    .order('created_at', { ascending: true })
+  const boardComments: any[] = comments ?? []
 
   // Parse attachments
   let attachments: any[] = []
@@ -187,6 +192,9 @@ export default async function BoardViolationDetailPage({
 
       {errorMsg && (
         <Alert tone="danger" title="Could not add comment">{errorMsg}</Alert>
+      )}
+      {commentsError && (
+        <Alert tone="danger" title="Board comments could not be loaded">{commentsError.message}</Alert>
       )}
 
       {/* ── Top Header ── */}

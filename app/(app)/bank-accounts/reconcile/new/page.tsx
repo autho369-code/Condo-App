@@ -5,6 +5,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { SectionTitle, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 import { date } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -91,7 +92,7 @@ export default async function NewReconciliationPage({
                 id="statement_date"
                 name="statement_date"
                 required
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={todayInZone()}
               />
             </Field>
 

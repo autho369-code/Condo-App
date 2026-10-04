@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
-import { signSignaturePaths } from '@/lib/board/signature'
+import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
 import { date } from '@/lib/utils'
 import { castApproval } from './actions'
 import {
@@ -160,6 +160,12 @@ export default async function BoardApprovalsPage({
   const sigUrlByRef = await signSignaturePaths(allDecisions.map((d) => d.board_members?.signature_url))
 
   const pending = requests.filter((r) => r.status === 'pending')
+  // A request limited to specific seats (board_member_ids) is only votable by
+  // those seats; an empty list means the whole board votes.
+  const mySeatIds = new Set((await findMyBoardSeats(me)).map((s) => s.id))
+  const canVote = (r: ApprovalRequest) =>
+    !r.board_member_ids || r.board_member_ids.length === 0 || r.board_member_ids.some((id) => mySeatIds.has(id))
+  const awaitingMine = pending.filter((r) => canVote(r) && !myDecisionByRequest.has(r.id)).length
   const decided = requests.filter((r) => r.status !== 'pending')
 
   return (
@@ -185,7 +191,7 @@ export default async function BoardApprovalsPage({
           <Clock className="h-4 w-4 text-gray-400" />
           <h2 className="text-sm font-semibold text-gray-900">Awaiting your sign-off</h2>
           <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/15">
-            {pending.length}
+            {awaitingMine}
           </span>
         </div>
         {pending.length === 0 ? (
@@ -199,6 +205,7 @@ export default async function BoardApprovalsPage({
               myDecision={myDecisionByRequest.get(r.id)}
               sigUrlByRef={sigUrlByRef}
               showForm
+              canVote={canVote(r)}
             />
           ))
         )}
@@ -269,12 +276,14 @@ function RequestCard({
   myDecision,
   sigUrlByRef,
   showForm,
+  canVote = true,
 }: {
   request: ApprovalRequest
   decisions: Decision[]
   myDecision?: Decision
   sigUrlByRef: Map<string, string>
   showForm?: boolean
+  canVote?: boolean
 }) {
   const eligible = eligibleCount(r)
   const elig = eligible ?? '—'
@@ -358,7 +367,13 @@ function RequestCard({
       )}
 
       {/* Sign-off form */}
-      {showForm && <SignOffForm request={r} myDecision={myDecision} />}
+      {showForm && (canVote ? (
+        <SignOffForm request={r} myDecision={myDecision} />
+      ) : (
+        <p className="mt-4 rounded-xl border border-gray-200 bg-gray-50/40 px-4 py-3 text-sm text-gray-500">
+          You&apos;re not a voter on this request.
+        </p>
+      ))}
     </div>
   )
 }

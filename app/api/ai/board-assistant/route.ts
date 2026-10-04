@@ -30,6 +30,7 @@ const SYSTEM_PROMPT =
   'Answer their questions ONLY from the DATA provided below — a live, read-only snapshot of THEIR association. ' +
   'If the answer is not in the DATA, say plainly that you don\'t have that information and suggest asking the property manager. ' +
   'NEVER invent, estimate, or extrapolate numbers, names, dates, or amounts. ' +
+  'Sections listed in DATA.unavailable failed to load (they are null): say that information is unavailable right now — never treat it as zero. ' +
   'Be concise and conversational; format money with a dollar sign. Use short bullet points for lists. ' +
   'Do not output JSON or code unless asked.';
 
