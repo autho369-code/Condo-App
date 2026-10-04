@@ -1,7 +1,8 @@
--- receivable_payments_ledger had no reversal columns, so screens built on it
--- (the owner record's payment history, last payment) showed returned (NSF)
--- payments as ordinary payments. Append reversed_at and reversal_reason; the
--- rest of the view is unchanged. security_invoker stays on.
+-- Adds reversal_date to receivable_payments_ledger: the effective return date
+-- staff chose, stored as the reversal charge's due_date (payments.reversed_at
+-- is only when the return was entered). A separate migration so environments
+-- that already ran 20261004220000 get the column. The rest of the view is
+-- unchanged; security_invoker stays on.
 create or replace view public.receivable_payments_ledger with (security_invoker = true) as
  SELECT p.id AS payment_id,
     p.payment_date,
@@ -25,13 +26,15 @@ create or replace view public.receivable_payments_ledger with (security_invoker 
     GREATEST(COALESCE(p.amount, 0::numeric) - COALESCE(applied.applied_amount, 0::numeric), 0::numeric) AS unapplied_amount,
     COALESCE(applied.application_count, 0) AS application_count,
     p.reversed_at,
-    p.reversal_reason
+    p.reversal_reason,
+    rev_charge.due_date AS reversal_date
    FROM payments p
      LEFT JOIN units u ON u.id = p.unit_id
      LEFT JOIN buildings b ON b.id = u.building_id
      LEFT JOIN associations assoc ON assoc.id = b.association_id
      LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id
      LEFT JOIN charges primary_charge ON primary_charge.id = p.charge_id
+     LEFT JOIN charges rev_charge ON rev_charge.id = p.reversal_charge_id
      LEFT JOIN LATERAL ( SELECT uo.owner_id,
             o.full_name AS owner_name
            FROM unit_owners uo

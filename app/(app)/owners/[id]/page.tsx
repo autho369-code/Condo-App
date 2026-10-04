@@ -224,6 +224,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         // By the date received (as entered on the receipt), the same basis as a
         // return's effective date below.
         .gte('payment_date', ytdStart)
+        .lte('payment_date', todayStr) // future-dated receipts are not received yet
         .order('payment_date', { ascending: false })
         .limit(200)
     );
