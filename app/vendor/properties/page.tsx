@@ -20,7 +20,7 @@ export default async function VendorPropertiesPage() {
     .select('association_id')
     .eq('vendor_id', me.vendor_id)
     .is('archived_at', null)
-    .not('status', 'in', '(completed,closed,cancelled,billed)');
+    .not('status', 'in', '(done,completed,closed,cancelled,billed)');
 
   const assocIds = [...new Set((wos ?? []).map((w: any) => w.association_id).filter(Boolean))];
 
