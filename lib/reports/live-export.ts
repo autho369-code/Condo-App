@@ -741,17 +741,25 @@ async function maintenanceResponseRows(
       .gte('created_at', from).lt('created_at', before).order('id');
     return associationId ? q.eq('association_id', associationId) : q;
   };
-  const [requests, workOrders, associations] = await Promise.all([
+  const [requests, workOrders, openWorkOrders, associations] = await Promise.all([
     fetchAllRows<any>(() => scoped(db.from('service_requests')
       .select('id, association_id, priority, status, created_at, first_response_due_at, acknowledged_at, resolved_at'))),
     fetchAllRows<any>(() => scoped(db.from('work_orders')
       .select('id, association_id, priority, status, created_at, completed_date'))),
-    fetchAllRows<any>(() => db.from('associations').select('id, name').eq('portfolio_id', portfolioId).order('id')),
+    fetchAllRows<any>(() => {
+      const q = db.from('work_orders').select('id, association_id, priority, status, created_at, completed_date')
+        .eq('portfolio_id', portfolioId).is('archived_at', null).is('completed_date', null)
+        .not('status', 'in', '(done,completed,billed,closed,cancelled)').order('id');
+      return associationId ? q.eq('association_id', associationId) : q;
+    }),
+    fetchAllRows<any>(() => db.from('associations').select('id, name, timezone').eq('portfolio_id', portfolioId).order('id')),
   ]);
-  const error = requests.error ?? workOrders.error ?? associations.error;
+  const error = requests.error ?? workOrders.error ?? openWorkOrders.error ?? associations.error;
   if (error) throw new Error(`Could not load maintenance records: ${error}`);
   const names = new Map<string, string>(associations.rows.map((a: any) => [a.id, a.name]));
-  return responseExportRows(requests.rows, workOrders.rows, names);
+  const zones = new Map<string, string | null>(associations.rows.map((a: any) => [a.id, a.timezone ?? null]));
+  const withZone = workOrders.rows.map((w: any) => ({ ...w, time_zone: zones.get(w.association_id) ?? zone }));
+  return responseExportRows(requests.rows, withZone, names, openWorkOrders.rows);
 }
 
 export async function generateLiveExportRows(
