@@ -6,6 +6,7 @@ import { requireStaff, requirePortfolioAdmin, requireFinanceOrPortfolioAdmin } f
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { savePrivateFields } from '@/lib/private-fields';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
 
 // ---------- Helpers ----------
@@ -629,7 +630,7 @@ export async function updateOwner(id: string, formData: FormData) {
   const patch: Record<string, unknown> = {};
   // Optional fields the form submits: a blank value clears the field (dropping
   // blanks meant a phone, address or note could never be removed).
-  for (const k of ['first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_state', 'address_zip', 'notes']) {
+  for (const k of ['first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_state', 'address_zip']) {
     if (formData.has(k)) patch[k] = str(formData, k);
   }
   // Required columns: only written when a value is supplied.
@@ -651,6 +652,12 @@ export async function updateOwner(id: string, formData: FormData) {
   const { data: updated, error } = await (supabase as any).from('owners').update(patch).eq('id', id).select('id');
   if (error) { failTo(error.message); return; }
   if (!updated || updated.length === 0) { failTo('Owner not found or you do not have access to edit it.'); return; }
+  // Staff notes are staff-only (owner_private): written there directly so a
+  // blank value clears the stored note.
+  if (formData.has('notes')) {
+    const notesError = await savePrivateFields(supabase, 'owner_private', 'owner_id', id, { notes: str(formData, 'notes') });
+    if (notesError) { failTo(`Profile saved, but the notes were not: ${notesError.message}`); return; }
+  }
   revalidatePath(`/owners/${id}`);
   revalidatePath('/owners');
   redirect(`/owners/${id}?saved=profile`);
