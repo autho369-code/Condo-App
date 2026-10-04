@@ -32,16 +32,18 @@ Every AppFolio page is built; these need access, accounts or decisions first.
       path, type and size before linking it. Limit raised to 25 MB (bucket max).
 
 ### Audit follow-ups (2026-10-04, need a design change)
-- [ ] **Staff-only notes are readable through the API.** Board members can
+- [x] **Staff-only notes are readable through the API.** (Done in #191: owner_private plus 12 more `*_private` tables; work-order notes were already in work_order_private.) Board members can
       read `owners.notes` (management's notes about owners); owners can read
       `work_orders.internal_notes`, `vendor_instructions` and
       `withheld_amount_from_owner` for their units. Pages don't show them, but
       the row-level policies return whole rows. Fix: move those columns into
       staff-only tables (or staff-only views/RPCs) and revoke the columns from
       `authenticated`, then point the staff pages at the new source.
-- [ ] **Owner timeline shows returned (NSF) payments as normal payments** —
-      `receivable_payments_ledger` has no `reversed_at`; add it to the view (or
-      read payments directly) and label returned payments as the ledger does.
+- [x] **Owner timeline shows returned (NSF) payments as normal payments** —
+      `receivable_payments_ledger` now carries `reversed_at`/`reversal_reason`.
+      The owner portal timeline, the owner record, /receipts and the
+      receivables receipts tab label returned payments and leave them out of
+      the received/YTD totals.
 
 ### Needs provider accounts from Mirsad
 - [ ] **Two-way SMS:** Twilio account + US 10DLC registration (Inbox texting).

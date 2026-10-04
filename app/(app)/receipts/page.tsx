@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { StatusChip } from '@/components/operations/status-chip';
 import { Receipt } from 'lucide-react';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -53,7 +54,7 @@ export default async function ReceiptsPage({
   for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
     let query = db
       .from('payments')
-      .select(`id, amount, payment_date, method, reference, processor, unit_id, created_at, bank_accounts(name), ${unitSelect}`)
+      .select(`id, amount, payment_date, method, reference, processor, unit_id, created_at, reversed_at, reversal_reason, bank_accounts(name), ${unitSelect}`)
       .gte('payment_date', from)
       .lte('payment_date', to)
       .order('payment_date', { ascending: false })
@@ -104,7 +105,8 @@ export default async function ReceiptsPage({
         .some((v) => String(v ?? '').toLowerCase().includes(q)),
     );
   }
-  const cash = rows.filter((r) => r.method !== 'credit');
+  // Returned (NSF) payments stay listed, marked, but were never collected.
+  const cash = rows.filter((r) => r.method !== 'credit' && !r.reversed_at);
   const total = cash.reduce((s, r) => s + Number(r.amount), 0);
   const online = cash.filter((r) => r.method === 'online' || r.processor).reduce((s, r) => s + Number(r.amount), 0);
   const credits = rows.filter((r) => r.method === 'credit').reduce((s, r) => s + Number(r.amount), 0);
@@ -225,10 +227,13 @@ export default async function ReceiptsPage({
                     </Link>
                     {r.method === 'credit' && r.notes && <div className="text-xs text-gray-500">{r.notes}</div>}
                   </TD>
-                  <TD>{receiptMethodLabel(r.method)}</TD>
+                  <TD>
+                    {receiptMethodLabel(r.method)}
+                    {r.reversed_at && <div className="mt-1"><StatusChip tone="danger">Returned{r.reversal_reason ? ` · ${r.reversal_reason}` : ''}</StatusChip></div>}
+                  </TD>
                   <TD className="text-sm text-gray-600">{r.reference ?? '—'}</TD>
                   <TD className="text-sm text-gray-600">{r.method === 'credit' ? '—' : r.bank_accounts?.name ?? 'Operating'}</TD>
-                  <TD className={`text-right tabular-nums ${r.method === 'credit' ? 'text-gray-500' : ''}`}>{money(r.amount)}</TD>
+                  <TD className={`text-right tabular-nums ${r.reversed_at ? 'text-gray-400 line-through' : r.method === 'credit' ? 'text-gray-500' : ''}`}>{money(r.amount)}</TD>
                   <TD className="text-right">
                     <Link href={`/payments/${r.id}/receipt`}><Button variant="ghost" size="sm">{r.method === 'credit' ? 'Memo' : 'Receipt'}</Button></Link>
                   </TD>

@@ -220,6 +220,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
         .select('id, amount, payment_date, method, reference, unit_id, created_at')
         .in('unit_id', unitIds)
         .neq('method', 'credit') // credits reduce the balance but are not payments
+        .is('reversed_at', null) // returned (NSF) payments were never collected
         .gte('created_at', ytdStart)
         .order('created_at', { ascending: false })
         .limit(200)
@@ -262,7 +263,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     .sort((a: any, b: any) => a.due_date.localeCompare(b.due_date));
   const nextDueDate = upcomingCharges.length > 0 ? upcomingCharges[0].due_date : null;
 
-  const lastPayment = (paymentLedger ?? []).length > 0 ? paymentLedger[0] : null;
+  const lastPayment = (paymentLedger ?? []).find((p: any) => !p.reversed_at) ?? null;
   const lastDistributionAmount = lastPayment?.amount ?? null;
   const lastDistributionDate = lastPayment?.payment_date ?? null;
 
@@ -319,6 +320,8 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     unit: p.unit_number,
     association: p.association_name,
     reference: p.reference,
+    reversedAt: p.reversed_at,
+    reversalReason: p.reversal_reason,
   }));
 
   const meta = await loadRecordMeta(db, 'owner', id);
@@ -634,8 +637,11 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
                 {distributionHistory.map((d: any) => (
                   <tr key={d.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-2 whitespace-nowrap">{date(d.date)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums font-medium text-green-700">{money(d.amount)}</td>
-                    <td className="px-4 py-2 capitalize text-gray-600">{d.method ?? '—'}</td>
+                    <td className={`px-4 py-2 text-right tabular-nums font-medium ${d.reversedAt ? 'text-gray-400 line-through' : 'text-green-700'}`}>{money(d.amount)}</td>
+                    <td className="px-4 py-2 capitalize text-gray-600">
+                      {d.method ?? '—'}
+                      {d.reversedAt && <span className="ml-2 normal-case"><StatusChip tone="danger">Returned{d.reversalReason ? ` · ${d.reversalReason}` : ''}</StatusChip></span>}
+                    </td>
                     <td className="px-4 py-2">{d.unit ?? '—'}</td>
                     <td className="px-4 py-2 text-gray-600">{d.association ?? '—'}</td>
                     <td className="px-4 py-2 text-xs text-gray-500">{d.reference ?? '—'}</td>

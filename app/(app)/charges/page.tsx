@@ -128,7 +128,8 @@ export default async function ChargesPage({
     // Receipt totals cover every matching receipt, not just the rows shown.
     fetchAllRows<any>(() => {
       let r = db.from('receivable_payments_ledger').select('payment_id, amount')
-        .or('method.is.null,method.neq.credit');
+        .or('method.is.null,method.neq.credit')
+        .is('reversed_at', null); // returned (NSF) payments were never collected
       if (assoc) r = r.eq('association_id', assoc);
       if (owner) r = r.in('unit_id', unitScope);
       return r.order('payment_id');
@@ -498,12 +499,13 @@ export default async function ChargesPage({
                         <StatusChip tone={r.method === 'online' || r.method === 'ach' ? 'info' : r.method === 'check' ? 'warning' : 'neutral'}>
                           {r.method ?? '—'}
                         </StatusChip>
+                        {r.reversed_at && <span className="ml-1.5"><StatusChip tone="danger">Returned{r.reversal_reason ? ` · ${r.reversal_reason}` : ''}</StatusChip></span>}
                       </TD>
                       <TD className="font-medium">
                         {r.unit_id ? <Link href={`/units/${r.unit_id}`} className="hover:underline">{r.unit_number ?? '—'}</Link> : r.unit_number ?? '—'}
                       </TD>
                       <TD className="max-w-[180px] truncate text-sm text-gray-600">{r.association_name ?? '—'}</TD>
-                      <TD className="text-right font-medium tabular-nums text-gray-900">{money(r.amount)}</TD>
+                      <TD className={`text-right font-medium tabular-nums ${r.reversed_at ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{money(r.amount)}</TD>
                       <TD className="max-w-[160px] truncate text-sm text-gray-600" title={r.reference ?? ''}>{r.reference ?? '—'}</TD>
                       <TD className="text-right">
                         <Link href={`/payments/${r.payment_id}/receipt`} className="text-xs font-medium text-gray-600 hover:text-gray-950 hover:underline">Receipt</Link>
