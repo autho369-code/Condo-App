@@ -290,7 +290,15 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     .sort((a: any, b: any) => a.due_date.localeCompare(b.due_date));
   const nextDueDate = upcomingCharges.length > 0 ? upcomingCharges[0].due_date : null;
 
-  const lastPayment = (paymentLedger ?? []).find((p: any) => !p.reversed_at) ?? null;
+  // The latest payment that was not returned, queried directly so a run of
+  // returned payments in the recent history can't hide an older good one.
+  const { data: lastPayment, error: lastPaymentError } = payUnitIds.length > 0
+    ? await db.from('receivable_payments_ledger').select('amount, payment_date')
+        .in('unit_id', payUnitIds).is('reversed_at', null)
+        .order('payment_date', { ascending: false }).order('payment_id', { ascending: false })
+        .limit(1).maybeSingle()
+    : { data: null, error: null };
+  if (lastPaymentError) throw new Error(`Could not load the last payment: ${lastPaymentError.message}`);
   const lastDistributionAmount = lastPayment?.amount ?? null;
   const lastDistributionDate = lastPayment?.payment_date ?? null;
 
