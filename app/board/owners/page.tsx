@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { Alert } from '@/components/ui/shell'
 import { money } from '@/lib/utils'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { Users, AlertTriangle } from 'lucide-react'
@@ -17,30 +18,42 @@ export default async function BoardOwnersPage() {
   const today = new Date().toISOString().slice(0, 10)
 
   const [
-    { data: occupancies },
-    { data: balances },
-    { data: viols },
-    { data: policies },
+    { data: occupancies, error: occError },
+    { data: balances, error: balError },
+    { data: viols, error: violError },
+    { data: policies, error: polError },
   ] = await Promise.all([
     db.from('occupancies')
       .select('owner_id, unit_id, occupancy_type, status, owners(id, full_name, email, phone, emergency_contact_name, emergency_contact_phone), units(unit_number)')
       .in('association_id', ids)
-      .eq('status', 'current'),
+      .eq('status', 'current')
+      .eq('occupancy_type', 'owner'),
     db.from('unit_balances').select('unit_id, balance').in('association_id', ids),
     db.from('violations').select('owner_id, unit_id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('insurance_policies').select('owner_id, expiration_date, status').in('association_id', ids).is('archived_at', null),
   ])
 
+  const loadErrors = [
+    occError && `Owners could not be loaded: ${occError.message}`,
+    balError && `Balances could not be loaded: ${balError.message}`,
+    violError && `Violations could not be loaded: ${violError.message}`,
+    polError && `Insurance policies could not be loaded: ${polError.message}`,
+  ].filter(Boolean) as string[]
+
   const balanceByUnit = new Map<string, number>((balances ?? []).map((b: any) => [b.unit_id, Number(b.balance ?? 0)]))
-  const violCount = new Map<string, number>()
+  // Each violation counts once: by unit, or by owner when it has no unit.
+  const violByUnit = new Map<string, number>()
+  const violByOwnerNoUnit = new Map<string, number>()
   for (const v of viols ?? []) {
-    const key = v.owner_id ?? v.unit_id
-    if (key) violCount.set(key, (violCount.get(key) ?? 0) + 1)
+    if (v.unit_id) violByUnit.set(v.unit_id, (violByUnit.get(v.unit_id) ?? 0) + 1)
+    else if (v.owner_id) violByOwnerNoUnit.set(v.owner_id, (violByOwnerNoUnit.get(v.owner_id) ?? 0) + 1)
   }
+  // Policy statuses written by the app: active / expiring_soon (in force), expired.
+  const IN_FORCE_POLICY_STATUSES = ['active', 'expiring_soon']
   const insuranceByOwner = new Map<string, 'current' | 'expired'>()
   for (const p of policies ?? []) {
     if (!p.owner_id) continue
-    const state = p.expiration_date && p.expiration_date >= today ? 'current' : 'expired'
+    const state = p.expiration_date && p.expiration_date >= today && IN_FORCE_POLICY_STATUSES.includes(p.status) ? 'current' : 'expired'
     // Any current policy wins over an expired one.
     if (insuranceByOwner.get(p.owner_id) !== 'current') insuranceByOwner.set(p.owner_id, state)
   }
@@ -55,7 +68,8 @@ export default async function BoardOwnersPage() {
       unit: o.units?.unit_number ?? '—',
       type: o.occupancy_type ?? '—',
       balance: balanceByUnit.get(o.unit_id) ?? 0,
-      violations: (violCount.get(o.owners.id) ?? 0) + (violCount.get(o.unit_id) ?? 0),
+      unitId: o.unit_id as string | null,
+      violations: (violByUnit.get(o.unit_id) ?? 0) + (violByOwnerNoUnit.get(o.owners.id) ?? 0),
       insurance: insuranceByOwner.get(o.owners.id) ?? null,
       emergency: o.owners.emergency_contact_name
         ? `${o.owners.emergency_contact_name}${o.owners.emergency_contact_phone ? ` · ${o.owners.emergency_contact_phone}` : ''}`
@@ -63,7 +77,8 @@ export default async function BoardOwnersPage() {
     }))
     .sort((a: any, b: any) => String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }))
 
-  const delinquent = rows.filter((r: any) => r.balance > 0).length
+  // Accounts are units: co-owners of one unit are one delinquent account.
+  const delinquent = new Set(rows.filter((r: any) => r.balance > 0).map((r: any) => r.unitId ?? r.unit)).size
 
   return (
     <div className="space-y-6">
@@ -73,6 +88,8 @@ export default async function BoardOwnersPage() {
           View-only owner directory with balances, violations, and insurance compliance — no personal payment details are stored or shown
         </p>
       </div>
+
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[
@@ -114,7 +131,7 @@ export default async function BoardOwnersPage() {
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">No current owners found.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">{occError ? 'Owners are unavailable right now.' : 'No current owners found.'}</td></tr>
               ) : (
                 rows.map((r: any) => (
                   <tr key={`${r.ownerId}-${r.unit}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

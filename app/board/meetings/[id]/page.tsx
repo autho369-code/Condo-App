@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 import { Calendar, MapPin, Clock, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
 
 interface Meeting {
@@ -106,6 +107,7 @@ export default function MeetingDetailClient() {
   const [actionItems, setActionItems] = useState<MeetingActionItem[]>([])
   const [financials, setFinancials] = useState<FinancialSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadErrors, setLoadErrors] = useState<string[]>([])
   const [generating, setGenerating] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -121,11 +123,13 @@ export default function MeetingDetailClient() {
     const db = supabase as any
 
     // Load meeting
-    const { data: m } = await db
+    const errors: string[] = []
+    const { data: m, error: meetingError } = await db
       .from('meetings')
       .select('*, associations(name)')
       .eq('id', meetingId)
-      .single()
+      .maybeSingle()
+    if (meetingError) errors.push(`Meeting could not be loaded: ${meetingError.message}`)
     if (m) setMeeting(m as Meeting)
 
     // Start all meeting-child reads together once the authorized meeting has
@@ -137,8 +141,13 @@ export default function MeetingDetailClient() {
         .order('status', { ascending: true }).order('due_date', { ascending: true, nullsFirst: false }),
       m?.association_id
         ? db.rpc('get_meeting_financial_snapshot', { p_association_id: m.association_id })
-        : Promise.resolve({ data: null }),
+        : Promise.resolve({ data: null, error: null }),
     ])
+    if (agendaResult.error) errors.push(`Agenda could not be loaded: ${agendaResult.error.message}`)
+    if (documentResult.error) errors.push(`Meeting documents could not be loaded: ${documentResult.error.message}`)
+    if (actionResult.error) errors.push(`Action items could not be loaded: ${actionResult.error.message}`)
+    if (financialResult.error) errors.push(`Financial snapshot could not be loaded: ${financialResult.error.message}`)
+    setLoadErrors(errors)
     if (agendaResult.data) setAgendaItems(agendaResult.data as AgendaItem[])
     if (documentResult.data) setDocuments(documentResult.data as MeetingDoc[])
     if (actionResult.data) setActionItems(actionResult.data as MeetingActionItem[])
@@ -417,7 +426,11 @@ export default function MeetingDetailClient() {
   }
 
   if (!meeting) {
-    return (
+    return loadErrors.length > 0 ? (
+      <div className="space-y-3">
+        {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
+      </div>
+    ) : (
       <div className={`${card} p-12 text-center`}>
         <p className="text-sm text-gray-500">Meeting not found.</p>
       </div>
@@ -430,6 +443,8 @@ export default function MeetingDetailClient() {
 
   return (
     <div className="space-y-6">
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
+
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

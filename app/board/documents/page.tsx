@@ -2,7 +2,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
-import { FileText, Image as ImageIcon, File, FolderOpen } from 'lucide-react'
+import { FileText, Image as ImageIcon, FolderOpen } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { SHARE_LABEL, orderedFolders, type ShareScope } from '@/lib/associations/document-sharing'
 
@@ -15,7 +16,7 @@ export default async function BoardDocumentsPage() {
   const ids = me.board_association_ids ?? []
 
   // Get violations with attachments
-  const { data: violationDocs } = await db
+  const { data: violationDocs, error: violationDocsError } = await db
     .from('violations')
     .select('id, title, attachments, created_at, units(unit_number)')
     .in('association_id', ids)
@@ -24,28 +25,15 @@ export default async function BoardDocumentsPage() {
     .order('created_at', { ascending: false })
     .limit(50)
 
-  // Get work orders with attachments (check if column exists)
-  let workOrderDocs: any[] = []
-  try {
-    const { data } = await db
-      .from('work_orders')
-      .select('id, title, created_at, units(unit_number)')
-      .in('association_id', ids)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(50)
-    workOrderDocs = data ?? []
-  } catch { }
-
   // Association documents the manager shared with the board (or with owners).
   // RLS (documents_board_association_read) enforces share_scope.
-  const { data: assocDocRows } = ids.length
+  const { data: assocDocRows, error: assocDocsError } = ids.length
     ? await db.from('documents')
         .select('id, entity_id, doc_type, file_name, file_url, uploaded_at, folder, share_scope, description')
         .eq('entity_type', 'association')
         .in('entity_id', ids)
         .order('uploaded_at', { ascending: false })
-    : { data: [] }
+    : { data: [], error: null }
   const assocDocs = (assocDocRows ?? []) as any[]
   const docLinks = new Map<string, string>()
   const toSign = assocDocs.filter((d) => isScopedStoragePath(d.file_url, 'associations', d.entity_id))
@@ -99,12 +87,15 @@ export default async function BoardDocumentsPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Association documents, notices, and attachments</p>
       </div>
 
+      {assocDocsError && <Alert tone="danger" title="Association documents could not be loaded">{assocDocsError.message}</Alert>}
+      {violationDocsError && <Alert tone="danger" title="Violation attachments could not be loaded">{violationDocsError.message}</Alert>}
+
       <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="border-b border-gray-100 px-5 py-3">
           <h2 className="text-sm font-semibold text-gray-950">Association documents</h2>
           <p className="mt-0.5 text-xs text-gray-500">Files management has shared with the board. “Board and owners” files are also in the owner portal.</p>
         </div>
-        {docGroups.length === 0 ? (
+        {docGroups.length === 0 && !assocDocsError ? (
           <div className="px-5 py-10 text-center text-sm text-gray-500">
             <FolderOpen className="mx-auto mb-2 h-6 w-6 text-gray-300" />
             No association documents have been shared with the board yet.
@@ -136,9 +127,10 @@ export default async function BoardDocumentsPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Violation Attachments', value: docs.filter((d: any) => d.type === 'Violation').length },
-          { label: 'Work Orders', value: workOrderDocs.length },
-          { label: 'Total Documents', value: docs.length + workOrderDocs.length },
+          // Only files count as documents (work orders without files do not).
+          { label: 'Association Documents', value: assocDocsError ? '—' : assocDocs.length },
+          { label: 'Violation Attachments', value: violationDocsError ? '—' : docs.length },
+          { label: 'Total Documents', value: assocDocsError || violationDocsError ? '—' : assocDocs.length + docs.length },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
@@ -159,8 +151,8 @@ export default async function BoardDocumentsPage() {
             </tr>
           </thead>
           <tbody>
-            {docs.length === 0 && workOrderDocs.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-500">No documents found. Violation photos and attachments will appear here.</td></tr>
+            {docs.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-500">{violationDocsError ? 'Violation attachments are unavailable right now.' : 'No documents found. Violation photos and attachments will appear here.'}</td></tr>
             ) : (
               <>
                 {docs.map((d: any, i: number) => (
@@ -177,20 +169,6 @@ export default async function BoardDocumentsPage() {
                     </td>
                     <td className="px-4 py-3 text-[13px] text-gray-700">{d.unit}</td>
                     <td className="px-4 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(d.date)}</td>
-                  </tr>
-                ))}
-                {workOrderDocs.map((w: any) => (
-                  <tr key={`wo-${w.id}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <File className="h-4 w-4 text-gray-400" />
-                        <span className="text-[13px] text-gray-700">Work Order</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3"><span className={typePill}>Work Order</span></td>
-                    <td className="px-4 py-3 text-[13px] text-gray-700">{w.title}</td>
-                    <td className="px-4 py-3 text-[13px] text-gray-700">{w.units?.unit_number ?? '—'}</td>
-                    <td className="px-4 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(w.created_at)}</td>
                   </tr>
                 ))}
               </>

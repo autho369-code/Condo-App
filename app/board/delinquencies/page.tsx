@@ -5,6 +5,7 @@ import { ExportActions, type ExportTable } from '@/components/export/export-acti
 import { date, money } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
 import {
   Clock,
   AlertTriangle,
@@ -76,11 +77,13 @@ export default async function BoardDelinquenciesPage() {
 
   // ── Delinquent units: a positive balance with a past-due charge ──
   // Days past due count from the oldest charge that is still unpaid (the
-  // view's oldest_due includes charges that were paid long ago).
+  // view's oldest_due is the fallback when the charge read fails).
   let delinquentRows: any[] = []
-  try {
+  const loadErrors: string[] = []
+  let delinquencyFailed = false
+  {
     const todayDate = todayInZone()
-    const [{ data: delView }, { rows: openCharges }] = await Promise.all([
+    const [{ data: delView, error: delError }, { rows: openCharges, error: chargesError }] = await Promise.all([
       db.from('delinquent_units')
         .select('*')
         .in('association_id', boardAssocIds)
@@ -92,6 +95,11 @@ export default async function BoardDelinquenciesPage() {
         .lt('due_date', todayDate)
         .order('charge_id')),
     ])
+    if (delError) {
+      delinquencyFailed = true
+      loadErrors.push(`Delinquent accounts could not be loaded: ${delError.message}`)
+    }
+    if (chargesError) loadErrors.push(`Past-due charge dates could not be loaded: ${chargesError}`)
     const oldestOpenByUnit = new Map<string, string>()
     for (const c of openCharges as any[]) {
       const prev = oldestOpenByUnit.get(c.unit_id)
@@ -99,7 +107,7 @@ export default async function BoardDelinquenciesPage() {
     }
 
     delinquentRows = (delView ?? []).map((d: any) => {
-      const oldestOpen = oldestOpenByUnit.get(d.unit_id) ?? null
+      const oldestOpen = oldestOpenByUnit.get(d.unit_id) ?? d.oldest_due ?? null
       return {
         unit_id: d.unit_id,
         unit_number: d.unit_number,
@@ -111,8 +119,6 @@ export default async function BoardDelinquenciesPage() {
         owner_id: null,
       }
     })
-  } catch {
-    delinquentRows = []
   }
 
   // ── Calculate stats ──
@@ -124,18 +130,24 @@ export default async function BoardDelinquenciesPage() {
   // Resolve owner names + last payment date by UNIT (works for both the
   // delinquent_units view path and the occupancies fallback). Board members
   // can read unit_owners/owners/payments for their association via RLS.
-  try {
+  {
     const unitIds = [...new Set(delinquentRows.map((d) => d.unit_id).filter(Boolean))]
     if (unitIds.length > 0) {
-      const [{ data: uos }, { data: payments }] = await Promise.all([
-        db.from('unit_owners').select('unit_id, owner_id, is_primary').in('unit_id', unitIds),
-        db.from('payments').select('unit_id, payment_date').neq('method', 'credit').in('unit_id', unitIds).order('payment_date', { ascending: false }),
+      const [{ data: uos, error: uoError }, { rows: payments, error: payError }] = await Promise.all([
+        // Current owners only; reversed payments are not payments.
+        db.from('unit_owners').select('unit_id, owner_id, is_primary').in('unit_id', unitIds).is('end_date', null),
+        // Every payment row, not the first 1,000: the newest per unit is kept below.
+        fetchAllRows(() => db.from('payments').select('id, unit_id, payment_date').neq('method', 'credit').is('reversed_at', null)
+          .in('unit_id', unitIds).order('payment_date', { ascending: false }).order('id')),
       ])
+      if (uoError) loadErrors.push(`Owner names could not be loaded: ${uoError.message}`)
+      if (payError) loadErrors.push(`Last payment dates could not be loaded: ${payError}`)
 
       const ownerIds = [...new Set((uos ?? []).map((u: any) => u.owner_id).filter(Boolean))]
       const ownerNameById = new Map<string, string>()
       if (ownerIds.length > 0) {
-        const { data: owners } = await db.from('owners').select('id, full_name').in('id', ownerIds)
+        const { data: owners, error: ownersError } = await db.from('owners').select('id, full_name').in('id', ownerIds)
+        if (ownersError) loadErrors.push(`Owner names could not be loaded: ${ownersError.message}`)
         for (const o of owners ?? []) ownerNameById.set(o.id, o.full_name)
       }
 
@@ -146,7 +158,7 @@ export default async function BoardDelinquenciesPage() {
       }
 
       const lastPayByUnit = new Map<string, string>()
-      for (const p of payments ?? []) {
+      for (const p of payments as any[]) {
         if (!lastPayByUnit.has(p.unit_id)) lastPayByUnit.set(p.unit_id, p.payment_date)
       }
 
@@ -157,7 +169,7 @@ export default async function BoardDelinquenciesPage() {
         if (!d.last_payment_date) d.last_payment_date = lastPayByUnit.get(d.unit_id) ?? null
       })
     }
-  } catch { /* may not exist */ }
+  }
 
   const severity = (days: number): { tone: Tone; label: string } => {
     if (days > 90) return { tone: 'danger', label: 'Severe' }
@@ -220,23 +232,25 @@ export default async function BoardDelinquenciesPage() {
         />
       </div>
 
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
+
       {/* ── Stats Cards ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           label="Total Delinquency"
-          value={money(totalDelinquentAmount)}
+          value={delinquencyFailed ? '—' : money(totalDelinquentAmount)}
           sub={`${delinquentRows.length} delinquent account${delinquentRows.length !== 1 ? 's' : ''}`}
           icon={DollarSign}
         />
         <StatCard
           label="Delinquent Accounts"
-          value={delinquentRows.length}
+          value={delinquencyFailed ? '—' : delinquentRows.length}
           sub="Active accounts past due"
           icon={Users}
         />
         <StatCard
           label="Avg Days Past Due"
-          value={`${avgDaysPastDue}d`}
+          value={delinquencyFailed ? '—' : `${avgDaysPastDue}d`}
           sub="Average delinquency age"
           icon={Clock}
         />
@@ -256,7 +270,11 @@ export default async function BoardDelinquenciesPage() {
             </tr>
           </thead>
           <tbody>
-            {delinquentRows.length === 0 ? (
+            {delinquencyFailed ? (
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-500">
+                Delinquent accounts are unavailable right now.
+              </td></tr>
+            ) : delinquentRows.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-12 text-center">
                 <CheckCircle2 className="mx-auto h-10 w-10 text-gray-300" />
                 <p className="mt-3 text-sm font-semibold text-gray-900">No delinquent accounts found.</p>
