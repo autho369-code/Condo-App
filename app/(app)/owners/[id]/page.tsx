@@ -250,20 +250,22 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   ] = await Promise.all(financialQueries);
 
   // Returned (NSF) payments: the payment counts when it was received, and the
-  // return counts as money back out when it happened (the reversal charge's
-  // date) instead of as a new charge. Reversal charges are identified through
-  // payments.reversal_charge_id with no date window, so a payment received
-  // last year and returned this year is handled too.
-  const ytdChargeIds = (ytdChargesRaw ?? []).map((c: any) => c.id);
-  const reversalChargeIds = new Set<string>();
-  for (let i = 0; i < ytdChargeIds.length; i += 200) {
-    const { data: reversed, error: reversedError } = await db.from('payments')
-      .select('reversal_charge_id').in('reversal_charge_id', ytdChargeIds.slice(i, i + 200));
-    if (reversedError) throw new Error(`Could not load returned payments: ${reversedError.message}`);
-    for (const r of reversed ?? []) reversalChargeIds.add(r.reversal_charge_id);
-  }
+  // return counts as money back out on its effective date (the reversal
+  // charge's due_date, which staff choose) instead of as a new charge. All of
+  // the units' returns are loaded, with no date window, so a reversal charge is
+  // recognised even when the payment it undoes is from an earlier year.
+  const { data: returnedPayments, error: returnedError } = unitIds.length > 0
+    ? await db.from('payments')
+        .select('reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(id, amount, due_date)')
+        .in('unit_id', unitIds)
+        .not('reversal_charge_id', 'is', null)
+    : { data: [], error: null };
+  if (returnedError) throw new Error(`Could not load returned payments: ${returnedError.message}`);
+  const reversalChargeIds = new Set<string>((returnedPayments ?? []).map((r: any) => r.reversal_charge_id));
+  const ytdReturns = (returnedPayments ?? [])
+    .map((r: any) => r.reversal_charge)
+    .filter((c: any) => c?.due_date && c.due_date >= ytdStart && c.due_date <= todayStr);
   const ytdCharges = (ytdChargesRaw ?? []).filter((c: any) => !reversalChargeIds.has(c.id));
-  const ytdReturns = (ytdChargesRaw ?? []).filter((c: any) => reversalChargeIds.has(c.id));
   const ytdPayments = ytdPaymentsRaw ?? [];
 
   // ── Compute financial summary ──
@@ -325,8 +327,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
     monthMap.set(mk, entry);
   }
   for (const c of ytdReturns) {
-    if (!c.created_at) continue;
-    const mk = monthKey(c.created_at);
+    const mk = monthKey(`${c.due_date}T12:00:00`);
     const entry = monthMap.get(mk) || { month: mk, charges: 0, payments: 0, chargeCount: 0, paymentCount: 0 };
     entry.payments -= c.amount ?? 0;
     monthMap.set(mk, entry);
