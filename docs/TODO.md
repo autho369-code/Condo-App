@@ -1,11 +1,49 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-07-14.
+Last updated: 2026-10-04.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
 ---
+
+## 🗂 Future work (recorded 2026-10-04)
+Everything left after the AppFolio left-navigation parity pass (#138–#182).
+Every AppFolio page is built; these need access, accounts or decisions first.
+
+### Needs access for Claude (highest value next)
+- [ ] **Test login + Supabase network access for the cloud container.** Add a
+      staff test account and allow `termxngysvotnfbzbgrv.supabase.co` in the
+      environment's network settings (or supply a `.env.local`). Unblocks:
+  - [ ] Browser walkthroughs of every workflow on the Vercel preview (manager,
+        board, owner, vendor, company admin, platform operator).
+  - [ ] `npm run check:queries` against production (every list/detail query).
+  - [ ] End-to-end Excel report download (run a report as `.xlsx`, open it).
+  - [ ] End-to-end checks of the 2026-10-04 work: batch letters print, Forms
+        upload + owner-portal download, Inbox saved replies/search.
+
+### Known issue to fix
+- [ ] **Forms upload size on Vercel.** `/forms/new` and `/forms/[id]` send the
+      file through a server action and allow 10 MB, but Vercel caps request
+      bodies at about 4.5 MB, so larger files fail in production. Move to
+      browser→storage signed upload URLs, the same pattern as ARC documents and
+      insurance certificates (`createSignedUploadUrl`).
+
+### Needs provider accounts from Mirsad
+- [ ] **Two-way SMS:** Twilio account + US 10DLC registration (Inbox texting).
+- [ ] **Physical mail:** Lob account (certified mail, letters).
+- [ ] **Online payments:** Stripe Connect platform keys in Vercel
+      (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) + live test cases.
+- [ ] **Live bank feeds:** Plaid sandbox/production certification.
+
+### Needs owner decisions
+- [ ] **Tenant portal:** in or out of scope (tenants are data-only today).
+- [ ] **Platform remittance:** how management companies pay Portier369.
+- [ ] **Legal sign-off** on `/legal/*` by counsel.
+- [ ] **Pilot client** to run a full month on real data.
+
+### Out of scope by choice (revisit only if asked)
+- Native iOS/Android apps · integration marketplace.
 
 ## 🔴 Launch gates — must close before the first paying client
 Mostly on Mirsad / external; not code.
