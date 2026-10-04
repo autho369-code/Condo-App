@@ -392,3 +392,38 @@ Codex re-audited the live Vercel project and Claude independently reviewed the c
 3. Apply the six migrations only after the preview artifact is available and reviewed; then promote the same artifact to production.
 4. Final authenticated browser verification requires a manager session in Chrome. Current production and prior preview tabs both redirect to login.
 5. SMS, webhook, and physical-mail provider delivery remain fail-closed. Enable them only after Twilio/Lob account certification and provider smoke tests.
+
+---
+
+## 9. State as of 2026-10-04 (supersedes the rows above where they conflict)
+
+Checked against the code and the production database, not memory.
+
+**Every AppFolio left-navigation page is built** (see `docs/appfolio-left-nav-audit.md`),
+including the items this document still lists as missing or partial: payment plans,
+credit card accounts, every catalog report, inventory reports, PO approval thresholds
+(`board_approval_settings.sends_pos_to_board / pos_threshold`), the stateful
+state-law-aware delinquency ladder (`/delinquencies`), year-end close
+(`/accounting/year-end`), GL account permissions (`/gl-accounts/permissions`),
+property groups (`/associations/groups`) and management agreements.
+
+Shipped 2026-10-03/04: Violations and Architectural Reviews lists (#175, #177), batch
+homeowner letters (#177), Forms with uploads and owner-portal downloads (#178), Inbox
+saved replies and search (#179).
+
+**What actually remains** (none of it is a missing page):
+1. Provider-gated, needs accounts or keys from Mirsad: two-way SMS (Twilio 10DLC),
+   physical mail (Lob), live online payments (Stripe Connect), live bank feeds (Plaid
+   certification).
+2. Owner decisions: tenant portal (in or out of scope), platform remittance details,
+   legal sign-off, pilot client.
+3. Out of scope by choice: native iOS/Android apps, an integration marketplace.
+4. Hardening: the security advisor shows no ERROR-level findings. The 257
+   "authenticated can execute SECURITY DEFINER" warnings are by design (each RPC
+   authorizes internally); the 38 "RLS enabled, no policy" tables deny all client
+   access on purpose (service-only). `can_use_gl` lost anon/PUBLIC execute on
+   2026-10-04; `tenant_branding` stays anon-callable for the login page.
+
+The next useful engineering work is depth and verification on existing pages
+(browser walkthroughs of each workflow, `npm run check:queries` against production),
+not new pages.
