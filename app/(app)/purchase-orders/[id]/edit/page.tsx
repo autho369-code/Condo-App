@@ -7,6 +7,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { loadPurchaseOrderFormOptions } from '@/lib/purchase-orders/form-options';
 import { savePurchaseOrder } from '@/lib/rpcs/purchase-orders';
 import { createClient } from '@/lib/supabase/server';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export default async function EditPurchaseOrderPage({
 
   const [{ data: po }, { data: lines }] = await Promise.all([
     db.from('purchase_orders')
-      .select('id, association_id, vendor_id, work_order_id, number, description, needed_by, notes, status, approval_status')
+      .select('id, association_id, vendor_id, work_order_id, number, description, needed_by, status, approval_status')
       .eq('id', id)
       .maybeSingle(),
     db.from('purchase_order_line_items')
@@ -34,6 +35,8 @@ export default async function EditPurchaseOrderPage({
       .order('sort_order'),
   ]);
   if (!po) notFound();
+  // Internal PO notes are staff-only (purchase_order_private); the vendor reads approved POs.
+  await mergePrivateFieldsOne(db, 'purchase_order_private', 'purchase_order_id', ['notes'], po);
   if (po.status === 'cancelled' || !['draft', 'rejected'].includes(po.approval_status)) {
     redirect(`/purchase-orders/${id}?error=${encodeURIComponent('Only draft or rejected purchase orders can be edited.')}`);
   }

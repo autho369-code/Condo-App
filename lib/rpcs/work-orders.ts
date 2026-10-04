@@ -68,7 +68,6 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     scheduled_time:         str('scheduled_time'),
     // assigned_to is maintained by assignWorkOrderToStaff with assignee_id.
     requested_by:           str('requested_by'),
-    vendor_instructions:    str('vendor_instructions'),
     owner_availability: str('owner_availability'),
     next_followup_date:     str('next_followup_date'),
   };
@@ -86,6 +85,17 @@ export async function updateWorkOrder(workOrderId: string, formData: FormData) {
     .select('id')
     .maybeSingle();
   if (error || !updated) { failTo(error?.message ?? 'Work order not found or not accessible.'); return; }
+
+  // Vendor instructions live in work_order_vendor_private (staff + the
+  // assigned vendor; owners, residents and board read the work order row).
+  if (formData.has('vendor_instructions')) {
+    const { error: instructionsError } = await (supabase as any).from('work_order_vendor_private').upsert({
+      work_order_id: workOrderId,
+      vendor_instructions: str('vendor_instructions'),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'work_order_id' });
+    if (instructionsError) { failTo(`Details saved, but the vendor instructions could not be saved: ${instructionsError.message}`); return; }
+  }
 
   // Internal notes live in the staff-only work_order_private table.
   if (formData.has('internal_notes')) {

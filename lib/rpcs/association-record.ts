@@ -4,6 +4,14 @@ import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { ASSOCIATION_SECTIONS } from '@/lib/associations/settings-fields';
 import { createClient } from '@/lib/supabase/server';
+import { savePrivateFields } from '@/lib/private-fields';
+
+// Settings stored off the association row (which owners, tenants, board and
+// vendors read): written to their side tables directly so clearing works.
+const PRIVATE_SETTINGS: Record<string, string> = {
+  management_end_reason: 'association_private',
+  maintenance_notes: 'association_vendor_private',
+};
 
 // All writes are re-authorized in the database: settings through the
 // whitelisted update_association_settings() RPC, the rest through RLS
@@ -35,9 +43,16 @@ export async function saveAssociationSection(formData: FormData) {
   }
   if (values.state && typeof values.state === 'string') values.state = values.state.toUpperCase().slice(0, 2);
 
+  const privateValues = Object.entries(values).filter(([k]) => k in PRIVATE_SETTINGS);
+  for (const [k] of privateValues) delete values[k];
+
   const db = (await createClient()) as any;
   const { error } = await db.rpc('update_association_settings', { p_association_id: associationId, p_values: values });
   if (error) go(to, 'error', error.message);
+  for (const [k, v] of privateValues) {
+    const privateError = await savePrivateFields(db, PRIVATE_SETTINGS[k], 'association_id', associationId, { [k]: (v as string | null) ?? null });
+    if (privateError) go(to, 'error', `${section.title}: other settings saved, but ${k.replace(/_/g, ' ')} was not: ${privateError.message}`);
+  }
   go(to, 'saved', `${section.title} saved.`);
 }
 

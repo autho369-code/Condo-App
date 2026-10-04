@@ -18,6 +18,7 @@ import { RecordMetaPanels, RecordTagChips } from '@/components/records/record-me
 import { loadRecordMeta } from '@/lib/records/load';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { todayInZone } from '@/lib/time/zoned';
+import { mergePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     (supabase as any).from('v_unit_account_summary').select('*').eq('unit_id', unitId).maybeSingle(),
     (supabase as any).from('v_unit_charge_schedule').select('*').eq('unit_id', unitId).eq('active', true).order('category_name'),
     (supabase as any).from('v_charge_balances').select('*').eq('unit_id', unitId).order('due_date', { ascending: false }).limit(50),
-    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, notes, reversed_at').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
+    (supabase as any).from('payments').select('id, amount, payment_date, method, reference, reversed_at').eq('unit_id', unitId).order('payment_date', { ascending: false }).limit(30),
     // Active, unarchived categories (association-specific ones are filtered to this unit's association below).
     (supabase as any).from('charge_categories').select('id, name, default_amount, default_frequency, charge_type, association_id').eq('portfolio_id', me.portfolio?.id).eq('active', true).is('archived_at', null).order('sort_order'),
   ]);
@@ -45,6 +46,8 @@ export default async function UnitDetail({ params, searchParams }: { params: Pro
     ? await (supabase as any).from('gl_accounts').select('id, number, name, account_type, association_id')
         .eq('active', true).in('account_type', ['income', 'other_income', 'expense', 'other_expense']).order('number')
     : { data: [] };
+  // Payment notes are staff-only (payment_private).
+  await mergePrivateFields(supabase as any, 'payment_private', 'payment_id', ['notes'], (payments ?? []) as any[]);
   const openCharges = ((balances ?? []) as any[]).filter((c) => Number(c.balance_due) > 0);
 
   if (!unit) notFound();

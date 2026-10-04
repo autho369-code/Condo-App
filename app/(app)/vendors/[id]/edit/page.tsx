@@ -9,6 +9,7 @@ import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { CHECK_CONSOLIDATION, CHECK_STUB, VENDOR_PAYMENT_TYPES, VENDOR_TRADES, VENDOR_TYPES, tradeLabel } from '@/lib/vendors/options';
 import { updateVendorRecord } from '../../actions';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,8 @@ export default async function EditVendorPage({
       .order('number'),
   ]);
   if (!v) notFound();
+  // Internal notes live in staff-only vendor_private (the vendor reads its own row).
+  await mergePrivateFieldsOne(db, 'vendor_private', 'vendor_id', ['notes'], v);
 
   const phones: Array<{ type?: string; number?: string }> = Array.isArray(v.phone_numbers) ? v.phone_numbers : [];
   const phone = (t: string) => phones.find((p) => p.type === t)?.number ?? '';

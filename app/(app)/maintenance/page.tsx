@@ -13,6 +13,7 @@ import { Wrench } from 'lucide-react';
 import { nextRecurringDate } from '@/lib/time/recurrence';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { associationZone, MAINTENANCE_CATEGORY_EVENT_TYPE, syncMaintenanceCalendarEvent } from '@/lib/maintenance/calendar';
+import { mergePrivateFields, mergePrivateFieldsOne, savePrivateFields } from '@/lib/private-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,9 +74,13 @@ async function updateTask(formData: FormData) {'use server';
     reminder_days: formData.getAll('reminders').map(Number).filter(n=>n>0),
     priority: formData.get('priority')||'normal',
     start_date: formData.get('start_date'), end_date: (formData.get('end_date') as string)||null,
-    notes: (formData.get('notes') as string)||null,
   }).eq('id', id);
   if (updateError) maintenanceFail(`Task not updated: ${updateError.message}`);
+  // Notes are staff-only (maintenance_task_private), written there directly so
+  // clearing them works.
+  const notes = ((formData.get('notes') as string) ?? '').trim() || null;
+  const notesError = await savePrivateFields(db, 'maintenance_task_private', 'maintenance_task_id', id, { notes });
+  if (notesError) maintenanceFail(`Task updated, but its notes were not: ${notesError.message}`);
   // Update the linked upcoming event. It belongs on the task's NEXT due date
   // (the start date would move an advanced recurrence back to its first one).
   const eventType = MAINTENANCE_CATEGORY_EVENT_TYPE[formData.get('category') as string] || 'custom_event';
@@ -89,7 +94,9 @@ async function updateTask(formData: FormData) {'use server';
     // Same-day 9-5 occurrence; the task end date only bounds the recurrence.
     end_datetime: due ? wallDateTimeToIso(`${due}T17:00`, zone) : null,
     vendor_id: (formData.get('vendor_id') as string)||null,
-    description: (formData.get('notes') as string)?.slice(0,200)||null,
+    // Staff-only notes: internal_notes (calendar_event_private), not the
+    // description non-staff can read. '' clears the stored copy.
+    internal_notes: notes?.slice(0,200) ?? '',
   }).eq('maintenance_task_id', id).is('archived_at', null).eq('operations_status', 'scheduled');
   if (eventError) maintenanceFail(`Task updated, but its calendar event was not: ${eventError.message}`);
   revalidatePath('/maintenance');
@@ -115,6 +122,7 @@ async function completeTask(formData: FormData) {'use server';
   const id = formData.get('id') as string;
   const { data: task } = await db.from('maintenance_tasks').select('*').eq('id',id).single();
   if(!task) maintenanceFail('That task was not found.');
+  await mergePrivateFieldsOne(db, 'maintenance_task_private', 'maintenance_task_id', ['notes'], task);
 
   const now = new Date().toISOString();
   // Record completion in history
@@ -187,15 +195,15 @@ async function cloneGroup(formData: FormData) {'use server';
       priority: 'normal',
       start_date: today, next_due_date: today, notes: t.description,
     }));
-    const { data: created, error: cloneError } = await db.from('maintenance_tasks').insert(tasks).select('id,category,task_name,notes');
+    const { data: created, error: cloneError } = await db.from('maintenance_tasks').insert(tasks).select('id,category,task_name');
     if (cloneError) maintenanceFail(`Tasks not added: ${cloneError.message}`, 'templates');
     // Create calendar events for each cloned task
     if (created && me.portfolio?.id) {
-      for (const t of created) {
+      for (const [i, t] of (created as any[]).entries()) {
         await syncMaintenanceCalendarEvent(
           db, me.portfolio.id, t.id, assocId, null,
           t.task_name, t.category, today, null,
-          t.notes, me.auth_user_id
+          tasks[i]?.notes ?? null, me.auth_user_id
         );
       }
     }
@@ -218,6 +226,8 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   ]);
 
   let rows = (tasks??[]) as any[];
+  // Task notes are staff-only (maintenance_task_private).
+  await mergePrivateFields(db, 'maintenance_task_private', 'maintenance_task_id', ['notes'], rows);
   if(sp.assoc) rows = rows.filter((t:any)=>t.association_id===sp.assoc);
   const overdue = rows.filter((t:any)=>t.next_due_date&&new Date(t.next_due_date)<new Date()).length;
   const soon = rows.filter((t:any)=>t.next_due_date&&(new Date(t.next_due_date).getTime()-Date.now())/86400000<=14&&(new Date(t.next_due_date).getTime()-Date.now())/86400000>=0).length;

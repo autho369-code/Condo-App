@@ -11,6 +11,7 @@ import { billPurchaseOrder, cancelPurchaseOrder, submitPurchaseOrder } from '@/l
 import { saveRecurringPurchaseOrder } from '@/lib/rpcs/recurring-purchase-orders';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { ApprovalStatusChip, OrderStatusChip } from '../status-chips';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,8 @@ export default async function PurchaseOrderDetailPage({
     .eq('id', id)
     .maybeSingle();
   if (!po) notFound();
+  // Internal PO notes are staff-only (purchase_order_private); the vendor reads approved POs.
+  await mergePrivateFieldsOne(db, 'purchase_order_private', 'purchase_order_id', ['notes'], po);
 
   const [{ data: lines }, { data: request }, { data: decisions }, { data: bills }] = await Promise.all([
     db.from('purchase_order_line_items')

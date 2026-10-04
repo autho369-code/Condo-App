@@ -13,6 +13,7 @@ import { receiptMethodLabel } from '@/lib/payments/methods';
 import { reallocatePayment, reversePayment } from '@/lib/rpcs/payments';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { todayInZone } from '@/lib/time/zoned';
 import { isValidTimeZone } from '@/lib/time/display-zone';
 import { date, money } from '@/lib/utils';
@@ -35,10 +36,12 @@ export default async function PaymentPage({
   const db = (await createClient()) as any;
 
   const { data: p } = await db.from('payments')
-    .select('id, amount, payment_date, method, reference, notes, processor, unit_id, reversed_at, reversal_reason, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(due_date), units(unit_number, buildings(associations(name, timezone)))')
+    .select('id, amount, payment_date, method, reference, processor, unit_id, reversed_at, reversal_reason, reversal_charge_id, reversal_charge:charges!payments_reversal_charge_id_fkey(due_date), units(unit_number, buildings(associations(name, timezone)))')
     .eq('id', id)
     .maybeSingle();
   if (!p) notFound();
+  // Payment notes are staff-only (payment_private); owners and board read payment rows.
+  await mergePrivateFieldsOne(db, 'payment_private', 'payment_id', ['notes'], p);
 
   const [{ data: applications }, open] = await Promise.all([
     db.from('payment_applications').select('charge_id, amount_applied').eq('payment_id', id),
