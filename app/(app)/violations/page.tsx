@@ -14,6 +14,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { todayInZone } from '@/lib/time/zoned';
+import { descNullsLast, unionSearch } from '@/lib/supabase/search-union';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,70 +111,75 @@ export default async function ViolationsPage({
   const isDate = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
   const dateFrom = isDate(filters.from) ? filters.from! : '';
   const dateTo = isDate(filters.to) ? filters.to! : '';
-  const ruleId = filters.rule && /^[0-9a-f-]{36}$/i.test(filters.rule) ? filters.rule : '';
 
-  let violationsQuery = db.from('violations')
-    .select('id, title, association_id, status, violation_type, reported_date, cure_deadline, hearing_at, due_date, fine_amount, fines_total, next_followup_on, current_step, hearing_requested_at, closed_at, cured_at, associations(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), house_rules!violations_house_rule_id_fkey(rule_number, title)')
-    .is('archived_at', null);
-  // Filters run in the query, so the 500-row window holds matching cases
-  // (filtering 500 newest rows afterwards dropped older open cases).
-  if (filters.association) violationsQuery = violationsQuery.eq('association_id', filters.association);
-  if (filters.severity) violationsQuery = violationsQuery.eq('violation_type', filters.severity);
-  if (ruleId) violationsQuery = violationsQuery.eq('house_rule_id', ruleId);
-  // Reported date, falling back to the observed date for cases without one.
-  if (dateFrom) violationsQuery = violationsQuery.or(`reported_date.gte.${dateFrom},and(reported_date.is.null,date_observed.gte.${dateFrom})`);
-  if (dateTo) violationsQuery = violationsQuery.or(`reported_date.lte.${dateTo},and(reported_date.is.null,date_observed.lte.${dateTo})`);
-  if (filters.status === 'overdue') {
-    violationsQuery = violationsQuery
-      .or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
-      .not('status', 'in', '("cured","closed")');
-  } else if (filters.status === 'all_open') {
-    violationsQuery = violationsQuery.not('status', 'in', '("cured","closed")');
-  } else if (filters.status === 'followup_due') {
-    violationsQuery = violationsQuery.not('status', 'in', '("cured","closed")').lte('next_followup_on', todayDate);
-  } else if (filters.status) {
-    violationsQuery = violationsQuery.eq('status', filters.status);
+  // A rule from another association (left over after switching the
+  // association filter) would empty the list: drop it.
+  let ruleId = filters.rule && /^[0-9a-f-]{36}$/i.test(filters.rule) ? filters.rule : '';
+  if (ruleId && filters.association) {
+    const { data: rule } = await db.from('house_rules').select('association_id').eq('id', ruleId).maybeSingle();
+    if (rule?.association_id !== filters.association) ruleId = '';
   }
-  if (filters.q) {
-    // Title, association, homeowner or unit number.
-    const term = filters.q.replace(/[%_,()*"\\]/g, ' ').trim();
-    if (term) {
-      const [{ data: assocMatches }, { data: ownerMatches }, { data: unitMatches }] = await Promise.all([
-        db.from('associations').select('id').ilike('name', `%${term}%`).limit(200),
-        db.from('owners').select('id').ilike('full_name', `%${term}%`).limit(200),
-        db.from('units').select('id').ilike('unit_number', term).limit(200),
-      ]);
-      const ids = ((assocMatches ?? []) as { id: string }[]).map((a) => a.id);
-      const ownerIds = ((ownerMatches ?? []) as { id: string }[]).map((o) => o.id);
-      const unitIds = ((unitMatches ?? []) as { id: string }[]).map((u) => u.id);
-      // A case number is the first 8 hex digits of the id: match it as an id
-      // range (uuid columns cannot be pattern-matched through the API).
-      const hex = term.replace(/^#/, '').toLowerCase();
-      const caseRange = /^[0-9a-f]{4,8}$/.test(hex)
-        ? `and(id.gte.${uuidFromHex(hex.padEnd(32, '0'))},id.lte.${uuidFromHex(hex.padEnd(32, 'f'))})`
-        : null;
-      violationsQuery = violationsQuery.or(
-        [
-          `title.ilike.*${term}*`,
-          ids.length ? `association_id.in.(${ids.join(',')})` : null,
-          ownerIds.length ? `owner_id.in.(${ownerIds.join(',')})` : null,
-          unitIds.length ? `unit_id.in.(${unitIds.join(',')})` : null,
-          caseRange,
-        ].filter(Boolean).join(','),
-      );
+
+  const LIST_COLUMNS = 'id, title, association_id, status, violation_type, reported_date, created_at, cure_deadline, hearing_at, due_date, fine_amount, fines_total, next_followup_on, current_step, hearing_requested_at, closed_at, cured_at, associations(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), house_rules!violations_house_rule_id_fkey(rule_number, title)';
+  // Every filter runs in the query, so the 500-row window holds matching
+  // cases (filtering the 500 newest rows afterwards dropped older ones).
+  const listQuery = (extraColumns = '') => {
+    let q = db.from('violations').select(LIST_COLUMNS + extraColumns).is('archived_at', null);
+    if (filters.association) q = q.eq('association_id', filters.association);
+    if (filters.severity) q = q.eq('violation_type', filters.severity);
+    if (ruleId) q = q.eq('house_rule_id', ruleId);
+    // Reported date, falling back to the observed date for cases without one.
+    if (dateFrom) q = q.or(`reported_date.gte.${dateFrom},and(reported_date.is.null,date_observed.gte.${dateFrom})`);
+    if (dateTo) q = q.or(`reported_date.lte.${dateTo},and(reported_date.is.null,date_observed.lte.${dateTo})`);
+    if (filters.status === 'overdue') {
+      q = q.or(`cure_deadline.lt.${todayDate},and(cure_deadline.is.null,due_date.lt.${todayDate})`)
+        .not('status', 'in', '("cured","closed")');
+    } else if (filters.status === 'all_open') {
+      q = q.not('status', 'in', '("cured","closed")');
+    } else if (filters.status === 'followup_due') {
+      q = q.not('status', 'in', '("cured","closed")').lte('next_followup_on', todayDate);
+    } else if (filters.status) {
+      q = q.eq('status', filters.status);
     }
-  }
-  violationsQuery = violationsQuery
+    return q;
+  };
+  const ordered = (q: any) => q
     .order('reported_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(500);
+
+  // Search: title, association, homeowner, unit number or case number, each
+  // as its own query (see unionSearch).
+  const term = (filters.q ?? '').replace(/[%_,()*"\\]/g, ' ').trim();
+  let violationsQuery: PromiseLike<{ data: any[] | null; error: any }>;
+  if (term) {
+    const hex = term.replace(/^#/, '').toLowerCase();
+    const branches = [
+      ordered(listQuery().ilike('title', `%${term}%`)),
+      ordered(listQuery(', s_a:associations!inner(name)').ilike('s_a.name', `%${term}%`)),
+      ordered(listQuery(', s_o:owners!violations_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`)),
+      ordered(listQuery(', s_u:units!violations_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term)),
+    ];
+    // A case number is the first 8 hex digits of the id: match it as an id
+    // range (uuid columns cannot be pattern-matched through the API).
+    if (/^[0-9a-f]{4,8}$/.test(hex)) {
+      branches.push(ordered(listQuery().gte('id', uuidFromHex(hex.padEnd(32, '0'))).lte('id', uuidFromHex(hex.padEnd(32, 'f')))));
+    }
+    violationsQuery = unionSearch<any>(
+      branches,
+      (a, b) => descNullsLast(a.reported_date, b.reported_date) || descNullsLast(a.created_at, b.created_at),
+      500,
+    ).then(({ rows, error }) => ({ data: rows, error }));
+  } else {
+    violationsQuery = ordered(listQuery());
+  }
 
   // ── Fetch violations + reference lists ──
   // The tiles are counted in the database so they are the same whichever
   // view is open (the overdue view narrows the list query) and are not capped
   // by the 500-row list.
   const openFilter = '("cured","closed")';
-  const [{ data: associations }, { data: rules }, { data: rows }, { count: openCount }, { count: overdueCount }, { count: followUpCount }, { count: resolvedCount }] = await Promise.all([
+  const [{ data: associations }, { data: rules }, { data: rows, error: listError }, { count: openCount }, { count: overdueCount }, { count: followUpCount }, { count: resolvedCount }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     (() => {
       let q = db.from('house_rules').select('id, association_id, rule_number, title').is('archived_at', null).order('rule_number').order('title');
@@ -192,9 +198,10 @@ export default async function ViolationsPage({
 
   // Bulk actions return to the same filtered view.
   const backParams = new URLSearchParams();
-  for (const k of ['association', 'status', 'severity', 'rule', 'from', 'to', 'q'] as const) {
+  for (const k of ['association', 'status', 'severity', 'from', 'to', 'q'] as const) {
     if (filters[k]) backParams.set(k, filters[k]!);
   }
+  if (ruleId) backParams.set('rule', ruleId);
   const backHref = `/violations${backParams.size ? `?${backParams}` : ''}`;
 
   // Every filter runs in the query above.
@@ -300,6 +307,7 @@ export default async function ViolationsPage({
     >
       <div className="space-y-6">
         {filters.error && <Alert tone="danger" title="Bulk action:">{filters.error}</Alert>}
+        {listError && <Alert tone="danger" title="Could not load violations:">{listError.message ?? String(listError)}</Alert>}
         {filters.saved && <Alert tone="success">{filters.saved}</Alert>}
         {/* ── METRIC STRIP ── */}
         <MetricStrip metrics={metrics} />

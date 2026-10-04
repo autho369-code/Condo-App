@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
 import { MetricStrip, type Metric } from '@/components/operations/metric-strip';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { ExportActions, type ExportTable } from '@/components/export/export-actions';
 import { requireStaff } from '@/lib/auth/me';
@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
+import { descNullsLast, unionSearch } from '@/lib/supabase/search-union';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,38 +59,33 @@ export default async function ArchitecturalReviewQueue({
 
   // Every filter runs in the query, so the 500-row window holds matching
   // requests (filtering the 500 newest afterwards dropped older ones).
-  let reviewsQuery = db.from('architectural_requests')
-    .select('id, title, category, status, created_at, decided_at, association_id, associations(name), units!architectural_requests_unit_id_fkey(unit_number), owners!architectural_requests_owner_id_fkey(full_name)');
-  if (filters.association) reviewsQuery = reviewsQuery.eq('association_id', filters.association);
-  if (status === 'open') reviewsQuery = reviewsQuery.in('status', OPEN_STATUSES);
-  else if (status) reviewsQuery = reviewsQuery.eq('status', status);
-  if (category) reviewsQuery = reviewsQuery.eq('category', category);
-  if (dateFrom) reviewsQuery = reviewsQuery.gte('created_at', localMidnight(dateFrom));
-  // Inclusive of the whole "to" day.
-  if (dateTo) reviewsQuery = reviewsQuery.lt('created_at', localMidnight(nextDay(dateTo)));
-  if (filters.q) {
-    const term = filters.q.replace(/[%_,()*"\\]/g, ' ').trim();
-    if (term) {
-      const [{ data: assocMatches }, { data: ownerMatches }, { data: unitMatches }] = await Promise.all([
-        db.from('associations').select('id').ilike('name', `%${term}%`).limit(200),
-        db.from('owners').select('id').ilike('full_name', `%${term}%`).limit(200),
-        db.from('units').select('id').ilike('unit_number', term).limit(200),
-      ]);
-      const ids = (rows: { id: string }[] | null) => (rows ?? []).map((r) => r.id);
-      const a = ids(assocMatches), o = ids(ownerMatches), u = ids(unitMatches);
-      reviewsQuery = reviewsQuery.or([
-        `title.ilike.*${term}*`,
-        a.length ? `association_id.in.(${a.join(',')})` : null,
-        o.length ? `owner_id.in.(${o.join(',')})` : null,
-        u.length ? `unit_id.in.(${u.join(',')})` : null,
-      ].filter(Boolean).join(','));
-    }
-  }
-  reviewsQuery = reviewsQuery.order('created_at', { ascending: false }).limit(500);
+  const LIST_COLUMNS = 'id, title, category, status, created_at, decided_at, association_id, associations(name), units!architectural_requests_unit_id_fkey(unit_number), owners!architectural_requests_owner_id_fkey(full_name)';
+  const listQuery = (extraColumns = '') => {
+    let q = db.from('architectural_requests').select(LIST_COLUMNS + extraColumns);
+    if (filters.association) q = q.eq('association_id', filters.association);
+    if (status === 'open') q = q.in('status', OPEN_STATUSES);
+    else if (status) q = q.eq('status', status);
+    if (category) q = q.eq('category', category);
+    if (dateFrom) q = q.gte('created_at', localMidnight(dateFrom));
+    // Inclusive of the whole "to" day.
+    if (dateTo) q = q.lt('created_at', localMidnight(nextDay(dateTo)));
+    return q.order('created_at', { ascending: false }).limit(500);
+  };
+  // Search: title, association, homeowner or unit number, each as its own
+  // query (see unionSearch) so no match is dropped by a capped id lookup.
+  const term = (filters.q ?? '').replace(/[%_,()*"\\]/g, ' ').trim();
+  const reviewsQuery: PromiseLike<{ data: any[] | null; error: any }> = term
+    ? unionSearch<any>([
+        listQuery().ilike('title', `%${term}%`),
+        listQuery(', s_a:associations!inner(name)').ilike('s_a.name', `%${term}%`),
+        listQuery(', s_o:owners!architectural_requests_owner_id_fkey!inner(full_name)').ilike('s_o.full_name', `%${term}%`),
+        listQuery(', s_u:units!architectural_requests_unit_id_fkey!inner(unit_number)').ilike('s_u.unit_number', term),
+      ], (a, b) => descNullsLast(a.created_at, b.created_at), 500).then(({ rows, error }) => ({ data: rows, error }))
+    : listQuery();
 
   // Tiles are counted in the database so the queue view (which narrows the
   // list to open requests) does not zero out the monthly decision counts.
-  const [{ data: associations }, { data: rows }, { count: awaitingCount }, { count: approvedCount }, { count: deniedCount }] = await Promise.all([
+  const [{ data: associations }, { data: rows, error: listError }, { count: awaitingCount }, { count: approvedCount }, { count: deniedCount }] = await Promise.all([
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     reviewsQuery,
     db.from('architectural_requests').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES),
@@ -146,6 +142,7 @@ export default async function ArchitecturalReviewQueue({
     >
       <div className="space-y-6">
         <MetricStrip metrics={metrics} />
+        {listError && <Alert tone="danger" title="Could not load requests:">{listError.message ?? String(listError)}</Alert>}
 
         <FilterBar action="/architectural-reviews" searchDefault={filters.q ?? ''} searchPlaceholder="Search title, association, homeowner, unit...">
           <FilterSelect label="Association" name="association" defaultValue={filters.association ?? ''}>
