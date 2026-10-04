@@ -19,7 +19,7 @@ describe('vendor portal helpers', () => {
 
   it('mirrors the DB guard for transitions', () => {
     expect(canVendorChangeStatus('assigned', 'scheduled')).toBe(true);
-    expect(canVendorChangeStatus('done', 'in_progress')).toBe(true);
+    expect(canVendorChangeStatus('done', 'in_progress')).toBe(false); // done is final for the vendor; staff reopen
     expect(canVendorChangeStatus('completed', 'in_progress')).toBe(false);
     expect(canVendorChangeStatus('billed', 'done')).toBe(false);
     expect(canVendorChangeStatus('cancelled', 'scheduled')).toBe(false);

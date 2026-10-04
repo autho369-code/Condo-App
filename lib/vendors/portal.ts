@@ -5,8 +5,12 @@
 export const VENDOR_SETTABLE_STATUSES = ['scheduled', 'in_progress', 'done'] as const;
 export type VendorSettableStatus = (typeof VENDOR_SETTABLE_STATUSES)[number];
 
-/** Current statuses the DB guard lets a vendor move away from. */
-const VENDOR_CHANGEABLE_FROM = new Set(['new', 'assigned', 'scheduled', 'in_progress', 'done']);
+/**
+ * Current statuses the DB guard lets a vendor move away from. A job the vendor
+ * marked done is final for them: only staff can reopen it (reopening would
+ * also restore the vendor's access to the property's site notes).
+ */
+const VENDOR_CHANGEABLE_FROM = new Set(['new', 'assigned', 'scheduled', 'in_progress']);
 
 /** Work-order statuses the submit_vendor_invoice RPC accepts. */
 export const VENDOR_INVOICEABLE_STATUSES = ['done', 'completed', 'billed', 'closed'] as const;

@@ -10,6 +10,7 @@ import { MfaResetButton } from '@/components/auth/mfa-reset-button'
 import { PendingSubmit } from '@/components/ui/pending-submit'
 import { todayInZone } from '@/lib/time/zoned'
 import { effectiveManagerScope } from '@/lib/company-admin/manager-scope'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,11 +43,13 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   if (!manager || manager.hoa_role !== 'manager') notFound()
 
-  const { data: assocManagers } = await db
+  // A failed load is an error: no rows means full portfolio access.
+  const { data: assocManagers, error: assocManagersError } = await db
     .from('association_managers')
     .select(`association_id, assigned_at, associations:association_id(id, name, unit_count, city, state)`)
     .eq('user_id', id)
     .is('ended_at', null)
+  if (assocManagersError) throw new Error(`Could not load this manager's assignments: ${assocManagersError.message}`)
 
   const assignedAssocs = (assocManagers ?? []).map((am: any) => ({
     id: am.associations?.id,
@@ -60,12 +63,14 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
   const assignedSet = new Set(assignedAssocs.map((a: any) => a.id))
 
   // All associations in the portfolio, for the scope editor.
-  const { data: portfolioAssocs } = await db
+  const { rows: portfolioAssocs, error: portfolioAssocsError } = await fetchAllRows<any>(() => db
     .from('associations')
     .select('id, name, unit_count, city, state')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name', { ascending: true })
+    .order('id'))
+  if (portfolioAssocsError) throw new Error(`Could not load associations: ${portfolioAssocsError}`)
 
   // No rows = full portfolio access, so workload covers every association.
   const scope = effectiveManagerScope((assocManagers ?? []).map((am: any) => am.association_id), (portfolioAssocs ?? []).map((a: any) => a.id))

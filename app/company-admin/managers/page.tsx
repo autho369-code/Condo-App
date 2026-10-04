@@ -35,11 +35,17 @@ export default async function CompanyAdminManagersPage({
 
   const managerIds = (managers ?? []).map((m: any) => m.id)
 
-  const { data: assocManagers } = await db
-    .from('association_managers')
-    .select('user_id, association_id')
-    .in('user_id', managerIds)
-    .is('ended_at', null)
+  // Every assignment row (paged), and a failed load is an error: no rows means
+  // full portfolio access, so a missing row must never be read as "no scope".
+  const { rows: assocManagers, error: assocManagersError } = managerIds.length > 0
+    ? await fetchAllRows<any>(() => db
+        .from('association_managers')
+        .select('id, user_id, association_id')
+        .in('user_id', managerIds)
+        .is('ended_at', null)
+        .order('id'))
+    : { rows: [], error: null }
+  if (assocManagersError) throw new Error(`Could not load manager assignments: ${assocManagersError}`)
 
   const assocByManager = new Map<string, string[]>()
   for (const am of assocManagers ?? []) {
@@ -48,12 +54,14 @@ export default async function CompanyAdminManagersPage({
   }
 
   // All associations in the portfolio — for the invite picker (scope a manager).
-  const { data: portfolioAssocs } = await db
+  const { rows: portfolioAssocs, error: portfolioAssocsError } = await fetchAllRows<any>(() => db
     .from('associations')
     .select('id, name, unit_count')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name', { ascending: true })
+    .order('id'))
+  if (portfolioAssocsError) throw new Error(`Could not load associations: ${portfolioAssocsError}`)
 
   const portfolioAssocIds = (portfolioAssocs ?? []).map((a: any) => a.id as string)
   const scopeByManager = new Map<string, ReturnType<typeof effectiveManagerScope>>()
