@@ -15,6 +15,7 @@ import {
   Building2,
   CheckCircle2,
 } from 'lucide-react'
+import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,8 +36,9 @@ export default async function AICommandCenterPage() {
   const db = supabase as any
   const portfolioId = me.portfolio?.id
   const now = Date.now()
-  const today = new Date().toISOString().slice(0, 10)
-  const in60 = new Date(now + 60 * 86400000).toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
+  const in60 = addDaysToDate(today, 60)
   const d30 = new Date(now - 30 * 86400000).toISOString()
   const d60 = new Date(now - 60 * 86400000).toISOString()
 

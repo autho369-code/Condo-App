@@ -4,10 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft, Activity } from 'lucide-react'
 import { resetManagerMfa, setManagerLoginStatus, updateManagerAssociations } from '../actions'
 import { MfaResetButton } from '@/components/auth/mfa-reset-button'
+import { PendingSubmit } from '@/components/ui/pending-submit'
+import { todayInZone } from '@/lib/time/zoned'
+import { effectiveManagerScope } from '@/lib/company-admin/manager-scope'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +32,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
   const portfolioId = me.portfolio?.id
   const { id } = await params
   const sp = await searchParams
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInZone()
 
   const { data: manager } = await db
     .from('profiles')
@@ -40,11 +43,16 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   if (!manager || manager.hoa_role !== 'manager') notFound()
 
-  const { data: assocManagers } = await db
+  // A failed load is an error: no rows means full portfolio access.
+  // Every assignment (paged): the scope form below is saved from these rows,
+  // so a truncated list would revoke the assignments it left out.
+  const { rows: assocManagers, error: assocManagersError } = await fetchAllRows<any>(() => db
     .from('association_managers')
-    .select(`association_id, assigned_at, associations:association_id(id, name, unit_count, city, state)`)
+    .select(`id, association_id, assigned_at, associations:association_id(id, name, unit_count, city, state)`)
     .eq('user_id', id)
     .is('ended_at', null)
+    .order('id'))
+  if (assocManagersError) throw new Error(`Could not load this manager's assignments: ${assocManagersError}`)
 
   const assignedAssocs = (assocManagers ?? []).map((am: any) => ({
     id: am.associations?.id,
@@ -55,16 +63,22 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
     assignedAt: am.assigned_at,
   }))
 
-  const assocIds = assignedAssocs.map((a: any) => a.id)
-  const assignedSet = new Set(assocIds)
+  const assignedSet = new Set(assignedAssocs.map((a: any) => a.id))
 
   // All associations in the portfolio, for the scope editor.
-  const { data: portfolioAssocs } = await db
+  const { rows: portfolioAssocs, error: portfolioAssocsError } = await fetchAllRows<any>(() => db
     .from('associations')
     .select('id, name, unit_count, city, state')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name', { ascending: true })
+    .order('id'))
+  if (portfolioAssocsError) throw new Error(`Could not load associations: ${portfolioAssocsError}`)
+
+  // No rows = full portfolio access, so workload covers every association.
+  const scope = effectiveManagerScope((assocManagers ?? []).map((am: any) => am.association_id), (portfolioAssocs ?? []).map((a: any) => a.id))
+  const assocIds = scope.associationIds
+  const unitCountById = new Map<string, number>((portfolioAssocs ?? []).map((a: any) => [a.id, a.unit_count ?? 0]))
 
   const { data: allWorkOrders } = await db
     .from('work_orders')
@@ -78,12 +92,17 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
 
   let openViolations = 0
   if (assocIds.length > 0) {
-    const { count } = await db
+    // Always scoped to this company through the association (platform operators
+    // pass requirePortfolioAdmin and their RLS is global). Full access filters by
+    // company instead of the id list, which would not fit in the request URL.
+    let violationQuery = db
       .from('violations')
-      .select('id', { count: 'exact', head: true })
+      .select('id, associations!violations_association_id_fkey!inner(portfolio_id)', { count: 'exact', head: true })
+      .eq('associations.portfolio_id', portfolioId)
       .is('archived_at', null)
       .not('status', 'in', '("closed","cured")')
-      .in('association_id', assocIds)
+    if (!scope.fullAccess) violationQuery = violationQuery.in('association_id', assocIds)
+    const { count } = await violationQuery
     openViolations = count ?? 0
   }
 
@@ -102,7 +121,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
     created_at: r.created_at,
   }))
 
-  const totalDoorsManaged = assignedAssocs.reduce((sum: number, a: any) => sum + a.unitCount, 0)
+  const totalDoorsManaged = assocIds.reduce((sum: number, aid: string) => sum + (unitCountById.get(aid) ?? 0), 0)
   const workloadRatio = openWorkOrders.length > 0 ? Math.round((1 - overdueWorkOrders.length / openWorkOrders.length) * 100) : 100
 
   return (
@@ -135,9 +154,9 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
               <form action={setManagerLoginStatus}>
                 <input type="hidden" name="manager_id" value={manager.id} />
                 <input type="hidden" name="action" value={manager.disabled_at ? 'enable' : 'disable'} />
-                <Button type="submit" variant={manager.disabled_at ? 'secondary' : 'danger'}>
+                <PendingSubmit variant={manager.disabled_at ? 'secondary' : 'danger'} pendingLabel="Saving…">
                   {manager.disabled_at ? 'Enable login' : 'Disable login'}
-                </Button>
+                </PendingSubmit>
               </form>
             </div>
           </div>
@@ -155,7 +174,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
           <div className="p-6">
             <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Workload</div>
             <div className="mt-3 space-y-1">
-              <InfoRow label="Associations" value={assignedAssocs.length} />
+              <InfoRow label="Associations" value={scope.fullAccess ? `All (${assocIds.length})` : assocIds.length} />
               <InfoRow label="Doors Managed" value={totalDoorsManaged.toLocaleString()} />
               <InfoRow label="Open Work Orders" value={<span className={openWorkOrders.length > 0 ? 'font-medium text-amber-700' : 'text-gray-900'}>{openWorkOrders.length}</span>} />
               <InfoRow label="Overdue WO" value={<span className={overdueWorkOrders.length > 0 ? 'font-medium text-red-700' : 'text-gray-900'}>{overdueWorkOrders.length}</span>} />
@@ -194,7 +213,7 @@ export default async function ManagerDetailPage({ params, searchParams }: { para
             <h2 className="text-sm font-semibold text-gray-950">Property Access</h2>
             <p className="mt-0.5 text-xs text-gray-500">Check the associations this manager can access. None checked = full portfolio access.</p>
           </div>
-          <Button type="submit">Save access</Button>
+          <PendingSubmit pendingLabel="Saving…">Save access</PendingSubmit>
         </div>
         <div className="divide-y divide-gray-50">
           {(portfolioAssocs ?? []).length === 0 ? (

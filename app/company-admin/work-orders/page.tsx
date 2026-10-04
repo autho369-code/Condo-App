@@ -6,6 +6,7 @@ import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Wrench, Clock, AlertOctagon, ArrowUp, Eye } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,8 @@ export default async function WorkOrdersOversightPage({
   const db = supabase as any
   const portfolioId = me.portfolio?.id
   const sp = await searchParams
-  const today = new Date().toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
 
   // Base query for work orders with associations
   let query = db

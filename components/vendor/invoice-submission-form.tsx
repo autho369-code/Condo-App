@@ -52,7 +52,7 @@ export function InvoiceSubmissionForm({ workOrders }: { workOrders: WorkOrderOpt
   }
 
   if (workOrders.length === 0) {
-    return <p className="text-sm text-gray-500">An invoice can be submitted after the management team assigns a work order to your company.</p>;
+    return <p className="text-sm text-gray-500">An invoice can be submitted once you mark an assigned job as work complete.</p>;
   }
 
   return (
@@ -60,7 +60,7 @@ export function InvoiceSubmissionForm({ workOrders }: { workOrders: WorkOrderOpt
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       <label className="block"><span className="text-sm font-medium text-gray-700">Work order</span>
         <select name="work_order_id" required className={inputClass} defaultValue="">
-          <option value="" disabled>Select an assigned work order</option>
+          <option value="" disabled>Select a completed work order</option>
           {workOrders.map((workOrder) => <option key={workOrder.id} value={workOrder.id}>{workOrder.label}</option>)}
         </select>
       </label>

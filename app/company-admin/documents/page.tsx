@@ -4,6 +4,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { FileText, FolderOpen, FileWarning } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,8 @@ export default async function GlobalDocumentsPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date().toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
 
   const [{ data: docs }, { data: assocs }] = await Promise.all([
     db.from('documents').select('id, entity_type, entity_id, doc_type, file_name, file_url, expires_at, uploaded_at').order('uploaded_at', { ascending: false }).limit(500),

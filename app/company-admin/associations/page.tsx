@@ -2,8 +2,11 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Button } from '@/components/ui/button'
+import { Alert } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { Building2, Eye } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +26,7 @@ export default async function CompanyAdminAssociationsPage({
   const portfolioId = me.portfolio?.id
   const sp = await searchParams
 
-  const { data: associations } = await db
+  const { data: associations, error: associationsError } = await db
     .from('associations')
     // association_managers has no FK to profiles (user_id references auth.users),
     // so a nested profiles embed is unresolvable (PGRST200) and would fail the
@@ -33,14 +36,17 @@ export default async function CompanyAdminAssociationsPage({
     .is('archived_at', null)
     .order('name')
 
-  const { data: woCounts } = await db
+  // Paged: a plain select stops at 1,000 rows and undercounted large portfolios.
+  const { rows: woCounts } = await fetchAllRows(() => db
     .from('work_orders')
     .select('association_id, id, status, scheduled_date')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .not('status', 'in', '("done","completed","billed","closed","cancelled")')
+    .order('id'))
 
-  const today = new Date().toISOString().slice(0, 10)
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const today = todayInZone()
   const woByAssoc = new Map<string, { open: number; overdue: number }>()
   for (const wo of woCounts ?? []) {
     if (!woByAssoc.has(wo.association_id)) woByAssoc.set(wo.association_id, { open: 0, overdue: 0 })
@@ -49,11 +55,12 @@ export default async function CompanyAdminAssociationsPage({
     if (wo.scheduled_date && wo.scheduled_date < today) entry.overdue++
   }
 
-  const { data: violCounts } = await db
+  const { rows: violCounts } = await fetchAllRows(() => db
     .from('violations')
     .select('association_id, id')
     .is('archived_at', null)
     .not('status', 'in', '("closed","cured")')
+    .order('id'))
 
   const violByAssoc = new Map<string, number>()
   for (const v of violCounts ?? []) {
@@ -116,6 +123,8 @@ export default async function CompanyAdminAssociationsPage({
           <Button className="gap-2"><Building2 className="h-4 w-4" /> Add Association</Button>
         </Link>
       </div>
+
+      {associationsError && <Alert title="Could not load associations">{associationsError.message}</Alert>}
 
       <form action="/company-admin/associations" method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <label className="text-xs font-medium text-gray-500">

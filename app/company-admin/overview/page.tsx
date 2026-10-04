@@ -25,6 +25,7 @@ import {
   Banknote,
   UserCheck,
 } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,9 +80,9 @@ export default async function OverviewPage() {
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date()
-  const todayDate = today.toISOString().slice(0, 10)
-  const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  // Calendar dates are the company's zone (server code runs in UTC).
+  const todayDate = todayInZone()
+  const monthStart = `${todayDate.slice(0, 7)}-01`
 
   // ── Portfolio-wide queries (single round-trip each) ─────────────
   const [

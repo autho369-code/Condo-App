@@ -1,11 +1,14 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { UserPlus, Eye, KeyRound } from 'lucide-react'
+import { PendingSubmit } from '@/components/ui/pending-submit'
+import { todayInZone } from '@/lib/time/zoned'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { effectiveManagerScope } from '@/lib/company-admin/manager-scope'
 import { inviteManager } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -20,9 +23,10 @@ export default async function CompanyAdminManagersPage({
   const supabase = await createClient()
   const db = supabase as any
   const portfolioId = me.portfolio?.id
-  const today = new Date().toISOString().slice(0, 10)
+  // Overdue = scheduled before today in the company's zone (not UTC).
+  const today = todayInZone()
 
-  const { data: managers } = await db
+  const { data: managers, error: managersError } = await db
     .from('profiles')
     .select('id, full_name, email, hoa_role, last_login_at, disabled_at')
     .eq('portfolio_id', portfolioId)
@@ -31,11 +35,17 @@ export default async function CompanyAdminManagersPage({
 
   const managerIds = (managers ?? []).map((m: any) => m.id)
 
-  const { data: assocManagers } = await db
-    .from('association_managers')
-    .select('user_id, association_id')
-    .in('user_id', managerIds)
-    .is('ended_at', null)
+  // Every assignment row (paged), and a failed load is an error: no rows means
+  // full portfolio access, so a missing row must never be read as "no scope".
+  const { rows: assocManagers, error: assocManagersError } = managerIds.length > 0
+    ? await fetchAllRows<any>(() => db
+        .from('association_managers')
+        .select('id, user_id, association_id')
+        .in('user_id', managerIds)
+        .is('ended_at', null)
+        .order('id'))
+    : { rows: [], error: null }
+  if (assocManagersError) throw new Error(`Could not load manager assignments: ${assocManagersError}`)
 
   const assocByManager = new Map<string, string[]>()
   for (const am of assocManagers ?? []) {
@@ -44,14 +54,21 @@ export default async function CompanyAdminManagersPage({
   }
 
   // All associations in the portfolio — for the invite picker (scope a manager).
-  const { data: portfolioAssocs } = await db
+  const { rows: portfolioAssocs, error: portfolioAssocsError } = await fetchAllRows<any>(() => db
     .from('associations')
     .select('id, name, unit_count')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
     .order('name', { ascending: true })
+    .order('id'))
+  if (portfolioAssocsError) throw new Error(`Could not load associations: ${portfolioAssocsError}`)
 
-  const allAssocIds = [...new Set((assocManagers ?? []).map((am: any) => am.association_id))]
+  const portfolioAssocIds = (portfolioAssocs ?? []).map((a: any) => a.id as string)
+  const scopeByManager = new Map<string, ReturnType<typeof effectiveManagerScope>>()
+  for (const mgr of managers ?? []) {
+    scopeByManager.set(mgr.id, effectiveManagerScope(assocByManager.get(mgr.id) ?? [], portfolioAssocIds))
+  }
+  const allAssocIds = [...new Set([...scopeByManager.values()].flatMap((scope) => scope.associationIds))]
   const unitCountByAssoc = new Map<string, number>()
   for (const a of portfolioAssocs ?? []) { unitCountByAssoc.set(a.id, a.unit_count ?? 0) }
 
@@ -72,18 +89,26 @@ export default async function CompanyAdminManagersPage({
     if (wo.scheduled_date && wo.scheduled_date < today) entry.overdue++
   }
 
-  const { data: violations } = await db
-    .from('violations')
-    .select('association_id, id')
-    .is('archived_at', null)
-    .not('status', 'in', '("closed","cured")')
-    .in('association_id', allAssocIds.length > 0 ? allAssocIds : ['none'])
+  // Paged and filtered here: a long association id list (every association for
+  // full-access managers) does not fit in a URL, and plain selects stop at 1,000.
+  const allAssocIdSet = new Set(allAssocIds)
+  const { rows: violationRows } = allAssocIds.length > 0
+    ? await fetchAllRows(() => db
+      .from('violations')
+      .select('association_id, id, associations!violations_association_id_fkey!inner(portfolio_id)')
+      .eq('associations.portfolio_id', portfolioId)
+      .is('archived_at', null)
+      .not('status', 'in', '("closed","cured")')
+      .order('id'))
+    : { rows: [] as any[] }
+  const violations = violationRows.filter((v: any) => allAssocIdSet.has(v.association_id))
 
   const violByAssoc = new Map<string, number>()
   for (const v of violations ?? []) { violByAssoc.set(v.association_id, (violByAssoc.get(v.association_id) ?? 0) + 1) }
 
   const rows = (managers ?? []).map((mgr: any) => {
-    const assocIds = assocByManager.get(mgr.id) ?? []
+    const scope = scopeByManager.get(mgr.id) ?? { associationIds: [], fullAccess: true }
+    const assocIds = scope.associationIds
     const totalDoors = assocIds.reduce((sum, aid) => sum + (unitCountByAssoc.get(aid) ?? 0), 0)
     const wo = woByManager.get(mgr.id) ?? { open: 0, overdue: 0 }
     const totalViols = assocIds.reduce((sum, aid) => sum + (violByAssoc.get(aid) ?? 0), 0)
@@ -93,6 +118,7 @@ export default async function CompanyAdminManagersPage({
       email: mgr.email ?? '—',
       role: mgr.hoa_role ?? 'manager',
       associationCount: assocIds.length,
+      fullAccess: scope.fullAccess,
       totalDoors,
       openWorkOrders: wo.open,
       overdueWorkOrders: wo.overdue,
@@ -112,7 +138,7 @@ export default async function CompanyAdminManagersPage({
         <form action={inviteManager} className="w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-center gap-2">
             <Input name="email" type="email" required placeholder="manager@email.com" className="h-9 flex-1" aria-label="Manager email" />
-            <Button type="submit" className="gap-2"><UserPlus className="h-4 w-4" /> Invite</Button>
+            <PendingSubmit pendingLabel="Inviting…"><UserPlus className="h-4 w-4" /> Invite</PendingSubmit>
           </div>
           {(portfolioAssocs ?? []).length > 0 && (
             <div className="mt-3">
@@ -133,6 +159,7 @@ export default async function CompanyAdminManagersPage({
 
       {sp.invited && <Alert tone="success" title="Invitation sent">{`Invited ${sp.invited} as a Property Manager. They'll get an email with a link to set their password.`}</Alert>}
       {sp.error && <Alert tone="danger" title="Could not invite manager">{sp.error}</Alert>}
+      {managersError && <Alert tone="danger" title="Could not load managers">{managersError.message}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
@@ -175,7 +202,7 @@ export default async function CompanyAdminManagersPage({
                     {row.disabledAt && <div className="mt-0.5 text-xs font-medium text-red-700">Login disabled</div>}
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-700">{row.email}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.associationCount}{row.fullAccess && <div className="text-[11px] text-gray-500">All</div>}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.totalDoors.toLocaleString()}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.openWorkOrders > 0 ? 'font-medium text-amber-700' : 'text-gray-700'}`}>{row.openWorkOrders}</td>
                   <td className={`px-4 py-3 text-right tabular-nums ${row.overdueWorkOrders > 0 ? 'font-semibold text-red-700' : 'text-gray-700'}`}>{row.overdueWorkOrders}</td>

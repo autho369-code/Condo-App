@@ -3,6 +3,7 @@ import { requireVendor } from '@/lib/auth/me';
 import { PageHeader, Surface, SectionTitle, Badge, MetricStrip, Metric, EmptyState, Alert } from '@/components/ui/shell';
 import { InvoiceSubmissionForm } from '@/components/vendor/invoice-submission-form';
 import { date, money } from '@/lib/utils';
+import { VENDOR_INVOICEABLE_STATUSES } from '@/lib/vendors/portal';
 import { Receipt } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,13 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
     db.from('payable_bills')
       .select('id, bill_number, bill_date, due_date, amount, credit_applied, memo, status, paid_at, associations(name)')
       .eq('vendor_id', me.vendor_id).is('archived_at', null).order('bill_date', { ascending: false }).limit(100),
+    // submit_vendor_invoice only accepts finished jobs; offering open ones
+    // just produced a "Mark the job done" error after the upload.
     db.from('work_orders')
       .select('id, number, title, associations(name)')
-      .eq('vendor_id', me.vendor_id).is('archived_at', null).order('created_at', { ascending: false }).limit(100),
+      .eq('vendor_id', me.vendor_id).is('archived_at', null)
+      .in('status', [...VENDOR_INVOICEABLE_STATUSES])
+      .order('created_at', { ascending: false }).limit(100),
   ]);
   if (billResult.error) throw new Error(`Could not load vendor bills: ${billResult.error.message}`);
   if (workOrderResult.error) throw new Error(`Could not load assigned work orders: ${workOrderResult.error.message}`);
@@ -37,7 +42,7 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
   const sum = (list: any[]) => list.reduce((s, b) => s + Number(b.amount ?? 0) - Number(b.credit_applied ?? 0), 0);
 
   const statusLabel = (s: string | null) =>
-    s === 'pending_approval' ? 'Awaiting approval' : s === 'approved' ? 'Approved — payment scheduled' : s ?? '—';
+    s === 'pending_approval' ? 'Awaiting approval' : s === 'approved' ? 'Approved — payment scheduled' : (s ?? '—').replace(/_/g, ' ');
 
   return (
     <div>
@@ -86,9 +91,15 @@ export default async function VendorPaymentsPage({ searchParams }: { searchParam
                     <td className="px-5 py-3 text-[13px] text-gray-700">{b.associations?.name ?? '—'}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(b.bill_date)}</td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{date(b.due_date)}</td>
-                    <td className="px-5 py-3"><Badge status={statusLabel(b.status)} /></td>
+                    <td className="px-5 py-3"><Badge status={b.status}>{statusLabel(b.status)}</Badge></td>
                     <td className="px-5 py-3 text-[13px] tabular-nums text-gray-700">{b.paid_at ? date(b.paid_at) : '—'}</td>
-                    <td className="px-5 py-3 text-right font-medium tabular-nums text-gray-950">{money(Number(b.amount ?? 0))}</td>
+                    <td className="px-5 py-3 text-right tabular-nums">
+                      {/* Net of vendor credits, the same basis as the totals above. */}
+                      <div className="font-medium text-gray-950">{money(Number(b.amount ?? 0) - Number(b.credit_applied ?? 0))}</div>
+                      {Number(b.credit_applied ?? 0) > 0 && (
+                        <div className="text-xs text-gray-500">{money(Number(b.amount ?? 0))} less {money(Number(b.credit_applied))} credit</div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -96,6 +96,9 @@ export async function saveVendorComplianceDocument(input: {
       .select('id, attachment_urls')
       .eq('id', input.requestId)
       .eq('vendor_id', me.vendor_id)
+      // An approved request is closed: re-submitting would silently reopen it
+      // for review (the vendor page only offers open requests).
+      .neq('status', 'approved')
       .maybeSingle();
     if (error || !data) {
       await removeUploadedFile(input.path);
@@ -120,15 +123,19 @@ export async function saveVendorComplianceDocument(input: {
 
   if (request) {
     const prior = Array.isArray(request.attachment_urls) ? request.attachment_urls : [];
-    const { error: requestError } = await service.from('document_requests').update({
+    const { data: updatedRequest, error: requestError } = await service.from('document_requests').update({
       attachment_urls: [...prior, input.path],
       status: 'submitted',
       submitted_at: new Date().toISOString(),
-    }).eq('id', request.id).eq('vendor_id', me.vendor_id);
-    if (requestError) {
+    }).eq('id', request.id).eq('vendor_id', me.vendor_id).neq('status', 'approved').select('id');
+    // Zero rows = management approved the request in the meantime: undo the
+    // upload rather than report a submission that was never linked.
+    if (requestError || !updatedRequest || updatedRequest.length === 0) {
       await service.from('documents').delete().eq('id', document.id);
       await removeUploadedFile(input.path);
-      return { error: `The document request could not be updated: ${requestError.message}` };
+      return { error: requestError
+        ? `The document request could not be updated: ${requestError.message}`
+        : 'This document request was just approved, so it no longer needs an upload.' };
     }
   }
 

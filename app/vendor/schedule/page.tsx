@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireVendor } from '@/lib/auth/me';
-import { PageHeader, Surface, Badge, EmptyState } from '@/components/ui/shell';
+import { PageHeader, Surface, Badge, EmptyState, Alert } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { CalendarDays, Wrench, AlertTriangle } from 'lucide-react';
 import { todayInZone } from '@/lib/time/zoned';
+import { addDaysToDate } from '@/lib/vendors/portal';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function VendorSchedulePage() {
   const todayDate = todayInZone();
   const in60 = new Date(Date.now() + 60 * 86400000).toISOString();
 
-  const [{ data: wos }, { data: events }, { data: tasks }] = await Promise.all([
+  const [{ data: wos, error: woError }, { data: events, error: eventError }, { data: tasks, error: taskError }] = await Promise.all([
     db.from('work_orders')
       .select('id, number, title, priority, status, scheduled_date, scheduled_time, associations(name), units(unit_number)')
       .eq('vendor_id', me.vendor_id)
@@ -43,9 +44,15 @@ export default async function VendorSchedulePage() {
       .is('archived_at', null)
       .eq('status', 'active')
       .not('next_due_date', 'is', null)
-      .lte('next_due_date', in60.slice(0, 10))
+      .lte('next_due_date', addDaysToDate(todayDate, 60))
       .order('next_due_date'),
   ]);
+
+  const loadErrors = [
+    woError && `jobs (${woError.message})`,
+    eventError && `appointments (${eventError.message})`,
+    taskError && `recurring maintenance (${taskError.message})`,
+  ].filter(Boolean) as string[];
 
   type Item = { key: string; when: string; time?: string | null; title: string; detail: string; kind: 'job' | 'event' | 'recurring'; overdue: boolean; href?: string; status?: string | null };
   const items: Item[] = [
@@ -124,6 +131,7 @@ export default async function VendorSchedulePage() {
   return (
     <div>
       <PageHeader title="Schedule" description="Your jobs, appointments, and recurring maintenance for the next 60 days." />
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some items could not be loaded:" className="mb-5">{loadErrors.join('; ')}</Alert>}
       {items.length === 0 ? (
         <Surface padded={false}>
           <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Scheduled jobs and appointments from your management companies will appear here." />

@@ -5,37 +5,16 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { Truck, ShieldAlert, Shield, Banknote } from 'lucide-react'
 import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance'
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query'
+import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance'
+import { todayInZone } from '@/lib/time/zoned'
 
 export const dynamic = 'force-dynamic'
 
-function ComplianceBadge({ vendor }: { vendor: any }) {
-  const now = new Date()
-  const thirtyDaysOut = new Date(now.getTime() + 30 * 86400000)
-  const dates = [
-    vendor.workers_comp_expiration,
-    vendor.general_liability_expiration,
-    vendor.auto_insurance_expiration,
-    vendor.epa_certification_expiration,
-    vendor.state_license_expiration,
-    vendor.contract_expiration,
-  ].filter(Boolean)
-
-  if (dates.length === 0) {
-    return <StatusChip tone="neutral">No Dates</StatusChip>
-  }
-
-  const hasExpired = dates.some((d) => new Date(d) < now)
-  const expiringSoon = dates.some((d) => {
-    const dt = new Date(d)
-    return dt >= now && dt <= thirtyDaysOut
-  })
-
-  if (hasExpired) {
-    return <StatusChip tone="danger">Non-Compliant</StatusChip>
-  }
-  if (expiringSoon) {
-    return <StatusChip tone="warning">Expiring Soon</StatusChip>
-  }
+function ComplianceBadge({ vendor, today }: { vendor: any; today: string }) {
+  const status = vendorComplianceStatus(vendor, today)
+  if (status === 'none') return <StatusChip tone="neutral">No Dates</StatusChip>
+  if (status === 'expired') return <StatusChip tone="danger">Non-Compliant</StatusChip>
+  if (status === 'expiring') return <StatusChip tone="warning">Expiring Soon</StatusChip>
   return <StatusChip tone="success">Compliant</StatusChip>
 }
 
@@ -45,19 +24,9 @@ function firstFromJsonb(arr: any): string {
   return '—'
 }
 
-function calcComplianceIssues(vendor: any): boolean {
-  const now = new Date()
-  const thirtyDaysOut = new Date(now.getTime() + 30 * 86400000)
-  const dates = [
-    vendor.workers_comp_expiration,
-    vendor.general_liability_expiration,
-    vendor.auto_insurance_expiration,
-    vendor.epa_certification_expiration,
-    vendor.state_license_expiration,
-    vendor.contract_expiration,
-  ].filter(Boolean)
-
-  return dates.some((d) => new Date(d) < now || (new Date(d) >= now && new Date(d) <= thirtyDaysOut))
+function calcComplianceIssues(vendor: any, today: string): boolean {
+  const status = vendorComplianceStatus(vendor, today)
+  return status === 'expired' || status === 'expiring'
 }
 
 export default async function VendorsPage({
@@ -71,6 +40,7 @@ export default async function VendorsPage({
   const portfolioId = me.portfolio?.id
   if (!portfolioId) throw new Error('Company-admin workspace is missing its management-company scope.')
   const sp = await searchParams
+  const today = todayInZone()
 
   const allVendorsPromise = db
     .from('vendors')
@@ -120,7 +90,7 @@ export default async function VendorsPage({
   // Stats
   const totalVendors = (vendors ?? []).length
   const achEnrolled = (vendors ?? []).filter((v: any) => v.ach_status === 'enrolled' || v.ach_status === 'verified').length
-  const complianceIssues = (vendors ?? []).filter((v: any) => calcComplianceIssues(v)).length
+  const complianceIssues = (vendors ?? []).filter((v: any) => calcComplianceIssues(v, today)).length
 
   return (
     <div className="space-y-6">
@@ -198,7 +168,7 @@ export default async function VendorsPage({
                     <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{v.trade ?? '—'}</td>
                     <td className="px-4 py-3 text-[13px] tabular-nums text-gray-700">{firstFromJsonb(v.phone_numbers)}</td>
                     <td className="px-4 py-3 text-[13px] text-gray-700">{firstFromJsonb(v.emails)}</td>
-                    <td className="px-4 py-3"><ComplianceBadge vendor={v} /></td>
+                    <td className="px-4 py-3"><ComplianceBadge vendor={v} today={today} /></td>
                     <td className="px-4 py-3">
                       <StatusChip tone={scorecard.serviceRecord.tone}>{scorecard.serviceRecord.label}</StatusChip>
                       <div className="mt-1 text-xs tabular-nums text-gray-500">
