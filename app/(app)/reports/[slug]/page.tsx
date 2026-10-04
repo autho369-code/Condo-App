@@ -1913,12 +1913,12 @@ async function MaintenanceResponseView(ctx: ReportContext) {
       .select('id, association_id, priority, status, created_at, completed_date')
       .is('archived_at', null).is('completed_date', null)
       .not('status', 'in', '(done,completed,billed,closed,cancelled)').order('id'))),
-    db.from('associations').select('id, timezone'),
+    fetchAllRows<any>(() => db.from('associations').select('id, timezone').order('id')),
   ]);
-  const loadError = reqRes.error ?? woRes.error ?? openRes.error ?? zoneRes.error?.message ?? null;
+  const loadError = reqRes.error ?? woRes.error ?? openRes.error ?? zoneRes.error;
   const requests = reqRes.rows;
   // completed_date is the association's local date; compare it with the local creation date.
-  const zones = new Map<string, string | null>(((zoneRes.data ?? []) as any[]).map((a) => [a.id, a.timezone ?? null]));
+  const zones = new Map<string, string | null>(zoneRes.rows.map((a) => [a.id, a.timezone ?? null]));
   const workOrders = woRes.rows.map((w: any) => ({ ...w, time_zone: zones.get(w.association_id) ?? zone }));
   const now = new Date();
   const total = responseMetrics(requests, workOrders, now);
