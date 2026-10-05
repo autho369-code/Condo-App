@@ -99,7 +99,7 @@ begin
   -- month after, so an unposted row due that day is switched off below.
   if exists (select 1 from public.charges c
               where c.unit_id = v_occ.unit_id and c.charge_category_id = any(v_cats)
-                and c.due_date = v_first) then
+                and c.due_date = v_first and c.amount <> 0) then
     v_first := (v_first + interval '1 month')::date;
   end if;
 
@@ -150,7 +150,7 @@ begin
   -- posted it this morning): start the month after.
   if exists (select 1 from public.charges c
               where c.unit_id = v_occ.unit_id and c.charge_category_id = any(v_cats)
-                and c.due_date = v_first) then
+                and c.due_date = v_first and c.amount <> 0) then
     v_first := (v_first + interval '1 month')::date;
   end if;
 
