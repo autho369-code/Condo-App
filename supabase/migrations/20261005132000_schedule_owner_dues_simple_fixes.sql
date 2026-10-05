@@ -88,7 +88,7 @@ begin
      and coalesce(urc.start_date, urc.next_post_date) <= v_first
      and extract(day from urc.next_post_date) = 1
      and urc.end_date is null
-   order by urc.created_at desc
+   order by (urc.last_posted_at is not null) desc, urc.created_at desc
    limit 1;
   if v_keep is not null then
     -- Still retire any other dues schedule on the unit (e.g. the seller's while
