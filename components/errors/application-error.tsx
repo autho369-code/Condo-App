@@ -43,13 +43,13 @@ export function ApplicationError({
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
           {recovering ? <RefreshCw className="h-5 w-5 animate-spin" /> : <ShieldAlert className="h-5 w-5" />}
         </div>
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Workspace</p>
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Portier369 workspace</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-gray-950">
           {recovering ? 'Applying the latest update' : 'We could not load this workspace'}
         </h1>
         <p className="mt-3 text-sm leading-6 text-gray-600">
           {staleBundle
-            ? 'A newer version of this application is available. Reload to continue securely.'
+            ? 'A newer version of Portier369 is available. Reload the application to continue securely.'
             : 'Your session and saved work are safe. Try this page again, or reload the application if the issue continues.'}
         </p>
 

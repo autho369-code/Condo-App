@@ -76,25 +76,14 @@ async function requestPasswordReset(formData: FormData) {
     // outward response identical so this cannot be used for account discovery.
     if (tenant && portfolioId !== tenant.portfolioId) done();
 
-    // White label: a client company's user gets the reset under that
-    // company's name; only accounts with no company (platform operators) see
-    // the platform name.
-    let brand: string = FROM_NAME;
-    if (tenant?.companyName && tenant.portfolioId === portfolioId) {
-      brand = tenant.companyName;
-    } else if (portfolioId) {
-      const { data: company } = await svc.from('portfolios').select('company_name').eq('id', portfolioId).maybeSingle();
-      if (company?.company_name) brand = String(company.company_name);
-    }
-
     await svc.from('email_queue').insert({
       to_email: email,
       to_name: toName,
-      subject: `Reset your ${brand} password`,
-      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your ${escapeHtml(brand)} account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      subject: 'Reset your Portier369 password',
+      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
-      from_name: brand,
+      from_name: FROM_NAME,
       portfolio_id: portfolioId,
     });
   } catch {

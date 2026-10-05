@@ -23,7 +23,7 @@ export default async function MfaPage({
     ? 'Ask another Portier369 platform administrator to reset MFA. If no other administrator is available, contact hello@portier369.com.'
     : me.is_company_admin
       ? 'Ask a Portier369 platform administrator to reset MFA, or contact hello@portier369.com.'
-      : 'Ask your management company administrator to reset MFA.';
+      : 'Ask your management company administrator to reset MFA. For additional help, contact hello@portier369.com.';
 
   return (
     <div className="space-y-6">
@@ -35,7 +35,7 @@ export default async function MfaPage({
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
           {required && params.manage !== '1'
             ? 'Your role requires an authenticator check before you can access this workspace.'
-            : 'Add an authenticator check to protect your account.'}
+            : 'Add an authenticator check to protect your Portier369 account.'}
         </p>
       </header>
 
