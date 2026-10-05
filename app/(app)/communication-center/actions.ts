@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { textToHtml } from '@/lib/email/queue';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 const CENTER = '/communication-center';
 
@@ -63,62 +64,74 @@ async function resolveRecipients(db: any, msg: any): Promise<Recipient[]> {
   }
 
   const group = String(msg.recipient_group ?? '').toLowerCase();
+  // Paged past PostgREST's 1,000-row cap; a failed read stops the send rather
+  // than emailing a partial list.
+  const readAll = async (label: string, build: () => any) => {
+    const { rows, error } = await fetchAllRows<any>(build);
+    if (error) fail(`Could not load ${label}: ${error}`);
+    return rows;
+  };
   const assocId = msg.association_id;
   const out: Recipient[] = [];
 
   const ownerGroups = ['affected_residents', 'all_owners', 'owners', 'both', 'residents'];
   if (assocId && (ownerGroups.includes(group))) {
-    const { data: occs } = await db
+    const occs = await readAll('owners', () => db
       .from('occupancies')
-      .select('owners!owner_id(email, full_name)')
+      .select('id, owners!owner_id(email, full_name, archived_at)')
       .eq('association_id', assocId)
       .eq('occupancy_type', 'owner')
-      .eq('status', 'current');
-    (occs ?? []).forEach((o: any) => {
+      .eq('status', 'current')
+      .order('id'));
+    occs.filter((o: any) => !o.owners?.archived_at).forEach((o: any) => {
       if (o.owners?.email) out.push({ email: o.owners.email, name: o.owners.full_name ?? '' });
     });
   }
 
   if (assocId && (group === 'tenants' || group === 'both')) {
-    const { data: ten } = await db
+    const ten = await readAll('tenants', () => db
       .from('tenants')
-      .select('email, first_name, last_name')
+      .select('id, email, first_name, last_name')
       .eq('association_id', assocId)
       .eq('status', 'active')
-      .is('archived_at', null);
-    (ten ?? []).forEach((t: any) => {
+      .is('archived_at', null)
+      .order('id'));
+    ten.forEach((t: any) => {
       if (t.email) out.push({ email: t.email, name: `${t.first_name ?? ''} ${t.last_name ?? ''}`.trim() });
     });
   }
 
   if (assocId && (group === 'board' || group === 'board_members')) {
-    const { data: bm } = await db
+    const bm = await readAll('board members', () => db
       .from('board_members')
-      .select('email, full_name')
+      .select('id, email, full_name')
       .eq('association_id', assocId)
-      .eq('active', true);
-    (bm ?? []).forEach((b: any) => {
+      .eq('active', true)
+      .order('id'));
+    bm.forEach((b: any) => {
       if (b.email) out.push({ email: b.email, name: b.full_name ?? '' });
     });
   }
 
   if (group === 'vendor' && msg.calendar_event_id) {
-    const { data: ev } = await db
+    const { data: ev, error: evError } = await db
       .from('calendar_events')
       .select('vendors:vendor_id(name, emails)')
       .eq('id', msg.calendar_event_id)
       .maybeSingle();
+    if (evError) fail(`Could not load the vendor: ${evError.message}`);
     const emails = ev?.vendors?.emails;
     const email = Array.isArray(emails) ? emails[0] : null;
     if (email) out.push({ email, name: ev?.vendors?.name ?? '' });
   }
 
   if (group === 'management_office') {
-    const { data: admins } = await db
+    const { data: admins, error: adminsError } = await db
       .from('profiles')
       .select('email, full_name')
       .eq('portfolio_id', msg.portfolio_id)
       .eq('hoa_role', 'company_admin');
+    if (adminsError) fail(`Could not load the management office: ${adminsError.message}`);
     (admins ?? []).forEach((a: any) => {
       if (a.email) out.push({ email: a.email, name: a.full_name ?? '' });
     });

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, EmptyState, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SmsForm } from './_sms-form';
+import { newSubmissionToken } from '@/lib/forms/submission';
 import { smsDeliveryConfigured } from '@/lib/sms/twilio';
 
 export const dynamic = 'force-dynamic';
@@ -84,7 +85,7 @@ export default async function SmsPage({
         {/* Send SMS Form */}
         <Surface>
           <SectionTitle title="Send a text message" />
-          <SmsForm owners={owners ?? []} vendors={vendors ?? []} templates={templates ?? []} />
+          <SmsForm owners={owners ?? []} vendors={vendors ?? []} templates={templates ?? []} submissionToken={newSubmissionToken()} />
         </Surface>
 
         {/* Conversations / History */}

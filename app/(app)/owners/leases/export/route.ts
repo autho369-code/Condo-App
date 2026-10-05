@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { csvCell } from '@/lib/csv/cell';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,21 +14,23 @@ export async function GET() {
   }
 
   const supabase = await createClient();
-  const { data: tenants, error } = await (supabase as any)
+  // Paged past PostgREST's 1,000-row cap so the file is complete.
+  const { rows: tenants, error } = await fetchAllRows<any>(() => (supabase as any)
     .from('tenants')
     .select(`
-      first_name, last_name, email, phone, lease_start, lease_end, status,
+      id, first_name, last_name, email, phone, lease_start, lease_end, status,
       units(unit_number, buildings(name, associations(name))),
       owners(full_name, first_name, last_name, email)
     `)
     .is('archived_at', null)
-    .order('lease_end', { ascending: true, nullsFirst: false });
+    .order('lease_end', { ascending: true, nullsFirst: false })
+    .order('id'));
 
-  if (error) return new NextResponse(`Export failed: ${error.message}`, { status: 500 });
+  if (error) return new NextResponse(`Export failed: ${error}`, { status: 500 });
 
   const header = ['Association', 'Unit', 'Tenant', 'Tenant Email', 'Tenant Phone', 'Lease Start', 'Lease End', 'Status', 'Owner', 'Owner Email'];
   const lines = [header.join(',')];
-  for (const t of tenants ?? []) {
+  for (const t of tenants) {
     const ownerName = t.owners?.full_name || [t.owners?.first_name, t.owners?.last_name].filter(Boolean).join(' ');
     lines.push([
       csvCell(t.units?.buildings?.associations?.name),

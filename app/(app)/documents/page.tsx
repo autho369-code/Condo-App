@@ -61,10 +61,10 @@ export default async function DocumentsPage({
 
   // Fetch all data in parallel
   const [
-    { data: templates },
-    { data: documents },
-    { data: notices },
-    { data: associations },
+    { data: templates, error: templatesError },
+    { data: documents, error: documentsError },
+    { data: notices, error: noticesError },
+    { data: associations, error: associationsError },
   ] = await Promise.all([
     db.from('document_templates')
       .select('id, name, letter_type, template_category, subject, active, created_at, updated_at')
@@ -86,6 +86,13 @@ export default async function DocumentsPage({
       .order('name'),
   ]);
 
+  // A failed read must not look like an empty library.
+  const loadErrors = [
+    templatesError && `templates (${templatesError.message})`,
+    documentsError && `documents (${documentsError.message})`,
+    noticesError && `notices (${noticesError.message})`,
+    associationsError && `associations (${associationsError.message})`,
+  ].filter(Boolean) as string[];
   const allTemplates = (templates ?? []) as any[];
   const allDocuments = (documents ?? []) as any[];
   const allNotices = (notices ?? []) as any[];
@@ -165,6 +172,7 @@ export default async function DocumentsPage({
       }
     >
       <div className="space-y-6">
+        {loadErrors.length > 0 && <Alert tone="danger" title="Some documents could not be loaded.">Could not load {loadErrors.join(', ')}. Reload the page to try again.</Alert>}
         {pageError && <Alert tone="danger" title="Some files were not fixed.">{pageError}</Alert>}
         {repaired && !pageError && <Alert tone="success" title="File locations fixed.">{repaired} document{repaired === '1' ? ' is' : 's are'} visible again.</Alert>}
         {misplaced.length > 0 && (

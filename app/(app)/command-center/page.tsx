@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth/me'
+import { addDaysToDate, addMonthsToMonth, todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
 import { date, money } from '@/lib/utils'
@@ -27,11 +29,23 @@ async function runMatching() {
   'use server'
   const { requireAuth: req } = await import('@/lib/auth/me')
   const me = await req()
-  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) return
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
+  // The service client sees every company: a company's staff may only
+  // reconcile their own company's payouts (operators run the full job).
+  const portfolioId = me.is_platform_operator ? undefined : me.portfolio?.id
+  if (!me.is_platform_operator && !portfolioId) {
+    redirect('/command-center?error=' + encodeURIComponent('Your account is not linked to a company.'))
+  }
   const { createServiceClient } = await import('@/lib/supabase/server')
   const { reconcilePayouts } = await import('@/lib/payments/reconcile')
-  await reconcilePayouts(createServiceClient() as any)
+  let summary: { examined: number; reconciled: number; needsReview: number }
+  try {
+    summary = await reconcilePayouts(createServiceClient() as any, { portfolioId })
+  } catch (error) {
+    redirect('/command-center?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Matching failed.'))
+  }
   revalidatePath('/command-center')
+  redirect(`/command-center?matched=${summary.reconciled}&review=${summary.needsReview}`)
 }
 
 function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: React.ElementType; tone?: 'danger' | 'warning' | 'success' }) {
@@ -51,22 +65,31 @@ function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: R
   )
 }
 
-export default async function FinancialCommandCenterPage() {
+export default async function FinancialCommandCenterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; matched?: string; review?: string }>
+}) {
+  const sp = await searchParams
   // Managers, company admins, and operators — the spec's "same financial
   // data filtered by permissions" (RLS scopes every query below).
   const me = await requireAuth()
   if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
   const supabase = await createClient()
   const db = supabase as any
-  const todayDate = new Date().toISOString().slice(0, 10)
+  // "Today" is the company's local date: the server runs in UTC, so after
+  // ~7 PM Central the UTC date was already tomorrow and today's collections
+  // read $0.
+  const todayDate = todayInZone()
   const monthStart = todayDate.slice(0, 8) + '01'
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString()
 
-  const dayOfMonth = new Date().getDate()
-  const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10)
+  const dayOfMonth = Number(todayDate.slice(8, 10))
+  const prevMonth = addMonthsToMonth(todayDate.slice(0, 7), -1)
+  const lastMonthStart = `${prevMonth}-01`
   // Clamp to the previous month's last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
-  const lastDayPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate()
-  const lastMonthSameDay = new Date(new Date().getFullYear(), new Date().getMonth() - 1, Math.min(dayOfMonth, lastDayPrevMonth)).toISOString().slice(0, 10)
+  const lastDayPrevMonth = Number(addDaysToDate(monthStart, -1).slice(8, 10))
+  const lastMonthSameDay = `${prevMonth}-${String(Math.min(dayOfMonth, lastDayPrevMonth)).padStart(2, '0')}`
 
   const [
     { data: paymentsToday },
@@ -90,7 +113,7 @@ export default async function FinancialCommandCenterPage() {
     db.from('bank_transactions').select('id, amount, date, name, matched_at').gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
     db.from('payout_batches').select('id, processor_payout_id, amount, expected_amount, arrival_date, status, match_method, notes, created_at').order('created_at', { ascending: false }).limit(25),
     db.from('bank_accounts').select('gl_account_id, purpose, fund_type').is('archived_at', null),
-    incomeExpenseTotals(db, { from: `${new Date().getFullYear()}-01-01` }),
+    incomeExpenseTotals(db, { from: `${todayDate.slice(0, 4)}-01-01` }),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('occupancies').select('owner_id, late_count, owners(full_name)').eq('status', 'current').gte('late_count', 2),
   ])
@@ -137,7 +160,7 @@ export default async function FinancialCommandCenterPage() {
     ? Math.round(((collectedMonth - collectedLastMonthSame) / collectedLastMonthSame) * 1000) / 10
     : null
   const ytdExpenses = ytd.expense
-  const monthsElapsed = new Date().getMonth() + 1
+  const monthsElapsed = Number(todayDate.slice(5, 7))
   const monthlyBurn = monthsElapsed > 0 ? ytdExpenses / monthsElapsed : 0
   const healthStatements: string[] = []
   if (collectionsTrendPct !== null) {
@@ -221,6 +244,13 @@ export default async function FinancialCommandCenterPage() {
           <Button type="submit" variant="secondary" className="gap-2"><RefreshCcw className="h-4 w-4" /> Run matching now</Button>
         </form>
       </div>
+
+      {sp.error && <Alert tone="danger" title="Matching did not run.">{sp.error}</Alert>}
+      {sp.matched !== undefined && !sp.error && (
+        <Alert tone="success" title="Matching finished.">
+          {Number(sp.matched) || 0} payout{Number(sp.matched) === 1 ? '' : 's'} reconciled; {Number(sp.review) || 0} flagged for review.
+        </Alert>
+      )}
 
       {!stripeOn && (
         <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-sm text-blue-900">
