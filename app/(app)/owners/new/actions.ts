@@ -129,8 +129,19 @@ export async function createOwnerWithDetails(formData: FormData) {
     const idents = formData.getAll('fee_identifier') as string[];
     const memos = formData.getAll('fee_memo') as string[];
 
+    // Monthly dues come only from the dues field (step 4b); a DUES line here
+    // would bill the unit twice.
+    const { data: duesCats } = cats.length
+      ? await db.from('charge_categories').select('id').in('id', cats.filter(Boolean)).ilike('code', 'dues')
+      : { data: [] };
+    const duesCatIds = new Set<string>((duesCats ?? []).map((c: { id: string }) => c.id));
+
     for (let i = 0; i < cats.length; i++) {
       const categoryId = (cats[i] ?? '').trim();
+      if (duesCatIds.has(categoryId)) {
+        warnings.push(`fee ${i + 1}: monthly dues are set from the dues field, so this line was skipped`);
+        continue;
+      }
       const amount = parseFloat(amounts[i] ?? '');
       if (!categoryId || !Number.isFinite(amount)) continue;
       const { error: feeErr } = await db.rpc('subscribe_unit_to_charge', {
