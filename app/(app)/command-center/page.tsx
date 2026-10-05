@@ -147,8 +147,13 @@ export default async function FinancialCommandCenterPage({
   ] = await Promise.all([
     // Every zone's "today" (one date when all associations share a zone);
     // each payment is then kept only if it is today in its own association.
-    db.from('payments').select('amount, payment_date, units(buildings(association_id))').neq('method', 'credit')
-      .gte('payment_date', zoneTodays[0]).lte('payment_date', zoneTodays[zoneTodays.length - 1]),
+    // Paged: a busy day can pass PostgREST's 1,000-row cap.
+    fetchAllRows<any>(() => db.from('payments').select('id, amount, payment_date, units(buildings(association_id))').neq('method', 'credit')
+      .gte('payment_date', zoneTodays[0]).lte('payment_date', zoneTodays[zoneTodays.length - 1]).order('id'))
+      .then((r) => {
+        if (r.error || r.truncated) throw new Error(`Today's payments could not be loaded: ${r.error ?? 'too many rows'}`)
+        return { data: r.rows }
+      }),
     db.from('payment_intents').select('id, amount, status, method, failure_reason, processor_fee_cents, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
     // Totals are summed in the database: row lists stop at 1,000 rows.
     receivableSummary(db),
