@@ -34,7 +34,12 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
   // Local calendar day (the UTC date flipped to tomorrow every evening in US zones).
   const todayDate = todayInZone();
 
-  const [{ data: vendor }, { data: wos }, { data: bills }, { data: events }] = await Promise.all([
+  const [
+    { data: vendor, error: vendorError },
+    { data: wos, error: wosError },
+    { data: bills, error: billsError },
+    { data: events, error: eventsError },
+  ] = await Promise.all([
     db.from('vendors').select('name, trade, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration').eq('id', me.vendor_id).maybeSingle(),
     db.from('work_orders')
       .select('number, title, status, priority, scheduled_date, completed_date, associations(name), units(unit_number)')
@@ -43,7 +48,7 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
       .order('created_at', { ascending: false })
       .limit(50),
     db.from('payable_bills')
-      .select('bill_number, amount, status, due_date, paid_at, associations(name)')
+      .select('bill_number, amount, credit_applied, status, due_date, paid_at, associations(name)')
       .eq('vendor_id', me.vendor_id)
       .is('archived_at', null)
       .order('bill_date', { ascending: false })
@@ -56,6 +61,16 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
       .order('start_datetime')
       .limit(10),
   ]);
+
+  // Fail loudly: an assistant answering from a silently empty snapshot would
+  // tell the vendor they have no jobs or bills.
+  const failed = [
+    vendorError && `vendor profile: ${vendorError.message}`,
+    wosError && `work orders: ${wosError.message}`,
+    billsError && `bills: ${billsError.message}`,
+    eventsError && `appointments: ${eventsError.message}`,
+  ].filter(Boolean);
+  if (failed.length) throw new Error(`Vendor snapshot could not be loaded (${failed.join('; ')})`);
 
   const rows = wos ?? [];
   const open = rows.filter((w: any) => OPEN_STATUSES.includes((w.status ?? '').toLowerCase()));
@@ -93,7 +108,8 @@ export async function buildVendorSnapshot(): Promise<VendorSnapshot> {
     },
     bills: (bills ?? []).map((b: any) => ({
       billNumber: b.bill_number ?? null,
-      amount: Number(b.amount ?? 0),
+      // Net of vendor credits, matching the vendor Payments page.
+      amount: Number(b.amount ?? 0) - Number(b.credit_applied ?? 0),
       status: b.status ?? null,
       dueDate: b.due_date ?? null,
       paidAt: b.paid_at ?? null,

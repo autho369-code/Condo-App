@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 import { ShieldAlert, ClipboardCheck, FileWarning } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned';
 
@@ -24,7 +25,7 @@ export default async function BoardCompliancePage() {
   const today = todayInZone()
   const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
 
-  const [{ data: tasks }, { data: inspections }, { data: vendors }] = await Promise.all([
+  const [{ data: tasks, error: tasksError }, { data: inspections, error: inspectionsError }, { data: vendors, error: vendorsError }] = await Promise.all([
     // Statutory certification items tracked as preventive maintenance.
     db.from('maintenance_tasks')
       .select('id, task_name, category, next_due_date, status, last_completed_at')
@@ -41,6 +42,12 @@ export default async function BoardCompliancePage() {
       .select('id, name, trade, general_liability_expiration, workers_comp_expiration, state_license_expiration, contract_expiration')
       .is('archived_at', null),
   ])
+
+  const loadErrors = [
+    tasksError && `Maintenance tasks could not be loaded: ${tasksError.message}`,
+    inspectionsError && `Inspections could not be loaded: ${inspectionsError.message}`,
+    vendorsError && `Vendor credentials could not be loaded: ${vendorsError.message}`,
+  ].filter(Boolean) as string[]
 
   const statutory = (tasks ?? []).filter((t: any) =>
     /fire|elevator|boiler|backflow|sprinkler|generator|alarm/i.test(`${t.task_name} ${t.category ?? ''}`))
@@ -67,11 +74,13 @@ export default async function BoardCompliancePage() {
         </p>
       </div>
 
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[
-          { label: 'Statutory Items Tracked', value: statutory.length, icon: ClipboardCheck, warn: false },
-          { label: 'Overdue Statutory Items', value: overdueStatutory, icon: ShieldAlert, warn: overdueStatutory > 0 },
-          { label: 'Vendor Credential Issues', value: vendorIssues.length, icon: FileWarning, warn: vendorIssues.some((i) => i.state === 'expired') },
+          { label: 'Statutory Items Tracked', value: tasksError ? '—' : statutory.length, icon: ClipboardCheck, warn: false },
+          { label: 'Overdue Statutory Items', value: tasksError ? '—' : overdueStatutory, icon: ShieldAlert, warn: overdueStatutory > 0 },
+          { label: 'Vendor Credential Issues', value: vendorsError ? '—' : vendorIssues.length, icon: FileWarning, warn: vendorIssues.some((i) => i.state === 'expired') },
         ].map((item) => {
           const Icon = item.icon
           return (

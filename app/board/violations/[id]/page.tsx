@@ -102,7 +102,7 @@ export default async function BoardViolationDetailPage({
   // Fetch violation — ensure it belongs to board's association
   const { data: violation, error: violationError } = await db
     .from('violations')
-    .select(`*, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name, email, phone), profiles!violations_created_by_fkey(full_name)`)
+    .select(`*, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name, email, phone)`)
     .eq('id', id)
     .in('association_id', boardAssocIds)
     .maybeSingle()
@@ -255,7 +255,7 @@ export default async function BoardViolationDetailPage({
               <TimelineItem
                 label="Created"
                 date={violation.created_at}
-                detail={`By ${violation.profiles?.full_name ?? 'system'}`}
+                detail={violation.created_by ? 'By management' : 'Recorded automatically'}
                 isFirst
               />
               {violation.notice_sent_at && (
@@ -479,7 +479,8 @@ export default async function BoardViolationDetailPage({
               Assigned Manager
             </h2>
             <div className="py-2">
-              <div className="text-sm text-gray-900">{violation.profiles?.full_name ?? 'Unassigned'}</div>
+              {/* Staff profiles are not readable by board members (RLS). */}
+              <div className="text-sm text-gray-900">{violation.created_by ? 'Management' : '—'}</div>
               <div className="mt-0.5 text-xs text-gray-500">Created by</div>
             </div>
           </div>

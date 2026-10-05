@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ export default async function BoardArchitecturalReviewsPage() {
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  const { data: reviews } = await db
+  const { data: reviews, error: reviewsError } = await db
     .from('architectural_requests')
     .select('id, title, status, category, created_at, units(unit_number), owners(full_name)')
     .in('association_id', ids)
@@ -38,11 +39,13 @@ export default async function BoardArchitecturalReviewsPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Homeowner modification requests for your association. Open a request to approve, deny or ask for more information, or to discuss it with management and the homeowner.</p>
       </div>
 
+      {reviewsError && <Alert tone="danger" title="Architectural requests could not be loaded">{reviewsError.message}</Alert>}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Open', value: open.length },
-          { label: 'Approved', value: approved.length },
-          { label: 'Denied', value: denied.length },
+          { label: 'Open', value: reviewsError ? '—' : open.length },
+          { label: 'Approved', value: reviewsError ? '—' : approved.length },
+          { label: 'Denied', value: reviewsError ? '—' : denied.length },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
@@ -64,7 +67,7 @@ export default async function BoardArchitecturalReviewsPage() {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-500">No architectural review requests found.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-500">{reviewsError ? 'Architectural requests are unavailable right now.' : 'No architectural review requests found.'}</td></tr>
             ) : (
               rows.map((r) => (
                 <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

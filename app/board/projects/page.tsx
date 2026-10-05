@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export default async function BoardProjectsPage() {
   // Capital projects (RLS capital_projects_board_read: the board's own
   // associations, past the internal planning stage). This page used to search
   // work-order titles for "project", so it was always empty.
-  const { data: projects } = ids.length
+  const { data: projects, error: projectsError } = ids.length
     ? await db
         .from('capital_projects')
         .select('id, name, description, status, priority, start_date, target_end_date, completed_at, budget_amount, approved_budget_amount, board_approval_required, board_approved_at, associations(name)')
@@ -24,7 +24,7 @@ export default async function BoardProjectsPage() {
         .is('archived_at', null)
         .order('created_at', { ascending: false })
         .limit(200)
-    : { data: [] }
+    : { data: [], error: null }
 
   const all = (projects ?? []) as any[]
   const active = all.filter((p) => ACTIVE_STATUSES.includes(p.status))
@@ -38,12 +38,14 @@ export default async function BoardProjectsPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Association capital projects and major repairs</p>
       </div>
 
+      {projectsError && <Alert tone="danger" title="Capital projects could not be loaded">{projectsError.message}</Alert>}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Active Projects', value: active.length },
-          { label: 'Awaiting board', value: awaitingBoard.length },
-          { label: 'Completed', value: completed.length },
-          { label: 'Total', value: all.length },
+          { label: 'Active Projects', value: projectsError ? '—' : active.length },
+          { label: 'Awaiting board', value: projectsError ? '—' : awaitingBoard.length },
+          { label: 'Completed', value: projectsError ? '—' : completed.length },
+          { label: 'Total', value: projectsError ? '—' : all.length },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
@@ -64,7 +66,7 @@ export default async function BoardProjectsPage() {
           </thead>
           <tbody>
             {all.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-gray-500">No capital projects have been shared with the board yet.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-gray-500">{projectsError ? 'Capital projects are unavailable right now.' : 'No capital projects have been shared with the board yet.'}</td></tr>
             ) : (
               all.map((p: any) => (
                 <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">

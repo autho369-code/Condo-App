@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { Alert } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
 import { date } from '@/lib/utils'
@@ -127,7 +128,8 @@ export default async function BoardApprovalsPage({
     )
   }
 
-  const { data: requestsData } = await db
+  const loadErrors: string[] = []
+  const { data: requestsData, error: requestsError } = await db
     .from('approval_requests')
     .select(
       'id, association_id, owner_id, request_type, title, description, amount, due_date, status, voting_scheme, required_votes, votes_for, votes_against, votes_abstain, signatures_required, board_member_ids, percentage_required, requested_by_name, requested_at, decision_at, associations!approval_requests_association_id_fkey(name)',
@@ -136,6 +138,7 @@ export default async function BoardApprovalsPage({
     .is('archived_at', null)
     .order('requested_at', { ascending: false })
 
+  if (requestsError) loadErrors.push(`Approval requests could not be loaded: ${requestsError.message}`)
   const requests = (requestsData ?? []) as ApprovalRequest[]
 
   // Pull all decisions for these requests in one query.
@@ -143,11 +146,12 @@ export default async function BoardApprovalsPage({
   let decisionsByRequest = new Map<string, Decision[]>()
   let myDecisionByRequest = new Map<string, Decision>()
   if (requestIds.length > 0) {
-    const { data: decisionsData } = await db
+    const { data: decisionsData, error: decisionsError } = await db
       .from('approval_decisions')
       .select('id, approval_request_id, decided_by, decision, signature_name, comment, decided_at, board_members(full_name, signature_url)')
       .in('approval_request_id', requestIds)
       .order('decided_at', { ascending: true })
+    if (decisionsError) loadErrors.push(`Votes and sign-offs could not be loaded: ${decisionsError.message}`)
     for (const d of (decisionsData ?? []) as Decision[]) {
       const list = decisionsByRequest.get(d.approval_request_id) ?? []
       list.push(d)
@@ -175,6 +179,7 @@ export default async function BoardApprovalsPage({
     <div className="space-y-6">
       <Header />
 
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
       {errorMsg && (
         <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

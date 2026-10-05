@@ -18,6 +18,8 @@ export type AssociationCalendarFeed = {
   items: AssociationCalendarItem[];
   /** IANA timezone the calendar should render in (associations.timezone). */
   timeZone: string;
+  /** Sources that failed to load — render them; never present a partial calendar as complete. */
+  errors: string[];
 };
 
 export async function getAssociationCalendarFeed(
@@ -25,14 +27,19 @@ export async function getAssociationCalendarFeed(
   days = 90,
 ): Promise<AssociationCalendarFeed> {
   const ids = (associationIds ?? []).filter(Boolean);
-  if (ids.length === 0) return { items: [], timeZone: 'America/Chicago' };
+  if (ids.length === 0) return { items: [], timeZone: 'America/Chicago', errors: [] };
 
   const supabase = await createClient();
   const db = supabase as any;
   const now = new Date().toISOString();
   const horizon = new Date(Date.now() + days * 86400000).toISOString();
 
-  const [{ data: events }, { data: meetings }, { data: tasks }, { data: assoc }] = await Promise.all([
+  const [
+    { data: events, error: eventsError },
+    { data: meetings, error: meetingsError },
+    { data: tasks, error: tasksError },
+    { data: assoc, error: assocError },
+  ] = await Promise.all([
     db.from('calendar_events')
       .select('id, title, event_type, start_datetime, location, vendor_id, vendors(name)')
       .in('association_id', ids)
@@ -58,6 +65,13 @@ export async function getAssociationCalendarFeed(
       .order('next_due_date'),
     db.from('associations').select('timezone').in('id', ids).limit(1).maybeSingle(),
   ]);
+
+  const errors = [
+    eventsError && `Events and vendor visits could not be loaded: ${eventsError.message}`,
+    meetingsError && `Meetings could not be loaded: ${meetingsError.message}`,
+    tasksError && `Scheduled maintenance could not be loaded: ${tasksError.message}`,
+    assocError && `Association time zone could not be loaded: ${assocError.message}`,
+  ].filter(Boolean) as string[];
 
   const items: AssociationCalendarItem[] = [
     ...(meetings ?? []).map((m: any): AssociationCalendarItem => ({
@@ -99,5 +113,5 @@ export async function getAssociationCalendarFeed(
     })),
   ].sort((a, b) => a.when.localeCompare(b.when));
 
-  return { items, timeZone: assoc?.timezone ?? 'America/Chicago' };
+  return { items, timeZone: assoc?.timezone ?? 'America/Chicago', errors };
 }

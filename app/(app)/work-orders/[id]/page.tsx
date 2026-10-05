@@ -19,6 +19,7 @@ import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { assignWorkOrderToStaff } from '@/lib/rpcs/work-order-team';
 import { todayInZone } from '@/lib/time/zoned';
+import { firstVendorPhone } from '@/lib/vendors/contact';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,8 +184,8 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             <div className="rounded-xl border border-gray-200 p-3 text-sm">
               <div className="font-medium">{vendor.name}</div>
               <div className="text-xs uppercase text-gray-500">{vendor.trade}</div>
-              {vendor.phone_numbers?.[0]?.number && (
-                <a href={`tel:${vendor.phone_numbers[0].number}`} className="mt-1 block text-gray-600 hover:text-gray-950 hover:underline">{vendor.phone_numbers[0].number}</a>
+              {firstVendorPhone(vendor.phone_numbers) && (
+                <a href={`tel:${firstVendorPhone(vendor.phone_numbers)}`} className="mt-1 block text-gray-600 hover:text-gray-950 hover:underline">{firstVendorPhone(vendor.phone_numbers)}</a>
               )}
               {vendor.emails?.[0] && (
                 <a href={`mailto:${vendor.emails[0]}`} className="block truncate text-gray-600 hover:text-gray-950 hover:underline">{vendor.emails[0]}</a>

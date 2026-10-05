@@ -83,14 +83,14 @@ export default async function BoardDashboardPage() {
   }
 
   const [
-    { data: assoc },
-    { data: openWOs },
-    { data: viols },
-    { data: bankAccounts },
-    { data: meetings },
-    { data: vendorVisits },
-    { data: projectRows },
-    { data: archRows, count: archCount },
+    { data: assoc, error: assocError },
+    { data: openWOs, error: woError },
+    { data: viols, error: violError },
+    { data: bankAccounts, error: bankError },
+    { data: meetings, error: meetingsError },
+    { data: vendorVisits, error: visitsError },
+    { data: projectRows, error: projectsError },
+    { data: archRows, count: archCount, error: archError },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
     db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
@@ -108,6 +108,18 @@ export default async function BoardDashboardPage() {
       return q.order('created_at').limit(3)
     })(),
   ])
+  // Never let a failed read masquerade as an empty list / $0.
+  const loadErrors = [
+    assocError && `Associations could not be loaded: ${assocError.message}`,
+    woError && `Work orders could not be loaded: ${woError.message}`,
+    violError && `Violations could not be loaded: ${violError.message}`,
+    bankError && `Bank accounts could not be loaded: ${bankError.message}`,
+    meetingsError && `Meetings could not be loaded: ${meetingsError.message}`,
+    visitsError && `Vendor visits could not be loaded: ${visitsError.message}`,
+    projectsError && `Capital projects could not be loaded: ${projectsError.message}`,
+    archError && `Architectural requests could not be loaded: ${archError.message}`,
+  ].filter(Boolean) as string[]
+
   const archAwaiting = (archRows ?? []) as { id: string; title: string }[]
   const archAwaitingCount = archCount ?? archAwaiting.length
 
@@ -148,8 +160,8 @@ export default async function BoardDashboardPage() {
   // Bank balances: roll posted journal lines up onto each bank account's GL account.
   // Summed in the database: a list of journal lines stops at 1,000 rows.
   let balByGl = new Map<string, number>()
-  let balancesError: string | null = null
-  try {
+  let balancesError: string | null = bankError ? bankError.message : null
+  if (!bankError) try {
     balByGl = await glDebitBalances(db, {
       glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
       associationIds: ids,
@@ -168,6 +180,7 @@ export default async function BoardDashboardPage() {
   // Health score — same weighting as the company-admin dashboard.
   const score = Math.max(5, Math.min(100,
     100 - overdue * 12 - open.length * 4 - openViolations * 6 - emergencies.length * 15))
+  const healthUnavailable = Boolean(woError || violError)
   const health = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs attention' : 'Critical'
 
   const pendingVotes = (approvals ?? []).length
@@ -184,6 +197,7 @@ export default async function BoardDashboardPage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Governance overview for {assocNames || 'your association'}</p>
       </div>
 
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
       {receivablesError && <Alert tone="danger" title="Delinquency figures could not be loaded">{receivablesError}</Alert>}
       {balancesError && <Alert tone="danger" title="Bank balances could not be loaded">{balancesError}</Alert>}
       {pendingApprovals.error && <Alert tone="danger" title="Pending approvals could not be loaded">{pendingApprovals.error}</Alert>}
@@ -241,16 +255,16 @@ export default async function BoardDashboardPage() {
 
       {/* ── KPI grid ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Health Score" value={`${score}`} sub={health} icon={Heart} tone={score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
+        <StatCard label="Health Score" value={healthUnavailable ? '—' : `${score}`} sub={healthUnavailable ? 'Unavailable' : health} icon={Heart} tone={healthUnavailable ? undefined : score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
         <StatCard label="Operating Balance" value={balancesError ? "—" : money(operating)} icon={Landmark} href="/board/financials" />
         <StatCard label="Reserve Balance" value={balancesError ? "—" : money(reserve)} icon={PiggyBank} href="/board/financials" />
         <StatCard label="Delinquent Owners" value={receivablesError ? '—' : delinquentUnits} sub={receivablesError ? 'Unavailable' : `${money(overdueTotal)} past due`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
-        <StatCard label="Open Work Orders" value={open.length} sub={`${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
-        <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} href="/board/violations" />
-        <StatCard label="Active Projects" value={activeProjects} icon={HardHat} href="/board/projects" />
-        <StatCard label="Upcoming Meetings" value={(meetings ?? []).length} icon={CalendarDays} href="/board/meetings" />
-        <StatCard label="Vendor Visits (30d)" value={(vendorVisits ?? []).length} icon={Truck} href="/board/calendar" />
-        <StatCard label="Emergencies" value={emergencies.length} icon={Siren} href="/board/work-orders" tone={emergencies.length > 0 ? 'danger' : undefined} />
+        <StatCard label="Open Work Orders" value={woError ? '—' : open.length} sub={woError ? 'Unavailable' : `${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
+        <StatCard label="Open Violations" value={violError ? '—' : openViolations} icon={AlertTriangle} href="/board/violations" />
+        <StatCard label="Active Projects" value={projectsError ? '—' : activeProjects} icon={HardHat} href="/board/projects" />
+        <StatCard label="Upcoming Meetings" value={meetingsError ? '—' : (meetings ?? []).length} icon={CalendarDays} href="/board/meetings" />
+        <StatCard label="Vendor Visits (30d)" value={visitsError ? '—' : (vendorVisits ?? []).length} icon={Truck} href="/board/calendar" />
+        <StatCard label="Emergencies" value={woError ? '—' : emergencies.length} icon={Siren} href="/board/work-orders" tone={emergencies.length > 0 ? 'danger' : undefined} />
       </div>
 
       {/* ── Upcoming meetings ─────────────────────────── */}
@@ -262,7 +276,9 @@ export default async function BoardDashboardPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {(meetings ?? []).length === 0 ? (
+          {meetingsError ? (
+            <p className="px-5 py-8 text-center text-sm text-gray-500">Meetings are unavailable right now.</p>
+          ) : (meetings ?? []).length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-gray-500">No upcoming meetings scheduled.</p>
           ) : (
             (meetings ?? []).map((m: any) => (
@@ -300,7 +316,9 @@ export default async function BoardDashboardPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {(vendorVisits ?? []).length === 0 ? (
+          {visitsError ? (
+            <p className="px-5 py-8 text-center text-sm text-gray-500">Vendor visits are unavailable right now.</p>
+          ) : (vendorVisits ?? []).length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-gray-500">No vendor visits scheduled in the next 30 days.</p>
           ) : (
             (vendorVisits ?? []).map((v: any) => (

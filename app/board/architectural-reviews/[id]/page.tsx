@@ -45,16 +45,27 @@ export default async function BoardArchitecturalDetail({
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  const { data: req } = await db
+  const { data: req, error: reqError } = await db
     .from('architectural_requests')
     .select('id, title, description, category, status, decision_notes, decided_at, created_at, association_id, owner_id, attachments, units(unit_number), owners(full_name)')
     .eq('id', id)
     .in('association_id', ids)
     .maybeSingle()
 
+  // A failed read is not a missing request: say so instead of a 404.
+  if (reqError) {
+    return (
+      <div className="max-w-3xl space-y-6">
+        <Link href="/board/architectural-reviews" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">
+          <ArrowLeft className="h-4 w-4" /> Back to architectural reviews
+        </Link>
+        <Alert tone="danger" title="This request could not be loaded">{reqError.message}</Alert>
+      </div>
+    )
+  }
   if (!req) return notFound()
 
-  const { data: messages } = await db
+  const { data: messages, error: messagesError } = await db
     .from('architectural_request_messages')
     .select('id, author_name, author_role, body, created_at')
     .eq('request_id', id)
@@ -71,6 +82,7 @@ export default async function BoardArchitecturalDetail({
       <Link href="/board/architectural-reviews" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-950">
         <ArrowLeft className="h-4 w-4" /> Back to architectural reviews
       </Link>
+      {messagesError && <Alert tone="danger" title="The discussion could not be loaded">{messagesError.message}</Alert>}
       {sp.error && <Alert tone="danger" title="That did not go through.">{sp.error}</Alert>}
       {sp.decided && DECIDED_MESSAGE[sp.decided] && <Alert tone="success" title="Decision recorded">{DECIDED_MESSAGE[sp.decided]}</Alert>}
 

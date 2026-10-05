@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { AlertTriangle, ArrowLeft, Eye } from 'lucide-react'
 
@@ -29,12 +29,24 @@ export default async function RepeatOffendersPage() {
   }
 
   // Fetch all violations in board associations with owner data
-  const { data: allViolations } = await db
+  const { data: allViolations, error: violationsError } = await db
     .from('violations')
     .select(`id, status, title, violation_type, created_at, hearing_required, owner_id, owners!violations_owner_id_fkey(full_name), unit_id, units!violations_unit_id_fkey(unit_number)`)
     .in('association_id', boardAssocIds)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
+
+  if (violationsError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Repeat Offenders</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Owners with multiple violations</p>
+        </div>
+        <Alert tone="danger" title="Violations could not be loaded">{violationsError.message}</Alert>
+      </div>
+    )
+  }
 
   const violations = (allViolations ?? [])
 

@@ -118,7 +118,7 @@ export default async function BoardViolationsPage({
   // ── Base query for all violations in board associations ──
   let baseQuery = db
     .from('violations')
-    .select(`id, status, title, violation_type, date_observed, hearing_date, hearing_at, fine_amount, fine_assessed_at, created_at, updated_at, due_date, notice_sent_at, closed_at, association_id, unit_id, owner_id, created_by, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name), profiles!violations_created_by_fkey(full_name)`)
+    .select(`id, status, title, violation_type, date_observed, hearing_date, hearing_at, fine_amount, fine_assessed_at, created_at, updated_at, due_date, notice_sent_at, closed_at, association_id, unit_id, owner_id, created_by, associations!violations_association_id_fkey(name), units!violations_unit_id_fkey(unit_number), owners!violations_owner_id_fkey(full_name)`)
     .in('association_id', boardAssocIds)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
@@ -353,7 +353,8 @@ export default async function BoardViolationsPage({
                     <FineBadge fineAmount={v.fine_amount} fineAssessedAt={v.fine_assessed_at} />
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-700">
-                    {v.profiles?.full_name ?? '—'}
+                    {/* Staff profiles are not readable by board members (RLS). */}
+                    {v.created_by ? 'Management' : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <Badge status={v.status ?? '—'} />

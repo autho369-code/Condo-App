@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
+import { Alert } from '@/components/ui/shell'
 import { BarChart3, ArrowLeft, AlertTriangle, TrendingUp, Clock, Users } from 'lucide-react'
 import { ACTIVE_VIOLATION_STATUSES, CLOSED_VIOLATION_STATUSES } from '@/lib/violations/queries'
 
@@ -79,12 +80,24 @@ export default async function ViolationAnalyticsPage() {
   }
 
   // Fetch all violations
-  const { data: allViolations } = await db
+  const { data: allViolations, error: violationsError } = await db
     .from('violations')
     .select(`id, status, title, violation_type, created_at, closed_at, owner_id, fine_amount`)
     .in('association_id', boardAssocIds)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
+
+  if (violationsError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Violation Analytics</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Data-driven insights for your association</p>
+        </div>
+        <Alert tone="danger" title="Violations could not be loaded">{violationsError.message}</Alert>
+      </div>
+    )
+  }
 
   const violations = (allViolations ?? [])
 

@@ -1,6 +1,7 @@
 import { requireBoard } from '@/lib/auth/me'
 import { getAssociationCalendarFeed } from '@/lib/calendar/association-feed'
 import { AssociationCalendar } from '@/components/calendar/association-calendar'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ export default async function BoardCalendarPage() {
   const me = await requireBoard()
 
   // Same shared feed the owner portal renders — identical calendar for everyone.
-  const { items, timeZone } = await getAssociationCalendarFeed(me.board_association_ids ?? [])
+  const { items, timeZone, errors } = await getAssociationCalendarFeed(me.board_association_ids ?? [])
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -18,6 +19,7 @@ export default async function BoardCalendarPage() {
           Meetings, community events, vendor visits, and scheduled maintenance — next 90 days
         </p>
       </div>
+      {errors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
       <AssociationCalendar items={items} timeZone={timeZone} />
     </div>
   )

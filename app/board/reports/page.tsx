@@ -4,6 +4,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +13,12 @@ export default async function BoardReportsPage() {
   const ids = me.board_association_ids ?? []
   const db = (await createClient()) as any
   // RLS limits this to packages shared with the board for the member's associations.
-  const { data: packages } = ids.length
+  const { data: packages, error: packagesError } = ids.length
     ? await db.from('documents')
         .select('id, entity_id, file_name, file_url, uploaded_at, description')
         .eq('entity_type', 'association').eq('doc_type', 'board_report').in('entity_id', ids)
         .order('uploaded_at', { ascending: false }).limit(24)
-    : { data: [] }
+    : { data: [], error: null }
   const { data: assocRows } = ids.length > 1 ? await db.from('associations').select('id, name').in('id', ids) : { data: [] }
   const nameById = new Map<string, string>(((assocRows ?? []) as any[]).map((a) => [a.id, a.name]))
   const links = new Map<string, string>()
@@ -51,7 +52,9 @@ export default async function BoardReportsPage() {
           <h2 className="text-sm font-semibold text-gray-950">Monthly board packages</h2>
           <p className="mt-0.5 text-xs text-gray-500">Financial statements published by your management company.</p>
         </div>
-        {(packages ?? []).length === 0 ? (
+        {packagesError ? (
+          <div className="p-5"><Alert tone="danger" title="Board packages could not be loaded">{packagesError.message}</Alert></div>
+        ) : (packages ?? []).length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-gray-500">No board packages have been published yet.</p>
         ) : (
           <ul className="divide-y divide-gray-100">

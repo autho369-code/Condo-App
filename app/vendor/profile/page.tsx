@@ -6,6 +6,7 @@ import { PageHeader, Surface, SectionTitle, Alert } from '@/components/ui/shell'
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { tradeLabel } from '@/lib/vendors/options';
+import { firstVendorPhone, replaceFirstVendorPhone } from '@/lib/vendors/contact';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,8 @@ export default async function VendorProfile({
     .eq('id', me.vendor_id)
     .maybeSingle();
 
-  const phone = Array.isArray(v?.phone_numbers) && v.phone_numbers[0] ? (v.phone_numbers[0].number ?? v.phone_numbers[0].value ?? '') : '';
+  // Phones are stored as plain strings or { number | value } objects.
+  const phone = firstVendorPhone(v?.phone_numbers);
   const email = Array.isArray(v?.emails) && v.emails[0] ? (typeof v.emails[0] === 'string' ? v.emails[0] : v.emails[0].address ?? '') : '';
 
   async function save(formData: FormData) {
@@ -37,10 +39,8 @@ export default async function VendorProfile({
     const { data: current, error: loadError } = await (supabase2 as any)
       .from('vendors').select('phone_numbers, emails').eq('id', me2.vendor_id).maybeSingle();
     if (loadError || !current) redirect(`/vendor/profile?error=${encodeURIComponent(loadError?.message ?? 'Your vendor record was not found.')}`);
-    const phones = Array.isArray(current.phone_numbers) ? [...current.phone_numbers] : [];
+    const phones = replaceFirstVendorPhone(current.phone_numbers, phoneVal);
     const emails = Array.isArray(current.emails) ? [...current.emails] : [];
-    if (phoneVal) phones[0] = { ...(typeof phones[0] === 'object' && phones[0] ? phones[0] : {}), type: phones[0]?.type ?? 'work', number: phoneVal };
-    else phones.splice(0, 1);
     if (emailVal) emails[0] = typeof emails[0] === 'object' && emails[0] ? { ...emails[0], address: emailVal } : emailVal;
     else if (emails.length > 1) emails.splice(0, 1);
     // Keep at least one email: sign-in can fall back to matching it.

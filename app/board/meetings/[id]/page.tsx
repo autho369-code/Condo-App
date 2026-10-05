@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { date, money } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
-import { Calendar, MapPin, Clock, FileText, Plus, Trash2, Upload, Download, ChevronRight, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Clock, FileText, Paperclip, Download, Loader2 } from 'lucide-react'
 
 interface Meeting {
   id: string
@@ -94,7 +94,6 @@ const statusBadge = (s: string) => {
 }
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
-const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-950 placeholder-gray-400 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
 export default function MeetingDetailClient() {
   const params = useParams()
@@ -109,14 +108,6 @@ export default function MeetingDetailClient() {
   const [loading, setLoading] = useState(true)
   const [loadErrors, setLoadErrors] = useState<string[]>([])
   const [generating, setGenerating] = useState(false)
-  const [uploading, setUploading] = useState(false)
-
-  // New agenda item form
-  const [newTitle, setNewTitle] = useState('')
-  const [newCategory, setNewCategory] = useState('general')
-  const [newDuration, setNewDuration] = useState('')
-  const [newPresenter, setNewPresenter] = useState('')
-  const [newDesc, setNewDesc] = useState('')
 
   const loadData = useCallback(async () => {
     if (!meetingId) return
@@ -157,96 +148,6 @@ export default function MeetingDetailClient() {
   }, [meetingId, supabase])
 
   useEffect(() => { loadData() }, [loadData])
-
-  const addAgendaItem = async () => {
-    if (!newTitle.trim()) return
-    const db = supabase as any
-    const { data, error } = await db
-      .from('agenda_items')
-      .insert({
-        meeting_id: meetingId,
-        title: newTitle.trim(),
-        description: newDesc.trim() || null,
-        category: newCategory,
-        duration_minutes: newDuration ? parseInt(newDuration) : null,
-        presenter: newPresenter.trim() || null,
-        sort_order: agendaItems.length,
-      })
-      .select()
-      .single()
-    if (!error && data) {
-      setAgendaItems([...agendaItems, data as AgendaItem])
-      setNewTitle('')
-      setNewDesc('')
-      setNewDuration('')
-      setNewPresenter('')
-    }
-  }
-
-  const removeAgendaItem = async (id: string) => {
-    const db = supabase as any
-    const { error } = await db.from('agenda_items').delete().eq('id', id)
-    if (!error) {
-      setAgendaItems(agendaItems.filter((i: AgendaItem) => i.id !== id))
-    }
-  }
-
-  const moveItem = async (id: string, direction: 'up' | 'down') => {
-    const idx = agendaItems.findIndex((i: AgendaItem) => i.id === id)
-    if (idx === -1) return
-    const target = direction === 'up' ? idx - 1 : idx + 1
-    if (target < 0 || target >= agendaItems.length) return
-
-    const reordered = [...agendaItems]
-    const [moved] = reordered.splice(idx, 1)
-    reordered.splice(target, 0, moved)
-    setAgendaItems(reordered)
-
-    const ids = reordered.map((i: AgendaItem) => i.id)
-    const db = supabase as any
-    await db.rpc('reorder_agenda_items', {
-      p_meeting_id: meetingId,
-      p_item_ids: ids,
-    })
-  }
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !meeting) return
-    setUploading(true)
-    const db = supabase as any
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const path = `meetings/${meetingId}/${Date.now()}_${safeName}`
-    const { error: uploadErr } = await supabase.storage
-      .from('association-documents')
-      .upload(path, file)
-
-    if (uploadErr) {
-      console.error('Upload failed:', uploadErr)
-      alert('Upload failed: ' + uploadErr.message)
-      setUploading(false)
-      return
-    }
-
-    const { data: doc, error: insertErr } = await db
-      .from('meeting_documents')
-      .insert({
-        meeting_id: meetingId,
-        name: file.name,
-        storage_path: path,
-        file_size: file.size,
-        file_type: file.type,
-        uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-      })
-      .select()
-      .single()
-
-    if (!insertErr && doc) {
-      setDocuments([doc as MeetingDoc, ...documents])
-    }
-    setUploading(false)
-  }
 
   const generatePDF = async () => {
     if (!meeting) return
@@ -437,10 +338,8 @@ export default function MeetingDetailClient() {
     )
   }
 
-  // This route is intentionally a board-view surface. Management mutations
-  // live in /meetings/[id], even when one identity also holds a staff role.
-  const canEdit = false
-
+  // Board view is read-only: agenda, documents and actions are managed by
+  // staff in /meetings/[id] (RLS and the reorder RPC require staff).
   return (
     <div className="space-y-6">
       {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
@@ -529,27 +428,15 @@ export default function MeetingDetailClient() {
               <span className="text-xs text-gray-400">{agendaItems.length} item{agendaItems.length !== 1 ? 's' : ''}</span>
             </div>
 
-            {agendaItems.length === 0 && !canEdit ? (
+            {agendaItems.length === 0 ? (
               <div className="px-5 py-12 text-center text-sm text-gray-500">No agenda items yet.</div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {agendaItems.map((item: AgendaItem, idx: number) => (
                   <div key={item.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/60">
-                    {canEdit && (
-                      <div className="flex flex-col gap-0.5 pt-0.5">
-                        <button onClick={() => moveItem(item.id, 'up')} disabled={idx === 0} className="text-gray-400 hover:text-gray-950 disabled:opacity-30">
-                          <ChevronRight className="h-3 w-3 rotate-[-90deg]" />
-                        </button>
-                        <button onClick={() => moveItem(item.id, 'down')} disabled={idx === agendaItems.length - 1} className="text-gray-400 hover:text-gray-950 disabled:opacity-30">
-                          <ChevronRight className="h-3 w-3 rotate-90" />
-                        </button>
-                      </div>
-                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        {!canEdit && (
-                          <span className="text-xs font-medium text-gray-400">{idx + 1}.</span>
-                        )}
+                        <span className="text-xs font-medium text-gray-400">{idx + 1}.</span>
                         <span className="text-sm font-medium text-gray-900">{item.title}</span>
                         <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-600 ring-1 ring-inset ring-gray-500/15">
                           {categoryLabel[item.category] ?? item.category}
@@ -563,69 +450,11 @@ export default function MeetingDetailClient() {
                         {item.presenter && <span>Presented by: {item.presenter}</span>}
                       </div>
                     </div>
-                    {canEdit && (
-                      <button onClick={() => removeAgendaItem(item.id)} className="text-gray-400 hover:text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Add agenda item (staff only for non-completed meetings) */}
-            {canEdit && (
-              <div className="space-y-3 border-t border-gray-100 px-5 py-4">
-                <h3 className="text-sm font-medium text-gray-900">Add Agenda Item</h3>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    placeholder="Item title"
-                    value={newTitle}
-                    onChange={(e: any) => setNewTitle(e.target.value)}
-                    className={inputCls}
-                  />
-                  <select
-                    value={newCategory}
-                    onChange={(e: any) => setNewCategory(e.target.value)}
-                    className={inputCls}
-                  >
-                    {Object.entries(categoryLabel).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Duration (min)"
-                    value={newDuration}
-                    onChange={(e: any) => setNewDuration(e.target.value)}
-                    className={inputCls}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Presenter (optional)"
-                    value={newPresenter}
-                    onChange={(e: any) => setNewPresenter(e.target.value)}
-                    className={inputCls}
-                  />
-                </div>
-                <textarea
-                  placeholder="Description (optional)"
-                  value={newDesc}
-                  onChange={(e: any) => setNewDesc(e.target.value)}
-                  rows={2}
-                  className={inputCls}
-                />
-                <button
-                  onClick={addAgendaItem}
-                  disabled={!newTitle.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gray-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Item
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Follow-up actions (board read-only) */}
@@ -663,7 +492,7 @@ export default function MeetingDetailClient() {
           <div className={`${card} overflow-hidden`}>
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
-                <Upload className="h-4 w-4 text-gray-400" />
+                <Paperclip className="h-4 w-4 text-gray-400" />
                 Documents
               </h2>
               <span className="text-xs text-gray-400">{documents.length} file{documents.length !== 1 ? 's' : ''}</span>
@@ -671,7 +500,7 @@ export default function MeetingDetailClient() {
             <div className="divide-y divide-gray-100">
               {documents.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-gray-500">
-                  {canEdit ? 'No documents attached. Use the upload button below to add files.' : 'No documents have been attached.'}
+                  No documents have been attached.
                 </div>
               ) : (
                 documents.map((d: MeetingDoc) => (
@@ -695,28 +524,6 @@ export default function MeetingDetailClient() {
                 ))
               )}
             </div>
-            {/* Upload */}
-            {canEdit && <div className="border-t border-gray-100 px-5 py-4">
-              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700">
-                {uploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Upload Document
-                  </>
-                )}
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={uploading}
-                />
-              </label>
-            </div>}
           </div>
 
           {/* Meeting Minutes */}

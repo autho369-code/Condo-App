@@ -114,7 +114,10 @@ describe('meeting governance application workflow', () => {
     expect(boardPage).not.toContain('(doc as any).autoTable');
     expect(boardPage).toContain('href={`/api/meeting-documents/${d.id}`}');
     expect(boardPage).not.toContain('.createSignedUrl(d.storage_path');
-    expect(boardPage).toContain('const canEdit = false');
+    // Board view is read-only: no agenda/document mutations at all.
+    for (const dead of ['agenda_items\')\n      .insert', "from('agenda_items').delete", 'reorder_agenda_items', "from('meeting_documents')\n      .insert", 'type="file"']) {
+      expect(boardPage).not.toContain(dead);
+    }
     expect(adminNavigation).toContain("{ label: 'Meetings', href: '/meetings' }");
   });
 });

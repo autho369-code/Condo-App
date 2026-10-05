@@ -29,9 +29,25 @@ function validDate(value: string | null | undefined) {
   return !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+// Only an orphaned upload may be removed. The path comes from the vendor's
+// request, so a resubmitted path could point at a file already recorded as a
+// compliance document, an invoice attachment (documents.file_url, written by
+// submit_vendor_invoice) or a document-request submission. If any reference
+// exists, or the check itself fails, the file is kept.
 async function removeUploadedFile(path: string) {
   try {
-    await (createServiceClient() as any).storage.from(BUCKET).remove([path]);
+    const service = createServiceClient() as any;
+    const [docRef, requestRef] = await Promise.all([
+      service.from('documents').select('id').eq('file_url', path).limit(1),
+      service.from('document_requests').select('id').filter('attachment_urls', 'cs', JSON.stringify([path])).limit(1),
+    ]);
+    if (docRef.error || requestRef.error) {
+      console.error('Kept vendor upload: reference check failed', docRef.error ?? requestRef.error);
+      return;
+    }
+    if ((docRef.data ?? []).length > 0 || (requestRef.data ?? []).length > 0) return;
+    const { error } = await service.storage.from(BUCKET).remove([path]);
+    if (error) console.error('Could not clean up rejected vendor upload', error);
   } catch (error) {
     console.error('Could not clean up rejected vendor upload', error);
   }

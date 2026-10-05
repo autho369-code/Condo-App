@@ -153,11 +153,18 @@ export async function assignVendor(workOrderId: string, formData: FormData) {
     .maybeSingle();
   if (error || !updated) { failTo(error?.message ?? 'Work order was not updated in this portfolio.'); return; }
 
-  const { error: activityError } = await (supabase as any).from('work_order_updates').insert({
+  // The generic "Assigned to vendor" line is visible to the vendor; a
+  // manager-typed note (often the reason a previous vendor was dropped) is
+  // staff-only so the newly assigned vendor never reads it.
+  const activityRows: Record<string, unknown>[] = [{
     work_order_id: workOrderId,
-    note: note || `Assigned to vendor${vendor?.name ? ': ' + vendor.name : ''}`,
+    note: `Assigned to vendor${vendor?.name ? ': ' + vendor.name : ''}`,
     new_status: bumpStatus ? 'assigned' : null,
-  });
+  }];
+  if (note?.trim()) {
+    activityRows.push({ work_order_id: workOrderId, note: note.trim(), staff_only: true });
+  }
+  const { error: activityError } = await (supabase as any).from('work_order_updates').insert(activityRows);
   if (activityError) { failTo(`Vendor assigned, but the activity entry could not be recorded: ${activityError.message}`); return; }
   // Auto keep homeowner informed when assignment also changed the status
   if (bumpStatus) {
