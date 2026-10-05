@@ -96,6 +96,12 @@ export async function sendSms(formData: FormData) {
     .eq('portfolio_id', me.portfolio?.id)
     .eq('with_entity_type', recipientType)
     .eq('with_entity_id', recipientId)
+    // One thread per owner per association: an owner in two associations has
+    // a thread for each, so managers scoped to either see their own.
+    .or(associationId ? `association_id.eq.${associationId},association_id.is.null` : 'association_id.is.null')
+    .order('association_id', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (existingConvError) { await failAndRelease(existingConvError.message); return; }
