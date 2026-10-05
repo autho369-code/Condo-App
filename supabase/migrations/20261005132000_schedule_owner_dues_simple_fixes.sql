@@ -95,6 +95,14 @@ begin
   end if;
 
   -- Same terms already billing this unit: nothing to do.
+  -- Dues already charged on the first due date (by any schedule): start the
+  -- month after, so an unposted row due that day is switched off below.
+  if exists (select 1 from public.charges c
+              where c.unit_id = v_occ.unit_id and c.charge_category_id = any(v_cats)
+                and c.due_date = v_first) then
+    v_first := (v_first + interval '1 month')::date;
+  end if;
+
   -- A dues schedule that never posted and is dated before the first due date
   -- (e.g. the fee builder backdated to an old move-in) would bill past months
   -- retroactively: switch it off.
