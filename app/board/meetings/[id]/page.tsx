@@ -407,7 +407,7 @@ export default function MeetingDetailClient() {
         doc.setPage(i)
         doc.setFontSize(9)
         doc.setTextColor(156, 163, 175)
-        doc.text(`Portier369 — Board Meeting Packet — ${date(new Date().toISOString(), 'long')}`, 50, doc.internal.pageSize.getHeight() - 30)
+        doc.text(`${meeting.associations?.name ? `${meeting.associations.name} — ` : ''}Board Meeting Packet — ${date(new Date().toISOString(), 'long')}`, 50, doc.internal.pageSize.getHeight() - 30)
       }
 
       doc.save(`${meeting.title.replace(/[^a-zA-Z0-9]/g, '_')}_Packet.pdf`)

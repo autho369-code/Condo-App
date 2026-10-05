@@ -71,7 +71,7 @@ async function acceptInvite(formData: FormData) {
   // Validate the invitation
   const { data: invite } = await svc
     .from('user_invitations')
-    .select('id, email, portfolio_id, hoa_role, expires_at, accepted_at, status, portfolios(slug)')
+    .select('id, email, portfolio_id, hoa_role, expires_at, accepted_at, status, portfolios(slug, company_name)')
     .eq('token', token)
     .eq('status', 'pending')
     .maybeSingle();
@@ -111,7 +111,7 @@ async function acceptInvite(formData: FormData) {
 
   const queued = await queueEmails(svc, [{
     to: invite.email,
-    subject: 'Verify your Portier369 account',
+    subject: `Verify your ${invite.portfolios?.company_name || 'Portier369'} account`,
     text: [
       'Your password was saved, but your account is not active yet.',
       '',
@@ -142,13 +142,16 @@ async function acceptInvite(formData: FormData) {
 
 }
 
-function Shell({ title, children }: { title: string; children: React.ReactNode }) {
+function Shell({ title, brand, children }: { title: string; brand?: string | null; children: React.ReactNode }) {
+  // White label: show the inviting client company's name once the invitation
+  // is known; the platform name only before that.
+  const name = brand?.trim() || 'Portier369';
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f6f7f9] px-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-200/80 bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-12px_rgba(16,24,40,0.12)]">
         <div className="mb-5 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-sm font-bold text-white">P</div>
-          <span className="text-lg font-semibold text-gray-950">Portier369</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-sm font-bold text-white">{name.charAt(0).toUpperCase()}</div>
+          <span className="text-lg font-semibold text-gray-950">{name}</span>
         </div>
         <h1 className="text-xl font-semibold tracking-[-0.02em] text-gray-950">{title}</h1>
         {children}
@@ -210,12 +213,12 @@ export default async function InvitePage({
   const existing = await existingAccount(svc, invite.email, invite.portfolio_id);
   if (existing) {
     return (
-      <Shell title="Accept your invitation">
+      <Shell title="Accept your invitation" brand={companyName}>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
           You&apos;ve been invited to join{companyName ? <> <strong className="text-gray-900">{companyName}</strong></> : null} as <strong className="text-gray-900">{roleLabel}</strong>.
         </p>
         <p className="mt-1 text-sm leading-6 text-gray-500">
-          <strong className="text-gray-900">{invite.email}</strong> already has a Portier369 account. Sign in with it to accept.
+          <strong className="text-gray-900">{invite.email}</strong> already has an account. Sign in with it to accept.
         </p>
         <a href={signInToAcceptHref(token, existing.otherCompany)} className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-[14px] font-medium text-white hover:bg-gray-800">
           Sign in to accept
@@ -226,7 +229,7 @@ export default async function InvitePage({
   }
 
   return (
-    <Shell title="Accept your invitation">
+    <Shell title="Accept your invitation" brand={companyName}>
       <p className="mt-1.5 text-sm leading-6 text-gray-500">
         You&apos;ve been invited to join{companyName ? <> <strong className="text-gray-900">{companyName}</strong></> : null} as <strong className="text-gray-900">{roleLabel}</strong>.
       </p>
