@@ -7,6 +7,8 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { checkWorkOrderLinks } from '@/lib/maintenance/work-order-links';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +37,17 @@ export default async function NewRecurringWorkOrderPage({ searchParams }: { sear
     const title = (formData.get('title') as string)?.trim();
     if (!associationId) redirect('/recurring-work-orders/new?error=' + encodeURIComponent('Select an association.'));
     if (!title) redirect('/recurring-work-orders/new?error=' + encodeURIComponent('Enter a title.'));
-    const startDate = (formData.get('start_date') as string) || new Date().toISOString().slice(0, 10);
+    const unitId = (formData.get('unit_id') as string) || null;
+    const vendorId = (formData.get('vendor_id') as string) || null;
+    const links = await checkWorkOrderLinks(supabase, associationId!, unitId, vendorId);
+    if (links.error !== undefined) redirect('/recurring-work-orders/new?error=' + encodeURIComponent(links.error));
+    const startDate = (formData.get('start_date') as string) || todayInZone();
     const interval = parseInt(formData.get('interval_count') as string, 10);
     const { error } = await (supabase as any).from('recurring_work_orders').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: links.portfolioId,
       association_id: associationId,
-      unit_id: (formData.get('unit_id') as string) || null,
-      vendor_id: (formData.get('vendor_id') as string) || null,
+      unit_id: unitId,
+      vendor_id: vendorId,
       title,
       description: (formData.get('description') as string)?.trim() || null,
       category: (formData.get('category') as string) || null,

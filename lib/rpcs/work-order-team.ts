@@ -34,10 +34,11 @@ export async function assignWorkOrderToStaff(workOrderId: string, formData: Form
     .select('id').maybeSingle();
   if (error || !updated) fail(error?.message ?? 'Work order not found');
 
-  await db.from('work_order_updates').insert({
+  const { error: activityError } = await db.from('work_order_updates').insert({
     work_order_id: workOrderId,
     note: name ? `Assigned in-house to ${name}` : 'In-house assignee removed',
   });
+  if (activityError) fail(`Assignment saved, but its activity entry could not be recorded: ${activityError.message}`);
   revalidatePath(back);
   revalidatePath('/work-orders');
   revalidatePath('/work-orders/team');

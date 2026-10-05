@@ -256,8 +256,10 @@ async function verifyArchAttachmentAccess(requestId: string, basePath: string) {
 
   let staffCanAccessAssociation = false;
   if (safeBasePath === '/architectural-reviews' && !me.is_platform_operator && (me.is_staff || me.is_company_admin)) {
+    // can_manage_association also honours association-scoped managers
+    // (can_access_association alone only checks the company).
     const { data: canAccess, error: accessError } = await (session as any)
-      .rpc('can_access_association', { a_id: req.association_id });
+      .rpc('can_manage_association', { p_association_id: req.association_id });
     staffCanAccessAssociation = !accessError && canAccess === true;
   }
   const role = architecturalSurfaceAccessRole({

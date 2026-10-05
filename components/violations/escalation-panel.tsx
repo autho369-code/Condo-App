@@ -103,7 +103,7 @@ export function EscalationPanel({
                 Next: {next.follow_up_name}{nextFee > 0 ? ` — posts a ${money(nextFee)} fine` : ''}
               </div>
               {gate && <Alert tone="warning">{gate}</Alert>}
-              <Input name="note" maxLength={500} placeholder="Note for the timeline (optional)" aria-label="Note" />
+              <Input name="note" maxLength={500} placeholder="Timeline note (the owner and board can see it)" aria-label="Timeline note, visible to the owner and board" />
               <Button type="submit" disabled={Boolean(gate)}>Record {next.follow_up_name.toLowerCase()}</Button>
             </form>
           ) : (
@@ -113,7 +113,7 @@ export function EscalationPanel({
           <div className="space-y-3">
             <form action={resolveViolation} className="flex flex-col gap-2 sm:flex-row">
               <input type="hidden" name="id" value={v.id} />
-              <Input name="note" maxLength={500} placeholder="Resolution note" aria-label="Resolution note" />
+              <Input name="note" maxLength={500} placeholder="Resolution note (the owner can see it)" aria-label="Resolution note, visible to the owner and board" />
               <Button type="submit" name="resolution" value="cured" variant="secondary">Mark corrected</Button>
               <Button type="submit" name="resolution" value="closed" variant="ghost">Close</Button>
             </form>
@@ -134,7 +134,7 @@ export function EscalationPanel({
                     </Select>
                   </Field>
                 </div>
-                <Input name="notes" maxLength={500} placeholder="Board vote / notes" aria-label="Hearing notes" />
+                <Input name="notes" maxLength={500} placeholder="Board vote / notes (the owner can see them)" aria-label="Hearing notes, visible to the owner and board" />
                 <Button type="submit" variant="secondary">Save decision</Button>
               </form>
             )}

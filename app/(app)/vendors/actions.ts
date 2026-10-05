@@ -21,13 +21,12 @@ export async function inviteVendorToPortal(formData: FormData) {
   const fail = (msg: string) => redirect(back + sep + 'error=' + encodeURIComponent(msg))
 
   if (!vendorId) fail('Missing vendor.')
-  if (!me.portfolio?.id) fail('Your account is not linked to a portfolio.')
 
   const supabase = await createClient()
   const db = supabase as any
   const { data: vendor } = await db
     .from('vendors')
-    .select('id, name, emails')
+    .select('id, name, emails, portfolio_id, portfolios(company_name)')
     .eq('id', vendorId)
     .maybeSingle()
   if (!vendor) fail('Vendor not found.')
@@ -36,22 +35,27 @@ export async function inviteVendorToPortal(formData: FormData) {
   const email = emails.find((e) => typeof e === 'string' && e.includes('@'))
   if (!email) fail('This vendor has no email on file. Add one before inviting them to the portal.')
 
+  // The invitation belongs to the vendor's own company (a platform operator's
+  // portfolio is not the client company's).
+  const portfolioId: string = vendor.portfolio_id
+  const companyName: string | null = vendor.portfolios?.company_name ?? null
+  if (!portfolioId) fail('Vendor not found.')
   const svc = createServiceClient() as any
   // Supersede any older pending invite for this email so only one link is live.
   await svc
     .from('user_invitations')
     .update({ status: 'revoked' })
     .eq('email', email!.toLowerCase())
-    .eq('portfolio_id', me.portfolio.id)
+    .eq('portfolio_id', portfolioId)
     .eq('status', 'pending')
 
   const { error } = await svc.from('user_invitations').insert({
-    portfolio_id: me.portfolio.id,
+    portfolio_id: portfolioId,
     email: email!.toLowerCase(),
     full_name: vendor.name,
     hoa_role: 'vendor',
     invited_by: me.auth_user_id,
-    message: `Activate your vendor portal for ${me.portfolio?.company_name ?? 'your community'}.`,
+    message: `Activate your vendor portal for ${companyName ?? 'your community'}.`,
     expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
   })
   if (error) fail(error.message)

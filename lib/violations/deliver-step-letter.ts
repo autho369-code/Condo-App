@@ -4,6 +4,8 @@ import { generateDocumentPdf } from '@/lib/documents/generated-pdf';
 import { queueEmails, richTextToPlainText, textToHtml } from '@/lib/email/queue';
 import { createServiceClient } from '@/lib/supabase/server';
 import { buildStepLetter } from '@/lib/violations/step-letter';
+import { isValidTimeZone } from '@/lib/time/display-zone';
+import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
 
 const BUCKET = 'association-documents';
 
@@ -37,7 +39,7 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
 
   const { data: v, error } = await db
     .from('violations')
-    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, last_step_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id), units(unit_number), owners(full_name, email)')
+    .select('id, title, description, date_observed, cure_deadline, notice_sent_at, last_step_at, fines_total, association_id, owner_id, governing_document_reference, associations(name, portfolio_id, timezone), units(unit_number), owners(full_name, email)')
     .eq('id', violationId)
     .maybeSingle();
   if (error || !v) throw new Error('Could not load the violation to write its letter.');
@@ -58,12 +60,17 @@ export async function deliverStepLetter(db: any, violationId: string, result: Ad
     ? (result.template_subject || result.template_body ? { subject: result.template_subject ?? null, body: result.template_body ?? null } : null)
     : liveTemplate;
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Letter dates are calendar dates in the association's zone (a UTC date is
+  // already tomorrow on a US evening).
+  const zone = typeof v.associations?.timezone === 'string' && isValidTimeZone(v.associations.timezone)
+    ? v.associations.timezone
+    : DEFAULT_TIME_ZONE;
+  const today = todayInZone(zone);
   const hearingDays = Number(settings?.hearing_request_days ?? 14);
   // Anchored to when the step was recorded, so a resent letter states the same deadline.
   const stepAt = v.last_step_at ? new Date(v.last_step_at).getTime() : Date.now();
   const hearingDeadline = result.offers_hearing
-    ? new Date(stepAt + hearingDays * 86_400_000).toISOString().slice(0, 10)
+    ? todayInZone(zone, new Date(stepAt + hearingDays * 86_400_000))
     : null;
   const associationName = v.associations?.name ?? 'Your association';
   const { subject, body } = buildStepLetter(

@@ -176,7 +176,7 @@ export default async function WorkOrdersPage({
 
   // ── Fetch work orders, counts and reference lists ──
   const [
-    { data: rows },
+    { data: rows, error: listError },
     { data: associations },
     { data: vendors },
     { data: staff },
@@ -381,6 +381,7 @@ export default async function WorkOrdersPage({
           </Alert>
         )}
         {sp.error && <Alert tone="danger" title="Could not update work orders">{sp.error}</Alert>}
+        {listError && <Alert tone="danger" title="Work orders could not be loaded">{listError.message}</Alert>}
 
         {/* ── TABLE ── */}
         {filtered.length > 0 ? (
