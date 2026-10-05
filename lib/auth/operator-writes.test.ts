@@ -40,3 +40,28 @@ describe('blocksOperatorWrite', () => {
     expect(blocksOperatorWrite(op('support'), 'POST', '/platform-operator/supportx')).toBe(true);
   });
 });
+
+describe('server-action operator refusal in auth guards', () => {
+  // An action ID can be posted to any path, so the guards privileged actions
+  // call must refuse non-admin operators themselves.
+  const source = require('node:fs').readFileSync('lib/auth/me.ts', 'utf8') as string;
+  const body = (name: string) => {
+    const start = source.indexOf(`export async function ${name}(`);
+    return source.slice(start, source.indexOf('\n}\n', start));
+  };
+
+  it.each(['requireStaff', 'requireBoard', 'requireWorkspaceStaff', 'requireFinanceOrPortfolioAdmin', 'requireFinanceStaff', 'requirePortfolioAdmin'])(
+    '%s refuses non-admin operators inside server actions',
+    (name) => {
+      expect(body(name)).toContain('refuseOperatorActionUnless(');
+    },
+  );
+
+  it('requirePlatformOperator lets only admin and support act', () => {
+    expect(body('requirePlatformOperator')).toContain("refuseOperatorAction(me, ['admin', 'support'])");
+  });
+
+  it('keys the refusal on the server-action header', () => {
+    expect(source).toContain(".get('next-action')");
+  });
+});
