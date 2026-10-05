@@ -1,31 +1,21 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
-import Link from 'next/link'
-import { FileText, Image as ImageIcon, FolderOpen } from 'lucide-react'
+import { FileText, FolderOpen } from 'lucide-react'
 import { Alert } from '@/components/ui/shell'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { SHARE_LABEL, orderedFolders, type ShareScope } from '@/lib/associations/document-sharing'
 
 export const dynamic = 'force-dynamic'
 
+// Governing documents only: the files management has shared with the board.
+// The board portal does not show violations, owners or other operational files.
 export default async function BoardDocumentsPage() {
   const me = await requireBoard()
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  // Get violations with attachments
-  const { data: violationDocs, error: violationDocsError } = await db
-    .from('violations')
-    .select('id, title, attachments, created_at, units(unit_number)')
-    .in('association_id', ids)
-    .is('archived_at', null)
-    .not('attachments', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  // Association documents the manager shared with the board (or with owners).
   // RLS (documents_board_association_read) enforces share_scope.
   const { data: assocDocRows, error: assocDocsError } = ids.length
     ? await db.from('documents')
@@ -36,14 +26,14 @@ export default async function BoardDocumentsPage() {
     : { data: [], error: null }
   const assocDocs = (assocDocRows ?? []) as any[]
   const docLinks = new Map<string, string>()
+  let signError: string | null = null
   const toSign = assocDocs.filter((d) => isScopedStoragePath(d.file_url, 'associations', d.entity_id))
   if (toSign.length) {
-    try {
-      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
-        .createSignedUrls(toSign.map((d) => d.file_url), 3600)
-      const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
-      for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
-    } catch {}
+    const { data: signed, error } = await (createServiceClient() as any).storage.from('association-documents')
+      .createSignedUrls(toSign.map((d) => d.file_url), 3600)
+    if (error) signError = error.message
+    const byPath = new Map<string, string>((signed ?? []).filter((x: any) => x?.signedUrl).map((x: any) => [x.path, x.signedUrl]))
+    for (const d of toSign) { const u = byPath.get(d.file_url); if (u) docLinks.set(d.id, u) }
   }
   const docFolders = orderedFolders(assocDocs.map((d) => d.folder))
   const docGroups = [
@@ -51,54 +41,21 @@ export default async function BoardDocumentsPage() {
     { folder: 'Other', items: assocDocs.filter((d) => !d.folder) },
   ].filter((g) => g.items.length > 0)
 
-  // Build document list from attachments. Violation attachments are
-  // { name, path } objects in a private bucket: sign each path that sits in
-  // that violation's own folder (a raw path is not a usable link).
-  const docs: any[] = []
-  const attachmentPaths: string[] = []
-  for (const v of violationDocs ?? []) {
-    for (const a of Array.isArray(v.attachments) ? v.attachments : []) {
-      const path = typeof a === 'string' ? a : a?.path
-      if (isScopedStoragePath(path, 'violations', v.id)) attachmentPaths.push(path)
-    }
-  }
-  const signedAttachment = new Map<string, string>()
-  if (attachmentPaths.length) {
-    try {
-      const { data: signed } = await (createServiceClient() as any).storage.from('association-documents')
-        .createSignedUrls(attachmentPaths, 3600)
-      for (const x of signed ?? []) if (x?.signedUrl) signedAttachment.set(x.path, x.signedUrl)
-    } catch {}
-  }
-  for (const v of violationDocs ?? []) {
-    for (const a of Array.isArray(v.attachments) ? v.attachments : []) {
-      const path = typeof a === 'string' ? a : a?.path
-      const name = (typeof a === 'string' ? undefined : a?.name) ?? (typeof path === 'string' ? path.split('/').pop() : 'Attachment')
-      docs.push({ name, url: path ? signedAttachment.get(path) ?? null : null, type: 'Violation', related: v.title, unit: v.units?.unit_number, date: v.created_at, id: v.id })
-    }
-  }
-
-  const typePill = 'inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15'
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Documents</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Association documents, notices, and attachments</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Governing Documents</h1>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Bylaws, declarations, rules and other documents shared with the board</p>
       </div>
 
-      {assocDocsError && <Alert tone="danger" title="Association documents could not be loaded">{assocDocsError.message}</Alert>}
-      {violationDocsError && <Alert tone="danger" title="Violation attachments could not be loaded">{violationDocsError.message}</Alert>}
+      {assocDocsError && <Alert tone="danger" title="Documents could not be loaded">{assocDocsError.message}</Alert>}
+      {signError && <Alert tone="danger" title="Download links could not be created">{signError}</Alert>}
 
       <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="border-b border-gray-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-950">Association documents</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Files management has shared with the board. “Board and owners” files are also in the owner portal.</p>
-        </div>
         {docGroups.length === 0 && !assocDocsError ? (
           <div className="px-5 py-10 text-center text-sm text-gray-500">
             <FolderOpen className="mx-auto mb-2 h-6 w-6 text-gray-300" />
-            No association documents have been shared with the board yet.
+            No documents have been shared with the board yet.
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -123,58 +80,6 @@ export default async function BoardDocumentsPage() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {[
-          // Only files count as documents (work orders without files do not).
-          { label: 'Association Documents', value: assocDocsError ? '—' : assocDocs.length },
-          { label: 'Violation Attachments', value: violationDocsError ? '—' : docs.length },
-          { label: 'Total Documents', value: assocDocsError || violationDocsError ? '—' : assocDocs.length + docs.length },
-        ].map(s => (
-          <div key={s.label} className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{s.label}</div>
-            <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{s.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="overflow-x-auto rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-100 bg-gray-50/60 text-[11px] uppercase tracking-wide text-gray-500">
-            <tr>
-              <th className="px-4 py-2.5 text-left font-medium">Document</th>
-              <th className="px-4 py-2.5 text-left font-medium">Type</th>
-              <th className="px-4 py-2.5 text-left font-medium">Related To</th>
-              <th className="px-4 py-2.5 text-left font-medium">Unit</th>
-              <th className="px-4 py-2.5 text-right font-medium">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {docs.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-500">{violationDocsError ? 'Violation attachments are unavailable right now.' : 'No documents found. Violation photos and attachments will appear here.'}</td></tr>
-            ) : (
-              <>
-                {docs.map((d: any, i: number) => (
-                  <tr key={`vd-${i}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {d.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <ImageIcon className="h-4 w-4 text-gray-400" /> : <FileText className="h-4 w-4 text-gray-400" />}
-                        {d.url ? <a href={d.url} target="_blank" className="block max-w-[300px] truncate font-medium text-gray-900 hover:text-gray-950 hover:underline">{d.name}</a> : <span className="text-[13px] text-gray-700">{d.name}</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3"><span className={typePill}>{d.type}</span></td>
-                    <td className="px-4 py-3">
-                      <Link href={`/board/violations/${d.id}`} className="text-[13px] text-gray-700 hover:text-gray-950 hover:underline">{d.related}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-[13px] text-gray-700">{d.unit}</td>
-                    <td className="px-4 py-3 text-right text-[13px] tabular-nums text-gray-700">{date(d.date)}</td>
-                  </tr>
-                ))}
-              </>
-            )}
-          </tbody>
-        </table>
       </div>
     </div>
   )

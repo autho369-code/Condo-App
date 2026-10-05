@@ -48,13 +48,17 @@ describe('violation workflow status groups', () => {
 
   it('keeps oversight queries on the shared database-backed active statuses', () => {
     const queryConsumers = [
-      'app/board/page.tsx',
-      'app/board/owners/page.tsx',
       'app/company-admin/overview/page.tsx',
       'app/company-admin/compliance/page.tsx',
       'app/company-admin/performance/page.tsx',
       'lib/ai/board-snapshot.ts',
     ];
+
+    // The board portal is read-only financials, minutes and governing
+    // documents: board pages must not query violations at all.
+    for (const path of ['app/board/page.tsx', 'app/board/owners/page.tsx']) {
+      expect(readFileSync(resolve(process.cwd(), path), 'utf8'), path).not.toContain("from('violations')");
+    }
 
     for (const path of queryConsumers) {
       const source = readFileSync(resolve(process.cwd(), path), 'utf8');

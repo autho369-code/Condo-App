@@ -16,12 +16,12 @@ describe('board communications visibility', () => {
     expect(migration).not.toContain('for delete');
   });
 
-  it('fails visibly on query errors and verifies cross-association isolation', () => {
-    expect(page).toContain('if (error) throw new Error');
-    expect(page).not.toContain('catch { }');
+  it('is no longer part of the read-only board portal', () => {
+    // Board scope is basic financials, minutes and governing documents only.
+    const lockdown = readFileSync(resolve('supabase/migrations/20261005111000_board_read_only_scope.sql'), 'utf8');
+    expect(page).toContain("redirect('/board')");
+    expect(page).not.toContain("from('communications_log')");
+    expect(lockdown).toContain('alter policy communications_board_read on public.communications_log using (false)');
     expect(roleVerifier).toContain("field === 'is_board'");
-    expect(roleVerifier).toContain("row.association_id === '36900000-0000-4000-8000-000000000011'");
-    expect(page).toContain(".in('status', ['sent', 'delivered'])");
-    expect(page).toContain("count: 'exact', head: true");
   });
 });
