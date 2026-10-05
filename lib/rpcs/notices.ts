@@ -8,6 +8,7 @@ import { queueEmails, textToHtml } from '@/lib/email/queue';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 import { isUuid, managesAssociation } from '@/lib/security/association-scope';
+import { todayInZone } from '@/lib/time/zoned';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +61,7 @@ export async function sendNotice(formData: FormData) {
   if (!existing.rows.length && notice.send_to === 'all_owners') {
     const occs = await fetchAllRows(() => db
       .from('occupancies')
-      .select('id, owners!owner_id(id, email, full_name, archived_at)')
+      .select('id, move_out_date, owners!owner_id(id, email, full_name, archived_at)')
       .eq('association_id', notice.association_id)
       .eq('occupancy_type', 'owner')
       .eq('status', 'current')
@@ -68,7 +69,11 @@ export async function sendNotice(formData: FormData) {
     if (occs.error) failTo(`Could not load the association's owners: ${occs.error}`);
     if (occs.truncated) failTo('This association has too many owners to send in one batch.');
     const seenOwner = new Set<string>();
+    // A scheduled move-out that has arrived ends ownership even while the
+    // occupancy still reads 'current'.
+    const today = todayInZone();
     const resolved = (occs.rows as any[])
+      .filter((o) => !o.move_out_date || o.move_out_date > today)
       .map((o) => o.owners)
       .filter((o) => o?.email && !o.archived_at && EMAIL_RE.test(String(o.email).trim()))
       .filter((o) => (seenOwner.has(o.id) ? false : (seenOwner.add(o.id), true)))
