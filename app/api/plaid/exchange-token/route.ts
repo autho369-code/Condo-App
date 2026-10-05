@@ -3,8 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireFinanceStaff } from '@/lib/auth/me';
+import { plaidErrorSummary, plaidPublicMessage } from '@/lib/plaid/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,10 +24,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { public_token, institution_id, institution_name, bank_account_id } = body;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+    const publicToken = typeof body.public_token === 'string' ? body.public_token.trim() : '';
+    const bank_account_id = typeof body.bank_account_id === 'string' && body.bank_account_id ? body.bank_account_id : null;
+    const instId = typeof body.institution_id === 'string' ? body.institution_id.slice(0, 120) : null;
+    const instName = typeof body.institution_name === 'string' ? body.institution_name.slice(0, 200) : null;
 
-    if (!public_token) {
+    if (!publicToken || publicToken.length > 512) {
       return NextResponse.json({ error: 'public_token is required' }, { status: 400 });
     }
 
@@ -61,22 +68,22 @@ export async function POST(request: NextRequest) {
 
     // Exchange public_token for access_token
     const exchangeResponse = await client.itemPublicTokenExchange({
-      public_token,
+      public_token: publicToken,
     });
 
     const accessToken = exchangeResponse.data.access_token;
     const itemId = exchangeResponse.data.item_id;
 
-    // Get institution details if not provided
-    let instId = institution_id;
-    let instName = institution_name;
-
-    // Save to plaid_items
-    const { data: plaidItem, error: insertError } = await db
+    // Save to plaid_items. The access token is a bank credential: browser
+    // roles have no column privilege on it, so the write goes through the
+    // service role — only after the finance-staff, portfolio and bank-account
+    // checks above. Nothing token-related is returned to the browser.
+    const service = createServiceClient() as any;
+    const { data: plaidItem, error: insertError } = await service
       .from('plaid_items')
       .insert({
         portfolio_id: profile.portfolio_id,
-        bank_account_id: bank_account_id || null,
+        bank_account_id,
         plaid_item_id: itemId,
         plaid_access_token: accessToken,
         plaid_institution_id: instId,
@@ -87,7 +94,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('Error saving plaid_item:', insertError);
+      console.error('Error saving plaid_item:', insertError.message);
       return NextResponse.json({ error: 'Failed to save bank connection' }, { status: 500 });
     }
 
@@ -97,7 +104,7 @@ export async function POST(request: NextRequest) {
         .from('bank_accounts')
         .update({ auto_reconciliation: true })
         .eq('id', bank_account_id);
-      if (autoError) console.error('Could not turn on auto-reconciliation:', autoError);
+      if (autoError) console.error('Could not turn on auto-reconciliation:', autoError.message);
     }
 
     return NextResponse.json({
@@ -106,9 +113,9 @@ export async function POST(request: NextRequest) {
       institution_name: instName || 'Connected Bank',
     });
   } catch (error: any) {
-    console.error('Error exchanging token:', error?.response?.data || error);
+    console.error('Error exchanging token:', plaidErrorSummary(error));
     return NextResponse.json(
-      { error: error?.response?.data?.error_message || error?.message || 'Failed to exchange token' },
+      { error: plaidPublicMessage(error, 'Failed to exchange token') },
       { status: 500 }
     );
   }

@@ -4,16 +4,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { Products, CountryCode } from 'plaid';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { plaidErrorSummary, plaidPublicMessage } from '@/lib/plaid/errors';
 
 export async function POST(request: NextRequest) {
   try {
     // Banking connections are a staff-only capability.
     let user;
     try {
-      user = await requireStaff();
+      // Same capability as exchange-token: only finance staff may connect a bank.
+      user = await requireFinanceStaff();
     } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -64,9 +66,9 @@ export async function POST(request: NextRequest) {
       expiration: response.data.expiration,
     });
   } catch (error: any) {
-    console.error('Error creating link token:', error?.response?.data || error);
+    console.error('Error creating link token:', plaidErrorSummary(error));
     return NextResponse.json(
-      { error: error?.response?.data?.error_message || error?.message || 'Failed to create link token' },
+      { error: plaidPublicMessage(error, 'Failed to create link token') },
       { status: 500 }
     );
   }

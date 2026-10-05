@@ -3,16 +3,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaidClient, isPlaidConfigured } from '@/lib/plaid/client';
-import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { requireFinanceStaff } from '@/lib/auth/me';
 import { autoMatchTransaction } from '@/lib/plaid/auto-match';
+import { plaidErrorSummary, plaidPublicMessage } from '@/lib/plaid/errors';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: NextRequest) {
   try {
     // Banking connections are a staff-only capability.
-    let user;
+    // Same capability as connecting the bank (plaid_items RLS is finance-only).
     try {
-      user = await requireStaff();
+      await requireFinanceStaff();
     } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,23 +27,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { plaid_item_id } = body;
+    const body = await request.json().catch(() => null);
+    const plaid_item_id = typeof body?.plaid_item_id === 'string' ? body.plaid_item_id : '';
+    if (!UUID_PATTERN.test(plaid_item_id)) {
+      return NextResponse.json({ error: 'plaid_item_id is required' }, { status: 400 });
+    }
 
     const supabase = await createClient();
     const db = supabase as any;
     const client = getPlaidClient();
 
-    // Get plaid item
-    const { data: plaidItem, error: itemError } = await db
+    // Authorization: the caller's RLS-scoped client must be able to see the
+    // item (can_manage_finance on its portfolio). Only then is the bank
+    // credential read with the service role — browser roles have no column
+    // privilege on plaid_access_token / cursor.
+    const { data: visibleItem, error: itemError } = await db
       .from('plaid_items')
-      .select('*')
+      .select('id, portfolio_id, bank_account_id')
       .eq('id', plaid_item_id)
-      .single();
+      .maybeSingle();
 
-    if (itemError || !plaidItem) {
+    if (itemError || !visibleItem) {
       return NextResponse.json({ error: 'Plaid item not found' }, { status: 404 });
     }
+
+    const service = createServiceClient() as any;
+    const { data: secretRow, error: secretError } = await service
+      .from('plaid_items')
+      .select('plaid_access_token, cursor')
+      .eq('id', visibleItem.id)
+      .eq('portfolio_id', visibleItem.portfolio_id)
+      .maybeSingle();
+    if (secretError || !secretRow?.plaid_access_token) {
+      return NextResponse.json({ error: 'Plaid item not found' }, { status: 404 });
+    }
+    const plaidItem = { ...visibleItem, ...secretRow };
 
     let addedCount = 0;
     let modifiedCount = 0;
@@ -110,7 +131,8 @@ export async function POST(request: NextRequest) {
             merchant_name: tx.merchant_name || null,
             pending: tx.pending,
           })
-          .eq('plaid_transaction_id', tx.transaction_id);
+          .eq('plaid_transaction_id', tx.transaction_id)
+          .eq('plaid_item_id', plaidItem.id);
         if (modError) throw new Error(`Could not update transaction ${tx.transaction_id}: ${modError.message}`);
         modifiedCount++;
       }
@@ -119,7 +141,10 @@ export async function POST(request: NextRequest) {
       for (const removedId of removed) {
         const txId = typeof removedId === 'string' ? removedId : (removedId as any).transaction_id;
         if (txId) {
-          await db.from('bank_transactions').delete().eq('plaid_transaction_id', txId);
+          const { error: delError } = await db.from('bank_transactions').delete()
+            .eq('plaid_transaction_id', txId)
+            .eq('plaid_item_id', plaidItem.id);
+          if (delError) throw new Error(`Could not remove transaction ${txId}: ${delError.message}`);
         }
         removedCount++;
       }
@@ -128,8 +153,8 @@ export async function POST(request: NextRequest) {
       cursor = next_cursor;
     }
 
-    // Update cursor and last_sync_at
-    await db
+    // Update cursor and last_sync_at (service role: cursor is not browser-writable).
+    const { error: cursorError } = await service
       .from('plaid_items')
       .update({
         cursor: cursor || null,
@@ -138,6 +163,7 @@ export async function POST(request: NextRequest) {
         error_message: null,
       })
       .eq('id', plaidItem.id);
+    if (cursorError) throw new Error(`Transactions saved, but the sync position was not stored: ${cursorError.message}`);
 
     return NextResponse.json({
       success: true,
@@ -146,9 +172,9 @@ export async function POST(request: NextRequest) {
       removed: removedCount,
     });
   } catch (error: any) {
-    console.error('Error syncing transactions:', error?.response?.data || error);
+    console.error('Error syncing transactions:', plaidErrorSummary(error));
     return NextResponse.json(
-      { error: error?.response?.data?.error_message || error?.message || 'Failed to sync transactions' },
+      { error: plaidPublicMessage(error, 'Failed to sync transactions') },
       { status: 500 }
     );
   }

@@ -231,6 +231,8 @@ export default async function RecurringWorkOrdersPage({
                         </Link>
                         <form method="POST" action="/api/recurring-work-orders/generate">
                           <input type="hidden" name="id" value={r.id} />
+                          {/* The occurrence on screen: a repeated post must not generate the next one. */}
+                          <input type="hidden" name="due" value={r.next_due_date ?? ''} />
                           <button type="submit" className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50">
                             Generate now
                           </button>

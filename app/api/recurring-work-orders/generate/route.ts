@@ -13,9 +13,12 @@ export const dynamic = 'force-dynamic';
  * on demand.
  */
 export async function POST(req: NextRequest) {
-  const me = await requireStaff();
+  await requireStaff();
   const form = await req.formData();
   const id = form.get('id') as string | null;
+  // The due date the user saw; '' means the plan had none. Claiming this
+  // value (not whatever is current) makes a re-sent form a no-op.
+  const dueRaw = form.get('due');
 
   const origin = new URL(req.url).origin;
   const back = (params = '') => NextResponse.redirect(`${origin}/recurring-work-orders${params}`, { status: 303 });
@@ -33,39 +36,33 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (tplErr || !tpl) return back('?error=' + encodeURIComponent('Recurring work order not found.'));
 
-  const { error: insErr } = await db.from('work_orders').insert({
-    portfolio_id: tpl.portfolio_id,
-    association_id: tpl.association_id,
-    unit_id: tpl.unit_id,
-    vendor_id: tpl.vendor_id,
-    title: tpl.title,
-    description: tpl.description,
-    category: tpl.category ?? 'other',
-    priority: tpl.priority ?? 'normal',
-    trade: tpl.trade,
-    // Without a date the job never shows as Scheduled or Overdue; with a
-    // vendor on the plan it is already assigned.
-    scheduled_date: tpl.next_due_date ?? todayInZone(),
-    status: tpl.vendor_id ? 'assigned' : 'new',
-    created_by: me.auth_user_id,
-  });
-  if (insErr) return back('?error=' + encodeURIComponent(insErr.message));
+  if (typeof dueRaw !== 'string' || (dueRaw !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(dueRaw))) {
+    return back('?error=' + encodeURIComponent('Refresh the page and try again.'));
+  }
+  const expectedDue = dueRaw === '' ? null : dueRaw;
+  if ((tpl.next_due_date ?? null) !== expectedDue) {
+    return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
+  }
 
   // Same schedule rule as the nightly generator (anchored on the start day).
   const base = tpl.next_due_date ?? todayInZone();
   const anchorDay = Number(String(tpl.start_date ?? base).slice(8, 10)) || null;
   const next = nextRecurringDate(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1, anchorDay);
-  if (!next) return back('?error=' + encodeURIComponent('Work order created, but this plan has an unknown frequency.'));
-  const { error: advanceErr } = await db
-    .from('recurring_work_orders')
-    .update({
-      last_generated_at: new Date().toISOString(),
-      next_due_date: next,
-    })
-    .eq('id', id);
-  if (advanceErr) {
-    return back('?error=' + encodeURIComponent(`Work order created, but the next due date was not advanced: ${advanceErr.message}`));
-  }
+  if (!next) return back('?error=' + encodeURIComponent('This plan has an unknown frequency.'));
+
+  // Claim the occurrence and create the work order in one transaction: the
+  // schedule advances only if next_due_date is still the value we read (so a
+  // double-click or a race with the nightly generator yields one work order),
+  // and a failure anywhere leaves the plan untouched.
+  const { data: woId, error: genErr } = await db.rpc('generate_recurring_work_order_now', {
+    p_id: id,
+    p_expected_due: expectedDue,
+    p_next: next,
+    // Without a date the job never shows as Scheduled or Overdue.
+    p_scheduled: tpl.next_due_date ?? todayInZone(),
+  });
+  if (genErr) return back('?error=' + encodeURIComponent(`Could not generate the work order: ${genErr.message}`));
+  if (!woId) return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
 
   return back('?generated=1');
 }
