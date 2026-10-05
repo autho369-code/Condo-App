@@ -1,11 +1,35 @@
 # Portier369 — TO-DO
 
 The living to-do list. Maintained by Claude; updated as items ship.
-Last updated: 2026-10-04.
+Last updated: 2026-10-05.
 (Companion to `docs/PROJECT_STATUS.md`. Onboarding steps live in
 `docs/ONBOARDING_CHECKLIST.md`. Roadmap detail in `docs/appfolio-gap-analysis.md`.)
 
 ---
+
+## 🔨 Claude build queue (recorded 2026-10-05)
+The code gaps left, in build order. No placeholders, no missing routes, and the
+nightly jobs and data checks are healthy; everything else on this page needs
+access, accounts, approval or decisions.
+
+1. [ ] **Resale / estoppel certificate** — the document an HOA issues when a unit
+       sells (balance, dues, special assessments, violations, pending charges).
+       Earlier scoped to MD §11-135, never built. Last everyday-use gap vs AppFolio.
+2. [ ] **Assistant tool-calling** — let the Portfolio Assistant run live,
+       RLS-scoped queries instead of answering from a data snapshot.
+3. [ ] **Real e-signature** for board resolutions, ARC approvals and vendor
+       contracts (today: drawn/typed signature on board sign-off).
+4. [ ] **Operator cross-company analytics + partner API/webhooks.**
+
+Cleanup needing Mirsad's approval:
+- [ ] Fold the legacy `app/platform/*` redirect shim into `app/platform-operator/*`.
+- [ ] Drop the unused `'stripe'` value from the `payment_processor` enum
+      (DROP/recreate → Mirsad runs the SQL; cosmetic).
+
+Sample-data housekeeping (not code):
+- [ ] 5 sample bank accounts show "not reconciled in over 60 days" on the
+      month-end close page — reconcile them or ignore until real data replaces
+      the Granville sample.
 
 ## 🗂 Future work (recorded 2026-10-04)
 Everything left after the AppFolio left-navigation parity pass (#138–#182).
