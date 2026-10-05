@@ -4,6 +4,7 @@ import { Alert, Badge } from '@/components/ui/shell';
 import { date } from '@/lib/utils';
 import { FileSearch, Filter, Calendar, Building2, User } from 'lucide-react';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { addDaysToDate, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,14 +29,27 @@ export default async function AuditLogsPage({
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
-    if (sp.from) query = query.gte('created_at', sp.from);
-    if (sp.to) query = query.lte('created_at', `${sp.to}T23:59:59`);
+    // Date filters are calendar days in the platform zone; bare dates were
+    // compared as UTC, cutting off the evening of the last day for US zones.
+    const zone = displayTimeZone();
+    if (sp.from) {
+      const fromUtc = zonedWallTimeToUtc(sp.from, '00:00', zone);
+      if (fromUtc) query = query.gte('created_at', fromUtc.toISOString());
+      else loadError = 'The "from" date is not a valid date.';
+    }
+    if (sp.to) {
+      // Exclusive bound: local midnight at the start of the following day.
+      const toUtc = /^\d{4}-\d{2}-\d{2}$/.test(sp.to) ? zonedWallTimeToUtc(addDaysToDate(sp.to, 1), '00:00', zone) : null;
+      if (toUtc) query = query.lt('created_at', toUtc.toISOString());
+      else loadError = 'The "to" date is not a valid date.';
+    }
     if (sp.action) query = query.eq('action', sp.action);
     if (sp.company) query = query.eq('entity_id', sp.company);
     if (sp.user) query = query.eq('actor_id', sp.user);
     const { data, error } = await query;
     // Never show a failed load as an empty audit trail.
     if (error) loadError = error.message;
+    if (loadError) throw new Error(loadError);
     auditRows = data ?? [];
   } catch (e) {
     loadError = e instanceof Error ? e.message : 'The audit log could not be loaded.';

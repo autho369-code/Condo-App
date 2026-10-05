@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
 import { Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
@@ -49,8 +49,11 @@ export default async function CommunicationsPage() {
   // Month boundaries in the platform zone (the server runs in UTC).
   const monthStart = monthWindowInZone(zone, now).startIso;
 
-  // This month's send batches (listed below the charts).
-  const { data: commData, error: commError } = await db
+  // This month's send batches (listed below the charts). communications_log
+  // has no operator SELECT policy, so the RLS client always returned zero
+  // rows; the operator check above gates this platform-wide service read.
+  const service = createServiceClient() as any;
+  const { data: commData, error: commError } = await service
     .from('communications_log')
     .select('*')
     .gte('created_at', monthStart)

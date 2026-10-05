@@ -453,7 +453,7 @@ export default async function CompanyDetailPage({
                               <Button type="submit" variant="ghost" size="sm">Cancel</Button>
                             </form>
                           )}
-                          {inv.status !== 'accepted' && (
+                          {(inv.status === 'pending' || inv.status === 'expired') && (
                             <form action={regenerateInvitation as any}>
                               <input type="hidden" name="invitation_id" value={inv.id} />
                               <input type="hidden" name="return_to" value={returnTo} />
@@ -601,7 +601,7 @@ export default async function CompanyDetailPage({
                     <TD className="text-xs text-gray-500">{date(inv.paid_at)}</TD>
                     <TD className="text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1">
-                        {inv.status !== 'void' && (
+                        {inv.status === 'open' && (
                           <form action={sendInvoice as any}>
                             <input type="hidden" name="invoice_id" value={inv.id} />
                             <input type="hidden" name="portfolio_id" value={id} />

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requirePlatformOperator } from '@/lib/auth/me';
-import { money } from '@/lib/utils';
+import { Alert } from '@/components/ui/shell';
+import { planFromTier } from '@/lib/billing/plans';
 import { DoorOpen, TrendingUp, BarChart3, Layers } from 'lucide-react';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
@@ -52,50 +53,39 @@ export default async function DoorUsagePage() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  // Latest billing period per company: summing every stored period counted a
-  // company once per month of history.
-  const { rows: allUsage } = await fetchAllRows<any>(() => db
-    .from('billing_usage')
-    .select('*, portfolios!inner(company_name)')
-    .order('period_end', { ascending: false })
-    .order('id'));
-  const seenPortfolios = new Set<string>();
-  const usageRows = allUsage.filter((r: any) => {
-    if (seenPortfolios.has(r.portfolio_id)) return false;
-    seenPortfolios.add(r.portfolio_id);
-    return true;
-  });
+  // Doors are the units in a company's live (non-archived) associations,
+  // measured against the subscription's units_limit — the same definition the
+  // Companies pages use. (billing_usage is never written and operators cannot
+  // read it, so it always rendered empty.)
+  const [portfoliosRes, subsRes, assocRes] = await Promise.all([
+    db.from('portfolios').select('id, company_name, suspended_at').is('archived_at', null).order('company_name'),
+    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, tier, status, units_limit').order('id')),
+    fetchAllRows<any>(() => db.from('associations').select('id, portfolio_id, unit_count').is('archived_at', null).order('id')),
+  ]);
+  const loadError = portfoliosRes.error?.message ?? subsRes.error ?? assocRes.error ?? null;
 
-  // Subscriptions for included door limits
-  const { data: subs } = await db
-    .from('subscriptions')
-    .select('portfolio_id, units_limit')
-    .in('status', ['active', 'trialing']);
-
-  const subMap = new Map<string, number>();
-  for (const s of subs ?? []) {
-    subMap.set(s.portfolio_id, s.units_limit ?? 0);
+  const subMap = new Map<string, any>();
+  for (const s of subsRes.rows) subMap.set(s.portfolio_id, s);
+  const doorsByPortfolio = new Map<string, number>();
+  for (const a of assocRes.rows) {
+    doorsByPortfolio.set(a.portfolio_id, (doorsByPortfolio.get(a.portfolio_id) ?? 0) + Number(a.unit_count ?? 0));
   }
 
-  // Compute stats
   let totalActive = 0;
   let totalIncluded = 0;
   let totalOverage = 0;
-  let totalMonthlyCost = 0;
+  let overLimitCompanies = 0;
 
-  const rows = (usageRows ?? []).map((r: any) => {
-    const active = r.doors_active ?? 0;
-    const limit = r.doors_limit ?? subMap.get(r.portfolio_id) ?? 0;
-    const overage = r.doors_overage ?? Math.max(0, active - limit);
-    const pricePerDoor = (r.price_per_door_cents ?? 100) / 100;
-    const monthlyCost = overage * pricePerDoor;
-
+  const rows = ((portfoliosRes.data ?? []) as any[]).map((p) => {
+    const sub = subMap.get(p.id);
+    const active = doorsByPortfolio.get(p.id) ?? 0;
+    const limit = sub?.units_limit == null ? null : Number(sub.units_limit);
+    const overage = limit == null ? 0 : Math.max(0, active - limit);
     totalActive += active;
-    totalIncluded += limit;
+    totalIncluded += limit ?? 0;
     totalOverage += overage;
-    totalMonthlyCost += monthlyCost;
-
-    return { ...r, computedOverage: overage, monthlyCost, limit };
+    if (overage > 0) overLimitCompanies += 1;
+    return { portfolio_id: p.id, company_name: p.company_name, active, limit, overage, tier: sub?.tier ?? null, status: sub?.status ?? null };
   });
 
   return (
@@ -105,19 +95,21 @@ export default async function DoorUsagePage() {
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Platform-wide door usage monitoring across all companies</p>
       </div>
 
+      {loadError && <Alert title="Some door usage data could not be loaded">{loadError}</Alert>}
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Total Active Doors" value={totalActive.toLocaleString()} icon={DoorOpen} />
         <StatCard label="Included Doors" value={totalIncluded.toLocaleString()} icon={Layers} />
-        <StatCard label="Additional Doors" value={totalOverage.toLocaleString()} icon={TrendingUp} />
-        <StatCard label="Monthly Door Revenue" value={money(totalMonthlyCost)} icon={BarChart3} />
+        <StatCard label="Doors Over Limit" value={totalOverage.toLocaleString()} icon={TrendingUp} />
+        <StatCard label="Companies Over Limit" value={overLimitCompanies.toLocaleString()} icon={BarChart3} />
       </div>
 
       {/* Door Usage Table */}
       <div className="rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-950">Door Usage by Company</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Current billing period usage and costs</p>
+          <p className="mt-0.5 text-xs text-gray-500">Units in active associations against each subscription&apos;s unit limit</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -126,29 +118,27 @@ export default async function DoorUsagePage() {
                 <th className="px-4 py-2.5 text-left font-medium">Company</th>
                 <th className="px-4 py-2.5 text-right font-medium">Active Doors</th>
                 <th className="px-4 py-2.5 text-right font-medium">Included</th>
-                <th className="px-4 py-2.5 text-right font-medium">Additional</th>
+                <th className="px-4 py-2.5 text-right font-medium">Over Limit</th>
                 <th className="px-4 py-2.5 text-left font-medium" style={{ minWidth: 140 }}>Usage</th>
-                <th className="px-4 py-2.5 text-right font-medium">Monthly Cost</th>
-                <th className="px-4 py-2.5 text-left font-medium">Pricing Tier</th>
+                <th className="px-4 py-2.5 text-left font-medium">Plan</th>
                 <th className="px-4 py-2.5 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">No door usage data found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No companies found</td></tr>
               ) : (
-                rows.map((row: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3 font-medium text-gray-900">{row.portfolios?.company_name ?? '—'}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-900">{row.doors_active?.toLocaleString() ?? 0}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.limit.toLocaleString()}</td>
-                    <td className={`px-4 py-3 text-right tabular-nums ${row.computedOverage > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}`}>
-                      {row.computedOverage > 0 ? row.computedOverage.toLocaleString() : '—'}
+                rows.map((row) => (
+                  <tr key={row.portfolio_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <td className="px-4 py-3 font-medium text-gray-900">{row.company_name ?? '—'}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-900">{row.active.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{row.limit == null ? '—' : row.limit.toLocaleString()}</td>
+                    <td className={`px-4 py-3 text-right tabular-nums ${row.overage > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}`}>
+                      {row.overage > 0 ? row.overage.toLocaleString() : '—'}
                     </td>
-                    <td className="px-4 py-3"><UsageBar used={row.doors_active ?? 0} limit={row.limit} /></td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{money(row.monthlyCost)}</td>
+                    <td className="px-4 py-3">{row.limit == null ? <span className="text-xs text-gray-400">No limit set</span> : <UsageBar used={row.active} limit={row.limit} />}</td>
                     <td className="px-4 py-3 text-[13px] text-gray-700">
-                      {row.price_per_door_cents ? `${money(row.price_per_door_cents / 100)}/door` : 'Standard'}
+                      {planFromTier(row.tier)?.name ?? (row.tier ? String(row.tier) : 'Not configured')}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {row.portfolio_id ? (

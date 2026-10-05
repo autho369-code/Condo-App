@@ -1,7 +1,7 @@
 // Shared definitions for the platform-operator dashboards, so the root
 // dashboard, Billing, Revenue and Overview agree on what "MRR" and "this
 // month" mean.
-import { addMonthsToMonth, todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
+import { addMonthsToMonth, DEFAULT_TIME_ZONE, todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 /** Subscriptions that are billed (trials and paused/cancelled ones are not revenue). */
 export const BILLABLE_SUBSCRIPTION_STATUSES = ['active', 'past_due'] as const;
@@ -66,4 +66,28 @@ export function parseDollarsToCents(value: FormDataEntryValue | null): number | 
   if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
   const cents = Math.round(Number(s) * 100);
   return Number.isSafeInteger(cents) ? cents : null;
+}
+
+/**
+ * Past-due platform invoices: still `open` with a billing period that ended
+ * before today (Central). Nothing ever sets status 'overdue', so counting that
+ * status always showed zero — every operator page uses this one definition.
+ */
+export const PAST_DUE_INVOICE_STATUS = 'open' as const;
+
+/** Today's date (YYYY-MM-DD) in the platform's billing zone (Central). */
+export function platformToday(now: Date = new Date()): string {
+  return todayInZone(DEFAULT_TIME_ZONE, now);
+}
+
+export function isPastDueInvoice(
+  invoice: { status?: string | null; period_end?: string | null },
+  today: string = platformToday(),
+): boolean {
+  return invoice.status === PAST_DUE_INVOICE_STATUS && !!invoice.period_end && invoice.period_end < today;
+}
+
+/** Narrow an `invoices` query to past-due rows (see isPastDueInvoice). */
+export function pastDueInvoicesFilter(query: any, today: string = platformToday()): any {
+  return query.eq('status', PAST_DUE_INVOICE_STATUS).lt('period_end', today);
 }

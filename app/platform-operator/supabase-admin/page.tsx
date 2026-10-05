@@ -79,7 +79,7 @@ export default async function SupabaseAdminPage() {
     db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('units').select('id', { count: 'exact', head: true }),
-    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("completed","closed","cancelled")'),
+    db.from('work_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).not('status', 'in', '("done","completed","billed","closed","cancelled")'),
     db.from('invoices').select('id', { count: 'exact', head: true }),
     db.from('user_invitations').select('id', { count: 'exact', head: true }),
     db.from('audit_logs').select('id', { count: 'exact', head: true }),

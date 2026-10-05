@@ -18,8 +18,10 @@ import { cancelInvitation, regenerateInvitation, resendInvitation } from '../com
 export const dynamic = 'force-dynamic';
 
 const RETURN_TO = '/platform-operator/invitations';
-// The roles offered by the form below; anything else is refused.
-const INVITABLE_ROLES = ['company_admin', 'manager', 'board', 'owner', 'tenant'] as const;
+// The roles offered by the form below; anything else is refused. Operators
+// seat a company's staff; board members, owners and tenants are invited by
+// the company itself (a tenant invite never accepts without a unit_id).
+const INVITABLE_ROLES = ['company_admin', 'manager'] as const;
 
 // Status enum is {pending, accepted, revoked, expired}; "Resent" is derived from metadata.
 function inviteStatusChip(inv: any) {
@@ -45,6 +47,17 @@ async function createInvitation(formData: FormData) {
   if (!email) redirect(`${RETURN_TO}?error=${encodeURIComponent('Email is required.')}`);
   if (!portfolioId) redirect(`${RETURN_TO}?error=${encodeURIComponent('Select a company.')}`);
   if (!(INVITABLE_ROLES as readonly string[]).includes(role)) redirect(`${RETURN_TO}?error=${encodeURIComponent('Select a valid role.')}`);
+  // Archived and suspended companies have logins disabled — an invitation
+  // into one would send a link that can never be used.
+  const { data: portfolio, error: portfolioError } = await (supabase as any)
+    .from('portfolios')
+    .select('id, archived_at, suspended_at')
+    .eq('id', portfolioId)
+    .maybeSingle();
+  if (portfolioError) redirect(`${RETURN_TO}?error=${encodeURIComponent(portfolioError.message)}`);
+  if (!portfolio) redirect(`${RETURN_TO}?error=${encodeURIComponent('That company was not found.')}`);
+  if (portfolio.archived_at) redirect(`${RETURN_TO}?error=${encodeURIComponent('That company is archived — reactivate it before inviting users.')}`);
+  if (portfolio.suspended_at) redirect(`${RETURN_TO}?error=${encodeURIComponent('That company is suspended — reactivate it before inviting users.')}`);
   // A date-only expiry means "through the end of that day" in the platform
   // zone; new Date('YYYY-MM-DD') would expire it at UTC midnight the day before
   // for US companies.
@@ -86,7 +99,7 @@ export default async function InvitationsPage({
       .select('id, email, full_name, hoa_role, status, expires_at, created_at, invited_by, portfolio_id, metadata')
       .order('created_at', { ascending: false })
       .limit(200),
-    db.from('portfolios').select('id, company_name').order('company_name'),
+    db.from('portfolios').select('id, company_name, archived_at, suspended_at').order('company_name'),
   ]);
 
   const portfolioMap = new Map<string, string>();
@@ -98,7 +111,7 @@ export default async function InvitationsPage({
       {(invitationsError || portfoliosError) && (
         <Alert title="Invitations could not be loaded">{invitationsError?.message ?? portfoliosError?.message}</Alert>
       )}
-      {sp.created === '1' && <Alert tone="success" title="Invitation created">The invitation is pending — use Resend to queue the email.</Alert>}
+      {sp.created === '1' && <Alert tone="success" title="Invitation created">The invitation email has been queued automatically — no need to resend it.</Alert>}
       {sp.resent === '1' && <Alert tone="success" title="Invitation resent">The email has been queued for delivery.</Alert>}
       {sp.cancelled === '1' && <Alert tone="warning" title="Invitation cancelled" />}
       {sp.regenerated === '1' && <Alert tone="success" title="New invitation link generated">The previous link was revoked and the new one emailed.</Alert>}
@@ -132,7 +145,7 @@ export default async function InvitationsPage({
               <select id="portfolio_id" name="portfolio_id" required defaultValue="" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                 {/* Every invitation belongs to a company (portfolio_id is NOT NULL). */}
                 <option value="" disabled>Select a company</option>
-                {(portfolios ?? []).map((p: any) => (
+                {(portfolios ?? []).filter((p: any) => !p.archived_at && !p.suspended_at).map((p: any) => (
                   <option key={p.id} value={p.id}>{p.company_name}</option>
                 ))}
               </select>
@@ -142,9 +155,6 @@ export default async function InvitationsPage({
               <select id="hoa_role" name="hoa_role" className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm">
                 <option value="company_admin">Company Admin</option>
                 <option value="manager">Manager</option>
-                <option value="board">Board Member</option>
-                <option value="owner">Owner</option>
-                <option value="tenant">Tenant</option>
               </select>
             </div>
             <div>
@@ -186,6 +196,9 @@ export default async function InvitationsPage({
             ) : (
               (invitations ?? []).map((inv: any) => {
                 const actionable = inv.status === 'pending';
+                // A fresh link only makes sense for an invitation still in
+                // play; a cancelled (revoked) one must stay cancelled.
+                const canRegenerate = inv.status === 'pending' || inv.status === 'expired';
                 return (
                   <TR key={inv.id} className="hover:bg-gray-50">
                     <TD className="font-medium text-gray-950">{inv.full_name || '—'}</TD>
@@ -211,7 +224,7 @@ export default async function InvitationsPage({
                             <Button type="submit" variant="ghost" size="sm">Cancel</Button>
                           </form>
                         )}
-                        {inv.status !== 'accepted' && (
+                        {canRegenerate && (
                           <form action={regenerateInvitation as any}>
                             <input type="hidden" name="invitation_id" value={inv.id} />
                             <input type="hidden" name="return_to" value={RETURN_TO} />
