@@ -92,7 +92,7 @@ export async function importOwners(
   const unitCache = new Map<string, string>();
   // Units whose dues were scheduled by an earlier row of this file: co-owners
   // share the unit's one dues schedule, so a later co-owner row leaves it alone.
-  const duesScheduledUnits = new Set<string>();
+  const duesScheduledUnits = new Map<string, number>();
   // Emails created earlier in this run (lower-cased) — a repeat is a duplicate too.
   const seenEmails = new Set<string>();
   let imported = 0;
@@ -213,9 +213,14 @@ export async function importOwners(
       const moveIn = toDate(r.move_in_date);
       const duesAmount = num(r.monthly_dues) ?? 0;
       let duesErr: string | null = null;
-      if (occRow?.id && duesAmount > 0 && !duesScheduledUnits.has(unitId!)) {
+      const scheduledAmount = duesScheduledUnits.get(unitId!);
+      if (occRow?.id && duesAmount > 0 && scheduledAmount === undefined) {
         duesErr = await scheduleOwnerDues(db, occRow.id, moveIn);
-        if (!duesErr) duesScheduledUnits.add(unitId!);
+        if (!duesErr) duesScheduledUnits.set(unitId!, duesAmount);
+      } else if (duesAmount > 0 && scheduledAmount !== undefined && scheduledAmount !== duesAmount) {
+        // Co-owners share one dues schedule: flag a conflicting amount
+        // instead of silently picking one.
+        duesErr = `dues: monthly_dues ${duesAmount} conflicts with ${scheduledAmount} on an earlier row for this unit; kept ${scheduledAmount}. Fix the unit's dues if that is wrong.`;
       }
       if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
