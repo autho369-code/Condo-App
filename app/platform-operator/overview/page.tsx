@@ -20,7 +20,6 @@ import { displayTimeZone } from '@/lib/time/display-zone'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Alert } from '@/components/ui/shell'
 import {
-  isBillableSubscription,
   monthWindowInZone,
   monthlyRecurringCents,
   pastDueInvoicesFilter,
@@ -357,13 +356,14 @@ export default async function PlatformOperatorOverviewPage() {
   // Top companies by monthly recurring revenue (billable subscriptions).
   const nameById = new Map<string, string>(((portfolioNamesRes.data ?? []) as any[]).map((p) => [p.id, p.company_name]))
   const topCompanies = subs
-    .filter((s: any) => isBillableSubscription(s.status) && Number(s.price_monthly_cents ?? 0) > 0)
-    .sort((x: any, y: any) => Number(y.price_monthly_cents ?? 0) - Number(x.price_monthly_cents ?? 0))
+    .map((s: any) => ({ s, cents: monthlyRecurringCents([s]) }))
+    .filter((r) => r.cents > 0)
+    .sort((x, y) => y.cents - x.cents)
     .slice(0, 10)
-    .map((s: any) => ({
+    .map(({ s, cents }) => ({
       label: nameById.get(s.portfolio_id) ?? 'Unknown',
       href: `/platform-operator/companies/${s.portfolio_id}`,
-      value: Number(s.price_monthly_cents ?? 0),
+      value: cents,
     }))
 
   return (
