@@ -107,7 +107,7 @@ begin
   end if;
 
   -- Start fresh: a month the old schedule already posted is not billed again.
-  select greatest(v_first, coalesce(max(urc.next_post_date) filter (where urc.last_posted_at is not null), v_first))
+  select greatest(v_first, coalesce(date_trunc('month', max(urc.next_post_date) filter (where urc.last_posted_at is not null))::date, v_first))
     into v_first
     from public.unit_recurring_charges urc
    where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
