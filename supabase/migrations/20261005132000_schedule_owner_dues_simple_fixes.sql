@@ -87,7 +87,7 @@ begin
      and urc.amount = v_amount and urc.frequency = v_freq
      and coalesce(urc.start_date, urc.next_post_date) <= v_first
      and extract(day from urc.next_post_date) = 1
-     and (urc.end_date is null or urc.end_date >= v_first)
+     and urc.end_date is null
    order by urc.created_at desc
    limit 1;
   if v_keep is not null then
@@ -140,3 +140,50 @@ end $$;
 
 revoke all on function public.schedule_owner_dues(uuid, date) from public, anon;
 grant execute on function public.schedule_owner_dues(uuid, date) to authenticated;
+
+-- The posting job takes the same unit lock and re-checks each schedule before
+-- posting, so a schedule retired by schedule_owner_dues mid-run is skipped.
+create or replace function public.post_unit_recurring_charges()
+returns integer
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+declare row record; n integer := 0; new_charge_id uuid; next_due date;
+begin
+  for row in
+    select urc.*, cc.name as category_name, cc.gl_account_id as category_gl,
+           cc.charge_type as category_charge_type, cc.code as category_code
+      from public.unit_recurring_charges urc
+      join public.charge_categories cc on cc.id = urc.charge_category_id
+     where urc.active and cc.active
+       and urc.next_post_date <= current_date
+       and (urc.end_date is null or urc.next_post_date <= urc.end_date)
+  loop
+    perform 1 from public.units where id = row.unit_id for update;
+    perform 1 from public.unit_recurring_charges u
+     where u.id = row.id and u.active and u.next_post_date = row.next_post_date
+       and (u.end_date is null or u.next_post_date <= u.end_date)
+       for update;
+    if not found then
+      continue;
+    end if;
+
+    insert into public.charges (
+      unit_id, charge_category_id, charge_type, description,
+      amount, due_date, gl_account_id, created_by
+    ) values (
+      row.unit_id, row.charge_category_id, row.category_charge_type,
+      coalesce(row.memo, row.category_name),
+      row.amount, row.next_post_date, row.category_gl, row.created_by
+    ) returning id into new_charge_id;
+
+    next_due := public.recurring_next_date(row.next_post_date, row.frequency::text, 1,
+      extract(day from coalesce(row.start_date, row.next_post_date))::integer);
+
+    update public.unit_recurring_charges set next_post_date = next_due, last_posted_at = now(), updated_at = now() where id = row.id;
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$function$;
