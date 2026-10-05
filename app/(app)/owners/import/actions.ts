@@ -10,7 +10,7 @@
 // fatal — one bad row does not abort the rest.
 import { revalidatePath } from 'next/cache';
 import { parseLabeledPhones } from '@/lib/contacts/labeled-phones';
-import { subscribeUnitDues } from '@/lib/billing/dues-subscription';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
@@ -184,7 +184,7 @@ export async function importOwners(
       if (ownerErr || !owner) throw new Error(ownerErr?.message ?? 'owner insert failed');
 
       // create the occupancy (owner, current, primary)
-      const { error: occErr } = await db.from('occupancies').insert({
+      const { data: occRow, error: occErr } = await db.from('occupancies').insert({
         owner_id: owner.id,
         unit_id: unitId,
         association_id: associationId,
@@ -195,7 +195,7 @@ export async function importOwners(
         dues_amount: num(r.monthly_dues) ?? 0,
         dues_frequency: 'monthly',
         move_in_date: toDate(r.move_in_date),
-      });
+      }).select('id').single();
       if (occErr) {
         // Don't leave an owner with no unit behind: remove the record just created.
         const { error: undoErr } = await db.from('owners').delete().eq('id', owner.id).select('id');
@@ -209,13 +209,9 @@ export async function importOwners(
       // Bill the monthly dues; a failure here keeps the owner but is reported.
       const moveIn = toDate(r.move_in_date);
       const today = todayInZone();
-      const duesErr = await subscribeUnitDues(db, {
-        unitId: unitId!,
-        portfolioId: me.portfolio?.id,
-        associationId,
-        amount: num(r.monthly_dues) ?? 0,
-        startFrom: moveIn && moveIn > today ? moveIn : today,
-      });
+      const duesErr = occRow?.id
+        ? await scheduleOwnerDues(db, occRow.id, moveIn && moveIn > today ? moveIn : today)
+        : null;
       if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
       seenEmails.add(emailKey);
