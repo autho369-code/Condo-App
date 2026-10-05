@@ -64,7 +64,8 @@ async function setRequestStatus(formData: FormData) {
     .from('platform_requests')
     .update(update)
     .eq('id', id)
-    .not('status', 'in', '("resolved","closed","denied")')
+    // A missing status counts as open (as on the page); NOT IN alone would skip it.
+    .or('status.is.null,status.not.in.(resolved,closed,denied)')
     .select('id');
   if (error) redirect(`/platform-operator/support?error=${encodeURIComponent(error.message)}`);
   if (!updated?.length) redirect(`/platform-operator/support?error=${encodeURIComponent('That request was not found or is already closed.')}`);
