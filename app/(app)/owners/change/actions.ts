@@ -87,12 +87,16 @@ export async function changeHomeowner(formData: FormData) {
   // start fresh.
   let duesWarning: string | null = null;
   const { data: buyerOcc } = await db.from('occupancies')
-    .select('id')
+    .select('id, dues_amount')
     .eq('unit_id', unitId).eq('owner_id', newOwnerId!)
     .eq('occupancy_type', 'owner').neq('status', 'past')
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (buyerOcc?.id) {
-    duesWarning = await scheduleOwnerDues(db, buyerOcc.id, transferDate);
+    // A buyer who was already a co-owner keeps their own occupancy, often with
+    // dues left at 0: then the unit's current dues schedule stays as it is.
+    if (Number(buyerOcc.dues_amount ?? 0) > 0) {
+      duesWarning = await scheduleOwnerDues(db, buyerOcc.id, transferDate);
+    }
   } else {
     duesWarning = 'dues: the new ownership record was not found, so dues were not scheduled';
   }
