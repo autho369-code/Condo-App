@@ -1,0 +1,121 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toolCompletion, type AITool } from '@/lib/ai/service';
+import { clampLimit, sanitizeSearch } from '@/lib/ai/portfolio-tools';
+
+const tools: AITool[] = [
+  { name: 'unit_summary', description: 'unit', parameters: { type: 'object', properties: { unit_number: { type: 'string' } } } },
+];
+
+function jsonResponse(body: unknown) {
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('toolCompletion', () => {
+  it('runs an OpenAI-style tool call and returns the final answer', async () => {
+    const bodies: any[] = [];
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return bodies.length === 1
+        ? jsonResponse({ choices: [{ message: { content: null, tool_calls: [
+            { id: 'c1', type: 'function', function: { name: 'unit_summary', arguments: '{"unit_number":"301"}' } },
+          ] } }] })
+        : jsonResponse({ choices: [{ message: { content: 'Unit 301 owes $50.00.' } }] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const execute = vi.fn(async () => ({ unit: '301', balance_due: 50 }));
+
+    const answer = await toolCompletion(
+      { provider: 'openai', model: 'gpt-test', apiKey: 'sk-test-12345' },
+      'system', [{ role: 'user', content: 'What does 301 owe?' }], tools, execute,
+    );
+
+    expect(answer).toBe('Unit 301 owes $50.00.');
+    expect(execute).toHaveBeenCalledWith('unit_summary', { unit_number: '301' });
+    expect(bodies[0].tools[0].function.name).toBe('unit_summary');
+    expect(bodies[1].messages.at(-1)).toMatchObject({ role: 'tool', tool_call_id: 'c1' });
+    expect(bodies[1].messages.at(-1).content).toContain('"balance_due":50');
+  });
+
+  it('runs an Anthropic tool_use block and returns the final text', async () => {
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return bodies.length === 1
+        ? jsonResponse({ content: [{ type: 'tool_use', id: 't1', name: 'unit_summary', input: { unit_number: '12' } }] })
+        : jsonResponse({ content: [{ type: 'text', text: 'Unit 12 is paid up.' }] });
+    }));
+    const execute = vi.fn(async () => ({ balance_due: 0 }));
+
+    const answer = await toolCompletion(
+      { provider: 'anthropic', model: 'claude-test', apiKey: 'sk-ant-12345' },
+      'system', [{ role: 'user', content: 'Unit 12?' }], tools, execute,
+    );
+
+    expect(answer).toBe('Unit 12 is paid up.');
+    expect(bodies[0].system).toBe('system');
+    expect(bodies[0].tools[0].input_schema).toBeDefined();
+    const last = bodies[1].messages.at(-1);
+    expect(last.role).toBe('user');
+    expect(last.content[0]).toMatchObject({ type: 'tool_result', tool_use_id: 't1' });
+  });
+
+  it('never runs a tool that is not on the allow-list', async () => {
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return bodies.length === 1
+        ? jsonResponse({ choices: [{ message: { tool_calls: [
+            { id: 'x', type: 'function', function: { name: 'delete_everything', arguments: '{}' } },
+          ] } }] })
+        : jsonResponse({ choices: [{ message: { content: 'I can only read.' } }] });
+    }));
+    const execute = vi.fn();
+
+    await toolCompletion({ provider: 'openai', model: 'gpt-test', apiKey: 'sk-test-12345' }, 's', [{ role: 'user', content: 'q' }], tools, execute);
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(bodies[1].messages.at(-1).content).toContain('Unknown tool');
+  });
+
+  it('stops offering tools after the round cap', async () => {
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      bodies.push(body);
+      return body.tools
+        ? jsonResponse({ choices: [{ message: { tool_calls: [
+            { id: `c${bodies.length}`, type: 'function', function: { name: 'unit_summary', arguments: '{}' } },
+          ] } }] })
+        : jsonResponse({ choices: [{ message: { content: 'done' } }] });
+    }));
+
+    const answer = await toolCompletion(
+      { provider: 'openai', model: 'gpt-test', apiKey: 'sk-test-12345' },
+      's', [{ role: 'user', content: 'q' }], tools, async () => ({}), { maxRounds: 2 },
+    );
+
+    expect(answer).toBe('done');
+    expect(bodies).toHaveLength(3);
+    expect(bodies[2].tools).toBeUndefined();
+  });
+});
+
+describe('portfolio tool input guards', () => {
+  it('strips characters that would change a PostgREST filter', () => {
+    expect(sanitizeSearch('smith,(x)%_*"')).toBe('smith x');
+    expect(sanitizeSearch("O'Brien")).toBe("O'Brien");
+    expect(sanitizeSearch('jane.doe@example.com')).toBe('jane.doe@example.com');
+    expect(sanitizeSearch('a'.repeat(200))).toHaveLength(80);
+  });
+
+  it('clamps list sizes to 1..50', () => {
+    expect(clampLimit(undefined)).toBe(25);
+    expect(clampLimit(500)).toBe(50);
+    expect(clampLimit(0)).toBe(1);
+    expect(clampLimit('7')).toBe(7);
+  });
+});

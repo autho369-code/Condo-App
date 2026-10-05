@@ -201,3 +201,118 @@ export async function visionCompletion(
   });
   return data.choices?.[0]?.message?.content ?? '';
 }
+
+export interface AITool {
+  name: string;
+  description: string;
+  /** JSON Schema for the tool's input object. */
+  parameters: Record<string, unknown>;
+}
+
+export type AIToolExecutor = (name: string, input: Record<string, unknown>) => Promise<unknown>;
+
+const MAX_TOOL_RESULT_CHARS = 12_000;
+
+function toolResultText(result: unknown): string {
+  const text = JSON.stringify(result ?? null);
+  return text.length > MAX_TOOL_RESULT_CHARS
+    ? `${text.slice(0, MAX_TOOL_RESULT_CHARS)}… (truncated)`
+    : text;
+}
+
+async function runTool(execute: AIToolExecutor, tools: AITool[], name: string, rawInput: unknown): Promise<string> {
+  if (!tools.some((tool) => tool.name === name)) return toolResultText({ error: `Unknown tool: ${name}` });
+  const input = rawInput && typeof rawInput === 'object' && !Array.isArray(rawInput)
+    ? rawInput as Record<string, unknown>
+    : {};
+  try {
+    return toolResultText(await execute(name, input));
+  } catch (error) {
+    return toolResultText({ error: error instanceof Error ? error.message : 'Lookup failed' });
+  }
+}
+
+/**
+ * Chat with tool calling. The model may call the allow-listed `tools`; each
+ * call runs through `execute` (the caller decides what a tool can read) and the
+ * result goes back to the model, for at most `maxRounds` rounds. Returns the
+ * final text answer.
+ */
+export async function toolCompletion(
+  config: AIConfig,
+  system: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  tools: AITool[],
+  execute: AIToolExecutor,
+  options?: { temperature?: number; maxTokens?: number; maxRounds?: number },
+): Promise<string> {
+  const maxTokens = Math.min(4096, Math.max(1, options?.maxTokens ?? 1500));
+  const maxRounds = Math.min(8, Math.max(1, options?.maxRounds ?? 5));
+  const temperature = options?.temperature ?? 0.1;
+
+  if (config.provider === 'anthropic') {
+    const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }));
+    const anthropicTools = tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters }));
+    for (let round = 0; round <= maxRounds; round++) {
+      const lastRound = round === maxRounds;
+      const data = await providerFetch(config, {
+        model: config.model,
+        system,
+        messages: convo,
+        temperature,
+        max_tokens: maxTokens,
+        ...(lastRound ? {} : { tools: anthropicTools }),
+      });
+      const content: any[] = Array.isArray(data.content) ? data.content : [];
+      const calls = content.filter((part) => part?.type === 'tool_use');
+      if (calls.length === 0 || lastRound) {
+        return content.filter((part) => part?.type === 'text').map((part) => part.text).join('\n').trim();
+      }
+      convo.push({ role: 'assistant', content });
+      const results = [];
+      for (const call of calls) {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: call.id,
+          content: await runTool(execute, tools, String(call.name ?? ''), call.input),
+        });
+      }
+      convo.push({ role: 'user', content: results });
+    }
+    return '';
+  }
+
+  const convo: any[] = [{ role: 'system', content: system }, ...messages];
+  const openaiTools = tools.map((t) => ({
+    type: 'function',
+    function: { name: t.name, description: t.description, parameters: t.parameters },
+  }));
+  for (let round = 0; round <= maxRounds; round++) {
+    const lastRound = round === maxRounds;
+    const data = await providerFetch(config, {
+      model: config.model,
+      messages: convo,
+      temperature,
+      max_tokens: maxTokens,
+      ...(lastRound ? {} : { tools: openaiTools }),
+    });
+    const message = data.choices?.[0]?.message ?? {};
+    const calls: any[] = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    if (calls.length === 0 || lastRound) return String(message.content ?? '').trim();
+    convo.push({ role: 'assistant', content: message.content ?? null, tool_calls: calls });
+    for (const call of calls) {
+      let input: unknown = {};
+      try {
+        input = JSON.parse(call.function?.arguments ?? '{}');
+      } catch {
+        input = {};
+      }
+      convo.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: await runTool(execute, tools, String(call.function?.name ?? ''), input),
+      });
+    }
+  }
+  return '';
+}

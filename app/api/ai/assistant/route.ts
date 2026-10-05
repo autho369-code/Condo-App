@@ -5,15 +5,17 @@
  * questions about the manager's portfolio.
  *
  * SAFETY MODEL: this does NOT do NL→SQL or run arbitrary queries. The server
- * gathers a fixed, curated, RLS-scoped DATA SNAPSHOT (using the logged-in
- * user's Supabase session, so they only ever see their own data), serializes it
- * compactly, and the AI answers using ONLY that snapshot. The system prompt
- * forbids inventing numbers or facts not present in the snapshot.
+ * gathers a fixed, curated, RLS-scoped DATA SNAPSHOT (portfolio totals), and
+ * the model may call a fixed set of read-only lookups (`PORTFOLIO_TOOLS`: an
+ * owner, a unit, delinquencies, open work orders, violations, bills). Both use
+ * the logged-in user's Supabase session, so they only ever see their own data.
+ * The system prompt forbids inventing numbers or facts not returned by either.
  *
  * Mirrors the route style of app/api/ai/draft-communication/route.ts.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getAIConfig, chatCompletion } from '@/lib/ai/service';
+import { getAIConfig, toolCompletion } from '@/lib/ai/service';
+import { PORTFOLIO_TOOLS, runPortfolioTool } from '@/lib/ai/portfolio-tools';
 import { requireStaff } from '@/lib/auth/me';
 import { buildPortfolioSnapshot } from '@/lib/ai/portfolio-snapshot';
 import {
@@ -25,13 +27,20 @@ import {
 
 const SYSTEM_PROMPT =
   'You are the Portfolio Assistant for a community-association (HOA/condo) property manager. ' +
-  'Answer the manager\'s questions ONLY from the DATA provided below, which is a live, ' +
-  'read-only snapshot of THEIR portfolio. ' +
-  'If the answer is not present in the DATA, say plainly that you don\'t have that information ' +
+  'Answer the manager\'s questions ONLY from (a) the DATA snapshot below, which has portfolio-wide totals, ' +
+  'and (b) the lookup tools, which return live, read-only details of THEIR portfolio: a homeowner, a unit, ' +
+  'delinquent units, open work orders, open violations and vendor bills. ' +
+  'Use a tool whenever the question is about a specific owner, unit, association or list that the DATA does not cover. ' +
+  'If a lookup is ambiguous (several matches), ask which one. ' +
+  'If neither the DATA nor a tool has the answer, say plainly that you don\'t have that information ' +
   'and suggest where in the app they might find it. ' +
-  'NEVER invent, estimate, or extrapolate numbers, names, dates, or amounts — only state what is in the DATA. ' +
+  'NEVER invent, estimate, or extrapolate numbers, names, dates, or amounts — only state what the DATA or a tool returned. ' +
+  'You can only read; you cannot change anything, so never claim to have done something. ' +
   'Be concise and conversational. Format money with a dollar sign and use plain language. ' +
   'When listing items, use short bullet points. Do not output JSON or code unless asked.';
+
+// Up to 4 lookup rounds, each a provider call.
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   let me;
@@ -78,16 +87,17 @@ export async function POST(request: NextRequest) {
   try {
     const snapshot = await buildPortfolioSnapshot();
 
-    const messages = [
-      {
-        role: 'system' as const,
-        content: `${SYSTEM_PROMPT}\n\nDATA:\n${JSON.stringify(snapshot)}`,
-      },
-      ...history.map((t) => ({ role: t.role, content: t.content })),
-      { role: 'user' as const, content: question },
-    ];
-
-    const answer = await chatCompletion(config, messages, { temperature: 0.2 });
+    const answer = await toolCompletion(
+      config,
+      `${SYSTEM_PROMPT}\n\nDATA:\n${JSON.stringify(snapshot)}`,
+      [
+        ...history.map((t) => ({ role: t.role, content: t.content })),
+        { role: 'user' as const, content: question },
+      ],
+      PORTFOLIO_TOOLS,
+      runPortfolioTool,
+      { temperature: 0.2, maxRounds: 4 },
+    );
 
     return NextResponse.json({ answer: (answer ?? '').trim() });
   } catch (error: any) {
