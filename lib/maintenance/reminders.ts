@@ -6,6 +6,9 @@
  */
 import { createServiceClient } from '@/lib/supabase/server';
 import { firstVendorEmail } from '@/lib/vendors/document-requests';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { isValidTimeZone } from '@/lib/time/display-zone';
+import { DEFAULT_TIME_ZONE, todayInZone } from '@/lib/time/zoned';
 
 function firstPhone(list: unknown): string | null {
   for (const p of Array.isArray(list) ? list : []) {
@@ -41,18 +44,24 @@ export interface MaintenanceReminder {
  */
 export async function getDueReminders(): Promise<MaintenanceReminder[]> {
   const svc = createServiceClient() as any;
-  const today = new Date().toISOString().slice(0, 10);
+  // The earliest "today" anywhere (UTC-12) bounds the query; each task is then
+  // measured against today in its own association's time zone (a UTC date is
+  // already tomorrow on a US evening).
+  const earliestToday = todayInZone('Etc/GMT+12');
 
   // vendors store contact details as jsonb lists (emails, phone_numbers).
-  const { data: tasks, error } = await svc
+  // Every task: one request stops at 1,000 rows, which silently dropped the rest.
+  const { rows: tasks, error, truncated } = await fetchAllRows<any>(() => svc
     .from('maintenance_tasks')
-    .select('id, task_name, reminder_days, next_due_date, vendor_id, vendors(name, emails, phone_numbers), associations(name, portfolio_id, portfolios(company_name, support_email))')
+    .select('id, task_name, reminder_days, next_due_date, vendor_id, vendors(name, emails, phone_numbers), associations(name, timezone, portfolio_id, portfolios(company_name, support_email))')
     .is('archived_at', null)
     .eq('status', 'active')
     .not('vendor_id', 'is', null)
-    .gte('next_due_date', today);
+    .gte('next_due_date', earliestToday)
+    .order('id'));
   // Fail loudly: a query error must not look like "no reminders due".
-  if (error) throw new Error(`maintenance reminder lookup failed: ${error.message}`);
+  if (error) throw new Error(`maintenance reminder lookup failed: ${error}`);
+  if (truncated) throw new Error('maintenance reminder lookup hit the row limit; some reminders would be skipped');
 
   const reminders: MaintenanceReminder[] = [];
 
@@ -61,6 +70,10 @@ export async function getDueReminders(): Promise<MaintenanceReminder[]> {
     const vendorEmail = firstVendorEmail(vendor?.emails);
     if (!vendorEmail) continue;
 
+    const zone = typeof task.associations?.timezone === 'string' && isValidTimeZone(task.associations.timezone)
+      ? task.associations.timezone
+      : DEFAULT_TIME_ZONE;
+    const today = todayInZone(zone);
     const daysUntilDue = Math.round(
       (new Date(task.next_due_date + 'T00:00:00Z').getTime() - new Date(today + 'T00:00:00Z').getTime()) / 86400000,
     );

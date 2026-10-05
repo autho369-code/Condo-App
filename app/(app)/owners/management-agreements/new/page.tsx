@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { checkLinkedRecords, managesAssociation } from '@/lib/security/association-scope';
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,16 @@ export default async function NewManagementAgreementPage({ searchParams }: { sea
     const associationName = associationId
       ? (associations ?? []).find((a: any) => a.id === associationId)?.name
       : null;
+    // RLS on management_agreements only checks portfolio_id: verify the
+    // association and owner ids from the form belong to the caller.
+    if (associationId && !(await managesAssociation(supabase, associationId))) {
+      redirect(`/owners/management-agreements/new?error=${encodeURIComponent('That association is unavailable or outside your access.')}`);
+    }
+    const ownerError = await checkLinkedRecords(supabase, {
+      associationId,
+      ownerId: (formData.get('owner_id') as string) || null,
+    });
+    if (ownerError) redirect(`/owners/management-agreements/new?error=${encodeURIComponent(ownerError)}`);
 
     // start_date, name, terms (jsonb) and portfolio_id are NOT NULL on the table;
     // fee / signature-due / delivery have no columns, so they live in terms jsonb.

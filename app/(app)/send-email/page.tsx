@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { sendEmail } from '@/lib/rpcs/notifications';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { PageShell, Surface } from '@/components/ui/shell';
 import { CommunicationDrafter } from '@/components/ai/communication-drafter';
@@ -156,7 +157,7 @@ export default async function SendEmailPage({
           {/* Actions */}
           <div className="flex items-center justify-between border-t border-gray-100 pt-4">
             <div className="flex gap-2">
-              <Button type="submit">Send</Button>
+              <PendingSubmit pendingLabel="Sending…">Send</PendingSubmit>
               <Link href={closeHref}>
                 <Button variant="secondary" type="button">Cancel</Button>
               </Link>

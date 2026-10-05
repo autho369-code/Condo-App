@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { sendBulkComms } from '@/lib/rpcs/maintenance-comms';
+import { primaryVendorEmail, vendorEmails } from '@/lib/vendors/contact';
 import { Button } from '@/components/ui/button';
 
 const PRIORITY_TONES: Record<string, string> = {
@@ -12,14 +13,7 @@ const PRIORITY_TONES: Record<string, string> = {
 };
 
 function extractEmail(entity: any): string {
-  if (!entity?.emails) return '';
-  if (Array.isArray(entity.emails)) {
-    const work = entity.emails.find((e: any) => e?.type === 'work' || e?.label === 'work');
-    if (work?.email) return work.email;
-    const first = entity.emails.find((e: any) => e?.email);
-    if (first?.email) return first.email;
-  }
-  return '';
+  return primaryVendorEmail(entity?.emails) ?? '';
 }
 
 function extractPhone(entity: any): string {
@@ -34,11 +28,7 @@ function extractPhone(entity: any): string {
 }
 
 function parseVendorEmails(vendor: any): string[] {
-  if (!vendor?.emails || !Array.isArray(vendor.emails)) return [];
-  return vendor.emails
-    .filter((e: any) => e?.email && typeof e.email === 'string')
-    .map((e: any) => e.email.trim())
-    .filter(Boolean);
+  return vendorEmails(vendor?.emails);
 }
 
 function parseVendorPhones(vendor: any): string[] {

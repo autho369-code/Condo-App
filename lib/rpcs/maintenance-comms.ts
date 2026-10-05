@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { emailQueueRow } from '@/lib/email/queue';
+import { primaryVendorEmail } from '@/lib/vendors/contact';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -17,11 +18,7 @@ const req = (f: FormData, k: string) => {
 };
 
 function extractEmail(vendor: any): string | null {
-  if (!vendor?.emails || !Array.isArray(vendor.emails)) return null;
-  const work = vendor.emails.find((e: any) => e?.type === 'work' || e?.label === 'work');
-  if (work?.email) return work.email;
-  const first = vendor.emails.find((e: any) => e?.email);
-  return first?.email ?? null;
+  return primaryVendorEmail(vendor?.emails);
 }
 
 function extractPhone(vendor: any): string | null {

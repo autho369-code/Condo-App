@@ -3,7 +3,11 @@ import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { requireAuth } from '@/lib/auth/me'
+import { addDaysToDate, addMonthsToMonth, todayInZone } from '@/lib/time/zoned'
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time/display-zone'
+import { Alert } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
 import { date, money } from '@/lib/utils'
@@ -27,11 +31,23 @@ async function runMatching() {
   'use server'
   const { requireAuth: req } = await import('@/lib/auth/me')
   const me = await req()
-  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) return
+  if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
+  // The service client sees every company: a company's staff may only
+  // reconcile their own company's payouts (operators run the full job).
+  const portfolioId = me.is_platform_operator ? undefined : me.portfolio?.id
+  if (!me.is_platform_operator && !portfolioId) {
+    redirect('/command-center?error=' + encodeURIComponent('Your account is not linked to a company.'))
+  }
   const { createServiceClient } = await import('@/lib/supabase/server')
   const { reconcilePayouts } = await import('@/lib/payments/reconcile')
-  await reconcilePayouts(createServiceClient() as any)
+  let summary: { examined: number; reconciled: number; needsReview: number }
+  try {
+    summary = await reconcilePayouts(createServiceClient() as any, { portfolioId })
+  } catch (error) {
+    redirect('/command-center?error=' + encodeURIComponent(error instanceof Error ? error.message : 'Matching failed.'))
+  }
   revalidatePath('/command-center')
+  redirect(`/command-center?matched=${summary.reconciled}&review=${summary.needsReview}`)
 }
 
 function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: React.ElementType; tone?: 'danger' | 'warning' | 'success' }) {
@@ -51,22 +67,70 @@ function Tile({ label, value, sub, icon: Icon, tone }: { label: string; value: R
   )
 }
 
-export default async function FinancialCommandCenterPage() {
+export default async function FinancialCommandCenterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; matched?: string; review?: string }>
+}) {
+  const sp = await searchParams
   // Managers, company admins, and operators — the spec's "same financial
   // data filtered by permissions" (RLS scopes every query below).
   const me = await requireAuth()
   if (!me.is_staff && !me.is_company_admin && !me.is_platform_operator) redirect('/portal')
   const supabase = await createClient()
   const db = supabase as any
-  const todayDate = new Date().toISOString().slice(0, 10)
-  const monthStart = todayDate.slice(0, 8) + '01'
+  // "Today" is the company's local date: the server runs in UTC, so after
+  // ~7 PM Central the UTC date was already tomorrow and today's collections
+  // read $0.
+  const todayDate = todayInZone()
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString()
 
-  const dayOfMonth = new Date().getDate()
-  const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10)
-  // Clamp to the previous month's last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
-  const lastDayPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate()
-  const lastMonthSameDay = new Date(new Date().getFullYear(), new Date().getMonth() - 1, Math.min(dayOfMonth, lastDayPrevMonth)).toISOString().slice(0, 10)
+  // Month/day windows anchored on a local date. Clamp last month's same day to
+  // its last day: Mar 31 → Feb 28, not "Feb 31" = Mar 3.
+  const windowFor = (today: string) => {
+    const mStart = today.slice(0, 8) + '01'
+    const prev = addMonthsToMonth(today.slice(0, 7), -1)
+    const lastDayPrev = Number(addDaysToDate(mStart, -1).slice(8, 10))
+    return {
+      today,
+      monthStart: mStart,
+      lastMonthStart: `${prev}-01`,
+      lastMonthSameDay: `${prev}-${String(Math.min(Number(today.slice(8, 10)), lastDayPrev)).padStart(2, '0')}`,
+      yearStart: `${today.slice(0, 4)}-01-01`,
+    }
+  }
+
+  // Each association counts against its own local date. With one zone (the
+  // usual case) every total is a single company-wide query.
+  // Paged and complete: explicit id lists below would silently drop any
+  // association missing from this map.
+  const zoneRes = await fetchAllRows<any>(() => db.from('associations').select('id, timezone').order('id'))
+  if (zoneRes.error || zoneRes.truncated) {
+    throw new Error(`Association time zones could not be loaded: ${zoneRes.error ?? 'too many associations'}`)
+  }
+  const zoneRows = zoneRes.rows
+  const zoneOf = new Map<string, string>()
+  const idsByZone = new Map<string, string[]>()
+  for (const a of (zoneRows ?? []) as any[]) {
+    const zone = a.timezone && isValidTimeZone(a.timezone) ? a.timezone : DEFAULT_TIME_ZONE
+    zoneOf.set(a.id, zone)
+    idsByZone.set(zone, [...(idsByZone.get(zone) ?? []), a.id])
+  }
+  const zoneGroups: Array<{ ids: string[] | null; w: ReturnType<typeof windowFor> }> =
+    idsByZone.size > 1
+      ? [...idsByZone].map(([zone, ids]) => ({ ids, w: windowFor(todayInZone(zone)) }))
+      : [{ ids: null, w: windowFor(todayDate) }]
+  const sumTotals = async (pick: (w: ReturnType<typeof windowFor>) => [string, string]) => {
+    const parts = await Promise.all(zoneGroups.map((g) => billingCollectionTotals(db, ...pick(g.w), g.ids)))
+    return parts.reduce((t, p) => ({ charges: t.charges + p.charges, payments: t.payments + p.payments }), { charges: 0, payments: 0 })
+  }
+  const sumYtd = async () => {
+    const parts = await Promise.all(zoneGroups.map((g) => incomeExpenseTotals(db, { from: g.w.yearStart, associationIds: g.ids })))
+    return parts.reduce((t, p) => ({ income: t.income + p.income, expense: t.expense + p.expense }), { income: 0, expense: 0 })
+  }
+  const zoneTodays = zoneGroups.map((g) => g.w.today).sort()
+  const todayFor = (associationId: string | null | undefined) =>
+    associationId && zoneOf.has(associationId) ? todayInZone(zoneOf.get(associationId)!) : todayDate
 
   const [
     { data: paymentsToday },
@@ -81,22 +145,32 @@ export default async function FinancialCommandCenterPage() {
     { count: totalUnits },
     { data: latePayers },
   ] = await Promise.all([
-    db.from('payments').select('amount').neq('method', 'credit').eq('payment_date', todayDate),
+    // Every zone's "today" (one date when all associations share a zone);
+    // each payment is then kept only if it is today in its own association.
+    // Paged: a busy day can pass PostgREST's 1,000-row cap.
+    fetchAllRows<any>(() => db.from('payments').select('id, amount, payment_date, units(buildings(association_id))').neq('method', 'credit')
+      .gte('payment_date', zoneTodays[0]).lte('payment_date', zoneTodays[zoneTodays.length - 1]).order('id'))
+      .then((r) => {
+        if (r.error || r.truncated) throw new Error(`Today's payments could not be loaded: ${r.error ?? 'too many rows'}`)
+        return { data: r.rows }
+      }),
     db.from('payment_intents').select('id, amount, status, method, failure_reason, processor_fee_cents, created_at, units(unit_number), owners(full_name)').gte('created_at', d30).order('created_at', { ascending: false }),
     // Totals are summed in the database: row lists stop at 1,000 rows.
     receivableSummary(db),
-    billingCollectionTotals(db, monthStart, todayDate),
-    billingCollectionTotals(db, lastMonthStart, lastMonthSameDay),
+    sumTotals((w) => [w.monthStart, w.today]),
+    sumTotals((w) => [w.lastMonthStart, w.lastMonthSameDay]),
     db.from('bank_transactions').select('id, amount, date, name, matched_at').gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
     db.from('payout_batches').select('id, processor_payout_id, amount, expected_amount, arrival_date, status, match_method, notes, created_at').order('created_at', { ascending: false }).limit(25),
     db.from('bank_accounts').select('gl_account_id, purpose, fund_type').is('archived_at', null),
-    incomeExpenseTotals(db, { from: `${new Date().getFullYear()}-01-01` }),
+    sumYtd(),
     db.from('units').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('occupancies').select('owner_id, late_count, owners(full_name)').eq('status', 'current').gte('late_count', 2),
   ])
 
   const stripeOn = isStripeConfigured()
-  const collectedToday = (paymentsToday ?? []).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
+  const collectedToday = (paymentsToday ?? [])
+    .filter((p: any) => String(p.payment_date).slice(0, 10) === todayFor(p.units?.buildings?.association_id))
+    .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0)
   const pendingACH = (intents ?? []).filter((i: any) => i.status === 'processing')
   const pendingACHTotal = pendingACH.reduce((s: number, i: any) => s + Number(i.amount ?? 0), 0)
   const returned = (intents ?? []).filter((i: any) => ['returned', 'failed'].includes(i.status))
@@ -137,7 +211,7 @@ export default async function FinancialCommandCenterPage() {
     ? Math.round(((collectedMonth - collectedLastMonthSame) / collectedLastMonthSame) * 1000) / 10
     : null
   const ytdExpenses = ytd.expense
-  const monthsElapsed = new Date().getMonth() + 1
+  const monthsElapsed = Number(todayDate.slice(5, 7))
   const monthlyBurn = monthsElapsed > 0 ? ytdExpenses / monthsElapsed : 0
   const healthStatements: string[] = []
   if (collectionsTrendPct !== null) {
@@ -221,6 +295,13 @@ export default async function FinancialCommandCenterPage() {
           <Button type="submit" variant="secondary" className="gap-2"><RefreshCcw className="h-4 w-4" /> Run matching now</Button>
         </form>
       </div>
+
+      {sp.error && <Alert tone="danger" title="Matching did not run.">{sp.error}</Alert>}
+      {sp.matched !== undefined && !sp.error && (
+        <Alert tone="success" title="Matching finished.">
+          {Number(sp.matched) || 0} payout{Number(sp.matched) === 1 ? '' : 's'} reconciled; {Number(sp.review) || 0} flagged for review.
+        </Alert>
+      )}
 
       {!stripeOn && (
         <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-sm text-blue-900">

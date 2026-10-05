@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { deliverStepLetter, retryStepLetter } from '@/lib/violations/deliver-step-letter';
 
 // Every RPC below re-checks can_manage_violations(association) in the
@@ -127,6 +128,18 @@ export async function openViolation(formData: FormData) {
   const back = `/violations/new${associationId ? `?association_id=${associationId}` : ''}`;
   if (!associationId) go(back, 'error', 'Choose an association.');
   const supabase = await createClient();
+  // A double click or re-sent form must not open the same violation twice
+  // (forms without a token, e.g. older tabs, still work).
+  let token: string | null = null;
+  if (formData.get(SUBMISSION_FIELD)) {
+    const claim = await claimSubmission(supabase, formData, 'violation_open');
+    if (claim.status === 'error') go(back, 'error', claim.message);
+    if (claim.status === 'duplicate') {
+      if (claim.resultId) redirect(`/violations/${claim.resultId}`);
+      go('/violations', 'error', 'This violation is already being opened. Refresh in a moment to see it.');
+    }
+    token = (claim as { token: string }).token;
+  }
   const { data, error } = await (supabase as any).rpc('open_violation', {
     p_association_id: associationId,
     p_unit_id: str(formData, 'unit_id') || null,
@@ -136,7 +149,11 @@ export async function openViolation(formData: FormData) {
     p_date_observed: str(formData, 'date_observed') || null,
     p_violation_type: str(formData, 'violation_type') || null,
   });
-  if (error) go(back, 'error', error.message);
+  if (error) {
+    if (token) await releaseSubmission(supabase, token);
+    go(back, 'error', error.message);
+  }
+  if (token && typeof data === 'string') await completeSubmission(supabase, token, data);
   revalidatePath('/violations');
   redirect(`/violations/${data}?saved=${encodeURIComponent('Violation opened. Send the first notice when ready.')}`);
 }

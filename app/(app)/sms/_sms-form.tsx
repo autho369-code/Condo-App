@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { sendSms } from '@/lib/rpcs/sms';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 function extractPhone(entity: any, type: string): string {
   if (entity.phone && typeof entity.phone === 'string' && entity.phone.trim()) return entity.phone.trim();
@@ -23,10 +23,12 @@ export function SmsForm({
   owners,
   vendors,
   templates,
+  submissionToken,
 }: {
   owners: any[];
   vendors: any[];
   templates: any[];
+  submissionToken: string;
 }) {
   const [recipientType, setRecipientType] = useState<string>('owner');
   const [selectedId, setSelectedId] = useState<string>('');
@@ -55,6 +57,8 @@ export function SmsForm({
 
   return (
     <form action={sendSms as any} className="space-y-4">
+      {/* One-time token: a double click or re-sent form texts once. */}
+      <input type="hidden" name="submission_token" value={submissionToken} />
       {/* Recipient type */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Recipient type</label>
@@ -150,7 +154,7 @@ export function SmsForm({
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit">Send SMS</Button>
+        <PendingSubmit pendingLabel="Sending…">Send SMS</PendingSubmit>
       </div>
     </form>
   );

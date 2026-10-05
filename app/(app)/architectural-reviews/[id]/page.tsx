@@ -121,7 +121,7 @@ export default async function ManagerArchitecturalDetail({
         )}
 
         <Section title="Discussion" padded>
-          <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} placeholder="Reply to the homeowner or note something for the board…" />
+          <ArcMessageThread messages={(messages ?? []) as ArcMessage[]} postAction={postAction as any} placeholder="Reply to the homeowner (the homeowner and board see every message)…" />
         </Section>
       </div>
     </Workspace>

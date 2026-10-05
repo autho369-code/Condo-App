@@ -7,6 +7,7 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { checkWorkOrderLinks } from '@/lib/maintenance/work-order-links';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,13 +51,18 @@ export default async function EditRecurringWorkOrderPage({
     const associationId = (formData.get('association_id') as string) || null;
     if (!associationId) failTo('Select an association.');
     const interval = parseInt(formData.get('interval_count') as string, 10);
+    const unitId = (formData.get('unit_id') as string) || null;
+    const vendorId = (formData.get('vendor_id') as string) || null;
+    const links = await checkWorkOrderLinks(db, associationId!, unitId, vendorId);
+    if (links.error !== undefined) failTo(links.error);
 
-    const { error } = await db
+    const { data: updated, error } = await db
       .from('recurring_work_orders')
       .update({
+        portfolio_id: links.portfolioId,
         association_id: associationId,
-        unit_id: (formData.get('unit_id') as string) || null,
-        vendor_id: (formData.get('vendor_id') as string) || null,
+        unit_id: unitId,
+        vendor_id: vendorId,
         title,
         description: (formData.get('description') as string)?.trim() || null,
         category: (formData.get('category') as string) || null,
@@ -67,8 +73,11 @@ export default async function EditRecurringWorkOrderPage({
         end_date: (formData.get('end_date') as string) || null,
         auto_generate: formData.get('auto_generate') === 'on',
       })
-      .eq('id', id);
+      .eq('id', id)
+      .is('archived_at', null)
+      .select('id');
     if (error) failTo(error.message);
+    if (!updated?.length) failTo('This recurring work order was not found or is outside your access.');
     redirect('/recurring-work-orders');
   }
 

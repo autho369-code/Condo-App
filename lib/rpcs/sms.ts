@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { canonicalPhone, smsDeliveryConfigured } from '@/lib/sms/twilio';
+import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -27,11 +28,12 @@ export async function sendSms(formData: FormData) {
     redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
   };
 
-  const recipientType = req(formData, 'recipient_type');
+  const need = (k: string, label: string): string => str(formData, k) ?? (failTo(`Enter ${label}.`) as never);
+  const recipientType = need('recipient_type', 'a recipient type');
   if (!['owner', 'vendor'].includes(recipientType)) { failTo('SMS recipients must be an owner or vendor.'); return; }
-  const recipientId = req(formData, 'recipient_id');
-  const phoneNumber = canonicalPhone(req(formData, 'phone_number'));
-  const body = req(formData, 'message');
+  const recipientId = need('recipient_id', 'a recipient');
+  const phoneNumber = canonicalPhone(need('phone_number', 'a phone number'));
+  const body = need('message', 'a message');
   const fromNumber = str(formData, 'from_number') ?? me.portfolio?.phone_number ?? '+10000000000';
   if (!smsDeliveryConfigured()) { failTo('Live SMS delivery is not configured for this environment.'); return; }
 
@@ -55,6 +57,16 @@ export async function sendSms(formData: FormData) {
     .map(canonicalPhone);
   if (!entityPhones.includes(phoneNumber)) { failTo('The SMS number must match the selected recipient record.'); return; }
   const entityName = recipientType === 'owner' ? entity.full_name : entity.name;
+
+  // A double click or re-sent form must not text the recipient twice.
+  const claim = await claimSubmission(db, formData, 'sms_send');
+  if (claim.status === 'error') { failTo(claim.message); return; }
+  if (claim.status === 'duplicate') { redirect(safeInternalNext(str(formData, 'return_to')) ?? '/sms'); return; }
+  const submissionToken = (claim as { token: string }).token;
+  const failAndRelease = async (msg: string) => {
+    await releaseSubmission(db, submissionToken);
+    failTo(msg);
+  };
 
   // Find or create conversation
   const { data: existingConv } = await db
@@ -85,7 +97,7 @@ export async function sendSms(formData: FormData) {
       .select('id')
       .single();
 
-    if (convErr) { failTo(convErr.message); return; }
+    if (convErr) { await failAndRelease(convErr.message); return; }
     conversationId = newConv.id;
   }
 
@@ -102,10 +114,11 @@ export async function sendSms(formData: FormData) {
     sent_by: me.auth_user_id,
   });
 
-  if (msgErr) { failTo(msgErr.message); return; }
+  if (msgErr) { await failAndRelease(msgErr.message); return; }
 
   // Also record in communication_messages for the central communication hub
-  await db.from('communication_messages').insert({
+  // (the text itself is already queued, so this is logged, not fatal).
+  const { error: logError } = await db.from('communication_messages').insert({
     portfolio_id: me.portfolio?.id,
     channel: 'sms',
     status: 'queued',
@@ -115,6 +128,7 @@ export async function sendSms(formData: FormData) {
     sent_at: null,
     created_by: me.auth_user_id,
   });
+  if (logError) console.error('SMS communication log insert failed', { conversationId, error: logError.message });
 
   // Update conversation preview
   await db

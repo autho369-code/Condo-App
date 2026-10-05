@@ -7,6 +7,8 @@ import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,12 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     const title = (formData.get('title') as string)?.trim();
     if (!associationId) redirect('/work-orders/new?error=' + encodeURIComponent('Select an association.'));
     if (!title) redirect('/work-orders/new?error=' + encodeURIComponent('Enter a title for the work order.'));
+    // The work order belongs to the association's company (a platform
+    // operator's own portfolio is not the client company's). RLS limits the
+    // lookup to associations this staffer can see.
+    const { data: association } = await (supabase as any).from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
+    if (!association?.portfolio_id) redirect('/work-orders/new?error=' + encodeURIComponent('That association was not found or is outside your access.'));
+    const portfolioId: string = association.portfolio_id;
     const unitId = (formData.get('unit_id') as string) || null;
     if (unitId) {
       // The unit picker lists every unit; make sure it is in the chosen association.
@@ -49,12 +57,21 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     const vendorId = (formData.get('vendor_id') as string) || null;
     if (vendorId) {
       const { data: vendor } = await (supabase as any).from('vendors').select('id')
-        .eq('id', vendorId).eq('portfolio_id', me.portfolio?.id).is('archived_at', null).maybeSingle();
+        .eq('id', vendorId).eq('portfolio_id', portfolioId).is('archived_at', null).maybeSingle();
       if (!vendor) redirect(`/work-orders/new?association=${associationId}&error=` + encodeURIComponent('That vendor is not in your company.'));
     }
 
+    // A double click or re-sent form must not create the work order twice.
+    const claim = await claimSubmission(supabase, formData, 'work_order_create');
+    if (claim.status === 'error') redirect(`/work-orders/new?association=${associationId}&error=` + encodeURIComponent(claim.message));
+    if (claim.status === 'duplicate') {
+      if (claim.resultId) redirect(`/work-orders/${claim.resultId}`);
+      redirect('/work-orders?error=' + encodeURIComponent('This work order is already being created. Refresh in a moment to see it.'));
+    }
+    const token = (claim as { token: string }).token;
+
     const { data: wo, error } = await (supabase as any).from('work_orders').insert({
-      portfolio_id: me.portfolio?.id,
+      portfolio_id: portfolioId,
       association_id: associationId,
       unit_id: unitId,
       title,
@@ -70,7 +87,11 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       withheld_amount_from_owner: 0,
       created_by: me.auth_user_id,
     }).select('id').single();
-    if (error || !wo) redirect('/work-orders/new?error=' + encodeURIComponent(error?.message ?? 'Could not create work order.'));
+    if (error || !wo) {
+      await releaseSubmission(supabase, token);
+      redirect('/work-orders/new?error=' + encodeURIComponent(error?.message ?? 'Could not create work order.'));
+    }
+    await completeSubmission(supabase, token, wo.id);
     redirect(`/work-orders/${wo.id}`);
   }
 
@@ -82,6 +103,7 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     >
       <form action={createWorkOrder} className="max-w-4xl space-y-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {sp.error && <Alert tone="danger" title="Could not create work order">{sp.error}</Alert>}
+        <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
@@ -152,7 +174,7 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
 
         <div className="flex items-center justify-between border-t border-gray-100 pt-5">
           <Link href="/work-orders" className="text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-          <Button type="submit" size="lg">Create work order</Button>
+          <PendingSubmit size="lg" pendingLabel="Creating…">Create work order</PendingSubmit>
         </div>
       </form>
     </DataWorkspace>
