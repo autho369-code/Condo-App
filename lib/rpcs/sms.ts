@@ -11,9 +11,11 @@ const str = (f: FormData, k: string) => {
   const v = f.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
-const req = (f: FormData, k: string) => {
+// Required field: a missing value redirects back with an error (never throws
+// to the error page from a plain <form action>).
+const req = (f: FormData, k: string, label: string, back: string): string => {
   const v = str(f, k);
-  if (!v) throw new Error(`${k} is required`);
+  if (!v) redirect(`${back}?error=${encodeURIComponent(`Enter ${label}.`)}`);
   return v;
 };
 
@@ -159,11 +161,11 @@ export async function saveTemplate(formData: FormData) {
   };
 
   const id = str(formData, 'id');
-  const name = req(formData, 'name');
+  const name = req(formData, 'name', 'a template name', '/sms/templates');
   const channel = str(formData, 'channel') ?? 'sms';
   const category = str(formData, 'category') ?? 'general';
   const subject = str(formData, 'subject');
-  const body = req(formData, 'body');
+  const body = req(formData, 'body', 'the message text', '/sms/templates');
 
   const payload: any = {
     portfolio_id: me.portfolio?.id,
@@ -178,8 +180,11 @@ export async function saveTemplate(formData: FormData) {
 
   if (id) {
     // Update existing
-    const { error } = await db.from('message_templates').update(payload).eq('id', id);
+    // Keep the original author; zero rows means it is not this workspace's template.
+    const { created_by: _author, ...changes } = payload;
+    const { data: updated, error } = await db.from('message_templates').update(changes).eq('id', id).select('id');
     if (error) { failTo(error.message); return; }
+    if (!updated?.length) { failTo('That template was not found in your workspace.'); return; }
   } else {
     // Create new
     const { error } = await db.from('message_templates').insert(payload);
@@ -196,7 +201,7 @@ export async function deleteTemplate(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const id = req(formData, 'id');
+  const id = req(formData, 'id', 'the template to delete', '/sms/templates');
   const { error } = await db.from('message_templates').delete().eq('id', id);
   if (error) redirect(`/sms/templates?error=${encodeURIComponent(error.message)}`);
 
@@ -210,9 +215,9 @@ export async function toggleOptIn(formData: FormData) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const entityType = req(formData, 'entity_type');
-  const entityId = req(formData, 'entity_id');
-  const phoneNumber = canonicalPhone(req(formData, 'phone_number'));
+  const entityType = req(formData, 'entity_type', 'the recipient type', '/sms/opt-ins');
+  const entityId = req(formData, 'entity_id', 'the recipient', '/sms/opt-ins');
+  const phoneNumber = canonicalPhone(req(formData, 'phone_number', 'a phone number', '/sms/opt-ins'));
   const optedIn = formData.get('opted_in') === 'true';
   const consentSource = str(formData, 'consent_source');
   const failTo = (msg: string) => {

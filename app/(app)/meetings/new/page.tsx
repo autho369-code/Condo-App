@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import { DataWorkspace } from '@/components/operations/data-workspace';
-import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { Alert, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DEFAULT_TIME_ZONE, wallDateTimeToIso } from '@/lib/time/zoned';
+import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,12 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     const endTime = wallDateTimeToIso(String(formData.get('end_time') ?? ''), zone);
     if (formData.get('start_time') && !startTime) redirect(`/meetings/new?error=${encodeURIComponent('Enter a valid start date and time.')}`);
     if (startTime && endTime && endTime < startTime) redirect(`/meetings/new?error=${encodeURIComponent('The meeting must end after it starts.')}`);
-    const { error } = await (supabase as any).from('meetings').insert({
+    // A double click or re-sent form must not schedule the meeting twice.
+    const claim = await claimSubmission(supabase, formData, 'new_meeting');
+    if (claim.status === 'error') redirect(`/meetings/new?error=${encodeURIComponent(claim.message)}`);
+    if (claim.status === 'duplicate') redirect(claim.resultId ? `/meetings/${claim.resultId}` : '/meetings');
+    const token = (claim as { token: string }).token;
+    const { data: created, error } = await (supabase as any).from('meetings').insert({
       title: formData.get('title'),
       meeting_type: formData.get('meeting_type') || 'board_meeting',
       association_id: formData.get('association_id') || null,
@@ -45,10 +51,12 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
       agenda: formData.get('agenda') || '',
       status: 'scheduled',
       portfolio_id: actionMe.portfolio?.id,
-    });
-    if (error) {
-      redirect(`/meetings/new?error=${encodeURIComponent(error.message)}`);
+    }).select('id').single();
+    if (error || !created) {
+      await releaseSubmission(supabase, token);
+      redirect(`/meetings/new?error=${encodeURIComponent(error?.message ?? 'The meeting could not be created.')}`);
     }
+    await completeSubmission(supabase, token, created.id);
     redirect('/meetings');
   }
 
@@ -60,6 +68,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
       {sp.error && <Alert tone="danger" title="Meeting not created." className="mb-4 max-w-3xl">{sp.error}</Alert>}
       <Surface className="max-w-3xl">
         <form action={handleSubmit} className="space-y-5">
+          <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Title">
               <Input name="title" required placeholder="Board meeting, committee..." />
@@ -93,7 +102,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
             <Textarea name="agenda" rows={6} placeholder="Agenda items and meeting description..." />
           </Field>
           <div className="border-t border-gray-100 pt-4">
-            <Button type="submit">Create meeting</Button>
+            <PendingSubmit pendingLabel="Creating…">Create meeting</PendingSubmit>
           </div>
         </form>
       </Surface>

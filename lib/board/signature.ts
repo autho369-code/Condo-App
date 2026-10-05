@@ -13,6 +13,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import type { MeResult } from '@/lib/auth/me';
 import { isSignatureStoragePath } from '@/lib/security/storage-paths';
+import { escapeLike } from '@/lib/db/escape-like';
 
 const BUCKET = 'association-documents';
 
@@ -21,11 +22,6 @@ export interface BoardSeatSignature {
   association_id: string | null;
   signature_url: string | null;
   signature_on_file: boolean;
-}
-
-/** Escape LIKE/ILIKE pattern characters so an email compares literally. */
-function escapeLike(value: string): string {
-  return value.replace(/([\\%_])/g, '\\$1');
 }
 
 /**
