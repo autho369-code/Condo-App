@@ -24,7 +24,21 @@ export function zonedWallTimeToUtc(date: string, time: string, timeZone: string)
     return null; // unknown time zone
   }
   const result = new Date(guess);
-  return Number.isNaN(result.getTime()) ? null : result;
+  if (Number.isNaN(result.getTime())) return null;
+  // A wall time inside a spring-forward gap (e.g. 02:30 on DST start day)
+  // does not exist; the offset passes would land on a different local time.
+  // Reject it instead of silently saving a time the user did not enter.
+  if (localWallParts(result.getTime(), timeZone) !== `${m[1]}-${m[2]}-${m[3]}T${t[1]}:${t[2]}`) return null;
+  return result;
+}
+
+function localWallParts(utcMs: number, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(new Date(utcMs));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
 
 function offsetMs(utcMs: number, timeZone: string): number {

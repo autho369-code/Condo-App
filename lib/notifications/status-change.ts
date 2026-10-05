@@ -20,6 +20,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { queueEmails } from '@/lib/email/queue';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { todayInZone } from '@/lib/time/zoned';
 
 
 export interface StatusChangeParams {
@@ -42,27 +43,37 @@ function statusLabel(status: string): string {
  * charge/work-order subjects to owners the exact same way.
  */
 export async function resolveUnitOwnerId(svc: any, unitId: string): Promise<string | null> {
-  const { data: uo } = await svc
+  // An owner counts only while they hold a current owner occupancy that has
+  // not reached its move-out date. A unit_owners row opened for a sale with a
+  // future move-out stays open past that date (no trigger fires when a date
+  // passes), so it is checked against the occupancy here.
+  const today = todayInZone();
+  const { data: occs } = await svc
+    .from('occupancies')
+    .select('owner_id, is_primary, move_out_date')
+    .eq('unit_id', unitId)
+    .eq('status', 'current')
+    .eq('occupancy_type', 'owner')
+    .not('owner_id', 'is', null);
+  const currentOwners = new Set<string>(
+    ((occs ?? []) as any[])
+      .filter((o) => !o.move_out_date || o.move_out_date > today)
+      .map((o) => String(o.owner_id)),
+  );
+
+  const { data: uos } = await svc
     .from('unit_owners')
     .select('owner_id, is_primary')
     .eq('unit_id', unitId)
     .is('end_date', null)
-    .order('is_primary', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (uo?.owner_id) return uo.owner_id;
+    .order('is_primary', { ascending: false });
+  const fromUnitOwners = ((uos ?? []) as any[]).find((u) => currentOwners.has(String(u.owner_id)));
+  if (fromUnitOwners?.owner_id) return fromUnitOwners.owner_id;
 
-  const { data: occ } = await svc
-    .from('occupancies')
-    .select('owner_id, is_primary')
-    .eq('unit_id', unitId)
-    .eq('status', 'current')
-    .eq('occupancy_type', 'owner')
-    .not('owner_id', 'is', null)
-    .order('is_primary', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return occ?.owner_id ?? null;
+  const fromOccupancy = ((occs ?? []) as any[])
+    .filter((o) => currentOwners.has(String(o.owner_id)))
+    .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)))[0];
+  return fromOccupancy?.owner_id ?? null;
 }
 
 /**
