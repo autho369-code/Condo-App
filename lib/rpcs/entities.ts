@@ -742,6 +742,9 @@ export async function createVendor(formData: FormData) {
     redirect(`/vendors/new?error=${encodeURIComponent(msg)}`);
   };
 
+  const vendorName = str(formData, 'name');
+  if (!vendorName) { failTo('Enter the vendor name.'); return; }
+
   // Build phone_numbers array from landline/mobile fields
   const phones: Array<{type: string; number: string}> = [];
   const landline = str(formData, 'phone_landline');
@@ -755,7 +758,7 @@ export async function createVendor(formData: FormData) {
 
   const payload = {
     portfolio_id:   me.portfolio?.id,
-    name:           req(formData, 'name'),
+    name:           vendorName,
     vendor_type:    str(formData, 'vendor_type') ?? 'general',
     trade:          str(formData, 'trade') ?? 'other',
     phone_numbers:  phones,

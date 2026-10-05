@@ -251,7 +251,7 @@ export async function addEstimate(workOrderId: string, formData: FormData) {
 }
 
 export async function approveEstimate(estimateId: string, workOrderId: string) {
-  await requireStaff();  // in-action guard: server actions are callable endpoints
+  const me = await requireStaff();  // in-action guard: server actions are callable endpoints
   const supabase = await createClient();
   const { data: workOrder, error: workOrderError } = await accessibleWorkOrder(supabase as any, workOrderId);
   if (workOrderError || !workOrder) {
@@ -259,12 +259,15 @@ export async function approveEstimate(estimateId: string, workOrderId: string) {
     return;
   }
   const { data: updated, error } = await (supabase as any).from('work_order_estimates')
-    .update({ approved_at: new Date().toISOString() })
+    .update({ approved_at: new Date().toISOString(), approved_by: me.auth_user_id })
     .eq('id', estimateId)
     .eq('work_order_id', workOrderId)
+    // A rejected or already-approved estimate keeps its decision.
+    .is('approved_at', null)
+    .is('rejected_at', null)
     .select('id')
     .maybeSingle();
-  if (error || !updated) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error?.message ?? 'Estimate not found or not accessible for this work order.')}`); return; }
+  if (error || !updated) { redirect(`/work-orders/${workOrderId}?error=${encodeURIComponent(error?.message ?? 'Estimate not found, already decided, or not accessible for this work order.')}`); return; }
   revalidatePath(`/work-orders/${workOrderId}`);
 }
 
