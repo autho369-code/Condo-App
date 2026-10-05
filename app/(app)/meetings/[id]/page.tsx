@@ -22,8 +22,11 @@ import {
   publishMeetingMinutes,
   cancelMeeting,
   updateMeetingActionStatus,
+  updateMeetingDetails,
 } from './actions';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { DEFAULT_TIME_ZONE, isoToWallDateTime } from '@/lib/time/zoned';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +61,7 @@ function successMessage(value?: string) {
   if (value === 'notes') return 'Meeting notes saved. Minutes stay a draft until you publish them.';
   if (value === 'published') return 'Minutes published to owners; the meeting is marked completed.';
   if (value === 'cancelled') return 'Meeting cancelled.';
+  if (value === 'details') return 'Meeting details updated.';
   if (value === 'attendee') return 'Attendance updated.';
   if (value === 'agenda') return 'Structured agenda updated.';
   if (value === 'document') return 'Meeting documents updated.';
@@ -86,7 +90,7 @@ export default async function MeetingDetailPage({
     { data: actionItems },
     { data: privateRow },
   ] = await Promise.all([
-    db.from('meetings').select('*, associations(id, name)').eq('id', id).single(),
+    db.from('meetings').select('*, associations(id, name, timezone)').eq('id', id).single(),
     db.from('meeting_attendees').select('*').eq('meeting_id', id).order('created_at'),
     db.from('meeting_documents').select('*').eq('meeting_id', id).order('uploaded_at', { ascending: false }),
     db.from('agenda_items').select('*').eq('meeting_id', id).order('sort_order').order('created_at'),
@@ -106,6 +110,7 @@ export default async function MeetingDetailPage({
   const quorumMet = quorum != null ? presentCount >= quorum : null;
   const agendaEditable = meeting.status !== 'completed' && meeting.status !== 'cancelled';
   const saved = successMessage(sp.saved);
+  const meetingZone = meeting.associations?.timezone || DEFAULT_TIME_ZONE;
 
   return (
     <DataWorkspace
@@ -128,6 +133,43 @@ export default async function MeetingDetailPage({
           <div><span className="text-gray-500">Location</span><p className="font-medium text-gray-900">{meeting.location || '—'}</p></div>
           <div><span className="text-gray-500">Status</span><p className="font-medium capitalize text-gray-900">{meeting.status?.replace(/_/g, ' ') || '—'}</p></div>
         </Surface>
+
+        {agendaEditable && (
+          <Surface>
+            <details>
+              <summary className="flex min-h-10 cursor-pointer items-center text-sm font-semibold text-gray-950">Edit meeting details</summary>
+              <form action={updateMeetingDetails.bind(null, id)} className="mt-4 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Title" htmlFor="edit_title" required>
+                    <Input id="edit_title" name="title" required maxLength={255} defaultValue={meeting.title ?? ''} />
+                  </Field>
+                  <Field label="Type" htmlFor="edit_meeting_type">
+                    <Select id="edit_meeting_type" name="meeting_type" defaultValue={meeting.meeting_type ?? 'board_meeting'}>
+                      <option value="board_meeting">Board Meeting</option>
+                      <option value="annual_meeting">Annual Meeting</option>
+                      <option value="special_meeting">Special Meeting</option>
+                      <option value="committee_meeting">Committee Meeting</option>
+                      <option value="executive_session">Executive Session</option>
+                    </Select>
+                  </Field>
+                  <Field label="Start" htmlFor="edit_start_time" hint={`Times are in ${meetingZone}.`}>
+                    <Input id="edit_start_time" name="start_time" type="datetime-local" defaultValue={isoToWallDateTime(meeting.start_time, meetingZone)} />
+                  </Field>
+                  <Field label="End" htmlFor="edit_end_time">
+                    <Input id="edit_end_time" name="end_time" type="datetime-local" defaultValue={isoToWallDateTime(meeting.end_time, meetingZone)} />
+                  </Field>
+                  <Field label="Location" htmlFor="edit_location">
+                    <Input id="edit_location" name="location" maxLength={500} defaultValue={meeting.location ?? ''} />
+                  </Field>
+                  <Field label="Quorum (attendees required)" htmlFor="edit_quorum">
+                    <Input id="edit_quorum" name="quorum_requirement" type="number" min={1} step={1} inputMode="numeric" defaultValue={meeting.quorum_requirement ?? ''} />
+                  </Field>
+                </div>
+                <PendingSubmit size="sm" pendingLabel="Saving…">Save details</PendingSubmit>
+              </form>
+            </details>
+          </Surface>
+        )}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
           <div className="space-y-4">

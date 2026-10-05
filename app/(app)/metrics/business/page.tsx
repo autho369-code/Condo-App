@@ -66,7 +66,7 @@ export default async function BusinessMetricsPage({ searchParams }: { searchPara
     created('inspections'),
     texts('outbound'),
     texts('inbound'),
-    fetchAllRows<any>(() => db.from('payments').select('id, amount').eq('method', 'online')
+    fetchAllRows<any>(() => db.from('payments').select('id, amount').or('method.eq.online,processor.not.is.null')
       .gte('payment_date', fromDay).lt('payment_date', toDay).order('id')),
     db.from('payments').select('payment_date').eq('method', 'ach').order('payment_date', { ascending: false }).limit(1).maybeSingle(),
     db.from('owner_packets').select('submitted_at').not('submitted_at', 'is', null).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),

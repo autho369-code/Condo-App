@@ -90,3 +90,19 @@ export function addMonthsToMonth(month: string, months: number): string {
   if (!m) throw new Error(`Invalid calendar month: ${month}`);
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1 + months, 1)).toISOString().slice(0, 7);
 }
+
+/**
+ * The inverse of wallDateTimeToIso for a datetime-local input: an instant as
+ * `YYYY-MM-DDTHH:MM` wall-clock time in `timeZone`. Empty string when unset.
+ */
+export function isoToWallDateTime(value: string | null | undefined, timeZone: string): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}

@@ -3,16 +3,14 @@
 import { useState } from 'react';
 import { sendSms } from '@/lib/rpcs/sms';
 import { PendingSubmit } from '@/components/ui/pending-submit';
+import { phoneEntries } from '@/lib/sms/phone-entries';
 
 function extractPhone(entity: any, type: string): string {
   if (entity.phone && typeof entity.phone === 'string' && entity.phone.trim()) return entity.phone.trim();
-  if (entity.phone_numbers && Array.isArray(entity.phone_numbers)) {
-    const mobile = entity.phone_numbers.find((p: any) => p.type === 'mobile' || p.label === 'mobile');
-    if (mobile?.number) return mobile.number;
-    const first = entity.phone_numbers.find((p: any) => p.number);
-    if (first?.number) return first.number;
-  }
-  return '';
+  // phone_numbers holds { number, type|label } objects or plain strings.
+  const entries = phoneEntries(entity.phone_numbers);
+  const mobile = entries.find((p) => p.type === 'mobile');
+  return (mobile ?? entries[0])?.number ?? '';
 }
 
 function entityName(e: any): string {

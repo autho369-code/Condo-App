@@ -7,6 +7,7 @@ import { queueEmails } from '@/lib/email/queue';
 import { MAX_SIGNATURE_PDF_BYTES, SIGNATURE_BUCKET, isPdf, newSigningToken, sha256Hex } from '@/lib/signatures/crypto';
 import { signatureRequestEmail } from '@/lib/signatures/email';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 const s = (fd: FormData, k: string) => ((fd.get(k) as string) ?? '').trim();
 const SUBJECT_TYPES = ['document', 'architectural_request', 'board_resolution', 'vendor_agreement', 'management_agreement', 'year_end_package'];
@@ -46,27 +47,44 @@ export async function createSignatureRequest(formData: FormData) {
   const service = createServiceClient() as any;
   let documentPath: string | null = null;
   let bodyText: string | null = null;
+  let pdfBytes: Uint8Array | null = null;
   let sha: string;
 
   if (kind === 'pdf') {
     const file = formData.get('document');
     if (!(file instanceof File) || file.size === 0) fail(back, 'Attach the PDF to be signed.');
     if (file.size > MAX_SIGNATURE_PDF_BYTES) fail(back, 'PDFs are limited to 10 MB.');
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (!isPdf(bytes)) fail(back, 'The attached file is not a PDF.');
-    sha = sha256Hex(bytes);
-    documentPath = `signatures/${portfolioId}/${randomUUID()}.pdf`;
-    const { error: uploadError } = await service.storage.from(SIGNATURE_BUCKET).upload(documentPath, bytes, { contentType: 'application/pdf', upsert: false });
-    if (uploadError) fail(back, `Upload failed: ${uploadError.message}`);
+    pdfBytes = new Uint8Array(await file.arrayBuffer());
+    if (!isPdf(pdfBytes)) fail(back, 'The attached file is not a PDF.');
+    sha = sha256Hex(pdfBytes);
   } else {
     bodyText = s(formData, 'body_text').replace(/\r\n/g, '\n');
     if (bodyText.length < 20) fail(back, 'Write the text to be signed (at least 20 characters).');
     sha = sha256Hex(bodyText);
   }
 
-  const withTokens = signers.map((x) => ({ ...x, ...newSigningToken() }));
+  // A double click or a re-sent form must not create (and email) the request twice.
   const supabase = await createClient();
-  const { data: requestId, error } = await (supabase as any).rpc('create_signature_request', {
+  const db = supabase as any;
+  const claim = await claimSubmission(db, formData, 'signature_request');
+  if (claim.status === 'error') fail(back, claim.message);
+  if (claim.status === 'duplicate') {
+    redirect(claim.resultId ? `/signatures/${claim.resultId}?saved=${encodeURIComponent('This request was already sent.')}` : '/signatures');
+  }
+  const submissionToken = (claim as { token: string }).token;
+  const failReleased = async (msg: string): Promise<never> => {
+    await releaseSubmission(db, submissionToken);
+    return fail(back, msg);
+  };
+
+  if (pdfBytes) {
+    documentPath = `signatures/${portfolioId}/${randomUUID()}.pdf`;
+    const { error: uploadError } = await service.storage.from(SIGNATURE_BUCKET).upload(documentPath, pdfBytes, { contentType: 'application/pdf', upsert: false });
+    if (uploadError) await failReleased(`Upload failed: ${uploadError.message}`);
+  }
+
+  const withTokens = signers.map((x) => ({ ...x, ...newSigningToken() }));
+  const { data: requestId, error } = await db.rpc('create_signature_request', {
     p_portfolio_id: portfolioId,
     p_association_id: associationId,
     p_subject_type: subjectType,
@@ -83,8 +101,9 @@ export async function createSignatureRequest(formData: FormData) {
   });
   if (error) {
     if (documentPath) await service.storage.from(SIGNATURE_BUCKET).remove([documentPath]);
-    fail(back, error.message);
+    await failReleased(error.message);
   }
+  await completeSubmission(db, submissionToken, requestId);
 
   // Sequential requests email only the first signer now; the rest are
   // emailed as each prior signer completes (see the public sign action).

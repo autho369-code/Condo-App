@@ -6,6 +6,7 @@ import { Alert, Surface } from '@/components/ui/shell';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { DEFAULT_TIME_ZONE, wallDateTimeToIso } from '@/lib/time/zoned';
+import { defaultQuorumRequirement, parseQuorumInput } from '@/lib/meetings/quorum';
 import { claimSubmission, completeSubmission, newSubmissionToken, releaseSubmission, SUBMISSION_FIELD } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,11 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     const endTime = wallDateTimeToIso(String(formData.get('end_time') ?? ''), zone);
     if (formData.get('start_time') && !startTime) redirect(`/meetings/new?error=${encodeURIComponent('Enter a valid start date and time.')}`);
     if (startTime && endTime && endTime < startTime) redirect(`/meetings/new?error=${encodeURIComponent('The meeting must end after it starts.')}`);
+    // Quorum = present attendees required. Blank uses the association's
+    // quorum percentage applied to its unit count.
+    const quorumInput = parseQuorumInput(formData.get('quorum_requirement'));
+    if (quorumInput === null) redirect(`/meetings/new?error=${encodeURIComponent('Quorum must be a whole number of attendees.')}`);
+    const quorumRequirement = quorumInput ?? await defaultQuorumRequirement(supabase, String(formData.get('association_id')));
     // A double click or re-sent form must not schedule the meeting twice.
     const claim = await claimSubmission(supabase, formData, 'new_meeting');
     if (claim.status === 'error') redirect(`/meetings/new?error=${encodeURIComponent(claim.message)}`);
@@ -50,6 +56,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
       location: formData.get('location') || '',
       agenda: formData.get('agenda') || '',
       status: 'scheduled',
+      quorum_requirement: quorumRequirement,
       portfolio_id: actionMe.portfolio?.id,
     }).select('id').single();
     if (error || !created) {
@@ -96,6 +103,9 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
             </Field>
             <Field label="End">
               <Input name="end_time" type="datetime-local" />
+            </Field>
+            <Field label="Quorum (attendees required)" hint="Leave blank to use the association's quorum percentage of its units.">
+              <Input name="quorum_requirement" type="number" min={1} step={1} inputMode="numeric" />
             </Field>
           </div>
           <Field label="Agenda">

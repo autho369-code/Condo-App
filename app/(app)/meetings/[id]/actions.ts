@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { DEFAULT_TIME_ZONE, wallDateTimeToIso } from '@/lib/time/zoned';
+import { parseQuorumInput } from '@/lib/meetings/quorum';
 
 const BUCKET = 'association-documents';
 const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
@@ -33,6 +35,7 @@ const AGENDA_CATEGORIES = new Set([
   'new_business',
   'executive_session',
 ]);
+const MEETING_TYPES = new Set(['board_meeting', 'annual_meeting', 'special_meeting', 'committee_meeting', 'executive_session']);
 const ACTION_STATUSES = new Set(['open', 'in_progress', 'blocked', 'completed', 'cancelled']);
 
 function back(meetingId: string, params = ''): never {
@@ -75,6 +78,50 @@ export async function saveMeetingNotes(meetingId: string, formData: FormData) {
   if (draftError) back(meetingId, `?error=${encodeURIComponent(`The draft minutes could not be saved: ${draftError.message}`)}`);
   refresh(meetingId);
   back(meetingId, '?saved=notes');
+}
+
+/** Edit a scheduled meeting's title, type, time, location and quorum. */
+export async function updateMeetingDetails(meetingId: string, formData: FormData) {
+  // editableMeeting re-checks workspace staff auth and RLS visibility.
+  const { supabase, meeting } = await editableMeeting(meetingId);
+  if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+    back(meetingId, '?error=A%20completed%20or%20cancelled%20meeting%20cannot%20be%20edited.');
+  }
+  const title = text(formData, 'title', 255);
+  if (!title) back(meetingId, '?error=Enter%20a%20meeting%20title.');
+  const meetingType = text(formData, 'meeting_type', 50);
+  if (!MEETING_TYPES.has(meetingType)) back(meetingId, '?error=Choose%20a%20valid%20meeting%20type.');
+  // datetime-local values are wall-clock times in the association's zone.
+  const { data: assoc, error: assocError } = await (supabase as any).from('associations')
+    .select('timezone').eq('id', meeting.association_id).maybeSingle();
+  if (assocError || !assoc) back(meetingId, '?error=The%20meeting%27s%20association%20is%20unavailable%20or%20outside%20your%20access.');
+  const zone = assoc.timezone || DEFAULT_TIME_ZONE;
+  const rawStart = text(formData, 'start_time', 40);
+  const rawEnd = text(formData, 'end_time', 40);
+  const startTime = wallDateTimeToIso(rawStart, zone);
+  const endTime = wallDateTimeToIso(rawEnd, zone);
+  if (rawStart && !startTime) back(meetingId, '?error=Enter%20a%20valid%20start%20date%20and%20time.');
+  if (rawEnd && !endTime) back(meetingId, '?error=Enter%20a%20valid%20end%20date%20and%20time.');
+  if (startTime && endTime && endTime < startTime) back(meetingId, '?error=The%20meeting%20must%20end%20after%20it%20starts.');
+  const quorum = parseQuorumInput(formData.get('quorum_requirement'));
+  if (quorum === null) back(meetingId, '?error=Quorum%20must%20be%20a%20whole%20number%20of%20attendees.');
+
+  const { data: updated, error } = await (supabase as any).from('meetings').update({
+    title,
+    meeting_type: meetingType,
+    start_time: startTime,
+    end_time: endTime,
+    location: text(formData, 'location', 500),
+    quorum_requirement: quorum ?? null,
+  })
+    .eq('id', meetingId)
+    .in('status', ['scheduled', 'in_progress'])
+    .select('id')
+    .maybeSingle();
+  if (error || !updated) back(meetingId, `?error=${encodeURIComponent(error?.message ?? 'The meeting could not be updated.')}`);
+  refresh(meetingId);
+  revalidatePath('/meetings');
+  back(meetingId, '?saved=details');
 }
 
 /** Publish the draft minutes to owners and mark the meeting completed. */

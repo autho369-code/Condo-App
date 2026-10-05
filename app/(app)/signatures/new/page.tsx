@@ -4,6 +4,7 @@ import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { createSignatureRequest } from '@/lib/rpcs/esignatures';
 import { createClient } from '@/lib/supabase/server';
+import { newSubmissionToken } from '@/lib/forms/submission';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +112,7 @@ export default async function NewSignatureRequestPage({
         <Surface>
           <NewSignatureRequestForm
             action={createSignatureRequest}
+            submissionToken={newSubmissionToken()}
             associations={associations ?? []}
             boardMembers={boardMembers ?? []}
             initial={{ ...pre, association_id: (pre as any).association_id ?? sp.association_id, subject_type: subjectType, subject_id: subjectType ? sp.subject_id : undefined }}

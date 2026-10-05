@@ -1,5 +1,6 @@
 'use server';
-import { createClient } from '@/lib/supabase/server';
+import { randomUUID } from 'node:crypto';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -138,8 +139,22 @@ export async function sendEmail(formData: FormData) {
   if (claim.status === 'duplicate') { redirect('/communication-center?notice=already_sent'); return; }
   const submissionToken = (claim as { token: string }).token;
 
+  // If a later step fails, the just-published announcement is withdrawn so a
+  // retry does not publish it twice. Staff have no DELETE policy on
+  // communications_log, so the undo uses the service client, limited to the
+  // exact row id this request generated.
+  let announcementId: string | null = null;
+  const withdrawAnnouncement = async () => {
+    if (!announcementId) return;
+    const { error } = await (createServiceClient() as any).from('communications_log')
+      .delete().eq('id', announcementId).eq('portfolio_id', me.portfolio?.id).eq('sender_id', me.auth_user_id);
+    if (error) console.error('Could not withdraw announcement after a failed send', { announcementId, error: error.message });
+  };
+
   if (recipientType === 'owners' || recipientType === 'tenants' || recipientType === 'both') {
+    const newAnnouncementId = randomUUID();
     const { error: announcementError } = await db.from('communications_log').insert({
+      id: newAnnouncementId,
       portfolio_id: me.portfolio?.id,
       association_id: associationId,
       sender_id: me.auth_user_id,
@@ -156,6 +171,7 @@ export async function sendEmail(formData: FormData) {
       failTo(`Could not publish the resident announcement: ${announcementError.message}`);
       return;
     }
+    announcementId = newAnnouncementId;
   }
 
   // 1) Operations log — one communication_messages row per recipient (status queued).
@@ -173,7 +189,12 @@ export async function sendEmail(formData: FormData) {
   }));
 
   const { data: insertedMessages, error: communicationError } = await db.from('communication_messages').insert(communicationRows).select('id, recipient_email');
-  if (communicationError) { await releaseSubmission(db, submissionToken); failTo(communicationError.message); return; }
+  if (communicationError) {
+    await withdrawAnnouncement();
+    await releaseSubmission(db, submissionToken);
+    failTo(communicationError.message);
+    return;
+  }
   const count = (insertedMessages ?? []).length;
   // Each email_queue row must carry its communication_message_id: delivery
   // updates the message status through it (otherwise "Queued" forever).
@@ -201,7 +222,21 @@ export async function sendEmail(formData: FormData) {
     idempotencyKey: `mass-email:${submissionToken}:${r.email.toLowerCase()}`,
   }));
   const { error: queueError } = await db.from('email_queue').insert(queueRows);
-  if (queueError) { failTo(`Logged but could not queue for delivery: ${queueError.message}`); return; }
+  if (queueError) {
+    // Nothing was queued: mark the log rows failed (not "Queued" forever),
+    // withdraw the announcement, and free the form so it can be retried.
+    const messageIds = (insertedMessages ?? []).map((m: { id: string }) => m.id);
+    for (let i = 0; i < messageIds.length; i += 200) {
+      const { error: markError } = await db.from('communication_messages')
+        .update({ status: 'failed', error_message: `Could not queue for delivery: ${queueError.message}` })
+        .in('id', messageIds.slice(i, i + 200));
+      if (markError) console.error('Could not mark communication messages failed', { error: markError.message });
+    }
+    await withdrawAnnouncement();
+    await releaseSubmission(db, submissionToken);
+    failTo(`Could not queue the emails for delivery: ${queueError.message}. Nothing was sent; you can try again.`);
+    return;
+  }
 
   // Bounce back to where we came from, or to association detail if not provided
   const returnTo = safeInternalNext(str(formData, 'return_to'));

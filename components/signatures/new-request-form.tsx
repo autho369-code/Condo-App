@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 
 type Signer = { key: number; name: string; email: string; role_label: string };
 type BoardMember = { association_id: string; full_name: string; email: string | null; role: string | null };
@@ -23,8 +24,11 @@ export function NewSignatureRequestForm({
   associations,
   boardMembers,
   initial,
+  submissionToken,
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  /** One-time token (lib/forms/submission) so a double submit sends once. */
+  submissionToken: string;
   associations: { id: string; name: string }[];
   boardMembers: BoardMember[];
   initial: { association_id?: string; subject_type?: string; subject_id?: string; title?: string; body_text?: string };
@@ -51,6 +55,7 @@ export function NewSignatureRequestForm({
     <form action={action}  className="space-y-5">
       {initial.subject_type && <input type="hidden" name="subject_type" value={initial.subject_type} />}
       {initial.subject_id && <input type="hidden" name="subject_id" value={initial.subject_id} />}
+      <input type="hidden" name="submission_token" value={submissionToken} />
       <input type="hidden" name="document_kind" value={kind} />
       <input type="hidden" name="signers" value={JSON.stringify(signers.map(({ key: _k, ...x }) => x))} />
 
@@ -128,7 +133,7 @@ export function NewSignatureRequestForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/signatures" className="text-center text-sm text-gray-600 hover:text-gray-900">Cancel</Link>
-        <Button type="submit">Send for signature</Button>
+        <PendingSubmit pendingLabel="Sending…">Send for signature</PendingSubmit>
       </div>
     </form>
   );
