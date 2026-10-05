@@ -2,6 +2,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import Link from 'next/link';
 import { ClipboardCheck, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { mergePrivateFields } from '@/lib/private-fields';
 import { requireStaff } from '@/lib/auth/me';
 import { DataWorkspace } from '@/components/operations/data-workspace';
 import { FilterBar, FilterSelect } from '@/components/operations/filter-bar';
@@ -104,7 +105,7 @@ export default async function InspectionsPage({
   ] = await Promise.all([
     // Every inspection, paged past the old 500-row limit.
     fetchAllRows<any>(() => db.from('inspections')
-      .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, notes, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)')
+      .select('id, inspection_type, association_id, unit_id, scheduled_date, inspector_vendor_id, inspector_user_id, status, completed_date, created_at, associations(name), units(unit_number), vendors:inspector_vendor_id(name)')
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -116,6 +117,8 @@ export default async function InspectionsPage({
   ]);
 
   const all = rowsRes.rows;
+  // Notes are staff-only (inspection_private); search still covers them.
+  await mergePrivateFields(db, 'inspection_private', 'inspection_id', ['notes'], all);
   // Flags and scores are only shown when every finding loaded; a partial set
   // would show undercounts that look exact.
   const itemsComplete = !itemsRes.error && !itemsRes.truncated;
