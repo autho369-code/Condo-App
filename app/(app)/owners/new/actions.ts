@@ -150,7 +150,7 @@ export async function createOwnerWithDetails(formData: FormData) {
   // posted. Runs after the fee schedule so a dues line added there is not
   // duplicated.
   if (occupancyId) {
-    const duesErr = await scheduleOwnerDues(db, occupancyId, moveIn > todayInZone() ? moveIn : todayInZone());
+    const duesErr = await scheduleOwnerDues(db, occupancyId, moveIn);
     if (duesErr) warnings.push(duesErr);
   }
 

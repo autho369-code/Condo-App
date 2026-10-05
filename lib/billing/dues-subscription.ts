@@ -18,13 +18,15 @@ export function firstDuesDate(date: string): string {
 
 /**
  * Schedule the monthly dues for a newly created owner occupancy, starting on
- * the first of the month on/after `startFrom`. No-op when the dues are 0 or
- * the unit already has a dues schedule. Returns an error message, or null.
+ * the first of the month on/after `startFrom` (the move-in date). Any other
+ * dues schedule on the unit (the previous owner's) is retired. Returns an error message, or null.
  */
 export async function scheduleOwnerDues(db: any, occupancyId: string, startFrom: string): Promise<string | null> {
   const { error } = await db.rpc('schedule_owner_dues', {
     p_occupancy_id: occupancyId,
-    p_start: firstDuesDate(startFrom),
+    // Raw date: the function clamps to today and rounds to the 1st in the
+    // association's time zone.
+    p_start: startFrom.slice(0, 10),
   });
   return error ? `dues: ${error.message}` : null;
 }

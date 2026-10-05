@@ -210,7 +210,7 @@ export async function importOwners(
       const moveIn = toDate(r.move_in_date);
       const today = todayInZone();
       const duesErr = occRow?.id
-        ? await scheduleOwnerDues(db, occRow.id, moveIn && moveIn > today ? moveIn : today)
+        ? await scheduleOwnerDues(db, occRow.id, moveIn ?? today)
         : null;
       if (duesErr) errors.push(`Row ${line} (${unitNumber} / ${email}): owner imported, but ${duesErr}`);
 
