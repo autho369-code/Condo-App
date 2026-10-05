@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { todayInZone } from '@/lib/time/zoned';
+import { scheduleOwnerDues } from '@/lib/billing/dues-subscription';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -81,7 +82,22 @@ export async function changeHomeowner(formData: FormData) {
     fail(transferErr.message);
   }
 
+  // Bill the buyer's dues from the transfer date. A matching schedule already
+  // billing the unit is kept; otherwise the seller's dues stop and the buyer's
+  // start fresh.
+  let duesWarning: string | null = null;
+  const { data: buyerOcc } = await db.from('occupancies')
+    .select('id')
+    .eq('unit_id', unitId).eq('owner_id', newOwnerId!)
+    .eq('occupancy_type', 'owner').neq('status', 'past')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (buyerOcc?.id) {
+    duesWarning = await scheduleOwnerDues(db, buyerOcc.id, transferDate);
+  } else {
+    duesWarning = 'dues: the new ownership record was not found, so dues were not scheduled';
+  }
+
   revalidatePath('/owners');
   revalidatePath(`/owners/${newOwnerId!}`);
-  redirect(`/owners/${newOwnerId!}?saved=ownership_changed`);
+  redirect(`/owners/${newOwnerId!}?saved=ownership_changed${duesWarning ? `&warning=${encodeURIComponent(duesWarning)}` : ''}`);
 }

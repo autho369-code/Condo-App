@@ -31,7 +31,7 @@ function formatName(first?: string | null, last?: string | null, full?: string |
   return full ?? [last, first].filter(Boolean).join(', ') ?? '—';
 }
 
-export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; tenant_added?: string; saved?: string }> }) {
+export default async function OwnerDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ portal_created?: string; email?: string; error?: string; warning?: string; tenant_added?: string; saved?: string }> }) {
   const me = await requireWorkspaceStaff(); // company admins land here from their portal
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -393,6 +393,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   return (
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
+      {sp.warning && <div className="mb-4"><Alert tone="warning" title="Saved, with a problem">{sp.warning}</Alert></div>}
       {primaryLoadError && <div className="mb-4"><Alert tone="danger" title="Some homeowner records could not be loaded">Units, requests or violations below may be incomplete: {primaryLoadError}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
       {sp.saved === 'profile' && <div className="mb-4"><Alert tone="success" title="Owner details saved" /></div>}
