@@ -250,7 +250,7 @@ export default async function PlatformOperatorOverviewPage() {
     atRiskRes,
     doorGrowthRes,
   ] = await Promise.all([
-    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, status, price_monthly_cents, trial_ends_at').order('id')),
+    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, status, price_monthly_cents, seats_used, price_per_seat_cents, trial_ends_at').order('id')),
     db.from('portfolios').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
     // Total doors must cover every association, past PostgREST's 1,000-row cap.

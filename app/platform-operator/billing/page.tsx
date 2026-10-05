@@ -58,7 +58,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   // the same definition as the dashboard and Revenue — trials are not revenue.
   const activeSubsRes = await fetchAllRows(() => db
     .from('subscriptions')
-    .select('id, status, price_monthly_cents')
+    .select('id, status, price_monthly_cents, seats_used, price_per_seat_cents')
     .in('status', [...BILLABLE_SUBSCRIPTION_STATUSES])
     .order('id'));
   const activeSubs = activeSubsRes.rows;

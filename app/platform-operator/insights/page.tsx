@@ -66,7 +66,7 @@ export default async function PlatformInsightsPage() {
     newOwnersRes,
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, archived_at, suspended_at').is('archived_at', null),
-    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, tier, status, price_monthly_cents, units_limit, trial_ends_at, current_period_end, canceled_at').order('id')),
+    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, tier, status, price_monthly_cents, seats_used, price_per_seat_cents, units_limit, trial_ends_at, current_period_end, canceled_at').order('id')),
     fetchAllRows<any>(() => db.from('associations').select('id, portfolio_id, unit_count').is('archived_at', null).order('id')),
     fetchAllRows<any>(() => pastDueInvoicesFilter(db.from('invoices').select('id, portfolio_id, number, total_cents, status, period_end'), todayDate).order('id')),
     db.from('email_queue').select('id, to_email, subject, error_message, created_at').eq('status', 'failed').gte('created_at', d7).limit(20),

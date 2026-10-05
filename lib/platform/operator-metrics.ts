@@ -10,12 +10,19 @@ export function isBillableSubscription(status: string | null | undefined): boole
   return (BILLABLE_SUBSCRIPTION_STATUSES as readonly string[]).includes(status ?? '');
 }
 
-/** Monthly recurring revenue in cents across billable subscriptions. */
+/** Monthly recurring revenue in cents across billable subscriptions: base price plus per-seat charges. */
 export function monthlyRecurringCents(
-  subscriptions: Array<{ status?: string | null; price_monthly_cents?: number | null }>,
+  subscriptions: Array<{
+    status?: string | null;
+    price_monthly_cents?: number | null;
+    seats_used?: number | null;
+    price_per_seat_cents?: number | null;
+  }>,
 ): number {
   return subscriptions.reduce(
-    (sum, s) => (isBillableSubscription(s.status) ? sum + (Number(s.price_monthly_cents) || 0) : sum),
+    (sum, s) => (isBillableSubscription(s.status)
+      ? sum + (Number(s.price_monthly_cents) || 0) + (Number(s.seats_used) || 0) * (Number(s.price_per_seat_cents) || 0)
+      : sum),
     0,
   );
 }

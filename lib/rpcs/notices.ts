@@ -47,14 +47,25 @@ export async function sendNotice(formData: FormData) {
   if (notice.status !== 'draft') failTo('This notice has already been sent.');
   if (notice.channel && notice.channel !== 'email') failTo(`This notice is set to the ${notice.channel} channel; only email notices can be sent here.`);
 
+  // A double click or a re-sent form must not record recipients or email
+  // everyone twice: claim before touching notice_recipients.
+  const claim = await claimSubmission(db, formData, 'notice_send');
+  if (claim.status === 'error') failTo(claim.message);
+  if (claim.status === 'duplicate') redirect(`/documents/notices/${noticeId}?sent=already`);
+  const token = (claim as { token: string }).token;
+  const failAndRelease = async (msg: string): Promise<never> => {
+    await releaseSubmission(db, token);
+    return failTo(msg);
+  };
+
   // Recipients already recorded on the notice.
   const existing = await fetchAllRows(() => db
     .from('notice_recipients')
     .select('id, owner_id, email, name')
     .eq('notice_id', noticeId)
     .order('id'));
-  if (existing.error) failTo(`Could not load the notice recipients: ${existing.error}`);
-  if (existing.truncated) failTo('This notice has too many recipients to send in one batch.');
+  if (existing.error) await failAndRelease(`Could not load the notice recipients: ${existing.error}`);
+  if (existing.truncated) await failAndRelease('This notice has too many recipients to send in one batch.');
   let recipients = (existing.rows as Array<{ owner_id: string | null; email: string; name: string | null }>)
     .filter((r) => r.email && EMAIL_RE.test(r.email.trim()));
 
@@ -66,8 +77,8 @@ export async function sendNotice(formData: FormData) {
       .eq('occupancy_type', 'owner')
       .eq('status', 'current')
       .order('id'));
-    if (occs.error) failTo(`Could not load the association's owners: ${occs.error}`);
-    if (occs.truncated) failTo('This association has too many owners to send in one batch.');
+    if (occs.error) await failAndRelease(`Could not load the association's owners: ${occs.error}`);
+    if (occs.truncated) await failAndRelease('This association has too many owners to send in one batch.');
     const seenOwner = new Set<string>();
     // A scheduled move-out that has arrived ends ownership even while the
     // occupancy still reads 'current'.
@@ -82,7 +93,7 @@ export async function sendNotice(formData: FormData) {
       const { error: insertError } = await db.from('notice_recipients').insert(
         resolved.map((r) => ({ notice_id: noticeId, owner_id: r.owner_id, email: r.email, name: r.name })),
       );
-      if (insertError) failTo(`Could not record the notice recipients: ${insertError.message}`);
+      if (insertError) await failAndRelease(`Could not record the notice recipients: ${insertError.message}`);
     }
     recipients = resolved;
   }
@@ -95,13 +106,7 @@ export async function sendNotice(formData: FormData) {
     seen.add(key);
     return true;
   });
-  if (!recipients.length) failTo('No recipients with an email address on file. Add owner email addresses and try again.');
-
-  // A double click or a re-sent form must not email everyone twice.
-  const claim = await claimSubmission(db, formData, 'notice_send');
-  if (claim.status === 'error') failTo(claim.message);
-  if (claim.status === 'duplicate') redirect(`/documents/notices/${noticeId}?sent=already`);
-  const token = (claim as { token: string }).token;
+  if (!recipients.length) await failAndRelease('No recipients with an email address on file. Add owner email addresses and try again.');
 
   const html = textToHtml(notice.body ?? '');
   const { error: queueError, count } = await queueEmails(db, recipients.map((r) => ({
