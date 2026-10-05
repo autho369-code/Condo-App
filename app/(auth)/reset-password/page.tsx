@@ -48,7 +48,8 @@ export default function ResetPasswordPage() {
       setError(updateErr.message || 'Could not update your password. The reset link may have expired — request a new one.');
       return;
     }
-    router.push('/account?notice=password_updated');
+    // /account renders ?success=1 as a "Password updated" alert.
+    router.push('/account?success=1');
   }
 
   return (

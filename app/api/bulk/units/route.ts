@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export async function GET(request: Request) {
   // Staff-only: server actions/route handlers are callable endpoints, so the
@@ -17,16 +18,22 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: occs, error } = await db
+  // Every current occupancy (paged past PostgREST's 1,000-row cap): bulk
+  // charges and statements must reach every unit. Ordering by an embedded
+  // table does not order the parent rows, so sort by unit number below.
+  const { rows: occs, error, truncated } = await fetchAllRows<any>(() => db
     .from('occupancies')
-    .select('unit_id, owner_id, dues_amount, units!inner(unit_number, buildings!inner(associations!inner(name))), owners(full_name)')
+    .select('id, unit_id, owner_id, dues_amount, units!inner(unit_number, buildings!inner(associations!inner(name))), owners(full_name)')
     .eq('association_id', associationId)
     .eq('status', 'current')
-    .order('unit_number', { foreignTable: 'units' });
+    .order('id'));
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  if (truncated) return NextResponse.json({ error: 'This association has too many units to load at once.' }, { status: 413 });
 
-  const units = (occs ?? []).map((occ: any) => ({
+  occs.sort((a: any, b: any) => String(a.units?.unit_number ?? '').localeCompare(String(b.units?.unit_number ?? ''), undefined, { numeric: true }));
+
+  const units = occs.map((occ: any) => ({
     unit_id: occ.unit_id,
     unit_number: occ.units?.unit_number ?? '?',
     association_name: occ.units?.buildings?.associations?.name ?? '',
