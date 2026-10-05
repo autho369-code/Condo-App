@@ -61,6 +61,12 @@ describe('server-action operator refusal in auth guards', () => {
     expect(body('requirePlatformOperator')).toContain("refuseOperatorAction(me, ['admin', 'support'])");
   });
 
+  it('requireAuth defaults to admin-only; only the account page opts in', () => {
+    expect(body('requireAuth')).toContain("operatorActionRoles ?? ['admin']");
+    const account = require('node:fs').readFileSync('app/account/page.tsx', 'utf8') as string;
+    expect(account).toContain('requireAuth({ operatorActionRoles: ALL_OPERATOR_ROLES })');
+  });
+
   it('getMe refuses non-admin operators in actions by default', () => {
     const getMe = body('getMe');
     expect(getMe).toContain("refuseOperatorAction(me, options.operatorActionRoles ?? ['admin'])");

@@ -123,7 +123,8 @@ const primeDisplayTimeZone = cache(async (): Promise<void> => {
   }
 });
 
-const ALL_OPERATOR_ROLES = ['admin', 'support', 'readonly'] as const;
+/** Every operator role: for genuine own-account/session self-service only. */
+export const ALL_OPERATOR_ROLES = ['admin', 'support', 'readonly'] as const;
 
 export async function getMe(options: {
   enforceMfa?: boolean;
@@ -166,11 +167,11 @@ export async function getMe(options: {
 }
 
 /** Guard helpers — throw redirect if user doesn't have access. */
-export async function requireAuth(): Promise<MeResult> {
-  // Signed-in self-service (own account) is open to every operator role; the
-  // guards built on requireAuth refuse non-admin operators again where they
-  // grant operator-only access.
-  const me = await getMe({ operatorActionRoles: ALL_OPERATOR_ROLES });
+export async function requireAuth(options: { operatorActionRoles?: readonly string[] } = {}): Promise<MeResult> {
+  // Inside a server action only operator admins proceed by default, so every
+  // guard built on requireAuth (owner, tenant, board, staff, ...) inherits the
+  // refusal. Genuine self-service (the account page) opts in explicitly.
+  const me = await getMe({ operatorActionRoles: options.operatorActionRoles ?? ['admin'] });
   if (!me.auth_user_id) redirect('/login');
   await requireMatchingTenantWorkspace(me);
   return me;
@@ -228,7 +229,7 @@ async function isMutationRequest(): Promise<boolean> {
 
 
 export async function requirePlatformOperator(): Promise<MeResult> {
-  const me = await requireAuth();
+  const me = await requireAuth({ operatorActionRoles: ['admin', 'support'] });
   if (!me.is_platform_operator) redirect('/dashboard');
   // Support operators work the support queue; its actions and every other
   // operator write re-check the admin role themselves.
