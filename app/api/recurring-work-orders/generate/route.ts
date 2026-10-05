@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
   await requireStaff();
   const form = await req.formData();
   const id = form.get('id') as string | null;
+  // The due date the user saw; '' means the plan had none. Claiming this
+  // value (not whatever is current) makes a re-sent form a no-op.
+  const dueRaw = form.get('due');
 
   const origin = new URL(req.url).origin;
   const back = (params = '') => NextResponse.redirect(`${origin}/recurring-work-orders${params}`, { status: 303 });
@@ -33,6 +36,14 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (tplErr || !tpl) return back('?error=' + encodeURIComponent('Recurring work order not found.'));
 
+  if (typeof dueRaw !== 'string' || (dueRaw !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(dueRaw))) {
+    return back('?error=' + encodeURIComponent('Refresh the page and try again.'));
+  }
+  const expectedDue = dueRaw === '' ? null : dueRaw;
+  if ((tpl.next_due_date ?? null) !== expectedDue) {
+    return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
+  }
+
   // Same schedule rule as the nightly generator (anchored on the start day).
   const base = tpl.next_due_date ?? todayInZone();
   const anchorDay = Number(String(tpl.start_date ?? base).slice(8, 10)) || null;
@@ -45,7 +56,7 @@ export async function POST(req: NextRequest) {
   // and a failure anywhere leaves the plan untouched.
   const { data: woId, error: genErr } = await db.rpc('generate_recurring_work_order_now', {
     p_id: id,
-    p_expected_due: tpl.next_due_date ?? null,
+    p_expected_due: expectedDue,
     p_next: next,
     // Without a date the job never shows as Scheduled or Overdue.
     p_scheduled: tpl.next_due_date ?? todayInZone(),
