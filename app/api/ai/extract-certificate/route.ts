@@ -11,7 +11,9 @@ import { requireWorkspaceStaff } from '@/lib/auth/me';
 // Certificates are a page or two; anything bigger is not one (and would be
 // read into memory and sent to the AI provider whole).
 const MAX_BYTES = 10 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/heic', 'image/heif']);
+// The image types visionCompletion sends to every provider (PDF/HEIC would
+// need a separate document path).
+const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 export async function POST(request: NextRequest) {
   const me = await requireWorkspaceStaff();
@@ -34,10 +36,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
     if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: 'That file is larger than 10 MB. Upload the certificate page as a PDF or image.' }, { status: 413 });
+      return NextResponse.json({ error: 'That file is larger than 10 MB. Upload a photo or screenshot of the certificate page.' }, { status: 413 });
     }
     if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Upload the certificate as a PDF or an image (PNG, JPEG, WebP, HEIC).' }, { status: 415 });
+      return NextResponse.json({ error: 'Upload the certificate as a PNG, JPEG, WebP or GIF image (take a screenshot of a PDF page).' }, { status: 415 });
     }
 
     // Convert file to base64
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
   "confidence": number 0-100
 }`;
 
-    const result = await visionCompletion(config, base64, prompt);
+    const result = await visionCompletion(config, base64, prompt, file.type);
     
     // No text-only fallback: without the document a model can only invent
     // policy numbers and dates.

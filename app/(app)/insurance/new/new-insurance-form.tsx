@@ -98,13 +98,13 @@ export default function NewInsuranceForm({ owners, associations, addPolicy, serv
         <p className="mt-1 text-sm text-gray-500">
           {extracting
             ? 'AI is reading the certificate. This may take a few seconds.'
-            : 'Drop a PDF or image of the HO6 certificate. AI will extract policy number, coverage, dates, and insurance company automatically.'}
+            : 'Drop a photo or screenshot (PNG, JPEG, WebP or GIF) of the HO6 certificate. AI will extract policy number, coverage, dates, and insurance company automatically.'}
         </p>
         <div className="mt-4 flex items-center justify-center gap-3">
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf"
+            accept="image/png,image/jpeg,image/webp,image/gif"
             onChange={handleFileChange}
             className="hidden"
             id="certificate-upload"
