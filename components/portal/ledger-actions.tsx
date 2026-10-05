@@ -5,6 +5,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Download, FileText, Printer } from 'lucide-react';
+import { todayInZone } from '@/lib/time/zoned';
 
 export type LedgerChargeRow = {
   date: string;
@@ -48,7 +49,7 @@ export function LedgerActions({
   totalBalance: number;
 }) {
   const stamp = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const fileBase = `account-ledger-${new Date().toISOString().slice(0, 10)}`;
+  const fileBase = `account-ledger-${todayInZone()}`;
 
   function downloadCsv() {
     const lines: string[] = [];

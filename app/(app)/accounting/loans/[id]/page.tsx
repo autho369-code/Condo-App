@@ -14,6 +14,7 @@ import { recordLoanPayment, saveLoanSetup, voidLoanPayment } from '@/lib/rpcs/lo
 import { createClient } from '@/lib/supabase/server';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { date, money } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,7 +79,7 @@ export default async function LoanDetailPage({
     balance, annualRatePct: rate, payment, frequency, firstPaymentDate: loan.next_payment_date,
   });
   const nextInterest = interestFor(balance, rate, frequency);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const back = `/accounting/loans/${id}`;
 
   const glOption = (g: any) => <option key={g.id} value={g.id}>{g.number} — {g.name}</option>;

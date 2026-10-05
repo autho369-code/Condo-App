@@ -14,6 +14,7 @@ import { fiscalWindow, fiscalYearFor } from '@/lib/budget/fiscal';
 import { money } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
 import { displayTimeZone } from '@/lib/time/display-zone';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,7 +74,7 @@ export default async function UpdateAssessmentsPage({ params, searchParams }: { 
   const defaultFreq = ['monthly', 'quarterly', 'annually'].includes(assoc.payment_frequency) ? assoc.payment_frequency : 'monthly';
   const frequency = FREQUENCIES.find((f) => f.value === sp.frequency) ?? FREQUENCIES.find((f) => f.value === defaultFreq)!;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const nextMonth = (() => { const d = new Date(); return new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 1)).toISOString().slice(0, 10); })();
   const suggested = win.start > today ? win.start : nextMonth <= win.end ? nextMonth : today;
   const effective = sp.effective && DATE_RE.test(sp.effective) ? sp.effective : suggested;

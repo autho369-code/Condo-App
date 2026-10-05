@@ -7,6 +7,7 @@ import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 
 import { createReserveStudy } from '../actions';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,7 @@ export default async function NewReserveStudyPage({
           </div>
           <div>
             <Label htmlFor="study_date">Study date</Label>
-            <Input id="study_date" name="study_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+            <Input id="study_date" name="study_date" type="date" defaultValue={todayInZone()} required />
           </div>
           <div>
             <Label htmlFor="prepared_by">Prepared by</Label>

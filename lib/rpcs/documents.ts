@@ -5,6 +5,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { generateDocumentPdf } from '@/lib/documents/generated-pdf';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 const BUCKET = 'association-documents';
 const MAX_TEXT_LENGTH = 50_000;
@@ -95,7 +96,7 @@ async function generateAndStore(input: GenerateDocumentInput) {
     preparedFor: recipients.map((row) => row.name),
   });
   const safeType = (input.letterType || 'document').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
-  const date = new Date().toISOString().slice(0, 10);
+  const date = todayInZone();
   const fileName = `${safeType}-${date}.pdf`;
   const path = `associations/${associationId}/generated/${date}-${randomUUID()}.pdf`;
   const service = createServiceClient() as any;

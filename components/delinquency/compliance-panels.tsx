@@ -8,6 +8,7 @@ import {
   recordPaymentPlanOffer,
   saveDelinquencyCompliance,
 } from '@/lib/rpcs/delinquency-compliance';
+import { todayInZone } from '@/lib/time/zoned';
 
 type Profile = {
   state_code: string; state_name: string; summary: string; citations: string[];
@@ -109,7 +110,7 @@ export function ReferralReadiness({
   boardRequired: boolean;
 }) {
   if (!readiness) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const needsPlan = planRequired && readiness.blockers.some((b) => b.startsWith('Recorded payment-plan'));
   const needsBoard = boardRequired && readiness.blockers.some((b) => b.startsWith('Recorded board vote'));
   return (

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCronSecret } from '@/lib/server/cron-auth';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   const unauthorized = requireCronSecret(request);
   if (unauthorized) return unauthorized;
   const svc = createServiceClient() as any;
-  const { data, error } = await svc.rpc('run_scheduled_management_fees', { p_today: new Date().toISOString().slice(0, 10) });
+  const { data, error } = await svc.rpc('run_scheduled_management_fees', { p_today: todayInZone() });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, ...data });
 }

@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date, money } from '@/lib/utils';
 import { buildTeamScoreboard } from '@/lib/maintenance/team-performance';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function MaintenanceTeamPage({ searchParams }: { searchPara
   await requireStaff();
   const sp = await searchParams;
   const days = WINDOWS.find((d) => String(d) === sp.days) ?? 30;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const db = (await createClient()) as any;
 

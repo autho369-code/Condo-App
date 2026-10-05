@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/shell'
 import { money } from '@/lib/utils'
 import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { Users, AlertTriangle } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export default async function BoardOwnersPage() {
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInZone()
 
   const [
     { data: occupancies, error: occError },

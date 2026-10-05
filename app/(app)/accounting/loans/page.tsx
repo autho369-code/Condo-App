@@ -11,6 +11,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { FREQUENCY_LABEL, periodsPerYear, type LoanFrequency } from '@/lib/loans/amortization';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ export default async function LoansPage({
   if (error) throw new Error(`Could not load loans: ${error.message}`);
 
   const loans = ((data ?? []) as any[]).filter((l) => !q || [l.lender, l.associations?.name, l.loan_type].some((v) => String(v ?? '').toLowerCase().includes(q)));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
   const active = loans.filter((l) => l.status === 'active');
   const totalDebt = active.reduce((sum, l) => sum + Number(l.current_balance ?? 0), 0);

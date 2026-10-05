@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { todayInZone } from '@/lib/time/zoned';
 
 const BOARD_ROLES = ['president', 'vice_president', 'secretary', 'treasurer', 'director'] as const;
 
@@ -72,7 +73,7 @@ export async function endBoardSeat(ownerId: string, formData: FormData) {
   const supabase = await createClient();
   const { error } = await (supabase as any)
     .from('board_members')
-    .update({ active: false, term_end: new Date().toISOString().slice(0, 10) })
+    .update({ active: false, term_end: todayInZone() })
     .eq('id', seatId)
     .eq('owner_id', ownerId);
   if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);

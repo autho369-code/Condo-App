@@ -14,6 +14,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { date } from '@/lib/utils';
 import { triageServiceRequest } from '@/app/(app)/service-requests/actions';
 import { activeWorkOrder, requestKindLabel, responseState } from '@/lib/maintenance/intake';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,7 +148,7 @@ export default async function ServiceRequestsPage({
         <ExportActions
           documentTitle="Service Requests"
           companyName={me.portfolio?.company_name ?? 'Management company'}
-          filename={`service-requests-${new Date().toISOString().slice(0, 10)}`}
+          filename={`service-requests-${todayInZone()}`}
           tables={[exportTable]}
         />
       )}

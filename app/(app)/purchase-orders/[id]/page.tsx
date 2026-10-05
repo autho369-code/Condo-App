@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
 import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { ApprovalStatusChip, OrderStatusChip } from '../status-chips';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +90,7 @@ export default async function PurchaseOrderDetailPage({
         .in('account_type', ['expense', 'other_expense', 'cost_of_goods_sold']).order('number')
     : { data: [] };
   const glOptions = ((glChoices ?? []) as any[]).filter((g) => !g.association_id || g.association_id === po.association_id);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const title = `PO ${po.number ?? po.id.slice(0, 8)}`;
 
   const timeline = [

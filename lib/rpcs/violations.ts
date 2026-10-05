@@ -12,6 +12,7 @@ import { getMe, requireOwner } from '@/lib/auth/me';
 import { isScopedStoragePath } from '@/lib/security/storage-paths';
 import { observedDate } from '@/lib/violations/observed-date';
 import { revalidatePath } from 'next/cache';
+import { todayInZone } from '@/lib/time/zoned';
 
 const ATTACH_BUCKET = 'association-documents';
 const MAX_VIOLATION_ATTACHMENTS = 10;
@@ -130,7 +131,7 @@ export async function createFieldViolation(
     p_description: input.description?.trim() || null,
     // open_violation refuses a date after the server's today (a device
     // ahead of UTC may report tomorrow).
-    p_date_observed: [observedDate(input.observed_on), new Date().toISOString().slice(0, 10)].sort()[0],
+    p_date_observed: [observedDate(input.observed_on), todayInZone()].sort()[0],
     p_violation_type: violationType,
   });
   if (error || !openedId) return { error: error?.message ?? 'Failed to create violation' };

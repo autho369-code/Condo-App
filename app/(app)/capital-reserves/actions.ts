@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireWorkspaceStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? '').trim();
 
@@ -75,7 +76,7 @@ export async function createReserveStudy(formData: FormData) {
       portfolio_id: portfolioId,
       association_id: associationId,
       name,
-      study_date: text(formData, 'study_date') || new Date().toISOString().slice(0, 10),
+      study_date: text(formData, 'study_date') || todayInZone(),
       base_year: baseYear,
       horizon_years: horizonYears,
       opening_balance: openingBalance,

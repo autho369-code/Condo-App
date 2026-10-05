@@ -11,6 +11,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { todayInZone } from '@/lib/time/zoned';
 
 export type ImportSummary = { imported: number; skipped: number; errors?: string[] };
 
@@ -235,7 +236,7 @@ export async function importOpeningBalances(
     }
 
     try {
-      const dueDate = toDate(r.as_of_date) ?? new Date().toISOString().slice(0, 10);
+      const dueDate = toDate(r.as_of_date) ?? todayInZone();
       const description = clean(r.memo) || 'Opening balance';
       // One transaction: the charge and the record of what the previous
       // system reported (for Import Variances) succeed or fail together.

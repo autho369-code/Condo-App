@@ -221,7 +221,7 @@ export default async function WorkOrdersPage({
 
   // ── Export (mirrors the on-screen table, same tab + filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
-  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportStamp = todayInZone();
   const exportTable: ExportTable = {
     columns: [
       { header: '#' },

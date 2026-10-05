@@ -14,6 +14,7 @@ import { date, money } from '@/lib/utils';
 import { recordIdsWithTag, tagsInUse } from '@/lib/records/load';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { Alert } from '@/components/ui/shell';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,7 +194,7 @@ export default async function OwnersPage({
 
   // ── Export (mirrors the active view's on-screen list, same filters) ──
   const companyName = me.portfolio?.company_name ?? 'Management company';
-  const exportStamp = new Date().toISOString().slice(0, 10);
+  const exportStamp = todayInZone();
   const exportTable: ExportTable =
     view === 'tenants'
       ? {
