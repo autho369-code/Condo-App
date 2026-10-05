@@ -31,6 +31,26 @@ export async function GET(request: NextRequest) {
   const { data: claimed, error: claimError } = await db.rpc('claim_email_queue', { p_limit: 20 });
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 });
 
+  // White label: an email with no chosen sender name that belongs to a client
+  // company goes out under that company's name. An explicit name is kept —
+  // platform-originated mail to a company (billing, onboarding) says
+  // Portier369 on purpose. Only the sending address stays on the platform's
+  // verified domain. A failed lookup falls back to the platform name.
+  const brandIds = [...new Set(((claimed ?? []) as any[])
+    .filter((e) => e.portfolio_id && !String(e.from_name ?? '').trim())
+    .map((e) => String(e.portfolio_id)))];
+  const brandNames = new Map<string, string>();
+  if (brandIds.length) {
+    const { data: brands, error: brandError } = await db.from('portfolios').select('id, company_name').in('id', brandIds);
+    if (brandError) console.error('Could not load sender branding:', brandError.message);
+    for (const b of brands ?? []) if (b.company_name) brandNames.set(String(b.id), String(b.company_name));
+  }
+  const senderName = (email: any): string => {
+    const branded = email.portfolio_id ? brandNames.get(String(email.portfolio_id)) : undefined;
+    if (String(email.from_name ?? '').trim()) return String(email.from_name);
+    return branded ?? EMAIL_FROM_NAME;
+  };
+
   let sent = 0;
   let failed = 0;
   await inBatches(claimed ?? [], 4, async (email: any) => {
@@ -40,9 +60,9 @@ export async function GET(request: NextRequest) {
       if (!EMAIL_PATTERN.test(to) || !EMAIL_PATTERN.test(fromAddress)) throw new Error('Invalid queued email address');
 
       const { data, error } = await resend.emails.send({
-        from: `${cleanHeader(email.from_name, EMAIL_FROM_NAME)} <${fromAddress}>`,
+        from: `${cleanHeader(senderName(email), EMAIL_FROM_NAME)} <${fromAddress}>`,
         to: email.to_name ? `${cleanHeader(email.to_name, '', 200)} <${to}>` : to,
-        subject: cleanHeader(email.subject, 'Message from Portier369', 300),
+        subject: cleanHeader(email.subject, `Message from ${senderName(email)}`, 300),
         html: String(email.body ?? ''),
         ...(email.reply_to && EMAIL_PATTERN.test(String(email.reply_to).trim())
           ? { replyTo: String(email.reply_to).trim().toLowerCase() }

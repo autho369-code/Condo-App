@@ -98,9 +98,11 @@ async function resetStaffPassword(formData: FormData) {
   const queued = await queueEmails(adminClient as any, [{
     to: profileEmail,
     toName: target.full_name ?? null,
-    subject: 'Reset your Portier369 password',
+    // Sent by the client company to its own staff: branded as the company
+    // (sender name is resolved from portfolioId at delivery).
+    subject: `Reset your ${me.portfolio?.company_name ?? 'staff account'} password`,
     text: [
-      'A portfolio administrator requested a password reset for your Portier369 staff account.',
+      `A portfolio administrator requested a password reset for your ${me.portfolio?.company_name ? `${me.portfolio.company_name} ` : ''}staff account.`,
       '',
       `Choose a new password: ${verifiedAuthLink(linkData, tenantWorkspaceUrl(me.portfolio.slug, '/api/auth/callback?next=/reset-password'), 'recovery')}`,
       '',

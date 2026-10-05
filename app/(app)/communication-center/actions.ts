@@ -44,7 +44,7 @@ export async function sendCommunication(formData: FormData) {
   }
 
   const html = textToHtml(msg.body);
-  const fromName = me.portfolio?.company_name ?? 'Portier369';
+  const fromName = me.portfolio?.company_name ?? null;
   const { data: queuedCount, error: queueError } = await db.rpc('enqueue_communication_message', {
     p_message_id: messageId,
     p_recipients: recipients,

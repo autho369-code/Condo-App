@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       associationId: scopedAssociationId,
       templateId: template.id,
       sentBy: me.auth_user_id,
-      fromName: me.portfolio?.company_name ?? 'Portier369',
+      fromName: me.portfolio?.company_name ?? null,
       replyTo: me.portfolio?.support_email ?? 'hello@portier369.com',
       idempotencyKey: `letter:${requestKey}`,
     });

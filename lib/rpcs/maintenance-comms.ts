@@ -196,7 +196,7 @@ export async function sendBulkComms(formData: FormData) {
         portfolioId: me.portfolio?.id,
         fromAddress: 'maintenance@portier369.com',
         // portfolios has no `name` column — company_name is the brand
-        fromName: me.portfolio?.company_name ?? 'Portier369 Maintenance',
+        fromName: me.portfolio?.company_name ?? null,
         replyTo: me.portfolio?.support_email ?? null,
         sentBy: me.auth_user_id,
       }));
