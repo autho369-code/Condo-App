@@ -24,9 +24,9 @@ begin
     v_def := pg_get_functiondef(r.oid);
     v_new := replace(v_def, 'late_fee_grace_days, 10)', 'late_fee_grace_days, 0)');
     v_new := replace(v_new, 'p_association_id), 10)', 'p_association_id), 0)');
-    if v_new = v_def then
-      raise exception '10-day grace fallback not found in %', r.proname;
+    -- Wrappers that delegate to assess_late_fee have no fallback of their own.
+    if v_new <> v_def then
+      execute v_new;
     end if;
-    execute v_new;
   end loop;
 end $$;

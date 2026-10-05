@@ -138,6 +138,13 @@ begin
   if extract(day from v_first) <> 1 then
     v_first := (date_trunc('month', v_first) + interval '1 month')::date;
   end if;
+  -- Dues already charged on that date (e.g. a different-frequency schedule
+  -- posted it this morning): start the month after.
+  if exists (select 1 from public.charges c
+              where c.unit_id = v_occ.unit_id and c.charge_category_id = any(v_cats)
+                and c.due_date = v_first) then
+    v_first := (v_first + interval '1 month')::date;
+  end if;
 
   -- Retire the old dues: switch off schedules that never started, end the rest.
   update public.unit_recurring_charges urc
