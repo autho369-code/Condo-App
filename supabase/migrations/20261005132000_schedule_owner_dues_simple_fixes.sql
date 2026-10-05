@@ -81,6 +81,14 @@ begin
   end if;
 
   -- Same terms already billing this unit: nothing to do.
+  -- A dues schedule that never posted and is dated before the first due date
+  -- (e.g. the fee builder backdated to an old move-in) would bill past months
+  -- retroactively: switch it off.
+  update public.unit_recurring_charges urc
+     set active = false, updated_at = now()
+   where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
+     and urc.last_posted_at is null and urc.next_post_date < v_first;
+
   select urc.id into v_keep
     from public.unit_recurring_charges urc
    where urc.unit_id = v_occ.unit_id and urc.active and urc.charge_category_id = any(v_cats)
