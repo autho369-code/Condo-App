@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FileBarChart, AlertTriangle, DollarSign, Wrench, Scale, FileText } from 'lucide-react'
+import { FileBarChart, FileText } from 'lucide-react'
 import { requireBoard } from '@/lib/auth/me'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isScopedStoragePath } from '@/lib/security/storage-paths'
@@ -32,11 +32,7 @@ export default async function BoardReportsPage() {
   }
 
   const reports = [
-    { label: 'Violation Summary', desc: 'Open, closed, and pending violations by type and status', icon: AlertTriangle, href: '/board/violations/analytics', color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Delinquency Report', desc: 'Past-due accounts, aging summary, and collection status', icon: DollarSign, href: '/board/delinquencies', color: 'text-red-600', bg: 'bg-red-50' },
     { label: 'Financial Summary', desc: 'YTD income, expenses, budget variance, and bank balances', icon: FileBarChart, href: '/board/financials', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Work Order Summary', desc: 'Open, in-progress, and completed work orders by category', icon: Wrench, href: '/board/work-orders', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Architectural Review Summary', desc: 'Pending, approved, and denied modification requests', icon: Scale, href: '/board/architectural-reviews', color: 'text-violet-600', bg: 'bg-violet-50' },
     { label: 'Budget vs Actual', desc: 'Monthly budget performance with variance tracking', icon: FileBarChart, href: '/board/budget', color: 'text-sky-600', bg: 'bg-sky-50' },
   ]
 

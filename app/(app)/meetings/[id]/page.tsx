@@ -106,8 +106,18 @@ export default async function MeetingDetailPage({
     : { data: [] as any[] };
   const signedInIds = new Set((attendees ?? []).map((attendee: any) => attendee.owner_id).filter(Boolean));
   const presentCount = (attendees ?? []).filter((attendee: any) => attendee.present).length;
-  const quorum = meeting.quorum_requirement ?? null;
-  const quorumMet = quorum != null ? presentCount >= quorum : null;
+  // Quorum counts only distinct, voting-eligible current owners present — the
+  // same rule as calculate_meeting_quorum. Managers and guests never count.
+  const voterIds = [...new Set((attendees ?? [])
+    .filter((attendee: any) => attendee.present && attendee.voting_eligible && attendee.owner_id)
+    .map((attendee: any) => attendee.owner_id as string))];
+  const { data: currentVoters, error: votersError } = voterIds.length && meeting.association_id
+    ? await db.from('occupancies').select('owner_id').in('owner_id', voterIds)
+      .eq('association_id', meeting.association_id).eq('status', 'current')
+    : { data: [] as any[], error: null };
+  const votingPresent = new Set((currentVoters ?? []).map((o: any) => o.owner_id)).size;
+  const quorum = votersError ? null : meeting.quorum_requirement ?? null;
+  const quorumMet = quorum != null ? votingPresent >= quorum : null;
   const agendaEditable = meeting.status !== 'completed' && meeting.status !== 'cancelled';
   const saved = successMessage(sp.saved);
   const meetingZone = meeting.associations?.timezone || DEFAULT_TIME_ZONE;
@@ -125,6 +135,7 @@ export default async function MeetingDetailPage({
     >
       <div className="max-w-5xl space-y-4">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
+        {votersError && <Alert tone="danger" title="Quorum could not be checked">{votersError.message}</Alert>}
         {saved && <Alert tone="success" title={saved} />}
 
         <Surface className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -314,7 +325,7 @@ export default async function MeetingDetailPage({
                 <h2 className="text-sm font-semibold text-gray-950">Sign-in &amp; quorum</h2>
                 <div className="flex items-center gap-2">
                   <StatusChip tone="neutral">{presentCount} present</StatusChip>
-                  {quorum != null && <StatusChip tone={quorumMet ? 'success' : 'warning'}>{quorumMet ? 'Quorum met' : `Need ${Math.max(0, quorum - presentCount)} more`}</StatusChip>}
+                  {quorum != null && <StatusChip tone={quorumMet ? 'success' : 'warning'}>{quorumMet ? 'Quorum met' : `Need ${Math.max(0, quorum - votingPresent)} more voting owners`}</StatusChip>}
                 </div>
               </div>
               {(attendees ?? []).length > 0 && (
