@@ -216,8 +216,11 @@ async function refuseOperatorAction(me: MeResult, allowed: readonly string[] = [
 async function isMutationRequest(): Promise<boolean> {
   const h = await headers();
   if (h.get('next-action')) return true;
+  // Middleware stamps the method on every request it matches; a request it
+  // skipped (e.g. a path ending in .png routed to a catch-all page) has no
+  // trusted method and is treated as a possible mutation (fail closed).
   const method = h.get('x-portier-request-method');
-  return !!method && !['GET', 'HEAD', 'OPTIONS'].includes(method);
+  return !method || !['GET', 'HEAD', 'OPTIONS'].includes(method);
 }
 
 /** Operator access that a non-operator role would not grant on its own. */

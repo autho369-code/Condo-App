@@ -69,6 +69,8 @@ describe('server-action operator refusal in auth guards', () => {
   it('treats server actions and any non-GET request as mutations', () => {
     expect(source).toContain(".get('next-action')");
     expect(source).toContain(".get('x-portier-request-method')");
+    // No trusted method (middleware skipped the path) fails closed.
+    expect(source).toContain("return !method || !['GET', 'HEAD', 'OPTIONS'].includes(method)");
   });
 
   it('middleware stamps the trusted method and strips client copies', () => {
