@@ -33,6 +33,24 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (tplErr || !tpl) return back('?error=' + encodeURIComponent('Recurring work order not found.'));
 
+  // Same schedule rule as the nightly generator (anchored on the start day).
+  const base = tpl.next_due_date ?? todayInZone();
+  const anchorDay = Number(String(tpl.start_date ?? base).slice(8, 10)) || null;
+  const next = nextRecurringDate(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1, anchorDay);
+  if (!next) return back('?error=' + encodeURIComponent('This plan has an unknown frequency.'));
+
+  // Claim this occurrence first: advancing next_due_date only if it is still
+  // the value we read makes a double-click (or a race with the nightly
+  // generator) create one work order, not two.
+  let claim = db
+    .from('recurring_work_orders')
+    .update({ last_generated_at: new Date().toISOString(), next_due_date: next })
+    .eq('id', id);
+  claim = tpl.next_due_date == null ? claim.is('next_due_date', null) : claim.eq('next_due_date', tpl.next_due_date);
+  const { data: claimed, error: advanceErr } = await claim.select('id');
+  if (advanceErr) return back('?error=' + encodeURIComponent(`Could not generate the work order: ${advanceErr.message}`));
+  if (!claimed?.length) return back('?error=' + encodeURIComponent('This occurrence was already generated. Refresh to see the next due date.'));
+
   const { error: insErr } = await db.from('work_orders').insert({
     portfolio_id: tpl.portfolio_id,
     association_id: tpl.association_id,
@@ -49,22 +67,13 @@ export async function POST(req: NextRequest) {
     status: tpl.vendor_id ? 'assigned' : 'new',
     created_by: me.auth_user_id,
   });
-  if (insErr) return back('?error=' + encodeURIComponent(insErr.message));
-
-  // Same schedule rule as the nightly generator (anchored on the start day).
-  const base = tpl.next_due_date ?? todayInZone();
-  const anchorDay = Number(String(tpl.start_date ?? base).slice(8, 10)) || null;
-  const next = nextRecurringDate(base, tpl.frequency ?? 'monthly', tpl.interval_count ?? 1, anchorDay);
-  if (!next) return back('?error=' + encodeURIComponent('Work order created, but this plan has an unknown frequency.'));
-  const { error: advanceErr } = await db
-    .from('recurring_work_orders')
-    .update({
-      last_generated_at: new Date().toISOString(),
-      next_due_date: next,
-    })
-    .eq('id', id);
-  if (advanceErr) {
-    return back('?error=' + encodeURIComponent(`Work order created, but the next due date was not advanced: ${advanceErr.message}`));
+  if (insErr) {
+    // Release the claim so the occurrence can be generated again.
+    await db.from('recurring_work_orders')
+      .update({ last_generated_at: tpl.last_generated_at ?? null, next_due_date: tpl.next_due_date ?? null })
+      .eq('id', id)
+      .eq('next_due_date', next);
+    return back('?error=' + encodeURIComponent(insErr.message));
   }
 
   return back('?generated=1');

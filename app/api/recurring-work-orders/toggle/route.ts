@@ -36,11 +36,14 @@ export async function POST(req: NextRequest) {
     nextAutoGenerate = !tpl.auto_generate;
   }
 
-  const { error } = await db
+  const { data: updated, error } = await db
     .from('recurring_work_orders')
     .update({ auto_generate: nextAutoGenerate })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   if (error) return back('?error=' + encodeURIComponent(error.message));
+  // RLS hides plans outside the caller's scope: a zero-row update is not a success.
+  if (!updated?.length) return back('?error=' + encodeURIComponent('Recurring work order not found.'));
 
   return back(nextAutoGenerate ? '?resumed=1' : '?paused=1');
 }

@@ -8,6 +8,7 @@ import { siteUrl } from '@/lib/url/site-url';
 import { verifiedAuthLink } from '@/lib/auth/email-links';
 import { resolvedTenantUrl } from '@/lib/tenant/host';
 import { tenantFromHeaders } from '@/lib/tenant/resolve';
+import { escapeHtml } from '@/lib/letters/merge';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,7 @@ async function requestPasswordReset(formData: FormData) {
       to_email: email,
       to_name: toName,
       subject: 'Reset your Portier369 password',
-      body: `<p>Hello${toName ? ` ${toName}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
+      body: `<p>Hello${toName ? ` ${escapeHtml(toName)}` : ''},</p><p>We received a request to reset the password for your Portier369 account. Click the link below to choose a new password:</p><p><a href="${verifiedAuthLink(linkData, resetRedirect, 'recovery')}">Reset your password</a></p><p>This link expires after a short time. If you did not request a reset, you can safely ignore this email — your password has not been changed.</p>`,
       status: 'pending',
       from_address: FROM_ADDRESS,
       from_name: FROM_NAME,
