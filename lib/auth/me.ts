@@ -123,7 +123,18 @@ const primeDisplayTimeZone = cache(async (): Promise<void> => {
   }
 });
 
-export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeResult> {
+const ALL_OPERATOR_ROLES = ['admin', 'support', 'readonly'] as const;
+
+export async function getMe(options: {
+  enforceMfa?: boolean;
+  /**
+   * Operator roles allowed to proceed inside a server action. Defaults to
+   * admins only, so any action reaching a privileged write through getMe()
+   * refuses support/readonly operators however it was routed. Only
+   * self-service entry points (requireAuth, sign-in) widen it.
+   */
+  operatorActionRoles?: readonly string[];
+} = {}): Promise<MeResult> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any).rpc('me');
   if (error) {
@@ -150,12 +161,16 @@ export async function getMe(options: { enforceMfa?: boolean } = {}): Promise<MeR
   if (!me?.auth_user_id && localPreviewEnabled()) return localPreviewMe();
   if (options.enforceMfa !== false) await enforceConfiguredMfa(me, supabase);
   if (me?.auth_user_id) await primeDisplayTimeZone();
+  if (me?.auth_user_id) await refuseOperatorAction(me, options.operatorActionRoles ?? ['admin']);
   return me;
 }
 
 /** Guard helpers — throw redirect if user doesn't have access. */
 export async function requireAuth(): Promise<MeResult> {
-  const me = await getMe();
+  // Signed-in self-service (own account) is open to every operator role; the
+  // guards built on requireAuth refuse non-admin operators again where they
+  // grant operator-only access.
+  const me = await getMe({ operatorActionRoles: ALL_OPERATOR_ROLES });
   if (!me.auth_user_id) redirect('/login');
   await requireMatchingTenantWorkspace(me);
   return me;

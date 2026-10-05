@@ -61,6 +61,11 @@ describe('server-action operator refusal in auth guards', () => {
     expect(body('requirePlatformOperator')).toContain("refuseOperatorAction(me, ['admin', 'support'])");
   });
 
+  it('getMe refuses non-admin operators in actions by default', () => {
+    const getMe = body('getMe');
+    expect(getMe).toContain("refuseOperatorAction(me, options.operatorActionRoles ?? ['admin'])");
+  });
+
   it('keys the refusal on the server-action header', () => {
     expect(source).toContain(".get('next-action')");
   });

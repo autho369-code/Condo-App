@@ -135,6 +135,6 @@ describe('password login security boundary', () => {
       p_success: true,
       p_mfa_used: false,
     }));
-    expect(mocks.getMe).toHaveBeenCalledWith({ enforceMfa: false });
+    expect(mocks.getMe).toHaveBeenCalledWith({ enforceMfa: false, operatorActionRoles: ['admin', 'support', 'readonly'] });
   });
 });
