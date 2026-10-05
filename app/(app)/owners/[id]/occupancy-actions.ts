@@ -10,6 +10,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { queueEmails } from '@/lib/email/queue';
 import { tenantWorkspaceUrl } from '@/lib/tenant/host';
+import { escapeLike } from '@/lib/db/escape-like';
 
 const BUCKET = 'association-documents';
 
@@ -113,14 +114,18 @@ export async function endTenancy(tenantId: string, ownerId: string) {
     .select('email, portfolio_id')
     .maybeSingle();
   if (error) fail(ownerId, `Could not end tenancy: ${error.message}`);
-  if (tenant?.email) {
+  // Zero rows means the tenant is not this owner's (or not visible to this
+  // manager) — never report success for a tenancy that was not ended.
+  if (!tenant) fail(ownerId, 'That tenant was not found on this owner.');
+  if (tenant.email) {
     const svc = createServiceClient() as any;
-    await svc.from('user_invitations')
+    const { error: revokeError } = await svc.from('user_invitations')
       .update({ status: 'revoked', updated_at: new Date().toISOString() })
       .eq('portfolio_id', tenant.portfolio_id)
       .eq('hoa_role', 'tenant')
       .eq('status', 'pending')
-      .ilike('email', tenant.email);
+      .ilike('email', escapeLike(tenant.email));
+    if (revokeError) fail(ownerId, `Tenancy ended, but the pending portal invitation could not be revoked: ${revokeError.message}`);
     await svc.from('audit_logs').insert({
       entity_type: 'tenant',
       entity_id: tenantId,
@@ -321,12 +326,13 @@ export async function sendTenantPortalInvitation(tenantId: string, ownerId: stri
   const email = String(tenant.email).trim().toLowerCase();
   const fullName = `${tenant.first_name ?? ''} ${tenant.last_name ?? ''}`.trim() || 'Resident';
   const svc = createServiceClient() as any;
-  await svc.from('user_invitations')
+  const { error: revokeError } = await svc.from('user_invitations')
     .update({ status: 'revoked', updated_at: new Date().toISOString() })
     .eq('portfolio_id', tenant.portfolio_id)
     .eq('hoa_role', 'tenant')
     .eq('status', 'pending')
-    .ilike('email', email);
+    .ilike('email', escapeLike(email));
+  if (revokeError) fail(ownerId, `Could not replace the earlier invitation: ${revokeError.message}`);
 
   const { data: invitation, error: inviteError } = await svc.from('user_invitations').insert({
     email,
