@@ -56,7 +56,7 @@ export default async function ViolationSchedulePage({
       {sp.saved && <Alert tone="success" className="mb-5">{sp.saved}</Alert>}
 
       <div className="mb-6">
-        <FilterBar action="/violations/rules/schedule" searchName="_" searchPlaceholder="Switch association">
+        <FilterBar action="/violations/rules/schedule" search={false}>
           <FilterSelect label="Association" name="association_id" defaultValue={selected.id}>
             {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </FilterSelect>
