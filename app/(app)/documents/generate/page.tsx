@@ -157,7 +157,7 @@ export default function GenerateDocumentPage() {
     const finalBody = applyMergeVariables();
 
     try {
-      await generateAndStoreDocument({
+      const result = await generateAndStoreDocument({
         templateId: selectedTemplate?.id ?? null,
         associationId: selectedAssociation,
         ownerIds: selectedOwners,
@@ -166,6 +166,10 @@ export default function GenerateDocumentPage() {
         body: finalBody,
         createDraftNotice: sendAsNotice,
       });
+      if (!result.ok) {
+        setGenerationError(result.error);
+        return;
+      }
       setStep('sent');
     } catch (err) {
       setGenerationError(err instanceof Error ? err.message : 'Document generation failed.');

@@ -146,16 +146,19 @@ async function removeStaffMember(formData: FormData) {
 async function changeStaffRole(formData: FormData) {
   'use server';
   const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
-  await guard();
+  const me = await guard();
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const role = formData.get('role') as string;
   if (role) {
     // assign_role takes a role id; the form submits the role name. Prefer the
-    // portfolio's own role of that name over the system default.
-    const { data: roles } = await (supabase as any)
+    // portfolio's own role of that name over the system default — never
+    // another company's role of the same name (assign_role would reject it).
+    const { data: roles, error: rolesError } = await (supabase as any)
       .from('user_roles')
       .select('id, portfolio_id')
-      .eq('name', role);
+      .eq('name', role)
+      .or(me.portfolio?.id ? `portfolio_id.is.null,portfolio_id.eq.${me.portfolio.id}` : 'portfolio_id.is.null');
+    if (rolesError) redirect('/settings?error=' + encodeURIComponent(rolesError.message));
     const match = (roles ?? []).sort((a: any, b: any) => (a.portfolio_id ? 0 : 1) - (b.portfolio_id ? 0 : 1))[0];
     if (!match) redirect('/settings?error=' + encodeURIComponent(`Role "${role}" was not found.`));
     const { error } = await (supabase as any).rpc('assign_role', {
@@ -182,7 +185,7 @@ export default async function SettingsPage({
     // profiles.id is the auth user id; there is no separate auth_user_id
     // column on this table.
     (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
-    (supabase as any).from('v_pending_invitations').select('*'),
+    (supabase as any).from('v_pending_invitations').select('*').eq('portfolio_id', portfolioId),
   ]);
 
   const updatePolicy = updatePortfolioPolicy.bind(null, portfolioId);

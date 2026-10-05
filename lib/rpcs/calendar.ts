@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 import { wallDateTimeToIso } from '@/lib/time/zoned';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { checkLinkedRecords, managesAssociation } from '@/lib/security/association-scope';
 
 const DEFAULT_TIME_ZONE = 'America/Chicago';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,6 +65,21 @@ export async function createCalendarEvent(formData: FormData) {
   const title = req(formData, 'title');
   const location = str(formData, 'location');
   const assocId = str(formData, 'association_id');
+  // RLS on calendar_events only checks portfolio_id: an event pointed at
+  // another company's association would reach its residents, board and
+  // maintenance contact (the notify triggers are SECURITY DEFINER).
+  if (assocId && !(await managesAssociation(db, assocId))) {
+    failTo('That association is unavailable or outside your access.');
+    return;
+  }
+  const linkError = await checkLinkedRecords(db, {
+    associationId: assocId,
+    buildingId: str(formData, 'building_id'),
+    unitId: str(formData, 'unit_id'),
+    vendorId: str(formData, 'vendor_id'),
+    ownerId: str(formData, 'owner_id'),
+  });
+  if (linkError) { failTo(linkError); return; }
   // datetime-local values carry no zone; the server runs in UTC, so "9:00"
   // was stored as 9:00 UTC (4–5 AM in the US). Read them in the community's zone.
   const timeZone = await associationTimeZone(db, assocId);
@@ -359,6 +375,8 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
   const supabase = await createClient();
   const db = supabase as any;
   if (!associationId) return { error: 'Association required' };
+  if (!(await managesAssociation(db, associationId))) return { error: 'That association is unavailable or outside your access.' };
+  const timeZone = await associationTimeZone(db, associationId);
 
   const now = new Date();
   const horizon = new Date(now.getTime() + 30 * 86_400_000);
@@ -377,19 +395,22 @@ export async function notifyOwnersOfUpcomingEvents(associationId: string) {
 
   const subject = `Upcoming events at ${(events[0] as any).associations?.name ?? 'your association'}`;
   const body = `Upcoming scheduled events:\n\n${(events as any[]).map((e) => (
-    `- ${e.title}: ${new Date(e.start_datetime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}${e.location ? ` at ${e.location}` : ''}`
+    `- ${e.title}: ${new Date(e.start_datetime).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone })}${e.location ? ` at ${e.location}` : ''}`
   )).join('\n')}\n\nPlease contact the management office with questions.`;
 
   // Resolve current owners of the association who have an email on file.
-  const { data: occs } = await db
+  // Paged past PostgREST's 1,000-row cap; a failed read sends nothing.
+  const { rows: occs, error: occError } = await fetchAllRows<any>(() => db
     .from('occupancies')
-    .select('owners!owner_id(email, full_name)')
+    .select('id, owners!owner_id(email, full_name)')
     .eq('association_id', associationId)
     .eq('occupancy_type', 'owner')
-    .eq('status', 'current');
+    .eq('status', 'current')
+    .order('id'));
+  if (occError) return { error: `Could not load owners: ${occError}` };
 
   const seen = new Set<string>();
-  const recipients = (occs ?? [])
+  const recipients = occs
     .map((o: any) => ({ email: o.owners?.email, name: o.owners?.full_name ?? '' }))
     .filter((r: any) => {
       if (!r.email) return false;

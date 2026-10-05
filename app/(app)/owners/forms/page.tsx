@@ -56,6 +56,9 @@ export default async function OwnerFormsPage({ searchParams }: { searchParams: P
         .update({ status: 'revoked' })
         .eq('email', owner.email.toLowerCase())
         .eq('portfolio_id', me.portfolio?.id)
+        // Only owner invitations: a pending staff/board invite to the same
+        // address must not be revoked by an owner portal activation.
+        .eq('hoa_role', 'owner')
         .eq('status', 'pending');
       const { error: inviteErr } = await svc.from('user_invitations').insert({
         portfolio_id: me.portfolio?.id,

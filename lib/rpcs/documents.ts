@@ -1,6 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
+import { unstable_rethrow } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/me';
 import { generateDocumentPdf } from '@/lib/documents/generated-pdf';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
@@ -25,7 +26,25 @@ function noticeType(letterType: string): string {
   return 'general';
 }
 
-export async function generateAndStoreDocument(input: GenerateDocumentInput) {
+export type GenerateDocumentResult =
+  | { ok: true; documentId: string | null; noticeId: string | null; fileName: string }
+  | { ok: false; error: string };
+
+/**
+ * Called from a client component: return the failure instead of throwing,
+ * because Next.js replaces thrown server-action messages with a generic
+ * error in production and the user would never learn what went wrong.
+ */
+export async function generateAndStoreDocument(input: GenerateDocumentInput): Promise<GenerateDocumentResult> {
+  try {
+    return { ok: true, ...(await generateAndStore(input)) };
+  } catch (error) {
+    unstable_rethrow(error); // let auth redirects through
+    return { ok: false, error: error instanceof Error ? error.message : 'Document generation failed.' };
+  }
+}
+
+async function generateAndStore(input: GenerateDocumentInput) {
   const me = await requireStaff();
   const subject = input.subject?.trim();
   const body = input.body?.trim();

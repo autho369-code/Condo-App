@@ -61,9 +61,15 @@ export default async function OwnerPacketsPage({
     'use server';
     const me2 = await requireStaff();
     const sb = await createClient();
-    const ownerId = formData.get('owner_id') as string;
-    const portfolioId = formData.get('portfolio_id') as string;
-    const fail = (msg: string) => redirect(`/owners/packets?owner=${ownerId}&error=${encodeURIComponent(msg)}`);
+    const ownerId = String(formData.get('owner_id') ?? '');
+    const fail = (msg: string) => redirect(`/owners/packets?owner=${encodeURIComponent(ownerId)}&error=${encodeURIComponent(msg)}`);
+    // Never trust ids from the form: the owner must be visible to the caller,
+    // and the settings row belongs to that owner's company (otherwise another
+    // company's owner_id could be claimed under this portfolio).
+    const { data: packetOwner, error: ownerError } = await (sb as any)
+      .from('owners').select('id, portfolio_id').eq('id', ownerId).maybeSingle();
+    if (ownerError || !packetOwner?.portfolio_id) fail('That owner is unavailable or outside your access.');
+    const portfolioId = packetOwner.portfolio_id as string;
     const { error } = await (sb as any).from('owner_packet_settings').upsert({
       owner_id: ownerId,
       portfolio_id: portfolioId,

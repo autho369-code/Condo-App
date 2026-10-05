@@ -7,15 +7,11 @@ import { emailQueueRow, textToHtml } from '@/lib/email/queue';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { managesAssociation } from '@/lib/security/association-scope';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
-};
-const req = (f: FormData, k: string) => {
-  const v = str(f, k);
-  if (!v) throw new Error(`${k} is required`);
-  return v;
 };
 
 /**
@@ -33,13 +29,22 @@ export async function sendEmail(formData: FormData) {
     redirect(`${base}${base.includes('?') ? '&' : '?'}error=${encodeURIComponent(msg)}`);
   };
 
-  const associationId = req(formData, 'association_id');
-  const recipientType = req(formData, 'recipient_type'); // owners | tenants | both | board
-  const subject       = req(formData, 'subject');
-  const body          = req(formData, 'message');
+  // A missing field redirects back with a message instead of a crash page.
+  const need = (k: string, label: string): string => str(formData, k) ?? (failTo(`Enter ${label}.`) as never);
+  const associationId = need('association_id', 'an association');
+  const recipientType = need('recipient_type', 'the recipients'); // owners | tenants | both | board
+  const subject       = need('subject', 'a subject');
+  const body          = need('message', 'a message');
   const cc            = str(formData, 'cc');
   const additional    = str(formData, 'additional_recipients'); // comma-sep extra emails
   const fromOverride  = formData.get('from_donotreply') === 'on';
+  if (!['owners', 'tenants', 'both', 'board'].includes(recipientType)) { failTo('Choose who should receive this email.'); return; }
+  // communications_log RLS only checks portfolio_id, so without this an
+  // announcement could be published into another company's association.
+  if (!(await managesAssociation(db, associationId))) {
+    failTo('That association is unavailable or outside your access.');
+    return;
+  }
 
   // Resolve recipient email addresses based on the type picker. Paged past
   // PostgREST's 1,000-row cap; a failed read stops the send rather than
