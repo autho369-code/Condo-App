@@ -4,6 +4,8 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Field, Input, Select } from '@/components/ui/input';
 import { Alert, SectionTitle, Surface } from '@/components/ui/shell';
 import { Table, TD, TH, THead, TR } from '@/components/ui/table';
@@ -84,6 +86,7 @@ export default async function CreditCardPage({
           <SectionTitle title="Record a charge" description="Posts Dr the expense account / Cr the card's liability account for the association." />
           <form action={recordCreditCardCharge} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <input type="hidden" name="card_id" value={card.id} />
+            <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
             <Field label="Date" htmlFor="charge_date"><Input id="charge_date" name="charge_date" type="date" required defaultValue={today} /></Field>
             <Field label="Amount" htmlFor="amount"><Input id="amount" name="amount" type="number" min="0.01" step="0.01" required /></Field>
             {!card.association_id && (
@@ -111,7 +114,7 @@ export default async function CreditCardPage({
             </Field>
             <Field label="Reference (optional)" htmlFor="reference"><Input id="reference" name="reference" placeholder="Receipt #" /></Field>
             <Field label="Description (optional)" htmlFor="description" className="sm:col-span-2"><Input id="description" name="description" /></Field>
-            <div className="sm:col-span-3"><Button type="submit">Record charge</Button></div>
+            <div className="sm:col-span-3"><PendingSubmit pendingLabel="Recording…">Record charge</PendingSubmit></div>
           </form>
         </Surface>
 

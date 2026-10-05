@@ -33,13 +33,17 @@ export default async function ProjectDetailPage({
   const sp = await searchParams;
   const db = (await createClient()) as any;
 
-  const [{ data: project }, { data: milestones }, { data: links }, { data: allWorkOrders }] = await Promise.all([
+  const [{ data: project }, { data: milestones }, { data: links }] = await Promise.all([
     db.from('capital_projects').select('*, associations(name), profiles:manager_user_id(full_name, email), reserve_components(name)').eq('id', id).maybeSingle(),
     db.from('capital_project_milestones').select('*').eq('project_id', id).order('sort_order').order('due_date'),
     db.from('capital_project_work_orders').select('work_order_id, work_orders(id, number, title, status, priority, scheduled_date, completed_date)').eq('project_id', id),
-    db.from('work_orders').select('id, number, title, status, association_id').is('archived_at', null).order('created_at', { ascending: false }).limit(500),
   ]);
   if (!project) notFound();
+  // Work-order picker: only this project's association (newest 500 across every
+  // association could leave this association's work orders off the list).
+  const { data: allWorkOrders } = await db.from('work_orders').select('id, number, title, status, association_id')
+    .eq('association_id', project.association_id)
+    .is('archived_at', null).order('created_at', { ascending: false }).limit(500);
 
   const linkedIds = new Set((links ?? []).map((link: any) => link.work_order_id));
   const availableWorkOrders = (allWorkOrders ?? []).filter((wo: any) => wo.association_id === project.association_id && !linkedIds.has(wo.id));
@@ -84,8 +88,9 @@ export default async function ProjectDetailPage({
     if (hasPortfolioAdminAccess(current) && formData.has('approved_budget_amount')) {
       updates.approved_budget_amount = String(formData.get('approved_budget_amount') ?? '') ? number('approved_budget_amount') : null;
     }
-    const { error } = await (supabase as any).from('capital_projects').update(updates).eq('id', projectId);
+    const { data: updatedRows, error } = await (supabase as any).from('capital_projects').update(updates).eq('id', projectId).select('id');
     if (error) queryMessage(projectId, 'error', error.message);
+    if (!updatedRows?.length) queryMessage(projectId, 'error', 'Project not updated: it was not found or you do not have access to it.');
     revalidatePath(`/projects/${projectId}`);
     queryMessage(projectId, 'saved', 'Project controls updated.');
   }
@@ -97,13 +102,14 @@ export default async function ProjectDetailPage({
     const projectId = String(formData.get('project_id') ?? '');
     const approvedBudget = Number(formData.get('approved_budget_amount') ?? 0);
     if (!Number.isFinite(approvedBudget) || approvedBudget < 0) queryMessage(projectId, 'error', 'Enter a valid approved budget.');
-    const { error } = await (supabase as any).from('capital_projects').update({
+    const { data: approvedRows, error } = await (supabase as any).from('capital_projects').update({
       board_approved_at: new Date().toISOString(),
       board_approved_by: current.auth_user_id,
       approved_budget_amount: approvedBudget,
       status: 'approved',
-    }).eq('id', projectId);
+    }).eq('id', projectId).select('id');
     if (error) queryMessage(projectId, 'error', error.message);
+    if (!approvedRows?.length) queryMessage(projectId, 'error', 'Board approval not recorded: the project was not found or you do not have access to it.');
     revalidatePath(`/projects/${projectId}`);
     queryMessage(projectId, 'saved', 'Board approval recorded.');
   }
@@ -133,11 +139,12 @@ export default async function ProjectDetailPage({
     const projectId = String(formData.get('project_id') ?? '');
     const milestoneId = String(formData.get('milestone_id') ?? '');
     const status = String(formData.get('status') ?? 'pending');
-    const { error } = await (supabase as any).from('capital_project_milestones').update({
+    const { data: milestoneRows, error } = await (supabase as any).from('capital_project_milestones').update({
       status,
       completed_at: status === 'completed' ? new Date().toISOString() : null,
-    }).eq('id', milestoneId).eq('project_id', projectId);
+    }).eq('id', milestoneId).eq('project_id', projectId).select('id');
     if (error) queryMessage(projectId, 'error', error.message);
+    if (!milestoneRows?.length) queryMessage(projectId, 'error', 'Milestone not updated: it was not found or you do not have access to it.');
     revalidatePath(`/projects/${projectId}`);
     redirect(`/projects/${projectId}`);
   }

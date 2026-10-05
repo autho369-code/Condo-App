@@ -6,10 +6,12 @@ import { sendEmail } from '@/lib/rpcs/notifications';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { Button } from '@/components/ui/button';
 import { PendingSubmit } from '@/components/ui/pending-submit';
-import { Field, Input, Select, Textarea } from '@/components/ui/input';
-import { PageShell, Surface } from '@/components/ui/shell';
+import { Field, Input, Textarea } from '@/components/ui/input';
+import { Alert, PageShell, Surface } from '@/components/ui/shell';
 import { CommunicationDrafter } from '@/components/ai/communication-drafter';
 import { safeInternalNext } from '@/lib/security/redirects';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { AssociationSelect } from './_association-select';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,29 +41,44 @@ export default async function SendEmailPage({
   const returnTo = safeInternalNext(sp.return_to);
   const closeHref = returnTo ?? '/associations';
 
-  // Pull counts per recipient group for the preselected association so the
-  // user knows how many each bucket resolves to before hitting Send.
-  let ownerCount = 0, tenantCount = 0, boardCount = 0;
-  if (preAssoc) {
-    const [ownC, tenC, brdC] = await Promise.all([
-      (supabase as any).from('occupancies')
-        .select('*', { count: 'exact', head: true })
-        .eq('association_id', preAssoc)
+  // Recipients per group for the chosen association, counted exactly the way
+  // sendEmail resolves them: distinct email addresses of current, unarchived
+  // owners / active tenants / active board members ("both" de-duplicates
+  // across owners and tenants).
+  let ownerCount: number | null = null, tenantCount: number | null = null, bothCount: number | null = null, boardCount: number | null = null;
+  let countError: string | null = null;
+  const validAssoc = (associations ?? []).some((a: any) => a.id === preAssoc) ? preAssoc : '';
+  if (validAssoc) {
+    const db = supabase as any;
+    const [occs, tens, board] = await Promise.all([
+      fetchAllRows<any>(() => db.from('occupancies')
+        .select('id, owners!owner_id(email, archived_at)')
+        .eq('association_id', validAssoc)
         .eq('occupancy_type', 'owner')
-        .eq('status', 'current'),
-      (supabase as any).from('tenants')
-        .select('*', { count: 'exact', head: true })
-        .eq('association_id', preAssoc)
+        .eq('status', 'current')
+        .order('id')),
+      fetchAllRows<any>(() => db.from('tenants')
+        .select('id, email')
+        .eq('association_id', validAssoc)
         .eq('status', 'active')
-        .is('archived_at', null),
-      (supabase as any).from('board_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('association_id', preAssoc)
-        .eq('active', true),
+        .is('archived_at', null)
+        .order('id')),
+      fetchAllRows<any>(() => db.from('board_members')
+        .select('id, email')
+        .eq('association_id', validAssoc)
+        .eq('active', true)
+        .order('id')),
     ]);
-    ownerCount  = ownC.count ?? 0;
-    tenantCount = tenC.count ?? 0;
-    boardCount  = brdC.count ?? 0;
+    countError = occs.error ?? tens.error ?? board.error;
+    if (!countError) {
+      const emails = (list: Array<string | null | undefined>) => new Set(list.filter((e): e is string => !!e).map((e) => e.toLowerCase()));
+      const ownerEmails = emails(occs.rows.filter((o: any) => o.owners && !o.owners.archived_at).map((o: any) => o.owners.email));
+      const tenantEmails = emails(tens.rows.map((t: any) => t.email));
+      ownerCount = ownerEmails.size;
+      tenantCount = tenantEmails.size;
+      bothCount = new Set([...ownerEmails, ...tenantEmails]).size;
+      boardCount = emails(board.rows.map((b: any) => b.email)).size;
+    }
   }
 
   return (
@@ -98,12 +115,7 @@ export default async function SendEmailPage({
 
           {/* Association */}
           <Field label="Association" htmlFor="association_id" required>
-            <Select id="association_id" name="association_id" required defaultValue={preAssoc}>
-              <option value="">Select an association…</option>
-              {(associations ?? []).map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </Select>
+            <AssociationSelect associations={associations ?? []} defaultValue={validAssoc} />
           </Field>
 
           {/* Recipient type — owners / tenants / both / board */}
@@ -112,10 +124,11 @@ export default async function SendEmailPage({
             required
             hint="A separate email will be sent to each recipient for privacy. Only people with an email address on file receive it."
           >
+            {countError && <Alert tone="warning" title="Recipient counts could not be loaded." className="mb-2">{countError}</Alert>}
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               <RecipientOption value="owners" label="Owners only" count={ownerCount} />
               <RecipientOption value="tenants" label="Tenants only" count={tenantCount} />
-              <RecipientOption value="both" label="Owners + Tenants" count={ownerCount + tenantCount} defaultChecked />
+              <RecipientOption value="both" label="Owners + Tenants" count={bothCount} defaultChecked />
               <RecipientOption value="board" label="Board members" count={boardCount} />
             </div>
           </Field>
@@ -173,14 +186,16 @@ export default async function SendEmailPage({
 function RecipientOption({
   value, label, count, defaultChecked,
 }: {
-  value: string; label: string; count: number; defaultChecked?: boolean;
+  value: string; label: string; count: number | null; defaultChecked?: boolean;
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 transition-colors hover:border-blue-500 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
       <input type="radio" name="recipient_type" value={value} defaultChecked={defaultChecked} className="mt-1" />
       <div className="flex-1 text-sm">
         <div className="font-medium text-gray-900">{label}</div>
-        <div className="text-xs text-gray-500">{count} recipient{count === 1 ? '' : 's'} with email on file</div>
+        <div className="text-xs text-gray-500">
+          {count == null ? 'Choose an association to see the count' : `${count} recipient${count === 1 ? '' : 's'} with email on file`}
+        </div>
       </div>
     </label>
   );

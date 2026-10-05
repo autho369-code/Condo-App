@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { generateDocumentPdf } from '@/lib/documents/generated-pdf';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { todayInZone } from '@/lib/time/zoned';
+import { noticeTypeForLetterType } from '@/lib/documents/notice-type';
 
 const BUCKET = 'association-documents';
 const MAX_TEXT_LENGTH = 50_000;
@@ -20,12 +21,7 @@ export type GenerateDocumentInput = {
   createDraftNotice?: boolean;
 };
 
-function noticeType(letterType: string): string {
-  if (letterType === 'violation_notice') return 'violation';
-  if (letterType === 'board_packet') return 'board_packet';
-  if (letterType === 'assessment_letter') return 'payment_reminder';
-  return 'general';
-}
+const noticeType = noticeTypeForLetterType;
 
 export type GenerateDocumentResult =
   | { ok: true; documentId: string | null; noticeId: string | null; fileName: string }

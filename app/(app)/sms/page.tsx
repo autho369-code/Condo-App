@@ -10,6 +10,7 @@ import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { SmsForm } from './_sms-form';
 import { newSubmissionToken } from '@/lib/forms/submission';
 import { smsDeliveryConfigured } from '@/lib/sms/twilio';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,22 +37,28 @@ export default async function SmsPage({
     .order('last_message_at', { ascending: false })
     .limit(50);
 
-  // Get owners for dropdown
-  const { data: owners } = await db
-    .from('owners')
-    .select('id, full_name, phone, phone_numbers')
-    .is('archived_at', null)
-    .eq('portfolio_id', me.portfolio?.id)
-    .order('full_name')
-    .limit(200);
-
-  // Get vendors for dropdown
-  const { data: vendors } = await db
-    .from('vendors')
-    .select('id, name, phone_numbers')
-    .eq('portfolio_id', me.portfolio?.id)
-    .order('name')
-    .limit(200);
+  // Every recipient for the dropdowns (paged past PostgREST's 1,000-row cap;
+  // a fixed limit silently hid everyone past the first 200).
+  const [ownerRes, vendorRes] = await Promise.all([
+    fetchAllRows<any>(() => db
+      .from('owners')
+      .select('id, full_name, phone, phone_numbers')
+      .is('archived_at', null)
+      .eq('portfolio_id', me.portfolio?.id)
+      .order('full_name')
+      .order('id')),
+    fetchAllRows<any>(() => db
+      .from('vendors')
+      .select('id, name, phone_numbers')
+      .is('archived_at', null)
+      .eq('portfolio_id', me.portfolio?.id)
+      .order('name')
+      .order('id')),
+  ]);
+  const owners = ownerRes.rows;
+  const vendors = vendorRes.rows;
+  const recipientLoadError = ownerRes.error ?? vendorRes.error;
+  const recipientsTruncated = ownerRes.truncated || vendorRes.truncated;
 
   // Get templates
   const { data: templates } = await db
@@ -82,10 +89,13 @@ export default async function SmsPage({
           </div>
         )}
 
+        {recipientLoadError && <Alert tone="danger" title="Could not load recipients.">{recipientLoadError}</Alert>}
+        {recipientsTruncated && <Alert tone="warning" title="Recipient list truncated.">Not every owner or vendor could be loaded into the picker.</Alert>}
+
         {/* Send SMS Form */}
         <Surface>
           <SectionTitle title="Send a text message" />
-          <SmsForm owners={owners ?? []} vendors={vendors ?? []} templates={templates ?? []} submissionToken={newSubmissionToken()} />
+          <SmsForm owners={owners} vendors={vendors} templates={templates ?? []} submissionToken={newSubmissionToken()} />
         </Surface>
 
         {/* Conversations / History */}

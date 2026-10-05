@@ -5,6 +5,7 @@ import { Badge, Alert } from '@/components/ui/shell'
 import { StatusChip } from '@/components/operations/status-chip'
 import { Button } from '@/components/ui/button'
 import { money, date } from '@/lib/utils'
+import { htmlToPlainText } from '@/lib/security/rich-text'
 import { CreditCard, Wrench, MessageSquare, Shield, FileText, Calendar, Siren, Phone, Mail, Sparkles } from 'lucide-react'
 import { ownerTenureCutoffs, tenureFilter } from './_lib/tenure'
 
@@ -80,13 +81,15 @@ export default async function OwnerDashboard() {
 
   // Announcements
   let announcements: any[] = []
-  if (assocId) {
+  // Every association the owner holds a unit in, not just the primary one.
+  const assocIds = [...new Set(occs.map((o: any) => o.association_id).filter(Boolean))] as string[]
+  if (assocIds.length > 0) {
     // Owner-facing only: tenant-only announcements are not for owners.
-    const { data: ann, error: annError } = await db.from('communications_log').select('subject,created_at').eq('association_id', assocId).eq('channel','announcement')
+    const { data: ann, error: annError } = await db.from('communications_log').select('id,subject,body,created_at').in('association_id', assocIds).eq('channel','announcement')
       .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
       .order('created_at',{ascending:false}).limit(3)
     track('announcements', annError)
-    announcements = ann ?? []
+    announcements = ((ann ?? []) as any[]).map((a) => ({ ...a, preview: htmlToPlainText(a.body) }))
   }
 
   // Recent payments on the owner's units — only from their own move-in on, so
@@ -279,8 +282,10 @@ export default async function OwnerDashboard() {
           ) : (
             <div className="space-y-1">
               {announcements.map((a: any, i: number) => (
-                <div key={i} className="border-b border-gray-50 py-2 last:border-0">
+                <div key={a.id ?? i} className="border-b border-gray-50 py-2 last:border-0">
                   <div className="text-sm text-gray-900">{a.subject}</div>
+                  {/* Stored as HTML; shown as a plain-text preview, never as markup. */}
+                  {a.preview && <p className="mt-0.5 line-clamp-2 break-words text-xs leading-5 text-gray-600">{a.preview}</p>}
                   <div className="text-xs text-gray-500">{date(a.created_at)}</div>
                 </div>
               ))}

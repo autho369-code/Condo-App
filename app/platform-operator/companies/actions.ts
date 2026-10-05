@@ -153,8 +153,10 @@ export async function createCompanyWithAdmin(formData: FormData) {
   if (subscriptionError) fail(COMPANIES, `Company created, but its subscription could not be activated: ${subscriptionError.message}`);
   // provision_portfolio creates the invitation as a manager; it must be a
   // company admin before the email goes out, or the first admin joins as a manager.
+  // role_id is cleared too: the provisioned invitation carries the board
+  // "President" role, which a company admin must not inherit.
   const { data: promoted, error: promoteError } = await svc.from('user_invitations')
-    .update({ hoa_role: 'company_admin', full_name: fullName })
+    .update({ hoa_role: 'company_admin', full_name: fullName, role_id: null })
     .eq('id', invitationId)
     .select('id');
   if (promoteError || !promoted?.length) fail(COMPANIES, `Company created, but the admin invitation could not be set up: ${promoteError?.message ?? 'invitation not found'}. Invite the admin again from the company page.`);
@@ -523,9 +525,12 @@ export async function sendInvoice(formData: FormData) {
 
   const svc = createServiceClient() as any;
   const { data: inv } = await svc.from('invoices')
-    .select('id, number, period_start, period_end, total_cents, notes, portfolio_id')
+    .select('id, number, period_start, period_end, total_cents, notes, portfolio_id, status')
     .eq('id', invoiceId).maybeSingle();
   if (!inv) fail(returnTo, 'Invoice not found.');
+  // Only an open invoice is a bill to send: a draft isn't final, and a paid or
+  // void one would ask the company to pay something it doesn't owe.
+  if (inv.status !== 'open') fail(returnTo, `Only open invoices can be sent (this one is ${inv.status}).`);
 
   // Recipient: subscription billing_email, else a company admin's email.
   const { data: sub } = await svc.from('subscriptions').select('billing_email').eq('portfolio_id', inv.portfolio_id).maybeSingle();
@@ -564,7 +569,8 @@ export async function sendInvoice(formData: FormData) {
   });
   if (error) fail(returnTo, `Could not queue the invoice email: ${error.message}`);
 
-  await svc.from('invoices').update({ sent_at: new Date().toISOString() }).eq('id', invoiceId);
+  const { error: sentAtError } = await svc.from('invoices').update({ sent_at: new Date().toISOString() }).eq('id', invoiceId);
+  if (sentAtError) fail(returnTo, `The invoice email was queued, but the sent date could not be recorded: ${sentAtError.message}`);
   await audit(svc, me, 'invoice_sent', inv.portfolio_id, { invoice_id: invoiceId, to_email: toEmail });
   revalidatePath(returnTo);
   ok(returnTo, 'invoice_sent');

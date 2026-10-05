@@ -1,8 +1,8 @@
 'use server';
 import { LIVE_ONLY_REPORT_SLUGS } from '@/lib/reports/catalog';
 import { isSupportedReportOutputFormat } from '@/lib/reports/formats';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth/me';
+import { createClient } from '@/lib/supabase/server';
+import { requirePortfolioAdmin, requireStaff } from '@/lib/auth/me';
 import { revalidatePath } from 'next/cache';
 
 const str = (f: FormData, k: string) => { const v = f.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : null; };
@@ -151,6 +151,12 @@ export async function sendOwnerStatements(formData: FormData) {
   const periodEnd = req(formData, 'period_end');
   const batchName = str(formData, 'batch_name') || undefined;
   const deliveryChannel = str(formData, 'delivery_channel') || 'email';
+  // Only email delivery exists. Print and portal statements are never rendered,
+  // listed or printed anywhere, so accepting them would report statements as
+  // "generated" that no homeowner ever receives.
+  if (deliveryChannel !== 'email') {
+    return { error: 'Only email delivery is available for owner statements right now.' };
+  }
 
   const { data, error } = await db.rpc('generate_owner_statements', {
     p_association_id: associationId,
@@ -225,7 +231,11 @@ export async function sendOwnerStatements(formData: FormData) {
    BULK STATEMENT SETTINGS — update statement config for associations
    ================================================================ */
 export async function bulkUpdateStatementSettings(formData: FormData) {
-  await requireStaff();
+  // Same guard as updateBulkStatementSettings (lib/rpcs/entities.ts): changing
+  // statement configuration across associations is a company-admin task.
+  const me = await requirePortfolioAdmin();
+  const portfolioId = me.portfolio?.id;
+  if (!portfolioId) return { error: 'No company selected for your account.' };
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -265,28 +275,35 @@ export async function bulkUpdateStatementSettings(formData: FormData) {
 
   if (Object.keys(settings).length === 0) return { error: 'No settings to update' };
 
-  // Prove every requested row is visible under the caller's RLS session before
-  // crossing the service-role boundary. The elevated update remains constrained
-  // to that exact, deduplicated ID set and an allowlist of statement columns.
-  const { data: visibleAssociations, error: scopeError } = await db
+  // Refuse the whole batch up front if any ID is outside the caller's company,
+  // so a bad selection never leaves a partial update behind.
+  const { data: inScope, error: scopeError } = await db
     .from('associations')
     .select('id')
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
     .in('id', associationIds);
   if (scopeError) return { error: scopeError.message };
-  if ((visibleAssociations ?? []).length !== associationIds.length) {
-    return { error: 'One or more associations are outside your authorized scope' };
+  if ((inScope ?? []).length !== associationIds.length) {
+    return { error: 'One or more associations are outside your company or archived' };
   }
 
-  const serviceDb = createServiceClient() as any;
-  const { data, error } = await serviceDb
+  // Session client (RLS applies) and pinned to the caller's own portfolio:
+  // platform operators pass can_access_portfolio() for every company, so RLS
+  // alone would let one submission rewrite other tenants' associations.
+  const { data, error } = await db
     .from('associations')
     .update(settings)
+    .eq('portfolio_id', portfolioId)
+    .is('archived_at', null)
     .in('id', associationIds)
     .select('id');
 
   if (error) return { error: error.message };
   if ((data ?? []).length !== associationIds.length) {
-    return { error: 'One or more associations were not updated' };
+    return {
+      error: `${(data ?? []).length} of ${associationIds.length} associations were updated; the rest are outside your company or archived.`,
+    };
   }
 
   revalidatePath('/statements/bulk-settings');

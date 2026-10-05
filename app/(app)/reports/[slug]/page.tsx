@@ -654,9 +654,8 @@ async function IncomeStatementView({
 // ═══════════════════════════════════════════════════════════════
 // 4. CASH FLOW
 // ═══════════════════════════════════════════════════════════════
-async function CashFlowView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
-}: ReportContext) {
+async function CashFlowView(ctx: ReportContext) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope } = ctx;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -667,7 +666,8 @@ async function CashFlowView({
     .is('archived_at', null)
     .order('name');
   if (selectedAssociation) bankQuery = bankQuery.eq('association_id', selectedAssociation);
-  const { data: bankAccounts } = await bankQuery;
+  const { data: bankAccounts, error: bankError } = await bankQuery;
+  if (bankError) return <ReportLoadFailed ctx={ctx} message={`Could not load bank accounts: ${bankError.message}`} />;
   const bAccounts = (bankAccounts ?? []) as any[];
 
   // Fetch bank transfers in period. bank_transfers has no association_id, so
@@ -686,7 +686,8 @@ async function CashFlowView({
       : transferQuery.in('id', []);
   }
 
-  const { data: transfers } = await transferQuery;
+  const { data: transfers, error: transferError } = await transferQuery;
+  if (transferError) return <ReportLoadFailed ctx={ctx} message={`Could not load bank transfers: ${transferError.message}`} />;
   const bankTransfers = (transfers ?? []) as any[];
 
   // Cash in/out for the period, summed in the database over TRUE cash
@@ -705,7 +706,7 @@ async function CashFlowView({
   // posted transfers and their voids in the period out of both gross totals.
   // Net cash flow is unchanged.
   const bankIdList = bAccounts.map((a: any) => a.id);
-  const { rows: postedTransfers } = await fetchAllRows<any>(() => {
+  const { rows: postedTransfers, error: postedError, truncated: postedTruncated } = await fetchAllRows<any>(() => {
     let q = db.from('bank_transfers')
       .select('id, amount, transfer_date, journal_entry_id, void_entry_id')
       .not('journal_entry_id', 'is', null)
@@ -715,10 +716,12 @@ async function CashFlowView({
     }
     return q;
   });
+  if (postedError) return <ReportLoadFailed ctx={ctx} message={`Could not load posted bank transfers: ${postedError}`} />;
   const voidEntryIds = postedTransfers.map((t: any) => t.void_entry_id).filter(Boolean);
   const voidDates = new Map<string, string>();
   for (let i = 0; i < voidEntryIds.length; i += 200) {
-    const { data: entries } = await db.from('journal_entries').select('id, entry_date').in('id', voidEntryIds.slice(i, i + 200));
+    const { data: entries, error: entriesError } = await db.from('journal_entries').select('id, entry_date').in('id', voidEntryIds.slice(i, i + 200));
+    if (entriesError) return <ReportLoadFailed ctx={ctx} message={`Could not load voided transfer entries: ${entriesError.message}`} />;
     for (const e of (entries ?? []) as any[]) voidDates.set(e.id, e.entry_date);
   }
   const inPeriod = (d: string | null | undefined) => !!d && d >= period.from && d <= period.to;
@@ -758,6 +761,7 @@ async function CashFlowView({
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
+        {postedTruncated && <TruncatedNotice what="bank transfers" />}
         {/* Summary tiles */}
         <div className="grid grid-cols-4 gap-3">
           <Tile label="Operating Inflows"  value={money(operatingInflows)}  tone="positive" sub="Cash received" />
@@ -865,9 +869,8 @@ async function CashFlowView({
 // ═══════════════════════════════════════════════════════════════
 // 5. GENERAL LEDGER
 // ═══════════════════════════════════════════════════════════════
-async function GeneralLedgerView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedAccount,
-}: ReportContext) {
+async function GeneralLedgerView(ctx: ReportContext) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, selectedAccount } = ctx;
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -894,7 +897,8 @@ async function GeneralLedgerView({
     if (selectedAccount) lineQuery = lineQuery.eq('gl_account_id', selectedAccount);
     return lineQuery;
   };
-  const { rows: journalLines } = await fetchAllRows<any>(buildLineQuery);
+  const { rows: journalLines, error: linesError, truncated: linesTruncated } = await fetchAllRows<any>(buildLineQuery);
+  if (linesError) return <ReportLoadFailed ctx={ctx} message={`Could not load journal lines: ${linesError}`} />;
 
   // A general ledger needs the balance brought forward before the selected
   // period. Without it, the report cannot provide an accurate running balance.
@@ -958,6 +962,7 @@ async function GeneralLedgerView({
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
+        {linesTruncated && <TruncatedNotice what="journal lines" />}
         {selectedAccount && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <span className="text-gray-600">
@@ -1053,17 +1058,17 @@ async function GeneralLedgerView({
 // ═══════════════════════════════════════════════════════════════
 // EXISTING: A/R AGING LIVE VIEW
 // ═══════════════════════════════════════════════════════════════
-async function ARAgingView({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope,
-}: ReportContext) {
+async function ARAgingView(ctx: ReportContext) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope } = ctx;
   const supabase = await createClient();
 
   // Every open charge (one request stopped at 1,000 rows and understated A/R).
-  const { rows } = await fetchAllRows<any>(() => {
+  const { rows, error: agingError, truncated: agingTruncated } = await fetchAllRows<any>(() => {
     let q = (supabase as any).from('aged_receivables').select('*').order('due_date').order('charge_id');
     if (selectedAssociation) q = q.eq('association_id', selectedAssociation);
     return q;
   });
+  if (agingError) return <ReportLoadFailed ctx={ctx} subtitle={def.description} message={`Could not load open charges: ${agingError}`} />;
   const assocs = associations;
 
   // aged_receivables emits underscore bucket keys: current, 1_30, 31_60, 61_90, 90_plus
@@ -1101,7 +1106,8 @@ async function ARAgingView({
       }
       rail={<ReportRightRail def={def} runs={runs} associations={associations} period={period} selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive isAsOfToday />}
     >
-      <div className="grid grid-cols-5 gap-3">
+      {agingTruncated && <TruncatedNotice what="open charges" />}
+      <div className={`grid grid-cols-5 gap-3${agingTruncated ? ' mt-4' : ''}`}>
         {BUCKETS.map((b) => (
           <Tile
             key={b}
@@ -1187,17 +1193,17 @@ function BucketPill({ bucket }: { bucket: string }) {
 // paid owner payables in the period. owner_financial_details is
 // finance-staff-only via RLS, so non-finance staff see an empty set.
 // ═══════════════════════════════════════════════════════════════
-async function Owner1099View({
-  def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, detail,
-}: ReportContext & { detail: boolean }) {
+async function Owner1099View(ctx: ReportContext & { detail: boolean }) {
+  const { def, runs, associations, period, selectedAssociation, selectedPreset, selectedScope, detail } = ctx;
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { rows: finRows } = await fetchAllRows<any>(() => db
+  const { rows: finRows, error: finError, truncated: finTruncated } = await fetchAllRows<any>(() => db
     .from('owner_financial_details')
     .select('owner_id, taxpayer_name, taxpayer_id, sending_preference_1099, electronic_1099_consent, owners(id, full_name, email)')
     .eq('send_1099', true)
     .order('owner_id'));
+  if (finError) return <ReportLoadFailed ctx={ctx} message={`Could not load owner 1099 settings: ${finError}`} />;
   const flagged = finRows as any[];
   const flaggedIds = flagged.map((r: any) => r.owner_id);
 
@@ -1261,6 +1267,7 @@ async function Owner1099View({
         selectedAssociation={selectedAssociation} selectedPreset={selectedPreset} selectedScope={selectedScope} isLive />}
     >
       <div className="space-y-4">
+        {finTruncated && <TruncatedNotice what="owners flagged for 1099" />}
         {payError && <Alert tone="danger" title="Could not load owner payables.">{payError}</Alert>}
         {payTruncated && <Alert tone="warning" title="Results truncated.">Only the first {payables.length.toLocaleString()} paid payables are included; narrow the period or association.</Alert>}
         <div className="grid grid-cols-3 gap-3">
@@ -1496,6 +1503,25 @@ function LiveReportShell({ ctx, subtitle, children }: { ctx: ReportContext; subt
   );
 }
 
+/** Shown instead of totals when a report's data could not be loaded. */
+function ReportLoadFailed({ ctx, message, subtitle }: { ctx: ReportContext; message: string; subtitle?: string }) {
+  return (
+    <LiveReportShell ctx={ctx} subtitle={subtitle ?? `${ctx.period.from} → ${ctx.period.to}`}>
+      <Alert tone="danger" title="This report could not be loaded.">
+        {message} No totals are shown because they would be incomplete. Reload the page to try again.
+      </Alert>
+    </LiveReportShell>
+  );
+}
+
+function TruncatedNotice({ what }: { what: string }) {
+  return (
+    <Alert tone="warning" title="Results truncated.">
+      There are more {what} than this report can load at once, so totals below are incomplete. Narrow the period or choose one association.
+    </Alert>
+  );
+}
+
 const thCls = 'px-4 py-2 text-left font-semibold';
 const thRight = 'px-4 py-2 text-right font-semibold';
 
@@ -1702,15 +1728,17 @@ async function FundBalanceView(ctx: ReportContext & { trustOnly: boolean }) {
 async function TrustDetailView(ctx: ReportContext) {
   const supabase = await createClient();
   const db = supabase as any;
-  const { data: banksData } = await db.from('bank_accounts').select('id, name, fund_type, gl_account_id').is('archived_at', null);
+  const { data: banksData, error: banksError } = await db.from('bank_accounts').select('id, name, fund_type, gl_account_id').is('archived_at', null);
+  if (banksError) return <ReportLoadFailed ctx={ctx} message={`Could not load bank accounts: ${banksError.message}`} />;
   const trustBanks = ((banksData ?? []) as any[]).filter((b) => b.fund_type && b.fund_type !== 'operating' && b.fund_type !== 'petty_cash');
   const glIds = trustBanks.map((b) => b.gl_account_id).filter(Boolean);
   const nameByGl = new Map(trustBanks.map((b) => [b.gl_account_id, `${b.name} (${b.fund_type})`]));
 
   let lines: any[] = [];
+  let linesTruncated = false;
   if (glIds.length > 0) {
     // Every page of trust activity (one request stops at 1,000 rows).
-    const { rows: data } = await fetchAllRows<any>(() => {
+    const { rows: data, error: trustError, truncated } = await fetchAllRows<any>(() => {
       let lq = db
         .from('journal_lines')
         .select('id, gl_account_id, debit_amount, credit_amount, association_id, journal_entries!inner(entry_date, posted, memo, description)')
@@ -1722,6 +1750,8 @@ async function TrustDetailView(ctx: ReportContext) {
       if (ctx.selectedAssociation) lq = lq.eq('association_id', ctx.selectedAssociation);
       return lq;
     });
+    if (trustError) return <ReportLoadFailed ctx={ctx} message={`Could not load trust account activity: ${trustError}`} />;
+    linesTruncated = truncated;
     lines = (data as any[]).sort((a, b) => String(b.journal_entries?.entry_date).localeCompare(String(a.journal_entries?.entry_date)));
   }
   const inflows = lines.reduce((s, l) => s + Number(l.debit_amount ?? 0), 0);
@@ -1729,6 +1759,7 @@ async function TrustDetailView(ctx: ReportContext) {
 
   return (
     <LiveReportShell ctx={ctx} subtitle={`Trust activity ${ctx.period.from} → ${ctx.period.to}`}>
+      {linesTruncated && <TruncatedNotice what="trust account lines" />}
       <div className="grid grid-cols-3 gap-3">
         <Tile label="Deposits" value={money(inflows)} tone="positive" />
         <Tile label="Withdrawals" value={money(outflows)} tone="danger" />

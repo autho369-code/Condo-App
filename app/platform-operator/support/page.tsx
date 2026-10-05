@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -5,6 +6,8 @@ import { requirePlatformOperator } from '@/lib/auth/me';
 import { Alert, Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { date } from '@/lib/utils';
+import { Label, Textarea } from '@/components/ui/input';
+import { PendingSubmit } from '@/components/ui/pending-submit';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { todayInZone, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
@@ -73,10 +76,37 @@ async function setRequestStatus(formData: FormData) {
   redirect('/platform-operator/support?updated=1');
 }
 
+const MAX_RESPONSE_LENGTH = 5000;
+
+async function respondToRequest(formData: FormData) {
+  'use server';
+  // Actions are callable endpoints: re-check the operator role here.
+  await requirePlatformOperator();
+  const supabase = await createClient();
+  const id = String(formData.get('request_id') ?? '').trim();
+  const response = String(formData.get('platform_response') ?? '').trim();
+  const fail = (message: string): never =>
+    redirect(`/platform-operator/support?error=${encodeURIComponent(message)}`);
+  if (!/^[0-9a-f-]{36}$/i.test(id)) fail('Invalid support request.');
+  if (!response) fail('Write a response before sending it.');
+  if (response.length > MAX_RESPONSE_LENGTH) fail(`Responses are limited to ${MAX_RESPONSE_LENGTH.toLocaleString()} characters.`);
+
+  // The company admin sees platform_response on their platform-requests page.
+  const { data: updated, error } = await (supabase as any)
+    .from('platform_requests')
+    .update({ platform_response: response, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
+  if (error) fail(error.message);
+  if (!updated?.length) fail('That request was not found or you are not allowed to answer it.');
+  revalidatePath('/platform-operator/support');
+  redirect('/platform-operator/support?responded=1');
+}
+
 export default async function SupportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{ error?: string; updated?: string; responded?: string }>;
 }) {
   await requirePlatformOperator();
   const sp = await searchParams;
@@ -108,6 +138,7 @@ export default async function SupportPage({
     <div className="space-y-6">
       {sp.error && <Alert title="Action failed">{sp.error}</Alert>}
       {sp.updated === '1' && <Alert tone="success" title="Request updated" />}
+      {sp.responded === '1' && <Alert tone="success" title="Response saved">The company admin can read it on their platform requests page.</Alert>}
       {loadError && <Alert title="Support requests could not be loaded">{loadError}</Alert>}
 
       <div>
@@ -157,7 +188,8 @@ export default async function SupportPage({
                   const companyName = portfolioMap.get(req.portfolio_id) ?? '—';
                   const isOpen = !['resolved', 'closed', 'denied'].includes(req.status ?? 'open');
                   return (
-                    <tr key={req.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                    <Fragment key={req.id}>
+                    <tr className="hover:bg-gray-50/60">
                       <td className="px-4 py-3 font-medium text-gray-900">{companyName}</td>
                       <td className="px-4 py-3 text-[13px] capitalize text-gray-700">{(req.request_type ?? 'general').replace(/_/g, ' ')}</td>
                       <td className="max-w-xs truncate px-4 py-3 text-[13px] text-gray-700">{req.title ?? req.description ?? '—'}</td>
@@ -191,6 +223,37 @@ export default async function SupportPage({
                         )}
                       </td>
                     </tr>
+                    <tr className="border-b border-gray-100 last:border-0">
+                      <td colSpan={8} className="px-4 pb-4 pt-0">
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Request</div>
+                            <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-5 text-gray-700">{req.description || 'No description provided.'}</p>
+                          </div>
+                          <form action={respondToRequest as any} className="min-w-0 space-y-2">
+                            <input type="hidden" name="request_id" value={req.id} />
+                            <Label htmlFor={`response-${req.id}`} className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                              {req.platform_response ? 'Response (visible to the company admin)' : 'Reply to the company admin'}
+                            </Label>
+                            <Textarea
+                              id={`response-${req.id}`}
+                              name="platform_response"
+                              rows={3}
+                              required
+                              maxLength={MAX_RESPONSE_LENGTH}
+                              defaultValue={req.platform_response ?? ''}
+                              placeholder="Write a response…"
+                            />
+                            <div className="flex justify-end">
+                              <PendingSubmit size="sm" variant="secondary" pendingLabel="Saving…">
+                                {req.platform_response ? 'Update response' : 'Send response'}
+                              </PendingSubmit>
+                            </div>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                    </Fragment>
                   );
                 })
               )}

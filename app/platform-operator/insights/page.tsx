@@ -2,6 +2,16 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePlatformOperator } from '@/lib/auth/me'
 import { money } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { DEFAULT_TIME_ZONE } from '@/lib/time/zoned'
+import {
+  isPastDueInvoice,
+  monthWindowInZone,
+  monthlyRecurringCents,
+  pastDueInvoicesFilter,
+  platformToday,
+} from '@/lib/platform/operator-metrics'
 import {
   Sparkles,
   Building2,
@@ -16,6 +26,8 @@ import {
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+
+const STAFF_ROLES = ['manager', 'company_admin']
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
@@ -33,53 +45,82 @@ export default async function PlatformInsightsPage() {
   const db = supabase as any
   const now = new Date()
   const nowIso = now.toISOString()
-  const todayDate = nowIso.slice(0, 10)
+  const todayDate = platformToday(now)
   const in7 = new Date(now.getTime() + 7 * 86400000).toISOString()
   const d14 = new Date(now.getTime() - 14 * 86400000).toISOString()
   const d7 = new Date(now.getTime() - 7 * 86400000).toISOString()
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const monthStart = monthWindowInZone(DEFAULT_TIME_ZONE, now).startIso
 
   const [
-    { data: portfolios },
-    { data: subs },
-    { data: usage },
-    { data: invoices },
-    { data: failedEmails },
-    { data: endpoints },
-    { data: profiles },
-    { count: ownersCount },
-    { count: vendorsCount },
-    { count: boardCount },
-    { count: newOwnersMonth },
+    portfoliosRes,
+    subsRes,
+    assocRes,
+    invoicesRes,
+    failedEmailsRes,
+    endpointsRes,
+    staffRes,
+    profilesCountRes,
+    ownersCountRes,
+    vendorsCountRes,
+    boardCountRes,
+    newOwnersRes,
   ] = await Promise.all([
     db.from('portfolios').select('id, company_name, archived_at, suspended_at').is('archived_at', null),
-    db.from('subscriptions').select('portfolio_id, tier, status, price_monthly_cents, seats_used, price_per_seat_cents, trial_ends_at, current_period_end, canceled_at'),
-    db.from('billing_usage').select('portfolio_id, doors_active, doors_limit, status').eq('status', 'active'),
-    db.from('invoices').select('portfolio_id, number, total_cents, status, period_end').not('status', 'in', '("paid","void")'),
+    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, tier, status, price_monthly_cents, seats_used, price_per_seat_cents, units_limit, trial_ends_at, current_period_end, canceled_at').order('id')),
+    fetchAllRows<any>(() => db.from('associations').select('id, portfolio_id, unit_count').is('archived_at', null).order('id')),
+    fetchAllRows<any>(() => pastDueInvoicesFilter(db.from('invoices').select('id, portfolio_id, number, total_cents, status, period_end'), todayDate).order('id')),
     db.from('email_queue').select('id, to_email, subject, error_message, created_at').eq('status', 'failed').gte('created_at', d7).limit(20),
     db.from('webhook_endpoints').select('id, portfolio_id, name, active, failure_count, last_failure_at, last_failure_message'),
-    db.from('profiles').select('portfolio_id, last_login_at, hoa_role'),
+    // Only staff logins say a company is using the product; owner/board
+    // logins kept a company "active" even when its managers had left.
+    fetchAllRows<any>(() => db.from('profiles').select('id, portfolio_id, last_login_at, hoa_role').in('hoa_role', STAFF_ROLES).order('id')),
+    db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('vendors').select('id', { count: 'exact', head: true }).is('archived_at', null),
     db.from('board_members').select('id', { count: 'exact', head: true }),
     db.from('owners').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
   ])
 
-  const nameById = new Map<string, string>((portfolios ?? []).map((p: any) => [p.id, p.company_name ?? 'Company']))
+  // A failed read must not render as "All clear".
+  const loadErrors = [
+    portfoliosRes.error?.message && `Companies: ${portfoliosRes.error.message}`,
+    subsRes.error && `Subscriptions: ${subsRes.error}`,
+    assocRes.error && `Associations: ${assocRes.error}`,
+    invoicesRes.error && `Invoices: ${invoicesRes.error}`,
+    failedEmailsRes.error?.message && `Email queue: ${failedEmailsRes.error.message}`,
+    endpointsRes.error?.message && `Webhooks: ${endpointsRes.error.message}`,
+    staffRes.error && `Staff logins: ${staffRes.error}`,
+    profilesCountRes.error?.message && `Users: ${profilesCountRes.error.message}`,
+    ownersCountRes.error?.message && `Owners: ${ownersCountRes.error.message}`,
+    vendorsCountRes.error?.message && `Vendors: ${vendorsCountRes.error.message}`,
+    boardCountRes.error?.message && `Board members: ${boardCountRes.error.message}`,
+    newOwnersRes.error?.message && `New owners: ${newOwnersRes.error.message}`,
+  ].filter(Boolean) as string[]
+
+  const portfolios = (portfoliosRes.data ?? []) as any[]
+  const subs = subsRes.rows
+  const invoices = invoicesRes.rows
+  const failedEmails = (failedEmailsRes.data ?? []) as any[]
+  const endpoints = (endpointsRes.data ?? []) as any[]
+  const profiles = staffRes.rows
+  const ownersCount = ownersCountRes.count
+  const vendorsCount = vendorsCountRes.count
+  const boardCount = boardCountRes.count
+  const newOwnersMonth = newOwnersRes.count
+
+  const nameById = new Map<string, string>(portfolios.map((p: any) => [p.id, p.company_name ?? 'Company']))
   const insights: Insight[] = []
 
   // ── Executive metrics ────────────────────────────────────────
-  const activeSubs = (subs ?? []).filter((s: any) => s.status === 'active')
-  const mrrCents = activeSubs.reduce(
-    (s: number, x: any) => s + (x.price_monthly_cents ?? 0) + (x.seats_used ?? 0) * (x.price_per_seat_cents ?? 0), 0)
-  const canceled90 = (subs ?? []).filter((s: any) => s.canceled_at && s.canceled_at >= new Date(now.getTime() - 90 * 86400000).toISOString()).length
-  const churnRate = (subs ?? []).length > 0 ? Math.round((canceled90 / (subs ?? []).length) * 100) : 0
-  const staffCount = (profiles ?? []).filter((p: any) => ['manager', 'company_admin'].includes(p.hoa_role)).length
-  const totalUsers = (profiles ?? []).length + (vendorsCount ?? 0)
+  const mrrCents = monthlyRecurringCents(subs)
+  const canceled90 = subs.filter((s: any) => s.canceled_at && s.canceled_at >= new Date(now.getTime() - 90 * 86400000).toISOString()).length
+  const churnRate = subs.length > 0 ? Math.round((canceled90 / subs.length) * 100) : 0
+  const staffCount = profiles.length
+  const totalUsers = (profilesCountRes.count ?? 0) + (vendorsCount ?? 0)
 
   // ── Companies gone quiet (no staff login in 14 days) ─────────
   const lastLoginByPortfolio = new Map<string, string>()
-  for (const p of profiles ?? []) {
+  for (const p of profiles) {
     if (!p.portfolio_id || !p.last_login_at) continue
     const prev = lastLoginByPortfolio.get(p.portfolio_id)
     if (!prev || p.last_login_at > prev) lastLoginByPortfolio.set(p.portfolio_id, p.last_login_at)
@@ -99,7 +140,7 @@ export default async function PlatformInsightsPage() {
   }
 
   // ── Renewals + trials this week ──────────────────────────────
-  const renewing = (subs ?? []).filter((s: any) => s.status === 'active' && s.current_period_end && s.current_period_end >= nowIso && s.current_period_end <= in7)
+  const renewing = subs.filter((s: any) => s.status === 'active' && s.current_period_end && s.current_period_end >= nowIso && s.current_period_end <= in7)
   if (renewing.length > 0) {
     insights.push({
       severity: 'info',
@@ -109,7 +150,7 @@ export default async function PlatformInsightsPage() {
       href: '/platform-operator/billing',
     })
   }
-  for (const s of (subs ?? []).filter((x: any) => x.trial_ends_at && x.trial_ends_at >= nowIso && x.trial_ends_at <= in7)) {
+  for (const s of subs.filter((x: any) => x.trial_ends_at && x.trial_ends_at >= nowIso && x.trial_ends_at <= in7)) {
     insights.push({
       severity: 'warning',
       icon: CalendarClock,
@@ -120,18 +161,25 @@ export default async function PlatformInsightsPage() {
   }
 
   // ── Door limits ──────────────────────────────────────────────
-  for (const u of (usage ?? []).filter((x: any) => (x.doors_limit ?? 0) > 0 && (x.doors_active ?? 0) > x.doors_limit)) {
+  const doorsByPortfolio = new Map<string, number>()
+  for (const a of assocRes.rows) {
+    doorsByPortfolio.set(a.portfolio_id, (doorsByPortfolio.get(a.portfolio_id) ?? 0) + Number(a.unit_count ?? 0))
+  }
+  for (const sub of subs) {
+    const limit = Number(sub.units_limit ?? 0)
+    const doors = doorsByPortfolio.get(sub.portfolio_id) ?? 0
+    if (!nameById.has(sub.portfolio_id) || limit <= 0 || doors <= limit) continue
     insights.push({
       severity: 'critical',
       icon: DoorOpen,
-      title: `${nameById.get(u.portfolio_id) ?? 'A company'} exceeded its door limit (${u.doors_active}/${u.doors_limit})`,
-      detail: 'Upsell opportunity — move them to the next tier or bill the overage.',
+      title: `${nameById.get(sub.portfolio_id) ?? 'A company'} exceeded its door limit (${doors}/${limit})`,
+      detail: 'Upsell opportunity — move them to the next tier or raise the limit.',
       href: '/platform-operator/door-usage',
     })
   }
 
   // ── Unpaid invoices past period end ──────────────────────────
-  const overdueInvoices = (invoices ?? []).filter((i: any) => i.period_end && i.period_end < todayDate)
+  const overdueInvoices = invoices.filter((i: any) => isPastDueInvoice(i, todayDate))
   if (overdueInvoices.length > 0) {
     const total = overdueInvoices.reduce((s: number, i: any) => s + (i.total_cents ?? 0), 0)
     insights.push({
@@ -144,7 +192,7 @@ export default async function PlatformInsightsPage() {
   }
 
   // ── Suspended companies ──────────────────────────────────────
-  for (const p of (portfolios ?? []).filter((x: any) => x.suspended_at)) {
+  for (const p of portfolios.filter((x: any) => x.suspended_at)) {
     insights.push({
       severity: 'info',
       icon: UserX,
@@ -155,16 +203,16 @@ export default async function PlatformInsightsPage() {
   }
 
   // ── Delivery infrastructure ──────────────────────────────────
-  if ((failedEmails ?? []).length > 0) {
+  if (failedEmails.length > 0) {
     insights.push({
       severity: 'warning',
       icon: MailWarning,
-      title: `${(failedEmails ?? []).length} email${(failedEmails ?? []).length === 1 ? '' : 's'} failed to send in the last 7 days`,
-      detail: (failedEmails ?? []).slice(0, 2).map((e: any) => `${e.to_email}: ${e.error_message ?? 'unknown error'}`).join(' · '),
+      title: `${failedEmails.length} email${failedEmails.length === 1 ? '' : 's'} failed to send in the last 7 days`,
+      detail: failedEmails.slice(0, 2).map((e: any) => `${e.to_email}: ${e.error_message ?? 'unknown error'}`).join(' · '),
       href: '/platform-operator/system',
     })
   }
-  for (const w of (endpoints ?? []).filter((x: any) => x.active && (x.failure_count ?? 0) > 0)) {
+  for (const w of endpoints.filter((x: any) => x.active && (x.failure_count ?? 0) > 0)) {
     insights.push({
       severity: 'warning',
       icon: Webhook,
@@ -222,7 +270,13 @@ export default async function PlatformInsightsPage() {
         ))}
       </div>
 
-      {insights.length === 0 ? (
+      {loadErrors.length > 0 && (
+        <Alert title="Some platform data could not be loaded — insights below may be incomplete.">
+          {loadErrors.join(' · ')}
+        </Alert>
+      )}
+
+      {insights.length === 0 && loadErrors.length === 0 ? (
         <div className={`${card} px-5 py-14 text-center`}>
           <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-500" />
           <div className="text-sm font-semibold text-gray-950">All clear</div>
@@ -254,7 +308,7 @@ export default async function PlatformInsightsPage() {
 
       <p className="text-xs leading-5 text-gray-400">
         <Users className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-        Computed live from subscriptions, billing usage, invoices, logins, and delivery queues — deterministic rules, no fabricated data.
+        Computed live from subscriptions, door counts, invoices, logins, and delivery queues — deterministic rules, no fabricated data.
       </p>
     </div>
   )

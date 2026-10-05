@@ -13,6 +13,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths';
+import { noticeTypeForLetterType } from '@/lib/documents/notice-type';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,7 +138,9 @@ export default async function DocumentsPage({
 
   if (type) {
     filteredTemplates = filteredTemplates.filter((t: any) => t.letter_type === type);
-    filteredNotices = filteredNotices.filter((n: any) => n.notice_type === type);
+    // The Type filter offers letter types; notices store the notice_type enum.
+    const noticeType = noticeTypeForLetterType(type);
+    filteredNotices = filteredNotices.filter((n: any) => n.notice_type === noticeType);
   }
 
   // Metrics

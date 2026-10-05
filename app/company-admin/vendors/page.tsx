@@ -5,8 +5,11 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { Truck, ShieldAlert, Shield, Banknote } from 'lucide-react'
 import { buildVendorPerformanceScorecard, type VendorPerformanceScorecard } from '@/lib/vendors/performance'
 import { loadPortfolioVendorPerformanceRows } from '@/lib/vendors/performance-query'
-import { vendorComplianceStatus } from '@/lib/company-admin/vendor-compliance'
+import { vendorComplianceStatus, VENDOR_EXPIRATION_FIELDS } from '@/lib/company-admin/vendor-compliance'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +19,21 @@ function ComplianceBadge({ vendor, today }: { vendor: any; today: string }) {
   if (status === 'expired') return <StatusChip tone="danger">Non-Compliant</StatusChip>
   if (status === 'expiring') return <StatusChip tone="warning">Expiring Soon</StatusChip>
   return <StatusChip tone="success">Compliant</StatusChip>
+}
+
+const ACH_STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  active: { label: 'Active', tone: 'success' },
+  verified: { label: 'Verified', tone: 'success' },
+  pending: { label: 'Pending', tone: 'warning' },
+}
+
+function isAchEnrolled(status: string | null | undefined): boolean {
+  return status === 'verified' || status === 'active'
+}
+
+function AchStatusChip({ status }: { status: string }) {
+  const s = ACH_STATUS[status] ?? { label: status, tone: 'neutral' as const }
+  return <StatusChip tone={s.tone}>{s.label}</StatusChip>
 }
 
 function firstFromJsonb(arr: any): string {
@@ -42,31 +60,36 @@ export default async function VendorsPage({
   const sp = await searchParams
   const today = todayInZone()
 
-  const allVendorsPromise = db
+  const allVendorsPromise = fetchAllRows(() => db
     .from('vendors')
-    .select('trade')
+    .select('id, trade')
     .eq('portfolio_id', portfolioId)
     .is('archived_at', null)
+    .order('id'))
 
-  // Fetch vendors
-  let query = db
-    .from('vendors')
-    .select('*')
-    .eq('portfolio_id', portfolioId)
-    .is('archived_at', null)
-    .order('name')
+  // Fetch vendors (paged: a plain select stops at 1,000 rows)
+  const vendorsRes = await fetchAllRows(() => {
+    let query = db
+      .from('vendors')
+      // Explicit columns: vendors also holds bank and taxpayer numbers this
+      // list never shows.
+      .select(`id, name, vendor_type, trade, phone_numbers, emails, ach_status, ${VENDOR_EXPIRATION_FIELDS.join(', ')}`)
+      .eq('portfolio_id', portfolioId)
+      .is('archived_at', null)
+      .order('name')
+      .order('id')
+    if (sp.trade) query = query.eq('trade', sp.trade)
+    return query
+  })
+  const vendors = vendorsRes.rows as any[]
+  const vendorIds = vendors.map((v: any) => v.id)
 
-  if (sp.trade) {
-    query = query.eq('trade', sp.trade)
-  }
-
-  const { data: vendors } = await query
-  const vendorIds = (vendors ?? []).map((v: any) => v.id)
-
-  const [performanceRows, { data: allVendors }] = await Promise.all([
+  const [performanceRows, allVendorsRes] = await Promise.all([
     loadPortfolioVendorPerformanceRows(db, portfolioId, vendorIds),
     allVendorsPromise,
   ])
+  const allVendors = allVendorsRes.rows as any[]
+  const loadErrors = collectLoadErrors({ Vendors: vendorsRes, Trades: allVendorsRes })
   const rowsByVendor = new Map<string, typeof performanceRows>()
   for (const row of performanceRows) {
     if (!row.vendor_id) continue
@@ -89,7 +112,10 @@ export default async function VendorsPage({
 
   // Stats
   const totalVendors = (vendors ?? []).length
-  const achEnrolled = (vendors ?? []).filter((v: any) => v.ach_status === 'enrolled' || v.ach_status === 'verified').length
+  // vendors.ach_status is constrained to pending | verified | active; only
+  // verified and active vendors can actually be paid by ACH.
+  const achEnrolled = (vendors ?? []).filter((v: any) => isAchEnrolled(v.ach_status)).length
+  const achPending = (vendors ?? []).filter((v: any) => v.ach_status === 'pending').length
   const complianceIssues = (vendors ?? []).filter((v: any) => calcComplianceIssues(v, today)).length
 
   return (
@@ -101,11 +127,13 @@ export default async function VendorsPage({
         </div>
       </div>
 
+      {loadErrors.length > 0 && <Alert tone="danger" title="Could not load vendors.">{loadErrors.join(' · ')}</Alert>}
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: 'Total Vendors', value: totalVendors, icon: Truck },
-          { label: 'ACH Enrolled', value: achEnrolled, icon: Banknote },
+          { label: 'ACH Enrolled', value: achEnrolled, sub: achPending > 0 ? `${achPending} pending` : undefined, icon: Banknote },
           { label: 'Compliance Issues', value: complianceIssues, icon: ShieldAlert },
           { label: 'Open Work Orders', value: openWorkOrders, icon: Shield },
         ].map((item) => {
@@ -116,6 +144,7 @@ export default async function VendorsPage({
                 <div>
                   <div className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">{item.label}</div>
                   <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-950">{item.value}</div>
+                  {item.sub && <div className="mt-1 text-xs text-gray-500">{item.sub}</div>}
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200/70">
                   <Icon className="h-4.5 w-4.5 text-gray-400" />
@@ -180,7 +209,7 @@ export default async function VendorsPage({
                     </td>
                     <td className="px-4 py-3">
                       {v.ach_status ? (
-                        <StatusChip tone="success">{v.ach_status === 'verified' ? 'Verified' : 'Enrolled'}</StatusChip>
+                        <AchStatusChip status={v.ach_status} />
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
                       )}

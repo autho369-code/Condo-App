@@ -11,7 +11,9 @@ export function SendStatementsForm({ associations }: { associations: Association
   const [periodStart, setPeriodStart] = useState<string>('');
   const [periodEnd, setPeriodEnd] = useState<string>('');
   const [batchName, setBatchName] = useState<string>('');
-  const [deliveryChannel, setDeliveryChannel] = useState<string>('email');
+  // Email is the only delivery channel that actually reaches homeowners today;
+  // print/portal rendering does not exist, so they are not offered.
+  const deliveryChannel = 'email';
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,16 +106,11 @@ export function SendStatementsForm({ associations }: { associations: Association
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Delivery Channel</label>
-          <div className="flex gap-4 mt-1">
-            {(['email', 'print', 'portal'] as const).map((ch) => (
-              <label key={ch} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name="channel" value={ch} checked={deliveryChannel === ch} onChange={() => setDeliveryChannel(ch)}
-                  className="h-4 w-4 text-blue-600" />
-                <span className="text-gray-700 capitalize">{ch}</span>
-              </label>
-            ))}
-          </div>
+          <label className="mb-1 block text-xs font-medium text-gray-600">Delivery</label>
+          <p className="mt-1 text-sm text-gray-700">Email to each homeowner on file</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Printed and portal statements are not available yet. Homeowners without an email address are listed after sending so you can follow up.
+          </p>
         </div>
 
         {/* Preview owners button */}

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { Badge, Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
+import { htmlToPlainText } from '@/lib/security/rich-text'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -16,9 +17,10 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   const ownerId = me.owner_id
   const requestKey = randomUUID()
 
-  // Get association for announcements
-  const { data: occs, error: occError } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).eq('status', 'current').order('is_primary', { ascending: false }).limit(1)
-  const assocId = occs?.[0]?.association_id
+  // Every association the owner currently holds a unit in — an owner with
+  // units in two communities must see both communities' announcements.
+  const { data: occs, error: occError } = await db.from('occupancies').select('association_id').eq('owner_id', ownerId).eq('status', 'current')
+  const assocIds = [...new Set(((occs ?? []) as { association_id: string | null }[]).map((o) => o.association_id).filter(Boolean))] as string[]
 
   // Messages sent by this owner (sender_id references auth.users). Only their
   // own inbound messages — not announcements/emails they sent as a board member.
@@ -31,8 +33,8 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
   // Announcements for owners (null audience = everyone; tenant-only ones are hidden)
   let announcements: any[] = []
   let annError: { message: string } | null = null
-  if (assocId) {
-    const res = await db.from('communications_log').select('subject, created_at').eq('association_id', assocId).eq('channel', 'announcement')
+  if (assocIds.length > 0) {
+    const res = await db.from('communications_log').select('id, subject, body, created_at').in('association_id', assocIds).eq('channel', 'announcement')
       .or('announcement_audience.is.null,announcement_audience.in.(owners,both)')
       .order('created_at', { ascending: false }).limit(20)
     annError = res.error
@@ -93,9 +95,11 @@ export default async function OwnerCommunicationsPage({ searchParams }: { search
         ) : (
           <div className="space-y-3">
             {announcements.map((a: any, i: number) => (
-              <div key={i} className="py-2 border-b border-gray-100 last:border-0">
-                <div className="text-sm text-gray-800">{a.subject}</div>
+              <div key={a.id ?? i} className="py-2 border-b border-gray-100 last:border-0">
+                <div className="text-sm font-medium text-gray-800">{a.subject}</div>
                 <div className="text-xs text-gray-500">{date(a.created_at)}</div>
+                {/* Stored as HTML; rendered as plain text, never as markup. */}
+                {htmlToPlainText(a.body) && <p className="mt-1.5 whitespace-pre-line break-words text-sm leading-6 text-gray-600">{htmlToPlainText(a.body)}</p>}
               </div>
             ))}
           </div>

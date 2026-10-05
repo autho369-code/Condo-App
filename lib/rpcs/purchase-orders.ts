@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { requireFinanceStaff, requireStaff } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { savePrivateFields } from '@/lib/private-fields';
+import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
 
 export type PurchaseOrderLineInput = {
   description: string;
@@ -104,6 +105,14 @@ export async function billPurchaseOrder(formData: FormData) {
   if (!Number.isFinite(amount) || amount <= 0) redirect(`${back}?error=${encodeURIComponent('Enter the bill amount.')}`);
   const iso = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
   const supabase = await createClient();
+  // A double click or re-sent form must not create the same bill twice.
+  const claim = await claimSubmission(supabase, formData, 'purchase_order_bill');
+  if (claim.status === 'error') redirect(`${back}?error=${encodeURIComponent(claim.message)}`);
+  if (claim.status === 'duplicate') {
+    if (claim.resultId) redirect(`/bills/${claim.resultId}`);
+    redirect(`${back}?error=${encodeURIComponent('This bill is already being saved. Refresh in a moment to see it.')}`);
+  }
+  const token = (claim as { token: string }).token;
   const { data, error } = await (supabase as any).rpc('bill_purchase_order', {
     p_po_id: id,
     p_bill_number: ((formData.get('bill_number') as string) ?? '').trim() || null,
@@ -114,7 +123,11 @@ export async function billPurchaseOrder(formData: FormData) {
     p_memo: ((formData.get('memo') as string) ?? '').trim() || null,
     p_submit_for_approval: formData.get('submit_for_approval') === 'on',
   });
-  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  if (error) {
+    await releaseSubmission(supabase, token);
+    redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  }
+  if (typeof data === 'string' && data) await completeSubmission(supabase, token, data);
   revalidatePath(back);
   revalidatePath('/purchase-orders');
   revalidatePath('/bills');

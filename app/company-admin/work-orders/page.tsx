@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { StatusChip, type Tone } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Wrench, Clock, AlertOctagon, ArrowUp, Eye } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export default async function WorkOrdersOversightPage({
     .order('created_at', { ascending: false })
 
   // Fetch all for stats (paged past the 1,000-row cap)
-  const { rows: wos } = await fetchAllRows(() => db
+  const { rows: wos, error: wosError } = await fetchAllRows(() => db
     .from('work_orders')
     .select('id, priority, status, scheduled_date, created_at')
     .eq('portfolio_id', portfolioId)
@@ -59,7 +60,7 @@ export default async function WorkOrdersOversightPage({
   const highCount = openWOs.filter((wo: any) => wo.priority?.toLowerCase() === 'high').length
 
   // Fetch associations for filter
-  const { data: associations } = await db
+  const { data: associations, error: associationsError } = await db
     .from('associations')
     .select('id, name')
     .eq('portfolio_id', portfolioId)
@@ -71,7 +72,13 @@ export default async function WorkOrdersOversightPage({
   if (sp.priority) query = query.eq('priority', sp.priority.toLowerCase())
   if (sp.status) query = query.eq('status', sp.status.toLowerCase())
 
-  const { data: workOrders } = await query
+  const { data: workOrders, error: workOrdersError } = await query
+
+  const loadErrors = collectLoadErrors({
+    'Work order stats': { error: wosError },
+    Associations: { error: associationsError },
+    'Work orders': { error: workOrdersError },
+  })
 
   const selectCls = 'mt-1 block h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-950 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15'
 
@@ -83,6 +90,8 @@ export default async function WorkOrdersOversightPage({
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Monitor all work orders across your portfolio</p>
         </div>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Could not load work orders; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtmlText, sanitizeRichTextHtml } from '@/lib/security/rich-text';
+import { escapeHtmlText, htmlToPlainText, sanitizeRichTextHtml } from '@/lib/security/rich-text';
 
 describe('rich-text output safety', () => {
   it('preserves the formatting allowlist while removing executable markup', () => {
@@ -25,5 +25,17 @@ describe('rich-text output safety', () => {
   it('escapes text embedded in a fixed print-document shell', () => {
     expect(escapeHtmlText('<img src=x onerror=alert(1)> & "quoted"'))
       .toBe('&lt;img src=x onerror=alert(1)&gt; &amp; &quot;quoted&quot;');
+  });
+});
+
+describe('htmlToPlainText', () => {
+  it('drops tags and scripts and keeps paragraph breaks', () => {
+    expect(htmlToPlainText('<p>Pool &amp; gym</p><script>alert(1)</script><p>Closed<br>Monday</p>'))
+      .toBe('Pool & gym\nClosed\nMonday');
+  });
+
+  it('decodes numeric entities and handles empty input', () => {
+    expect(htmlToPlainText('&lt;b&gt; &#39;x&#39; &#x41;')).toBe("<b> 'x' A");
+    expect(htmlToPlainText(null)).toBe('');
   });
 });

@@ -26,11 +26,13 @@ import {
   UserCheck,
 } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { computeAssociationHealth, healthTone, HEALTH_LABELS, OPEN_WORK_ORDER_STATUSES } from '@/lib/company-admin/health'
 
 export const dynamic = 'force-dynamic'
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
-const OPEN_WO_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress']
 
 function StatCard({
   label,
@@ -86,59 +88,73 @@ export default async function OverviewPage() {
 
   // ── Portfolio-wide queries (single round-trip each) ─────────────
   const [
-    { data: assocs },
-    { count: activeManagers },
-    { count: activeOwners },
-    { data: openWOs },
-    { data: openViols },
-    { count: openArchReviews },
-    { data: subscription },
-    { data: feesThisMonth },
-    { data: workload },
+    assocsRes,
+    managersRes,
+    ownersRes,
+    openWOsRes,
+    openViolsRes,
+    archRes,
+    subscriptionRes,
+    feesRes,
+    workloadRes,
   ] = await Promise.all([
     db.from('associations').select('id, slug, name, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null),
     db.from('profiles').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
     db.from('owners').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).is('archived_at', null),
-    fetchAllRows(() => db.from('work_orders').select('id, association_id, status, priority, scheduled_date').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
-    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, status, priority, scheduled_date').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', [...OPEN_WORK_ORDER_STATUSES]).order('id')),
+    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')),
     db.from('architectural_requests').select('id', { count: 'exact', head: true }).eq('portfolio_id', portfolioId).in('status', ['submitted', 'under_review', 'more_info']),
     db.from('subscriptions').select('price_monthly_cents, seats_used, price_per_seat_cents').eq('portfolio_id', portfolioId).eq('status', 'active').maybeSingle(),
     db.from('management_fees').select('fee_amount_cents, collected_cents').eq('portfolio_id', portfolioId).eq('month', monthStart),
     db.from('v_manager_workload').select('*'),
   ])
+  const assocs = assocsRes.data as any[] | null
+  const activeManagers = managersRes.count as number | null
+  const activeOwners = ownersRes.count as number | null
+  const openWOs = openWOsRes.rows as any[]
+  const openViols = openViolsRes.rows as any[]
+  const openArchReviews = archRes.count as number | null
+  const subscription = subscriptionRes.data
+  const feesThisMonth = feesRes.data as any[] | null
+  const workload = workloadRes.data as any[] | null
 
   const assocIds = new Set((assocs ?? []).map((a: any) => a.id))
   const totalAssociations = (assocs ?? []).length
   const totalDoors = (assocs ?? []).reduce((sum: number, a: any) => sum + (a.unit_count ?? 0), 0)
 
-  // ── Per-association aggregation from the single WO/violation fetches ──
-  const woByAssoc = new Map<string, { open: number; overdue: number; emergency: number }>()
+  // ── Health per association (shared formula, lib/company-admin/health) ──
+  const assocHealth = computeAssociationHealth(assocIds, openWOs, openViols, todayDate)
   let openWorkOrders = 0
   let overdueWorkOrders = 0
   let criticalEmergencies = 0
-  for (const wo of openWOs ?? []) {
-    openWorkOrders++
-    const entry = woByAssoc.get(wo.association_id) ?? { open: 0, overdue: 0, emergency: 0 }
-    entry.open++
-    if (wo.scheduled_date && wo.scheduled_date < todayDate) { entry.overdue++; overdueWorkOrders++ }
-    if (wo.priority === 'emergency') { entry.emergency++; criticalEmergencies++ }
-    woByAssoc.set(wo.association_id, entry)
-  }
-
-  const violByAssoc = new Map<string, number>()
   let openViolations = 0
-  for (const v of openViols ?? []) {
-    if (!assocIds.has(v.association_id)) continue
-    openViolations++
-    violByAssoc.set(v.association_id, (violByAssoc.get(v.association_id) ?? 0) + 1)
+  const distribution = { healthy: 0, warning: 0, critical: 0 }
+  for (const h of assocHealth.values()) {
+    openWorkOrders += h.open
+    overdueWorkOrders += h.overdue
+    criticalEmergencies += h.emergency
+    openViolations += h.violations
+    distribution[h.status]++
   }
+  const totalWithHealth = distribution.healthy + distribution.warning + distribution.critical
+  const avgHealthScore = totalWithHealth > 0
+    ? Math.round([...assocHealth.values()].reduce((s, h) => s + h.score, 0) / totalWithHealth)
+    : 0
 
   // ── Collections balance (A/R across the portfolio) ─────────────
-  const { rows: balances } = assocIds.size > 0
+  const balancesRes = assocIds.size > 0
     ? await fetchAllRows(() => db.from('unit_balances').select('unit_id, association_id, balance').in('association_id', [...assocIds]).order('unit_id'))
-    : { rows: [] as any[] }
+    : { rows: [] as any[], truncated: false, error: null }
+  const balances = balancesRes.rows
   const collectionsBalance = (balances ?? []).reduce(
     (sum: number, b: any) => sum + Math.max(0, Number(b.balance ?? 0)), 0)
+  // Delinquent accounts = units with an open charge past due (the
+  // delinquent_units view), not every unit carrying a balance: current or
+  // future charges are owed but not delinquent.
+  const delinquentRes = assocIds.size > 0
+    ? await fetchAllRows(() => db.from('delinquent_units').select('unit_id').in('association_id', [...assocIds]).order('unit_id'))
+    : { rows: [] as any[], truncated: false, error: null }
+  const delinquentUnits = new Set((delinquentRes.rows ?? []).map((r: any) => r.unit_id)).size
   const unitsWithBalance = (balances ?? []).filter((b: any) => Number(b.balance ?? 0) > 0).length
 
   // ── Monthly revenue: management fees first, subscription as context ──
@@ -148,30 +164,19 @@ export default async function OverviewPage() {
     ? (subscription.price_monthly_cents ?? 0) + (subscription.seats_used ?? 0) * (subscription.price_per_seat_cents ?? 0)
     : 0
 
-  // ── AI health score per association (0-100, from live operations data) ──
-  type Health = { open: number; overdue: number; emergency: number; violations: number; score: number; status: 'healthy' | 'warning' | 'critical' }
-  const assocHealth = new Map<string, Health>()
-  const distribution = { healthy: 0, warning: 0, critical: 0 }
-  for (const a of assocs ?? []) {
-    const wo = woByAssoc.get(a.id) ?? { open: 0, overdue: 0, emergency: 0 }
-    const viols = violByAssoc.get(a.id) ?? 0
-    const score = Math.max(5, Math.min(100,
-      100 - wo.overdue * 12 - wo.open * 4 - viols * 6 - wo.emergency * 15))
-    const status: Health['status'] = score >= 80 ? 'healthy' : score >= 50 ? 'warning' : 'critical'
-    distribution[status]++
-    assocHealth.set(a.id, { ...wo, violations: viols, score, status })
-  }
-  const totalWithHealth = distribution.healthy + distribution.warning + distribution.critical
-  const avgHealthScore = totalWithHealth > 0
-    ? Math.round([...assocHealth.values()].reduce((s, h) => s + h.score, 0) / totalWithHealth)
-    : 0
-
-  // ── Delinquent accounts ────────────────────────────
-  const { count: delinquentCount } = await db
-    .from('occupancies')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'current')
-    .lt('dues_paid_through', monthStart)
+  const loadErrors = collectLoadErrors({
+    Associations: assocsRes,
+    Managers: managersRes,
+    Owners: ownersRes,
+    'Work orders': openWOsRes,
+    Violations: openViolsRes,
+    'Architectural reviews': archRes,
+    Subscription: subscriptionRes,
+    'Management fees': feesRes,
+    'Manager workload': workloadRes,
+    Balances: balancesRes,
+    'Delinquent units': delinquentRes,
+  })
 
   return (
     <div className="space-y-6">
@@ -182,6 +187,10 @@ export default async function OverviewPage() {
           Command center for {me.portfolio?.company_name ?? me.portfolio?.name ?? 'your portfolio'}
         </p>
       </div>
+
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some dashboard data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>
+      )}
 
       {/* ── Top Cards Grid ────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
@@ -200,7 +209,7 @@ export default async function OverviewPage() {
           sub={feeBilledCents > 0 ? `${usd(feeBilledCents / 100)} billed in mgmt fees` : platformCostCents > 0 ? `Platform cost ${usd(platformCostCents / 100)}/mo` : 'No management fees recorded this month'}
           icon={DollarSign}
         />
-        <StatCard label="Delinquent Accounts" value={delinquentCount ?? 0} icon={TrendingUp} />
+        <StatCard label="Delinquent Accounts" value={delinquentRes.error ? '—' : delinquentUnits} sub="Units with a charge past due" icon={TrendingUp} tone={delinquentUnits > 0 ? 'warning' : undefined} />
         <StatCard label="Avg Health Score" value={`${avgHealthScore}%`} icon={Heart} />
       </div>
 
@@ -343,8 +352,9 @@ export default async function OverviewPage() {
               ) : (
                 (assocs ?? []).map((assoc: any) => {
                   const h = assocHealth.get(assoc.id)
-                  const tone = h?.status === 'critical' ? 'danger' : h?.status === 'warning' ? 'warning' : 'success'
-                  const label = h?.status === 'critical' ? 'Critical' : h?.status === 'warning' ? 'Warning' : 'Healthy'
+                  const status = h?.status ?? 'healthy'
+                  const tone = healthTone(status)
+                  const label = HEALTH_LABELS[status]
                   return (
                     <tr key={assoc.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
                       <td className="px-5 py-3">

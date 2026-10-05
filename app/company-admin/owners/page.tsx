@@ -5,6 +5,8 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { UserCheck, Key, UserX, Eye } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +22,7 @@ export default async function OwnersPage({
   const sp = await searchParams
 
   // Fetch associations (filter list + occupancy scope)
-  const { data: associations } = await db
+  const { data: associations, error: associationsError } = await db
     .from('associations')
     .select('id, name')
     .eq('portfolio_id', portfolioId)
@@ -29,7 +31,7 @@ export default async function OwnersPage({
   const assocIds = ((associations ?? []) as { id: string }[]).map((a) => a.id)
 
   // Fetch owners (paged past the 1,000-row cap)
-  const { rows: owners } = await fetchAllRows(() => db
+  const { rows: owners, error: ownersError } = await fetchAllRows(() => db
     .from('owners')
     .select('id, full_name, email, phone, portal_activated, portal_login_last_at')
     .eq('portfolio_id', portfolioId)
@@ -39,7 +41,7 @@ export default async function OwnersPage({
 
   // Current occupancies in this company's associations. Scoped by association
   // (a handful of ids) rather than by every owner id, which overflowed the URL.
-  const { rows: occupancies } = await fetchAllRows(() => {
+  const { rows: occupancies, error: occupanciesError } = await fetchAllRows(() => {
     let q = db
       .from('occupancies')
       .select(`id, owner_id, unit_id, association_id, units!occupancies_unit_id_fkey(unit_number, building_id), associations!occupancies_association_id_fkey(id, name)`)
@@ -48,6 +50,12 @@ export default async function OwnersPage({
       .order('id')
     if (sp.association) q = q.eq('association_id', sp.association)
     return q
+  })
+
+  const loadErrors = collectLoadErrors({
+    Associations: { error: associationsError },
+    Owners: { error: ownersError },
+    Occupancies: { error: occupanciesError },
   })
 
   // Build owner → units & associations map
@@ -83,6 +91,8 @@ export default async function OwnersPage({
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Manage all property owners in your portfolio</p>
         </div>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some owner data could not be loaded; the list below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

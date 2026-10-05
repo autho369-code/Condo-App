@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { Badge, SectionTitle } from '@/components/ui/shell'
+import { Alert, Badge, SectionTitle } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
@@ -13,7 +13,7 @@ export default async function BoardMeetingsPage() {
   const db = supabase as any
   const ids = me.board_association_ids ?? []
 
-  const { data: meetings } = await db
+  const { data: meetings, error: meetingsError } = await db
     .from('meetings')
     .select('id, title, meeting_type, start_time, location, status, created_at, association_id, associations(name)')
     .in('association_id', ids)
@@ -50,6 +50,8 @@ export default async function BoardMeetingsPage() {
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Meetings</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">Board and association meetings</p>
       </div>
+
+      {meetingsError && <Alert tone="danger" title="Meetings could not be loaded">{meetingsError.message}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[

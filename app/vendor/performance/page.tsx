@@ -13,12 +13,14 @@ export default async function VendorPerformancePage() {
   const supabase = await createClient();
   const db = supabase as any;
 
-  const { data: vendor } = await db
+  const { data: vendor, error: vendorError } = await db
     .from('vendors')
     .select('id, portfolio_id, workers_comp_expiration, general_liability_expiration, auto_insurance_expiration, epa_certification_expiration, state_license_expiration, contract_expiration')
     .eq('id', me.vendor_id)
     .maybeSingle();
-  if (!vendor?.portfolio_id) throw new Error('Vendor workspace is missing its management-company scope.');
+  if (vendorError) throw new Error(`Could not load your vendor record: ${vendorError.message}`);
+  if (!vendor) throw new Error('Your vendor record was not found.');
+  if (!vendor.portfolio_id) throw new Error('Vendor workspace is missing its management-company scope.');
 
   const rows = await loadPortfolioVendorPerformanceRows(db, vendor.portfolio_id, [vendor.id]);
   // Scores and comments only — my_vendor_ratings never returns who rated.

@@ -5,7 +5,7 @@ import { Alert, Badge } from '@/components/ui/shell';
 import { PendingSubmit } from '@/components/ui/pending-submit';
 import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { BILLABLE_SUBSCRIPTION_STATUSES, monthWindowInZone, monthlyRecurringCents } from '@/lib/platform/operator-metrics';
+import { BILLABLE_SUBSCRIPTION_STATUSES, monthWindowInZone, monthlyRecurringCents, pastDueInvoicesFilter } from '@/lib/platform/operator-metrics';
 import { displayTimeZone } from '@/lib/time/display-zone';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -58,12 +58,12 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   // the same definition as the dashboard and Revenue — trials are not revenue.
   const activeSubsRes = await fetchAllRows(() => db
     .from('subscriptions')
-    .select('id, status, price_monthly_cents')
+    .select('id, status, price_monthly_cents, seats_used, price_per_seat_cents')
     .in('status', [...BILLABLE_SUBSCRIPTION_STATUSES])
     .order('id'));
   const activeSubs = activeSubsRes.rows;
 
-  const { count: openInvoices } = await db
+  const { count: openInvoices, error: openInvoicesError } = await db
     .from('invoices')
     .select('id', { count: 'exact', head: true })
     .not('status', 'in', '("paid","void")');
@@ -78,15 +78,16 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
   // invoices.status has no 'failed' value (draft/open/paid/void/overdue), so
   // this always read 0. A failed card charge leaves the subscription past_due.
-  const { count: failedPayments } = await db
+  const { count: failedPayments, error: failedPaymentsError } = await db
     .from('subscriptions')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'past_due');
 
-  const { count: pastDue } = await db
+  // Past due = still open after the billing period ended (shared definition;
+  // nothing ever sets status 'overdue').
+  const { count: pastDue, error: pastDueError } = await pastDueInvoicesFilter(db
     .from('invoices')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'overdue');
+    .select('id', { count: 'exact', head: true }));
 
   // Invoices with company name
   const { data: invoices, error: invoicesError } = await db
@@ -103,14 +104,15 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     .limit(50);
 
   // Companies for the "generate invoice" picker
-  const { data: companies } = await db
+  const { data: companies, error: companiesError } = await db
     .from('portfolios')
     .select('id, company_name')
     .is('archived_at', null)
     .order('company_name');
 
   const mrr = monthlyRecurringCents(activeSubs) / 100;
-  const loadError = activeSubsRes.error ?? paidThisMonthRes.error ?? invoicesError?.message ?? subscriptionsError?.message ?? null;
+  const loadError = activeSubsRes.error ?? paidThisMonthRes.error ?? invoicesError?.message ?? subscriptionsError?.message
+    ?? openInvoicesError?.message ?? failedPaymentsError?.message ?? pastDueError?.message ?? companiesError?.message ?? null;
   const paidAmount = (paidThisMonth ?? []).reduce((sum: number, i: any) => sum + (i.total_cents ?? 0), 0) / 100;
 
   return (
@@ -198,7 +200,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td className="px-4 py-3 text-xs tabular-nums text-gray-500">{date(inv.paid_at)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-1">
-                        {inv.status !== 'void' && (
+                        {inv.status === 'open' && (
                           <form action={sendInvoice as any}>
                             <input type="hidden" name="invoice_id" value={inv.id} />
                             <input type="hidden" name="portfolio_id" value={inv.portfolio_id} />

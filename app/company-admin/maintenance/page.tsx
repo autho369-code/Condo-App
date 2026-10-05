@@ -5,29 +5,40 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { CalendarClock, Wrench, AlertTriangle } from 'lucide-react'
 import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
 export default async function CompanyMaintenanceCalendarPage() {
-  await requirePortfolioAdmin()
+  const me = await requirePortfolioAdmin()
+  const portfolioId = me.portfolio?.id
   const supabase = await createClient()
   const db = supabase as any
   // Calendar dates are the company's zone (server code runs in UTC).
   const today = todayInZone()
   const in90 = addDaysToDate(today, 90)
 
-  const [{ data: upcoming }, { data: inspections }] = await Promise.all([
+  const [upcomingRes, inspectionsRes] = await Promise.all([
     // v_upcoming_maintenance is portfolio-scoped by can_access_portfolio inside the view.
     db.from('v_upcoming_maintenance').select('*').lte('next_due_date', in90),
     db.from('inspections')
       .select('id, inspection_type, scheduled_date, status, associations(name)')
+      .eq('portfolio_id', portfolioId)
       .is('archived_at', null)
       .is('completed_date', null)
+      // Cancelled inspections are not "due"; inspection_status is
+      // scheduled | in_progress | completed | cancelled.
+      .in('status', ['scheduled', 'in_progress'])
       .lte('scheduled_date', in90)
       .order('scheduled_date'),
   ])
+
+  const upcoming = upcomingRes.data as any[] | null
+  const inspections = inspectionsRes.data as any[] | null
+  const loadErrors = collectLoadErrors({ 'Preventive maintenance': upcomingRes, Inspections: inspectionsRes })
 
   const overdue = (upcoming ?? []).filter((t: any) => t.next_due_date && t.next_due_date < today)
   const dueSoon = (upcoming ?? []).filter((t: any) => !t.next_due_date || t.next_due_date >= today)
@@ -40,6 +51,8 @@ export default async function CompanyMaintenanceCalendarPage() {
           Company-wide preventive maintenance and inspections due in the next 90 days
         </p>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some maintenance data could not be loaded.">{loadErrors.join(' · ')}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[

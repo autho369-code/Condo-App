@@ -6,10 +6,12 @@ import { DataWorkspace } from '@/components/operations/data-workspace';
 import { MetricStrip } from '@/components/operations/metric-strip';
 import { StatusChip } from '@/components/operations/status-chip';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/shell';
+import { Alert, EmptyState } from '@/components/ui/shell';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { toggleOptIn } from '@/lib/rpcs/sms';
 import { canonicalPhone } from '@/lib/sms/twilio';
+import { phoneNumberList } from '@/lib/sms/phone-entries';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,22 +38,28 @@ export default async function SmsOptInsPage({
     .order('entity_type')
     .order('phone_number');
 
-  // Get owners with phone numbers
-  const { data: owners } = await db
-    .from('owners')
-    .select('id, full_name, phone, phone_numbers')
-    .is('archived_at', null)
-    .eq('portfolio_id', me.portfolio?.id)
-    .order('full_name')
-    .limit(500);
-
-  // Get vendors with phone numbers
-  const { data: vendors } = await db
-    .from('vendors')
-    .select('id, name, phone_numbers')
-    .eq('portfolio_id', me.portfolio?.id)
-    .order('name')
-    .limit(500);
+  // Every owner and (unarchived) vendor with phone numbers, paged past
+  // PostgREST's 1,000-row cap instead of silently stopping at 500.
+  const [ownerRes, vendorRes] = await Promise.all([
+    fetchAllRows<any>(() => db
+      .from('owners')
+      .select('id, full_name, phone, phone_numbers')
+      .is('archived_at', null)
+      .eq('portfolio_id', me.portfolio?.id)
+      .order('full_name')
+      .order('id')),
+    fetchAllRows<any>(() => db
+      .from('vendors')
+      .select('id, name, phone_numbers')
+      .is('archived_at', null)
+      .eq('portfolio_id', me.portfolio?.id)
+      .order('name')
+      .order('id')),
+  ]);
+  const owners = ownerRes.rows;
+  const vendors = vendorRes.rows;
+  const recipientLoadError = ownerRes.error ?? vendorRes.error;
+  const recipientsTruncated = ownerRes.truncated || vendorRes.truncated;
 
   const optInRows = (optIns ?? []).filter((record: any) => ['owner', 'vendor'].includes(record.entity_type));
   const optedOutCount = optInRows.filter((o: any) => !o.opted_in).length;
@@ -72,14 +80,8 @@ export default async function SmsOptInsPage({
     if (entity.phone && typeof entity.phone === 'string' && entity.phone.trim()) {
       phones.push(entity.phone.trim());
     }
-    // Check phone_numbers array
-    if (entity.phone_numbers && Array.isArray(entity.phone_numbers)) {
-      entity.phone_numbers.forEach((p: any) => {
-        if (p.number && typeof p.number === 'string' && p.number.trim()) {
-          phones.push(p.number.trim());
-        }
-      });
-    }
+    // phone_numbers holds { number } objects or plain strings.
+    phones.push(...phoneNumberList(entity.phone_numbers));
 
     phones.forEach((phone, idx) => {
       const optRec = optInByPhone[canonicalPhone(phone)];
@@ -121,6 +123,9 @@ export default async function SmsOptInsPage({
             <span className="font-semibold">Could not update opt-in:</span> {sp.error}
           </div>
         )}
+
+        {recipientLoadError && <Alert tone="danger" title="Could not load recipients.">{recipientLoadError}</Alert>}
+        {recipientsTruncated && <Alert tone="warning" title="Recipient list truncated.">Not every owner or vendor could be loaded.</Alert>}
 
         <MetricStrip
           metrics={[

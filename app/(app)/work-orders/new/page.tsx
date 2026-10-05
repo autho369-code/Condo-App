@@ -14,11 +14,14 @@ export const dynamic = 'force-dynamic';
 
 const CATEGORIES = ['plumbing', 'electrical', 'hvac', 'general_repair', 'common_area', 'appliance', 'pest_control', 'landscaping', 'other'];
 const PRIORITIES = ['low', 'normal', 'high', 'emergency'];
+// work_orders.trade is the vendor_trade enum (verified in the database).
+const TRADES = ['hvac', 'plumbing', 'electrical', 'landscaping', 'roofing', 'general_contractor', 'handyperson', 'snow_removal', 'pest_control', 'pool_spa', 'painting', 'keys_locks', 'fireplace_chimney', 'garage_doors', 'gutter_cleaning', 'inspections', 'parking_driveways', 'preventative_maintenance', 'repairs_exterior', 'repairs_interior', 'septic', 'trash_recycling', 'utilities', 'turnover', 'alarm_security', 'appliances', 'capital_improvements', 'carpet_flooring', 'cleaning_janitorial', 'decks_balconies', 'doors_windows', 'drywall', 'elevator', 'fences_gates', 'fire_water_damage', 'fire_life_safety', 'redevelopment', 'smoke_co_detectors', 'other'];
 const inputCls = 'h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
 
-export default async function NewWorkOrderPage({ searchParams }: { searchParams: Promise<{ error?: string; unit?: string; association?: string }> }) {
+export default async function NewWorkOrderPage({ searchParams }: { searchParams: Promise<{ error?: string; unit?: string; association?: string; trade?: string }> }) {
   await requireStaff();
   const sp = await searchParams;
+  const presetTrade = sp.trade && TRADES.includes(sp.trade) ? sp.trade : '';
   const supabase = await createClient();
   const db = supabase as any;
 
@@ -43,6 +46,9 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
     const { data: association } = await (supabase as any).from('associations').select('id, portfolio_id').eq('id', associationId).maybeSingle();
     if (!association?.portfolio_id) redirect('/work-orders/new?error=' + encodeURIComponent('That association was not found or is outside your access.'));
     const portfolioId: string = association.portfolio_id;
+    const tradeRaw = (formData.get('trade') as string) || '';
+    if (tradeRaw && !TRADES.includes(tradeRaw)) redirect(`/work-orders/new?association=${associationId}&error=` + encodeURIComponent('Choose a valid trade.'));
+    const trade = tradeRaw || null;
     const unitId = (formData.get('unit_id') as string) || null;
     if (unitId) {
       // The unit picker lists every unit; make sure it is in the chosen association.
@@ -78,6 +84,7 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
       description: (formData.get('description') as string)?.trim() || null,
       category: (formData.get('category') as string) || 'other',
       priority: (formData.get('priority') as string) || 'normal',
+      trade,
       status: vendorId ? 'assigned' : 'new',
       vendor_id: vendorId,
       scheduled_date: (formData.get('scheduled_date') as string) || null,
@@ -134,13 +141,23 @@ export default async function NewWorkOrderPage({ searchParams }: { searchParams:
           <textarea id="description" name="description" rows={4} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" placeholder="Describe the issue, location, and any access notes…" />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="trade">Trade (optional)</Label>
+            <select id="trade" name="trade" defaultValue={presetTrade} className={`${inputCls} capitalize`}>
+              <option value="">Not set</option>
+              {TRADES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+            </select>
+          </div>
           <div>
             <Label htmlFor="category">Category</Label>
             <select id="category" name="category" defaultValue="general_repair" className={`${inputCls} capitalize`}>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
             </select>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="priority">Priority</Label>
             <select id="priority" name="priority" defaultValue="normal" className={`${inputCls} capitalize`}>

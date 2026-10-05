@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { date } from '@/lib/utils'
+import { Alert } from '@/components/ui/shell'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Shield, FileText } from 'lucide-react'
@@ -24,17 +25,16 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
   const db = supabase as any
 
   // HO6 policies on file for this owner
-  let policies: any[] = []
-  try {
-    const { data } = await db
-      .from('insurance_policies')
-      .select('id, insurance_company, policy_number, coverage_amount, effective_date, expiration_date, certificate_file_url, remind_owner, remind_manager, status, created_at')
-      .eq('owner_id', me.owner_id)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5)
-    policies = data ?? []
-  } catch {}
+  // Supabase reports failures in `error` (it does not throw), so check it: a
+  // failed read must not look like "no insurance on file".
+  const { data: policyRows, error: policiesError } = await db
+    .from('insurance_policies')
+    .select('id, insurance_company, policy_number, coverage_amount, effective_date, expiration_date, certificate_file_url, remind_owner, remind_manager, status, created_at')
+    .eq('owner_id', me.owner_id)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5)
+  const policies: any[] = policyRows ?? []
 
   const current = policies[0] ?? null
   const hasInsurance = policies.length > 0
@@ -96,8 +96,11 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
         <p className="mt-1.5 text-sm leading-6 text-gray-500">HO6 insurance certificate management</p>
       </div>
 
-      {banner.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{banner.error}</div>
+      {banner.error && <Alert tone="danger" title="Could not save:">{banner.error}</Alert>}
+      {policiesError && (
+        <Alert tone="danger" title="Could not load your insurance policies:">
+          {policiesError.message}. Your policy may already be on file — please refresh before adding it again.
+        </Alert>
       )}
       {banner.saved === '1' && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Insurance policy saved to your association records.</div>
@@ -113,7 +116,7 @@ export default async function OwnerInsurancePage({ searchParams }: { searchParam
             <Shield className={`h-6 w-6 ${hasInsurance ? (expired ? 'text-red-600' : expiringSoon ? 'text-amber-600' : 'text-emerald-600') : 'text-gray-400'}`} />
           </div>
           <div>
-            <div className="font-semibold text-gray-900">{hasInsurance ? (expired ? 'Insurance Expired' : expiringSoon ? 'Expiring Soon' : 'Insurance Current') : 'No Insurance on File'}</div>
+            <div className="font-semibold text-gray-900">{hasInsurance ? (expired ? 'Insurance Expired' : expiringSoon ? 'Expiring Soon' : 'Insurance Current') : policiesError ? 'Insurance Status Unavailable' : 'No Insurance on File'}</div>
             {current && (
               <div className="text-sm text-gray-500">
                 Policy period: {current.effective_date ? date(current.effective_date) : '—'} — {current.expiration_date ? date(current.expiration_date) : '—'}

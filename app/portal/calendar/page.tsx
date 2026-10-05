@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
 import { getAssociationCalendarFeed } from '@/lib/calendar/association-feed'
 import { AssociationCalendar } from '@/components/calendar/association-calendar'
+import { Alert } from '@/components/ui/shell'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function OwnerCalendarPage() {
   }
 
   // Same shared feed the board portal renders — identical calendar for everyone.
-  const { items, timeZone } = await getAssociationCalendarFeed(assocIds)
+  const { items, timeZone, errors } = await getAssociationCalendarFeed(assocIds)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -30,6 +31,7 @@ export default async function OwnerCalendarPage() {
           Meetings, community events, vendor visits, and scheduled maintenance — next 90 days
         </p>
       </div>
+      {errors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
       <AssociationCalendar items={items} timeZone={timeZone} />
     </div>
   )

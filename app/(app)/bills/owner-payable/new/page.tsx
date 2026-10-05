@@ -3,6 +3,8 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { Input, Label, Select, Textarea } from '@/components/ui/input';
 import { Alert, Breadcrumb, PageHeader, PageShell, SectionTitle, Surface } from '@/components/ui/shell';
 import { Button } from '@/components/ui/button';
+import { PendingSubmit } from '@/components/ui/pending-submit';
+import { newSubmissionToken, SUBMISSION_FIELD } from '@/lib/forms/submission';
 import { createOwnerPayable } from '@/lib/rpcs/owner-payables';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
@@ -63,6 +65,7 @@ export default async function NewOwnerPayablePage({
       <Surface>
         <SectionTitle title="Homeowner payable details" />
         <form action={createOwnerPayable} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <input type="hidden" name={SUBMISSION_FIELD} value={newSubmissionToken()} />
 
               {/* OWNER */}
               <div className="sm:col-span-2">
@@ -148,7 +151,7 @@ export default async function NewOwnerPayablePage({
               </div>
 
               <div className="flex gap-2 sm:col-span-2">
-                <Button type="submit">Save homeowner payable</Button>
+                <PendingSubmit pendingLabel="Saving…">Save homeowner payable</PendingSubmit>
                 <Link href="/bills/owner-payable"><Button variant="secondary" type="button">Cancel</Button></Link>
               </div>
             </form>

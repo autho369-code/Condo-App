@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { notifyOwnerOfStatusChange } from '@/lib/notifications/status-change';
 import type { Database } from '@/lib/types/database';
 import { claimSubmission, completeSubmission, releaseSubmission } from '@/lib/forms/submission';
-import { ownPortalUnitIds } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds } from '@/lib/portal/own-units';
 
 type ServiceRequestPriority = Database['public']['Enums']['service_request_priority'];
 
@@ -39,8 +39,9 @@ export async function submitServiceRequest(formData: FormData) {
 
   // The unit must be one of the caller's own current units (RLS alone admits
   // board members to every unit in the association).
-  const myUnitIds = await ownPortalUnitIds(supabase, me.owner_id);
-  if (!myUnitIds.includes(unitId)) { failTo('Unit not found or you no longer have access to it'); return; }
+  const own = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  if (own.error) { failTo(own.error); return; }
+  if (!own.ids.includes(unitId)) { failTo('Unit not found or you no longer have access to it'); return; }
 
   // Resolve association + portfolio from the unit — never trust the client for these
   const { data: unit, error: unitErr } = await (supabase as any)

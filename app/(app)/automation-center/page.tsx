@@ -44,26 +44,31 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
   const db = supabase as any;
   const now = new Date().toISOString();
 
-  const [{ data: reminders }, { data: tasks }, { count: activeFlows }] = await Promise.all([
-    db
-      .from('calendar_event_reminders')
-      .select('id, remind_at, recipient_group, action, status, calendar_events(title, event_type), associations(name)')
-      .order('remind_at', { ascending: true })
-      .limit(150),
-    db
-      .from('automation_tasks')
-      .select('id, task_type, title, description, due_at, status, associations(name), calendar_events(title)')
-      .order('due_at', { ascending: true })
-      .limit(150),
-    db
-      .from('automation_flows')
-      .select('id', { count: 'exact', head: true })
-      .eq('enabled', true),
+  const reminderCols = 'id, remind_at, recipient_group, action, status, calendar_events(title, event_type), associations(name)';
+  const taskCols = 'id, task_type, title, description, due_at, status, associations(name), calendar_events(title)';
+  const headCount = (table: string) => db.from(table).select('id', { count: 'exact', head: true });
+  const results = await Promise.all([
+    // Pending reminders first (soonest / overdue at the top), then recent history.
+    db.from('calendar_event_reminders').select(reminderCols).eq('status', 'scheduled')
+      .order('remind_at', { ascending: true }).order('id').limit(100),
+    db.from('calendar_event_reminders').select(reminderCols).neq('status', 'scheduled')
+      .order('remind_at', { ascending: false }).order('id').limit(50),
+    db.from('automation_tasks').select(taskCols).eq('status', 'open')
+      .order('due_at', { ascending: true, nullsFirst: false }).order('id').limit(100),
+    db.from('automation_tasks').select(taskCols).neq('status', 'open')
+      .order('due_at', { ascending: false, nullsFirst: false }).order('id').limit(50),
+    headCount('calendar_event_reminders').eq('status', 'scheduled'),
+    headCount('calendar_event_reminders').eq('status', 'scheduled').lte('remind_at', now),
+    headCount('automation_tasks').eq('status', 'open'),
+    headCount('automation_tasks').eq('status', 'completed'),
+    headCount('automation_flows').eq('enabled', true),
   ]);
+  const [pendingReminders, pastReminders, openTasks, closedTasks, scheduledCount, dueCount, openCount, completedCount, flowCount] = results;
+  const loadErrors = results.map((r: any) => r.error?.message).filter(Boolean) as string[];
 
-  const reminderRows = reminders ?? [];
-  const taskRows = tasks ?? [];
-  const dueSoon = reminderRows.filter((row: any) => row.status === 'scheduled' && row.remind_at <= now).length;
+  const reminderRows = [...(pendingReminders.data ?? []), ...(pastReminders.data ?? [])];
+  const taskRows = [...(openTasks.data ?? []), ...(closedTasks.data ?? [])];
+  const metric = (r: any) => (r.error ? '—' : (r.count ?? 0));
 
   return (
     <DataWorkspace
@@ -83,13 +88,16 @@ export default async function AutomationCenterPage({ searchParams }: { searchPar
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Could not update the task">{sp.error}</Alert>}
         {sp.completed && <Alert tone="success" title="Task marked done" />}
+        {loadErrors.length > 0 && (
+          <Alert tone="danger" title="Some automation data could not be loaded.">{[...new Set(loadErrors)].join(' · ')}</Alert>
+        )}
         <MetricStrip
           metrics={[
-            { label: 'Scheduled reminders', value: reminderRows.length },
-            { label: 'Due now', value: dueSoon },
-            { label: 'Open follow-ups', value: taskRows.filter((task: any) => task.status === 'open').length },
-            { label: 'Completed tasks', value: taskRows.filter((task: any) => task.status === 'completed').length },
-            { label: 'Active flows', value: activeFlows ?? 0 },
+            { label: 'Scheduled reminders', value: metric(scheduledCount) },
+            { label: 'Due now', value: metric(dueCount) },
+            { label: 'Open follow-ups', value: metric(openCount) },
+            { label: 'Completed tasks', value: metric(completedCount) },
+            { label: 'Active flows', value: metric(flowCount) },
           ]}
         />
 

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { canonicalPhone, smsDeliveryConfigured } from '@/lib/sms/twilio';
 import { claimSubmission, releaseSubmission } from '@/lib/forms/submission';
+import { phoneNumberList } from '@/lib/sms/phone-entries';
 
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
@@ -54,11 +55,29 @@ export async function sendSms(formData: FormData) {
     ? await db.from('owners').select('full_name, phone, phone_numbers').eq('id', recipientId).maybeSingle()
     : await db.from('vendors').select('name, phone_numbers').eq('id', recipientId).maybeSingle();
   if (!entity) { failTo('Select an accessible owner or vendor.'); return; }
-  const entityPhones = [entity.phone, ...(Array.isArray(entity.phone_numbers) ? entity.phone_numbers.map((entry: any) => entry?.number) : [])]
+  const entityPhones = [entity.phone, ...phoneNumberList(entity.phone_numbers)]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     .map(canonicalPhone);
   if (!entityPhones.includes(phoneNumber)) { failTo('The SMS number must match the selected recipient record.'); return; }
   const entityName = recipientType === 'owner' ? entity.full_name : entity.name;
+
+  // The conversation belongs to the owner's association (managers scoped to
+  // associations only see conversations for theirs). Vendors are company-wide.
+  let associationId: string | null = null;
+  if (recipientType === 'owner') {
+    const { data: occ, error: occError } = await db
+      .from('occupancies')
+      .select('association_id')
+      .eq('owner_id', recipientId)
+      .eq('occupancy_type', 'owner')
+      .eq('status', 'current')
+      .not('association_id', 'is', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (occError) { failTo(`Could not look up the owner's association: ${occError.message}`); return; }
+    associationId = occ?.association_id ?? null;
+  }
 
   // A double click or re-sent form must not text the recipient twice.
   const claim = await claimSubmission(db, formData, 'sms_send');
@@ -71,22 +90,36 @@ export async function sendSms(formData: FormData) {
   };
 
   // Find or create conversation
-  const { data: existingConv } = await db
+  const { data: existingConv, error: existingConvError } = await db
     .from('sms_conversations')
-    .select('id')
+    .select('id, association_id')
     .eq('portfolio_id', me.portfolio?.id)
     .eq('with_entity_type', recipientType)
     .eq('with_entity_id', recipientId)
+    // One thread per owner per association: an owner in two associations has
+    // a thread for each, so managers scoped to either see their own.
+    .or(associationId ? `association_id.eq.${associationId},association_id.is.null` : 'association_id.is.null')
+    .order('association_id', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle();
+
+  if (existingConvError) { await failAndRelease(existingConvError.message); return; }
 
   let conversationId: string;
   if (existingConv) {
     conversationId = existingConv.id;
+    if (!existingConv.association_id && associationId) {
+      const { error: backfillError } = await db.from('sms_conversations')
+        .update({ association_id: associationId }).eq('id', conversationId);
+      if (backfillError) { await failAndRelease(backfillError.message); return; }
+    }
   } else {
     const { data: newConv, error: convErr } = await db
       .from('sms_conversations')
       .insert({
         portfolio_id: me.portfolio?.id,
+        association_id: associationId,
         with_entity_type: recipientType,
         with_entity_id: recipientId,
         with_name: entityName,
@@ -229,7 +262,7 @@ export async function toggleOptIn(formData: FormData) {
   const { data: entity } = entityType === 'owner'
     ? await db.from('owners').select('phone, phone_numbers').eq('id', entityId).maybeSingle()
     : await db.from('vendors').select('phone_numbers').eq('id', entityId).maybeSingle();
-  const entityPhones = [entity?.phone, ...(Array.isArray(entity?.phone_numbers) ? entity.phone_numbers.map((entry: any) => entry?.number) : [])]
+  const entityPhones = [entity?.phone, ...phoneNumberList(entity?.phone_numbers)]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
     .map(canonicalPhone);
   if (!entity || !entityPhones.includes(phoneNumber)) { failTo('The phone number must belong to the selected recipient.'); return; }

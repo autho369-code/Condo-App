@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { requirePortfolioAdmin } from '@/lib/auth/me'
-import { Badge } from '@/components/ui/shell'
+import { Alert, Badge } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { ClipboardCheck, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,12 +21,16 @@ export default async function ArchitecturalReviewsOversightPage() {
   const db = supabase as any
   const portfolioId = me.portfolio?.id
 
-  const { data: rows } = await db
+  const { data: rows, error: rowsError } = await db
     .from('architectural_requests')
     .select('id, title, category, status, created_at, decided_at, association_id, unit_id, owner_id, associations(name), units(unit_number), owners(full_name)')
     .eq('portfolio_id', portfolioId)
     .order('created_at', { ascending: false })
     .limit(500)
+
+  const loadErrors = collectLoadErrors({
+    'Architectural requests': { error: rowsError },
+  })
 
   const requests = (rows ?? []) as any[]
 
@@ -41,6 +46,8 @@ export default async function ArchitecturalReviewsOversightPage() {
           <p className="mt-1.5 text-sm leading-6 text-gray-500">Track architectural modification requests across your portfolio</p>
         </div>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Could not load architectural reviews.">{loadErrors.join(' · ')}</Alert>}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

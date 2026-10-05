@@ -130,6 +130,17 @@ async function resetStaffPassword(formData: FormData) {
   redirect('/settings?reset_success=' + encodeURIComponent(profileEmail));
 }
 
+// Team actions only act on staff profiles. The RPCs enforce this in Postgres
+// too (migration 20261005110000); this check fails fast with a clear message.
+async function assertStaffTarget(supabase: any, profileId: string) {
+  if (!profileId) redirect('/settings?error=' + encodeURIComponent('Missing team member.'));
+  const { data: target, error } = await supabase.from('profiles').select('hoa_role').eq('id', profileId).maybeSingle();
+  if (error) redirect('/settings?error=' + encodeURIComponent(error.message));
+  if (!target || !['manager', 'company_admin'].includes(target.hoa_role)) {
+    redirect('/settings?error=' + encodeURIComponent('Only staff members (managers and company admins) can be changed or removed here.'));
+  }
+}
+
 async function removeStaffMember(formData: FormData) {
   'use server';
   const { requirePortfolioAdmin: guard } = await import('@/lib/auth/me');
@@ -137,6 +148,7 @@ async function removeStaffMember(formData: FormData) {
   // RLS scopes the caller's client; the SECURITY DEFINER RPC re-validates the
   // caller's authority over the target profile in Postgres.
   const supabase = await (await import('@/lib/supabase/server')).createClient();
+  await assertStaffTarget(supabase, formData.get('profile_id') as string);
   const { error } = await (supabase as any).rpc('remove_staff_member', {
     p_profile_id: formData.get('profile_id') as string,
     p_reason: 'Removed by admin',
@@ -152,6 +164,7 @@ async function changeStaffRole(formData: FormData) {
   const supabase = await (await import('@/lib/supabase/server')).createClient();
   const role = formData.get('role') as string;
   if (role) {
+    await assertStaffTarget(supabase, formData.get('profile_id') as string);
     // assign_role takes a role id; the form submits the role name. Prefer the
     // portfolio's own role of that name over the system default — never
     // another company's role of the same name (assign_role would reject it).
@@ -186,7 +199,7 @@ export default async function SettingsPage({
     (supabase as any).from('portfolios').select('*').eq('id', portfolioId).single(),
     // profiles.id is the auth user id; there is no separate auth_user_id
     // column on this table.
-    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).order('full_name'),
+    (supabase as any).from('profiles').select('id, email, full_name, role_id, hoa_role, last_login_at').eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']).order('full_name'),
     (supabase as any).from('v_pending_invitations').select('*').eq('portfolio_id', portfolioId),
   ]);
 

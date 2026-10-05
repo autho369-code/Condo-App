@@ -723,11 +723,14 @@ export async function endOccupancy(occupancyId: string, ownerId: string) {
   const failTo = (msg: string) => {
     redirect(`/owners/${ownerId}?error=${encodeURIComponent(msg)}`);
   };
-  const { error } = await (supabase as any).from('occupancies').update({
+  // Scoped to this owner's still-current occupancy; zero rows means nothing
+  // was ended (wrong owner, already ended, or outside the caller's access).
+  const { data: ended, error } = await (supabase as any).from('occupancies').update({
     status:        'past',
     move_out_date: todayInZone(),
-  }).eq('id', occupancyId);
+  }).eq('id', occupancyId).eq('owner_id', ownerId).neq('status', 'past').select('id');
   if (error) { failTo(error.message); return; }
+  if (!ended || ended.length === 0) { failTo('That occupancy was not found, has already ended, or you do not have access to it.'); return; }
   revalidatePath(`/owners/${ownerId}`);
 }
 
@@ -819,16 +822,18 @@ export async function verifyVendorAch(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('vendors')
     .update({
       ach_status: 'verified',
       ach_verified_at: new Date().toISOString(),
       ach_verified_by: me.auth_user_id,
     })
-    .eq('id', vendorId);
+    .eq('id', vendorId)
+    .select('id');
 
   if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
+  if (!updated || updated.length === 0) { redirect(`/vendors/ach?error=${encodeURIComponent('Vendor not found or you do not have access to it.')}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }
@@ -839,7 +844,7 @@ export async function activateVendorAch(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('vendors')
     .update({
       ach_status: 'active',
@@ -848,9 +853,11 @@ export async function activateVendorAch(formData: FormData): Promise<void> {
       is_auto_pay: true,
       auto_pay_setup_at: new Date().toISOString(),
     })
-    .eq('id', vendorId);
+    .eq('id', vendorId)
+    .select('id');
 
   if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
+  if (!updated || updated.length === 0) { redirect(`/vendors/ach?error=${encodeURIComponent('Vendor not found or you do not have access to it.')}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }
@@ -861,7 +868,7 @@ export async function revokeVendorAch(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const vendorId = req(formData, 'vendor_id');
 
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('vendors')
     .update({
       ach_status: 'pending',
@@ -872,9 +879,11 @@ export async function revokeVendorAch(formData: FormData): Promise<void> {
       is_auto_pay: false,
       auto_pay_setup_at: null,
     })
-    .eq('id', vendorId);
+    .eq('id', vendorId)
+    .select('id');
 
   if (error) { redirect(`/vendors/ach?error=${encodeURIComponent(error.message)}`); }
+  if (!updated || updated.length === 0) { redirect(`/vendors/ach?error=${encodeURIComponent('Vendor not found or you do not have access to it.')}`); }
   revalidatePath('/vendors/ach');
   revalidatePath('/vendors');
 }

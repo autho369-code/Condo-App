@@ -17,6 +17,8 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,12 +70,12 @@ export default async function FinancialOversightPage() {
     monthTotals,
     agingBuckets,
     apTotals,
-    { data: bills },
-    { count: pendingApprovalCount },
-    { count: approvedUnpaidCount },
-    { rows: lateFees },
-    { data: bankAccounts },
-    { data: assocs },
+    { data: bills, error: billsError },
+    { count: pendingApprovalCount, error: pendingApprovalCountError },
+    { count: approvedUnpaidCount, error: approvedUnpaidCountError },
+    { rows: lateFees, error: lateFeesError },
+    { data: bankAccounts, error: bankAccountsError },
+    { data: assocs, error: assocsError },
   ] = await Promise.all([
     // Summed in the database (lists of journal lines stop at 1,000 rows).
     incomeExpenseTotals(db, { portfolioId, from: yearStart }),
@@ -117,10 +119,20 @@ export default async function FinancialOversightPage() {
   const budgetReports = await Promise.all(
     (assocs ?? []).map(async (a: any) => {
       const fy = fiscalYearFor(today, a.fiscal_year_start)
-      const { data } = await db.rpc('get_budget_vs_actuals', { p_association_id: a.id, p_fiscal_year: fy })
-      return { assoc: a, rows: (data ?? []) as any[], elapsed: fiscalMonthsElapsed(fy, a.fiscal_year_start, today) }
+      const { data, error } = await db.rpc('get_budget_vs_actuals', { p_association_id: a.id, p_fiscal_year: fy })
+      return { assoc: a, rows: (data ?? []) as any[], error: error ? `${a.name}: ${error.message}` : null, elapsed: fiscalMonthsElapsed(fy, a.fiscal_year_start, today) }
     }),
   )
+  const budgetError = budgetReports.map((r) => r.error).filter(Boolean).join('; ') || null
+  const loadErrors = collectLoadErrors({
+    'Open bills': { error: billsError },
+    'Bills awaiting approval': { error: pendingApprovalCountError },
+    'Approved bills': { error: approvedUnpaidCountError },
+    'Late fees': { error: lateFeesError },
+    'Bank accounts': { error: bankAccountsError },
+    Associations: { error: assocsError },
+    Budgets: { error: budgetError },
+  })
   const ytd = (rows: any[], category: string, key: 'monthly_budget' | 'monthly_actuals', elapsed: number) =>
     rows.filter((r) => r.category === category).reduce(
       (s, r) => s + (r[key] ?? []).slice(0, elapsed).reduce((a: number, b: number) => a + Number(b ?? 0), 0), 0)
@@ -141,6 +153,8 @@ export default async function FinancialOversightPage() {
           Company-wide financials across every association — from the posted ledger
         </p>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some financial data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* ── KPI grid ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">

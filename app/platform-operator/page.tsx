@@ -4,7 +4,7 @@ import { requirePlatformOperator } from '@/lib/auth/me';
 import { Alert } from '@/components/ui/shell';
 import { money } from '@/lib/utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { BILLABLE_SUBSCRIPTION_STATUSES, monthlyRecurringCents } from '@/lib/platform/operator-metrics';
+import { BILLABLE_SUBSCRIPTION_STATUSES, monthlyRecurringCents, pastDueInvoicesFilter } from '@/lib/platform/operator-metrics';
 import {
   Building2,
   DoorOpen,
@@ -59,8 +59,8 @@ export default async function PlatformOperatorOverview({ searchParams }: { searc
     db.from('portfolios').select('id', { count: 'exact', head: true }),
     db.from('profiles').select('id', { count: 'exact', head: true }),
     db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
-    fetchAllRows(() => db.from('subscriptions').select('id, status, price_monthly_cents').in('status', [...BILLABLE_SUBSCRIPTION_STATUSES]).order('id')),
-    db.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'overdue'),
+    fetchAllRows(() => db.from('subscriptions').select('id, status, price_monthly_cents, seats_used, price_per_seat_cents').in('status', [...BILLABLE_SUBSCRIPTION_STATUSES]).order('id')),
+    pastDueInvoicesFilter(db.from('invoices').select('id', { count: 'exact', head: true })),
   ]);
 
   const mrr = monthlyRecurringCents(activeSubsRes.rows) / 100;

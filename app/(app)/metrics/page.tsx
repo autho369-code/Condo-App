@@ -205,13 +205,41 @@ export default async function MetricsPage({
         count(db.from('owners').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('portal_activated', true)).catch(noteFailure),
       ]);
 
-  // Delinquency by days past due (report data runs with elevated privileges;
-  // the portfolio comes from the session, the association from a visible row).
-  const { data: delinqRows, error: delinqError } = portfolioId
-    ? await serviceDb.rpc('report_data_delinquency', { p_portfolio_id: portfolioId, p_params: association ? { association_id: association } : {} })
-    : { data: [] };
-  if (delinqError) noteFailure(delinqError.message);
-  const delinq = (Array.isArray(delinqRows) ? delinqRows : []) as any[];
+  // Delinquency by days past due. report_data_delinquency runs with elevated
+  // privileges company-wide, so it is only ever asked about associations this
+  // staffer can see (RLS list above): one call per visible association for a
+  // manager scoped to some of them, one company call when they see them all.
+  const runDelinquency = async (associationId: string | null) => {
+    const { data, error } = await serviceDb.rpc('report_data_delinquency', {
+      p_portfolio_id: portfolioId,
+      p_params: associationId ? { association_id: associationId } : {},
+    });
+    if (error) throw new Error(error.message);
+    return (Array.isArray(data) ? data : []) as any[];
+  };
+  let delinq: any[] = [];
+  let delinqError = !!assocError;
+  if (portfolioId && !assocError) {
+    try {
+      if (association) {
+        delinq = await runDelinquency(association);
+      } else {
+        const { count: companyAssociations, error: companyCountError } = await serviceDb
+          .from('associations').select('id', { count: 'exact', head: true })
+          .eq('portfolio_id', portfolioId).is('archived_at', null);
+        if (companyCountError) throw new Error(companyCountError.message);
+        const seesAll = companyAssociations != null && associations.length >= companyAssociations;
+        delinq = seesAll
+          ? await runDelinquency(null)
+          : (await Promise.all(associations.map((a) => runDelinquency(a.id)))).flat()
+            .sort((l, r) => Number(r.balance ?? 0) - Number(l.balance ?? 0));
+      }
+    } catch (e) {
+      noteFailure(e);
+      delinqError = true;
+      delinq = [];
+    }
+  }
   const days = (r: any) => Number(r.days_past_due ?? 0);
 
   const fmtMoney = (v: number | null | undefined) => (v == null ? '—' : money(v));

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requirePlatformOperator } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
+import { Alert } from '@/components/ui/shell'
 import { date } from '@/lib/utils'
 import { ShieldCheck, UserX, KeyRound, Eye } from 'lucide-react'
 
@@ -9,11 +10,13 @@ export const dynamic = 'force-dynamic'
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
 
+// Action strings exactly as the code writes them to audit_logs.
 const SENSITIVE_ACTIONS = [
   'password_set', 'password_reset_sent', 'password_reset_forced',
-  'user_disabled', 'user_enabled', 'user_deleted', 'role_changed',
+  'user_disabled', 'user_enabled', 'user_deleted', 'user_role_changed',
+  'mfa_reset_completed', 'login_disabled', 'account_unlocked',
   'company_suspended', 'company_reactivated', 'company_archived',
-  'invitation_regenerated', 'plan_changed',
+  'ownership_transferred', 'invitation_regenerated', 'plan_changed',
 ]
 
 export default async function SecurityCenterPage() {
@@ -23,12 +26,14 @@ export default async function SecurityCenterPage() {
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString()
 
   const [
-    { data: sensitiveEvents },
-    { data: impersonations },
-    { data: portfolios },
-    { count: disabledUsers },
-    { data: apiKeys },
-    { data: loginAttempts },
+    { data: sensitiveEvents, error: sensitiveError },
+    { data: impersonations, error: impersonationsError },
+    { data: portfolios, error: portfoliosError },
+    { count: disabledUsers, error: disabledError },
+    { data: apiKeys, error: apiKeysError },
+    { data: loginAttempts, error: loginAttemptsError },
+    { count: failedSignInCount, error: failedSignInError },
+    { count: sensitiveCount, error: sensitiveCountError },
   ] = await Promise.all([
     db.from('audit_logs').select('id, action, actor_email, entity_type, entity_id, ip_address, created_at').in('action', SENSITIVE_ACTIONS).gte('created_at', d30).order('created_at', { ascending: false }).limit(50),
     db.from('platform_impersonation_log').select('id, operator_email, impersonated_email, reason, started_at, ended_at, ip_address').order('started_at', { ascending: false }).limit(25),
@@ -36,16 +41,22 @@ export default async function SecurityCenterPage() {
     db.from('profiles').select('id', { count: 'exact', head: true }).not('disabled_at', 'is', null),
     db.from('api_keys').select('id, name, prefix, scopes, last_used_at, expires_at, revoked_at, portfolios(company_name)').order('created_at', { ascending: false }).limit(50),
     db.from('login_attempts').select('id, email, ip_address, success, failure_reason, at').gte('at', d30).order('at', { ascending: false }).limit(50),
+    // The 30-day figure is a real count, not the failures among the newest 50.
+    db.from('login_attempts').select('id', { count: 'exact', head: true }).eq('success', false).gte('at', d30),
+    db.from('audit_logs').select('id', { count: 'exact', head: true }).in('action', SENSITIVE_ACTIONS).gte('created_at', d30),
   ])
+  const loadError = sensitiveError?.message ?? impersonationsError?.message ?? portfoliosError?.message
+    ?? disabledError?.message ?? apiKeysError?.message ?? loginAttemptsError?.message ?? failedSignInError?.message ?? sensitiveCountError?.message ?? null
 
   const today = new Date().toISOString()
   const mfaStaff = (portfolios ?? []).filter((p: any) => p.require_mfa_for_staff).length
   const mfaAdmins = (portfolios ?? []).filter((p: any) => p.require_mfa_for_admins).length
   const activeKeys = (apiKeys ?? []).filter((k: any) => !k.revoked_at && (!k.expires_at || k.expires_at > today))
-  const failedSignIns = (loginAttempts ?? []).filter((attempt: any) => !attempt.success)
+  const failedSignIns = failedSignInCount ?? 0
 
   return (
     <div className="space-y-6">
+      {loadError && <Alert title="Some security data could not be loaded">{loadError}</Alert>}
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Security Center</h1>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
@@ -55,10 +66,10 @@ export default async function SecurityCenterPage() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[
-          { label: 'Sensitive Events (30d)', value: (sensitiveEvents ?? []).length, icon: ShieldCheck, warn: false },
+          { label: 'Sensitive Events (30d)', value: sensitiveCount ?? 0, icon: ShieldCheck, warn: false },
           { label: 'Disabled Users', value: disabledUsers ?? 0, icon: UserX, warn: false },
           { label: 'MFA Policy (staff/admins)', value: `${mfaStaff} / ${mfaAdmins} of ${(portfolios ?? []).length}`, icon: ShieldCheck, warn: false },
-          { label: 'Failed Sign-ins (30d)', value: failedSignIns.length, icon: UserX, warn: failedSignIns.length > 0 },
+          { label: 'Failed Sign-ins (30d)', value: failedSignIns, icon: UserX, warn: failedSignIns > 0 },
           { label: 'Active API Keys', value: activeKeys.length, icon: KeyRound, warn: false },
         ].map((item: any) => {
           const Icon = item.icon

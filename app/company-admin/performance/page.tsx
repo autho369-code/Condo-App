@@ -6,6 +6,9 @@ import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Trophy, Timer, Wrench, AlertTriangle, ClipboardCheck, ArrowRight } from 'lucide-react'
 import { todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
+import { effectiveManagerScope } from '@/lib/company-admin/manager-scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,29 +44,52 @@ export default async function ManagerPerformancePage() {
   const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString()
 
   const [
-    { data: managers },
-    { data: assocManagers },
-    { data: assocs },
-    { data: openWOs },
-    { data: doneWOs },
-    { data: viols },
-    { data: inspections },
+    managersRes,
+    assocManagersRes,
+    assocsRes,
+    openWOsRes,
+    doneWOsRes,
+    violsRes,
+    inspectionsRes,
   ] = await Promise.all([
     db.from('profiles').select('id, full_name, email, hoa_role').eq('portfolio_id', portfolioId).in('hoa_role', ['manager', 'company_admin']),
-    db.from('association_managers').select('user_id, association_id').is('ended_at', null),
-    db.from('associations').select('id, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null),
-    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('association_managers').select('id, user_id, association_id').is('ended_at', null).order('id')),
+    fetchAllRows(() => db.from('associations').select('id, unit_count').eq('portfolio_id', portfolioId).is('archived_at', null).order('id')),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')),
     // "Closed in the last 90 days" is by completion date, not creation date.
-    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, created_at, completed_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', DONE_WO_STATUSES).gte('completed_date', ninetyDaysAgo.slice(0, 10)).order('id')).then((r) => ({ data: r.rows })),
-    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')).then((r) => ({ data: r.rows })),
-    db.from('inspections').select('association_id, status, completed_date').eq('portfolio_id', portfolioId).is('archived_at', null),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, assignee_id, created_at, completed_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', DONE_WO_STATUSES).gte('completed_date', ninetyDaysAgo.slice(0, 10)).order('id')),
+    fetchAllRows(() => db.from('violations').select('id, association_id').is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]).order('id')),
+    fetchAllRows(() => db.from('inspections').select('id, association_id, status, completed_date').eq('portfolio_id', portfolioId).is('archived_at', null).order('id')),
   ])
+  const managers = managersRes.data as any[] | null
+  const assocs = assocsRes.rows as any[]
+  const openWOs = openWOsRes.rows as any[]
+  const doneWOs = doneWOsRes.rows as any[]
+  const viols = violsRes.rows as any[]
+  const inspections = inspectionsRes.rows as any[]
+  const loadErrors = collectLoadErrors({
+    Managers: managersRes,
+    'Manager assignments': assocManagersRes,
+    Associations: assocsRes,
+    'Open work orders': openWOsRes,
+    'Completed work orders': doneWOsRes,
+    Violations: violsRes,
+    Inspections: inspectionsRes,
+  })
 
-  const unitCountByAssoc = new Map<string, number>((assocs ?? []).map((a: any) => [a.id, a.unit_count ?? 0]))
+  const unitCountByAssoc = new Map<string, number>(assocs.map((a: any) => [a.id, a.unit_count ?? 0]))
+  const assignedByManager = new Map<string, string[]>()
+  for (const am of assocManagersRes.rows as any[]) {
+    if (!assignedByManager.has(am.user_id)) assignedByManager.set(am.user_id, [])
+    assignedByManager.get(am.user_id)!.push(am.association_id)
+  }
+  // A manager with no association_managers rows has access to every
+  // association in the portfolio (same rule as the Managers pages).
+  const portfolioAssocIds = assocs.map((a: any) => a.id as string)
   const assocsByManager = new Map<string, Set<string>>()
-  for (const am of assocManagers ?? []) {
-    if (!assocsByManager.has(am.user_id)) assocsByManager.set(am.user_id, new Set())
-    assocsByManager.get(am.user_id)!.add(am.association_id)
+  for (const mgr of managers ?? []) {
+    const scope = effectiveManagerScope(assignedByManager.get(mgr.id) ?? [], portfolioAssocIds)
+    assocsByManager.set(mgr.id, new Set(scope.associationIds))
   }
 
   const resolutionDays = (createdAt: string, completedDate: string) => {
@@ -162,6 +188,8 @@ export default async function ManagerPerformancePage() {
           Response times, throughput, and workload — computed live from work orders, violations, and inspections
         </p>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some performance data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* ── Manager cards ─────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
 import { Badge, Alert } from '@/components/ui/shell';
 import { StatusChip } from '@/components/operations/status-chip';
@@ -16,7 +16,8 @@ export default async function LedgerPage() {
 
   // Filter to the owner's own units explicitly: RLS also admits board members
   // to the whole association, which leaked every owner's ledger here.
-  const myUnits = unitFilter(await ownPortalUnitIds(supabase, me.owner_id));
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const myUnits = unitFilter(ownUnits.ids);
   const { data: charges, error: chargesError } = await (supabase as any)
     .from('v_charge_balances')
     .select('*')
@@ -75,7 +76,7 @@ export default async function LedgerPage() {
     amount: Number(p.amount ?? 0),
     status: p.reversed_at ? `Returned${p.reversal_reason ? ` (${p.reversal_reason})` : ''}` : '',
   }));
-  const loadError = chargesError ?? paymentsError ?? summariesError;
+  const loadError = (ownUnits.error ? { message: ownUnits.error } : null) ?? chargesError ?? paymentsError ?? summariesError;
   const totalBalance = Math.round((exportCharges.reduce((s, c) => s + c.balance, 0) - unappliedCredit) * 100) / 100;
 
   // Active payment plans for the owner's units (RLS: their own units; one per unit).

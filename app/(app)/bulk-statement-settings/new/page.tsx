@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { requirePortfolioAdmin } from '@/lib/auth/me';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/shell';
 import { updateBulkStatementSettings } from '@/lib/rpcs/entities';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,10 @@ export default async function BulkStatementSettingsPage({
         statement settings for all your properties and associations at once. You can also select
         a mixture of individual properties or associations by checking them.
       </div>
+
+      <Alert tone="warning" title="Not applied to statements yet." className="mb-4">
+        These preferences are saved on each association for future statement layouts, but none of them change statements yet. Owner statements are currently sent by email only, in one fixed format: past-due balance, current charges due, total due, any credit on account, and a link to the owner portal ledger.
+      </Alert>
 
       {sp.error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">

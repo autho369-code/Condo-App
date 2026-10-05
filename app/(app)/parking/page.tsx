@@ -30,7 +30,7 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const db = supabase as any;
 
-  const [{ data: spaces }, { data: assignments }, { data: associations }, { data: units }, { data: tenants }] = await Promise.all([
+  const [{ data: spaces, error: spacesError }, { data: assignments, error: assignmentsError }, { data: associations }, { data: units }, { data: tenants }] = await Promise.all([
     db.from('parking_spaces')
       .select('id, label, space_type, monthly_fee, deposit_amount, notes, association_id, associations(name)')
       .eq('portfolio_id', me.portfolio?.id).is('archived_at', null).eq('active', true).order('label'),
@@ -69,6 +69,9 @@ export default async function ParkingPage({ searchParams }: { searchParams: Prom
     >
       <div className="space-y-6">
         {sp.error && <Alert tone="danger" title="Action failed">{sp.error}</Alert>}
+        {(spacesError || assignmentsError) && (
+          <Alert tone="danger" title="Could not load parking">{(spacesError ?? assignmentsError).message}</Alert>
+        )}
         {sp.warning && <Alert tone="warning" title="Heads up">{sp.warning}</Alert>}
         {banner && <Alert tone="success" title={BANNERS[banner]} />}
 

@@ -25,9 +25,14 @@ const str = (f: FormData, k: string) => {
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
 
-const req = (f: FormData, k: string) => {
+// Required field: a missing value redirects back through the action's
+// failTo (never throws to the error page from a plain <form action>).
+const req = (f: FormData, k: string, label: string, failTo: (msg: string) => void): string => {
   const v = str(f, k);
-  if (!v) throw new Error(`${k} is required`);
+  if (!v) {
+    failTo(`Enter ${label}.`);
+    throw new Error(`${k} is required`); // unreachable: failTo redirects
+  }
   return v;
 };
 
@@ -62,7 +67,7 @@ export async function createCalendarEvent(formData: FormData) {
   }
 
   const eventType = (str(formData, 'event_type') ?? 'custom_event') as CalendarEventType;
-  const title = req(formData, 'title');
+  const title = req(formData, 'title', 'a title', failTo);
   const location = str(formData, 'location');
   const assocId = str(formData, 'association_id');
   // RLS on calendar_events only checks portfolio_id: an event pointed at
@@ -83,7 +88,7 @@ export async function createCalendarEvent(formData: FormData) {
   // datetime-local values carry no zone; the server runs in UTC, so "9:00"
   // was stored as 9:00 UTC (4–5 AM in the US). Read them in the community's zone.
   const timeZone = await associationTimeZone(db, assocId);
-  const start = wallDateTimeToIso(req(formData, 'start_datetime'), timeZone);
+  const start = wallDateTimeToIso(req(formData, 'start_datetime', 'a start date and time', failTo), timeZone);
   if (!start) { failTo('Enter a valid start date and time.'); return; }
   const endRaw = str(formData, 'end_datetime');
   const end = endRaw ? wallDateTimeToIso(endRaw, timeZone) : null;
@@ -145,6 +150,12 @@ export async function createCalendarEvent(formData: FormData) {
     return;
   }
 
+  // The event exists from here on: a failed follow-up write sends the user to
+  // the event (not back to the new-event form, which would invite a duplicate).
+  const failAfterCreate = (what: string, message: string) => {
+    redirect(`/calendar/${event.id}?error=${encodeURIComponent(`The event was created, but ${what} could not be saved: ${message}`)}`);
+  };
+
   const startDate = new Date(start);
   const reminderRows = reminderMinutes.flatMap((minutes) => {
     const groups = recipientGroups.length ? recipientGroups : ['management_office'];
@@ -162,11 +173,12 @@ export async function createCalendarEvent(formData: FormData) {
   });
 
   if (reminderRows.length) {
-    await db.from('calendar_event_reminders').insert(reminderRows);
+    const { error: reminderError } = await db.from('calendar_event_reminders').insert(reminderRows);
+    if (reminderError) { failAfterCreate('its reminders', reminderError.message); return; }
   }
 
   if (reminderActions.includes('create_email_draft') || reminderActions.includes('notify_affected_residents')) {
-    await db.from('communication_messages').insert({
+    const { error: draftError } = await db.from('communication_messages').insert({
       portfolio_id: me.portfolio?.id,
       association_id: assocId,
       calendar_event_id: event.id,
@@ -177,10 +189,11 @@ export async function createCalendarEvent(formData: FormData) {
       body: publicNotice,
       created_by: me.auth_user_id,
     });
+    if (draftError) { failAfterCreate('the resident notice draft', draftError.message); return; }
   }
 
   if (str(formData, 'vendor_id') || reminderActions.includes('notify_vendor')) {
-    await db.from('communication_messages').insert({
+    const { error: vendorDraftError } = await db.from('communication_messages').insert({
       portfolio_id: me.portfolio?.id,
       association_id: assocId,
       calendar_event_id: event.id,
@@ -191,10 +204,11 @@ export async function createCalendarEvent(formData: FormData) {
       body: defaultVendorConfirmation(eventType, title, start, location, timeZone),
       created_by: me.auth_user_id,
     });
+    if (vendorDraftError) { failAfterCreate('the vendor confirmation draft', vendorDraftError.message); return; }
   }
 
   if (reminderActions.includes('create_follow_up_task')) {
-    await db.from('automation_tasks').insert({
+    const { error: taskError } = await db.from('automation_tasks').insert({
       portfolio_id: me.portfolio?.id,
       association_id: assocId,
       calendar_event_id: event.id,
@@ -205,6 +219,7 @@ export async function createCalendarEvent(formData: FormData) {
       status: 'open',
       created_by: me.auth_user_id,
     });
+    if (taskError) { failAfterCreate('its follow-up task', taskError.message); return; }
   }
 
   revalidatePath('/calendar');

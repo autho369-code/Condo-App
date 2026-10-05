@@ -31,7 +31,8 @@ export async function loadMaintenanceAttachments(opts: { serviceRequestId?: stri
   } else {
     query = query.eq('service_request_id', serviceRequestId);
   }
-  const { data: rows } = await query;
+  const { data: rows, error } = await query;
+  if (error) throw new Error(`Attachments could not be loaded: ${error.message}`);
   return sign(rows ?? []);
 }
 
@@ -48,12 +49,13 @@ export async function loadRequestAttachmentsByRequest(serviceRequestIds: string[
   for (let i = 0; i < serviceRequestIds.length; i += 50) {
     const chunk = serviceRequestIds.slice(i, i + 50);
     for (let from = 0; ; from += PAGE) {
-      const { data } = await db.from('maintenance_attachments')
+      const { data, error } = await db.from('maintenance_attachments')
         .select('id, service_request_id, file_name, file_path, content_type, size_bytes, uploader_role, uploaded_by, created_at')
         .in('service_request_id', chunk)
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })
         .range(from, from + PAGE - 1);
+      if (error) throw new Error(`Attachments could not be loaded: ${error.message}`);
       rows.push(...(data ?? []));
       if (!data || data.length < PAGE) break;
     }
@@ -68,8 +70,9 @@ export async function loadRequestAttachmentsByRequest(serviceRequestIds: string[
 async function sign(rows: any[]): Promise<MaintenanceAttachmentView[]> {
   if (!rows.length) return [];
   const svc = createServiceClient() as any;
-  const { data: signed } = await svc.storage.from('association-documents')
+  const { data: signed, error } = await svc.storage.from('association-documents')
     .createSignedUrls(rows.map((r: any) => r.file_path), 3600);
+  if (error) throw new Error(`Attachment links could not be created: ${error.message}`);
   const urlByPath = new Map<string, string>((signed ?? []).filter((s: any) => s.signedUrl).map((s: any) => [s.path, s.signedUrl]));
   return rows.map(({ file_path, ...rest }: any) => ({ ...rest, url: urlByPath.get(file_path) ?? null }));
 }

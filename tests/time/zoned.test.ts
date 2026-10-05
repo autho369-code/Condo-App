@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { wallDateTimeToIso, zonedWallTimeToUtc } from '@/lib/time/zoned';
 
 describe('zonedWallTimeToUtc', () => {
+  it('rejects wall times inside the spring-forward gap', () => {
+    expect(zonedWallTimeToUtc('2026-03-08', '02:30', 'America/Chicago')).toBeNull();
+    expect(zonedWallTimeToUtc('2026-03-08', '01:30', 'America/Chicago')?.toISOString()).toBe('2026-03-08T07:30:00.000Z');
+    expect(zonedWallTimeToUtc('2026-03-08', '03:30', 'America/Chicago')?.toISOString()).toBe('2026-03-08T08:30:00.000Z');
+  });
+
+  it('accepts the repeated fall-back hour', () => {
+    expect(zonedWallTimeToUtc('2026-11-01', '01:30', 'America/Chicago')).not.toBeNull();
+  });
+
   it('reads wall time in the association time zone (CDT)', () => {
     expect(zonedWallTimeToUtc('2026-10-01', '18:00', 'America/Chicago')?.toISOString()).toBe('2026-10-01T23:00:00.000Z');
   });

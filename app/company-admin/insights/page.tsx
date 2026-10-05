@@ -16,6 +16,8 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { addDaysToDate, todayInZone } from '@/lib/time/zoned'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,25 +45,35 @@ export default async function AICommandCenterPage() {
   const d60 = new Date(now - 60 * 86400000).toISOString()
 
   const [
-    { data: assocs },
-    { data: openWOs },
-    { data: viols },
-    { data: vendors },
+    { data: assocs, error: assocsError },
+    { data: openWOs, error: openWOsError },
+    { data: viols, error: violsError },
+    { data: vendors, error: vendorsError },
     agingBuckets,
-    { data: recentBills },
-    { data: policies },
-    { data: workload },
+    { data: recentBills, error: billsError },
+    { data: policies, error: policiesError },
+    { data: workload, error: workloadError },
   ] = await Promise.all([
     db.from('associations').select('id, name, slug').eq('portfolio_id', portfolioId).is('archived_at', null),
-    fetchAllRows(() => db.from('work_orders').select('id, association_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('work_orders').select('id, association_id, scheduled_date, priority').eq('portfolio_id', portfolioId).is('archived_at', null).in('status', OPEN_WO_STATUSES).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     // Only the last 60 days feed the trend; paged past 1,000 rows.
-    fetchAllRows(() => db.from('violations').select('id, association_id, created_at, status, archived_at').gte('created_at', d60).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('violations').select('id, association_id, created_at, status, archived_at').gte('created_at', d60).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     db.from('vendors').select('id, name, contract_expiration, general_liability_expiration, state_license_expiration').eq('portfolio_id', portfolioId).is('archived_at', null),
     receivableAgingBuckets(db),
-    fetchAllRows(() => db.from('payable_bills').select('id, amount, created_at').eq('portfolio_id', portfolioId).is('archived_at', null).gte('created_at', d60).order('id')).then((r) => ({ data: r.rows })),
+    fetchAllRows(() => db.from('payable_bills').select('id, amount, created_at').eq('portfolio_id', portfolioId).is('archived_at', null).gte('created_at', d60).order('id')).then((r) => ({ data: r.rows, error: r.error })),
     db.from('insurance_policies').select('id, expiration_date, owners(full_name)').is('archived_at', null).in('status', ['active', 'expiring_soon']).lte('expiration_date', in60).gte('expiration_date', today),
     db.from('v_manager_workload').select('*'),
   ])
+
+  const loadErrors = collectLoadErrors({
+    Associations: { error: assocsError },
+    'Work orders': { error: openWOsError },
+    Violations: { error: violsError },
+    Vendors: { error: vendorsError },
+    Bills: { error: billsError },
+    'Insurance policies': { error: policiesError },
+    'Manager workload': { error: workloadError },
+  })
 
   const assocIds = new Set((assocs ?? []).map((a: any) => a.id))
   const nameById = new Map<string, string>((assocs ?? []).map((a: any) => [a.id, a.name]))
@@ -215,7 +227,11 @@ export default async function AICommandCenterPage() {
         </div>
       </div>
 
-      {insights.length === 0 ? (
+      {loadErrors.length > 0 && (
+        <Alert tone="danger" title="Some portfolio data could not be loaded; insights below are incomplete.">{loadErrors.join(' · ')}</Alert>
+      )}
+
+      {insights.length === 0 && loadErrors.length === 0 ? (
         <div className={`${card} px-5 py-14 text-center`}>
           <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-500" />
           <div className="text-sm font-semibold text-gray-950">All clear</div>

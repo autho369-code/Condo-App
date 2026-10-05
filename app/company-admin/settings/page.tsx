@@ -3,7 +3,7 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Alert } from '@/components/ui/shell'
 import { PendingSubmit } from '@/components/ui/pending-submit'
 import { updateCompanySettings } from './actions'
-import { Building2, Bell, UserCog, Palette, Save } from 'lucide-react'
+import { Building2, Palette, Save } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,27 +23,17 @@ export default async function SettingsPage({
 
   // Explicit columns: portfolios also holds secrets (AI API keys) that this
   // page never needs.
-  const [{ data: portfolio, error: portfolioError }, { data: portfolioSettings, error: settingsError }] = await Promise.all([
-    db
-      .from('portfolios')
-      .select('id, company_name, phone_number, support_email, address_street, address_city, address_state, address_zip, brand_color')
-      .eq('id', portfolioId)
-      .maybeSingle(),
-    db
-      .from('portfolio_settings')
-      .select('logo_url, office_address, office_phone, billing_email, notification_prefs, manager_defaults, branding_enabled')
-      .eq('portfolio_id', portfolioId)
-      .maybeSingle(),
-  ])
+  const { data: portfolio, error: portfolioError } = await db
+    .from('portfolios')
+    .select('id, company_name, phone_number, support_email, address_street, address_city, address_state, address_zip, brand_color, logo_url')
+    .eq('id', portfolioId)
+    .maybeSingle()
   // Saving a form rendered from a failed load would blank every field.
   const loadError = !portfolioId
     ? 'Your account is not linked to a company.'
-    : portfolioError?.message ?? settingsError?.message ?? (!portfolio ? 'Company profile not found.' : null)
+    : portfolioError?.message ?? (!portfolio ? 'Company profile not found.' : null)
 
   const p = portfolio ?? {}
-  const ps = portfolioSettings ?? {}
-  const notifPrefs = ps.notification_prefs ?? {}
-  const mgrDefaults = ps.manager_defaults ?? {}
 
   function Field({ label, name, defaultValue, type = 'text', placeholder = '' }: {
     label: string
@@ -61,24 +51,6 @@ export default async function SettingsPage({
           defaultValue={defaultValue ?? ''}
           placeholder={placeholder}
           className={inputCls}
-        />
-      </label>
-    )
-  }
-
-  function ToggleField({ label, name, defaultChecked = false }: {
-    label: string
-    name: string
-    defaultChecked?: boolean
-  }) {
-    return (
-      <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50/60">
-        <span className="text-sm text-gray-700">{label}</span>
-        <input
-          type="checkbox"
-          name={name}
-          defaultChecked={defaultChecked}
-          className="h-5 w-5 rounded border-gray-300 accent-blue-600"
         />
       </label>
     )
@@ -109,101 +81,26 @@ export default async function SettingsPage({
               <Field label="Company Name" name="company_name" defaultValue={p.company_name} />
               <Field label="Phone Number" name="phone_number" defaultValue={p.phone_number} placeholder="+1 (555) 000-0000" />
             </div>
-            <Field label="Logo URL" name="logo_url" defaultValue={ps.logo_url} placeholder="https://..." />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Support Email" name="support_email" defaultValue={p.support_email} placeholder="support@company.com" />
-              <Field label="Billing Email" name="billing_email" defaultValue={ps.billing_email} placeholder="billing@company.com" />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                {p.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.logo_url} alt="Current company logo" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="text-[11px] font-medium text-gray-400">No logo</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <Field label="Logo URL" name="logo_url" defaultValue={p.logo_url} placeholder="https://..." />
+              </div>
             </div>
+            <p className="-mt-2 text-xs text-gray-500">Shown in the sidebar and portals. Leave blank to remove the logo.</p>
+            <Field label="Support Email" name="support_email" defaultValue={p.support_email} placeholder="support@company.com" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Street Address" name="address_street" defaultValue={p.address_street} />
               <Field label="City" name="address_city" defaultValue={p.address_city} />
               <Field label="State" name="address_state" defaultValue={p.address_state} />
               <Field label="ZIP Code" name="address_zip" defaultValue={p.address_zip} />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Office Location ────────────────────────── */}
-        <div className={card}>
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-950">Office Location</h2>
-          </div>
-          <div className="space-y-4 p-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Office Address" name="office_address" defaultValue={ps.office_address} placeholder="123 Main St, Suite 100" />
-              <Field label="Office Phone" name="office_phone" defaultValue={ps.office_phone} placeholder="+1 (555) 000-0000" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Notification Preferences ───────────────── */}
-        <div className={card}>
-          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
-            <Bell className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">Notification Preferences</h2>
-          </div>
-          <div className="space-y-2 p-5">
-            <ToggleField
-              label="New association added to portfolio"
-              name="notify_new_association"
-              defaultChecked={notifPrefs.new_association ?? true}
-            />
-            <ToggleField
-              label="Delinquency alerts (high-risk associations)"
-              name="notify_delinquency"
-              defaultChecked={notifPrefs.delinquency_alert ?? true}
-            />
-            <ToggleField
-              label="Work order status updates"
-              name="notify_work_order"
-              defaultChecked={notifPrefs.work_order_update ?? false}
-            />
-            <ToggleField
-              label="New violation reports"
-              name="notify_violation"
-              defaultChecked={notifPrefs.violation_reported ?? false}
-            />
-            <ToggleField
-              label="Billing and payment reminders"
-              name="notify_billing"
-              defaultChecked={notifPrefs.billing_reminder ?? true}
-            />
-          </div>
-        </div>
-
-        {/* ── Manager Defaults ───────────────────────── */}
-        <div className={card}>
-          <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4">
-            <UserCog className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-950">Manager Defaults</h2>
-          </div>
-          <div className="space-y-4 p-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-medium text-gray-500">Default Role</span>
-                <select
-                  name="default_role"
-                  defaultValue={mgrDefaults.role ?? 'manager'}
-                  className={inputCls}
-                >
-                  <option value="manager">Manager</option>
-                  <option value="assistant_manager">Assistant Manager</option>
-                  <option value="maintenance_supervisor">Maintenance Supervisor</option>
-                  <option value="admin_assistant">Admin Assistant</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-gray-500">Default Permissions</span>
-                <select
-                  name="default_permissions"
-                  defaultValue={mgrDefaults.permissions ?? 'standard'}
-                  className={inputCls}
-                >
-                  <option value="standard">Standard</option>
-                  <option value="elevated">Elevated</option>
-                  <option value="full">Full Access</option>
-                </select>
-              </label>
             </div>
           </div>
         </div>
@@ -215,11 +112,6 @@ export default async function SettingsPage({
             <h2 className="text-sm font-semibold text-gray-950">Branding</h2>
           </div>
           <div className="space-y-4 p-5">
-            <ToggleField
-              label="Enable custom branding across the platform"
-              name="branding_enabled"
-              defaultChecked={ps.branding_enabled ?? false}
-            />
             <label className="block">
               <span className="text-xs font-medium text-gray-500">Brand Color</span>
               <div className="mt-1 flex items-center gap-3">

@@ -1,33 +1,21 @@
 import { glDebitBalances, receivableSummary, type ReceivableSummary } from '@/lib/finance/totals'
-import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Alert } from '@/components/ui/shell'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireBoard } from '@/lib/auth/me'
-import { StatusChip } from '@/components/operations/status-chip'
-import { SignatureCapture } from '@/components/board/signature-capture'
-import { findMyBoardSeats, signSignaturePaths } from '@/lib/board/signature'
 import { date, money } from '@/lib/utils'
-import { ACTIVE_VIOLATION_STATUSES } from '@/lib/violations/queries'
 import {
-  Heart,
   Landmark,
   PiggyBank,
-  Users,
-  Wrench,
+  Receipt,
   AlertTriangle,
-  HardHat,
   CalendarDays,
-  Truck,
-  Siren,
   ArrowRight,
-  Vote,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 const card = 'rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
-const OPEN_WO_STATUSES = ['new', 'assigned', 'scheduled', 'in_progress']
 
 function StatCard({
   label,
@@ -66,9 +54,7 @@ export default async function BoardDashboardPage() {
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
-  const today = new Date()
-  const todayDate = today.toISOString().slice(0, 10)
-  const in30 = new Date(Date.now() + 30 * 86400000).toISOString()
+  const now = new Date()
 
   if (ids.length === 0) {
     return (
@@ -82,51 +68,23 @@ export default async function BoardDashboardPage() {
     )
   }
 
+  // The board portal is a read-only view of basic financials, meeting minutes
+  // and governing documents — no vendors, owners or operational records.
   const [
-    { data: assoc },
-    { data: openWOs },
-    { data: viols },
-    { data: bankAccounts },
-    { data: meetings },
-    { data: vendorVisits },
-    { data: projectRows },
-    { data: archRows, count: archCount },
+    { data: assoc, error: assocError },
+    { data: bankAccounts, error: bankError },
+    { data: meetings, error: meetingsError },
   ] = await Promise.all([
     db.from('associations').select('id, name').in('id', ids),
-    db.from('work_orders').select('id, association_id, status, priority, scheduled_date, category, title').in('association_id', ids).is('archived_at', null).in('status', OPEN_WO_STATUSES),
-    db.from('violations').select('id').in('association_id', ids).is('archived_at', null).in('status', [...ACTIVE_VIOLATION_STATUSES]),
     db.from('bank_accounts').select('id, gl_account_id, purpose, fund_type, association_id').in('association_id', ids).is('archived_at', null),
-    db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).in('status', ['scheduled', 'in_progress']).gte('start_time', today.toISOString()).order('start_time').limit(5),
-    db.from('calendar_events').select('id, title, start_datetime, vendors(name)').in('association_id', ids).not('vendor_id', 'is', null).is('archived_at', null).gte('start_datetime', today.toISOString()).lte('start_datetime', in30).order('start_datetime').limit(5),
-    db.from('capital_projects').select('id, status').in('association_id', ids).is('archived_at', null),
-    // Open requests this member can decide: exclude their own in the query and
-    // count exactly, so the card is neither capped nor hidden by own requests.
-    (() => {
-      let q = db.from('architectural_requests').select('id, title', { count: 'exact' })
-        .in('association_id', ids).in('status', ['submitted', 'under_review'])
-      if (me.owner_id) q = q.or(`owner_id.is.null,owner_id.neq.${me.owner_id}`)
-      return q.order('created_at').limit(3)
-    })(),
+    db.from('meetings').select('id, title, meeting_type, start_time, location').in('association_id', ids).is('archived_at', null).in('status', ['scheduled', 'in_progress']).gte('start_time', now.toISOString()).order('start_time').limit(5),
   ])
-  const archAwaiting = (archRows ?? []) as { id: string; title: string }[]
-  const archAwaitingCount = archCount ?? archAwaiting.length
+  const loadErrors = [
+    assocError && `Associations could not be loaded: ${assocError.message}`,
+    meetingsError && `Meetings could not be loaded: ${meetingsError.message}`,
+  ].filter(Boolean) as string[]
 
-  // Pending requests awaiting MY vote: every pending row (exact, not capped),
-  // minus ones I already decided and ones restricted to other seats.
-  const mySeats = await findMyBoardSeats(me)
-  const mySeatIds = new Set(mySeats.map((s) => s.id))
-  const pendingApprovals = await fetchAllRows<any>(() =>
-    db.from('approval_requests').select('id, title, owner_id, board_member_ids, approval_decisions(decided_by)')
-      .in('association_id', ids).eq('status', 'pending').is('archived_at', null)
-      .order('requested_at', { ascending: false }).order('id'))
-  const approvals = pendingApprovals.rows.filter((a: any) => {
-    if (a.owner_id && me.owner_id && a.owner_id === me.owner_id) return false
-    const voters: string[] = a.board_member_ids ?? []
-    if (voters.length > 0 && !voters.some((v) => mySeatIds.has(v))) return false
-    return !(a.approval_decisions ?? []).some((d: any) => d.decided_by === me.auth_user_id)
-  })
-
-  // Past-due receivables only, same source as /board/delinquencies.
+  // Aggregate past-due receivables only (no owner names).
   let receivables: ReceivableSummary | null = null
   let receivablesError: string | null = null
   try {
@@ -135,21 +93,10 @@ export default async function BoardDashboardPage() {
     receivablesError = e instanceof Error ? e.message : String(e)
   }
 
-  const open = openWOs ?? []
-  const overdue = open.filter((wo: any) => wo.scheduled_date && wo.scheduled_date < todayDate).length
-  const emergencies = open.filter((wo: any) => wo.priority === 'emergency')
-  // Same source as /board/projects (capital_projects), not work-order titles.
-  const activeProjects = (projectRows ?? []).filter((p: any) =>
-    ['board_review', 'approved', 'active', 'on_hold'].includes(p.status)).length
-  const openViolations = (viols ?? []).length
-  const delinquentUnits = receivables?.delinquentUnits ?? 0
-  const overdueTotal = receivables?.overdueTotal ?? 0
-
-  // Bank balances: roll posted journal lines up onto each bank account's GL account.
-  // Summed in the database: a list of journal lines stops at 1,000 rows.
+  // Bank balances: posted journal lines summed onto each bank account's GL account.
   let balByGl = new Map<string, number>()
-  let balancesError: string | null = null
-  try {
+  let balancesError: string | null = bankError ? bankError.message : null
+  if (!bankError) try {
     balByGl = await glDebitBalances(db, {
       glAccountIds: [...new Set((bankAccounts ?? []).map((b: any) => b.gl_account_id).filter(Boolean))] as string[],
       associationIds: ids,
@@ -165,95 +112,26 @@ export default async function BoardDashboardPage() {
     else operating += bal
   }
 
-  // Health score — same weighting as the company-admin dashboard.
-  const score = Math.max(5, Math.min(100,
-    100 - overdue * 12 - open.length * 4 - openViolations * 6 - emergencies.length * 15))
-  const health = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs attention' : 'Critical'
-
-  const pendingVotes = (approvals ?? []).length
   const assocNames = (assoc ?? []).map((a: any) => a.name).join(', ')
-
-  // My e-signature: attached to approval sign-offs (AppFolio parity).
-  const mySigPath = mySeats.find((s) => s.signature_url)?.signature_url ?? null
-  const mySigUrl = mySigPath ? (await signSignaturePaths([mySigPath])).get(mySigPath) ?? null : null
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Board Dashboard</h1>
-        <p className="mt-1.5 text-sm leading-6 text-gray-500">Governance overview for {assocNames || 'your association'}</p>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">Financial overview for {assocNames || 'your association'}</p>
       </div>
 
-      {receivablesError && <Alert tone="danger" title="Delinquency figures could not be loaded">{receivablesError}</Alert>}
+      {loadErrors.map((msg) => <Alert key={msg} tone="danger">{msg}</Alert>)}
+      {receivablesError && <Alert tone="danger" title="Receivables could not be loaded">{receivablesError}</Alert>}
       {balancesError && <Alert tone="danger" title="Bank balances could not be loaded">{balancesError}</Alert>}
-      {pendingApprovals.error && <Alert tone="danger" title="Pending approvals could not be loaded">{pendingApprovals.error}</Alert>}
 
-      {/* ── Emergency alerts ─────────────────────────── */}
-      {emergencies.length > 0 && (
-        <Link href="/board/work-orders" className="block rounded-2xl border border-red-200 bg-red-50/70 p-4 transition-colors hover:bg-red-50">
-          <div className="flex items-start gap-3">
-            <Siren className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-            <div>
-              <div className="text-sm font-semibold text-red-800">
-                {emergencies.length} emergency work order{emergencies.length === 1 ? '' : 's'} open right now
-              </div>
-              <p className="mt-0.5 text-[13px] text-red-700">
-                {emergencies.slice(0, 3).map((e: any) => e.title).join(' · ')}
-              </p>
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* ── Pending votes ─────────────────────────────── */}
-      {pendingVotes > 0 && (
-        <Link href="/board/approvals" className="block rounded-2xl border border-blue-200 bg-blue-50/70 p-4 transition-colors hover:bg-blue-50">
-          <div className="flex items-start gap-3">
-            <Vote className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-            <div>
-              <div className="text-sm font-semibold text-blue-900">
-                {pendingVotes} item{pendingVotes === 1 ? '' : 's'} awaiting your vote
-              </div>
-              <p className="mt-0.5 text-[13px] text-blue-800">
-                {(approvals ?? []).slice(0, 3).map((a: any) => a.title).join(' · ')}
-              </p>
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* ── Architectural requests awaiting a decision ── */}
-      {archAwaitingCount > 0 && (
-        <Link href={archAwaitingCount === 1 && archAwaiting[0] ? `/board/architectural-reviews/${archAwaiting[0].id}` : '/board/architectural-reviews'} className="block rounded-2xl border border-blue-200 bg-blue-50/70 p-4 transition-colors hover:bg-blue-50">
-          <div className="flex items-start gap-3">
-            <Vote className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-            <div>
-              <div className="text-sm font-semibold text-blue-900">
-                {archAwaitingCount} architectural request{archAwaitingCount === 1 ? '' : 's'} awaiting a board decision
-              </div>
-              <p className="mt-0.5 text-[13px] text-blue-800">
-                {archAwaiting.map((a) => a.title).join(' · ')}
-              </p>
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* ── KPI grid ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Health Score" value={`${score}`} sub={health} icon={Heart} tone={score >= 80 ? 'success' : score >= 50 ? 'warning' : 'danger'} />
-        <StatCard label="Operating Balance" value={balancesError ? "—" : money(operating)} icon={Landmark} href="/board/financials" />
-        <StatCard label="Reserve Balance" value={balancesError ? "—" : money(reserve)} icon={PiggyBank} href="/board/financials" />
-        <StatCard label="Delinquent Owners" value={receivablesError ? '—' : delinquentUnits} sub={receivablesError ? 'Unavailable' : `${money(overdueTotal)} past due`} icon={Users} href="/board/delinquencies" tone={delinquentUnits > 0 ? 'warning' : undefined} />
-        <StatCard label="Open Work Orders" value={open.length} sub={`${overdue} overdue`} icon={Wrench} href="/board/work-orders" tone={overdue > 0 ? 'warning' : undefined} />
-        <StatCard label="Open Violations" value={openViolations} icon={AlertTriangle} href="/board/violations" />
-        <StatCard label="Active Projects" value={activeProjects} icon={HardHat} href="/board/projects" />
-        <StatCard label="Upcoming Meetings" value={(meetings ?? []).length} icon={CalendarDays} href="/board/meetings" />
-        <StatCard label="Vendor Visits (30d)" value={(vendorVisits ?? []).length} icon={Truck} href="/board/calendar" />
-        <StatCard label="Emergencies" value={emergencies.length} icon={Siren} href="/board/work-orders" tone={emergencies.length > 0 ? 'danger' : undefined} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Operating Balance" value={balancesError ? '—' : money(operating)} icon={Landmark} href="/board/financials" />
+        <StatCard label="Reserve Balance" value={balancesError ? '—' : money(reserve)} icon={PiggyBank} href="/board/financials" />
+        <StatCard label="Past-Due Receivables" value={receivablesError ? '—' : money(receivables?.overdueTotal ?? 0)} sub={receivablesError ? 'Unavailable' : `${receivables?.delinquentUnits ?? 0} unit${(receivables?.delinquentUnits ?? 0) === 1 ? '' : 's'}`} icon={Receipt} href="/board/financials" />
+        <StatCard label="Upcoming Meetings" value={meetingsError ? '—' : (meetings ?? []).length} icon={CalendarDays} href="/board/meetings" />
       </div>
 
-      {/* ── Upcoming meetings ─────────────────────────── */}
       <div className={card}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-950">Upcoming Meetings</h2>
@@ -262,55 +140,19 @@ export default async function BoardDashboardPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {(meetings ?? []).length === 0 ? (
+          {meetingsError ? (
+            <p className="px-5 py-8 text-center text-sm text-gray-500">Meetings are unavailable right now.</p>
+          ) : (meetings ?? []).length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-gray-500">No upcoming meetings scheduled.</p>
           ) : (
             (meetings ?? []).map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between px-5 py-3">
+              <Link key={m.id} href={`/board/meetings/${m.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50/60">
                 <div>
                   <div className="text-sm font-medium text-gray-900">{m.title}</div>
                   <div className="mt-0.5 text-xs capitalize text-gray-500">{(m.meeting_type ?? '').replace(/_/g, ' ')}{m.location ? ` · ${m.location}` : ''}</div>
                 </div>
                 <div className="text-[13px] tabular-nums text-gray-700">{date(m.start_time)}</div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* ── My signature ──────────────────────────────── */}
-      <div className={card}>
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">My Signature</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Captured once and attached to every approval you sign off on.
-          </p>
-        </div>
-        <div className="p-5">
-          <SignatureCapture currentSignatureUrl={mySigUrl} />
-        </div>
-      </div>
-
-      {/* ── Upcoming vendor visits ────────────────────── */}
-      <div className={card}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">Upcoming Vendor Visits</h2>
-          <Link href="/board/calendar" className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-950 hover:underline">
-            Full calendar <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-        <div className="divide-y divide-gray-50">
-          {(vendorVisits ?? []).length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-gray-500">No vendor visits scheduled in the next 30 days.</p>
-          ) : (
-            (vendorVisits ?? []).map((v: any) => (
-              <div key={v.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{v.title}</div>
-                  {v.vendors?.name && <div className="mt-0.5 text-xs text-gray-500">{v.vendors.name}</div>}
-                </div>
-                <div className="text-[13px] tabular-nums text-gray-700">{date(v.start_datetime)}</div>
-              </div>
+              </Link>
             ))
           )}
         </div>

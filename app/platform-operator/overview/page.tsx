@@ -18,6 +18,12 @@ import {
 } from 'lucide-react'
 import { displayTimeZone } from '@/lib/time/display-zone'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
+import { Alert } from '@/components/ui/shell'
+import {
+  monthWindowInZone,
+  monthlyRecurringCents,
+  pastDueInvoicesFilter,
+} from '@/lib/platform/operator-metrics'
 
 export const dynamic = 'force-dynamic'
 
@@ -209,249 +215,164 @@ export default async function PlatformOperatorOverviewPage() {
   const db = supabase as any
 
   const today = new Date()
+  const zone = displayTimeZone()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 86400000).toISOString()
-  const sixMonthsAgo = new Date(today.getTime() - 180 * 86400000).toISOString()
   const sevenDaysFromNow = new Date(today.getTime() + 7 * 86400000).toISOString()
 
-  // ── Build all queries ─────────────────────────────────
-  const mrrQuery = db
-    .from('subscriptions')
-    .select('price_monthly_cents, status')
-    .in('status', ['active', 'past_due'])
-
-  const allSubscriptionsQuery = db.from('subscriptions').select('status, trial_ends_at')
-
-  const totalCompaniesQuery = db
-    .from('portfolios')
-    .select('id', { count: 'exact', head: true })
-
-  const totalAssociationsQuery = db
-    .from('associations')
-    .select('id', { count: 'exact', head: true })
-    .is('archived_at', null)
-
-  // Total doors must cover every association, past PostgREST's 1,000-row cap.
-  const doorsQuery = fetchAllRows(() => db
-    .from('associations')
-    .select('id, unit_count')
-    .is('archived_at', null)
-    .order('id')).then((r) => ({ data: r.rows, error: r.error }))
-
-  const activeUsersQuery = db
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .gte('last_login_at', thirtyDaysAgo)
-
-  const overduePaymentsQuery = db
-    .from('invoices')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'overdue')
-
-  const openRequestsQuery = db
-    .from('platform_requests')
-    .select('id', { count: 'exact', head: true })
-    .not('status', 'in', '("closed","resolved")')
-
-  const companyHealthQuery = db.from('v_company_health').select('*')
-
-  // Revenue growth: last 6 months from management_fees
-  const revenueMonths: { month: string; date: Date }[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-    revenueMonths.push({
-      month: d.toISOString().slice(0, 7),
-      date: d,
-    })
+  // Last six calendar months in the platform zone (the server runs in UTC).
+  const revenueMonths = [5, 4, 3, 2, 1, 0].map((i) => monthWindowInZone(zone, today, -i))
+  const sixMonthsStartIso = revenueMonths[0].startIso
+  const currentMonth = revenueMonths[revenueMonths.length - 1]
+  const monthLabel = (month: string) => {
+    const [y, m] = month.split('-').map(Number)
+    return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
   }
-
-  const revenueGrowthQuery = db
-    .from('management_fees')
-    .select('month, fee_amount_cents')
-    .gte('month', revenueMonths[0].month + '-01')
-    // Upper bound is the first of next month: "-31" is not a valid date in
-    // 30-day months, and Postgres rejected the whole query.
-    .lt('month', new Date(Date.UTC(today.getFullYear(), today.getMonth() + 1, 1)).toISOString().slice(0, 10))
-
-  // Company growth: portfolios created by month (last 6 months)
-  const portfolioCreationQuery = db
-    .from('portfolios')
-    .select('created_at')
-    .gte('created_at', revenueMonths[0].date.toISOString())
-    .order('created_at')
-
-  // Top companies by revenue (current month)
-  const topRevenueQuery = db
-    .from('management_fees')
-    .select('portfolio_id, fee_amount_cents, portfolios!inner(company_name, id)')
-    .eq('month', `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`)
-    .order('fee_amount_cents', { ascending: false })
-    .limit(10)
-
-  // Recent activity
-  const activityQuery = db
-    .from('activity')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  // Companies at risk
-  const atRiskQuery = db
-    .from('subscriptions')
-    .select('portfolio_id, status, trial_ends_at, portfolios!inner(company_name, id)')
-    .or(`status.in.(past_due,paused,expired),and(status.eq.trialing,trial_ends_at.lte.${sevenDaysFromNow})`)
-    .order('trial_ends_at', { ascending: true })
-
-  // Trial conversion: count trials that became active vs total trials
-  const trialConversionQuery = db
-    .from('subscription_events')
-    .select('event_type, subscription_id')
-    .eq('event_type', 'trial_converted')
-
-  // Door growth: associations with unit_count, created by month
-  const doorGrowthQuery = db
-    .from('associations')
-    .select('created_at, unit_count')
-    .is('archived_at', null)
-    .gte('created_at', revenueMonths[0].date.toISOString())
-    .order('created_at')
+  const monthOf = (iso: string) => revenueMonths.find((w) => iso >= w.startIso && iso < w.endIso)?.month ?? null
 
   // ── Execute all queries ───────────────────────────────
+  // Portier revenue comes from subscriptions (MRR) and paid platform invoices
+  // (collected) — never management_fees, which is clients' own fee income
+  // and not readable by operators anyway.
   const [
-    { data: mrrData },
-    { data: allSubsData },
-    { count: totalCompanies },
-    { count: totalAssociations },
-    { data: doorsData },
-    { count: activeUsers },
-    { count: overdueCount },
-    { count: openRequestsCount },
-    { data: companyHealth },
-    { data: revenueData },
-    { data: portfolioCreationData },
-    { data: topRevenueData },
-    { data: activityData },
-    { data: atRiskData },
-    { data: trialConversionData },
-    { data: doorGrowthData },
+    subsRes,
+    totalCompaniesRes,
+    totalAssociationsRes,
+    doorsRes,
+    activeUsersRes,
+    pastDueRes,
+    openRequestsRes,
+    companyHealthRes,
+    paidInvoicesRes,
+    portfolioCreationRes,
+    portfolioNamesRes,
+    activityRes,
+    atRiskRes,
+    doorGrowthRes,
   ] = await Promise.all([
-    mrrQuery,
-    allSubscriptionsQuery,
-    totalCompaniesQuery,
-    totalAssociationsQuery,
-    doorsQuery,
-    activeUsersQuery,
-    overduePaymentsQuery,
-    openRequestsQuery,
-    companyHealthQuery,
-    revenueGrowthQuery,
-    portfolioCreationQuery,
-    topRevenueQuery,
-    activityQuery,
-    atRiskQuery,
-    trialConversionQuery,
-    doorGrowthQuery,
+    fetchAllRows<any>(() => db.from('subscriptions').select('id, portfolio_id, status, price_monthly_cents, seats_used, price_per_seat_cents, trial_ends_at').order('id')),
+    db.from('portfolios').select('id', { count: 'exact', head: true }),
+    db.from('associations').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    // Total doors must cover every association, past PostgREST's 1,000-row cap.
+    fetchAllRows<any>(() => db.from('associations').select('id, unit_count').is('archived_at', null).order('id')),
+    db.from('profiles').select('id', { count: 'exact', head: true }).gte('last_login_at', thirtyDaysAgo),
+    pastDueInvoicesFilter(db.from('invoices').select('id', { count: 'exact', head: true })),
+    db.from('platform_requests').select('id', { count: 'exact', head: true }).not('status', 'in', '("closed","resolved")'),
+    db.from('v_company_health').select('*'),
+    fetchAllRows<any>(() => db.from('invoices').select('id, portfolio_id, total_cents, paid_at').eq('status', 'paid').gte('paid_at', sixMonthsStartIso).order('id')),
+    db.from('portfolios').select('created_at').gte('created_at', sixMonthsStartIso).order('created_at'),
+    db.from('portfolios').select('id, company_name'),
+    // Platform-wide trail: audit_logs (operators can read every row), not the
+    // per-user `activity` table, which only ever showed the viewer's own rows.
+    db.from('audit_logs').select('id, action, entity_type, actor_email, created_at').order('created_at', { ascending: false }).limit(20),
+    db.from('subscriptions')
+      .select('portfolio_id, status, trial_ends_at, portfolios!inner(company_name, id)')
+      .or(`status.in.(past_due,paused,expired),and(status.eq.trialing,trial_ends_at.lte.${sevenDaysFromNow})`)
+      .order('trial_ends_at', { ascending: true }),
+    db.from('associations').select('created_at').is('archived_at', null).gte('created_at', sixMonthsStartIso).order('created_at'),
   ])
 
-  // ── Compute stats ─────────────────────────────────────
-  const mrr = (mrrData ?? []).reduce(
-    (sum: number, s: any) => sum + (s.price_monthly_cents ?? 0),
-    0,
-  )
+  const loadErrors = [
+    subsRes.error && `Subscriptions: ${subsRes.error}`,
+    totalCompaniesRes.error?.message && `Companies: ${totalCompaniesRes.error.message}`,
+    totalAssociationsRes.error?.message && `Associations: ${totalAssociationsRes.error.message}`,
+    doorsRes.error && `Doors: ${doorsRes.error}`,
+    activeUsersRes.error?.message && `Active users: ${activeUsersRes.error.message}`,
+    pastDueRes.error?.message && `Past-due invoices: ${pastDueRes.error.message}`,
+    openRequestsRes.error?.message && `Support requests: ${openRequestsRes.error.message}`,
+    companyHealthRes.error?.message && `Company health: ${companyHealthRes.error.message}`,
+    paidInvoicesRes.error && `Paid invoices: ${paidInvoicesRes.error}`,
+    portfolioCreationRes.error?.message && `Company growth: ${portfolioCreationRes.error.message}`,
+    portfolioNamesRes.error?.message && `Company names: ${portfolioNamesRes.error.message}`,
+    activityRes.error?.message && `Recent activity: ${activityRes.error.message}`,
+    atRiskRes.error?.message && `Companies at risk: ${atRiskRes.error.message}`,
+    doorGrowthRes.error?.message && `Association growth: ${doorGrowthRes.error.message}`,
+  ].filter(Boolean) as string[]
 
-  const subs = allSubsData ?? []
+  const totalCompanies = totalCompaniesRes.count
+  const totalAssociations = totalAssociationsRes.count
+  const activeUsers = activeUsersRes.count
+  const overdueCount = pastDueRes.count
+  const openRequestsCount = openRequestsRes.count
+  const activityData = (activityRes.data ?? []) as any[]
+  const atRiskData = (atRiskRes.data ?? []) as any[]
+
+  // ── Compute stats ─────────────────────────────────────
+  const subs = subsRes.rows
+  const mrr = monthlyRecurringCents(subs)
   const activeSubs = subs.filter((s: any) => s.status === 'active').length
   const trialSubs = subs.filter((s: any) => s.status === 'trialing').length
   const pausedSubs = subs.filter((s: any) => s.status === 'paused').length
   const pastDueSubs = subs.filter((s: any) => s.status === 'past_due').length
 
-  const totalDoors = (doorsData ?? []).reduce(
+  const totalDoors = doorsRes.rows.reduce(
     (sum: number, a: any) => sum + (a.unit_count ?? 0),
     0,
   )
 
-  const health = companyHealth ?? []
+  const health = (companyHealthRes.data ?? []) as any[]
   const criticalAlerts = health.reduce((sum: number, h: any) => sum + (h.critical_count ?? 0), 0)
   const totalWarningAlerts = health.reduce(
     (sum: number, h: any) => sum + (h.warning_count ?? 0),
     0,
   )
 
-  // Revenue by month aggregation
+  // Collected platform revenue by month (paid invoices, by paid date).
   const revenueByMonth: Record<string, number> = {}
-  for (const rm of revenueMonths) {
-    revenueByMonth[rm.month] = 0
+  for (const rm of revenueMonths) revenueByMonth[rm.month] = 0
+  for (const inv of paidInvoicesRes.rows) {
+    const key = inv.paid_at ? monthOf(new Date(inv.paid_at).toISOString()) : null
+    if (key) revenueByMonth[key] += Number(inv.total_cents ?? 0)
   }
-  for (const fee of revenueData ?? []) {
-    const monthKey = (fee.month as string).slice(0, 7)
-    if (revenueByMonth[monthKey] !== undefined) {
-      revenueByMonth[monthKey] += fee.fee_amount_cents ?? 0
-    }
-  }
-
-  const revenueChartData = Object.entries(revenueByMonth).map(([month, cents]) => ({
-    label: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' }),
-    value: Math.round(cents / 100),
+  const revenueChartData = revenueMonths.map((rm) => ({
+    label: monthLabel(rm.month),
+    value: Math.round(revenueByMonth[rm.month] / 100),
   }))
+  const collectedThisMonth = revenueByMonth[currentMonth.month] ?? 0
 
   // Company growth by month
   const companiesByMonth: Record<string, number> = {}
-  for (const rm of revenueMonths) {
-    const key = rm.date.toISOString().slice(0, 7)
-    companiesByMonth[key] = 0
+  for (const rm of revenueMonths) companiesByMonth[rm.month] = 0
+  for (const p of portfolioCreationRes.data ?? []) {
+    const key = monthOf(new Date(p.created_at).toISOString())
+    if (key) companiesByMonth[key]++
   }
-  for (const p of portfolioCreationData ?? []) {
-    const key = (p.created_at as string).slice(0, 7)
-    if (companiesByMonth[key] !== undefined) {
-      companiesByMonth[key]++
-    }
-  }
-
-  const companyGrowthChart = Object.entries(companiesByMonth).map(
-    ([month, count]) => ({
-      label: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' }),
-      value: count,
-    }),
-  )
-
-  // Door growth by month
-  const doorsByMonth: Record<string, number> = {}
-  for (const rm of revenueMonths) {
-    const key = rm.date.toISOString().slice(0, 7)
-    doorsByMonth[key] = 0
-  }
-  for (const a of doorGrowthData ?? []) {
-    const key = (a.created_at as string).slice(0, 7)
-    // Count associations created this month weighted by unit_count
-    // Simple approach: just count associations
-    if (doorsByMonth[key] !== undefined) {
-      doorsByMonth[key]++
-    }
-  }
-
-  const doorGrowthChart = Object.entries(doorsByMonth).map(([month, count]) => ({
-    label: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' }),
-    value: count,
+  const companyGrowthChart = revenueMonths.map((rm) => ({
+    label: monthLabel(rm.month),
+    value: companiesByMonth[rm.month],
   }))
 
-  // Trial conversion rate
-  const totalTrials = subs.filter((s: any) => s.status !== 'canceled').length
-  const convertedTrials = (trialConversionData ?? []).length
-  const conversionRate =
-    totalTrials > 0 ? Math.round((activeSubs / totalTrials) * 100) : 0
+  // Association growth by month
+  const doorsByMonth: Record<string, number> = {}
+  for (const rm of revenueMonths) doorsByMonth[rm.month] = 0
+  for (const a of doorGrowthRes.data ?? []) {
+    const key = monthOf(new Date(a.created_at).toISOString())
+    if (key) doorsByMonth[key]++
+  }
+  const doorGrowthChart = revenueMonths.map((rm) => ({
+    label: monthLabel(rm.month),
+    value: doorsByMonth[rm.month],
+  }))
 
-  // Top companies by revenue
-  const topCompanies = (topRevenueData ?? []).slice(0, 10).map((r: any) => {
-    const portfolios = Array.isArray(r.portfolios) ? r.portfolios : [r.portfolios]
-    const company = portfolios?.[0]
-    return {
-      label: company?.company_name ?? 'Unknown',
-      href: `/platform-operator/companies/${r.portfolio_id}`,
-      value: r.fee_amount_cents ?? 0,
-    }
-  })
+  // Top companies by monthly recurring revenue (billable subscriptions).
+  const nameById = new Map<string, string>(((portfolioNamesRes.data ?? []) as any[]).map((p) => [p.id, p.company_name]))
+  const topCompanies = subs
+    .map((s: any) => ({ s, cents: monthlyRecurringCents([s]) }))
+    .filter((r) => r.cents > 0)
+    .sort((x, y) => y.cents - x.cents)
+    .slice(0, 10)
+    .map(({ s, cents }) => ({
+      label: nameById.get(s.portfolio_id) ?? 'Unknown',
+      href: `/platform-operator/companies/${s.portfolio_id}`,
+      value: cents,
+    }))
 
   return (
     <div className="space-y-7">
+      {loadErrors.length > 0 && (
+        <Alert title="Some platform figures could not be loaded — affected panels may read low.">
+          {loadErrors.join(' · ')}
+        </Alert>
+      )}
       {/* ── Page Header ────────────────────────────────── */}
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">Platform Command Center</h1>
@@ -466,18 +387,8 @@ export default async function PlatformOperatorOverviewPage() {
           label="Monthly Recurring Revenue"
           value={formatCurrency(mrr)}
           icon={DollarSign}
+          sub="Active and past-due subscriptions"
           accent="navy"
-          trend={
-            revenueChartData.length >= 2
-              ? {
-                  value: percChange(
-                    revenueChartData[revenueChartData.length - 1].value,
-                    revenueChartData[revenueChartData.length - 2].value,
-                  ),
-                  label: 'vs last month',
-                }
-              : undefined
-          }
         />
         <StatCard
           label="Total Companies"
@@ -505,9 +416,9 @@ export default async function PlatformOperatorOverviewPage() {
       {/* ── Top Cards: Row 2 ───────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Overdue Invoices"
+          label="Past-Due Invoices"
           value={formatNumber(overdueCount ?? 0)}
-          sub="Pending payment"
+          sub="Open past their billing period"
           icon={CreditCard}
           accent={(overdueCount ?? 0) > 0 ? 'amber' : 'emerald'}
         />
@@ -526,11 +437,11 @@ export default async function PlatformOperatorOverviewPage() {
           accent={criticalAlerts > 0 ? 'red' : 'emerald'}
         />
         <StatCard
-          label="Trial Conversion"
-          value={`${conversionRate}%`}
-          sub={`${activeSubs} active of ${totalTrials} total subscriptions`}
+          label="Collected This Month"
+          value={formatCurrency(collectedThisMonth)}
+          sub="Paid platform invoices"
           icon={TrendingUp}
-          accent={conversionRate >= 60 ? 'emerald' : conversionRate >= 30 ? 'amber' : 'red'}
+          accent="emerald"
         />
       </div>
 
@@ -539,7 +450,7 @@ export default async function PlatformOperatorOverviewPage() {
         {/* Revenue Growth */}
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
           <h3 className="text-sm font-semibold text-gray-700">Revenue Growth — Last 6 Months</h3>
-          <p className="mt-0.5 text-xs text-gray-500">Management fee income by month</p>
+          <p className="mt-0.5 text-xs text-gray-500">Paid platform invoices collected by month</p>
           <div className="mt-4">
             <BarChart
               data={revenueChartData}
@@ -644,12 +555,12 @@ export default async function PlatformOperatorOverviewPage() {
           Revenue by Company — Top 10
         </h3>
         <p className="mt-0.5 text-xs text-gray-500">
-          Current month management fee income
+          Monthly recurring revenue by subscription
         </p>
         <div className="mt-4">
           {topCompanies.length === 0 ? (
             <div className="py-8 text-center text-sm text-gray-400">
-              No revenue data for the current month.
+              No billable subscriptions yet.
             </div>
           ) : (
             <HorizontalBar data={topCompanies} />
@@ -683,23 +594,23 @@ export default async function PlatformOperatorOverviewPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(activityData ?? []).length === 0 ? (
+                {activityData.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-5 py-8 text-center text-gray-400">
                       No recent activity.
                     </td>
                   </tr>
                 ) : (
-                  (activityData ?? []).map((a: any) => (
+                  activityData.map((a: any) => (
                     <tr key={a.id} className="hover:bg-gray-50">
                       <td className="px-5 py-3">
-                        <span className="font-medium text-gray-800">{a.action ?? '—'}</span>
-                        {a.agent && (
-                          <span className="ml-2 text-xs text-gray-400">by {a.agent}</span>
+                        <span className="font-medium text-gray-800">{String(a.action ?? '—').replace(/_/g, ' ')}</span>
+                        {a.actor_email && (
+                          <span className="ml-2 text-xs text-gray-400">by {a.actor_email}</span>
                         )}
                       </td>
                       <td className="px-5 py-3 text-gray-500 max-w-xs truncate">
-                        {a.details ?? '—'}
+                        {a.entity_type ? String(a.entity_type).replace(/_/g, ' ') : '—'}
                       </td>
                       <td className="px-5 py-3 text-right text-xs text-gray-400 tabular-nums">
                         {a.created_at
@@ -740,7 +651,7 @@ export default async function PlatformOperatorOverviewPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(atRiskData ?? []).length === 0 ? (
+                {atRiskData.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-5 py-8 text-center text-gray-400">
                       <ShieldAlert className="mx-auto h-5 w-5 mb-1 text-emerald-500" />
@@ -748,7 +659,7 @@ export default async function PlatformOperatorOverviewPage() {
                     </td>
                   </tr>
                 ) : (
-                  (atRiskData ?? []).slice(0, 15).map((row: any) => {
+                  atRiskData.slice(0, 15).map((row: any) => {
                     const portfolios = Array.isArray(row.portfolios)
                       ? row.portfolios
                       : [row.portfolios]
@@ -786,7 +697,7 @@ export default async function PlatformOperatorOverviewPage() {
       </div>
 
       {/* ── Health Summary ──────────────────────────────── */}
-      {(health ?? []).length > 0 && (
+      {health.length > 0 && (
         <div className="rounded-xl border border-[#E5E7EB] bg-white">
           <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
             <div>

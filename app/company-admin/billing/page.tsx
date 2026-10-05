@@ -4,6 +4,8 @@ import { requirePortfolioAdmin } from '@/lib/auth/me'
 import { Badge } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { CreditCard, DoorOpen, Receipt, TrendingUp, BarChart3 } from 'lucide-react'
+import { Alert } from '@/components/ui/shell'
+import { collectLoadErrors } from '@/lib/company-admin/load-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,14 +18,14 @@ export default async function BillingPage() {
   const portfolioId = me.portfolio?.id
 
   // Subscription
-  const { data: sub } = await db
+  const { data: sub, error: subError } = await db
     .from('subscriptions')
     .select('*')
     .eq('portfolio_id', portfolioId)
     .maybeSingle()
 
   // Door metrics from view
-  const { data: metrics } = await db
+  const { data: metrics, error: metricsError } = await db
     .from('v_company_metrics')
     .select('doors_used, doors_limit, total_doors')
     .eq('portfolio_id', portfolioId)
@@ -32,12 +34,18 @@ export default async function BillingPage() {
     .maybeSingle()
 
   // Invoices
-  const { data: invoices } = await db
+  const { data: invoices, error: invoicesError } = await db
     .from('invoices')
     .select('*')
     .eq('portfolio_id', portfolioId)
     .order('period_end', { ascending: false })
     .limit(20)
+
+  const loadErrors = collectLoadErrors({
+    Subscription: { error: subError },
+    'Door metrics': { error: metricsError },
+    Invoices: { error: invoicesError },
+  })
 
   const s = sub ?? {}
   const tierName = (s.tier ?? 'free').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
@@ -62,6 +70,8 @@ export default async function BillingPage() {
           </p>
         </div>
       </div>
+
+      {loadErrors.length > 0 && <Alert tone="danger" title="Some billing data could not be loaded; figures below may be incomplete.">{loadErrors.join(' · ')}</Alert>}
 
       {/* Top Cards: Plan + Doors + Current Charge */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -46,10 +46,10 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   const ytdStart = `${currentYear}-01-01`;
 
   const [
-    { data: owner },
-    { data: occs },
-    { data: srs },
-    { data: violations },
+    { data: owner, error: ownerError },
+    { data: occs, error: occsError },
+    { data: srs, error: srsError },
+    { data: violations, error: violationsError },
     { data: units },
     { data: delinquencyNotes },
   ] = await Promise.all([
@@ -77,7 +77,16 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
       .limit(200),
   ]);
 
+  // A failed lookup is not a missing owner: say so instead of a 404.
+  if (ownerError) {
+    return (
+      <div className="p-8">
+        <Alert tone="danger" title="Could not load this homeowner">{ownerError.message}</Alert>
+      </div>
+    );
+  }
   if (!owner) notFound();
+  const primaryLoadError = (occsError ?? srsError ?? violationsError)?.message ?? null;
   // Staff notes live in owner_private (staff-only), never on the owner row.
   const { data: ownerPrivate } = await db.from('owner_private').select('notes').eq('owner_id', id).maybeSingle();
   (owner as any).notes = ownerPrivate?.notes ?? null;
@@ -384,6 +393,7 @@ export default async function OwnerDetailPage({ params, searchParams }: { params
   return (
     <>
       {sp.error && <div className="mb-4"><Alert title="Action failed">{sp.error}</Alert></div>}
+      {primaryLoadError && <div className="mb-4"><Alert tone="danger" title="Some homeowner records could not be loaded">Units, requests or violations below may be incomplete: {primaryLoadError}</Alert></div>}
       {sp.tenant_added === '1' && <div className="mb-4"><Alert tone="success" title="Tenant added" /></div>}
       {sp.saved === 'profile' && <div className="mb-4"><Alert tone="success" title="Owner details saved" /></div>}
       {sp.saved === 'ownership_changed' && <div className="mb-4"><Alert tone="success" title="Homeowner changed">This owner now owns the unit; the previous owner&apos;s ownership ended on the transfer date. Invite them to the portal from Portal activations.</Alert></div>}

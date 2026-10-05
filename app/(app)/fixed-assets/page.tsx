@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { todayInZone } from '@/lib/time/zoned';
 import { money, date } from '@/lib/utils';
+import { depreciationToDate } from '@/lib/fixed-assets/depreciation';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,13 +35,16 @@ export default async function FixedAssetsPage({
   const [assetResult, assocResult] = await Promise.all([
     fetchAllRows<any>(() => db
       .from('fixed_assets')
-      .select('id, name, asset_type, status, make, model, serial_number, placed_in_service_date, warranty_expiration_date, purchase_price, accumulated_depreciation, description, association_id, associations(name), units(unit_number)')
+      .select('id, name, asset_type, status, make, model, serial_number, placed_in_service_date, warranty_expiration_date, purchase_date, purchase_price, salvage_value, useful_life_years, depreciation_method, accumulated_depreciation, disposed_at, description, association_id, associations(name), units(unit_number)')
       .is('archived_at', null)
       .order('name')
       .order('id'), { maxRows: 20000 }),
     fetchAllRows<any>(() => db.from('associations').select('id, name').is('archived_at', null).order('name').order('id')),
   ]);
-  const rows = assetResult.rows;
+  const today = todayInZone();
+  // Book value uses straight-line depreciation calculated to today (display
+  // only; nothing is posted to the ledger). See lib/fixed-assets/depreciation.
+  const rows = assetResult.rows.map((a) => ({ ...a, dep: depreciationToDate(a, today) }));
   const loadError = assetResult.error ?? assocResult.error;
 
   const types = [...new Set(rows.map((a) => (a.asset_type ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -52,7 +56,6 @@ export default async function FixedAssetsPage({
     (!ql || [a.name, a.asset_type, a.make, a.model, a.serial_number, a.description, a.associations?.name, a.units?.unit_number]
       .some((v) => String(v ?? '').toLowerCase().includes(ql))));
 
-  const today = todayInZone();
   const in90 = (() => {
     const d = new Date(`${today}T00:00:00Z`);
     d.setUTCDate(d.getUTCDate() + 90);
@@ -64,7 +67,7 @@ export default async function FixedAssetsPage({
   // off the books) and follow the filters shown, like the table below.
   const inService = filtered.filter((a) => a.status === 'active' || a.status === 'fully_depreciated');
   const cost = inService.reduce((s, a) => s + Number(a.purchase_price ?? 0), 0);
-  const book = inService.reduce((s, a) => s + Number(a.purchase_price ?? 0) - Number(a.accumulated_depreciation ?? 0), 0);
+  const book = inService.reduce((s, a) => s + (a.dep.bookValue ?? 0), 0);
   const partial = assetResult.truncated || !!assetResult.error;
   const filtering = status !== 'all' || association || type || q;
   const valueScope = filtering ? 'In service, matching filters' : 'Active and fully depreciated';
@@ -72,7 +75,7 @@ export default async function FixedAssetsPage({
     { label: 'Active', value: partial ? '—' : active.length },
     { label: 'Warranties ending in 90 days', value: partial ? '—' : expiringSoon },
     { label: 'Cost in service', value: partial ? '—' : money(cost), sublabel: valueScope },
-    { label: 'Book value in service', value: partial ? '—' : money(book), sublabel: valueScope },
+    { label: 'Book value in service', value: partial ? '—' : money(book), sublabel: `${valueScope} · calculated straight-line to today` },
   ];
 
   const statusHref = (value: string) => {
@@ -144,7 +147,7 @@ export default async function FixedAssetsPage({
                 <TH>Warranty expiration</TH>
                 <TH>Serial number</TH>
                 <TH className="text-right">Cost</TH>
-                <TH className="text-right">Book value</TH>
+                <TH className="text-right" title="Cost less straight-line depreciation calculated to today">Book value (calc.)</TH>
               </TR>
             </THead>
             <tbody>
@@ -168,7 +171,7 @@ export default async function FixedAssetsPage({
                     <TD className="text-sm text-gray-600">{a.serial_number ?? '—'}</TD>
                     <TD className="text-right tabular-nums text-gray-900">{a.purchase_price != null ? money(a.purchase_price) : '—'}</TD>
                     <TD className="text-right tabular-nums text-gray-900">
-                      {a.purchase_price != null ? money(Number(a.purchase_price) - Number(a.accumulated_depreciation ?? 0)) : '—'}
+                      {a.dep.bookValue != null ? money(a.dep.bookValue) : '—'}
                     </TD>
                   </TR>
                 );
