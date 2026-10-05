@@ -85,8 +85,7 @@ $$;
 
 revoke all on function public.sync_unit_owners_from_occupancy() from public, anon, authenticated;
 
-drop trigger if exists trg_occupancies_sync_unit_owners on public.occupancies;
-create trigger trg_occupancies_sync_unit_owners
+create or replace trigger trg_occupancies_sync_unit_owners
   after insert or update of status, move_out_date, move_in_date, owner_id, unit_id, occupancy_type, is_primary, share_pct
   on public.occupancies
   for each row execute function public.sync_unit_owners_from_occupancy();
