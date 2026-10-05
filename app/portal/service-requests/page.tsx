@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, THead, TR, TH, TD } from '@/components/ui/table';
-import { Badge } from '@/components/ui/shell';
+import { Alert, Badge } from '@/components/ui/shell';
 import { StatusChip, type Tone } from '@/components/operations/status-chip';
 import { cancelServiceRequest } from '@/lib/rpcs/service-requests';
 import { date } from '@/lib/utils';
@@ -32,7 +32,8 @@ export default async function ServiceRequestsList({
   const { submitted, error, cancelled, notice } = await searchParams;
   const supabase = await createClient();
 
-  const { data: unitRows } = await (supabase as any)
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const { data: unitRows, error: rowsError } = await (supabase as any)
     .from('service_requests')
     .select(`
       id, unit_id, number, description, priority, status, source, created_on, created_at,
@@ -40,12 +41,13 @@ export default async function ServiceRequestsList({
       units(unit_number, buildings(associations(name))),
       work_orders(id, status, created_at)
     `)
-    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)))
+    .in('unit_id', unitFilter(ownUnits.ids))
     .is('archived_at', null)
     .order('created_at', { ascending: false });
   // A buyer must not see the previous owner's requests: keep rows naming this
   // owner, or (when no owner is recorded) created on/after this owner's move-in.
   const tenure = await ownerTenureCutoffs(supabase, me.owner_id);
+  const loadError = ownUnits.error ?? (rowsError ? rowsError.message as string : null);
   const rows = ((unitRows ?? []) as any[]).filter((r) =>
     r.homeowner_id || r.owner_id
       ? Boolean(me.owner_id) && (r.homeowner_id === me.owner_id || r.owner_id === me.owner_id)
@@ -92,6 +94,7 @@ export default async function ServiceRequestsList({
           Your request was cancelled.
         </div>
       )}
+      {loadError && <Alert tone="danger" title="Could not load your service requests:">{loadError}. The list below may be incomplete — please refresh.</Alert>}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Something went wrong:</span> {error}

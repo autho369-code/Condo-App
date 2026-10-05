@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isScopedStoragePath } from '@/lib/security/storage-paths'
 import { requireOwner } from '@/lib/auth/me'
 import { notFound, redirect } from 'next/navigation'
 import { Alert, Badge, Surface } from '@/components/ui/shell'
@@ -12,6 +13,9 @@ import { ViolationLettersList } from '@/components/violations/letters-list'
 import { signLetterLinks, VIOLATION_LETTER_COLUMNS, type ViolationLetterRow } from '@/lib/violations/letter-links'
 
 export const dynamic = 'force-dynamic'
+
+// Violation photos live in the private records bucket (same as the staff page).
+const ATTACH_BUCKET = 'association-documents'
 
 export default async function OwnerViolationDetail({
   params,
@@ -32,7 +36,28 @@ export default async function OwnerViolationDetail({
 
   if (!v) return notFound()
 
-  const atts = Array.isArray(v.attachments) ? v.attachments : []
+  // Attachments are stored as [{ name, path, size, ... }] (legacy entries may
+  // be plain strings). Storage paths are signed only after the RLS-scoped read
+  // above proved this violation is the owner's, and only when the path is
+  // scoped to this violation's folder.
+  const rawAttachments: any[] = Array.isArray(v.attachments) ? v.attachments : []
+  const atts = rawAttachments
+    .map((a: any, idx: number) => {
+      if (typeof a === 'string') return { name: `File ${idx + 1}`, path: a }
+      const path = typeof a?.path === 'string' ? a.path : typeof a?.url === 'string' ? a.url : ''
+      return path ? { name: String(a?.name ?? a?.label ?? `File ${idx + 1}`), path } : null
+    })
+    .filter(Boolean) as Array<{ name: string; path: string }>
+  const linkByPath = new Map<string, string>()
+  const pathsToSign = atts.map((a) => a.path).filter((path) => isScopedStoragePath(path, 'violations', v.id))
+  if (pathsToSign.length > 0) {
+    try {
+      const svc = createServiceClient() as any
+      const { data: signed } = await svc.storage.from(ATTACH_BUCKET).createSignedUrls(pathsToSign, 3600)
+      for (const s of signed ?? []) if (s?.path && s?.signedUrl) linkByPath.set(s.path, s.signedUrl)
+    } catch {}
+  }
+  const hrefFor = (path: string) => (/^https:\/\//i.test(path) ? path : linkByPath.get(path) ?? null)
   // RLS returns only this owner's letters that were delivered to the portal.
   const { data: letterRows } = await db.from('violation_letters')
     .select(VIOLATION_LETTER_COLUMNS).eq('violation_id', v.id).order('created_at', { ascending: false })
@@ -78,11 +103,24 @@ export default async function OwnerViolationDetail({
           <div className="border-t border-gray-100 pt-4 mt-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Photos</h3>
             <div className="flex gap-3 flex-wrap">
-              {atts.map((a: string, i: number) => (
-                <a key={i} href={a} target="_blank" className="flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50 transition hover:border-gray-300">
-                  <ImageIcon className="h-8 w-8 text-gray-400" />
-                </a>
-              ))}
+              {atts.map((a, i) => {
+                const href = hrefFor(a.path)
+                const tile = (
+                  <>
+                    <ImageIcon className="h-8 w-8 text-gray-400" />
+                    <span className="mt-1 w-full truncate px-2 text-center text-[11px] text-gray-500">{href ? a.name : 'Unavailable'}</span>
+                  </>
+                )
+                return href ? (
+                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50 transition hover:border-gray-300">
+                    {tile}
+                  </a>
+                ) : (
+                  <div key={i} title={a.name} className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-gray-200/70 bg-gray-50">
+                    {tile}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { Alert } from '@/components/ui/shell';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -48,19 +49,23 @@ export default async function NewServiceRequest({
 
   // Get the owner's units with association context.
   // RLS on v_unit_account_summary already filters to units the user belongs to.
-  const { data: units } = await (supabase as any)
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const { data: units, error: unitsError } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('unit_id, unit_number, association_id')
     // Only my units: RLS also admits board members to every unit.
-    .in('unit_id', unitFilter(await ownPortalUnitIds(supabase, me.owner_id)));
+    .in('unit_id', unitFilter(ownUnits.ids));
 
   const unitOptions = (units ?? []) as UnitOption[];
   const associationIds: string[] = Array.from(
     new Set(unitOptions.map((unit) => unit.association_id).filter((id): id is string => Boolean(id)))
   );
-  const { data: associations } = associationIds.length
+  const { data: associations, error: associationsError } = associationIds.length
     ? await (supabase as any).from('associations').select('id, name').in('id', associationIds)
-    : { data: [] };
+    : { data: [], error: null };
+  const loadError = ownUnits.error
+    ?? (unitsError ? `Could not load your units: ${unitsError.message}` : null)
+    ?? (associationsError ? `Could not load your association: ${associationsError.message}` : null);
   const associationNameById = new Map<string, string>(
     ((associations ?? []) as AssociationOption[]).map((association) => [association.id, association.name])
   );
@@ -84,6 +89,7 @@ export default async function NewServiceRequest({
         </p>
       </div>
 
+      {loadError && <Alert tone="danger" title="Could not load this form:">{loadError}. Please refresh and try again.</Alert>}
       {sp.error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           <span className="font-semibold">Could not submit request:</span> {sp.error}

@@ -36,3 +36,31 @@ export function escapeHtmlText(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+};
+
+/**
+ * Server-safe HTML -> plain text for previews of stored rich text (e.g.
+ * announcement bodies). The result must be rendered as a React text node,
+ * never as HTML: tags are dropped, block breaks become newlines and common
+ * entities are decoded.
+ */
+export function htmlToPlainText(html: string | null | undefined): string {
+  if (!html) return '';
+  return String(html)
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|tr)\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
+      const lower = code.toLowerCase();
+      if (lower in NAMED_ENTITIES) return NAMED_ENTITIES[lower];
+      const n = lower.startsWith('#x') ? parseInt(lower.slice(2), 16) : lower.startsWith('#') ? parseInt(lower.slice(1), 10) : NaN;
+      return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : match;
+    })
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}

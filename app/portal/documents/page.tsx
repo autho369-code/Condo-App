@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ClipboardList, FileText, Scale, Users, File } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { requireOwner } from '@/lib/auth/me'
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
+import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units'
 import { date } from '@/lib/utils'
 import { Alert } from '@/components/ui/shell'
 import { isEntityDocumentStoragePath } from '@/lib/security/storage-paths'
@@ -62,7 +62,8 @@ export default async function OwnerDocumentsPage() {
   // own units, and association documents shared with owners. Relying on RLS
   // alone showed board-only association documents to board members who are
   // also owners.
-  const myUnits = unitFilter(await ownPortalUnitIds(db, me.owner_id))
+  const ownUnits = await loadOwnPortalUnitIds(db, me.owner_id)
+  const myUnits = unitFilter(ownUnits.ids)
   const assocIds = (me.resident_association_ids ?? []).length ? me.resident_association_ids : ['00000000-0000-0000-0000-000000000000']
   const { data, error: docsError } = await db
     .from('documents')
@@ -88,7 +89,7 @@ export default async function OwnerDocumentsPage() {
         .is('archived_at', null)
         .order('name')
     : { data: [], error: null }
-  const loadError = docsError ?? formsError
+  const loadError = (ownUnits.error ? { message: ownUnits.error } : null) ?? docsError ?? formsError
   const forms = (formRows ?? []) as Array<{ id: string; portfolio_id: string; name: string; description: string | null; file_url: string | null; file_path: string | null; file_name: string | null }>
   const formLinks = await signFormFiles(forms, 3600)
 

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/me';
-import { ownPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { loadOwnPortalUnitIds, unitFilter } from '@/lib/portal/own-units';
+import { Alert } from '@/components/ui/shell';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { money } from '@/lib/utils';
@@ -43,8 +44,9 @@ export default async function PayPage({
   const onlinePayments = isStripeConfigured();
 
   // Only the owner's own units (RLS alone also admits board members to every unit).
-  const myUnits = unitFilter(await ownPortalUnitIds(supabase, me.owner_id));
-  const { data: units } = await (supabase as any)
+  const ownUnits = await loadOwnPortalUnitIds(supabase, me.owner_id);
+  const myUnits = unitFilter(ownUnits.ids);
+  const { data: units, error: unitsError } = await (supabase as any)
     .from('v_unit_account_summary')
     .select('*')
     .in('unit_id', myUnits)
@@ -55,16 +57,16 @@ export default async function PayPage({
     new Set(unitOptions.map((u) => u.association_id).filter((id): id is string => Boolean(id)))
   );
 
-  const { data: associations } = associationIds.length
+  const { data: associations, error: associationsError } = associationIds.length
     ? await (supabase as any)
         .from('associations')
         .select('id, name, remit_payee, remit_address, payment_instructions, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_deauthorized_at')
         .in('id', associationIds)
-    : { data: [] };
+    : { data: [], error: null };
   // Payments already on their way (ACH clearing, card awaiting confirmation)
   // are not on the ledger yet; leave them out of the pre-filled amount so the
   // owner does not pay the same balance twice.
-  const { data: inFlight } = await (supabase as any)
+  const { data: inFlight, error: inFlightError } = await (supabase as any)
     .from('payment_intents')
     .select('unit_id, amount')
     .in('unit_id', myUnits)
@@ -77,7 +79,7 @@ export default async function PayPage({
 
   // Management can switch online payments off per account (occupancy); the
   // action refuses those, so don't offer the form either.
-  const { data: occRows } = await (supabase as any)
+  const { data: occRows, error: occRowsError } = await (supabase as any)
     .from('occupancies')
     .select('unit_id, allow_online_payments')
     .eq('owner_id', me.owner_id)
@@ -87,6 +89,29 @@ export default async function PayPage({
       .filter((o) => o.unit_id && o.allow_online_payments === false)
       .map((o) => o.unit_id as string)
   );
+
+  // Any failed read here could show a wrong balance, hide a payment already
+  // in progress (inviting a double payment) or offer online payment that is
+  // switched off. Fail loudly and offer no payment form instead.
+  const loadError =
+    ownUnits.error
+    ?? (unitsError ? `Could not load your balance: ${unitsError.message}` : null)
+    ?? (associationsError ? `Could not load your association's payment details: ${associationsError.message}` : null)
+    ?? (inFlightError ? `Could not check for payments already in progress: ${inFlightError.message}` : null)
+    ?? (occRowsError ? `Could not load your payment settings: ${occRowsError.message}` : null);
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-[26px]">How to pay</h1>
+          <Link href="/portal"><Button variant="secondary">Back</Button></Link>
+        </div>
+        <Alert tone="danger" title="Payment options are unavailable right now:">
+          {loadError}. To avoid paying twice, please refresh the page or try again later before making a payment.
+        </Alert>
+      </div>
+    );
+  }
 
   const assocById = new Map<string, AssociationRemit>(
     ((associations ?? []) as AssociationRemit[]).map((a) => [a.id, a])
