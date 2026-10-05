@@ -1,3 +1,4 @@
+import { todayInZone } from '@/lib/time/zoned';
 export type ActionCenterAttentionItem = {
   label: string;
   count: number;
@@ -15,7 +16,7 @@ export async function loadActionCenterAttention(
   db: AttentionDatabase,
   options: { isFinanceStaff: boolean },
 ): Promise<ActionCenterAttentionItem[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   const overdueWorkOrders = db
     .from('work_orders')

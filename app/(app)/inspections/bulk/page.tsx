@@ -6,6 +6,7 @@ import { Alert, Surface } from '@/components/ui/shell';
 import { requireStaff } from '@/lib/auth/me';
 import { scheduleInspectionsFromTemplate } from '@/lib/rpcs/inspection-templates';
 import { createClient } from '@/lib/supabase/server';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export default async function ScheduleFromTemplatePage({
     db.from('associations').select('id, name').is('archived_at', null).order('name'),
     db.from('inspection_templates').select('id, name, items').is('archived_at', null).order('name'),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const list = (templates ?? []) as any[];
 
   return (

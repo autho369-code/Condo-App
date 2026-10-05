@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
+import { todayInZone } from '@/lib/time/zoned';
 
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -70,7 +71,7 @@ export async function assignParkingSpace(formData: FormData) {
       fail('That tenant is not in the same association as this parking space.');
     }
   }
-  const startDate = s(formData, 'start_date') ?? new Date().toISOString().slice(0, 10);
+  const startDate = s(formData, 'start_date') ?? todayInZone();
   const monthlyFee = num(formData, 'monthly_fee') ?? Number(space.monthly_fee ?? 0);
   const billToUnit = formData.get('bill_to_unit') === 'on';
 
@@ -84,7 +85,7 @@ export async function assignParkingSpace(formData: FormData) {
     monthly_fee: monthlyFee,
     deposit_amount: num(formData, 'deposit_amount') ?? space.deposit_amount,
     deposit_paid: formData.get('deposit_paid') === 'on',
-    deposit_paid_at: formData.get('deposit_paid') === 'on' ? new Date().toISOString().slice(0, 10) : null,
+    deposit_paid_at: formData.get('deposit_paid') === 'on' ? todayInZone() : null,
     vehicle_make: s(formData, 'vehicle_make'),
     vehicle_model: s(formData, 'vehicle_model'),
     vehicle_color: s(formData, 'vehicle_color'),
@@ -136,7 +137,7 @@ export async function releaseParkingSpace(formData: FormData) {
   await requireStaff();
   const assignmentId = formData.get('assignment_id') as string;
   const depositReturned = formData.get('deposit_returned') === 'on';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   const supabase = await createClient();
   const db = supabase as any;

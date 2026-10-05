@@ -26,6 +26,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requireCronSecret } from '@/lib/server/cron-auth';
 import { associationCanAcceptStripePayments, nextMonthlyRunDate } from '@/lib/payments/guards';
 import { assertStripeId } from '@/lib/payments/stripe-invariants';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,7 +123,7 @@ export async function GET(request: NextRequest) {
   if (processorLivemode === null) {
     return NextResponse.json({ error: 'stripe environment is not pinned' }, { status: 503 });
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const summary = { due: 0, charged: 0, skipped: 0, failed: 0, details: [] as string[] };
 
   // Every due mandate (one request stops at 1,000 rows); a read error must

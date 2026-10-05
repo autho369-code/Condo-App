@@ -17,6 +17,7 @@ import { RecordMetaPanels } from '@/components/records/record-meta';
 import { loadRecordMeta } from '@/lib/records/load';
 import { mergePrivateFieldsOne } from '@/lib/private-fields';
 import { AdditionalFees, AuditLog, InsuranceList, KeysList, LinkedRecords, NotesList, UpcomingActivities } from '@/components/associations/record-lists';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -150,7 +151,7 @@ export default async function AssociationProfileTab({
     if (!amountRaw) fail('Enter a fee amount.');
     const amount = Number(amountRaw);
     if (!Number.isFinite(amount) || amount < 0) fail('Enter a valid fee amount.');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayInZone();
     const effectiveFrom = ((formData.get('effective_from') as string) || '').trim() || today;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) fail('Enter a valid effective date.');
     // Start the new policy first, then end the previous open one(s), so a

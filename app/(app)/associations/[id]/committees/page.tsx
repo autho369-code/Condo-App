@@ -9,6 +9,7 @@ import { resolveAssociation } from '@/lib/associations/resolve';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Alert } from '@/components/ui/shell';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,7 @@ export default async function CommitteesTab({
     const chairId = ((formData.get('chair_owner_id') as string) || '').trim();
     if (chairId) {
       const { error: mErr } = await (sb as any).from('committee_members').insert({
-        committee_id: committee.id, owner_id: chairId, role: 'Chair', joined_at: new Date().toISOString().slice(0, 10),
+        committee_id: committee.id, owner_id: chairId, role: 'Chair', joined_at: todayInZone(),
       });
       if (mErr) fail(`Committee created, but adding the chair failed: ${mErr.message}`);
     }
@@ -82,7 +83,7 @@ export default async function CommitteesTab({
       committee_id: committeeId,
       owner_id: ownerId,
       role: ((formData.get('role') as string) || '').trim() || 'Member',
-      joined_at: new Date().toISOString().slice(0, 10),
+      joined_at: todayInZone(),
     });
     if (error) fail(error.message);
     revalidatePath(`/associations/${assocParam}/committees`);
@@ -94,7 +95,7 @@ export default async function CommitteesTab({
     await requireStaff();
     const sb = await createClient();
     const fail = (msg: string) => redirect(`/associations/${assocParam}/committees?error=${encodeURIComponent(msg)}`);
-    const { error } = await (sb as any).from('committee_members').update({ left_at: new Date().toISOString().slice(0, 10) }).eq('id', memberId);
+    const { error } = await (sb as any).from('committee_members').update({ left_at: todayInZone() }).eq('id', memberId);
     if (error) fail(error.message);
     revalidatePath(`/associations/${assocParam}/committees`);
     redirect(`/associations/${assocParam}/committees`);

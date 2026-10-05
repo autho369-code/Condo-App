@@ -5,6 +5,7 @@ import { StatusChip } from '@/components/operations/status-chip'
 import { Alert } from '@/components/ui/shell'
 import { date, money } from '@/lib/utils'
 import { ShieldCheck, FileText } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export default async function BoardInsurancePage() {
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInZone()
 
   const [{ data: docs, error: docsError }, { data: policies, error: policiesError }] = await Promise.all([
     // Association-level insurance documents (master policy, certificates, ...)

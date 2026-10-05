@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { safeInternalNext } from '@/lib/security/redirects';
 import { savePrivateFields } from '@/lib/private-fields';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
+import { todayInZone } from '@/lib/time/zoned';
 
 // ---------- Helpers ----------
 const str  = (f: FormData, k: string) => {
@@ -596,7 +597,7 @@ export async function createOwner(formData: FormData) {
       association_id: associationId,
       occupancy_type: 'owner',
       status: 'current',
-      move_in_date: str(formData, 'move_in_date') ?? new Date().toISOString().slice(0, 10),
+      move_in_date: str(formData, 'move_in_date') ?? todayInZone(),
       dues_amount: str(formData, 'dues_amount') ? Number(str(formData, 'dues_amount')) : null,
       dues_frequency: 'monthly',
       share_pct: str(formData, 'ownership_pct') ? Number(str(formData, 'ownership_pct')) : 100,
@@ -724,7 +725,7 @@ export async function endOccupancy(occupancyId: string, ownerId: string) {
   };
   const { error } = await (supabase as any).from('occupancies').update({
     status:        'past',
-    move_out_date: new Date().toISOString().slice(0, 10),
+    move_out_date: todayInZone(),
   }).eq('id', occupancyId);
   if (error) { failTo(error.message); return; }
   revalidatePath(`/owners/${ownerId}`);

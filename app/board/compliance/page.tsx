@@ -3,6 +3,7 @@ import { requireBoard } from '@/lib/auth/me'
 import { StatusChip } from '@/components/operations/status-chip'
 import { date } from '@/lib/utils'
 import { ShieldAlert, ClipboardCheck, FileWarning } from 'lucide-react'
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function BoardCompliancePage() {
   const supabase = await createClient()
   const db = supabase as any
   const ids = me.board_association_ids ?? []
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInZone()
   const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
 
   const [{ data: tasks }, { data: inspections }, { data: vendors }] = await Promise.all([

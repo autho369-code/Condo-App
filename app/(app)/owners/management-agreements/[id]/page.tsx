@@ -9,6 +9,7 @@ import { requireStaff } from '@/lib/auth/me';
 import { recordAgreementSignatures, updateManagementAgreement } from '@/lib/rpcs/management-agreements';
 import { createClient } from '@/lib/supabase/server';
 import { date } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,7 +148,7 @@ export default async function ManagementAgreementPage({
                   <Input id="signed_by_owner" name="signed_by_owner" required maxLength={120} placeholder="e.g. Jane Doe, Board President" />
                 </Field>
                 <Field label="Signed on" htmlFor="signed_on">
-                  <Input id="signed_on" name="signed_on" type="date" required max={new Date().toISOString().slice(0, 10)} />
+                  <Input id="signed_on" name="signed_on" type="date" required max={todayInZone()} />
                 </Field>
                 <Button type="submit" variant="secondary" className="w-full">Record signatures</Button>
               </form>

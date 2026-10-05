@@ -4,6 +4,7 @@
 // grouped results for the dashboard widget.
 
 import { date } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export type AlertType =
   | 'lease_renewal'
@@ -48,7 +49,7 @@ export async function computeReminders(db: any, portfolioId: string | undefined,
   // Narrow a query to the one association when filtering.
   const scoped = (q: any, column = 'association_id') => (associationId ? q.eq(column, associationId) : q);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
   const groups: ReminderGroup[] = [];
 
   // 1) Lease renewals

@@ -3,6 +3,7 @@ import { Field, Input, Select } from '@/components/ui/input';
 import { Badge } from '@/components/ui/shell';
 import { setOwnerLateFeeOverride } from '@/lib/rpcs/owner-late-fees';
 import { money } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 type Occ = {
   id: string;
@@ -16,7 +17,7 @@ type Occ = {
   units?: { unit_number?: string | null; buildings?: { associations?: { name?: string | null } | null } | null } | null;
 };
 
-export function describeLateFeeRule(o: Occ, today = new Date().toISOString().slice(0, 10)) {
+export function describeLateFeeRule(o: Occ, today = todayInZone()) {
   const expired = o.late_fee_override_until && o.late_fee_override_until < today;
   if (expired) return { label: 'Association default', tone: 'inactive' as const, detail: `Exception ended ${o.late_fee_override_until}` };
   if (o.late_fee_exempt) return { label: 'Exempt', tone: 'pending' as const, detail: o.late_fee_override_reason ?? '' };

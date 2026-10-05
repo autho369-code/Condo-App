@@ -18,6 +18,7 @@ import { tradeLabel } from '@/lib/vendors/options';
 import { loadMaintenanceAttachments } from '@/lib/maintenance/attachments';
 import { MaintenanceAttachments } from '@/components/maintenance/attachments';
 import { assignWorkOrderToStaff } from '@/lib/rpcs/work-order-team';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -328,7 +329,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <Input name="tech_name" placeholder="Name if not on the team" />
-          <Input name="date_worked" type="date" defaultValue={new Date().toISOString().slice(0, 10)} max={new Date().toISOString().slice(0, 10)} required />
+          <Input name="date_worked" type="date" defaultValue={todayInZone()} max={todayInZone()} required />
           <Input name="hours" type="number" step="0.25" min="0.25" placeholder="Hours" required />
           <Input name="hourly_rate" type="number" step="0.01" placeholder="$/hr (optional)" />
           <div className="flex gap-3 md:col-span-5">
@@ -372,7 +373,7 @@ export default async function WorkOrderDetail({ params, searchParams }: { params
             </div>
             <div>
               <Label htmlFor="cb_due">Due date</Label>
-              <Input id="cb_due" name="due_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+              <Input id="cb_due" name="due_date" type="date" defaultValue={todayInZone()} />
             </div>
             <div className="md:col-span-3">
               <Label htmlFor="cb_description">Description on the owner&apos;s ledger</Label>

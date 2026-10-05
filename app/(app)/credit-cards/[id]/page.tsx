@@ -11,6 +11,7 @@ import { requireFinanceStaff } from '@/lib/auth/me';
 import { recordCreditCardCharge, saveCreditCardAccount, voidCreditCardCharge } from '@/lib/rpcs/credit-cards';
 import { createClient } from '@/lib/supabase/server';
 import { date, money } from '@/lib/utils';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +58,7 @@ export default async function CreditCardPage({
     && (!g.association_id || !card.association_id || g.association_id === card.association_id));
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
   const posted = ((charges ?? []) as any[]).filter((c) => !c.voided_at);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInZone();
 
   return (
     <DataWorkspace

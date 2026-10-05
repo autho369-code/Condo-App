@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getMe } from '@/lib/auth/me';
 import { csvCell } from '@/lib/csv/cell';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { todayInZone } from '@/lib/time/zoned';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,7 @@ export async function GET() {
   return new NextResponse(lines.join('\n') + '\n', {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="owner-directory-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Content-Disposition': `attachment; filename="owner-directory-${todayInZone()}.csv"`,
     },
   });
 }

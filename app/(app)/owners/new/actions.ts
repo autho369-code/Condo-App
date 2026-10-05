@@ -9,6 +9,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth/me';
 import { resolveAuthorizedOwnerUnit } from '@/lib/security/tenant-boundaries';
 import { queueOwnerPortalInvitation } from '@/lib/auth/owner-invitation';
+import { todayInZone } from '@/lib/time/zoned';
 
 function s(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -95,7 +96,7 @@ export async function createOwnerWithDetails(formData: FormData) {
   }
 
   const ownerId = owner.id;
-  const moveIn = s(formData, 'move_in_date') ?? new Date().toISOString().slice(0, 10);
+  const moveIn = s(formData, 'move_in_date') ?? todayInZone();
 
   // 3) Owner occupancy + regular monthly assessment
   {
@@ -181,7 +182,7 @@ export async function createOwnerWithDetails(formData: FormData) {
       phone: s(formData, 'phone'),
       role,
       active: true,
-      term_start: new Date().toISOString().slice(0, 10),
+      term_start: todayInZone(),
       auth_user_id: null,
     });
     if (bmErr) {
